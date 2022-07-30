@@ -18,7 +18,7 @@ class Ui_MainWindow(object):
         MainWindow.resize(1100, 600)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap("./resources/OurChat_Logo_low_pixel.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap("../../resource/OurChat_Logo_low_pixel.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         MainWindow.setWindowIcon(icon)
 
         self.centralwidget = QtWidgets.QWidget(MainWindow)
@@ -95,7 +95,7 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "OurChat"))
-        self.Logo.setText(_translate("MainWindow", "<html><head/><body><p><img src=\"./resources/OurChat_Logo_low_pixel.png\"/></p></body></html>"))
+        self.Logo.setText(_translate("MainWindow", "<html><head/><body><p><img src=\"../../resource/OurChat_Logo_low_pixel.png\"/></p></body></html>"))
         self.ChatName.setText(_translate("MainWindow", "<html><head/><body><p align=\"center\"><span style=\" font-size:18pt;\">聊天名字</span></p></body></html>"))
         self.sendButton.setText(_translate("MainWindow", "发送"))
         self.remind.setText(_translate("MainWindow", ""))
