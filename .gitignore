@@ -127,3 +127,13 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# IDE config
+.idea/
+.vscode/
+
+cmake-build-debug-clang/
+cmake-build-release-clang/
+cmake-build-relwithdebinfo-clang/
+
+bin/
