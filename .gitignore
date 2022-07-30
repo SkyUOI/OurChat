@@ -135,5 +135,6 @@ dmypy.json
 cmake-build-debug-clang/
 cmake-build-release-clang/
 cmake-build-relwithdebinfo-clang/
+cmake-build-unittest/
 
 bin/

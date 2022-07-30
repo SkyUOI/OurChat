@@ -6,4 +6,4 @@ add_subdirectory(base)
 add_subdirectory(server)
 
 target_link_libraries(serverbase ws2_32 easyloggingpp)
-target_link_libraries(OurChar_server serverbase jsoncpp)
+target_link_libraries(OurChat_server serverbase jsoncpp)
