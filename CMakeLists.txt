@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.23)
+﻿cmake_minimum_required(VERSION 3.23)
 
 # ccache的使用
 find_program(CCACHE_PROGRAM ccache)
@@ -13,10 +13,12 @@ project(OurChat CXX)
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 link_directories(${PROJECT_SOURCE_DIR}/bin)
+link_directories(third_party/boost/lib)
 
 include_directories(src/server/include)
 include_directories(third_party)
 include_directories(third_party/jsoncpp)
+include_directories(third_party/boost)
 
 add_subdirectory(third_party)
 add_subdirectory(src/server)
