@@ -1,31 +1,30 @@
-#include <cstdio>
+﻿#include <cstdio>
 #include <boost/asio.hpp>
 #include <boost/array.hpp>
 #include <iostream>
+#include <jsoncpp/json/json.h>
+#include <base/server_def.h>
+#include <thread>
+#include <filesystem>
+#include <windows.h>
 
 using boost::asio::ip::tcp;
+char readbuf[1024];
 
-int main(int argc, char *argv[])
+int main()
 {
-    puts("OurChat Server starting...");
-    boost::asio::io_context io;
-    tcp::resolver resolver(io);
-    tcp::resolver::results_type endpoints = resolver.resolve(argv[1], argv[2]);
-    tcp::socket socket(io);
+    // Json::Reader parse;
+    // Json::Value root;
+    // parse.parse("{\"p\":\"o\"}", root);
+    // std::cout << root["p"].asString();
+    boost::asio::io_context io_context;
+    tcp::resolver resolver(io_context);
+    tcp::resolver::results_type endpoints = resolver.resolve("127.0.0.1", "54088");
+    tcp::socket socket(io_context);
     boost::asio::connect(socket, endpoints);
-    try{
-        for(;;) {
-            boost::array<char,128> buf;
-            boost::system::error_code error;
-            size_t len = socket.read_some(boost::asio::buffer(buf), error);
-            if(error == boost::asio::error::eof) {
-                break;
-            }
-            std::cout.write(buf.data(), len);
-        }
-    } catch(std::exception &e) {
-        std::cerr << e.what();
-    }
-    
+    boost::system::error_code ignored_error;
+    boost::asio::write(socket, boost::asio::buffer("{\"code\" : 6,\"data\" : {\"ocId\" : \"aaa\",\"password\" : \"123456\"}}"), ignored_error);
+    size_t len = socket.read_some(boost::asio::buffer(readbuf), ignored_error);
+    std::cout << readbuf;
     return 0;
 }

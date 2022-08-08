@@ -137,5 +137,6 @@ cmake-build-release-clang/
 cmake-build-relwithdebinfo-clang/
 cmake-build-unittest/
 linux_build/
+.xmake/
 
 bin/
