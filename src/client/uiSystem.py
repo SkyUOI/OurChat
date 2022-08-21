@@ -1,149 +1,270 @@
 ﻿from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QApplication,QMainWindow
-import sys,os
-from ui import main_window,register,login
 
-class RegisterUi(register.Ui_MainWindow):
-    def __init__(self):
-        pass    
-    
-    def retranslateUi(self, MainWindow):
-        _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
-        self.gif.setHtml(_translate("MainWindow", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n""<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n""p, li { white-space: pre-wrap; }\n""</style></head><body style=\" font-family:\'SimSun\'; font-size:9pt; font-weight:400; font-style:normal;\">\n""<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">这里是个gif</p></body></html>"))
-        self.nick.setPlaceholderText(_translate("MainWindow", "昵称"))
-        self.password.setPlaceholderText(_translate("MainWindow", "密码"))
-        self.login.setText(_translate("MainWindow", "注册"))
-        self.showPassword.setText(_translate("MainWindow", "显示密码"))
-        self.passwordAgain.setPlaceholderText(_translate("MainWindow", "再次输入密码"))
-        self.toLogin.setText(_translate("MainWindow", "登录"))
-
-        self.bind()
-    
-    def changePasswordState(self,state):
-        if state:
-            password_state = QtWidgets.QLineEdit.Normal
-        else:
-            password_state = QtWidgets.QLineEdit.Password
-
-        self.password.setEchoMode(password_state)
-        self.passwordAgain.setEchoMode(password_state)
-    
-    def bind(self):
-        self.showPassword.clicked.connect(self.changePasswordState)
-
-    def startUi(self):
-        app = QApplication(sys.argv)
-        window = QMainWindow()
-        self.setupUi(window)
-        window.show()
-        app.exec_()
+from PyQt5.QtWidgets import QApplication, QMainWindow
+from ui import main_window
+import sys, os, json
 
 class mainUi(main_window.Ui_MainWindow):
-    def __init__(self):
+    def __init__(self, window):
         self.client = None
         self.chats = []
-    
+        self.lang = {}
+        self.lang_file_name = ""
+        self.config = {}
+        self.window = window
+        self.more_lang_index = 13
+        self.to_another_text = 14
+        self.login_button_text = 0
+        self.login_account_text = 10
+
     def retranslateUi(self, MainWindow):
-        _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "OurChat"))
-        self.logo.setText(_translate("MainWindow", "<html><head/><body><p><img src=\"../../resource/OurChat_Logo_low_pixel.png\"/></p></body></html>"))
-        self.chatButton.setText(_translate("MainWindow", "聊天"))
-        self.settingButton.setText(_translate("MainWindow", "设置"))
-        self.chat_name.setText(_translate("MainWindow", "<html><head/><body><p align=\"center\"><span style=\" font-size:28pt;\">ChatName</span></p></body></html>"))
-        self.chat_send.setText(_translate("MainWindow", "发送"))
-
-        self.setting_logo.setText(_translate("MainWindow", "<html><head/><body><p><img src=\"../../resource/OurChat_logo.png\"/></p></body></html>"))
-        self.setting_clearCache.setText(_translate("MainWindow", "清空缓存"))
-        self.setting_text.setText(_translate("MainWindow", "服务器IP"))
-        self.setting_toGithub.setText(_translate("MainWindow", "Github地址"))
-        self.setting_serverIp.setText("127.0.0.1")
-        self.CantConnectServer.setText(_translate("MainWindow", "<html><head/><body><p><span style=\" font-weight:600; color:#ff0000;\">无法连接至服务器</span></p></body></html>"))
-
         self.bind()
-        self.hideSetting()
-
         self.UiLoadingDone()
-    
-    def updateUiChats(self):
-        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 180, max(561,len(self.chats)*50+5)))
-    
+
+    def renameUi(self):
+        _translate = QtCore.QCoreApplication.translate
+        self.window.setWindowTitle(_translate("MainWindow", "OurChat"))
+        self.logo.setText(
+            _translate(
+                "MainWindow",
+                '<html><head/><body><p><img src="../../resource/OurChat_Logo_low_pixel.png"/></p></body></html>',
+            )
+        )
+
+        self.chatButton.setText(_translate("MainWindow", self.lang[9]))
+        self.settingButton.setText(_translate("MainWindow", self.lang[2]))
+        self.CantConnectServer.setText(
+            _translate(
+                "MainWindow",
+                f'<html><head/><body><p align="center"><span style=" font-weight:600; color:#ff0000;">{self.lang[3]}</span></p></body></html>',
+            )
+        )
+        self.chat_send.setText(_translate("MainWindow", self.lang[4]))
+        self.chat_name.setText(
+            _translate(
+                "MainWindow",
+                '<html><head/><body><p align="center"><span style=" font-size:28pt;">ChatName</span></p></body></html>',
+            )
+        )
+        self.setting_Logo.setText(
+            _translate(
+                "MainWindow",
+                '<html><head/><body><img src="../../resource/OurChat_logo.png"></body></html>',
+            )
+        )
+        self.setting_server_ip_text.setText(_translate("MainWindow", self.lang[5]))
+        self.setting_serverIp.setPlaceholderText(_translate("MainWindow", self.lang[5]))
+        self.setting_lang_text.setText(_translate("MainWindow", self.lang[6]))
+        self.setting_clearCache.setText(_translate("MainWindow", self.lang[7]))
+        self.setting_logout.setText(_translate("MainWindow", self.lang[8]))
+        self.login_startImg.setText(
+            _translate(
+                "MainWindow",
+                '<html><head/><body><img src="../../resource/startImg.png" /></body></html>',
+            )
+        )
+        self.login_account.setPlaceholderText(_translate("MainWindow", self.lang[self.login_account_text]))
+        self.login_password.setEchoMode(QtWidgets.QLineEdit.Password)
+        self.login_password.setPlaceholderText(_translate("MainWindow", self.lang[11]))
+        self.login_login.setText(_translate("MainWindow", self.lang[self.login_button_text]))
+        self.login_showPassword.setText(_translate("MainWindow", self.lang[12]))
+        self.login_more.setText(_translate("MainWindow", self.lang[self.more_lang_index]))
+        self.login_another.setText(_translate("MainWindow", self.lang[self.to_another_text]))
+        self.login_serverIp.setPlaceholderText(_translate("MainWindow", self.lang[5]))
+        self.login_lang_text.setText(_translate("MainWindow", self.lang[6]))
+
+    def loadLang(self):
+        self.lang = {}
+        if self.setting_lang.currentText() == self.lang_file_name:
+            file_name = self.login_lang.currentText()
+        else:
+            file_name = self.setting_lang.currentText()
+        
+        self.lang_file_name = file_name
+
+        if file_name == "":
+            return None
+
+        with open(f"./lang/{file_name}", "r", encoding="utf-8") as f:
+            for line in f.readlines():
+                num, text = line.split("=")
+                num = int(num)
+                text = text.replace("\n", "")
+                self.lang[num] = text
+
+        config_data = self.client.getConfig()
+        config_data["lang_file"] = file_name
+        self.client.setConfig(config_data)
+        self.renameUi()
+
     def getServerIp(self):
         return self.setting_serverIp.text()
 
     def hideChat(self):
-        self.chat_chats.hide()
-        self.chat_brower.hide()
-        self.chat_input.hide()
-        self.chat_emojiButton.hide()
-        self.chat_imageButton.hide()
-        self.chat_send.hide()
-        self.chat_search.hide()
-        self.chat_name.hide()
-        self.chat_fileButton.hide()
+        self.chat_widget.hide()
 
     def showChat(self):
-        self.chat_chats.show()
-        self.chat_brower.show()
-        self.chat_input.show()
-        self.chat_emojiButton.show()
-        self.chat_imageButton.show()
-        self.chat_send.show()
-        self.chat_search.show()
-        self.chat_name.show()
-        self.chat_fileButton.show()
+        self.window.resize(880, 620)
+        self.chat_widget.show()
         self.hideSetting()
+        self.hideLogin()
 
     def hideSetting(self):
-        self.setting_logo.hide()
-        self.setting_clearCache.hide()
-        self.setting_text.hide()
-        self.setting_toGithub.hide()
-        self.setting_serverIp.hide()
-    
+        self.setting_widget.hide()
+
     def showSetting(self):
-        self.setting_logo.show()
-        self.setting_clearCache.show()
-        self.setting_text.show()
-        self.setting_toGithub.show()
-        self.setting_serverIp.show()
+        self.window.resize(880, 620)
+        self.updateLangFile()
+        self.setting_widget.show()
+        self.hideLogin()
         self.hideChat()
+
+    def showLogin(self):
+        self.window.resize(460, 350)
+        self.login_more.setGeometry(QtCore.QRect(420, 330, 37, 18))
+        self.login_widget.show()
+        self.chat_widget.hide()
+        self.setting_widget.hide()
     
+    def clickLoginMore(self):
+        if self.more_lang_index == 13:
+            self.more_lang_index = 17
+            self.loginOpenMore()
+        else:
+            self.more_lang_index = 13
+            self.loginCloseMore()
+    
+    def loginOpenMore(self):
+        _translate = QtCore.QCoreApplication.translate
+        self.window.resize(460, 550)
+        self.login_more.setGeometry(QtCore.QRect(420, 530, 37, 18))
+        self.login_more.setText(_translate("MainWindow", self.lang[17]))
+    
+    def loginCloseMore(self):
+        _translate = QtCore.QCoreApplication.translate
+        self.window.resize(460, 350)
+        self.login_more.setGeometry(QtCore.QRect(420, 330, 37, 18))
+        self.login_more.setText(_translate("MainWindow", self.lang[13]))
+
+    def hideLogin(self):
+        self.login_widget.hide()
+
     def startUi(self):
         app = QApplication(sys.argv)
         window = QMainWindow()
         self.setupUi(window)
         window.show()
         app.exec_()
+
         self.client.ui = None
-    
+
     def startGithub(self):
         os.system("start https://github.com/Yang-Lin-Team/OurChat")
-    
+
+    def login(self):
+        if (
+            self.login_account.text().replace(" ", "") == ""
+            or self.login_password.text().replace(" ", "") == ""
+        ):
+            self.setLoginTip(self.lang[16])
+            return None
+
+        if self.login_button_text == 0:
+            self.setLoginTip("")
+            self.client.login(self.login_account.text(), self.login_password.text())
+        else:
+            self.setLoginTip("")
+            self.client.register(self.login_account.text(), self.login_password.text())
+
     def bind(self):
         self.settingButton.clicked.connect(self.showSetting)
         self.chatButton.clicked.connect(self.showChat)
-        self.client.setServerIp(self.getServerIp())
-        self.setting_serverIp.textChanged.connect(self.client.setServerIp)
-        self.setting_toGithub.clicked.connect(self.startGithub)
+        self.setting_lang.currentTextChanged.connect(self.loadLang)
+        self.login_lang.currentTextChanged.connect(self.loadLang)
+        config_data = self.client.getConfig()
+        self.ServerIpChanged(config_data["server_ip"])
+        self.setting_serverIp.textChanged.connect(self.ServerIpChanged)
+        self.login_login.clicked.connect(self.login)
+        self.login_showPassword.clicked.connect(self.passwordStateChangeed)
+        self.login_more.clicked.connect(self.clickLoginMore)
+        self.login_another.clicked.connect(self.changeLogin)
+
+    def passwordStateChangeed(self):
+        if self.login_showPassword.isChecked():
+            self.login_password.setEchoMode(QtWidgets.QLineEdit.Normal)
+        else:
+            self.login_password.setEchoMode(QtWidgets.QLineEdit.Password)
     
+    def setLoginTip(self,text):
+        _translate = QtCore.QCoreApplication.translate
+        self.login_tip.setText(_translate("MainWindow", f"<html><head/><body><p align=\"right\"><span style=\" color:#ff0000;\">{text}</span></p></body></html>"))
+        self.login_tip.show()
+
+    def ServerIpChanged(self, ip):
+        self.client.setServerIp(ip)  # 传递给客户端
+        config_data = self.client.getConfig()
+        config_data["server_ip"] = ip
+        self.client.setConfig(config_data)  # 写入配置文件
+        self.setting_serverIp.setText(ip)
+
+    def setIpUiText(self, text):
+        self.setting_serverIp.setText(text)
+        self.login_serverIp.setText(text)
+
     def UiLoadingDone(self):
+        self.updateLangFile()
+        self.loadLang()
+        config_data = self.client.getConfig()
+        self.setting_serverIp.setText(config_data["server_ip"])
+        self.login_serverIp.setText(config_data["server_ip"])
+        self.renameUi()
+
+        self.showLogin()
+
+        self.client.setUi(self)
         self.client.start()
-    
-    def setClientSystem(self,client):
+
+    def setClientSystem(self, client):
         self.client = client
 
-class UiCotrol():
-    def __init__(self,client):
+    def updateLangFile(self):
+        self.setting_lang.clear()
+
+        # 先添加当前配置语言 否则为空时添加语言 改变事件会直接更改配置文件
+        config_data = self.client.getConfig()
+        self.setting_lang.addItem(config_data["lang_file"])
+        self.setting_lang.setCurrentText(config_data["lang_file"])
+        self.login_lang.addItem(config_data["lang_file"])
+        self.login_lang.setCurrentText(config_data["lang_file"])
+
+        for lang_file in os.listdir("lang"):
+            if lang_file == config_data["lang_file"]:
+                continue
+            self.setting_lang.addItem(lang_file)
+            self.login_lang.addItem(lang_file)
+    
+    def changeLogin(self):
+        if self.to_another_text == 14:
+            self.to_another_text = 15
+            self.login_button_text = 1
+            self.login_account_text = 18
+            self.renameUi()
+        else:
+            self.to_another_text = 14
+            self.login_button_text = 0
+            self.login_account_text = 10
+            self.renameUi()
+
+
+
+class UiCotrol:
+    def __init__(self, client):
         app = QApplication(sys.argv)
         window = QMainWindow()
-        '''a = RegisterUi() # 生成注册窗口
-        a.setupUi(window)
-        window.show()
-        app.exec_()'''
 
-        a = mainUi()
-        a.setClientSystem(client) # 生成主窗口
+        a = mainUi(window)
+        a.setClientSystem(client)
+
         a.setupUi(window)
         window.show()
         app.exec_()

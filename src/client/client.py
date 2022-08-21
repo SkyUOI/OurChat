@@ -1,6 +1,8 @@
 from config.const import *
 from threading import Thread
-import socket,json
+
+import socket, json
+
 
 class Client(Thread):
     def __init__(self):
@@ -8,47 +10,100 @@ class Client(Thread):
         self.server_ip = ""
         self.s = None
         self.ui = None
+        self.connect_to_server = False
+        self.ocid = ""
         super().__init__()
-    
+
     def getIp(self):
         return socket.gethostbyname(socket.gethostname())
 
-    def setServerIp(self,ip):
+    def setServerIp(self, ip):
         self.server_ip = ip
 
-    def setUi(self,ui):
+    def setUi(self, ui):
+
         self.ui = ui
 
     def run(self):
         self.connectToHost()
-    
+
     def connectToHost(self):
         while True:
-            print(f"连接到服务器({self.server_ip})...")
             try:
                 self.s = socket.socket()
-                self.s.connect((self.server_ip,SERVERPORT))
-                self.StartListen()
-            except:
-                print("连接失败 重新尝试连接")
-                if self.ui != None and hasattr(self.ui,"CantConnectServer"):
+                self.s.connect((self.server_ip, SERVERPORT))
+                self.startListen()
+            except Exception as e:
+                print(e)
+                self.connect_to_server = False
+                if self.ui != None:
                     self.ui.CantConnectServer.show()
 
-    def sendByte(self,byte):
-        self.s.send(byte)
+    def sendByte(self, byte):
+        if self.connect_to_server:
+            self.s.send(byte)
+        else:
+            return False
 
-    def sendNormorMessage(self,string,group):
-        data = {KMSGCODE:NORMALCODE,KMSGDATA:{KDATA:string,KGROUP:group}}
-        json_data = json.dumps(data)
-        self.sendByte(json_data.encode(ENCODE))
-    
-    def StartListen(self):
-        if self.ui != None and hasattr(self.ui,"CantConnectServer"):
+    def startListen(self):
+        if self.ui != None:
             self.ui.CantConnectServer.hide()
-        
+        self.connect_to_server = True
         print("connect to server")
         while True:
             recv = self.s.recv(RECVMAX)
             if recv.decode(ENCODE) == "":
                 continue
-            print(recv.decode(ENCODE))
+            json_data = recv.decode(ENCODE)
+            data = json.loads(json_data)
+            
+            if data[KCODE] == NORMALCODE:
+                print("文本信息",data[KDATA])
+            
+            elif data[KCODE] == REGISTERRETURNCODE:
+                if data[KDATA]["state"] == 0:
+                    self.ocid = data[KDATA]["ocId"]
+                    self.ui.showChat()
+
+                elif data[KDATA]["state"] == 1:
+                    self.ui.setLoginTip(self.ui.lang[19])
+            
+            elif data[KCODE] == LOGINRETURNCODE:
+                if data[KDATA]["state"] == 0:
+                    self.ui.showChat()
+                
+                elif data[KDATA]["state"] == 1:
+                    self.ui.setLoginTip(self.ui.lang[20])
+                    
+
+
+    def getConfig(self):
+        with open("./config/config.json", "r") as f:
+            config_data = json.load(f)
+        return config_data
+
+    def setConfig(self, config_data):
+        with open("./config/config.json", "w") as f:
+            json.dump(config_data, f)
+
+    def login(self, ocid, password):
+        # TODO 将密码加密再发送
+        data = {"code": 6, "data": {"ocId": ocid, "password": password}}
+        json_data = json.dumps(data)
+
+        if self.connect_to_server:
+            self.ocid = ocid
+            self.sendByte(json_data.encode(ENCODE))
+        else:
+            self.ui.setLoginTip(self.ui.lang[3])
+    
+    def register(self,nick,password):
+        # TODO 将密码加密再发送
+
+        data = {"code" : 4,"data" : {"nick" : nick ,"password" : password}}
+        json_data = json.dumps(data)
+
+        if self.connect_to_server:
+            self.sendByte(json_data.encode(ENCODE))
+        else:
+            self.ui.setLoginTip(self.ui.lang[3])
