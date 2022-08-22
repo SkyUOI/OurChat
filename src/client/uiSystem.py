@@ -104,10 +104,15 @@ class mainUi(main_window.Ui_MainWindow):
         self.chat_widget.hide()
 
     def showChat(self):
+        print(1)
         self.window.resize(880, 620)
+        print(2)
         self.chat_widget.show()
+        print(3)
         self.hideSetting()
+        print(4)
         self.hideLogin()
+        print(5)
 
     def hideSetting(self):
         self.setting_widget.hide()
@@ -188,6 +193,7 @@ class mainUi(main_window.Ui_MainWindow):
         self.login_showPassword.clicked.connect(self.passwordStateChangeed)
         self.login_more.clicked.connect(self.clickLoginMore)
         self.login_another.clicked.connect(self.changeLogin)
+        self.chat_send.clicked.connect(self.sendNormalMsg)
 
     def passwordStateChangeed(self):
         if self.login_showPassword.isChecked():
@@ -195,6 +201,9 @@ class mainUi(main_window.Ui_MainWindow):
         else:
             self.login_password.setEchoMode(QtWidgets.QLineEdit.Password)
     
+    def getOcid(self):
+        return self.login_account.text()
+
     def setLoginTip(self,text):
         _translate = QtCore.QCoreApplication.translate
         self.login_tip.setText(_translate("MainWindow", f"<html><head/><body><p align=\"right\"><span style=\" color:#ff0000;\">{text}</span></p></body></html>"))
@@ -210,6 +219,10 @@ class mainUi(main_window.Ui_MainWindow):
     def setIpUiText(self, text):
         self.setting_serverIp.setText(text)
         self.login_serverIp.setText(text)
+    
+    def sendNormalMsg(self):
+        print(self.chat_input.toPlainText())
+        self.client.sendNormalMsg(1,self.chat_input.toPlainText())
 
     def UiLoadingDone(self):
         self.updateLangFile()
@@ -254,8 +267,6 @@ class mainUi(main_window.Ui_MainWindow):
             self.login_button_text = 0
             self.login_account_text = 10
             self.renameUi()
-
-
 
 class UiCotrol:
     def __init__(self, client):

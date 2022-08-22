@@ -1,7 +1,7 @@
 from config.const import *
 from threading import Thread
 
-import socket, json
+import socket, json,hashlib
 
 
 class Client(Thread):
@@ -70,6 +70,7 @@ class Client(Thread):
             
             elif data[KCODE] == LOGINRETURNCODE:
                 if data[KDATA]["state"] == 0:
+                    self.ocid = self.ui.getOcid()
                     self.ui.showChat()
                 
                 elif data[KDATA]["state"] == 1:
@@ -87,8 +88,9 @@ class Client(Thread):
             json.dump(config_data, f)
 
     def login(self, ocid, password):
-        # TODO 将密码加密再发送
-        data = {"code": 6, "data": {"ocId": ocid, "password": password}}
+        hash = hashlib.sha256()
+        hash.update(password.encode(ENCODE))
+        data = {"code": 6, "data": {"ocId": ocid, "password": hash.hexdigest()}}
         json_data = json.dumps(data)
 
         if self.connect_to_server:
@@ -98,12 +100,18 @@ class Client(Thread):
             self.ui.setLoginTip(self.ui.lang[3])
     
     def register(self,nick,password):
-        # TODO 将密码加密再发送
-
-        data = {"code" : 4,"data" : {"nick" : nick ,"password" : password}}
+        hash = hashlib.sha256()
+        hash.update(password.encode(ENCODE))
+        data = {"code" : 4,"data" : {"nick" : nick ,"password" : hash.hexdigest()}}
         json_data = json.dumps(data)
 
         if self.connect_to_server:
             self.sendByte(json_data.encode(ENCODE))
         else:
             self.ui.setLoginTip(self.ui.lang[3])
+    
+    def sendNormalMsg(self,group,msg):
+        if self.connect_to_server:
+            data = {"code" : 0,"data" : {"cid" : group,"sender_id" : self.ocid,"msg" :msg}}
+            json_data = json.dumps(data)
+            self.sendByte(json_data.encode(ENCODE))
