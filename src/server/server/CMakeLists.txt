@@ -17,4 +17,4 @@ elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
     target_link_libraries(OurChat_server ws2_32 wsock32)
 endif()
 
-target_link_libraries(OurChat_server jsoncpp easyloggingpp base)
+target_link_libraries(OurChat_server jsoncpp easyloggingpp base hash_library)

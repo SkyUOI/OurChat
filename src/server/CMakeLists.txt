@@ -8,6 +8,10 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" OR "${CMAKE_CXX_COMPILER_ID}" MAT
 	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 ${compile_flag}")
 	set(CMAKE_CXX_FLAGS_MinSizeRel "${CMAKE_CXX_FLAGS_MinSizeRel} ${compile_flag}")
 	set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} ${compile_flag}")
+	if("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
+		list(APPEND CMAKE_EXE_LINKER_FLAGS "-Wl")
+		list(APPEND CMAKE_SHARED_LINKER_FLAGS "-Wl")
+	endif()
 endif()
 
 add_subdirectory(server)

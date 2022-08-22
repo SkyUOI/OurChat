@@ -113,12 +113,12 @@
     }
 }
 ```
-| key      | valueType | comment |
-|:---------|:----------|:--------|
-| code     | int       | 信息ID    |
-| data     | json      | 信息相关数据  |
-| mail     | str       | 注册邮箱    |
-| password | str       | 注册密码    |
+| key      | valueType | comment      |
+|:---------|:----------|:-------------|
+| code     | int       | 信息ID         |
+| data     | json      | 信息相关数据       |
+| mail     | str       | 注册邮箱         |
+| password | str       | 注册密码(sha256) |
 
 # 注册返回信息json
 格式如下
@@ -154,12 +154,12 @@
     }
 }
 ```
-| key      | valueType | comment |
-|:---------|:----------|:--------|
-| code     | int       | 信息ID    |
-| data     | json      | 信息相关数据  |
-| ocId     | str       | ocId    |
-| password | str       | 密码      |
+| key      | valueType | comment    |
+|:---------|:----------|:-----------|
+| code     | int       | 信息ID       |
+| data     | json      | 信息相关数据     |
+| ocId     | str       | ocId       |
+| password | str       | 密码(sha256) |
 
 # 登录返回信息json
 格式如下
