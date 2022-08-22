@@ -1,21 +1,16 @@
-﻿#include "base/server_def.h"
-#include "boost/array.hpp"
-#include "boost/asio.hpp"
-#include "json/json.h"
+﻿#include <base/server_def.h>
+#include <boost/array.hpp>
+#include <boost/asio.hpp>
+#include <json/json.h>
 #include <cstdio>
 #include <filesystem>
 #include <iostream>
 #include <thread>
-#include <windows.h>
 
 using boost::asio::ip::tcp;
 char readbuf[1024];
 
 int main() {
-    //     Json::Reader parse;
-    //     Json::Value root;
-    //     parse.parse("{\"p\":\"o\"}", root);
-    //     std::cout << root["p"].asString();
     boost::asio::io_context io_context;
     tcp::resolver resolver(io_context);
     tcp::resolver::results_type endpoints
