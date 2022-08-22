@@ -2,9 +2,8 @@
 
 using boost::asio::ip::tcp;
 
-int main()
-{
-	printf("Ourchat server starting...");
-	ourchat::server server;
-	return 0;
+int main() {
+    printf("Ourchat server starting...");
+    ourchat::server server;
+    return 0;
 }

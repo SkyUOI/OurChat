@@ -2,10 +2,10 @@
  * @brief server class
  */
 #pragma once
-#include <boost/asio.hpp>
 #include <base/server_def.h>
-#include <unordered_map>
+#include <boost/asio.hpp>
 #include <map>
+#include <unordered_map>
 
 using boost::asio::ip::tcp;
 
@@ -15,6 +15,7 @@ public:
     server();
 
     ~server();
+
 private:
     /**
      * @brief 尝试登录
@@ -31,7 +32,7 @@ private:
     boost::asio::io_context io_context;
 
     tcp::acceptor acceptor;
-    
+
     // 储存oc号对应的客户端
     std::map<ocid_t, tcp::socket> clients;
 };
