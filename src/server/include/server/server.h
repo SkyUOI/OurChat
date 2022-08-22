@@ -4,7 +4,7 @@
 #pragma once
 #include <base/server_def.h>
 #include <boost/asio.hpp>
-#include <map>
+#include <json/json.h>
 #include <unordered_map>
 
 using boost::asio::ip::tcp;
@@ -20,7 +20,7 @@ private:
     /**
      * @brief 尝试登录
      */
-    void trylogin(tcp::socket& socket);
+    void trylogin(tcp::socket& socket, Json::Value value);
 
     /**
      * @brief 发送文本
@@ -34,6 +34,6 @@ private:
     tcp::acceptor acceptor;
 
     // 储存oc号对应的客户端
-    std::map<ocid_t, tcp::socket> clients;
+    std::unordered_map<ocid_t, tcp::socket*> clients;
 };
 }

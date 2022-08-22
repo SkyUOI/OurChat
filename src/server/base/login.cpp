@@ -4,11 +4,9 @@
 
 #include <base/login.h>
 
-namespace ourchat {
-namespace database {
-    login_state login() {
-        // TODO
-        return login_state::SUCCESS;
-    }
-} // namespace database
+namespace ourchat::database {
+login_state login(const std::string& account, const std::string& password) {
+    // TODO
+    return login_state::SUCCESS;
+}
 }

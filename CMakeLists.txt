@@ -16,15 +16,15 @@ link_directories(${PROJECT_SOURCE_DIR}/bin)
 link_directories(third_party/boost/lib)
 
 include_directories(src/server/include)
-include_directories(third_party)
 include_directories(third_party/jsoncpp)
 include_directories(third_party/boost)
 
 add_subdirectory(third_party)
 add_subdirectory(src/server)
+add_subdirectory(tests/server/testclient)
 
 if("${OURCHAT_BUILD_TYPE}" STREQUAL "Test")
-    add_subdirectory(tests/server)
+    add_subdirectory(tests/server/unittest)
     add_subdirectory(third_party/googletest)
     message("using gtest")
     target_link_libraries(unittest OurChat_server gtest)
