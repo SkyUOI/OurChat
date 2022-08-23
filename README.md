@@ -12,5 +12,5 @@
 | googletest    | 单元测试框架  |
 | boost.asio    | 网络库     |
 | hash_library  | 哈希算法库   |
-
+| gflags        | 命令行解析库  |
 在此向开源软件的作者表示感谢！

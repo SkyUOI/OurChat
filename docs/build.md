@@ -9,6 +9,23 @@ cmake ../src/server -DCMAKE_BUILD_TYPE=Release
 make
 ./OurChat_server
 ```
+但是启动服务端需要配置相应的数据库，需要自己配置json文件
+具体格式为
+
+```json
+{
+  "host": "",
+  "user": "",
+  "passwd": "",
+  "db": "",
+  "port": 0
+}
+```
+启动时使用
+```
+./OurChat_server --dbcfg=jsonpath
+```
+
 启动单元测试的方法
 ```
 cmake ../src/server -DCMAKE_BUILD_TYPE=Release -DOURCHAT_BUILD_TYPE=Test

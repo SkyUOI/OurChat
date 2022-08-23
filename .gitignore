@@ -140,3 +140,6 @@ linux_build/
 .xmake/
 
 bin/
+
+database.json
+database_local.json

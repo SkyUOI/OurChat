@@ -19,6 +19,7 @@ include_directories(src/server/include)
 include_directories(third_party/jsoncpp)
 include_directories(third_party/boost)
 include_directories(third_party/hash-library)
+include_directories(third_party/easyloggingpp)
 
 add_subdirectory(third_party)
 add_subdirectory(src/server)
