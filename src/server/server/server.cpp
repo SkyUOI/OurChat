@@ -1,6 +1,7 @@
 ﻿#include <base/login.h>
 #include <base/users.h>
 #include <boost/asio.hpp>
+#include <easylogging++.h>
 #include <json/json.h>
 #include <server/server.h>
 
@@ -33,8 +34,12 @@ server::server()
             send_text(readbuf, root["data"]["cid"].asUInt());
             break;
         }
+        case client_code::REGISTER: {
+            break;
+        }
         default: {
-            NOREACH("code %d is not defined.", receive_code);
+            LOG(ERROR) << "client code " << int(receive_code)
+                       << " is not defined.";
         }
         }
     }
@@ -63,13 +68,15 @@ void server::trylogin(tcp::socket& socket, Json::Value value) {
     }
     case database::login_state::PASSWORDINCORRECT:
     case database::login_state::ACCOUNTNOTFOUND: {
+        // 账号未定义或密码错误
         boost::asio::write(
             socket, boost::asio::buffer(make_login_json("1")), error);
-        // 账号未定义或密码错误
         break;
     }
     default: {
-        NOREACH("code %d is not defined.", return_code);
+        LOG(ERROR) << "login code " << int(return_code) << " is not defined.";
+        boost::asio::write(
+            socket, boost::asio::buffer(make_login_json("2")), error);
     }
     }
 }
@@ -79,8 +86,15 @@ void server::send_text(const std::string& json, group_id_t group) {
     boost::system::error_code error;
     for (const auto& i : database::get_members_by_group(group)) {
         if (clients.find(i) != clients.end()) {
-            // 存在socket链接,直接发送
+            // 存在socket链接
             boost::asio::write(*(clients[i]), boost::asio::buffer(json), error);
+            // 判断是否成功发送
+            if (error == boost::asio::error::eof) {
+                // 连接已结束保存数据到数据库,等待下一次发送
+                database::save_chat_msg(i, json);
+                delete clients[i];
+                clients.erase(i);
+            }
         } else {
             // 不存在socket链接，保存数据到数据库,等待下一次发送
             database::save_chat_msg(i, json);
@@ -88,9 +102,44 @@ void server::send_text(const std::string& json, group_id_t group) {
     }
 }
 
+/**
+ * @brief 制造登录返回的信息
+ * @param db_return 数据库返回的数据
+ * @param state_code 状态码
+ * @return json
+ */
+std::string make_register_json(
+    const database::register_return& db_return, const std::string& state_code) {
+    std::string s = "";
+}
+
+void server::tryregister(tcp::socket& socket, Json::Value value) {
+    // 通过json解析出数据
+    database::user_for_register user;
+    user.passwd = value["data"]["passwd"].asString();
+    user.name = value["data"]["passwd"].asString();
+    user.date = value["data"]["date"].asInt();
+    user.email = value["data"]["email"].asString();
+    database::register_return returncode = database::register_(user);
+    boost::system::error_code ignore;
+    switch (returncode.state) {
+    case database::register_state::SUCCESS: {
+        boost::asio::write(
+            socket, boost::asio::buffer(make_register_json()), ignore);
+        break;
+    }
+    default: {
+        boost::asio::write(
+            socket, boost::asio::buffer(make_register_json()), ignore);
+        LOG(ERROR) << "register code " << (int)returncode.state
+                   << " is not defined.";
+    }
+    }
+}
+
 server::~server() {
     // 遍历所有socket并释放
-    for (auto i : clients) {
+    for (const auto& i : clients) {
         delete i.second;
     }
 }

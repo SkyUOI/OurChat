@@ -36,10 +36,14 @@ void init(const std::string& dbconfig_path) {
     // user
     if (mysql_query(&mysql,
             "CREATE TABLE IF NOT EXISTS user("
-            "id INT,"
+            "id INT AUTO_INCREMENT,"
             "ocid CHAR(20),"
             "passwd CHAR(30),"
-            "name CHAR(15)"
+            "name CHAR(15),"
+            "email CHAR(120),"
+            "date INT,"
+            "PRIMARY KEY(id),"
+            "UNIQUE KEY(ocid)"
             ")Engine=InnoDB DEFAULT CHARSET=utf8mb4;")) {
         LOG(FATAL) << "Error in creating the user table";
     }

@@ -3,7 +3,10 @@
 #include <string>
 
 namespace ourchat::database {
-extern MYSQL* mysql;
+extern MYSQL mysql;
+
+// 重复数据
+constexpr unsigned int DUP_DATA = 1062;
 
 /**
  * @brief 初始化数据库

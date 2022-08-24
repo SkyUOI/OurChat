@@ -2,7 +2,7 @@
  * @brief server class
  */
 #pragma once
-#include <base/server_def.h>
+#include "server_def.h"
 #include <boost/asio.hpp>
 #include <json/json.h>
 #include <unordered_map>
@@ -28,6 +28,11 @@ private:
      * @param group 聊天号
      */
     void send_text(const std::string& json, group_id_t group);
+
+    /**
+     * @brief 尝试注册
+     */
+    void tryregister(tcp::socket& socket, Json::Value value);
 
     boost::asio::io_context io_context;
 
