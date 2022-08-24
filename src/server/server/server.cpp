@@ -125,12 +125,12 @@ void server::tryregister(tcp::socket& socket, Json::Value value) {
     switch (returncode.state) {
     case database::register_state::SUCCESS: {
         boost::asio::write(
-            socket, boost::asio::buffer(make_register_json()), ignore);
+            socket, boost::asio::buffer(make_register_json(returncode, "0")), ignore);
         break;
     }
     default: {
         boost::asio::write(
-            socket, boost::asio::buffer(make_register_json()), ignore);
+            socket, boost::asio::buffer(make_register_json(returncode, "1")), ignore);
         LOG(ERROR) << "register code " << (int)returncode.state
                    << " is not defined.";
     }

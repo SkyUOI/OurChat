@@ -2,6 +2,7 @@
 #include <base/filesys.h>
 #include <csignal>
 #include <cstdlib>
+#include <filesystem>
 #include <easylogging++.h>
 #include <gflags/gflags.h>
 #include <server/server.h>
@@ -27,7 +28,7 @@ static el::base::SubsecondPrecision LogSsPrec(3);
  * @brief 设置日志
  */
 static void ConfigureLogger() {
-    _mkdir("log");
+    std::filesystem::create_directories("log");
     // 日志器设置
     std::string datetimeY
         = el::base::utils::DateTime::getDateTime("%Y", &LogSsPrec);
@@ -49,7 +50,6 @@ static void ConfigureLogger() {
     defaultConf.setGlobally(el::ConfigurationType::LogFlushThreshold, "1");
     filename = datetimeYMd + "_"
         + el::LevelHelper::convertToString(el::Level::Global) + ".log";
-    std::cerr << filePath + filename;
     defaultConf.set(el::Level::Global, el::ConfigurationType::Filename,
         filePath + filename);
     filename = datetimeYMd + "_"

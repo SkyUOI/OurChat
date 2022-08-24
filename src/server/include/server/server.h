@@ -2,7 +2,7 @@
  * @brief server class
  */
 #pragma once
-#include "server_def.h"
+#include <server/server_def.h>
 #include <boost/asio.hpp>
 #include <json/json.h>
 #include <unordered_map>

@@ -1,5 +1,4 @@
 #include <base/filesys.h>
-#include <cstdlib>
 #include <easylogging++.h>
 #include <json/json.h>
 #include <mysql.h>

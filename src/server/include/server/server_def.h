@@ -1,9 +1,8 @@
 #pragma once
-#include <cstdio>
 #include <string>
 
 namespace ourchat {
-extern const int port;
+inline const int port = 54088;
 
 enum class client_code {
     TEXT = 0,
