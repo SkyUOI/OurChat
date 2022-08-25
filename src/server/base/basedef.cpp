@@ -12,6 +12,8 @@ std::string passwd;
 std::string db;
 unsigned int port;
 
+char sql[10201];
+
 void init(const std::string& dbconfig_path) {
     // 初始化数据库
     mysql_init(&mysql);
@@ -42,7 +44,8 @@ void init(const std::string& dbconfig_path) {
             "email CHAR(120),"
             "date INT,"
             "PRIMARY KEY(id),"
-            "UNIQUE KEY(ocid)"
+            "UNIQUE KEY(ocid),"
+            "UNIQUE KEY(email)"
             ")Engine=InnoDB DEFAULT CHARSET=utf8mb4;")) {
         LOG(FATAL) << "Error in creating the user table";
     }

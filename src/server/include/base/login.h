@@ -13,13 +13,22 @@ enum class login_state {
 };
 
 /**
+ * @brief 登录的返回值
+ */
+struct login_return {
+    login_state state;
+    int id;
+};
+
+/**
  * @brief 进行登录操作
  */
-login_state login(const std::string& account, const std::string& password);
+login_return login(const std::string& account, const std::string& password);
 
 enum class register_state {
     SUCCESS, // 成功
-    DATABASE_ERROR // 数据库错误
+    DATABASE_ERROR, // 数据库错误
+    EMAIL_DUP // 邮箱重复
 };
 
 /**

@@ -9,13 +9,11 @@
 #include <mysql.h>
 
 namespace ourchat::database {
-login_state login(const std::string& account, const std::string& password) {
+login_return login(const std::string& account, const std::string& password) {
     // 第一步查询账号
-    return login_state::SUCCESS;
+    return { login_state::SUCCESS };
 }
 
-// 保存ocid的数组
-char register_sql_tmp[300];
 // 储存ocid的各种可能出现的组合
 char ocid_char_list[] = { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k',
     'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
@@ -36,16 +34,32 @@ std::string make_random_ocid() {
 }
 
 register_return register_(const user_for_register& user) {
+    sprintf(sql, "select COUNT(email) from user where email=\"%s\"",
+        user.email.c_str());
+    if (mysql_query(&mysql, sql)) {
+        LOG(ERROR) << "Can't select data from db." << mysql_errno(&mysql) << ' '
+                   << mysql_error(&mysql);
+        return { register_state::DATABASE_ERROR };
+    }
+    MYSQL_RES* res = mysql_store_result(&mysql);
+    MYSQL_ROW count_data = mysql_fetch_row(res);
+    if (count_data[0][0] != '0') {
+        mysql_free_result(res);
+        return { register_state::EMAIL_DUP };
+    }
+    mysql_free_result(res);
+    std::string ocid;
     do {
-        size_t len = sprintf(register_sql_tmp,
-            "INSERT INTO user(ocid CHAR(20),"
-            "passwd CHAR(30),"
-            "name CHAR(15),"
-            "email CHAR(120),"
-            "date INT) VALUES (%s %s %s %d)",
-            make_random_ocid().c_str(), user.passwd.c_str(), user.email.c_str(),
-            user.date);
-        if (mysql_real_query(&mysql, register_sql_tmp, len)) {
+        ocid = make_random_ocid().c_str();
+        size_t len = sprintf(sql,
+            "INSERT INTO user(ocid,"
+            "passwd,"
+            "name,"
+            "email,"
+            "date) VALUES (\"%s\", \"%s\",\"%s\", \"%s\", %d)",
+            ocid.c_str(), user.passwd.c_str(), user.name.c_str(),
+            user.email.c_str(), user.date);
+        if (mysql_real_query(&mysql, sql, len)) {
             unsigned int errcode = mysql_errno(&mysql);
             switch (errcode) {
             case DUP_DATA: {
@@ -62,9 +76,12 @@ register_return register_(const user_for_register& user) {
         }
         break;
     } while (true);
-    MYSQL_RES* res = mysql_store_result(&mysql);
-    register_return returndata = { register_state::SUCCESS };
-
+    // 获取刚刚插入的数据
+    mysql_query(&mysql, "select last_insert_id();");
+    res = mysql_store_result(&mysql);
+    MYSQL_ROW last_insert_id = mysql_fetch_row(res);
+    register_return returndata
+        = { register_state::SUCCESS, ocid, atoi(last_insert_id[0]) };
     mysql_free_result(res);
     return returndata;
 }

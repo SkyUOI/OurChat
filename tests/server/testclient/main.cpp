@@ -1,7 +1,7 @@
-﻿#include <server/server_def.h>
-#include <boost/asio.hpp>
+﻿#include <boost/asio.hpp>
 #include <iostream>
 #include <json/json.h>
+#include <server/server_def.h>
 
 using boost::asio::ip::tcp;
 char readbuf[1024];
@@ -15,8 +15,15 @@ int main() {
     boost::asio::connect(socket, endpoints);
     boost::system::error_code ignored_error;
     boost::asio::write(socket,
-        boost::asio::buffer("{\"code\" : 6,\"data\" : {\"ocId\" : "
-                            "\"aaa\",\"password\" : \"123456\"}}"),
+        boost::asio::buffer("{"
+                            "  \"code\": 4,"
+                            "  \"time\": 1661389837,"
+                            "  \"data\": {"
+                            "    \"email\": \"limuyang2020@163.com\","
+                            "    \"password\": \"123456\","
+                            "    \"name\": \"test\""
+                            "  }"
+                            "}"),
         ignored_error);
     size_t len = socket.read_some(boost::asio::buffer(readbuf), ignored_error);
     std::cout << readbuf;

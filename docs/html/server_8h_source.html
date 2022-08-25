@@ -71,9 +71,9 @@ $(function() {
 <div class="contents">
 <a href="server_8h.html">Go to the documentation of this file.</a><div class="fragment"><div class="line"><a id="l00001" name="l00001"></a><span class="lineno">    1</span> </div>
 <div class="line"><a id="l00004" name="l00004"></a><span class="lineno">    4</span><span class="preprocessor">#pragma once</span></div>
-<div class="line"><a id="l00005" name="l00005"></a><span class="lineno">    5</span><span class="preprocessor">#include &quot;<a class="code" href="server__def_8h.html">server_def.h</a>&quot;</span></div>
-<div class="line"><a id="l00006" name="l00006"></a><span class="lineno">    6</span><span class="preprocessor">#include &lt;boost/asio.hpp&gt;</span></div>
-<div class="line"><a id="l00007" name="l00007"></a><span class="lineno">    7</span><span class="preprocessor">#include &lt;json/json.h&gt;</span></div>
+<div class="line"><a id="l00005" name="l00005"></a><span class="lineno">    5</span><span class="preprocessor">#include &lt;boost/asio.hpp&gt;</span></div>
+<div class="line"><a id="l00006" name="l00006"></a><span class="lineno">    6</span><span class="preprocessor">#include &lt;json/json.h&gt;</span></div>
+<div class="line"><a id="l00007" name="l00007"></a><span class="lineno">    7</span><span class="preprocessor">#include &lt;<a class="code" href="server__def_8h.html">server/server_def.h</a>&gt;</span></div>
 <div class="line"><a id="l00008" name="l00008"></a><span class="lineno">    8</span><span class="preprocessor">#include &lt;unordered_map&gt;</span></div>
 <div class="line"><a id="l00009" name="l00009"></a><span class="lineno">    9</span> </div>
 <div class="line"><a id="l00010" name="l00010"></a><span class="lineno">   10</span><span class="keyword">using </span>boost::asio::ip::tcp;</div>
@@ -86,11 +86,11 @@ $(function() {
 <div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span>    <a class="code hl_function" href="classourchat_1_1server.html#aa9e9a8e880cc58fc6e8613a7f8edc31c">~server</a>();</div>
 <div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span> </div>
 <div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span><span class="keyword">private</span>:</div>
-<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span>    <span class="keywordtype">void</span> trylogin(tcp::socket&amp; socket, Json::Value value);</div>
+<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span>    <span class="keywordtype">void</span> trylogin(tcp::socket&amp; socket, <span class="keyword">const</span> Json::Value&amp; value);</div>
 <div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span> </div>
 <div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span>    <span class="keywordtype">void</span> send_text(<span class="keyword">const</span> std::string&amp; json, <a class="code hl_typedef" href="namespaceourchat.html#a329a16aeb348e2ce668da1931214a549">group_id_t</a> group);</div>
 <div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span> </div>
-<div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span>    <span class="keywordtype">void</span> tryregister(tcp::socket&amp; socket, Json::Value value);</div>
+<div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span>    <span class="keywordtype">void</span> tryregister(tcp::socket&amp; socket, <span class="keyword">const</span> Json::Value&amp; value);</div>
 <div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span> </div>
 <div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span>    boost::asio::io_context io_context;</div>
 <div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span> </div>
@@ -101,10 +101,10 @@ $(function() {
 <div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span>};</div>
 <div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span>}</div>
 <div class="ttc" id="aclassourchat_1_1server_html"><div class="ttname"><a href="classourchat_1_1server.html">ourchat::server</a></div><div class="ttdef"><b>Definition:</b> server.h:13</div></div>
-<div class="ttc" id="aclassourchat_1_1server_html_a949880c11e9064a76ff322a58fbac163"><div class="ttname"><a href="classourchat_1_1server.html#a949880c11e9064a76ff322a58fbac163">ourchat::server::server</a></div><div class="ttdeci">server()</div><div class="ttdef"><b>Definition:</b> server.cpp:12</div></div>
-<div class="ttc" id="aclassourchat_1_1server_html_aa9e9a8e880cc58fc6e8613a7f8edc31c"><div class="ttname"><a href="classourchat_1_1server.html#aa9e9a8e880cc58fc6e8613a7f8edc31c">ourchat::server::~server</a></div><div class="ttdeci">~server()</div><div class="ttdef"><b>Definition:</b> server.cpp:140</div></div>
-<div class="ttc" id="anamespaceourchat_html"><div class="ttname"><a href="namespaceourchat.html">ourchat</a></div><div class="ttdef"><b>Definition:</b> basedef.cpp:7</div></div>
-<div class="ttc" id="anamespaceourchat_html_a329a16aeb348e2ce668da1931214a549"><div class="ttname"><a href="namespaceourchat.html#a329a16aeb348e2ce668da1931214a549">ourchat::group_id_t</a></div><div class="ttdeci">unsigned int group_id_t</div><div class="ttdef"><b>Definition:</b> server_def.h:17</div></div>
+<div class="ttc" id="aclassourchat_1_1server_html_a949880c11e9064a76ff322a58fbac163"><div class="ttname"><a href="classourchat_1_1server.html#a949880c11e9064a76ff322a58fbac163">ourchat::server::server</a></div><div class="ttdeci">server()</div><div class="ttdef"><b>Definition:</b> server.cpp:13</div></div>
+<div class="ttc" id="aclassourchat_1_1server_html_aa9e9a8e880cc58fc6e8613a7f8edc31c"><div class="ttname"><a href="classourchat_1_1server.html#aa9e9a8e880cc58fc6e8613a7f8edc31c">ourchat::server::~server</a></div><div class="ttdeci">~server()</div><div class="ttdef"><b>Definition:</b> server.cpp:167</div></div>
+<div class="ttc" id="anamespaceourchat_html"><div class="ttname"><a href="namespaceourchat.html">ourchat</a></div><div class="ttdef"><b>Definition:</b> basedef.cpp:6</div></div>
+<div class="ttc" id="anamespaceourchat_html_a329a16aeb348e2ce668da1931214a549"><div class="ttname"><a href="namespaceourchat.html#a329a16aeb348e2ce668da1931214a549">ourchat::group_id_t</a></div><div class="ttdeci">unsigned int group_id_t</div><div class="ttdef"><b>Definition:</b> server_def.h:16</div></div>
 <div class="ttc" id="aserver__def_8h_html"><div class="ttname"><a href="server__def_8h.html">server_def.h</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->

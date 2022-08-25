@@ -67,7 +67,6 @@ $(function() {
 <a href="#nested-classes">Classes</a> &#124;
 <a href="#typedef-members">Typedefs</a> &#124;
 <a href="#enum-members">Enumerations</a> &#124;
-<a href="#func-members">Functions</a> &#124;
 <a href="#var-members">Variables</a>  </div>
   <div class="headertitle"><div class="title">ourchat Namespace Reference</div></div>
 </div><!--header-->
@@ -107,18 +106,14 @@ Enumerations</h2></td></tr>
  }</td></tr>
 <tr class="separator:a70b8b9ff9939934a950fee7f8a0b8f1a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="func-members" name="func-members"></a>
-Functions</h2></td></tr>
-<tr class="memitem:ad723667facdc23625a390d32ab6dcb89"><td class="memItemLeft" align="right" valign="top">std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceourchat.html#ad723667facdc23625a390d32ab6dcb89">make_register_json</a> (const <a class="el" href="structourchat_1_1database_1_1register__return.html">database::register_return</a> &amp;db_return, const std::string &amp;state_code)</td></tr>
-<tr class="memdesc:ad723667facdc23625a390d32ab6dcb89"><td class="mdescLeft">&#160;</td><td class="mdescRight">制造登录返回的信息  <a href="namespaceourchat.html#ad723667facdc23625a390d32ab6dcb89">More...</a><br /></td></tr>
-<tr class="separator:ad723667facdc23625a390d32ab6dcb89"><td class="memSeparator" colspan="2">&#160;</td></tr>
-</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="var-members" name="var-members"></a>
 Variables</h2></td></tr>
 <tr class="memitem:aa5ddc349a0ac9a5d0e59a15306da9c9f"><td class="memItemLeft" align="right" valign="top">const int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceourchat.html#aa5ddc349a0ac9a5d0e59a15306da9c9f">port</a> = 54088</td></tr>
 <tr class="separator:aa5ddc349a0ac9a5d0e59a15306da9c9f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:adfb581aa3d65030af7e00797825c688b"><td class="memItemLeft" align="right" valign="top">char&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceourchat.html#adfb581aa3d65030af7e00797825c688b">readbuf</a> [1024]</td></tr>
 <tr class="separator:adfb581aa3d65030af7e00797825c688b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3cf67a3f95bf7a5f11c4dcfff36aa4b5"><td class="memItemLeft" align="right" valign="top">char&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceourchat.html#a3cf67a3f95bf7a5f11c4dcfff36aa4b5">json_tmp</a> [1024]</td></tr>
+<tr class="separator:a3cf67a3f95bf7a5f11c4dcfff36aa4b5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Typedef Documentation</h2>
 <a id="a329a16aeb348e2ce668da1931214a549" name="a329a16aeb348e2ce668da1931214a549"></a>
@@ -180,56 +175,39 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<h2 class="groupheader">Function Documentation</h2>
-<a id="ad723667facdc23625a390d32ab6dcb89" name="ad723667facdc23625a390d32ab6dcb89"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad723667facdc23625a390d32ab6dcb89">&#9670;&nbsp;</a></span>make_register_json()</h2>
+<h2 class="groupheader">Variable Documentation</h2>
+<a id="a3cf67a3f95bf7a5f11c4dcfff36aa4b5" name="a3cf67a3f95bf7a5f11c4dcfff36aa4b5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3cf67a3f95bf7a5f11c4dcfff36aa4b5">&#9670;&nbsp;</a></span>json_tmp</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">std::string ourchat::make_register_json </td>
-          <td>(</td>
-          <td class="paramtype">const <a class="el" href="structourchat_1_1database_1_1register__return.html">database::register_return</a> &amp;&#160;</td>
-          <td class="paramname"><em>db_return</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const std::string &amp;&#160;</td>
-          <td class="paramname"><em>state_code</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
+          <td class="memname">char ourchat::json_tmp[1024]</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>制造登录返回的信息 </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">db_return</td><td>数据库返回的数据 </td></tr>
-    <tr><td class="paramname">state_code</td><td>状态码 </td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>json </dd></dl>
-
 </div>
 </div>
-<h2 class="groupheader">Variable Documentation</h2>
 <a id="aa5ddc349a0ac9a5d0e59a15306da9c9f" name="aa5ddc349a0ac9a5d0e59a15306da9c9f"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aa5ddc349a0ac9a5d0e59a15306da9c9f">&#9670;&nbsp;</a></span>port</h2>
 
 <div class="memitem">
 <div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">const int ourchat::port = 54088</td>
         </tr>
       </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
 </div><div class="memdoc">
 
 </div>

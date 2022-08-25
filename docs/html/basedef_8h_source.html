@@ -70,24 +70,29 @@ $(function() {
 </div><!--header-->
 <div class="contents">
 <a href="basedef_8h.html">Go to the documentation of this file.</a><div class="fragment"><div class="line"><a id="l00001" name="l00001"></a><span class="lineno">    1</span><span class="preprocessor">#pragma once</span></div>
-<div class="line"><a id="l00002" name="l00002"></a><span class="lineno">    2</span><span class="preprocessor">#include &lt;mysql.h&gt;</span></div>
-<div class="line"><a id="l00003" name="l00003"></a><span class="lineno">    3</span><span class="preprocessor">#include &lt;string&gt;</span></div>
-<div class="line"><a id="l00004" name="l00004"></a><span class="lineno">    4</span> </div>
-<div class="line"><a id="l00005" name="l00005"></a><span class="lineno">    5</span><span class="keyword">namespace </span><a class="code hl_namespace" href="namespaceourchat_1_1database.html">ourchat::database</a> {</div>
-<div class="line"><a id="l00006" name="l00006"></a><span class="lineno">    6</span><span class="keyword">extern</span> MYSQL <a class="code hl_variable" href="namespaceourchat_1_1database.html#a817d6533683b0555eb105b2cf0d140bb">mysql</a>;</div>
-<div class="line"><a id="l00007" name="l00007"></a><span class="lineno">    7</span> </div>
-<div class="line"><a id="l00008" name="l00008"></a><span class="lineno">    8</span><span class="comment">// 重复数据</span></div>
-<div class="line"><a id="l00009" name="l00009"></a><span class="lineno"><a class="line" href="namespaceourchat_1_1database.html#a40d3c54f6c2e8c395907eede288cc45d">    9</a></span><span class="keyword">constexpr</span> <span class="keywordtype">unsigned</span> <span class="keywordtype">int</span> <a class="code hl_variable" href="namespaceourchat_1_1database.html#a40d3c54f6c2e8c395907eede288cc45d">DUP_DATA</a> = 1062;</div>
-<div class="line"><a id="l00010" name="l00010"></a><span class="lineno">   10</span> </div>
-<div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span><span class="keywordtype">void</span> <a class="code hl_function" href="namespaceourchat_1_1database.html#a132e7c17e73642d1902bd75527f87801">init</a>(<span class="keyword">const</span> std::string&amp; dbconfig_path);</div>
-<div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span> </div>
-<div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span><span class="keywordtype">void</span> <a class="code hl_function" href="namespaceourchat_1_1database.html#a2c6653ee02b8b5f5ecba090de063f3e5">quit</a>();</div>
-<div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span>}</div>
-<div class="ttc" id="anamespaceourchat_1_1database_html"><div class="ttname"><a href="namespaceourchat_1_1database.html">ourchat::database</a></div><div class="ttdoc">登录数据库读写</div><div class="ttdef"><b>Definition:</b> basedef.cpp:7</div></div>
-<div class="ttc" id="anamespaceourchat_1_1database_html_a132e7c17e73642d1902bd75527f87801"><div class="ttname"><a href="namespaceourchat_1_1database.html#a132e7c17e73642d1902bd75527f87801">ourchat::database::init</a></div><div class="ttdeci">void init(const std::string &amp;dbconfig_path)</div><div class="ttdoc">初始化数据库</div><div class="ttdef"><b>Definition:</b> basedef.cpp:16</div></div>
-<div class="ttc" id="anamespaceourchat_1_1database_html_a2c6653ee02b8b5f5ecba090de063f3e5"><div class="ttname"><a href="namespaceourchat_1_1database.html#a2c6653ee02b8b5f5ecba090de063f3e5">ourchat::database::quit</a></div><div class="ttdeci">void quit()</div><div class="ttdef"><b>Definition:</b> basedef.cpp:79</div></div>
-<div class="ttc" id="anamespaceourchat_1_1database_html_a40d3c54f6c2e8c395907eede288cc45d"><div class="ttname"><a href="namespaceourchat_1_1database.html#a40d3c54f6c2e8c395907eede288cc45d">ourchat::database::DUP_DATA</a></div><div class="ttdeci">constexpr unsigned int DUP_DATA</div><div class="ttdef"><b>Definition:</b> basedef.h:9</div></div>
-<div class="ttc" id="anamespaceourchat_1_1database_html_a817d6533683b0555eb105b2cf0d140bb"><div class="ttname"><a href="namespaceourchat_1_1database.html#a817d6533683b0555eb105b2cf0d140bb">ourchat::database::mysql</a></div><div class="ttdeci">MYSQL mysql</div><div class="ttdef"><b>Definition:</b> basedef.cpp:8</div></div>
+<div class="line"><a id="l00002" name="l00002"></a><span class="lineno">    2</span><span class="preprocessor">#include &lt;boost/asio.hpp&gt;</span></div>
+<div class="line"><a id="l00003" name="l00003"></a><span class="lineno">    3</span><span class="preprocessor">#include &lt;mysql.h&gt;</span></div>
+<div class="line"><a id="l00004" name="l00004"></a><span class="lineno">    4</span><span class="preprocessor">#include &lt;string&gt;</span></div>
+<div class="line"><a id="l00005" name="l00005"></a><span class="lineno">    5</span> </div>
+<div class="line"><a id="l00006" name="l00006"></a><span class="lineno">    6</span><span class="keyword">namespace </span><a class="code hl_namespace" href="namespaceourchat_1_1database.html">ourchat::database</a> {</div>
+<div class="line"><a id="l00007" name="l00007"></a><span class="lineno">    7</span><span class="keyword">extern</span> MYSQL <a class="code hl_variable" href="namespaceourchat_1_1database.html#a817d6533683b0555eb105b2cf0d140bb">mysql</a>;</div>
+<div class="line"><a id="l00008" name="l00008"></a><span class="lineno">    8</span> </div>
+<div class="line"><a id="l00009" name="l00009"></a><span class="lineno">    9</span><span class="comment">// 重复数据</span></div>
+<div class="line"><a id="l00010" name="l00010"></a><span class="lineno"><a class="line" href="namespaceourchat_1_1database.html#a40d3c54f6c2e8c395907eede288cc45d">   10</a></span><span class="keyword">constexpr</span> <span class="keywordtype">unsigned</span> <span class="keywordtype">int</span> <a class="code hl_variable" href="namespaceourchat_1_1database.html#a40d3c54f6c2e8c395907eede288cc45d">DUP_DATA</a> = 1062;</div>
+<div class="line"><a id="l00011" name="l00011"></a><span class="lineno">   11</span> </div>
+<div class="line"><a id="l00012" name="l00012"></a><span class="lineno">   12</span><span class="comment">// 一条sql语句</span></div>
+<div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span><span class="keyword">extern</span> <span class="keywordtype">char</span> <a class="code hl_variable" href="namespaceourchat_1_1database.html#a15567f0e4cc154718d1367552c331349">sql</a>[10201];</div>
+<div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span> </div>
+<div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span><span class="keywordtype">void</span> <a class="code hl_function" href="namespaceourchat_1_1database.html#a132e7c17e73642d1902bd75527f87801">init</a>(<span class="keyword">const</span> std::string&amp; dbconfig_path);</div>
+<div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span> </div>
+<div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span><span class="keywordtype">void</span> <a class="code hl_function" href="namespaceourchat_1_1database.html#a2c6653ee02b8b5f5ecba090de063f3e5">quit</a>();</div>
+<div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span>}</div>
+<div class="ttc" id="anamespaceourchat_1_1database_html"><div class="ttname"><a href="namespaceourchat_1_1database.html">ourchat::database</a></div><div class="ttdoc">登录数据库读写</div><div class="ttdef"><b>Definition:</b> basedef.cpp:6</div></div>
+<div class="ttc" id="anamespaceourchat_1_1database_html_a132e7c17e73642d1902bd75527f87801"><div class="ttname"><a href="namespaceourchat_1_1database.html#a132e7c17e73642d1902bd75527f87801">ourchat::database::init</a></div><div class="ttdeci">void init(const std::string &amp;dbconfig_path)</div><div class="ttdoc">初始化数据库</div><div class="ttdef"><b>Definition:</b> basedef.cpp:17</div></div>
+<div class="ttc" id="anamespaceourchat_1_1database_html_a15567f0e4cc154718d1367552c331349"><div class="ttname"><a href="namespaceourchat_1_1database.html#a15567f0e4cc154718d1367552c331349">ourchat::database::sql</a></div><div class="ttdeci">char sql[10201]</div><div class="ttdef"><b>Definition:</b> basedef.cpp:15</div></div>
+<div class="ttc" id="anamespaceourchat_1_1database_html_a2c6653ee02b8b5f5ecba090de063f3e5"><div class="ttname"><a href="namespaceourchat_1_1database.html#a2c6653ee02b8b5f5ecba090de063f3e5">ourchat::database::quit</a></div><div class="ttdeci">void quit()</div><div class="ttdef"><b>Definition:</b> basedef.cpp:81</div></div>
+<div class="ttc" id="anamespaceourchat_1_1database_html_a40d3c54f6c2e8c395907eede288cc45d"><div class="ttname"><a href="namespaceourchat_1_1database.html#a40d3c54f6c2e8c395907eede288cc45d">ourchat::database::DUP_DATA</a></div><div class="ttdeci">constexpr unsigned int DUP_DATA</div><div class="ttdef"><b>Definition:</b> basedef.h:10</div></div>
+<div class="ttc" id="anamespaceourchat_1_1database_html_a817d6533683b0555eb105b2cf0d140bb"><div class="ttname"><a href="namespaceourchat_1_1database.html#a817d6533683b0555eb105b2cf0d140bb">ourchat::database::mysql</a></div><div class="ttdeci">MYSQL mysql</div><div class="ttdef"><b>Definition:</b> basedef.cpp:7</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>

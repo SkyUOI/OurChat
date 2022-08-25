@@ -2,6 +2,7 @@
 #include <base/users.h>
 #include <boost/asio.hpp>
 #include <easylogging++.h>
+#include <iostream>
 #include <json/json.h>
 #include <server/server.h>
 
@@ -35,6 +36,7 @@ server::server()
             break;
         }
         case client_code::REGISTER: {
+            tryregister(*sockptr, root);
             break;
         }
         default: {
@@ -45,23 +47,19 @@ server::server()
     }
 }
 
-static std::string make_login_json(const std::string& state_code) {
-    std::string s = R"({"code":7, "data":{"state":)";
-    s += state_code;
-    s += "}}";
-    return s;
-}
+char json_tmp[1024];
 
-void server::trylogin(tcp::socket& socket, Json::Value value) {
+void server::trylogin(tcp::socket& socket, const Json::Value& value) {
     boost::system::error_code error;
     const std::string& ocid = value["data"]["ocId"].asString();
     const std::string& passwd = value["data"]["password"].asString();
-    database::login_state return_code = database::login(ocid, passwd);
-    switch (return_code) {
+    database::login_return return_code = database::login(ocid, passwd);
+    switch (return_code.state) {
     case database::login_state::SUCCESS: {
         // 正常登录
-        boost::asio::write(
-            socket, boost::asio::buffer(make_login_json("0")), error);
+        sprintf(json_tmp, R"({"code":7, "data":{"state":0, "id":%d}})",
+            return_code.id);
+        boost::asio::write(socket, boost::asio::buffer(json_tmp), error);
         // 保存套接字
         clients[ocid] = &socket;
         break;
@@ -69,14 +67,27 @@ void server::trylogin(tcp::socket& socket, Json::Value value) {
     case database::login_state::PASSWORDINCORRECT:
     case database::login_state::ACCOUNTNOTFOUND: {
         // 账号未定义或密码错误
-        boost::asio::write(
-            socket, boost::asio::buffer(make_login_json("1")), error);
+        boost::asio::write(socket,
+            boost::asio::buffer("{"
+                                "\"code\":7, "
+                                "\"data\":{"
+                                "\"state\":1"
+                                "}"
+                                "}"),
+            error);
         break;
     }
     default: {
-        LOG(ERROR) << "login code " << int(return_code) << " is not defined.";
-        boost::asio::write(
-            socket, boost::asio::buffer(make_login_json("2")), error);
+        LOG(ERROR) << "login code " << int(return_code.state)
+                   << " is not defined.";
+        boost::asio::write(socket,
+            boost::asio::buffer("{"
+                                "\"code\":7, "
+                                "\"data\":{"
+                                "\"state\":2"
+                                "}"
+                                "}"),
+            error);
     }
     }
 }
@@ -102,35 +113,51 @@ void server::send_text(const std::string& json, group_id_t group) {
     }
 }
 
-/**
- * @brief 制造登录返回的信息
- * @param db_return 数据库返回的数据
- * @param state_code 状态码
- * @return json
- */
-std::string make_register_json(
-    const database::register_return& db_return, const std::string& state_code) {
-    std::string s = "";
-}
-
-void server::tryregister(tcp::socket& socket, Json::Value value) {
+void server::tryregister(tcp::socket& socket, const Json::Value& value) {
     // 通过json解析出数据
     database::user_for_register user;
-    user.passwd = value["data"]["passwd"].asString();
-    user.name = value["data"]["passwd"].asString();
-    user.date = value["data"]["date"].asInt();
+    user.passwd = value["data"]["password"].asString();
+    user.name = value["data"]["name"].asString();
+    user.date = value["time"].asInt();
     user.email = value["data"]["email"].asString();
     database::register_return returncode = database::register_(user);
     boost::system::error_code ignore;
     switch (returncode.state) {
     case database::register_state::SUCCESS: {
-        boost::asio::write(
-            socket, boost::asio::buffer(make_register_json(returncode, "0")), ignore);
+        // 注册成功
+        sprintf(json_tmp,
+            "{"
+            "  \"code\": 5,"
+            "  \"data\": {"
+            "    \"state\": 0,"
+            "    \"ocId\": \"%s\","
+            "    \"id\":%d"
+            "  }"
+            "}",
+            returncode.ocid.c_str(), returncode.id);
+        boost::asio::write(socket, boost::asio::buffer(json_tmp), ignore);
+        break;
+    }
+    case database::register_state::EMAIL_DUP: {
+        sprintf(json_tmp,
+            "{"
+            "  \"code\": 5,"
+            "  \"data\": {"
+            "    \"state\": 2"
+            "  }"
+            "}");
+        boost::asio::write(socket, boost::asio::buffer(json_tmp), ignore);
         break;
     }
     default: {
-        boost::asio::write(
-            socket, boost::asio::buffer(make_register_json(returncode, "1")), ignore);
+        sprintf(json_tmp,
+            "{"
+            "  \"code\": 5,"
+            "  \"data\": {"
+            "    \"state\": 1"
+            "  }"
+            "}");
+        boost::asio::write(socket, boost::asio::buffer(json_tmp), ignore);
         LOG(ERROR) << "register code " << (int)returncode.state
                    << " is not defined.";
     }
