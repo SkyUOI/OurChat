@@ -22,7 +22,8 @@ LOGINRETURNCODE = 7
 LowPixelLogoPath = "../../resource/OurChat_Logo_low_pixel.png"
 LogoPath = "../../resource/OurChat_Logo.png"
 
-# dataKey
+# Key
 KCODE = "code"
 KMSGDATA = "msgdata"
 KDATA = "data"
+KDB = "database"
