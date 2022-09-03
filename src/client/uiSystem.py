@@ -1,8 +1,9 @@
 ﻿from PyQt5 import QtCore, QtGui, QtWidgets
 
 from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt5.QtCore import QTimer
 from ui import main_window
-import sys, os, json
+import sys, os
 
 class mainUi(main_window.Ui_MainWindow):
     def __init__(self, window):
@@ -16,6 +17,8 @@ class mainUi(main_window.Ui_MainWindow):
         self.to_another_text = 14
         self.login_button_text = 0
         self.login_account_text = 10
+        self.func_queue = []
+        self.tick()
 
     def retranslateUi(self, MainWindow):
         self.bind()
@@ -92,9 +95,8 @@ class mainUi(main_window.Ui_MainWindow):
                 text = text.replace("\n", "")
                 self.lang[num] = text
 
-        config_data = self.client.getConfig()
-        config_data["lang_file"] = file_name
-        self.client.setConfig(config_data)
+        self.config["lang_file"] = file_name
+        self.client.setConfig(self.config)
         self.renameUi()
 
     def getServerIp(self):
@@ -104,15 +106,10 @@ class mainUi(main_window.Ui_MainWindow):
         self.chat_widget.hide()
 
     def showChat(self):
-        print(1)
-        self.window.resize(880, 620)
-        print(2)
         self.chat_widget.show()
-        print(3)
         self.hideSetting()
-        print(4)
         self.hideLogin()
-        print(5)
+        self.window.resize(880, 620)
 
     def hideSetting(self):
         self.setting_widget.hide()
@@ -123,6 +120,9 @@ class mainUi(main_window.Ui_MainWindow):
         self.setting_widget.show()
         self.hideLogin()
         self.hideChat()
+    
+    def chatChange(self):
+        self.client.readChatPartRecord(self.now_chatId,)
 
     def showLogin(self):
         self.window.resize(460, 350)
@@ -186,9 +186,9 @@ class mainUi(main_window.Ui_MainWindow):
         self.chatButton.clicked.connect(self.showChat)
         self.setting_lang.currentTextChanged.connect(self.loadLang)
         self.login_lang.currentTextChanged.connect(self.loadLang)
-        config_data = self.client.getConfig()
-        self.ServerIpChanged(config_data["server_ip"])
+        self.ServerIpChanged(self.config["server_ip"])
         self.setting_serverIp.textChanged.connect(self.ServerIpChanged)
+        self.login_serverIp.textChanged.connect(self.ServerIpChanged)
         self.login_login.clicked.connect(self.login)
         self.login_showPassword.clicked.connect(self.passwordStateChangeed)
         self.login_more.clicked.connect(self.clickLoginMore)
@@ -211,9 +211,8 @@ class mainUi(main_window.Ui_MainWindow):
 
     def ServerIpChanged(self, ip):
         self.client.setServerIp(ip)  # 传递给客户端
-        config_data = self.client.getConfig()
-        config_data["server_ip"] = ip
-        self.client.setConfig(config_data)  # 写入配置文件
+        self.config["server_ip"] = ip
+        self.client.setConfig(self.config)  # 写入配置文件
         self.setting_serverIp.setText(ip)
 
     def setIpUiText(self, text):
@@ -227,7 +226,7 @@ class mainUi(main_window.Ui_MainWindow):
     def UiLoadingDone(self):
         self.updateLangFile()
         self.loadLang()
-        config_data = self.client.getConfig()
+        config_data = self.config
         self.setting_serverIp.setText(config_data["server_ip"])
         self.login_serverIp.setText(config_data["server_ip"])
         self.renameUi()
@@ -239,12 +238,13 @@ class mainUi(main_window.Ui_MainWindow):
 
     def setClientSystem(self, client):
         self.client = client
+        self.config = self.client.getConfig()
 
     def updateLangFile(self):
         self.setting_lang.clear()
 
         # 先添加当前配置语言 否则为空时添加语言 改变事件会直接更改配置文件
-        config_data = self.client.getConfig()
+        config_data = self.config
         self.setting_lang.addItem(config_data["lang_file"])
         self.setting_lang.setCurrentText(config_data["lang_file"])
         self.login_lang.addItem(config_data["lang_file"])
@@ -267,6 +267,15 @@ class mainUi(main_window.Ui_MainWindow):
             self.login_button_text = 0
             self.login_account_text = 10
             self.renameUi()
+    
+    def tick(self):
+        for func in self.func_queue:
+            func()
+            self.func_queue.remove(func)
+
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.tick)
+        self.timer.start(25)
 
 class UiCotrol:
     def __init__(self, client):

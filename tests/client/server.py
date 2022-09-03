@@ -1,8 +1,8 @@
-import socket,tkinter,json
+import socket,tkinter,json,time
 from tkinter import ttk
 from threading import Thread
-import asyncio
 
+data = None
 class Server(Thread):
     def __init__(self):
         self.s = socket.socket()
@@ -12,6 +12,7 @@ class Server(Thread):
         super().__init__()
     
     def run(self):
+        global data
         while True:
             a,b = self.s.accept()
             self.ips[f"{b[0]}:{b[1]}"] = a
@@ -33,19 +34,19 @@ class Server(Thread):
             self.ips.pop(ip)
 
 def window(obj):
+    global data
     root = tkinter.Tk()
     ip = tkinter.Entry(root,width=60)
     data = ttk.Combobox(root,width=60)
-    data["value"] = [
-        '{"code" : 0,"data" : {"cid" : 1,"sender_id" : "ocid","msg" : "文本信息"}}',
-        '{"code" : 1,"data" : {"cid" : 1,"sender_id" : "ocid","emojiId" : 0}}',
-        '{"code" : 2,"data" : {"cid" : 1,"sender_id" : "ocid","packages_num" : 1,"size" : 1024}}',
-        '{"code" : 3,"data" : {"cid" : 1,"sender_id" : "ocid","packages_num" : 1,"size" : 1024}}',
-        '{"code" : 5,"data" : {"state" : 0,"ocId" : "oc_123456"}}',
-        '{"code" : 5,"data" : {"state" : 1,"ocId" : ""}}',
-        '{"code" : 7,"data" : {"state" : 0}}',
-        '{"code" : 7,"data" : {"state" : 1}}'
-    ]
+    data.config(
+                    values=[
+                        '{"code" : 0, "time" : ' + str(int(time.time())) + ' , "data" : {"cid" : 1,"sender_id" : "ocid","msg" : "文本信息"}}',
+                        '{"code" : 5,"data" : {"state" : 0,"ocId" : "oc_123456"}}',
+                        '{"code" : 5,"data" : {"state" : 1,"ocId" : ""}}',
+                        '{"code" : 7,"data" : {"state" : 0}}',
+                        '{"code" : 7,"data" : {"state" : 1}}'
+                    ]
+                )
     ip.pack()
     data.pack()
     tkinter.Button(root,text="发送",command=lambda:obj.send(ip.get(),data.get())).pack()
