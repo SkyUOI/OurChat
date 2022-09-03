@@ -2,9 +2,9 @@
  * @brief server class
  */
 #pragma once
-#include <base/server_def.h>
 #include <boost/asio.hpp>
 #include <json/json.h>
+#include <server/server_def.h>
 #include <unordered_map>
 
 using boost::asio::ip::tcp;
@@ -20,7 +20,7 @@ private:
     /**
      * @brief 尝试登录
      */
-    void trylogin(tcp::socket& socket, Json::Value value);
+    void trylogin(tcp::socket& socket, const Json::Value& value);
 
     /**
      * @brief 发送文本
@@ -28,6 +28,11 @@ private:
      * @param group 聊天号
      */
     void send_text(const std::string& json, group_id_t group);
+
+    /**
+     * @brief 尝试注册
+     */
+    void tryregister(tcp::socket& socket, const Json::Value& value);
 
     boost::asio::io_context io_context;
 

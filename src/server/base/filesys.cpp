@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <filesystem>
 #include <string>
+#include <sys/stat.h>
 
 namespace ourchat {
 namespace utils {
