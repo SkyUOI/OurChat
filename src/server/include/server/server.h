@@ -39,6 +39,6 @@ private:
     tcp::acceptor acceptor;
 
     // 储存oc号对应的客户端
-    std::unordered_map<ocid_t, tcp::socket*> clients;
+    std::unordered_map<int, tcp::socket*> clients;
 };
 }

@@ -95,6 +95,7 @@ Enumerations</h2></td></tr>
 <tr class="memitem:acffe81fcbb51f83de8b01d66ab82625a"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceourchat_1_1database.html#acffe81fcbb51f83de8b01d66ab82625a">login_state</a> { <a class="el" href="namespaceourchat_1_1database.html#acffe81fcbb51f83de8b01d66ab82625aad0749aaba8b833466dfcbb0428e4f89c">SUCCESS</a>
 , <a class="el" href="namespaceourchat_1_1database.html#acffe81fcbb51f83de8b01d66ab82625aac58df99aa5dbe24b5758910df9f4f0aa">ACCOUNTNOTFOUND</a>
 , <a class="el" href="namespaceourchat_1_1database.html#acffe81fcbb51f83de8b01d66ab82625aa189d6ac58194682a6d8ebf5431117cce">PASSWORDINCORRECT</a>
+, <a class="el" href="namespaceourchat_1_1database.html#acffe81fcbb51f83de8b01d66ab82625aad5483ee5902765397afa2bea9f3986f8">DATABASEERROR</a>
  }</td></tr>
 <tr class="separator:acffe81fcbb51f83de8b01d66ab82625a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad69598bd99026984652aace25a1dfbda"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceourchat_1_1database.html#ad69598bd99026984652aace25a1dfbda">register_state</a> { <a class="el" href="namespaceourchat_1_1database.html#ad69598bd99026984652aace25a1dfbdaad0749aaba8b833466dfcbb0428e4f89c">SUCCESS</a>
@@ -110,18 +111,19 @@ Functions</h2></td></tr>
 <tr class="separator:a132e7c17e73642d1902bd75527f87801"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2c6653ee02b8b5f5ecba090de063f3e5"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceourchat_1_1database.html#a2c6653ee02b8b5f5ecba090de063f3e5">quit</a> ()</td></tr>
 <tr class="separator:a2c6653ee02b8b5f5ecba090de063f3e5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a800db9f343bdeaa4159ba146f1ec50b3"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structourchat_1_1database_1_1login__return.html">login_return</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceourchat_1_1database.html#a800db9f343bdeaa4159ba146f1ec50b3">login</a> (const std::string &amp;account, const std::string &amp;password)</td></tr>
-<tr class="memdesc:a800db9f343bdeaa4159ba146f1ec50b3"><td class="mdescLeft">&#160;</td><td class="mdescRight">进行登录操作  <a href="namespaceourchat_1_1database.html#a800db9f343bdeaa4159ba146f1ec50b3">More...</a><br /></td></tr>
-<tr class="separator:a800db9f343bdeaa4159ba146f1ec50b3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7cf8f00073b43e530ef27aee448f0ad4"><td class="memItemLeft" align="right" valign="top">std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceourchat_1_1database.html#a7cf8f00073b43e530ef27aee448f0ad4">make_random_ocid</a> ()</td></tr>
 <tr class="separator:a7cf8f00073b43e530ef27aee448f0ad4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8b7cca62f2e1c0f9998d4ae097af83e5"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structourchat_1_1database_1_1register__return.html">register_return</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceourchat_1_1database.html#a8b7cca62f2e1c0f9998d4ae097af83e5">register_</a> (const <a class="el" href="structourchat_1_1database_1_1user__for__register.html">user_for_register</a> &amp;<a class="el" href="namespaceourchat_1_1database.html#a5fc071acbaa2b8e9b1c6750cdebbb109">user</a>)</td></tr>
 <tr class="memdesc:a8b7cca62f2e1c0f9998d4ae097af83e5"><td class="mdescLeft">&#160;</td><td class="mdescRight">进行注册操作  <a href="namespaceourchat_1_1database.html#a8b7cca62f2e1c0f9998d4ae097af83e5">More...</a><br /></td></tr>
 <tr class="separator:a8b7cca62f2e1c0f9998d4ae097af83e5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6305cbeb040fbc6acc98fe3b8061fe21"><td class="memItemLeft" align="right" valign="top">std::vector&lt; <a class="el" href="namespaceourchat.html#a5f67121fec2053c8cc39f330ab7c25b8">ocid_t</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceourchat_1_1database.html#a6305cbeb040fbc6acc98fe3b8061fe21">get_members_by_group</a> (<a class="el" href="namespaceourchat.html#a329a16aeb348e2ce668da1931214a549">group_id_t</a> group_id)</td></tr>
-<tr class="separator:a6305cbeb040fbc6acc98fe3b8061fe21"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7ba5980b832adf01b392306e8fc0c1ce"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceourchat_1_1database.html#a7ba5980b832adf01b392306e8fc0c1ce">save_chat_msg</a> (<a class="el" href="namespaceourchat.html#a5f67121fec2053c8cc39f330ab7c25b8">ocid_t</a> <a class="el" href="namespaceourchat_1_1database.html#a5fc071acbaa2b8e9b1c6750cdebbb109">user</a>, const std::string &amp;json)</td></tr>
-<tr class="separator:a7ba5980b832adf01b392306e8fc0c1ce"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aaada016fb4ec9e986292be97f36aa2c4"><td class="memItemLeft" align="right" valign="top">std::vector&lt; int &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceourchat_1_1database.html#aaada016fb4ec9e986292be97f36aa2c4">get_members_by_group</a> (<a class="el" href="namespaceourchat.html#a329a16aeb348e2ce668da1931214a549">group_id_t</a> group_id)</td></tr>
+<tr class="separator:aaada016fb4ec9e986292be97f36aa2c4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5e278fab23bfe57a8c475ae3023f9f6e"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceourchat_1_1database.html#a5e278fab23bfe57a8c475ae3023f9f6e">save_chat_msg</a> (int <a class="el" href="namespaceourchat_1_1database.html#a5fc071acbaa2b8e9b1c6750cdebbb109">user</a>, const std::string &amp;json)</td></tr>
+<tr class="separator:a5e278fab23bfe57a8c475ae3023f9f6e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aada98bb07492c8319260b5ecb5fa7bc5"><td class="memTemplParams" colspan="2">template&lt;bool logintype&gt; </td></tr>
+<tr class="memitem:aada98bb07492c8319260b5ecb5fa7bc5"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="structourchat_1_1database_1_1login__return.html">login_return</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceourchat_1_1database.html#aada98bb07492c8319260b5ecb5fa7bc5">login</a> (const std::string &amp;account, const std::string &amp;password)</td></tr>
+<tr class="memdesc:aada98bb07492c8319260b5ecb5fa7bc5"><td class="mdescLeft">&#160;</td><td class="mdescRight">进行登录操作  <a href="namespaceourchat_1_1database.html#aada98bb07492c8319260b5ecb5fa7bc5">More...</a><br /></td></tr>
+<tr class="separator:aada98bb07492c8319260b5ecb5fa7bc5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="var-members" name="var-members"></a>
 Variables</h2></td></tr>
@@ -173,6 +175,7 @@ Variables</h2></td></tr>
 <tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="acffe81fcbb51f83de8b01d66ab82625aad0749aaba8b833466dfcbb0428e4f89c" name="acffe81fcbb51f83de8b01d66ab82625aad0749aaba8b833466dfcbb0428e4f89c"></a>SUCCESS&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="acffe81fcbb51f83de8b01d66ab82625aac58df99aa5dbe24b5758910df9f4f0aa" name="acffe81fcbb51f83de8b01d66ab82625aac58df99aa5dbe24b5758910df9f4f0aa"></a>ACCOUNTNOTFOUND&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="acffe81fcbb51f83de8b01d66ab82625aa189d6ac58194682a6d8ebf5431117cce" name="acffe81fcbb51f83de8b01d66ab82625aa189d6ac58194682a6d8ebf5431117cce"></a>PASSWORDINCORRECT&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="acffe81fcbb51f83de8b01d66ab82625aad5483ee5902765397afa2bea9f3986f8" name="acffe81fcbb51f83de8b01d66ab82625aad5483ee5902765397afa2bea9f3986f8"></a>DATABASEERROR&#160;</td><td class="fielddoc"></td></tr>
 </table>
 
 </div>
@@ -205,14 +208,14 @@ Variables</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Function Documentation</h2>
-<a id="a6305cbeb040fbc6acc98fe3b8061fe21" name="a6305cbeb040fbc6acc98fe3b8061fe21"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6305cbeb040fbc6acc98fe3b8061fe21">&#9670;&nbsp;</a></span>get_members_by_group()</h2>
+<a id="aaada016fb4ec9e986292be97f36aa2c4" name="aaada016fb4ec9e986292be97f36aa2c4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aaada016fb4ec9e986292be97f36aa2c4">&#9670;&nbsp;</a></span>get_members_by_group()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">std::vector&lt; <a class="el" href="namespaceourchat.html#a5f67121fec2053c8cc39f330ab7c25b8">ocid_t</a> &gt; ourchat::database::get_members_by_group </td>
+          <td class="memname">std::vector&lt; int &gt; ourchat::database::get_members_by_group </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="namespaceourchat.html#a329a16aeb348e2ce668da1931214a549">group_id_t</a>&#160;</td>
           <td class="paramname"><em>group_id</em></td><td>)</td>
@@ -249,11 +252,13 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="a800db9f343bdeaa4159ba146f1ec50b3" name="a800db9f343bdeaa4159ba146f1ec50b3"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a800db9f343bdeaa4159ba146f1ec50b3">&#9670;&nbsp;</a></span>login()</h2>
+<a id="aada98bb07492c8319260b5ecb5fa7bc5" name="aada98bb07492c8319260b5ecb5fa7bc5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aada98bb07492c8319260b5ecb5fa7bc5">&#9670;&nbsp;</a></span>login()</h2>
 
 <div class="memitem">
 <div class="memproto">
+<div class="memtemplate">
+template&lt;bool logintype&gt; </div>
       <table class="memname">
         <tr>
           <td class="memname"><a class="el" href="structourchat_1_1database_1_1login__return.html">login_return</a> ourchat::database::login </td>
@@ -276,6 +281,12 @@ Variables</h2></td></tr>
 </div><div class="memdoc">
 
 <p>进行登录操作 </p>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">logintype</td><td>登录类型，true为邮箱，false为ocid </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
@@ -333,8 +344,8 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="a7ba5980b832adf01b392306e8fc0c1ce" name="a7ba5980b832adf01b392306e8fc0c1ce"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a7ba5980b832adf01b392306e8fc0c1ce">&#9670;&nbsp;</a></span>save_chat_msg()</h2>
+<a id="a5e278fab23bfe57a8c475ae3023f9f6e" name="a5e278fab23bfe57a8c475ae3023f9f6e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5e278fab23bfe57a8c475ae3023f9f6e">&#9670;&nbsp;</a></span>save_chat_msg()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -342,7 +353,7 @@ Variables</h2></td></tr>
         <tr>
           <td class="memname">void ourchat::database::save_chat_msg </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="namespaceourchat.html#a5f67121fec2053c8cc39f330ab7c25b8">ocid_t</a>&#160;</td>
+          <td class="paramtype">int&#160;</td>
           <td class="paramname"><em>user</em>, </td>
         </tr>
         <tr>

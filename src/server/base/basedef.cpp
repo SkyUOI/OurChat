@@ -39,7 +39,7 @@ void init(const std::string& dbconfig_path) {
             "CREATE TABLE IF NOT EXISTS user("
             "id INT AUTO_INCREMENT,"
             "ocid CHAR(20),"
-            "passwd CHAR(30),"
+            "passwd CHAR(64),"
             "name CHAR(15),"
             "email CHAR(120),"
             "date INT,"

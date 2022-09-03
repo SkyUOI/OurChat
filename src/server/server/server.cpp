@@ -2,7 +2,6 @@
 #include <base/users.h>
 #include <boost/asio.hpp>
 #include <easylogging++.h>
-#include <iostream>
 #include <json/json.h>
 #include <server/server.h>
 
@@ -51,9 +50,15 @@ char json_tmp[1024];
 
 void server::trylogin(tcp::socket& socket, const Json::Value& value) {
     boost::system::error_code error;
-    const std::string& ocid = value["data"]["ocId"].asString();
+    database::login_return return_code;
     const std::string& passwd = value["data"]["password"].asString();
-    database::login_return return_code = database::login(ocid, passwd);
+    if (value["data"].isMember("ocId")) {
+        return_code
+            = database::login<false>(value["data"]["ocId"].asString(), passwd);
+    } else {
+        return_code
+            = database::login<true>(value["data"]["email"].asString(), passwd);
+    }
     switch (return_code.state) {
     case database::login_state::SUCCESS: {
         // 正常登录
@@ -61,7 +66,7 @@ void server::trylogin(tcp::socket& socket, const Json::Value& value) {
             return_code.id);
         boost::asio::write(socket, boost::asio::buffer(json_tmp), error);
         // 保存套接字
-        clients[ocid] = &socket;
+        clients[return_code.id] = &socket;
         break;
     }
     case database::login_state::PASSWORDINCORRECT:
@@ -95,7 +100,7 @@ void server::trylogin(tcp::socket& socket, const Json::Value& value) {
 void server::send_text(const std::string& json, group_id_t group) {
     // 首先根据group_id获取群聊的所有人数，然后按照OCID发送给具体的socket，未存在socket链接则储存信息
     boost::system::error_code error;
-    for (const auto& i : database::get_members_by_group(group)) {
+    for (auto i : database::get_members_by_group(group)) {
         if (clients.find(i) != clients.end()) {
             // 存在socket链接
             boost::asio::write(*(clients[i]), boost::asio::buffer(json), error);

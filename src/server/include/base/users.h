@@ -3,10 +3,8 @@
 #include <string>
 #include <vector>
 
-namespace ourchat {
-namespace database {
-    std::vector<ocid_t> get_members_by_group(group_id_t group_id);
+namespace ourchat::database {
+std::vector<int> get_members_by_group(group_id_t group_id);
 
-    void save_chat_msg(ocid_t user, const std::string& json);
-}
+void save_chat_msg(int user, const std::string& json);
 }
