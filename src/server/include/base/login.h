@@ -31,11 +31,11 @@ struct login_return {
 template <bool logintype>
 login_return login(const std::string& account, const std::string& password) {
     if constexpr (logintype) {
-        sprintf(
-            sql, "select passwd from user where email = %s", account.c_str());
+        sprintf(sql, "select passwd from user where email = \"%s\"",
+            account.c_str());
     } else {
-        sprintf(
-            sql, "select passwd from user where ocid = %s", account.c_str());
+        sprintf(sql, "select passwd from user where ocid = \"%s\"",
+            account.c_str());
     }
 
     if (mysql_query(&mysql, sql)) {

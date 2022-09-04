@@ -76,6 +76,24 @@ void init(const std::string& dbconfig_path) {
             ")Engine=InnoDB DEFAULT CHARSET=utf8mb4;")) {
         LOG(FATAL) << "Error in creating the chatgroup table";
     }
+    // user_chat_msg
+    if (mysql_query(&mysql,
+            "CREATE TABLE IF NOT EXISTS user_chat_msg("
+            "user_id INT,"
+            "chat_msg_id INT"
+            ")Engine=InnoDB DEFAULT CHARSET=utf8mb4;")) {
+        LOG(FATAL) << "Error in creating the user_chat_msg table";
+    }
+    // user_chat_id
+    if (mysql_query(&mysql,
+            "CREATE TABLE IF NOT EXISTS user_chat_id("
+            "char_msg_id INT,"
+            "msg_type INT,"
+            "msg_data VARCHAR(8000),"
+            "sender_id INT"
+            ")Engine=InnoDB DEFAULT CHARSET=utf8mb4;")) {
+        LOG(FATAL) << "Error in creating the user_chat_id table";
+    }
 }
 
 void quit() {

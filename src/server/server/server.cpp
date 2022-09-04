@@ -100,20 +100,27 @@ void server::trylogin(tcp::socket& socket, const Json::Value& value) {
 void server::send_text(const std::string& json, group_id_t group) {
     // 首先根据group_id获取群聊的所有人数，然后按照OCID发送给具体的socket，未存在socket链接则储存信息
     boost::system::error_code error;
-    for (auto i : database::get_members_by_group(group)) {
-        if (clients.find(i) != clients.end()) {
+    MYSQL_RES* group_members = database::get_members_by_group(group);
+    if (group_members == nullptr) {
+        return;
+    }
+    for (MYSQL_ROW i = mysql_fetch_row(group_members); i != nullptr;
+         i = mysql_fetch_row(group_members)) {
+        int iint = atoi(i[0]);
+        if (clients.find(iint) != clients.end()) {
             // 存在socket链接
-            boost::asio::write(*(clients[i]), boost::asio::buffer(json), error);
+            boost::asio::write(
+                *(clients[iint]), boost::asio::buffer(json), error);
             // 判断是否成功发送
             if (error == boost::asio::error::eof) {
                 // 连接已结束保存数据到数据库,等待下一次发送
-                database::save_chat_msg(i, json);
-                delete clients[i];
-                clients.erase(i);
+                database::save_chat_msg(iint, json);
+                delete clients[iint];
+                clients.erase(iint);
             }
         } else {
             // 不存在socket链接，保存数据到数据库,等待下一次发送
-            database::save_chat_msg(i, json);
+            database::save_chat_msg(iint, json);
         }
     }
 }

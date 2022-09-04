@@ -16,12 +16,11 @@ int main() {
     boost::system::error_code ignored_error;
     boost::asio::write(socket,
         boost::asio::buffer("{"
-                            "  \"code\": 4,"
+                            "  \"code\": 6,"
                             "  \"time\": 1661389837,"
                             "  \"data\": {"
                             "    \"email\": \"limuyang2020@163.com\","
-                            "    \"password\": \"123456\","
-                            "    \"name\": \"test\""
+                            "    \"password\": \"123456\""
                             "  }"
                             "}"),
         ignored_error);
