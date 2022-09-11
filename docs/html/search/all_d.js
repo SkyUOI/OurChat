@@ -1,10 +1,8 @@
 var searchData=
 [
-  ['database_0',['database',['../namespaceourchat_1_1database.html',1,'ourchat']]],
-  ['ocid_1',['ocid',['../structourchat_1_1database_1_1register__return.html#a55c43962629892ecd259afded405a70b',1,'ourchat::database::register_return']]],
-  ['ocid_5fchar_5flist_2',['ocid_char_list',['../namespaceourchat_1_1database.html#a5f708ae2b52c90591d85b03871a3171e',1,'ourchat::database']]],
-  ['ocid_5fdefault_5fsize_3',['ocid_default_size',['../namespaceourchat_1_1database.html#a6113378fb1e7f8ac23d400bab158006e',1,'ourchat::database']]],
-  ['ocid_5ft_4',['ocid_t',['../namespaceourchat.html#a5f67121fec2053c8cc39f330ab7c25b8',1,'ourchat']]],
-  ['ourchat_5',['ourchat',['../namespaceourchat.html',1,'']]],
-  ['utils_6',['utils',['../namespaceourchat_1_1utils.html',1,'ourchat']]]
+  ['passwd_0',['passwd',['../structourchat_1_1database_1_1user__for__register.html#ada4900e26a34b0fb7886ff53a28e6d84',1,'ourchat::database::user_for_register::passwd()'],['../namespaceourchat_1_1database.html#aeadcb5db5e47dd0a94717acdf4c9ce17',1,'ourchat::database::passwd()']]],
+  ['passwordincorrect_1',['PASSWORDINCORRECT',['../namespaceourchat_1_1database.html#acffe81fcbb51f83de8b01d66ab82625aa189d6ac58194682a6d8ebf5431117cce',1,'ourchat::database']]],
+  ['picture_2',['PICTURE',['../namespaceourchat.html#a70b8b9ff9939934a950fee7f8a0b8f1aa37fafe7a74d50c228738f0431a1d746a',1,'ourchat']]],
+  ['platform_2eh_3',['platform.h',['../platform_8h.html',1,'']]],
+  ['port_4',['port',['../namespaceourchat_1_1database.html#a8f5460ea3eed88fac4888dcc563e56b0',1,'ourchat::database::port()'],['../namespaceourchat.html#aa5ddc349a0ac9a5d0e59a15306da9c9f',1,'ourchat::port()']]]
 ];

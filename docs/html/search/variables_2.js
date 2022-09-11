@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['host_0',['host',['../namespaceourchat_1_1database.html#a8721c4c2db0ad488a6b25d836dca96fb',1,'ourchat::database']]]
+  ['email_0',['email',['../structourchat_1_1database_1_1user__for__register.html#a52bca5e74fdb4d9b16d78393078fb424',1,'ourchat::database::user_for_register']]]
 ];

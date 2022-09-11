@@ -1,12 +1,15 @@
 var searchData=
 [
-  ['random_0',['random',['../namespaceourchat_1_1utils.html#a71c6e8649e1f3d840d1d9456c143dd41',1,'ourchat::utils']]],
-  ['random_5fengine_1',['random_engine',['../namespaceourchat_1_1utils.html#abe4ed591f6b338aae9ea965544238ef4',1,'ourchat::utils']]],
-  ['read_5ffile_5fdetail_2',['read_file_detail',['../namespaceourchat_1_1utils.html#aebf425398ec19b62bdc05a4ba063a8d0',1,'ourchat::utils']]],
-  ['readbuf_3',['readbuf',['../namespaceourchat.html#adfb581aa3d65030af7e00797825c688b',1,'ourchat']]],
-  ['readfile_4',['readfile',['../namespaceourchat_1_1utils.html#a7ff91e0ad7f1166ec54b97a451c6a2ba',1,'ourchat::utils']]],
-  ['register_5',['REGISTER',['../namespaceourchat.html#a70b8b9ff9939934a950fee7f8a0b8f1aad17455cfcb88a53f1603fb817e09c2d6',1,'ourchat']]],
-  ['register_5f_6',['register_',['../namespaceourchat_1_1database.html#a8b7cca62f2e1c0f9998d4ae097af83e5',1,'ourchat::database']]],
-  ['register_5freturn_7',['register_return',['../structourchat_1_1database_1_1register__return.html',1,'ourchat::database']]],
-  ['register_5fstate_8',['register_state',['../namespaceourchat_1_1database.html#ad69598bd99026984652aace25a1dfbda',1,'ourchat::database']]]
+  ['save_5fchat_5fmsg_0',['save_chat_msg',['../namespaceourchat_1_1database.html#a48b31fa194d2f1bdca5f579a6113c905',1,'ourchat::database']]],
+  ['saved_5fmsg_1',['saved_msg',['../namespaceourchat_1_1database.html#adfe210820c0dc27575724e0b25ea866b',1,'ourchat::database']]],
+  ['server_2',['server',['../classourchat_1_1server.html',1,'ourchat::server'],['../classourchat_1_1server.html#ae61a3afb6d9e51e0948475de7c69e4fc',1,'ourchat::server::server()']]],
+  ['server_2ecpp_3',['server.cpp',['../server_8cpp.html',1,'']]],
+  ['server_2eh_4',['server.h',['../server_8h.html',1,'']]],
+  ['server_5fdef_2eh_5',['server_def.h',['../server__def_8h.html',1,'']]],
+  ['sizeof_5fstatic_5farray_6',['sizeof_static_array',['../namespaceourchat_1_1utils.html#ab395ebd4235395b216a43b22bf6494d6',1,'ourchat::utils']]],
+  ['socket_7',['socket',['../classourchat_1_1user__tcp__connection.html#ad3c2b2dfaed25a66b2745a70ea1ec65b',1,'ourchat::user_tcp_connection']]],
+  ['sql_8',['sql',['../namespaceourchat_1_1database.html#a15567f0e4cc154718d1367552c331349',1,'ourchat::database']]],
+  ['start_9',['start',['../classourchat_1_1user__tcp__connection.html#adab3f474218be92fe920551ee39537a6',1,'ourchat::user_tcp_connection']]],
+  ['state_10',['state',['../structourchat_1_1database_1_1login__return.html#acb98d98a972ffd7be0c3086717a699de',1,'ourchat::database::login_return::state()'],['../structourchat_1_1database_1_1register__return.html#a77db9d57c2e895b3377af9b1ae6107d1',1,'ourchat::database::register_return::state()']]],
+  ['success_11',['SUCCESS',['../namespaceourchat_1_1database.html#acffe81fcbb51f83de8b01d66ab82625aad0749aaba8b833466dfcbb0428e4f89c',1,'ourchat::database::SUCCESS()'],['../namespaceourchat_1_1database.html#ad69598bd99026984652aace25a1dfbdaad0749aaba8b833466dfcbb0428e4f89c',1,'ourchat::database::SUCCESS()']]]
 ];

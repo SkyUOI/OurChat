@@ -46,7 +46,7 @@ void init(const std::string& dbconfig_path) {
             "PRIMARY KEY(id),"
             "UNIQUE KEY(ocid),"
             "UNIQUE KEY(email)"
-            ")Engine=InnoDB DEFAULT CHARSET=utf8mb4;")) {
+            ")DEFAULT CHARSET=utf8mb4;")) {
         LOG(FATAL) << "Error in creating the user table";
     }
     // friend
@@ -55,7 +55,7 @@ void init(const std::string& dbconfig_path) {
             "user_id INT,"
             "friend_id INT,"
             "name CHAR(15)"
-            ")Engine=InnoDB DEFAULT CHARSET=utf8mb4;")) {
+            ")DEFAULT CHARSET=utf8mb4;")) {
         LOG(FATAL) << "Error in creating the friend table";
     }
     // chat
@@ -65,7 +65,7 @@ void init(const std::string& dbconfig_path) {
             "user_id INT,"
             "name CHAR(15),"
             "group_name CHAR(30)"
-            ")Engine=InnoDB DEFAULT CHARSET=utf8mb4;")) {
+            ")DEFAULT CHARSET=utf8mb4;")) {
         LOG(FATAL) << "Error in creating the chat table";
     }
     // chatgroup

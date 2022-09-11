@@ -17,6 +17,11 @@ MYSQL_RES* get_members_by_group(group_id_t group_id) {
     return mysql_store_result(&mysql);
 }
 
-void save_chat_msg(int user, const std::string& json) {
+void save_chat_msg(int user, int chat_id) {
+    sprintf(sql, "insert INTO ");
+}
+
+int saved_msg(const std::string& json) {
+    sprintf(sql, "INSERT INTO ");
 }
 }

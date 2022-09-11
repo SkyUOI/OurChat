@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['id_0',['id',['../structourchat_1_1database_1_1login__return.html#a0ac985cc311da5c4a6fcefcd57c55904',1,'ourchat::database::login_return::id()'],['../structourchat_1_1database_1_1register__return.html#adfb2b92637cca8ee2e68f5c19eb504f5',1,'ourchat::database::register_return::id()']]]
+  ['host_0',['host',['../namespaceourchat_1_1database.html#a8721c4c2db0ad488a6b25d836dca96fb',1,'ourchat::database']]]
 ];

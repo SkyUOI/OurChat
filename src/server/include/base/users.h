@@ -7,5 +7,7 @@
 namespace ourchat::database {
 MYSQL_RES* get_members_by_group(group_id_t group_id);
 
-void save_chat_msg(int user, const std::string& json);
+void save_chat_msg(int user, int chat_id);
+
+int saved_msg(const std::string& json);
 }

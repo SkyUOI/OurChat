@@ -41,7 +41,7 @@ static void ConfigureLogger() {
     std::string filename;
     el::Configurations defaultConf;
     defaultConf.setToDefault();
-    //建议使用setGlobally
+    // 建议使用setGlobally
     defaultConf.setGlobally(el::ConfigurationType::Enabled, "true");
     defaultConf.setGlobally(el::ConfigurationType::ToFile, "true");
     defaultConf.setGlobally(el::ConfigurationType::ToStandardOutput, "true");
@@ -96,6 +96,8 @@ int main(int argc, char** argv) {
     ourchat::database::init(FLAGS_dbcfg);
     LOG(INFO) << "init the database";
     puts("Ourchat server is ready to work");
-    ourchat::server server;
+    boost::asio::io_context io_context;
+    ourchat::server server(io_context);
+    io_context.run();
     return 0;
 }

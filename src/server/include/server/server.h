@@ -4,41 +4,39 @@
 #pragma once
 #include <boost/asio.hpp>
 #include <json/json.h>
+#include <memory>
 #include <server/server_def.h>
+#include <server/user_tcp_connection.h>
 #include <unordered_map>
 
 using boost::asio::ip::tcp;
 
 namespace ourchat {
+// 储存oc号对应的客户端
+extern std::unordered_map<int, user_tcp_connection*> clients;
+/**
+ * @brief 一个异步服务器
+ */
 class server {
 public:
-    server();
+    server(boost::asio::io_context& io_context);
 
     ~server();
 
 private:
     /**
-     * @brief 尝试登录
+     * @brief 开始接收socket
      */
-    void trylogin(tcp::socket& socket, const Json::Value& value);
+    void start_accept();
 
     /**
-     * @brief 发送文本
-     * @param text 文本
-     * @param group 聊天号
+     * @brief accept到socket的回调函数
      */
-    void send_text(const std::string& json, group_id_t group);
+    void handle_accept(std::shared_ptr<user_tcp_connection> ptr,
+        const boost::system::error_code& error);
 
-    /**
-     * @brief 尝试注册
-     */
-    void tryregister(tcp::socket& socket, const Json::Value& value);
-
-    boost::asio::io_context io_context;
+    boost::asio::io_context& io_context;
 
     tcp::acceptor acceptor;
-
-    // 储存oc号对应的客户端
-    std::unordered_map<int, tcp::socket*> clients;
 };
 }
