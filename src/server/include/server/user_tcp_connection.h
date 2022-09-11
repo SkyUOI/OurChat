@@ -25,7 +25,7 @@ public:
     void start();
 
 private:
-    void user_tcp_connection::read_res(
+    void read_res(
         const boost::system::error_code& error, size_t bytes_transferred);
     tcp::socket socket_;
 
