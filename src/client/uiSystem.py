@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtCore import QTimer
 from ui import main_window
 import sys, os
+import webbrowser
 
 class mainUi(main_window.Ui_MainWindow):
     def __init__(self, window):
@@ -164,7 +165,7 @@ class mainUi(main_window.Ui_MainWindow):
         self.client.ui = None
 
     def startGithub(self):
-        os.system("start https://github.com/Yang-Lin-Team/OurChat")
+        webbrowser.open("https://github.com/Yang-Lin-Team/OurChat")
 
     def login(self):
         if (
