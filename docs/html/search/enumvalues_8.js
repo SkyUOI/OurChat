@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['text_0',['TEXT',['../namespaceourchat.html#a70b8b9ff9939934a950fee7f8a0b8f1aa61a96ffcb251bb9bf0abf8fec19d0ea8',1,'ourchat']]]
+  ['success_0',['SUCCESS',['../namespaceourchat_1_1database.html#acffe81fcbb51f83de8b01d66ab82625aad0749aaba8b833466dfcbb0428e4f89c',1,'ourchat::database::SUCCESS()'],['../namespaceourchat_1_1database.html#ad69598bd99026984652aace25a1dfbdaad0749aaba8b833466dfcbb0428e4f89c',1,'ourchat::database::SUCCESS()']]]
 ];

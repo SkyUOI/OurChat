@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['ocid_5ft_0',['ocid_t',['../namespaceourchat.html#a5f67121fec2053c8cc39f330ab7c25b8',1,'ourchat']]]
+  ['msg_5fid_5ft_0',['msg_id_t',['../namespaceourchat.html#a667a471dd0fdf67de162b8a164d24086',1,'ourchat']]]
 ];

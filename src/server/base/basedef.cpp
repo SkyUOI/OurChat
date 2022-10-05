@@ -47,52 +47,62 @@ void init(const std::string& dbconfig_path) {
             "UNIQUE KEY(ocid),"
             "UNIQUE KEY(email)"
             ")DEFAULT CHARSET=utf8mb4;")) {
-        LOG(FATAL) << "Error in creating the user table";
+        LOG(FATAL) << "Error in creating the user table" << mysql_errno(&mysql)
+                   << mysql_error(&mysql);
     }
     // friend
     if (mysql_query(&mysql,
             "CREATE TABLE IF NOT EXISTS friend("
             "user_id INT,"
             "friend_id INT,"
-            "name CHAR(15)"
+            "name CHAR(15),"
+            "PRIMARY KEY(user_id)"
             ")DEFAULT CHARSET=utf8mb4;")) {
-        LOG(FATAL) << "Error in creating the friend table";
+        LOG(FATAL) << "Error in creating the friend table"
+                   << mysql_errno(&mysql) << mysql_error(&mysql);
     }
     // chat
     if (mysql_query(&mysql,
             "CREATE TABLE IF NOT EXISTS chat("
-            "group_id INT,"
+            "group_id INT AUTO_INCREMENT,"
             "user_id INT,"
             "name CHAR(15),"
-            "group_name CHAR(30)"
+            "group_name CHAR(30),"
+            "PRIMARY KEY(group_id)"
             ")DEFAULT CHARSET=utf8mb4;")) {
-        LOG(FATAL) << "Error in creating the chat table";
+        LOG(FATAL) << "Error in creating the chat table" << mysql_errno(&mysql)
+                   << mysql_error(&mysql);
     }
     // chatgroup
     if (mysql_query(&mysql,
             "CREATE TABLE IF NOT EXISTS chatgroup("
             "group_id INT,"
-            "group_name CHAR(30)"
-            ")Engine=InnoDB DEFAULT CHARSET=utf8mb4;")) {
-        LOG(FATAL) << "Error in creating the chatgroup table";
+            "group_name CHAR(30),"
+            "PRIMARY KEY(group_id)"
+            ")DEFAULT CHARSET=utf8mb4;")) {
+        LOG(FATAL) << "Error in creating the chatgroup table"
+                   << mysql_errno(&mysql) << mysql_error(&mysql);
     }
     // user_chat_msg
     if (mysql_query(&mysql,
             "CREATE TABLE IF NOT EXISTS user_chat_msg("
-            "user_id INT,"
-            "chat_msg_id INT"
-            ")Engine=InnoDB DEFAULT CHARSET=utf8mb4;")) {
-        LOG(FATAL) << "Error in creating the user_chat_msg table";
+            "user_id INT NOT NULL,"
+            "chat_msg_id INT NOT NULL"
+            ")DEFAULT CHARSET=utf8mb4;")) {
+        LOG(FATAL) << "Error in creating the user_chat_msg table"
+                   << mysql_errno(&mysql) << mysql_error(&mysql);
     }
     // user_chat_id
     if (mysql_query(&mysql,
             "CREATE TABLE IF NOT EXISTS user_chat_id("
-            "char_msg_id INT,"
+            "chat_msg_id INT AUTO_INCREMENT,"
             "msg_type INT,"
             "msg_data VARCHAR(8000),"
-            "sender_id INT"
-            ")Engine=InnoDB DEFAULT CHARSET=utf8mb4;")) {
-        LOG(FATAL) << "Error in creating the user_chat_id table";
+            "sender_id INT,"
+            "PRIMARY KEY(chat_msg_id)"
+            ")DEFAULT CHARSET=utf8mb4;")) {
+        LOG(FATAL) << "Error in creating the user_chat_id table"
+                   << mysql_errno(&mysql) << mysql_error(&mysql);
     }
 }
 

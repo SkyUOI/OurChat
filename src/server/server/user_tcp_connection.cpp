@@ -1,7 +1,6 @@
 #include <base/login.h>
 #include <base/users.h>
 #include <boost/asio.hpp>
-#include <boost/bind/bind.hpp>
 #include <easylogging++.h>
 #include <json/json.h>
 #include <memory>
@@ -43,7 +42,7 @@ void user_tcp_connection::read_res(
         }
         case client_code::TEXT: {
             // 发送文本信息
-            send_text(root["data"]["cid"].asUInt());
+            send_text(root);
             break;
         }
         case client_code::REGISTER: {
@@ -122,13 +121,16 @@ void user_tcp_connection::trylogin(const Json::Value& value) {
     }
 }
 
-void user_tcp_connection::send_text(group_id_t group) {
+void user_tcp_connection::send_text(const Json::Value& json) {
     // 首先根据group_id获取群聊的所有人数，然后按照OCID发送给具体的socket，未存在socket链接则储存信息
     boost::system::error_code error;
-    MYSQL_RES* group_members = database::get_members_by_group(group);
+    group_id_t group_id = json["data"]["cid"].asUInt();
+    user_id_t sender_id = json["data"]["sender_id"].asUInt();
+    MYSQL_RES* group_members = database::get_members_by_group(group_id);
     if (group_members == nullptr) {
         return;
     }
+    Json::Reader read;
     bool should_be_saved = false;
     int msg_id;
     for (MYSQL_ROW i = mysql_fetch_row(group_members); i != nullptr;
@@ -148,14 +150,21 @@ void user_tcp_connection::send_text(group_id_t group) {
             // 不存在socket链接，保存数据到数据库,等待下一次发送
             goto failed;
         }
+        continue;
     failed:
         if (!should_be_saved) {
-            // 先保存到数据库中
+            // 如果还没有保存该条信息，先保存到数据库中，然后获取这条信息的id
             should_be_saved = true;
-            msg_id = database::saved_msg(json_tmp);
+            msg_id = database::saved_msg(json_tmp, group_id, sender_id,
+                (database::msg_type_t)json["code"].asInt());
+            if (msg_id == -1) {
+                // 数据库出现问题，直接返回
+                return;
+            }
         }
         database::save_chat_msg(iint, msg_id);
     }
+    mysql_free_result(group_members);
 }
 
 void user_tcp_connection::tryregister(const Json::Value& value) {

@@ -16,4 +16,8 @@ enum class client_code {
 typedef unsigned int group_id_t;
 
 typedef std::string ocid_t;
+
+typedef unsigned int user_id_t;
+
+typedef unsigned int msg_id_t;
 }

@@ -110,6 +110,10 @@ Enumerations</h2></td></tr>
 , <a class="el" href="namespaceourchat_1_1database.html#ad69598bd99026984652aace25a1dfbdaad1e2718db63697aed1dbe3d6fdba5663">EMAIL_DUP</a>
  }</td></tr>
 <tr class="separator:ad69598bd99026984652aace25a1dfbda"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a54a24e3011e213732c082a5d840514a2"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceourchat_1_1database.html#a54a24e3011e213732c082a5d840514a2">msg_type_t</a> { <a class="el" href="namespaceourchat_1_1database.html#a54a24e3011e213732c082a5d840514a2a61a96ffcb251bb9bf0abf8fec19d0ea8">TEXT</a>
+, <a class="el" href="namespaceourchat_1_1database.html#a54a24e3011e213732c082a5d840514a2a23a12f67f614b5518c7f1c2465bf95e3">IMAGE</a>
+ }</td></tr>
+<tr class="separator:a54a24e3011e213732c082a5d840514a2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="func-members" name="func-members"></a>
 Functions</h2></td></tr>
@@ -124,11 +128,14 @@ Functions</h2></td></tr>
 <tr class="memdesc:a8b7cca62f2e1c0f9998d4ae097af83e5"><td class="mdescLeft">&#160;</td><td class="mdescRight">进行注册操作  <a href="namespaceourchat_1_1database.html#a8b7cca62f2e1c0f9998d4ae097af83e5">More...</a><br /></td></tr>
 <tr class="separator:a8b7cca62f2e1c0f9998d4ae097af83e5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0ea348c7a14a8ba301c00cff751b9817"><td class="memItemLeft" align="right" valign="top">MYSQL_RES *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceourchat_1_1database.html#a0ea348c7a14a8ba301c00cff751b9817">get_members_by_group</a> (<a class="el" href="namespaceourchat.html#a329a16aeb348e2ce668da1931214a549">group_id_t</a> group_id)</td></tr>
+<tr class="memdesc:a0ea348c7a14a8ba301c00cff751b9817"><td class="mdescLeft">&#160;</td><td class="mdescRight">通过组的id获取里面的所有人数  <a href="namespaceourchat_1_1database.html#a0ea348c7a14a8ba301c00cff751b9817">More...</a><br /></td></tr>
 <tr class="separator:a0ea348c7a14a8ba301c00cff751b9817"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a48b31fa194d2f1bdca5f579a6113c905"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceourchat_1_1database.html#a48b31fa194d2f1bdca5f579a6113c905">save_chat_msg</a> (int <a class="el" href="namespaceourchat_1_1database.html#a5fc071acbaa2b8e9b1c6750cdebbb109">user</a>, int chat_id)</td></tr>
-<tr class="separator:a48b31fa194d2f1bdca5f579a6113c905"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:adfe210820c0dc27575724e0b25ea866b"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceourchat_1_1database.html#adfe210820c0dc27575724e0b25ea866b">saved_msg</a> (const std::string &amp;json)</td></tr>
-<tr class="separator:adfe210820c0dc27575724e0b25ea866b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af59d1c7cafe0e6b002c144cb7ee532b5"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceourchat_1_1database.html#af59d1c7cafe0e6b002c144cb7ee532b5">save_chat_msg</a> (<a class="el" href="namespaceourchat.html#a7a04f7163ada8b8b43afd16ed65a685f">user_id_t</a> <a class="el" href="namespaceourchat_1_1database.html#a5fc071acbaa2b8e9b1c6750cdebbb109">user</a>, <a class="el" href="namespaceourchat.html#a667a471dd0fdf67de162b8a164d24086">msg_id_t</a> msg_id)</td></tr>
+<tr class="memdesc:af59d1c7cafe0e6b002c144cb7ee532b5"><td class="mdescLeft">&#160;</td><td class="mdescRight">向对应用户保存信息  <a href="namespaceourchat_1_1database.html#af59d1c7cafe0e6b002c144cb7ee532b5">More...</a><br /></td></tr>
+<tr class="separator:af59d1c7cafe0e6b002c144cb7ee532b5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af58ad96255d3fe35985adb880c3fc70c"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceourchat_1_1database.html#af58ad96255d3fe35985adb880c3fc70c">saved_msg</a> (const std::string &amp;json, <a class="el" href="namespaceourchat.html#a329a16aeb348e2ce668da1931214a549">group_id_t</a> group_id, <a class="el" href="namespaceourchat.html#a7a04f7163ada8b8b43afd16ed65a685f">user_id_t</a> sender_id, <a class="el" href="namespaceourchat_1_1database.html#a54a24e3011e213732c082a5d840514a2">msg_type_t</a> msg_type)</td></tr>
+<tr class="memdesc:af58ad96255d3fe35985adb880c3fc70c"><td class="mdescLeft">&#160;</td><td class="mdescRight">将一条信息保存到数据库中  <a href="namespaceourchat_1_1database.html#af58ad96255d3fe35985adb880c3fc70c">More...</a><br /></td></tr>
+<tr class="separator:af58ad96255d3fe35985adb880c3fc70c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aada98bb07492c8319260b5ecb5fa7bc5"><td class="memTemplParams" colspan="2">template&lt;bool logintype&gt; </td></tr>
 <tr class="memitem:aada98bb07492c8319260b5ecb5fa7bc5"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="structourchat_1_1database_1_1login__return.html">login_return</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceourchat_1_1database.html#aada98bb07492c8319260b5ecb5fa7bc5">login</a> (const std::string &amp;account, const std::string &amp;password)</td></tr>
 <tr class="memdesc:aada98bb07492c8319260b5ecb5fa7bc5"><td class="mdescLeft">&#160;</td><td class="mdescRight">进行登录操作  <a href="namespaceourchat_1_1database.html#aada98bb07492c8319260b5ecb5fa7bc5">More...</a><br /></td></tr>
@@ -189,6 +196,32 @@ Variables</h2></td></tr>
 
 </div>
 </div>
+<a id="a54a24e3011e213732c082a5d840514a2" name="a54a24e3011e213732c082a5d840514a2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a54a24e3011e213732c082a5d840514a2">&#9670;&#160;</a></span>msg_type_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum class <a class="el" href="namespaceourchat_1_1database.html#a54a24e3011e213732c082a5d840514a2">ourchat::database::msg_type_t</a></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">strong</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<table class="fieldtable">
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a54a24e3011e213732c082a5d840514a2a61a96ffcb251bb9bf0abf8fec19d0ea8" name="a54a24e3011e213732c082a5d840514a2a61a96ffcb251bb9bf0abf8fec19d0ea8"></a>TEXT&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a54a24e3011e213732c082a5d840514a2a23a12f67f614b5518c7f1c2465bf95e3" name="a54a24e3011e213732c082a5d840514a2a23a12f67f614b5518c7f1c2465bf95e3"></a>IMAGE&#160;</td><td class="fielddoc"></td></tr>
+</table>
+
+</div>
+</div>
 <a id="ad69598bd99026984652aace25a1dfbda" name="ad69598bd99026984652aace25a1dfbda"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ad69598bd99026984652aace25a1dfbda">&#9670;&#160;</a></span>register_state</h2>
 
@@ -232,6 +265,15 @@ Variables</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+
+<p>通过组的id获取里面的所有人数 </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">group_id</td><td></td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd></dd></dl>
 
 </div>
 </div>
@@ -353,8 +395,8 @@ template&lt;bool logintype&gt; </div>
 
 </div>
 </div>
-<a id="a48b31fa194d2f1bdca5f579a6113c905" name="a48b31fa194d2f1bdca5f579a6113c905"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a48b31fa194d2f1bdca5f579a6113c905">&#9670;&#160;</a></span>save_chat_msg()</h2>
+<a id="af59d1c7cafe0e6b002c144cb7ee532b5" name="af59d1c7cafe0e6b002c144cb7ee532b5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af59d1c7cafe0e6b002c144cb7ee532b5">&#9670;&#160;</a></span>save_chat_msg()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -362,14 +404,14 @@ template&lt;bool logintype&gt; </div>
         <tr>
           <td class="memname">void ourchat::database::save_chat_msg </td>
           <td>(</td>
-          <td class="paramtype">int&#160;</td>
+          <td class="paramtype"><a class="el" href="namespaceourchat.html#a7a04f7163ada8b8b43afd16ed65a685f">user_id_t</a>&#160;</td>
           <td class="paramname"><em>user</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">int&#160;</td>
-          <td class="paramname"><em>chat_id</em>&#160;</td>
+          <td class="paramtype"><a class="el" href="namespaceourchat.html#a667a471dd0fdf67de162b8a164d24086">msg_id_t</a>&#160;</td>
+          <td class="paramname"><em>msg_id</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -379,10 +421,19 @@ template&lt;bool logintype&gt; </div>
       </table>
 </div><div class="memdoc">
 
+<p>向对应用户保存信息 </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">user</td><td>用户id </td></tr>
+    <tr><td class="paramname">msg_id</td><td>数据id </td></tr>
+  </table>
+  </dd>
+</dl>
+
 </div>
 </div>
-<a id="adfe210820c0dc27575724e0b25ea866b" name="adfe210820c0dc27575724e0b25ea866b"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#adfe210820c0dc27575724e0b25ea866b">&#9670;&#160;</a></span>saved_msg()</h2>
+<a id="af58ad96255d3fe35985adb880c3fc70c" name="af58ad96255d3fe35985adb880c3fc70c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af58ad96255d3fe35985adb880c3fc70c">&#9670;&#160;</a></span>saved_msg()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -391,11 +442,42 @@ template&lt;bool logintype&gt; </div>
           <td class="memname">int ourchat::database::saved_msg </td>
           <td>(</td>
           <td class="paramtype">const std::string &amp;&#160;</td>
-          <td class="paramname"><em>json</em></td><td>)</td>
+          <td class="paramname"><em>json</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
           <td></td>
+          <td class="paramtype"><a class="el" href="namespaceourchat.html#a329a16aeb348e2ce668da1931214a549">group_id_t</a>&#160;</td>
+          <td class="paramname"><em>group_id</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="namespaceourchat.html#a7a04f7163ada8b8b43afd16ed65a685f">user_id_t</a>&#160;</td>
+          <td class="paramname"><em>sender_id</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="namespaceourchat_1_1database.html#a54a24e3011e213732c082a5d840514a2">msg_type_t</a>&#160;</td>
+          <td class="paramname"><em>msg_type</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
         </tr>
       </table>
 </div><div class="memdoc">
+
+<p>将一条信息保存到数据库中 </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">json</td><td>数据 </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>该数据对应的数据库id,返回-1代表出现错误 </dd></dl>
 
 </div>
 </div>

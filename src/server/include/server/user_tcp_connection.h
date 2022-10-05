@@ -37,9 +37,9 @@ private:
     /**
      * @brief 发送文本
      * @param text 文本
-     * @param group 聊天号
+     * @param group 聊天信息
      */
-    void send_text(group_id_t group);
+    void send_text(const Json::Value& json);
 
     /**
      * @brief 尝试注册

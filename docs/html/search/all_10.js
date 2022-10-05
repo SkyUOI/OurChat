@@ -1,7 +1,7 @@
 var searchData=
 [
-  ['save_5fchat_5fmsg_0',['save_chat_msg',['../namespaceourchat_1_1database.html#a48b31fa194d2f1bdca5f579a6113c905',1,'ourchat::database']]],
-  ['saved_5fmsg_1',['saved_msg',['../namespaceourchat_1_1database.html#adfe210820c0dc27575724e0b25ea866b',1,'ourchat::database']]],
+  ['save_5fchat_5fmsg_0',['save_chat_msg',['../namespaceourchat_1_1database.html#af59d1c7cafe0e6b002c144cb7ee532b5',1,'ourchat::database']]],
+  ['saved_5fmsg_1',['saved_msg',['../namespaceourchat_1_1database.html#af58ad96255d3fe35985adb880c3fc70c',1,'ourchat::database']]],
   ['server_2',['server',['../classourchat_1_1server.html',1,'ourchat::server'],['../classourchat_1_1server.html#ae61a3afb6d9e51e0948475de7c69e4fc',1,'ourchat::server::server()']]],
   ['server_2ecpp_3',['server.cpp',['../server_8cpp.html',1,'']]],
   ['server_2eh_4',['server.h',['../server_8h.html',1,'']]],
