@@ -7,7 +7,7 @@
 #include <gflags/gflags.h>
 #include <server/server.h>
 
-using boost::asio::ip::tcp;
+using asio::ip::tcp;
 
 INITIALIZE_EASYLOGGINGPP
 
@@ -96,7 +96,7 @@ int main(int argc, char** argv) {
     ourchat::database::init(FLAGS_dbcfg);
     LOG(INFO) << "init the database";
     puts("Ourchat server is ready to work");
-    boost::asio::io_context io_context;
+    asio::io_context io_context;
     ourchat::server server(io_context);
     io_context.run();
     return 0;

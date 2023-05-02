@@ -2,14 +2,14 @@
  * @brief server class
  */
 #pragma once
-#include <boost/asio.hpp>
+#include <asio.hpp>
 #include <json/json.h>
 #include <memory>
 #include <server/server_def.h>
 #include <server/user_tcp_connection.h>
 #include <unordered_map>
 
-using boost::asio::ip::tcp;
+using asio::ip::tcp;
 
 namespace ourchat {
 // 储存oc号对应的客户端
@@ -19,7 +19,7 @@ extern std::unordered_map<int, user_tcp_connection*> clients;
  */
 class server {
 public:
-    server(boost::asio::io_context& io_context);
+    server(asio::io_context& io_context);
 
     ~server();
 
@@ -33,9 +33,9 @@ private:
      * @brief accept到socket的回调函数
      */
     void handle_accept(std::shared_ptr<user_tcp_connection> ptr,
-        const boost::system::error_code& error);
+        const asio::error_code& error);
 
-    boost::asio::io_context& io_context;
+    asio::io_context& io_context;
 
     tcp::acceptor acceptor;
 };

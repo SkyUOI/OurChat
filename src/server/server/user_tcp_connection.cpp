@@ -1,6 +1,6 @@
 #include <base/login.h>
 #include <base/users.h>
-#include <boost/asio.hpp>
+#include <asio.hpp>
 #include <easylogging++.h>
 #include <json/json.h>
 #include <memory>
@@ -8,12 +8,12 @@
 #include <server/user_tcp_connection.h>
 
 #define write_handle                                                           \
-    (boost::bind(&user_tcp_connection::handle_write, shared_from_this(),       \
-        boost::asio::placeholders::error,                                      \
-        boost::asio::placeholders::bytes_transferred))
+    (std::bind(&user_tcp_connection::handle_write, shared_from_this(),       \
+        std::placeholders::_1,                                      \
+        std::placeholders::_2))
 
 namespace ourchat {
-user_tcp_connection::user_tcp_connection(boost::asio::io_context& io_context)
+user_tcp_connection::user_tcp_connection(asio::io_context& io_context)
     : socket_(io_context) {
 }
 
@@ -22,8 +22,8 @@ tcp::socket& user_tcp_connection::socket() {
 }
 
 void user_tcp_connection::read_res(
-    const boost::system::error_code& error, size_t bytes_transferred) {
-    if (error == boost::asio::error::eof) {
+    const asio::error_code& error, size_t bytes_transferred) {
+    if (error == asio::error::eof) {
         // 连接已结束
         return;
     }
@@ -61,14 +61,14 @@ void user_tcp_connection::read_res(
 
 void user_tcp_connection::start() {
     // 读取到缓冲区
-    socket_.async_read_some(boost::asio::buffer(json_tmp),
-        boost::bind(&user_tcp_connection::read_res, shared_from_this(),
-            boost::asio::placeholders::error,
-            boost::asio::placeholders::bytes_transferred));
+    socket_.async_read_some(asio::buffer(json_tmp),
+        std::bind(&user_tcp_connection::read_res, shared_from_this(),
+            std::placeholders::_1,
+            std::placeholders::_2));
 }
 
 void user_tcp_connection::handle_write(
-    const boost::system::error_code& error, size_t bytes_transferred) {
+    const asio::error_code& error, size_t bytes_transferred) {
 }
 
 void user_tcp_connection::trylogin(const Json::Value& value) {
@@ -86,8 +86,8 @@ void user_tcp_connection::trylogin(const Json::Value& value) {
         // 正常登录
         sprintf(json_tmp, R"({"code":7, "data":{"state":0, "id":%d}})",
             return_code.id);
-        boost::asio::async_write(
-            socket_, boost::asio::buffer(json_tmp), write_handle);
+        asio::async_write(
+            socket_, asio::buffer(json_tmp), write_handle);
         // 保存套接字
         user_id = return_code.id;
         clients[user_id] = this;
@@ -96,8 +96,8 @@ void user_tcp_connection::trylogin(const Json::Value& value) {
     case database::login_state::PASSWORDINCORRECT:
     case database::login_state::ACCOUNTNOTFOUND: {
         // 账号未定义或密码错误
-        boost::asio::async_write(socket_,
-            boost::asio::buffer("{"
+        asio::async_write(socket_,
+            asio::buffer("{"
                                 "\"code\":7,"
                                 "\"data\":{"
                                 "\"state\":1"
@@ -109,8 +109,8 @@ void user_tcp_connection::trylogin(const Json::Value& value) {
     default: {
         LOG(ERROR) << "login code " << int(return_code.state)
                    << " is not defined.";
-        boost::asio::async_write(socket_,
-            boost::asio::buffer("{"
+        asio::async_write(socket_,
+            asio::buffer("{"
                                 "\"code\":7, "
                                 "\"data\":{"
                                 "\"state\":2"
@@ -123,7 +123,7 @@ void user_tcp_connection::trylogin(const Json::Value& value) {
 
 void user_tcp_connection::send_text(const Json::Value& json) {
     // 首先根据group_id获取群聊的所有人数，然后按照OCID发送给具体的socket，未存在socket链接则储存信息
-    boost::system::error_code error;
+    asio::error_code error;
     group_id_t group_id = json["data"]["cid"].asUInt();
     user_id_t sender_id = json["data"]["sender_id"].asUInt();
     MYSQL_RES* group_members = database::get_members_by_group(group_id);
@@ -138,10 +138,10 @@ void user_tcp_connection::send_text(const Json::Value& json) {
         int iint = atoi(i[0]);
         if (clients.find(iint) != clients.end()) {
             // 存在socket链接
-            boost::asio::async_write(clients[iint]->socket(),
-                boost::asio::buffer(json_tmp), write_handle);
+            asio::async_write(clients[iint]->socket(),
+                asio::buffer(json_tmp), write_handle);
             // 判断是否成功发送
-            if (error == boost::asio::error::eof) {
+            if (error == asio::error::eof) {
                 // 连接已结束,保存数据到数据库,等待下一次发送
                 clients.erase(iint);
                 goto failed;
@@ -188,8 +188,8 @@ void user_tcp_connection::tryregister(const Json::Value& value) {
             "}"
             "}",
             returncode.ocid.c_str(), returncode.id);
-        boost::asio::async_write(
-            socket_, boost::asio::buffer(json_tmp), write_handle);
+        asio::async_write(
+            socket_, asio::buffer(json_tmp), write_handle);
         break;
     }
     case database::register_state::EMAIL_DUP: {
@@ -200,8 +200,8 @@ void user_tcp_connection::tryregister(const Json::Value& value) {
             "\"state\": 2"
             "}"
             "}");
-        boost::asio::async_write(
-            socket_, boost::asio::buffer(json_tmp), write_handle);
+        asio::async_write(
+            socket_, asio::buffer(json_tmp), write_handle);
         break;
     }
     default: {
@@ -212,8 +212,8 @@ void user_tcp_connection::tryregister(const Json::Value& value) {
             "\"state\": 1"
             "}"
             "}");
-        boost::asio::async_write(
-            socket_, boost::asio::buffer(json_tmp), write_handle);
+        asio::async_write(
+            socket_, asio::buffer(json_tmp), write_handle);
         LOG(ERROR) << "register code " << (int)returncode.state
                    << " is not defined.";
     }

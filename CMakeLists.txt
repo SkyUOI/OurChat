@@ -13,11 +13,10 @@ project(OurChat CXX)
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 link_directories(${PROJECT_SOURCE_DIR}/bin)
-link_directories(third_party/boost/lib)
 
 include_directories(src/server/include)
 include_directories(third_party/jsoncpp)
-include_directories(third_party/boost)
+include_directories(third_party/asio)
 include_directories(third_party/hash-library)
 include_directories(third_party/easyloggingpp)
 
