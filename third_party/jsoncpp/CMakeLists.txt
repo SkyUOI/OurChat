@@ -1,5 +1,0 @@
-file(GLOB_RECURSE SRCS "*.cpp")
-
-add_library(jsoncpp STATIC
-        ${SRCS}
-        )
