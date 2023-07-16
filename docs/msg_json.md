@@ -4,7 +4,7 @@
 
 ```json
 {
-  "code": 信息ID,
+  "code": 信息类型,
   "time": 消息发送时的时间戳
   "data": {
   }
@@ -13,7 +13,7 @@
 
 | key  | valueType | comment                 |
 |:-----|:----------|:------------------------|
-| code | int       | 信息ID                    |
+| code | int       | 信息类型                    |
 | data | json      | 信息相关数据,根据信息所需的数据来定键值对   |
 | time | int       | 消息发送时的时间戳               |
 
@@ -27,7 +27,7 @@
   "time": 消息发送时的时间戳
   "data": {
     "cid": Chat的id,
-    "sender_id": 发送者ID,
+    "sender_ocid": 发送者OCID,
     "msg": "文本信息"
   }
 }
@@ -35,10 +35,10 @@
 
 | key       | valueType | comment    |
 |:----------|:----------|:-----------|
-| code      | int       | 信息ID       |
+| code      | int       | 信息类型       |
 | time      | int       | 消息发送时的时间戳  |
 | cid       | int       | chat的ID，唯一 |
-| sender_id | int       | 发送者的ID，唯一  |
+| sender_ocid | int       | 发送者的OCID，唯一  |
 | data      | json      | 信息相关数据     |
 | msg       | str       | 文本信息       |
 
@@ -54,7 +54,7 @@
   "time": 发送请求时的时间戳,
   "data": {
     "email": "注册使用的邮箱",
-    "password": "注册密码",
+    "password": "注册密码(已加密)",
     "name": "昵称"
   }
 }
@@ -62,11 +62,11 @@
 
 | key      | valueType | comment   |
 |:---------|:----------|:----------|
-| code     | int       | 信息ID      |
+| code     | int       | 信息类型      |
 | time     | int       | 发送请求时的时间戳 |
 | data     | json      | 信息相关数据    |
 | email     | str       | 注册邮箱      |
-| password | str       | 注册密码      |
+| password | str       | 注册密码(已加密)      |
 | name     | str       | 昵称        |
 
 # 注册返回信息json
@@ -86,11 +86,10 @@
 
 | key   | valueType | comment   |
 |:------|:----------|:----------|
-| code  | int       | 信息ID      |
+| code  | int       | 信息类型      |
 | data  | json      | 信息相关数据    |
 | state | int       | 服务端返回的状态码 |
 | ocId  | str       | 该账号的OC号   |
-| id    | int       | 该账号的id    |
 
 | returnCode | comment |
 |:-----------|:--------|
@@ -101,24 +100,12 @@
 # 登录信息json
 
 格式如下
-
 ```json
 {
   "code": 6,
   "time": 发送请求时的时间戳
   "data": {
-    "ocId": "账号",
-    "password": "密码"
-  }
-}
-```
-或
-```json
-{
-  "code": 6,
-  "time": 发送请求时的时间戳
-  "data": {
-    "email": "邮箱",
+    "account": "邮箱/OCID",
     "password": "密码"
   }
 }
@@ -126,11 +113,10 @@
 
 | key      | valueType | comment   |
 |:---------|:----------|:----------|
-| code     | int       | 信息ID      |
+| code     | int       | 信息类型      |
 | time     | int       | 发送请求时的时间戳 |
 | data     | json      | 信息相关数据    |
-| ocId     | str       | ocId      |
-| email    | str       | 账号绑定的邮箱   |
+| account     | str       | 账号绑定的邮箱或ocId      |
 | password | str       | 密码        |
 
 # 登录返回信息json
@@ -149,10 +135,9 @@
 
 | key   | valueType | comment   |
 |:------|:----------|:----------|
-| code  | int       | 信息ID      |
+| code  | int       | 信息类型      |
 | data  | json      | 信息相关数据    |
 | state | int       | 服务器返回的状态码 |
-| id    | int       | 该账号对应的id  |
 
 | returnCode | comment  |
 |:-----------|:---------|
