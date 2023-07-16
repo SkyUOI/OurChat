@@ -6,6 +6,9 @@
 #include <filesystem>
 #include <gflags/gflags.h>
 #include <server/server.h>
+#ifdef UNITTEST
+#include <gtest/gtest.h>
+#endif
 
 using asio::ip::tcp;
 
@@ -96,8 +99,14 @@ int main(int argc, char** argv) {
     ourchat::database::init(FLAGS_dbcfg);
     LOG(INFO) << "init the database";
     puts("Ourchat server is ready to work");
+#ifdef UNITTEST
+    // 启动单元测试
+    testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+#else
     asio::io_context io_context;
     ourchat::server server(io_context);
     io_context.run();
+#endif
     return 0;
 }

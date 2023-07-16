@@ -1,5 +1,5 @@
 #pragma once
-#include <boost/asio.hpp>
+#include <asio.hpp>
 #include <mysql.h>
 #include <string>
 

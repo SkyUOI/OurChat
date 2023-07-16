@@ -143,3 +143,4 @@ bin/
 
 database.json
 database_local.json
+CMakeLists.txt

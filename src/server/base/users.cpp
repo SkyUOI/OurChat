@@ -1,11 +1,8 @@
 #include <base/basedef.h>
 #include <base/users.h>
-#include <boost/asio.hpp>
 #include <easylogging++.h>
 #include <mysql.h>
-#include <server/server_def.h>
 #include <string>
-#include <vector>
 
 namespace ourchat::database {
 MYSQL_RES* get_members_by_group(group_id_t group_id) {
