@@ -76,10 +76,10 @@
 ```json
 {
   "code": 5,
+  "time": 时间戳
   "data": {
     "state": 返回码,
-    "ocId": "注册账号的OC号",
-    "id":注册账号的id
+    "ocId": "注册账号的OC号"
   }
 }
 ```
@@ -126,9 +126,10 @@
 ```json
 {
   "code": 7,
+  "time": 时间戳
   "data": {
     "state": 登录状态码,
-    "id":该账号的id
+    "ocid":该账号的ocid
   }
 }
 ```
