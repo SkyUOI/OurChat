@@ -1,7 +1,7 @@
 #include <base/basedef.h>
 #include <base/users.h>
 #include <easylogging++.h>
-#include <mysql/mysql.h>
+#include <mysql.h>
 #include <string>
 
 namespace ourchat::database {

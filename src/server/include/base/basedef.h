@@ -1,6 +1,6 @@
 #pragma once
 #include <asio.hpp>
-#include <mysql/mysql.h>
+#include <mysql.h>
 #include <string>
 
 namespace ourchat::database {

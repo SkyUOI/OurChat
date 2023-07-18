@@ -15,6 +15,9 @@ add_requires("gflags")
 add_rules("mode.debug", "mode.release")
 add_rules("plugin.compile_commands.autoupdate", {outputdir = ".vscode"})
 add_rules("plugin.compile_commands.autoupdate")
+if is_os("linux") then
+    add_includedirs("/usr/include/mysql")
+end
 
 target("ourchat_server")
     set_kind("binary")
