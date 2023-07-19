@@ -26,7 +26,7 @@
   "code": 0,
   "time": 消息发送时的时间戳
   "data": {
-    "cid": Chat的id,
+    "cid": 该信息的id,唯一
     "sender_ocid": 发送者OCID,
     "msg": "文本信息"
   }

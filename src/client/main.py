@@ -1,6 +1,6 @@
-import socket, json, hashlib, asyncio,sys
+import socket, json, hashlib, asyncio,sys,time
 from uiSystem import MainUi, UiSystem, Login
-from time import time
+from threading import Thread
 from PyQt5.QtWidgets import QMessageBox,QApplication
 
 
@@ -8,7 +8,6 @@ class Client:
 	def __init__(self):
 		self.server = None
 		self.ocid = None
-		self.close = False
 		self.uisystem = None
 
 	def tryConnectToServer(self, ip: str, port: int):
@@ -25,36 +24,34 @@ class Client:
 		json_str = json.dumps(msg_data)
 		self.server.send(json_str.encode("utf-8"))
 
-	async def recvMessage(self):
-		while not getattr(self.server, "_closed") and not self.close:
-			json_str = await self.server.recv(1024).decode("utf-8")
+	def recvMessage(self):
+		while hasattr(self.server, "_closed"):
+			json_str = self.server.recv(1024).decode("utf-8")
 			if json_str == "":
 				continue
-			print(json_str)
 			self.analysisMessage(json.loads(json_str))
-			await asyncio.wait(1)
 
-	async def listenSocket(self):
-		while not self.close:
-			while True:
-				connect = await self.tryConnectToServer("127.0.0.1", 11451)
-				if connect:
-					break
-			print("连接成功")
-			await self.recvMessage()
+	def listenSocket(self):
+		while True:
+			connect = self.tryConnectToServer("127.0.0.1", 11451)
+			if connect:
+				break
+		print("连接成功")
+		self.recvMessage()
+
 	def analysisMessage(self, data: dict):
-		msg_type = msg["code"]
-		msg_time = msg["time"]
-		msg_data = msg["data"]
+		print(data)
+		msg_type = data["code"]
+		msg_time = data["time"]
+		msg_data = data["data"]
 		if msg_type == 7:  # 登录返回信息	
 			if msg_data["state"] == 0:
 				self.ocid = msg_data["ocid"]
-				self.uisystem.showUi(MainUi())
-				self.uisystem.closeDialog()
+				self.uisystem.task_queue.append(lambda:self.uisystem.showUi(MainUi()))
 			elif msg_data["state"] == 1:
-				QMessageBox.Critical(self.uisystem, "error", "wrong account/password.")
+				self.uisystem.task_queue.append(lambda:QMessageBox.critical(self.uisystem, "error", "wrong account/password."))
 			elif msg_data["state"] == 2:
-				QMessageBox.Critical(self.uisystem, "error", "server error")
+				self.uisystem.task_queue.append(lambda:QMessageBox.critical(self.uisystem, "error", "server error"))
 
 	def login(self, account, password):
 		encrypted_password = hashlib.sha256()
@@ -67,23 +64,30 @@ class Client:
 		}
 		self.sendMessage(data)
 
-	def closeClient(self):
-		self.close = True
-
-	async def showUi(self):
+	def showUi(self):
 		app = QApplication(sys.argv)
-		self.uisystem = UiSystem()
-		self.uisystem.showDialog(Login())
-		await app.exec()
+		self.uisystem = UiSystem(self)
+		self.uisystem.showUi(Login())
+		app.exec()
 
 
-async def run():
-	client = Client()
-	socket_task = asyncio.create_task(client.listenSocket())
-	ui_task = asyncio.create_task(client.showUi())
+# async def run():
+# 	client = Client()
+# 	socket_task = asyncio.create_task(client.listenSocket())
+# 	ui_task = asyncio.create_task(client.showUi())
 
-	await socket_task
-	await ui_task
+# 	await socket_task
+# 	await ui_task
 
 
-asyncio.run(run())
+# asyncio.run(run())
+
+# 协程 10768 K
+# 线程 16352 K
+
+client = Client()
+socket_task = Thread(target=client.listenSocket,daemon=True)
+socket_task.start()
+client.showUi()
+if client.server is not None:
+	client.server.close()

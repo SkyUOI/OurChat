@@ -21,9 +21,8 @@ class MainUi(main_window.Ui_MainWindow):
         super().setupUi(ui_system)
 
 
-class Login(login.Ui_Dialog):
-    def init(self, ui_system):
-        self.uisystem = ui_system
+class Login(login.Ui_MainWindow):
+    def init(self):
         self.rename()
         self.bind()
 
@@ -32,22 +31,37 @@ class Login(login.Ui_Dialog):
         self.img.setPixmap(img)
 
     def bind(self):
-        pass
+        self.login.clicked.connect(self.tryLogin)
+        self.show_paw_checkbox.stateChanged.connect(self.showPassowrd)
 
-    def setupUi(self, dialog):
-        self.dialog = dialog
-        super().setupUi(dialog)
+    def setupUi(self, ui_system):
+        self.uisystem = ui_system
+        super().setupUi(ui_system)
+
+    def tryLogin(self):
+    	account = self.account.text()
+    	password = self.password.text()
+    	self.uisystem.mainsystem.login(account,password)
+
+    def showPassowrd(self):
+    	is_check = self.show_paw_checkbox.isChecked()
+    	if is_check:
+    		self.password.setEchoMode(QtWidgets.QLineEdit.Normal)
+    	else:
+    		self.password.setEchoMode(QtWidgets.QLineEdit.Password)
 
 
 class UiSystem(QMainWindow):
-    def __init__(self):
+    def __init__(self,mainsystem):
+        super().__init__()
         self.ui = None
         self.dialog = None
         self.dialog_ui = None
-        super().__init__()
+        self.mainsystem = mainsystem
+        self.task_queue = []
         self.timer = QTimer(self)
-        self.timer.timeout.connect(self.timerFunc)
-        self.timer.start(1000)
+        self.timer.timeout.connect(self.tick)
+        self.timer.start(100)
 
     def showUi(self, ui):
         self.ui = ui
@@ -71,13 +85,7 @@ class UiSystem(QMainWindow):
             self.dialog = None
             self.dialog_ui = None
 
-    async def timerFunc(self):
-    	await asyncio.sleep(1)
-
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    ui_system = UiSystem()
-    ui_system.showDialog(Login())
-    ui_system.showUi(MainUi())
-    app.exec()
+    def tick(self):
+        for task in self.task_queue:
+            task()
+            self.task_queue.pop(0)
