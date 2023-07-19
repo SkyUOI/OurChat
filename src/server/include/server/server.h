@@ -32,7 +32,7 @@ private:
     /**
      * @brief accept到socket的回调函数
      */
-    void handle_accept(std::shared_ptr<user_tcp_connection> ptr,
+    void handle_accept(const std::shared_ptr<user_tcp_connection>& ptr,
         const asio::error_code& error);
 
     asio::io_context& io_context;

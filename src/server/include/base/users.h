@@ -1,5 +1,5 @@
 #pragma once
-#include <mysql/mysql.h>
+#include <mysql.h>
 #include <server/server_def.h>
 #include <string>
 #include <vector>

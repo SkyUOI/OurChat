@@ -17,7 +17,7 @@ MYSQL_RES* get_members_by_group(group_id_t group_id) {
 
 void save_chat_msg(user_id_t user, msg_id_t msg_id) {
     sprintf(sql,
-        "insert INTO user_char_msg (user_id, chat_msg_id) VALUES (%s %s);",
+        "insert INTO user_char_msg (user_id, chat_msg_id) VALUES (%u %u);",
         user, msg_id);
     if (!mysql_query(&mysql, sql)) {
         LOG(ERROR) << "Can't save chat msg for user " << mysql_errno(&mysql)

@@ -13,7 +13,7 @@ namespace ourchat::utils {
  */
 inline void read_file_detail(
     const std::string& path, std::string& file_data, FILE* file) {
-    struct stat buffer;
+    struct stat buffer{};
     stat(path.c_str(), &buffer);
     size_t size = buffer.st_size;
     file_data.resize(size + 1);
@@ -29,18 +29,5 @@ int readfile(std::string& file_data, const std::string& path) {
     read_file_detail(path, file_data, file);
     fclose(file);
     return 0;
-}
-
-listfiles::listfiles(const std::string& path)
-    : iter(path)
-    , now(begin(iter)) {
-}
-
-fs::path listfiles::nextitem() {
-    now++;
-    if (now == end(iter)) {
-        return "";
-    }
-    return now->path();
 }
 }

@@ -62,9 +62,7 @@ void user_tcp_connection::read_res(
 void user_tcp_connection::start() {
     // 读取到缓冲区
     socket_.async_read_some(asio::buffer(json_tmp),
-        std::bind(&user_tcp_connection::read_res, shared_from_this(),
-            std::placeholders::_1,
-            std::placeholders::_2));
+        [capture0 = shared_from_this()](auto && PH1, auto && PH2) { capture0->read_res(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2)); });
 }
 
 void user_tcp_connection::handle_write(
@@ -72,7 +70,7 @@ void user_tcp_connection::handle_write(
 }
 
 void user_tcp_connection::trylogin(const Json::Value& value) {
-    database::login_return return_code;
+    database::login_return return_code{};
     const std::string& passwd = value["data"]["password"].asString();
     if (value["data"].isMember("ocId")) {
         return_code

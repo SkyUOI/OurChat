@@ -18,11 +18,10 @@ void server::start_accept() {
     std::shared_ptr<user_tcp_connection> ptr(
         new user_tcp_connection(io_context));
     acceptor.async_accept(ptr->socket(),
-        std::bind(&server::handle_accept, this, ptr,
-            std::placeholders::_1));
+        [this, ptr](auto && PH1) { handle_accept(ptr, std::forward<decltype(PH1)>(PH1)); });
 }
 
-void server::handle_accept(std::shared_ptr<user_tcp_connection> ptr,
+void server::handle_accept(const std::shared_ptr<user_tcp_connection>& ptr,
     const asio::error_code& error) {
     if (!error) {
         ptr->start();
@@ -32,6 +31,5 @@ void server::handle_accept(std::shared_ptr<user_tcp_connection> ptr,
     start_accept();
 }
 
-server::~server() {
-}
+server::~server() = default;
 }

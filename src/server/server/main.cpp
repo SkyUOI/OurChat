@@ -86,11 +86,7 @@ int main(int argc, char** argv) {
     gflags::ParseCommandLineFlags(&argc, &argv, true);
     ConfigureLogger();
     if (FLAGS_clear_log) {
-        ourchat::utils::listfiles listfiles("log");
-        for (fs::path i = listfiles.nextitem(); !i.empty();
-             i = listfiles.nextitem()) {
-            remove(i.string().c_str());
-        }
+        fs::remove_all("log");
         LOG(INFO) << "clear the log";
         exit(EXIT_SUCCESS);
     }

@@ -5,7 +5,7 @@
 
 #include <base/basedef.h>
 #include <easylogging++.h>
-#include <mysql/mysql.h>
+#include <mysql.h>
 #include <string>
 
 namespace ourchat::database {
@@ -45,7 +45,7 @@ login_return login(const std::string& account, const std::string& password) {
     }
     MYSQL_RES* res = mysql_store_result(&mysql);
     MYSQL_ROW row = mysql_fetch_row(res);
-    login_return ret;
+    login_return ret{};
     if (row == nullptr) {
         // 没有找到该账号
         ret.state = login_state::ACCOUNTNOTFOUND;

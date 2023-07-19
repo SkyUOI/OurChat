@@ -15,7 +15,7 @@ namespace ourchat {
 class user_tcp_connection
     : public std::enable_shared_from_this<user_tcp_connection> {
 public:
-    user_tcp_connection(asio::io_context& io_context);
+    explicit user_tcp_connection(asio::io_context& io_context);
 
     ~user_tcp_connection();
 
@@ -48,8 +48,8 @@ private:
     void handle_write(
         const asio::error_code& error, size_t bytes_transferred);
 
-    char json_tmp[1024];
+    char json_tmp[1024]{};
 
-    int user_id;
+    int user_id{};
 };
 }

@@ -131,6 +131,7 @@ dmypy.json
 # IDE config
 .idea/
 .vscode/
+.fleet/
 
 cmake-build-debug-clang/
 cmake-build-release-clang/

@@ -1,7 +1,7 @@
 #include <base/filesys.h>
 #include <easylogging++.h>
 #include <json/json.h>
-#include <mysql/mysql.h>
+#include <mysql.h>
 
 namespace ourchat::database {
 MYSQL mysql;

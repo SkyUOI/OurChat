@@ -6,7 +6,7 @@
 #include <base/data.h>
 #include <base/login.h>
 #include <easylogging++.h>
-#include <mysql/mysql.h>
+#include <mysql.h>
 
 namespace ourchat::database {
 // 储存ocid的各种可能出现的组合
