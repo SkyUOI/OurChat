@@ -9,5 +9,6 @@ for path_ in l:
 			if tmp == '.hpp' or tmp == '.cpp' or tmp == '.h':
 				path = os.path.join(root, i)
 				os.system("clang-format -i --style=file %s" % path)
-
+os.system("black src/client")
+os.system("black tests/client")
 input("ok")

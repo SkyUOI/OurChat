@@ -1,8 +1,8 @@
 #pragma once
 
+#include <asio.hpp>
 #include <base/login.h>
 #include <base/users.h>
-#include <asio.hpp>
 #include <json/json.h>
 #include <memory>
 
@@ -24,8 +24,7 @@ public:
     void start();
 
 private:
-    void read_res(
-        const asio::error_code& error, size_t bytes_transferred);
+    void read_res(const asio::error_code& error, size_t bytes_transferred);
     tcp::socket socket_;
 
     /**
@@ -45,11 +44,10 @@ private:
      */
     void tryregister(const Json::Value& value);
 
-    void handle_write(
-        const asio::error_code& error, size_t bytes_transferred);
+    void handle_write(const asio::error_code& error, size_t bytes_transferred);
 
-    char json_tmp[1024]{};
+    char json_tmp[1024] {};
 
-    int user_id{};
+    int user_id {};
 };
 }

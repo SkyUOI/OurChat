@@ -1,5 +1,5 @@
-﻿#include <base/users.h>
-#include <asio.hpp>
+﻿#include <asio.hpp>
+#include <base/users.h>
 #include <easylogging++.h>
 #include <memory>
 #include <server/server.h>
@@ -17,8 +17,9 @@ server::server(asio::io_context& io_context)
 void server::start_accept() {
     std::shared_ptr<user_tcp_connection> ptr(
         new user_tcp_connection(io_context));
-    acceptor.async_accept(ptr->socket(),
-        [this, ptr](auto && PH1) { handle_accept(ptr, std::forward<decltype(PH1)>(PH1)); });
+    acceptor.async_accept(ptr->socket(), [this, ptr](auto&& PH1) {
+        handle_accept(ptr, std::forward<decltype(PH1)>(PH1));
+    });
 }
 
 void server::handle_accept(const std::shared_ptr<user_tcp_connection>& ptr,

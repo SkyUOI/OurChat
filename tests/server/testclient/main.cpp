@@ -16,13 +16,13 @@ int main() {
     asio::error_code ignored_error;
     asio::write(socket,
         asio::buffer("{"
-                            "  \"code\": 6,"
-                            "  \"time\": 1661389837,"
-                            "  \"data\": {"
-                            "    \"email\": \"limuyang2020@163.com\","
-                            "    \"password\": \"123456\""
-                            "  }"
-                            "}"),
+                     "  \"code\": 6,"
+                     "  \"time\": 1661389837,"
+                     "  \"data\": {"
+                     "    \"email\": \"limuyang2020@163.com\","
+                     "    \"password\": \"123456\""
+                     "  }"
+                     "}"),
         ignored_error);
     size_t len = socket.read_some(asio::buffer(readbuf), ignored_error);
     std::cout << readbuf;

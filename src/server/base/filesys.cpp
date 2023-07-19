@@ -13,7 +13,7 @@ namespace ourchat::utils {
  */
 inline void read_file_detail(
     const std::string& path, std::string& file_data, FILE* file) {
-    struct stat buffer{};
+    struct stat buffer { };
     stat(path.c_str(), &buffer);
     size_t size = buffer.st_size;
     file_data.resize(size + 1);

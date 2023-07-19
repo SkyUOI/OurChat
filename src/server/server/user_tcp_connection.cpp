@@ -1,6 +1,6 @@
+#include <asio.hpp>
 #include <base/login.h>
 #include <base/users.h>
-#include <asio.hpp>
 #include <easylogging++.h>
 #include <json/json.h>
 #include <memory>
@@ -8,9 +8,8 @@
 #include <server/user_tcp_connection.h>
 
 #define write_handle                                                           \
-    (std::bind(&user_tcp_connection::handle_write, shared_from_this(),       \
-        std::placeholders::_1,                                      \
-        std::placeholders::_2))
+    (std::bind(&user_tcp_connection::handle_write, shared_from_this(),         \
+        std::placeholders::_1, std::placeholders::_2))
 
 namespace ourchat {
 user_tcp_connection::user_tcp_connection(asio::io_context& io_context)
@@ -62,7 +61,10 @@ void user_tcp_connection::read_res(
 void user_tcp_connection::start() {
     // 读取到缓冲区
     socket_.async_read_some(asio::buffer(json_tmp),
-        [capture0 = shared_from_this()](auto && PH1, auto && PH2) { capture0->read_res(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2)); });
+        [capture0 = shared_from_this()](auto&& PH1, auto&& PH2) {
+            capture0->read_res(std::forward<decltype(PH1)>(PH1),
+                std::forward<decltype(PH2)>(PH2));
+        });
 }
 
 void user_tcp_connection::handle_write(
@@ -70,7 +72,7 @@ void user_tcp_connection::handle_write(
 }
 
 void user_tcp_connection::trylogin(const Json::Value& value) {
-    database::login_return return_code{};
+    database::login_return return_code {};
     const std::string& passwd = value["data"]["password"].asString();
     if (value["data"].isMember("ocId")) {
         return_code
@@ -84,8 +86,7 @@ void user_tcp_connection::trylogin(const Json::Value& value) {
         // 正常登录
         sprintf(json_tmp, R"({"code":7, "data":{"state":0, "id":%d}})",
             return_code.id);
-        asio::async_write(
-            socket_, asio::buffer(json_tmp), write_handle);
+        asio::async_write(socket_, asio::buffer(json_tmp), write_handle);
         // 保存套接字
         user_id = return_code.id;
         clients[user_id] = this;
@@ -96,11 +97,11 @@ void user_tcp_connection::trylogin(const Json::Value& value) {
         // 账号未定义或密码错误
         asio::async_write(socket_,
             asio::buffer("{"
-                                "\"code\":7,"
-                                "\"data\":{"
-                                "\"state\":1"
-                                "}"
-                                "}"),
+                         "\"code\":7,"
+                         "\"data\":{"
+                         "\"state\":1"
+                         "}"
+                         "}"),
             write_handle);
         break;
     }
@@ -109,11 +110,11 @@ void user_tcp_connection::trylogin(const Json::Value& value) {
                    << " is not defined.";
         asio::async_write(socket_,
             asio::buffer("{"
-                                "\"code\":7, "
-                                "\"data\":{"
-                                "\"state\":2"
-                                "}"
-                                "}"),
+                         "\"code\":7, "
+                         "\"data\":{"
+                         "\"state\":2"
+                         "}"
+                         "}"),
             write_handle);
     }
     }
@@ -136,8 +137,8 @@ void user_tcp_connection::send_text(const Json::Value& json) {
         int iint = atoi(i[0]);
         if (clients.find(iint) != clients.end()) {
             // 存在socket链接
-            asio::async_write(clients[iint]->socket(),
-                asio::buffer(json_tmp), write_handle);
+            asio::async_write(
+                clients[iint]->socket(), asio::buffer(json_tmp), write_handle);
             // 判断是否成功发送
             if (error == asio::error::eof) {
                 // 连接已结束,保存数据到数据库,等待下一次发送
@@ -186,8 +187,7 @@ void user_tcp_connection::tryregister(const Json::Value& value) {
             "}"
             "}",
             returncode.ocid.c_str(), returncode.id);
-        asio::async_write(
-            socket_, asio::buffer(json_tmp), write_handle);
+        asio::async_write(socket_, asio::buffer(json_tmp), write_handle);
         break;
     }
     case database::register_state::EMAIL_DUP: {
@@ -198,8 +198,7 @@ void user_tcp_connection::tryregister(const Json::Value& value) {
             "\"state\": 2"
             "}"
             "}");
-        asio::async_write(
-            socket_, asio::buffer(json_tmp), write_handle);
+        asio::async_write(socket_, asio::buffer(json_tmp), write_handle);
         break;
     }
     default: {
@@ -210,8 +209,7 @@ void user_tcp_connection::tryregister(const Json::Value& value) {
             "\"state\": 1"
             "}"
             "}");
-        asio::async_write(
-            socket_, asio::buffer(json_tmp), write_handle);
+        asio::async_write(socket_, asio::buffer(json_tmp), write_handle);
         LOG(ERROR) << "register code " << (int)returncode.state
                    << " is not defined.";
     }
