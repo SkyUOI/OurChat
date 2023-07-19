@@ -24,7 +24,9 @@ class Ui_MainWindow(object):
         self.verticalLayout.addWidget(self.img)
         self.horizontalLayout_3 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_3.setObjectName("horizontalLayout_3")
-        spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        spacerItem = QtWidgets.QSpacerItem(
+            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+        )
         self.horizontalLayout_3.addItem(spacerItem)
         self.formLayout = QtWidgets.QFormLayout()
         self.formLayout.setObjectName("formLayout")
@@ -33,7 +35,9 @@ class Ui_MainWindow(object):
         self.formLayout.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.account)
         self.password_label = QtWidgets.QLabel(self.centralwidget)
         self.password_label.setObjectName("password_label")
-        self.formLayout.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.password_label)
+        self.formLayout.setWidget(
+            1, QtWidgets.QFormLayout.LabelRole, self.password_label
+        )
         self.password = QtWidgets.QLineEdit(self.centralwidget)
         self.password.setText("")
         self.password.setEchoMode(QtWidgets.QLineEdit.Password)
@@ -42,17 +46,25 @@ class Ui_MainWindow(object):
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.password)
         self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
-        spacerItem1 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        spacerItem1 = QtWidgets.QSpacerItem(
+            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+        )
         self.horizontalLayout_2.addItem(spacerItem1)
         self.show_paw_checkbox = QtWidgets.QCheckBox(self.centralwidget)
         self.show_paw_checkbox.setObjectName("show_paw_checkbox")
         self.horizontalLayout_2.addWidget(self.show_paw_checkbox)
-        self.formLayout.setLayout(2, QtWidgets.QFormLayout.SpanningRole, self.horizontalLayout_2)
+        self.formLayout.setLayout(
+            2, QtWidgets.QFormLayout.SpanningRole, self.horizontalLayout_2
+        )
         self.account_label = QtWidgets.QLabel(self.centralwidget)
         self.account_label.setObjectName("account_label")
-        self.formLayout.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.account_label)
+        self.formLayout.setWidget(
+            0, QtWidgets.QFormLayout.LabelRole, self.account_label
+        )
         self.horizontalLayout_3.addLayout(self.formLayout)
-        spacerItem2 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        spacerItem2 = QtWidgets.QSpacerItem(
+            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+        )
         self.horizontalLayout_3.addItem(spacerItem2)
         self.horizontalLayout_3.setStretch(0, 1)
         self.horizontalLayout_3.setStretch(1, 5)
@@ -60,12 +72,16 @@ class Ui_MainWindow(object):
         self.verticalLayout.addLayout(self.horizontalLayout_3)
         self.horizontalLayout = QtWidgets.QHBoxLayout()
         self.horizontalLayout.setObjectName("horizontalLayout")
-        spacerItem3 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        spacerItem3 = QtWidgets.QSpacerItem(
+            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+        )
         self.horizontalLayout.addItem(spacerItem3)
         self.login = QtWidgets.QPushButton(self.centralwidget)
         self.login.setObjectName("login")
         self.horizontalLayout.addWidget(self.login)
-        spacerItem4 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        spacerItem4 = QtWidgets.QSpacerItem(
+            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+        )
         self.horizontalLayout.addItem(spacerItem4)
         self.verticalLayout.addLayout(self.horizontalLayout)
         MainWindow.setCentralWidget(self.centralwidget)

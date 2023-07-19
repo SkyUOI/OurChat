@@ -5,7 +5,7 @@
 ```json
 {
   "code": 信息类型,
-  "time": 消息发送时的时间戳
+  "time": 消息发送时的时间戳,
   "data": {
   }
 }
@@ -24,10 +24,14 @@
 ```json
 {
   "code": 0,
-  "time": 消息发送时的时间戳
+  "time": 消息发送时的时间戳,
   "data": {
-    "cid": 该信息的id,唯一
-    "sender_ocid": 发送者OCID,
+    "cid": 该信息的id,唯一, //传输给服务器时无此字段
+    "sender": {
+      "ocid":发送者ocid,
+      "group_id":发送此信息的群聊(群聊情况下),
+      "private_id":接收此信息的人(私聊情况下)
+    },
     "msg": "文本信息"
   }
 }
@@ -37,8 +41,11 @@
 |:----------|:----------|:-----------|
 | code      | int       | 信息类型       |
 | time      | int       | 消息发送时的时间戳  |
-| cid       | int       | chat的ID，唯一 |
-| sender_ocid | int       | 发送者的OCID，唯一  |
+| cid       | int       | chat的ID，唯一 ***(注意：传输给服务器时无此字段)***
+| sender    | int       | 发送者的相关数据 |
+| ocid      | int       | 发送者的ocid   |
+| group_id  | int       | 当会话为群聊时，该值为群号|
+| private_id| int       | 当会话为私聊时，该值为对方的ocid|
 | data      | json      | 信息相关数据     |
 | msg       | str       | 文本信息       |
 
@@ -76,7 +83,7 @@
 ```json
 {
   "code": 5,
-  "time": 时间戳
+  "time": 时间戳,
   "data": {
     "state": 返回码,
     "ocId": "注册账号的OC号"
@@ -89,7 +96,7 @@
 | code  | int       | 信息类型      |
 | data  | json      | 信息相关数据    |
 | state | int       | 服务端返回的状态码 |
-| ocId  | str       | 该账号的OC号   |
+| ocId  | int       | 该账号的OC号   |
 
 | returnCode | comment |
 |:-----------|:--------|
@@ -103,7 +110,7 @@
 ```json
 {
   "code": 6,
-  "time": 发送请求时的时间戳
+  "time": 发送请求时的时间戳,
   "data": {
     "account": "邮箱/OCID",
     "password": "密码"
@@ -126,7 +133,7 @@
 ```json
 {
   "code": 7,
-  "time": 时间戳
+  "time": 时间戳,
   "data": {
     "state": 登录状态码,
     "ocid":该账号的ocid
