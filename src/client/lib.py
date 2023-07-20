@@ -48,7 +48,7 @@ class Record:
                     "uid": uid,
                 }
             )
-            self.max_uid = max(max_uid, uid)
+            self.max_uid = max(self.max_uid, uid)
         self.table_data.sort(key=self.sortGetKey)
 
     def appendRecord(self, msg_data: dict):

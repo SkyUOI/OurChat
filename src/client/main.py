@@ -44,32 +44,33 @@ class Client:
         self.recvMessage()
 
     def analysisMessage(self, data: dict):
-        msg_type = data["code"]
-        msg_time = data["time"]
-        msg_data = data["data"]
-        if msg_type == 7:  # 登录返回信息
-            if msg_data["state"] == 0:
-                self.ocid = msg_data["ocid"]
-                self.uisystem.showUi(MainUi())
-            elif msg_data["state"] == 1:
-                QMessageBox.critical(self.uisystem, "error", "wrong account/password.")
-            elif msg_data["state"] == 2:
-                QMessageBox.critical(self.uisystem, "error", "server error")
+	    try:
+	        msg_type = data["code"]
+	        msg_time = data["time"]
+	        msg_data = data["data"]
+	        if msg_type == 7:  # 登录返回信息
+	            if msg_data["state"] == 0:
+	                self.ocid = msg_data["ocid"]
+	                self.uisystem.showUi(MainUi())
+	            elif msg_data["state"] == 1:
+	                QMessageBox.critical(self.uisystem, "error", "wrong account/password.")
+	            elif msg_data["state"] == 2:
+	                QMessageBox.critical(self.uisystem, "error", "server error")
 
-        elif msg_type == 0:
-            chat_id = None
-            if "group_id" in msg_data["sender"]:
-                chat_id = f"g{msg_data['sender']['group_id']}"
-            elif "private_id" in msg_data["sender"]:
-                chat_id = f"p{msg_data['sender']['private_id']}"
-            if chat_id is None:
-                QMessageBox.critical(self.uisystem, "error", "Fatal error(No chat_id)")
-                return
+	        elif msg_type == 0:
+	            chat_id = None
+	            if "group_id" in msg_data["sender"]:
+	                chat_id = f"g{msg_data['sender']['group_id']}"
+	            elif "private_id" in msg_data["sender"]:
+	                chat_id = f"p{msg_data['sender']['private_id']}"
 
-            if chat_id not in self.record.getTableList():
-                self.record.createNewChatTable(chat_id)
-            self.record.openTable(chat_id)
-            self.record.appendRecord(data)
+	            if chat_id not in self.record.getTableList():
+	                self.record.createNewChatTable(chat_id)
+	                self.uisystem.ui.showChatList()
+	            self.record.openTable(chat_id)
+	            self.record.appendRecord(data)
+	    except Exception as e:
+	        QMessageBox.critical(self.uisystem, "error", f"cannot analysis message.\n{e}")
 
     def login(self, account, password):
         encrypted_password = hashlib.sha256()

@@ -8,17 +8,66 @@ import sys, asyncio
 
 class MainUi(main_window.Ui_MainWindow):
     def init(self):
-        pass
+        self.messages = []
+        self.rename()
+        self.showChatList()
+        self.bind()
 
     def rename(self):
         pass
 
     def bind(self):
-        pass
+        self.chat_list.currentItemChanged.connect(self.clickChat)
 
     def setupUi(self, ui_system):
         self.uisystem = ui_system
         super().setupUi(ui_system)
+
+    def showChatList(self):
+        self.chat_list.clear()
+        self.chat_list.addItems(self.uisystem.mainsystem.record.getTableList())
+
+    def showMessage(self):
+        self.uisystem.clearLayout(self.scrollArea_layout)
+        for message in self.messages:
+            is_me = message["is_me"]
+            horizontalLayout = QtWidgets.QHBoxLayout()
+            horizontalLayout.setObjectName("horizontalLayout")
+            spacerItem2 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+            widget = QtWidgets.QWidget(self.scrollAreaWidgetContents)
+            gridLayout = QtWidgets.QGridLayout(widget)
+            gridLayout.setObjectName("gridLayout")
+            message_label = QtWidgets.QLabel(widget)
+            message_label.setText(message["msg"])
+            if is_me:
+                message_label.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+            else:
+                message_label.setAlignment(QtCore.Qt.AlignLeft|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+            message_label.setObjectName("label")
+            gridLayout.addWidget(message_label, 0, 0, 1, 1)
+            
+            img_label = QtWidgets.QLabel(self.scrollAreaWidgetContents)
+            img_label.setObjectName("img")
+            img = QPixmap(message["img"])
+            img_label.setPixmap(img)
+            if is_me:
+                horizontalLayout.addItem(spacerItem2)
+                horizontalLayout.addWidget(widget)
+                horizontalLayout.addWidget(img_label)
+            else:
+                horizontalLayout.addWidget(img_label)
+                horizontalLayout.addWidget(widget)
+                horizontalLayout.addItem(spacerItem2)
+                
+
+            horizontalLayout.setStretch(0, 1)
+            horizontalLayout.setStretch(1, 3)
+            horizontalLayout.setStretch(2, 1)
+            self.scrollArea_layout.addLayout(horizontalLayout)
+        self.scrollAreaWidgetContents.setGeometry(0,0,510,len(self.messages*55))
+
+    def clickChat(self):
+        print(1)
 
 
 class Login(login.Ui_MainWindow):
@@ -88,3 +137,15 @@ class UiSystem(QMainWindow):
         for task in self.mainsystem.task_queue:
             task()
             self.mainsystem.task_queue.pop(0)
+
+    def clearLayout(self, layout):
+        item_list = list(range(layout.count()))
+        item_list.reverse()
+
+        for i in item_list:
+            item = layout.itemAt(i)
+            layout.removeItem(item)
+            if item.widget():
+                item.widget().deleteLater()
+            else:
+                self.clearLayout(item)
