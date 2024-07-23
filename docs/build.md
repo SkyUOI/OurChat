@@ -37,6 +37,7 @@ xmake run unittest
 ## client
 client部分由python编写，无需编译，要求是python3以上,通过以下命令进行安装和运行
 ```
-pip install -r requirement.txt
-python src/client/main.py
+pip3 install -r requirement.txt
+cd ./src/client/pc/
+python3 main.py
 ```
