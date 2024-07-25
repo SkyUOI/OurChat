@@ -1,0 +1,25 @@
+name: OurChatServer
+services:
+  OurChatServer:
+    init: true
+    container_name: OurChatServer
+    network_mode: "host"
+    privileged: true
+    image: ourchat_develop:latest
+    command: tail -f /dev/null
+    volumes:
+      - "/dev:/dev:rw"
+      - "./ENVIRONMENTS:/root/ENVIRONMENTS:rw"
+      - "./SHARE:/root/SHARE:rw"
+    working_dir: /root
+    environment:
+      - DISPLAY=$DISPLAY
+      - LC_ALL=C.UTF-8
+    # - NVIDIA_DRIVER_CAPABILITIES=all
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [compute, graphics, video, utility, display]
