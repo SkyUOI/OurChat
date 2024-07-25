@@ -3,12 +3,12 @@ services:
   OurChatServer:
     build:
       context: .
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile.prod
     init: true
     container_name: OurChatServer
     network_mode: "host"
     privileged: true
-    image: ourchat_develop:latest
+    image: ourchat_prod:latest
     command: tail -f /dev/null
     volumes:
       - "/dev:/dev:rw"
