@@ -133,15 +133,11 @@ dmypy.json
 .vscode/
 .fleet/
 
-cmake-build-debug-clang/
-cmake-build-release-clang/
-cmake-build-relwithdebinfo-clang/
-cmake-build-unittest/
-linux_build/
-.xmake/
-
-bin/
-
 database.json
 database_local.json
 CMakeLists.txt
+
+
+# Added by cargo
+
+/target

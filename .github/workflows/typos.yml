@@ -1,0 +1,19 @@
+name: Typos
+
+on:
+  push:
+    branches: ["main", "dev"]
+  pull_request:
+    branches: ["main", "dev"]
+
+jobs:
+  Typos:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Actions Repository
+        uses: actions/checkout@v4
+      - name: typos-action
+        uses: crate-ci/typos@master
+        with:
+          files: .
