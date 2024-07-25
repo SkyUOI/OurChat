@@ -1,16 +1,15 @@
-# How to build this project
+# 如何构建该项目
 
 ## Server
 
-Server is developed in rust.
-Build:
+Server部分由Rust语言编写.通过以下方式运行：
 
 ```
 cargo run
 ```
 
-But you should start server with database config.You should write a json file to describe it.
-The format:
+但是启动服务端需要配置相应的数据库，需要自己配置json文件
+具体格式为
 
 ```json
 {
@@ -27,13 +26,13 @@ The format:
 }
 ```
 
-Use this to run with config:
+启动时使用
 
 ```
 cargo run -- --dbcfg=jsonpath
 ```
 
-Run unittest
+启动单元测试的方法
 
 ```
 cargo test
@@ -41,7 +40,7 @@ cargo test
 
 ## client
 
-client is developed in python.Require python3 or higher.Install and run:
+client部分由python编写，无需编译，要求是python3以上,通过以下命令进行安装和运行
 
 ```
 pip3 install -r requirement.txt

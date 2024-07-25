@@ -8,4 +8,4 @@
 
 ## 如何构建和运行
 
-[构建文档](docs/build.md)
+[构建文档](docs/build-zh.md)
