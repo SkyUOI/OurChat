@@ -1,6 +1,7 @@
 name: OurChatServer
 services:
   OurChatServer:
+    build: .
     init: true
     container_name: OurChatServer
     network_mode: "host"
