@@ -1,6 +1,9 @@
-import ui, socket, time
-from PyQt5.QtWidgets import QMainWindow, QApplication
+import socket
+import time
 from threading import Thread
+
+import ui
+from PyQt5.QtWidgets import QApplication, QMainWindow
 
 
 class Ui(ui.Ui_MainWindow):
@@ -37,7 +40,7 @@ class Ui(ui.Ui_MainWindow):
         self.ip_list.addItems(ips)
 
     def showMsg(self, msg):
-        t = time.gmtime()
+        _t = time.gmtime()
         self.message.append(f"[{time.strftime('%H/%M/%S')}]{msg}\n")
 
     def removeIp(self):

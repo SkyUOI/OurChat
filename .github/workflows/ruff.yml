@@ -1,0 +1,23 @@
+name: PythonfmtCheck
+
+on:
+  push:
+    branches: ["master", "dev"]
+  pull_request:
+    branches: ["master", "dev"]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Ruff
+        run: curl -LsSf https://astral.sh/ruff/install.sh | sh
+      - name: Fmt
+        run: ruff format --check
+      - name: Lint
+        run: ruff check

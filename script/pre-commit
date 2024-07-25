@@ -1,3 +1,8 @@
 #!/bin/sh
 
-cd server && cargo fmt
+# Rust Check
+cd server && cargo fmt && cd ..
+# Python Check
+ruff format
+ruff check
+git add .
