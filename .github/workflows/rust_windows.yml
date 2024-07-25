@@ -1,0 +1,34 @@
+name: RustWindows
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master", "dev"]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Nightly
+        run: |
+          rustup toolchain install nightly --component miri
+          rustup override set nightly
+          cargo miri setup
+          rustup default nightly
+          setx MIRIFLAGS "-Zmiri-disable-isolation"
+      - name: Build
+        run: cd server && cargo build --all
+      - name: Build Release
+        run: cd server && cargo build --all --release
+      - name: Run tests Debug
+        run: cd server && cargo test --all
+      - name: Run tests Release
+        run: cd server && cargo test --release --all
+      # - name: Run miri test
+      #   run: cargo miri test
