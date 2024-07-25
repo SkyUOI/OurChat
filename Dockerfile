@@ -6,3 +6,5 @@ WORKDIR /app
 
 # 将本地代码复制到容器中
 COPY . /app
+
+CMD ["rustup", "component", "add", "rust-analyzer"]
