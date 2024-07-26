@@ -16,11 +16,10 @@ services:
     environment:
       - DISPLAY=$DISPLAY
       - LC_ALL=C.UTF-8
-    # - NVIDIA_DRIVER_CAPABILITIES=all
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: all
-    #           capabilities: [compute, graphics, video, utility, display]
+  db:
+    image: mysql:9.0.1
+    restart: always
+    network_mode: "host"
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: OurChat

@@ -1,4 +1,3 @@
-FROM mysql:9.0.1
 FROM rust:latest
 
 # 设置工作目录

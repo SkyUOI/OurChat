@@ -1,9 +1,12 @@
 mod cfg;
 use clap::Parser;
+use futures_util::StreamExt;
+use serde::{Deserialize, Serialize};
+use sqlx::Connection;
 use std::{io::Write, process::exit};
 use tokio::{
     io::{self, AsyncBufReadExt, BufReader},
-    net::TcpListener,
+    net::{unix::SocketAddr, TcpListener, TcpStream},
     select,
     sync::broadcast,
 };
@@ -17,6 +20,8 @@ struct ArgsParser {
     port: usize,
     #[arg(long, default_value_t = String::from(cfg::DEFAULT_IP))]
     ip: String,
+    #[arg(long)]
+    dbcfg: String,
 }
 
 struct Server {
@@ -24,10 +29,15 @@ struct Server {
     port: usize,
     bind_addr: String,
     tcplistener: TcpListener,
+    mysql: sqlx::MySqlConnection,
 }
 
 impl Server {
-    pub async fn new(ip: impl Into<String>, port: usize) -> anyhow::Result<Self> {
+    pub async fn new(
+        ip: impl Into<String>,
+        port: usize,
+        mysql: sqlx::MySqlConnection,
+    ) -> anyhow::Result<Self> {
         let ip = ip.into();
         let bind_addr = format!("{}:{}", ip.clone(), port);
         let tcplistener = match TcpListener::bind(&bind_addr).await {
@@ -42,6 +52,7 @@ impl Server {
             port,
             bind_addr,
             tcplistener,
+            mysql,
         })
     }
 
@@ -54,7 +65,7 @@ impl Server {
             loop {
                 let ret = self.tcplistener.accept().await;
                 match ret {
-                    Ok((socket, _)) => {
+                    Ok((socket, addr)) => {
                         let shutdown = shutdown_sender.subscribe();
                         log::info!("Connected to a socket");
                     }
@@ -69,6 +80,40 @@ impl Server {
             }
         }
     }
+
+    async fn handle_connection(
+        stream: TcpStream,
+        addr: SocketAddr,
+        shutdown_receiver: broadcast::Receiver<()>,
+    ) {
+        let ws_stream = match tokio_tungstenite::accept_async(stream).await {
+            Ok(data) => data,
+            Err(e) => {
+                log::error!("Error during websocket handshake: {}", e);
+                return;
+            }
+        };
+        let (outgoing, incoming) = ws_stream.split();
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct DbCfg {
+    host: String,
+    user: String,
+    db: String,
+    port: usize,
+    passwd: String,
+}
+
+async fn connect_to_db(path: &str) -> anyhow::Result<sqlx::MySqlConnection> {
+    let json = std::fs::read_to_string(path)?;
+    let cfg: DbCfg = serde_json::from_str(&json)?;
+    let path = format!(
+        "mysql://{}:{}@{}:{}/{}",
+        cfg.user, cfg.passwd, cfg.host, cfg.port, cfg.db
+    );
+    Ok(sqlx::MySqlConnection::connect(&path).await?)
 }
 
 pub async fn lib_main() -> anyhow::Result<()> {
@@ -79,7 +124,8 @@ pub async fn lib_main() -> anyhow::Result<()> {
     let (shutdown_sender, mut shutdown_receiver) = broadcast::channel(32);
     let shutdown_sender_clone = shutdown_sender.clone();
     let shutdown_receiver_clone = shutdown_sender.subscribe();
-    let mut server = Server::new(ip, port).await?;
+    let db = connect_to_db(&parser.dbcfg).await?;
+    let mut server = Server::new(ip, port, db).await?;
     tokio::spawn(async move {
         server
             .accept_sockets(shutdown_sender_clone, shutdown_receiver_clone)

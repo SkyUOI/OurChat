@@ -133,7 +133,6 @@ dmypy.json
 .vscode/
 .fleet/
 
-database.json
 database_local.json
 CMakeLists.txt
 
