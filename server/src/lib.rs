@@ -1,5 +1,8 @@
 mod cfg;
+mod connection;
+
 use clap::Parser;
+use connection::Request;
 use futures_util::StreamExt;
 use serde::{Deserialize, Serialize};
 use sqlx::Connection;
@@ -8,10 +11,12 @@ use tokio::{
     io::{self, AsyncBufReadExt, BufReader},
     net::{TcpListener, TcpStream},
     select,
-    sync::broadcast,
+    sync::{broadcast, mpsc},
 };
 
 shadow_rs::shadow!(build);
+
+type ShutdownRev = broadcast::Receiver<()>;
 
 #[derive(Debug, Parser)]
 #[command(author = "SkyUOI", version = build::VERSION, about = "The Server of OurChat")]
@@ -29,7 +34,9 @@ struct Server {
     port: usize,
     bind_addr: String,
     tcplistener: TcpListener,
-    mysql: sqlx::MySqlConnection,
+    mysql: Option<sqlx::MySqlConnection>,
+    task_solver_sender: mpsc::Sender<Request>,
+    task_solver_receiver: Option<mpsc::Receiver<Request>>,
 }
 
 impl Server {
@@ -47,13 +54,17 @@ impl Server {
                 exit(1)
             }
         };
-        Ok(Self {
+        let (task_solver_sender, task_solver_receiver) = mpsc::channel(32);
+        let ret = Self {
             ip: ip.clone(),
             port,
             bind_addr,
             tcplistener,
-            mysql,
-        })
+            mysql: Some(mysql),
+            task_solver_sender,
+            task_solver_receiver: Some(task_solver_receiver),
+        };
+        Ok(ret)
     }
 
     async fn accept_sockets(
@@ -61,6 +72,10 @@ impl Server {
         shutdown_sender: broadcast::Sender<()>,
         mut shutdown_receiver: broadcast::Receiver<()>,
     ) {
+        tokio::spawn(Self::process_request(
+            self.task_solver_receiver.take().unwrap(),
+            self.mysql.take().unwrap(),
+        ));
         let async_loop = async move {
             loop {
                 let ret = self.tcplistener.accept().await;
@@ -84,7 +99,14 @@ impl Server {
         }
     }
 
-    async fn process_request(&mut self) {}
+    async fn process_request(
+        mut receiver: mpsc::Receiver<Request>,
+        mysql_connection: sqlx::MySqlConnection,
+    ) {
+        while let Some(request) = receiver.recv().await {
+            match request {}
+        }
+    }
 
     async fn handle_connection(
         stream: TcpStream,
@@ -98,7 +120,17 @@ impl Server {
                 return;
             }
         };
-        let (outgoing, incoming) = ws_stream.split();
+        tokio::spawn(async move {
+            let mut connection = connection::Connection::new(ws_stream, shutdown_receiver);
+            match connection.work().await {
+                Ok(_) => {
+                    log::info!("Connection closed: {}", addr);
+                }
+                Err(e) => {
+                    log::error!("Connection error: {}", e);
+                }
+            }
+        });
     }
 }
 
