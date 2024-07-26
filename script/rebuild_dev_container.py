@@ -1,4 +1,4 @@
 import os
 
 os.chdir("..")
-_ = os.system("docker build -f Dockerfile.dev -t ourchat_develop:latest .")
+_ = os.system("docker buildx build -f Dockerfile.dev -t ourchat_develop:latest .")

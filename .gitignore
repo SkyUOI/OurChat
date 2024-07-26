@@ -140,3 +140,6 @@ CMakeLists.txt
 # Added by cargo
 
 /target
+
+mysql-data/**
+!mysql-data/.gitkeep

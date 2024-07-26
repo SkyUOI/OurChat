@@ -12,6 +12,7 @@ services:
     command: tail -f /dev/null
     volumes:
       - "/dev:/dev:rw"
+      - .:/app
     working_dir: /root
     environment:
       - DISPLAY=$DISPLAY
@@ -24,4 +25,4 @@ services:
       MYSQL_ROOT_PASSWORD: 123456
       MYSQL_DATABASE: OurChat
     volumes:
-      - mysql-data:/var/lib/mysql
+      - "./mysql-data:/var/lib/mysql"
