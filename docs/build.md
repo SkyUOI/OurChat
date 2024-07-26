@@ -14,15 +14,12 @@ The format:
 
 ```json
 {
-  // 主机
   "host": "",
-  // 用户
   "user": "",
-  // 密码
   "passwd": "",
-  // 为Ourchat准备的数据库
+  // Database which is provided for OurChat
   "db": "",
-  // mysql端口
+  // mysql port
   "port": 0
 }
 ```

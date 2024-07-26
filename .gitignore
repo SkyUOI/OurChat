@@ -133,7 +133,6 @@ dmypy.json
 .vscode/
 .fleet/
 
-database.json
 database_local.json
 CMakeLists.txt
 
@@ -141,3 +140,6 @@ CMakeLists.txt
 # Added by cargo
 
 /target
+
+mysql-data/**
+!mysql-data/.gitkeep
