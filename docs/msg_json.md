@@ -160,129 +160,28 @@
 | 1          | 账号或密码不正确 |
 | 2          | 服务器错误    |
 
-# 建群请求Json
-**Server <- Client**
 
+# 新建会话请求信息json
+**Server <- Client**
 ```json
 {
   "code": 8,
-  "time": 消息发送时的时间戳,
+  "time": 时间戳,
   "data": {
-    "group_name": 群名,
-    "ocid": 请求建群用户的OCID(群主)
+    "members": [
+      ocid1,
+      ocid2,
+      ...
+    ]
   }
 }
 ```
 
-| key      | valueType | comment |
-| -------  | --------- |---------|
-|   code   |   int     | 消息类型 |
-|  time    |  int      | 时间戳   |
-|  data    |  dict     | 相关数据 |
-|group_name|  int      | 群聊ID|
-|   ocid   |  int      | 请求建群用户的OCID|
-
-
-# 申请加入群聊/添加好友Json
-**Server <-> Client**
-
-格式如下
-
+# 新建会话返回信息json
 ```json
 {
   "code": 9,
-  "time": 消息发送时的时间戳,
-  "data": {
-    "group_id": 该群聊的ID,
-    "add_ocid":被申请添加用户的OCID,
-    "ocid": 申请人OCID
-  }
+  "success": true/false,
+  "msg": "失败原因"
 }
 ```
-
-| key      | valueType | comment |
-| -------  | --------- |---------|
-|   code   |   int     | 消息类型 |
-|  time    |  int      | 时间戳   |
-|  data    |  dict     | 相关数据 |
-|group_id  |  int      | 群聊ID(申请群聊时)   |
-|   ocid   |  int      | 被申请用户的OCID(申请好友时)   |
-|ocid      |   int     |申请人OCID|
-
-# 被拉入群聊Json/通过加入群聊申请/通过好友申请Json
-**Server <-> Client**
-
-格式如下
-
-```json
-{
-  "code": 10,
-  "time": 消息发送时的时间戳,
-  "data": {
-    "group_id": 该群聊的ID,
-    "group_name": 群名,
-    "add_ocid": 被申请用户的OCID
-    "ocid": 发出申请用户的OCID
-  }
-}
-```
-
-| key      | valueType | comment    |
-| -------  | --------- |------------|
-|   code   |   int     | 消息类型    |
-|  time    |  int      | 时间戳      |
-|  data    |  dict     | 相关数据    |
-|group_id  |  int      |群聊ID(当申请进入群聊时)|
-|group_name|   str     |群名(当申请进入群聊时)|
-|add_ocid  |    int    |被申请用户的OCID(当申请添加好友时)|
-| ocid     |   int     |发出申请用户的OCID|
-
-# 拒绝加入群聊申请/好友申请Json
-**Server <-> Client**
-
-格式如下
-
-```json
-{
-  "code": 11,
-  "time": 消息发送时的时间戳,
-  "data": {
-    "group_id": 该群聊的ID,
-    "ocid": 被拒绝用户的OCID
-  }
-}
-```
-
-| key      | valueType | comment |
-| -------  | --------- |---------|
-|   code   |   int     | 消息类型 |
-|  time    |  int      | 时间戳   |
-|  data    |  dict     | 相关数据 |
-|group_id  |  int      | 群聊ID(当入群申请被拒绝时)   |
-|ocid      |   int     | 被拒绝用户的OCID|
-
-
-# 修改群名/用户昵称Json
-**Server <-> Client**
-
-```json
-{
-  "code": 12,
-  "time": 消息发送时的时间戳,
-  "data": {
-    "group_id": 该群聊的ID,
-    "ocid": 该用户OCID,
-    "name": 新群名/新昵称
-  }
-}
-```
-
-| key      | valueType |  comment  |
-| -------  | --------- |-----------|
-|   code   |   int     |  消息类型  |
-|  time    |  int      |  时间戳    |
-|  data    |  dict     |  相关数据  |
-|group_id  |  int      |群聊ID(当群聊改名时)|
-|   ocid   |  int      |用户OCID(当用户改名时)|
-|group_name|   str     |新群名/新昵称|
-
