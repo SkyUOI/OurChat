@@ -40,8 +40,9 @@ cargo test
 
 client is developed in python.Require python3 or higher.Install and run:
 
+## PC
 ```
+cd ./client/pc/
 pip3 install -r requirement.txt
-cd ./src/client/pc/
 python3 main.py
 ```
