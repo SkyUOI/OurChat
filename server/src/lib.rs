@@ -3,10 +3,10 @@ use clap::Parser;
 use futures_util::StreamExt;
 use serde::{Deserialize, Serialize};
 use sqlx::Connection;
-use std::{io::Write, process::exit};
+use std::{io::Write, net::SocketAddr, process::exit};
 use tokio::{
     io::{self, AsyncBufReadExt, BufReader},
-    net::{unix::SocketAddr, TcpListener, TcpStream},
+    net::{TcpListener, TcpStream},
     select,
     sync::broadcast,
 };
@@ -68,6 +68,9 @@ impl Server {
                     Ok((socket, addr)) => {
                         let shutdown = shutdown_sender.subscribe();
                         log::info!("Connected to a socket");
+                        tokio::spawn(async move {
+                            Server::handle_connection(socket, addr, shutdown).await
+                        });
                     }
                     Err(_) => todo!(),
                 }
@@ -80,6 +83,8 @@ impl Server {
             }
         }
     }
+
+    async fn process_request(&mut self) {}
 
     async fn handle_connection(
         stream: TcpStream,
