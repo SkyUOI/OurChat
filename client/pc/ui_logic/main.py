@@ -19,15 +19,6 @@ class Ui_Main(Ui_Main_NOLOGIC):
 
         self.fillText()
         self.bind()
-    
-    def setWidget(self,ui):
-        if self.widget is not None:
-            self.verticalLayout_2.removeWidget(self.widget)
-        self.widget = QWidget(self.mainwindow)
-        widget_ui = ui(self.uisystem,self.widget)
-        widget_ui.setupUi()
-        self.verticalLayout_2.addWidget(self.widget)
-        self.widget.show()
 
     def setWidget(self, ui):
         if self.widget is not None:
