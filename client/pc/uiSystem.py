@@ -12,7 +12,7 @@ class UISystem:
         QApplication.setHighDpiScaleFactorRoundingPolicy(
             Qt.HighDpiScaleFactorRoundingPolicy.Round
         )
-        self.app = QApplication(sys.argv)
+        self.app = QApplication(argv)
         self.mainwindow = QMainWindow()
         self.ui = None
         self.dialogs = []
@@ -30,9 +30,3 @@ class UISystem:
     def exec(self):
         self.app.exec_()
 
-
-if __name__ == "__main__":
-    ui_system = UISystem(sys.argv)
-    ui_system.setUI(Ui_Main)
-    ui_system.showUI()
-    ui_system.exec()

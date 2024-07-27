@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Form</class>
- <widget class="QWidget" name="Form">
+ <class>Chat</class>
+ <widget class="QWidget" name="Chat">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -13,7 +13,7 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QHBoxLayout" name="horizontalLayout">
+  <layout class="QHBoxLayout" name="horizontalLayout" stretch="2,5">
    <item>
     <layout class="QVBoxLayout" name="verticalLayout_3">
      <item>
@@ -121,7 +121,7 @@
          <rect>
           <x>0</x>
           <y>0</y>
-          <width>211</width>
+          <width>265</width>
           <height>132</height>
          </rect>
         </property>
