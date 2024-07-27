@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'd:\OurChat\client\pc\ui\chat.ui'
+# Form implementation generated from reading ui file 'ui/chat.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.9
 #
@@ -11,18 +11,18 @@
 from PyQt5 import QtCore, QtWidgets
 
 
-class Ui_Form(object):
-    def setupUi(self, Form):
-        Form.setObjectName("Form")
-        Form.resize(400, 300)
-        self.horizontalLayout = QtWidgets.QHBoxLayout(Form)
+class Ui_Chat(object):
+    def setupUi(self, Chat):
+        Chat.setObjectName("Chat")
+        Chat.resize(400, 300)
+        self.horizontalLayout = QtWidgets.QHBoxLayout(Chat)
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.verticalLayout_3 = QtWidgets.QVBoxLayout()
         self.verticalLayout_3.setObjectName("verticalLayout_3")
-        self.search_chat = QtWidgets.QLineEdit(Form)
+        self.search_chat = QtWidgets.QLineEdit(Chat)
         self.search_chat.setObjectName("search_chat")
         self.verticalLayout_3.addWidget(self.search_chat)
-        self.chat_list = QtWidgets.QScrollArea(Form)
+        self.chat_list = QtWidgets.QScrollArea(Chat)
         self.chat_list.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.chat_list.setWidgetResizable(False)
         self.chat_list.setObjectName("chat_list")
@@ -64,7 +64,7 @@ class Ui_Form(object):
             40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
         )
         self.horizontalLayout_2.addItem(spacerItem)
-        self.title = QtWidgets.QLabel(Form)
+        self.title = QtWidgets.QLabel(Chat)
         self.title.setText("Title")
         self.title.setObjectName("title")
         self.horizontalLayout_2.addWidget(self.title)
@@ -73,15 +73,15 @@ class Ui_Form(object):
         )
         self.horizontalLayout_2.addItem(spacerItem1)
         self.verticalLayout_5.addLayout(self.horizontalLayout_2)
-        self.record = QtWidgets.QScrollArea(Form)
+        self.record = QtWidgets.QScrollArea(Chat)
         self.record.setWidgetResizable(True)
         self.record.setObjectName("record")
         self.scrollAreaWidgetContents_2 = QtWidgets.QWidget()
-        self.scrollAreaWidgetContents_2.setGeometry(QtCore.QRect(0, 0, 211, 132))
+        self.scrollAreaWidgetContents_2.setGeometry(QtCore.QRect(0, 0, 265, 132))
         self.scrollAreaWidgetContents_2.setObjectName("scrollAreaWidgetContents_2")
         self.record.setWidget(self.scrollAreaWidgetContents_2)
         self.verticalLayout_5.addWidget(self.record)
-        self.editor = QtWidgets.QTextEdit(Form)
+        self.editor = QtWidgets.QTextEdit(Chat)
         self.editor.setObjectName("editor")
         self.verticalLayout_5.addWidget(self.editor)
         self.horizontalLayout_3 = QtWidgets.QHBoxLayout()
@@ -90,7 +90,7 @@ class Ui_Form(object):
             40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
         )
         self.horizontalLayout_3.addItem(spacerItem2)
-        self.send_btn = QtWidgets.QPushButton(Form)
+        self.send_btn = QtWidgets.QPushButton(Chat)
         self.send_btn.setText("send")
         self.send_btn.setObjectName("send_btn")
         self.horizontalLayout_3.addWidget(self.send_btn)
@@ -100,10 +100,12 @@ class Ui_Form(object):
         self.verticalLayout_5.setStretch(2, 6)
         self.verticalLayout_5.setStretch(3, 1)
         self.horizontalLayout.addLayout(self.verticalLayout_5)
+        self.horizontalLayout.setStretch(0, 2)
+        self.horizontalLayout.setStretch(1, 5)
 
-        self.retranslateUi(Form)
-        QtCore.QMetaObject.connectSlotsByName(Form)
+        self.retranslateUi(Chat)
+        QtCore.QMetaObject.connectSlotsByName(Chat)
 
-    def retranslateUi(self, Form):
+    def retranslateUi(self, Chat):
         _translate = QtCore.QCoreApplication.translate
-        Form.setWindowTitle(_translate("Form", "Form"))
+        Chat.setWindowTitle(_translate("Chat", "Form"))

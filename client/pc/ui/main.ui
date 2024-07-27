@@ -25,7 +25,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="pushButton_3">
+       <widget class="QPushButton" name="to_account">
         <property name="text">
          <string notr="true">Account</string>
         </property>
@@ -54,7 +54,9 @@
      </layout>
     </item>
     <item>
-     <widget class="QWidget" name="widget" native="true"/>
+     <widget class="QFrame" name="frame">
+      <layout class="QVBoxLayout" name="verticalLayout_2"/>
+     </widget>
     </item>
    </layout>
   </widget>

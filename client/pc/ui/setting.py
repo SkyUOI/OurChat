@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'd:\OurChat\client\pc\ui\setting.ui'
+# Form implementation generated from reading ui file 'ui/setting.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.9
 #
@@ -11,48 +11,55 @@
 from PyQt5 import QtCore, QtWidgets
 
 
-class Ui_Dialog(object):
-    def setupUi(self, Dialog):
-        Dialog.setObjectName("Dialog")
-        Dialog.resize(400, 300)
-        self.verticalLayout = QtWidgets.QVBoxLayout(Dialog)
+class Ui_Setting(object):
+    def setupUi(self, Setting):
+        Setting.setObjectName("Setting")
+        Setting.resize(400, 300)
+        self.horizontalLayout_3 = QtWidgets.QHBoxLayout(Setting)
+        self.horizontalLayout_3.setObjectName("horizontalLayout_3")
+        spacerItem = QtWidgets.QSpacerItem(
+            120, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+        )
+        self.horizontalLayout_3.addItem(spacerItem)
+        self.verticalLayout = QtWidgets.QVBoxLayout()
         self.verticalLayout.setObjectName("verticalLayout")
-        self.label_3 = QtWidgets.QLabel(Dialog)
-        self.label_3.setObjectName("label_3")
-        self.verticalLayout.addWidget(self.label_3)
+        spacerItem1 = QtWidgets.QSpacerItem(
+            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
+        self.verticalLayout.addItem(spacerItem1)
         self.horizontalLayout = QtWidgets.QHBoxLayout()
         self.horizontalLayout.setObjectName("horizontalLayout")
-        spacerItem = QtWidgets.QSpacerItem(
-            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
-        )
-        self.horizontalLayout.addItem(spacerItem)
-        self.formLayout = QtWidgets.QFormLayout()
-        self.formLayout.setObjectName("formLayout")
-        self.label = QtWidgets.QLabel(Dialog)
+        self.label = QtWidgets.QLabel(Setting)
         self.label.setObjectName("label")
-        self.formLayout.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.label)
-        self.comboBox = QtWidgets.QComboBox(Dialog)
+        self.horizontalLayout.addWidget(self.label)
+        self.comboBox = QtWidgets.QComboBox(Setting)
         self.comboBox.setObjectName("comboBox")
-        self.formLayout.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.comboBox)
-        self.label_2 = QtWidgets.QLabel(Dialog)
-        self.label_2.setObjectName("label_2")
-        self.formLayout.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.label_2)
-        self.comboBox_2 = QtWidgets.QComboBox(Dialog)
-        self.comboBox_2.setObjectName("comboBox_2")
-        self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.comboBox_2)
-        self.horizontalLayout.addLayout(self.formLayout)
-        spacerItem1 = QtWidgets.QSpacerItem(
-            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
-        )
-        self.horizontalLayout.addItem(spacerItem1)
+        self.horizontalLayout.addWidget(self.comboBox)
         self.verticalLayout.addLayout(self.horizontalLayout)
+        self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
+        self.label_2 = QtWidgets.QLabel(Setting)
+        self.label_2.setObjectName("label_2")
+        self.horizontalLayout_2.addWidget(self.label_2)
+        self.comboBox_2 = QtWidgets.QComboBox(Setting)
+        self.comboBox_2.setObjectName("comboBox_2")
+        self.horizontalLayout_2.addWidget(self.comboBox_2)
+        self.verticalLayout.addLayout(self.horizontalLayout_2)
+        spacerItem2 = QtWidgets.QSpacerItem(
+            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
+        self.verticalLayout.addItem(spacerItem2)
+        self.horizontalLayout_3.addLayout(self.verticalLayout)
+        spacerItem3 = QtWidgets.QSpacerItem(
+            119, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+        )
+        self.horizontalLayout_3.addItem(spacerItem3)
 
-        self.retranslateUi(Dialog)
-        QtCore.QMetaObject.connectSlotsByName(Dialog)
+        self.retranslateUi(Setting)
+        QtCore.QMetaObject.connectSlotsByName(Setting)
 
-    def retranslateUi(self, Dialog):
+    def retranslateUi(self, Setting):
         _translate = QtCore.QCoreApplication.translate
-        Dialog.setWindowTitle(_translate("Dialog", "Dialog"))
-        self.label_3.setText(_translate("Dialog", "outchat_logo"))
-        self.label.setText(_translate("Dialog", "Theme"))
-        self.label_2.setText(_translate("Dialog", "Language"))
+        Setting.setWindowTitle(_translate("Setting", "Form"))
+        self.label.setText(_translate("Setting", "Theme"))
+        self.label_2.setText(_translate("Setting", "Language"))

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'd:\OurChat\client\pc\ui\main.ui'
+# Form implementation generated from reading ui file 'ui/main.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.9
 #
@@ -26,10 +26,10 @@ class Ui_Main(object):
         self.to_chat.setText("Chat")
         self.to_chat.setObjectName("to_chat")
         self.verticalLayout.addWidget(self.to_chat)
-        self.pushButton_3 = QtWidgets.QPushButton(self.centralwidget)
-        self.pushButton_3.setText("Account")
-        self.pushButton_3.setObjectName("pushButton_3")
-        self.verticalLayout.addWidget(self.pushButton_3)
+        self.to_account = QtWidgets.QPushButton(self.centralwidget)
+        self.to_account.setText("Account")
+        self.to_account.setObjectName("to_account")
+        self.verticalLayout.addWidget(self.to_account)
         self.to_setting = QtWidgets.QPushButton(self.centralwidget)
         self.to_setting.setText("Setting")
         self.to_setting.setObjectName("to_setting")
@@ -39,9 +39,11 @@ class Ui_Main(object):
         )
         self.verticalLayout.addItem(spacerItem)
         self.horizontalLayout.addLayout(self.verticalLayout)
-        self.widget = QtWidgets.QWidget(self.centralwidget)
-        self.widget.setObjectName("widget")
-        self.horizontalLayout.addWidget(self.widget)
+        self.frame = QtWidgets.QFrame(self.centralwidget)
+        self.frame.setObjectName("frame")
+        self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.frame)
+        self.verticalLayout_2.setObjectName("verticalLayout_2")
+        self.horizontalLayout.addWidget(self.frame)
         self.horizontalLayout.setStretch(0, 1)
         self.horizontalLayout.setStretch(1, 9)
         Main.setCentralWidget(self.centralwidget)
