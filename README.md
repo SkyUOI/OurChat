@@ -1,5 +1,7 @@
 # OurChat
 
+## [中文](./README-zh.md)
+
 | Platform | Server Status                                                                                          |
 | :------- | :----------------------------------------------------------------------------------------------------- |
 | Linux    | ![Linux Test](https://img.shields.io/github/actions/workflow/status/skyuoi/ourchat/rust_linux.yml)     |
@@ -11,4 +13,5 @@
 [Build Docs](docs/build.md)
 
 ## TODO
+
 - [ ] support website
