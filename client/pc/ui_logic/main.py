@@ -4,6 +4,7 @@ from ui_logic.chat import Ui_Chat
 from ui_logic.setting import Ui_Setting
 from ui_logic.account import Ui_Account
 
+
 class Ui_Main(Ui_Main_NOLOGIC):
     def __init__(self, uisystem) -> None:
         self.uisystem = uisystem

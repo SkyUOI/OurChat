@@ -13,6 +13,7 @@ class Ui_Chat(Ui_Chat_NOLOGIC):
 
         self.fillText()
         self.bind()
+
     def fillText(self):
         pass
 

@@ -34,7 +34,9 @@ class Ui_Main(object):
         self.to_setting.setText("Setting")
         self.to_setting.setObjectName("to_setting")
         self.verticalLayout.addWidget(self.to_setting)
-        spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacerItem = QtWidgets.QSpacerItem(
+            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         self.verticalLayout.addItem(spacerItem)
         self.horizontalLayout.addLayout(self.verticalLayout)
         self.frame = QtWidgets.QFrame(self.centralwidget)
