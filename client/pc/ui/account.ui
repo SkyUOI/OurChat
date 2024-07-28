@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Form</string>
+   <string notr="true">Form</string>
   </property>
   <layout class="QHBoxLayout" name="horizontalLayout_2">
    <item>
@@ -47,7 +47,7 @@
        <item>
         <widget class="QLabel" name="avatar_label">
          <property name="text">
-          <string>Avatar</string>
+          <string notr="true">Avatar</string>
          </property>
         </widget>
        </item>
@@ -56,14 +56,14 @@
          <item>
           <widget class="QLabel" name="nickname_label">
            <property name="text">
-            <string>NickName</string>
+            <string notr="true">NickName</string>
            </property>
           </widget>
          </item>
          <item>
           <widget class="QLabel" name="ocid_label">
            <property name="text">
-            <string>OCID</string>
+            <string notr="true">OCID</string>
            </property>
           </widget>
          </item>
@@ -74,7 +74,7 @@
      <item>
       <widget class="QPushButton" name="logout_btn">
        <property name="text">
-        <string>Logout</string>
+        <string notr="true">Logout</string>
        </property>
       </widget>
      </item>
