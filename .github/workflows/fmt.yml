@@ -15,5 +15,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Check Fmt
+      - name: Check Fmt Server
         run: cd server && cargo fmt -- --check
+      - name: Check Fmt Tauri
+        run: cd src-tauri && cargo fmt -- --check
+      - name: Check Fmt Web
+        run: cd web && cargo fmt -- --check

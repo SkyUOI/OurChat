@@ -1,5 +1,5 @@
 use futures_util::StreamExt;
-use tokio::{net::TcpStream, sync::mpsc};
+use tokio::net::TcpStream;
 use tokio_tungstenite::WebSocketStream;
 
 use crate::ShutdownRev;
