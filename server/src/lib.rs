@@ -1,12 +1,12 @@
 mod cfg;
 mod connection;
+mod db;
+mod utils;
 
 use clap::Parser;
 use connection::Request;
-use futures_util::StreamExt;
-use serde::{Deserialize, Serialize};
-use sqlx::Connection;
-use std::{io::Write, net::SocketAddr, process::exit};
+use rand::Rng;
+use std::{fs, io::Write, net::SocketAddr, path, process::exit, sync::OnceLock};
 use tokio::{
     io::{self, AsyncBufReadExt, BufReader},
     net::{TcpListener, TcpStream},
@@ -34,7 +34,7 @@ struct Server {
     port: usize,
     bind_addr: String,
     tcplistener: TcpListener,
-    mysql: Option<sqlx::MySqlConnection>,
+    mysql: Option<sqlx::MySqlPool>,
     task_solver_sender: mpsc::Sender<Request>,
     task_solver_receiver: Option<mpsc::Receiver<Request>>,
 }
@@ -43,7 +43,7 @@ impl Server {
     pub async fn new(
         ip: impl Into<String>,
         port: usize,
-        mysql: sqlx::MySqlConnection,
+        mysql: sqlx::MySqlPool,
     ) -> anyhow::Result<Self> {
         let ip = ip.into();
         let bind_addr = format!("{}:{}", ip.clone(), port);
@@ -101,7 +101,7 @@ impl Server {
 
     async fn process_request(
         mut receiver: mpsc::Receiver<Request>,
-        mysql_connection: sqlx::MySqlConnection,
+        mysql_connection: sqlx::MySqlPool,
     ) {
         while let Some(request) = receiver.recv().await {
             match request {}
@@ -134,23 +134,18 @@ impl Server {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-struct DbCfg {
-    host: String,
-    user: String,
-    db: String,
-    port: usize,
-    passwd: String,
-}
-
-async fn connect_to_db(path: &str) -> anyhow::Result<sqlx::MySqlConnection> {
-    let json = std::fs::read_to_string(path)?;
-    let cfg: DbCfg = serde_json::from_str(&json)?;
-    let path = format!(
-        "mysql://{}:{}@{}:{}/{}",
-        cfg.user, cfg.passwd, cfg.host, cfg.port, cfg.db
-    );
-    Ok(sqlx::MySqlConnection::connect(&path).await?)
+fn machine_id() -> u64 {
+    static TMP: OnceLock<u64> = OnceLock::new();
+    *TMP.get_or_init(|| {
+        let state = path::Path::new("machine_id").exists();
+        if state {
+            return u64::from_be_bytes(fs::read("machine_id").unwrap().try_into().unwrap());
+        }
+        let mut f = fs::File::create("machine_id").unwrap();
+        let id: u64 = rand::thread_rng().gen_range(0..(1024 - 1));
+        f.write_all(&id.to_be_bytes()).unwrap();
+        id
+    })
 }
 
 pub async fn lib_main() -> anyhow::Result<()> {
@@ -161,7 +156,8 @@ pub async fn lib_main() -> anyhow::Result<()> {
     let (shutdown_sender, mut shutdown_receiver) = broadcast::channel(32);
     let shutdown_sender_clone = shutdown_sender.clone();
     let shutdown_receiver_clone = shutdown_sender.subscribe();
-    let db = connect_to_db(&parser.dbcfg).await?;
+    let db = db::connect_to_db(&parser.dbcfg).await?;
+    db::init_db(&db).await?;
     let mut server = Server::new(ip, port, db).await?;
     tokio::spawn(async move {
         server

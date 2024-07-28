@@ -7,7 +7,6 @@ services:
     init: true
     container_name: OurChatServer
     network_mode: "host"
-    privileged: true
     image: ourchat_develop:latest
     command: tail -f /dev/null
     volumes:
@@ -15,14 +14,15 @@ services:
       - .:/app
     working_dir: /root
     environment:
-      # - DISPLAY=$DISPLAY
       - LC_ALL=C.UTF-8
   db:
     image: mysql:9.0.1
     restart: always
-    network_mode: "host"
+    # network_mode: "host"
     environment:
       MYSQL_ROOT_PASSWORD: 123456
       MYSQL_DATABASE: OurChat
     volumes:
       - "./mysql-data:/var/lib/mysql"
+    ports:
+      - "3306:3306"
