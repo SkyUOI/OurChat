@@ -1,4 +1,4 @@
-name: OurChatServer
+name: ourchat_server
 services:
   OurChatServer:
     build:
@@ -15,7 +15,7 @@ services:
       - .:/app
     working_dir: /root
     environment:
-      - DISPLAY=$DISPLAY
+      # - DISPLAY=$DISPLAY
       - LC_ALL=C.UTF-8
   db:
     image: mysql:9.0.1
