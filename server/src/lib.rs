@@ -1,5 +1,6 @@
 mod cfg;
 mod connection;
+pub mod consts;
 mod db;
 mod utils;
 
@@ -156,7 +157,8 @@ pub async fn lib_main() -> anyhow::Result<()> {
     let (shutdown_sender, mut shutdown_receiver) = broadcast::channel(32);
     let shutdown_sender_clone = shutdown_sender.clone();
     let shutdown_receiver_clone = shutdown_sender.subscribe();
-    let db = db::connect_to_db(&parser.dbcfg).await?;
+
+    let db = db::connect_to_db(&db::get_db_url(&parser.dbcfg)?).await?;
     db::init_db(&db).await?;
     let mut server = Server::new(ip, port, db).await?;
     tokio::spawn(async move {

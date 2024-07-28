@@ -1,3 +1,5 @@
+pub mod user;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -9,15 +11,19 @@ struct DbCfg {
     passwd: String,
 }
 
-pub async fn connect_to_db(path: &str) -> anyhow::Result<sqlx::MySqlPool> {
+pub fn get_db_url(path: &str) -> anyhow::Result<String> {
     let json = std::fs::read_to_string(path)?;
     let cfg: DbCfg = serde_json::from_str(&json)?;
     let path = format!(
         "mysql://{}:{}@{}:{}/{}",
         cfg.user, cfg.passwd, cfg.host, cfg.port, cfg.db
     );
-    log::info!("Connecting to {}", path);
-    Ok(sqlx::MySqlPool::connect(&path).await?)
+    Ok(path)
+}
+
+pub async fn connect_to_db(url: &str) -> anyhow::Result<sqlx::MySqlPool> {
+    log::info!("Connecting to {}", url);
+    Ok(sqlx::MySqlPool::connect(url).await?)
 }
 
 pub async fn init_db(db: &sqlx::MySqlPool) -> anyhow::Result<()> {
@@ -87,4 +93,28 @@ pub async fn init_db(db: &sqlx::MySqlPool) -> anyhow::Result<()> {
     .await?;
     log::info!("Initialized database");
     Ok(())
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct RedisCfg {
+    host: String,
+    port: usize,
+    passwd: String,
+    user: String,
+    db: String,
+}
+
+pub fn get_redis_url(path: &str) -> anyhow::Result<String> {
+    let json = std::fs::read_to_string(path)?;
+    let cfg: RedisCfg = serde_json::from_str(&json)?;
+    let path = format!(
+        "redis://{}:{}@{}:{}/{}",
+        cfg.user, cfg.passwd, cfg.host, cfg.port, cfg.db
+    );
+    Ok(path)
+}
+
+pub async fn connect_to_redis(url: &str) -> anyhow::Result<redis::Client> {
+    let client = redis::Client::open(url)?;
+    Ok(client)
 }

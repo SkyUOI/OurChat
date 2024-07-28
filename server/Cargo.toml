@@ -11,14 +11,21 @@ serde = { version = "1" }
 serde_json = "1"
 tokio-tungstenite = "0"
 tungstenite = "0"
-sqlx = { version = "0", features = [ "runtime-tokio", "tls-rustls", "mysql", "macros" ] }
+sqlx = { version = "0", features = [
+    "runtime-tokio",
+    "tls-rustls",
+    "mysql",
+    "macros",
+] }
 log = "0"
 env_logger = "0"
-clap = {version = "4", features=["derive"]}
+clap = { version = "4", features = ["derive"] }
 shadow-rs = "0"
 futures-util = "0"
 rand = "0"
 snowdon = "0.2.0"
+redis = { version = "0.26.0", features = ["tokio-rustls-comp"] }
+
 
 [build-dependencies]
 shadow-rs = "0"
