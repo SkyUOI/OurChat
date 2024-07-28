@@ -1,4 +1,4 @@
-from uiSystem import UISystem
+from lib.uiSystem import UISystem
 from ui_logic.main import Ui_Main
 import sys
 
