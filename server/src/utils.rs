@@ -23,7 +23,7 @@ impl MachineId for SnowflakeParams {
 type MySnowflake = Snowflake<ClassicLayout<SnowflakeParams>, SnowflakeParams>;
 type MySnowflakeGenerator = Generator<ClassicLayout<SnowflakeParams>, SnowflakeParams>;
 
-fn generater() -> &'static MySnowflakeGenerator {
+fn generator() -> &'static MySnowflakeGenerator {
     static GENERATOR: OnceLock<MySnowflakeGenerator> = OnceLock::new();
     GENERATOR.get_or_init(|| MySnowflakeGenerator::default())
 }
