@@ -5,7 +5,7 @@
 Server is developed in rust.
 Build:
 
-```
+```bash
 cargo run
 ```
 
@@ -26,13 +26,13 @@ The format:
 
 Use this to run with config:
 
-```
+```bash
 cargo run -- --dbcfg=jsonpath
 ```
 
 Run unittest
 
-```
+```bash
 cargo test
 ```
 
@@ -41,7 +41,8 @@ cargo test
 client is developed in python.Require python3 or higher.Install and run:
 
 ## PC
-```
+
+```bash
 cd ./client/pc/
 pip3 install -r requirement.txt
 python3 main.py
