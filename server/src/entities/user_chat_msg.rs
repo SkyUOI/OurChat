@@ -6,6 +6,7 @@ use sea_orm::entity::prelude::*;
 #[sea_orm(table_name = "user_chat_msg")]
 pub struct Model {
     pub user_id: u64,
+    #[sea_orm(primary_key, auto_increment = false)]
     pub chat_msg_id: u32,
 }
 

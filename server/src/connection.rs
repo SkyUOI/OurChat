@@ -1,6 +1,6 @@
 use crate::{
     consts::{LOGIN_TYPE, REGISTER_TYPE},
-    ShutdownRev,
+    requests, ShutdownRev,
 };
 use futures_util::StreamExt;
 use serde_json::Value;
@@ -18,6 +18,7 @@ pub enum DBRequest {
 
 type WS = WebSocketStream<TcpStream>;
 
+/// 一个到客户端的连接
 pub struct Connection {
     socket: Option<WebSocketStream<TcpStream>>,
     shutdown_receiver: ShutdownRev,
@@ -37,21 +38,30 @@ impl Connection {
         }
     }
 
-    async fn login_request(request_sender: &mpsc::Sender<DBRequest>) -> anyhow::Result<()> {
+    /// 登录请求
+    async fn login_request(
+        request_sender: &mpsc::Sender<DBRequest>,
+        login_data: requests::Login,
+    ) -> anyhow::Result<()> {
         let channel = oneshot::channel();
         let request = DBRequest::Login(channel.0);
         request_sender.send(request).await?;
         Ok(())
     }
 
-    async fn register_request(request_sender: &mpsc::Sender<DBRequest>) -> anyhow::Result<()> {
+    /// 注册请求
+    async fn register_request(
+        request_sender: &mpsc::Sender<DBRequest>,
+        register_data: requests::Register,
+    ) -> anyhow::Result<()> {
         let channel = oneshot::channel();
         let request = DBRequest::Register(channel.0);
         request_sender.send(request).await?;
         Ok(())
     }
 
-    async fn login(ws: &mut WS, request_sender: &mpsc::Sender<DBRequest>) -> anyhow::Result<()> {
+    /// 验证客户端
+    async fn verify(ws: &mut WS, request_sender: &mpsc::Sender<DBRequest>) -> anyhow::Result<()> {
         let msg = match ws.next().await {
             None => {
                 anyhow::bail!("Failed to receive message when logining");
@@ -66,14 +76,17 @@ impl Connection {
             Err(e) => anyhow::bail!("Failed to convert message to text: {}", e),
         };
         let json: serde_json::Value = serde_json::from_str(text)?;
+        // 获取消息类型
         let code = &json["code"];
         if let Value::Number(code) = code {
             let code = code.as_u64();
             if code == Some(LOGIN_TYPE) {
-                Self::login_request(request_sender).await?;
+                let login_data: requests::Login = serde_json::from_value(json)?;
+                Self::login_request(request_sender, login_data).await?;
                 return Ok(());
             } else if code == Some(REGISTER_TYPE) {
-                Self::register_request(request_sender).await?;
+                let request_data: requests::Register = serde_json::from_value(json)?;
+                Self::register_request(request_sender, request_data).await?;
                 return Ok(());
             } else {
                 anyhow::bail!(
@@ -91,7 +104,7 @@ impl Connection {
         let mut socket = self.socket.take().unwrap();
         let sender = self.request_sender.clone();
         select! {
-            _ = Connection::login(&mut socket, &sender) => {},
+            _ = Connection::verify(&mut socket, &sender) => {},
             _ = self.shutdown_receiver.recv() => {},
         }
         Ok(())

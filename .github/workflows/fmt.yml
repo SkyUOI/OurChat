@@ -18,6 +18,6 @@ jobs:
       - name: Check Fmt Server
         run: cd server && cargo fmt -- --check
       - name: Check Fmt Tauri
-        run: cd src-tauri && cargo fmt -- --check
+        run: cd client/src-tauri && cargo fmt -- --check
       - name: Check Fmt Web
-        run: cd web && cargo fmt -- --check
+        run: cd client/web && cargo fmt -- --check
