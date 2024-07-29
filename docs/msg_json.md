@@ -1,22 +1,5 @@
 ﻿# OurChat信息传递格式
 
-## 基本信息json
-
-格式如下
-
-```json
-{
-  "code": 信息类型,
-  "time": 消息发送时的时间戳,
-  ...
-}
-```
-
-| key  | valueType | comment                                   |
-| :--- | :-------- | :---------------------------------------- |
-| code | int       | 信息类型                                  |
-| time | int       | 消息发送时的时间戳                        |
-
 ## 文本信息json
 
 **_Server <-> Client_**
@@ -27,26 +10,23 @@
 {
   "code": 0,
   "time": 消息发送时的时间戳,
-  "cid": 该信息的id,唯一, //传输给服务器时无此字段
+  "msg_id": 该信息的id,唯一, //传输给服务器时无此字段
   "sender": {
     "ocid":发送者ocid,
-    "group_id":发送此信息的群聊(群聊情况下),
-    "private_id":接收此信息的人(私聊情况下)
+    "session_id":发送此信息的会话id,
   },
   "msg": "文本信息"
-
 }
 ```
 
 | key        | valueType | comment                                             |
 | :--------- | :-------- | :-------------------------------------------------- |
 | code       | int       | 信息类型                                            |
-| time       | int       | 消息发送时的时间戳                                  |
-| cid        | int       | chat的ID，唯一 **_(注意：传输给服务器时无此字段)_** |
-| sender     | int       | 发送者的相关数据                                    |
-| ocid       | int       | 发送者的ocid                                        |
-| group_id   | int       | 当会话为群聊时，该值为群号                          |
-| private_id | int       | 当会话为私聊时，该值为对方的ocid                    |
+| time       | int       | 发消息的时间戳 |
+| msg_id     | int       | message的ID，唯一 **_(注意：传输给服务器时无此字段)_** |
+| sender     | dict      | 发送者的相关数据                                    |
+| ocid       | str       | 发送者的ocid                                        |
+| session_id | int       | 发送者的会话id                                      |
 | msg        | str       | 文本信息                                            |
 
 **_code1,2,3分别为还未制作的表情包(包括但不限于gif)，图片发送，文件发送_**
@@ -60,7 +40,6 @@
 ```json
 {
   "code": 4,
-  "time": 发送请求时的时间戳,
   "email": "注册使用的邮箱",
   "password": "注册密码(已加密)",
   "name": "昵称"
@@ -70,7 +49,6 @@
 | key      | valueType | comment            |
 | :------- | :-------- | :----------------- |
 | code     | int       | 信息类型           |
-| time     | int       | 发送请求时的时间戳 |
 | email    | str       | 注册邮箱           |
 | password | str       | 注册密码(已加密)   |
 | name     | str       | 昵称               |
@@ -84,8 +62,7 @@
 ```json
 {
   "code": 5,
-  "time": 时间戳,
-  "state": 返回码,
+  "status": 返回码,
   "ocid": "注册账号的OC号"
 }
 ```
@@ -93,8 +70,7 @@
 | key   | valueType | comment            |
 | :---- | :-------- | :----------------- |
 | code  | int       | 信息类型           |
-| time  | int       | 发送请求时的时间戳 |
-| state | int       | 服务端返回的状态码 |
+| status | int       | 服务端返回的状态码 |
 | ocid  | int       | 该账号的OC号       |
 
 | returnCode | comment    |
@@ -112,7 +88,6 @@
 ```json
 {
   "code": 6,
-  "time": 发送请求时的时间戳,
   "login_type": 登陆方式,
   "account": "邮箱/OCID",
   "password": "密码"
@@ -122,7 +97,6 @@
 | key      | valueType | comment              |
 | :------- | :-------- | :------------------- |
 | code     | int       | 信息类型             |
-| time     | int       | 发送请求时的时间戳   |
 |login_type| int       | 0为邮箱登录，1为ocid登录 |
 | account  | str       | 账号绑定的邮箱或ocid |
 | password | str       | 密码                 |
@@ -136,8 +110,7 @@
 ```json
 {
   "code": 7,
-  "time": 时间戳,
-  "state": 登录状态码,
+  "status": 登录状态码,
   "ocid":该账号的ocid
 }
 ```
@@ -145,8 +118,7 @@
 | key   | valueType | comment            |
 | :---- | :-------- | :----------------- |
 | code  | int       | 信息类型           |
-| time  | int       | 发送请求时的时间戳 |
-| state | int       | 服务器返回的状态码 |
+| status | int       | 服务器返回的状态码 |
 | ocid  | int       | 该账号的OCID       |
 
 | returnCode | comment          |
@@ -162,7 +134,6 @@
 ```json
 {
   "code": 8,
-  "time": 时间戳,
   "members": [
     ocid1,
     ocid2,
@@ -174,7 +145,6 @@
 | key   | valueType | comment            |
 | :---- | :-------- | :----------------- |
 | code  | int       | 信息类型           |
-| time  | int       | 发送请求时的时间戳 |
 |members| list      | 会话成员    |
 
 ## 新建会话返回信息json
@@ -184,7 +154,6 @@
 ```json
 {
   "code": 9,
-  "time": 时间戳,
   "success": true/false,
   "msg": "失败原因"
 }
@@ -193,7 +162,6 @@
 | key   | valueType | comment            |
 | :---- | :-------- | :----------------- |
 | code  | int       | 信息类型           |
-| time  | int       | 发送请求时的时间戳 |
 |success| bool      | 新建会话是否成功    |
 | msg   | str       | 失败原因           |
 
@@ -204,7 +172,6 @@
 ```json
 {
   "code": 10,
-  "time": 时间戳,
   "ocid": 该账号的OCID,
   "request_values":[
     "ocid",
@@ -217,7 +184,6 @@
 | key   | valueType | comment            |
 | :---- | :-------- | :----------------- |
 | code  | int       | 信息类型           |
-| time  | int       | 发送请求时的时间戳 |
 | ocid  | int       | 该账号的ocid       |
 | request_values | list | 需要服务端返回的信息 |
 
@@ -236,7 +202,6 @@
 ```json
 {
   "code": 11,
-  "time": 时间戳,
   "data":{
     "ocid": 该账号的OCID
     "nickname": 昵称,
@@ -248,5 +213,4 @@
 | key   | valueType | comment            |
 | :---- | :-------- | :----------------- |
 | code  | int       | 信息类型           |
-| time  | int       | 发送请求时的时间戳 |
 | data  | json      | 账号信息,详情[见上`request_value`](#获取账号信息json)  |
