@@ -77,7 +77,8 @@ pub async fn init_db(db: &sea_orm::DatabaseConnection) -> anyhow::Result<()> {
         db.get_database_backend(),
         r#"CREATE TABLE IF NOT EXISTS user_chat_msg(
             user_id BIGINT UNSIGNED NOT NULL,
-            chat_msg_id INT UNSIGNED NOT NULL
+            chat_msg_id INT UNSIGNED NOT NULL,
+            PRIMARY KEY(chat_msg_id)
             )DEFAULT CHARSET=utf8mb4;"#,
     ))
     .await?;

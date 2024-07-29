@@ -2,6 +2,8 @@ mod cfg;
 mod connection;
 pub mod consts;
 mod db;
+mod entities;
+pub mod requests;
 mod utils;
 
 use clap::Parser;
