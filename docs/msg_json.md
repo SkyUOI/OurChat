@@ -146,8 +146,8 @@
 {
   "code": 8,
   "members": [
-    ocid1,
-    ocid2,
+    "ocid1",
+    "ocid2",
     ...
   ]
 }
@@ -214,7 +214,7 @@
 {
   "code": 11,
   "data":{
-    "ocid": 该账号的OCID
+    "ocid": 该账号的OCID,
     "nickname": 昵称,
     ...
   }
