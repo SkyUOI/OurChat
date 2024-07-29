@@ -101,15 +101,14 @@ struct RedisCfg {
     port: usize,
     passwd: String,
     user: String,
-    db: String,
 }
 
 pub fn get_redis_url(path: &str) -> anyhow::Result<String> {
     let json = std::fs::read_to_string(path)?;
     let cfg: RedisCfg = serde_json::from_str(&json)?;
     let path = format!(
-        "redis://{}:{}@{}:{}/{}",
-        cfg.user, cfg.passwd, cfg.host, cfg.port, cfg.db
+        "redis://{}:{}@{}:{}/",
+        cfg.user, cfg.passwd, cfg.host, cfg.port
     );
     Ok(path)
 }

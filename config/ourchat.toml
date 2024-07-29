@@ -1,0 +1,2 @@
+dbcfg = "../config/database.json"
+rediscfg = "../config/redis_connect.json"

@@ -22,28 +22,12 @@ docker-compose up -d
 cargo run
 ```
 
-但是启动服务端需要配置相应的数据库，需要自己配置 json 文件
-具体格式为
-
-```json
-{
-  // 主机
-  "host": "",
-  // 用户
-  "user": "",
-  // 密码
-  "passwd": "",
-  // 为Ourchat准备的数据库
-  "db": "",
-  // mysql端口
-  "port": 0
-}
-```
+但是启动服务端需要配置相应参数，可以见`config`目录下的示例
 
 启动时使用
 
 ```bash
-cargo run -- --dbcfg=jsonpath
+cargo run -- --cfg=cfg.toml
 ```
 
 启动单元测试的方法

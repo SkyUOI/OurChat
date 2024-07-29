@@ -32,5 +32,6 @@ services:
       - "6379:6379"
     volumes:
       - ./redis-data:/opt/redis/data
+      - ./config/redis.conf:/usr/local/etc/redis/redis.conf
     environment:
       - REDIS_PASSWORD=123456

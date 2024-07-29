@@ -21,25 +21,12 @@ Build and Run:
 cargo run
 ```
 
-But you should start server with database config.You should write a json file to describe it.
-The format:
-
-```json
-{
-  "host": "",
-  "user": "",
-  "passwd": "",
-  // Database which is provided for OurChat
-  "db": "",
-  // mysql port
-  "port": 0
-}
-```
+But you should start server with some config.You can see examples in `config` folder.
 
 Use this to run with config:
 
 ```bash
-cargo run -- --dbcfg=jsonpath
+cargo run -- --cfg=cfg.toml
 ```
 
 Run unittest:
