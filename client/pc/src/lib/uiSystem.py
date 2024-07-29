@@ -23,16 +23,14 @@ class UISystem:
     def setUI(self, ui_class):
         self.ui = ui_class(self)
         self.ui.setupUi()
-
-    def showUI(self):
-        self.mainwindow.show()
+        return self.mainwindow
 
     def exec(self):
         self.app.exec_()
 
     def setDialog(self, dialog_class, only=False):
         new_dialog = QDialog(self.mainwindow)
-        new_dialog_ui = dialog_class(self)
+        new_dialog_ui = dialog_class(self, new_dialog)
 
         if only:
             remove_later = []
@@ -46,4 +44,6 @@ class UISystem:
                 self.dialogs.pop(remove_later[-1])
                 remove_later.pop(-1)
 
+        new_dialog_ui.setupUi()
         self.dialogs.append((new_dialog, new_dialog_ui))
+        return new_dialog
