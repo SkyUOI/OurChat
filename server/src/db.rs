@@ -40,7 +40,8 @@ pub async fn init_db(db: &sea_orm::DatabaseConnection) -> anyhow::Result<()> {
             PRIMARY KEY(id),
             UNIQUE KEY(ocid),
             UNIQUE KEY(email)
-            )DEFAULT CHARSET=utf8mb4;"#,
+            )DEFAULT CHARSET=utf8mb4;"#
+            .to_string(),
     ))
     .await?;
     db.execute(Statement::from_string(
@@ -50,7 +51,8 @@ pub async fn init_db(db: &sea_orm::DatabaseConnection) -> anyhow::Result<()> {
             friend_id BIGINT UNSIGNED,
             name CHAR(15),
             PRIMARY KEY(user_id)
-            )DEFAULT CHARSET=utf8mb4;"#,
+            )DEFAULT CHARSET=utf8mb4;"#
+            .to_string(),
     ))
     .await?;
     db.execute(Statement::from_string(
@@ -61,7 +63,8 @@ pub async fn init_db(db: &sea_orm::DatabaseConnection) -> anyhow::Result<()> {
             name CHAR(15),
             group_name CHAR(30),
             PRIMARY KEY(group_id)
-            )DEFAULT CHARSET=utf8mb4;"#,
+            )DEFAULT CHARSET=utf8mb4;"#
+            .to_string(),
     ))
     .await?;
     db.execute(Statement::from_string(
@@ -70,7 +73,8 @@ pub async fn init_db(db: &sea_orm::DatabaseConnection) -> anyhow::Result<()> {
             group_id BIGINT UNSIGNED,
             group_name CHAR(30),
             PRIMARY KEY(group_id)
-            )DEFAULT CHARSET=utf8mb4;"#,
+            )DEFAULT CHARSET=utf8mb4;"#
+            .to_string(),
     ))
     .await?;
     db.execute(Statement::from_string(
@@ -79,7 +83,8 @@ pub async fn init_db(db: &sea_orm::DatabaseConnection) -> anyhow::Result<()> {
             user_id BIGINT UNSIGNED NOT NULL,
             chat_msg_id INT UNSIGNED NOT NULL,
             PRIMARY KEY(chat_msg_id)
-            )DEFAULT CHARSET=utf8mb4;"#,
+            )DEFAULT CHARSET=utf8mb4;"#
+            .to_string(),
     ))
     .await?;
     db.execute(Statement::from_string(
@@ -90,7 +95,8 @@ pub async fn init_db(db: &sea_orm::DatabaseConnection) -> anyhow::Result<()> {
             msg_data VARCHAR(8000),
             sender_id BIGINT UNSIGNED,
             PRIMARY KEY(chat_msg_id)
-            )DEFAULT CHARSET=utf8mb4;"#,
+            )DEFAULT CHARSET=utf8mb4;"#
+            .to_string(),
     ))
     .await?;
     log::info!("Initialized database");
