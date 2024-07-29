@@ -24,6 +24,10 @@ OurChat 是一个可以在 Linux，Windows 和 Macos 上运行的聊天软件。
 
 [部署指南](docs/deploy-zh.md)
 
+## 贡献
+
+请见 [CONTRIBUTING](CONTRIBUTING-zh.md)
+
 ## TODO
 
 - [x] 支持网页端
