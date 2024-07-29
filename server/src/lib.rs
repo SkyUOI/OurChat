@@ -1,11 +1,13 @@
 mod cfg;
 mod connection;
+pub mod consts;
 mod db;
 mod utils;
 
 use clap::Parser;
 use connection::Request;
 use rand::Rng;
+use serde::{Deserialize, Serialize};
 use std::{fs, io::Write, net::SocketAddr, path, process::exit, sync::OnceLock};
 use tokio::{
     io::{self, AsyncBufReadExt, BufReader},
@@ -26,6 +28,12 @@ struct ArgsParser {
     #[arg(long, default_value_t = String::from(cfg::DEFAULT_IP))]
     ip: String,
     #[arg(long)]
+    cfg: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct Cfg {
+    rediscfg: String,
     dbcfg: String,
 }
 
@@ -150,14 +158,19 @@ fn machine_id() -> u64 {
 
 pub async fn lib_main() -> anyhow::Result<()> {
     let parser = ArgsParser::parse();
+    let cfg_path = parser.cfg;
+    let cfg = fs::read_to_string(cfg_path)?;
+    let cfg: Cfg = toml::from_str(&cfg).unwrap();
     let port = parser.port;
     let ip = parser.ip;
     // 用于通知关闭的channel
     let (shutdown_sender, mut shutdown_receiver) = broadcast::channel(32);
     let shutdown_sender_clone = shutdown_sender.clone();
     let shutdown_receiver_clone = shutdown_sender.subscribe();
-    let db = db::connect_to_db(&parser.dbcfg).await?;
+
+    let db = db::connect_to_db(&db::get_db_url(&cfg.dbcfg)?).await?;
     db::init_db(&db).await?;
+    let redis = db::connect_to_redis(&db::get_redis_url(&cfg.rediscfg)?).await?;
     let mut server = Server::new(ip, port, db).await?;
     tokio::spawn(async move {
         server

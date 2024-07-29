@@ -140,5 +140,12 @@ CMakeLists.txt
 
 /target
 
+# Mysql
+
 mysql-data/**
 !mysql-data/.gitkeep
+
+# Redis
+
+redis-data/**
+!redis-data/.gitkeep
