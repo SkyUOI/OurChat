@@ -7,9 +7,9 @@ use sea_orm::entity::prelude::*;
 pub struct Model {
     #[sea_orm(primary_key)]
     pub chat_msg_id: u32,
-    pub msg_type: Option<i32>,
-    pub msg_data: Option<String>,
-    pub sender_id: Option<u64>,
+    pub msg_type: u32,
+    pub msg_data: String,
+    pub sender_id: u64,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

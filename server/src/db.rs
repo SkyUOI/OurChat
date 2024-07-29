@@ -32,11 +32,11 @@ pub async fn init_db(db: &sea_orm::DatabaseConnection) -> anyhow::Result<()> {
         db.get_database_backend(),
         r#"CREATE TABLE IF NOT EXISTS user(
             id BIGINT UNSIGNED,
-            ocid CHAR(10),
-            passwd CHAR(64),
-            name CHAR(15),
-            email CHAR(120),
-            date INT,
+            ocid CHAR(10) NOT NULL,
+            passwd CHAR(64) NOT NULL,
+            name CHAR(15) NOT NULL,
+            email CHAR(120) NOT NULL,
+            date INT UNSIGNED NOT NULL,
             PRIMARY KEY(id),
             UNIQUE KEY(ocid),
             UNIQUE KEY(email)
@@ -48,8 +48,8 @@ pub async fn init_db(db: &sea_orm::DatabaseConnection) -> anyhow::Result<()> {
         db.get_database_backend(),
         r#"CREATE TABLE IF NOT EXISTS friend(
             user_id BIGINT UNSIGNED,
-            friend_id BIGINT UNSIGNED,
-            name CHAR(15),
+            friend_id BIGINT UNSIGNED NOT NULL,
+            name CHAR(15) NOT NULL,
             PRIMARY KEY(user_id)
             )DEFAULT CHARSET=utf8mb4;"#
             .to_string(),
@@ -59,9 +59,9 @@ pub async fn init_db(db: &sea_orm::DatabaseConnection) -> anyhow::Result<()> {
         db.get_database_backend(),
         r#"CREATE TABLE IF NOT EXISTS chat(
             group_id BIGINT UNSIGNED,
-            user_id BIGINT UNSIGNED,
-            name CHAR(15),
-            group_name CHAR(30),
+            user_id BIGINT UNSIGNED NOT NULL,
+            name CHAR(15) NOT NULL,
+            group_name CHAR(30) NOT NULL,
             PRIMARY KEY(group_id)
             )DEFAULT CHARSET=utf8mb4;"#
             .to_string(),
@@ -71,7 +71,7 @@ pub async fn init_db(db: &sea_orm::DatabaseConnection) -> anyhow::Result<()> {
         db.get_database_backend(),
         r#"CREATE TABLE IF NOT EXISTS chatgroup(
             group_id BIGINT UNSIGNED,
-            group_name CHAR(30),
+            group_name CHAR(30) NOT NULL,
             PRIMARY KEY(group_id)
             )DEFAULT CHARSET=utf8mb4;"#
             .to_string(),
@@ -91,9 +91,9 @@ pub async fn init_db(db: &sea_orm::DatabaseConnection) -> anyhow::Result<()> {
         db.get_database_backend(),
         r#"CREATE TABLE IF NOT EXISTS user_chat_id(
             chat_msg_id INT UNSIGNED AUTO_INCREMENT,
-            msg_type INT,
-            msg_data VARCHAR(8000),
-            sender_id BIGINT UNSIGNED,
+            msg_type INT UNSIGNED NOT NULL,
+            msg_data VARCHAR(8000) NOT NULL,
+            sender_id BIGINT UNSIGNED NOT NULL,
             PRIMARY KEY(chat_msg_id)
             )DEFAULT CHARSET=utf8mb4;"#
             .to_string(),
