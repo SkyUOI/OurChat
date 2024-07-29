@@ -15,6 +15,8 @@ services:
     working_dir: /root
     environment:
       - LC_ALL=C.UTF-8
+    ports:
+      - 7777:7777
   db:
     image: mysql:9.0.1
     restart: always

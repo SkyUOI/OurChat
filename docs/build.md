@@ -2,38 +2,9 @@
 
 ## Server
 
-Server is developed in rust.You should install rust first.
-The development and deployment are in the docker,so you should also install docker.
-docker-buildx and docker-compose are required,too.
-Then you can run
+For development building, please refer to [Server Development](./server-develop.md).
 
-```bash
-docker-compose up -d
-```
-
-to set up the development environment.
-
-If the Dockerfile changed,you can run `script/rebuild_dev_container.py` to rebuild the image.
-
-Build and Run:
-
-```bash
-cargo run
-```
-
-But you should start server with some config.You can see examples in `config` folder.
-
-Use this to run with config:
-
-```bash
-cargo run -- --cfg=cfg.toml
-```
-
-Run unittest:
-
-```bash
-cargo test
-```
+For actual deployment to a production environment, refer to the [Deployment Guide](./deploy.md)
 
 ## Web
 

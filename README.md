@@ -24,6 +24,12 @@ The project is under rapid development and there is also a lot of work to be don
 
 [Build Docs](docs/build.md)
 
+[Deploy Docs](docs/deploy.md)
+
+## Contribution
+
+Please see [CONTRIBUTING](CONTRIBUTING.md)
+
 ## TODO
 
 - [x] support website

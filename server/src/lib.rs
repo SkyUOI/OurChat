@@ -5,7 +5,7 @@ mod db;
 mod utils;
 
 use clap::Parser;
-use connection::Request;
+use connection::DBRequest;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::{fs, io::Write, net::SocketAddr, path, process::exit, sync::OnceLock};
@@ -42,16 +42,18 @@ struct Server {
     port: usize,
     bind_addr: String,
     tcplistener: TcpListener,
-    mysql: Option<sqlx::MySqlPool>,
-    task_solver_sender: mpsc::Sender<Request>,
-    task_solver_receiver: Option<mpsc::Receiver<Request>>,
+    mysql: Option<sea_orm::DatabaseConnection>,
+    redis: Option<redis::Client>,
+    task_solver_sender: mpsc::Sender<DBRequest>,
+    task_solver_receiver: Option<mpsc::Receiver<DBRequest>>,
 }
 
 impl Server {
     pub async fn new(
         ip: impl Into<String>,
         port: usize,
-        mysql: sqlx::MySqlPool,
+        mysql: sea_orm::DatabaseConnection,
+        redis: redis::Client,
     ) -> anyhow::Result<Self> {
         let ip = ip.into();
         let bind_addr = format!("{}:{}", ip.clone(), port);
@@ -69,6 +71,7 @@ impl Server {
             bind_addr,
             tcplistener,
             mysql: Some(mysql),
+            redis: Some(redis),
             task_solver_sender,
             task_solver_receiver: Some(task_solver_receiver),
         };
@@ -80,19 +83,20 @@ impl Server {
         shutdown_sender: broadcast::Sender<()>,
         mut shutdown_receiver: broadcast::Receiver<()>,
     ) {
-        tokio::spawn(Self::process_request(
+        tokio::spawn(Self::process_db_request(
             self.task_solver_receiver.take().unwrap(),
             self.mysql.take().unwrap(),
         ));
         let async_loop = async move {
             loop {
+                let task_sender = self.task_solver_sender.clone();
                 let ret = self.tcplistener.accept().await;
                 match ret {
                     Ok((socket, addr)) => {
                         let shutdown = shutdown_sender.subscribe();
                         log::info!("Connected to a socket");
                         tokio::spawn(async move {
-                            Server::handle_connection(socket, addr, shutdown).await
+                            Server::handle_connection(socket, addr, shutdown, task_sender).await
                         });
                     }
                     Err(_) => todo!(),
@@ -107,12 +111,15 @@ impl Server {
         }
     }
 
-    async fn process_request(
-        mut receiver: mpsc::Receiver<Request>,
-        mysql_connection: sqlx::MySqlPool,
+    async fn process_db_request(
+        mut receiver: mpsc::Receiver<DBRequest>,
+        mysql_connection: sea_orm::DatabaseConnection,
     ) {
         while let Some(request) = receiver.recv().await {
-            match request {}
+            match request {
+                DBRequest::Login(channel) => {}
+                DBRequest::Register(channel) => {}
+            }
         }
     }
 
@@ -120,6 +127,7 @@ impl Server {
         stream: TcpStream,
         addr: SocketAddr,
         shutdown_receiver: broadcast::Receiver<()>,
+        task_sender: mpsc::Sender<DBRequest>,
     ) {
         let ws_stream = match tokio_tungstenite::accept_async(stream).await {
             Ok(data) => data,
@@ -129,7 +137,8 @@ impl Server {
             }
         };
         tokio::spawn(async move {
-            let mut connection = connection::Connection::new(ws_stream, shutdown_receiver);
+            let mut connection =
+                connection::Connection::new(ws_stream, shutdown_receiver, task_sender);
             match connection.work().await {
                 Ok(_) => {
                     log::info!("Connection closed: {}", addr);
@@ -171,7 +180,7 @@ pub async fn lib_main() -> anyhow::Result<()> {
     let db = db::connect_to_db(&db::get_db_url(&cfg.dbcfg)?).await?;
     db::init_db(&db).await?;
     let redis = db::connect_to_redis(&db::get_redis_url(&cfg.rediscfg)?).await?;
-    let mut server = Server::new(ip, port, db).await?;
+    let mut server = Server::new(ip, port, db, redis).await?;
     tokio::spawn(async move {
         server
             .accept_sockets(shutdown_sender_clone, shutdown_receiver_clone)
