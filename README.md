@@ -23,6 +23,7 @@ The project is under rapid development and there is also a lot of work to be don
 ## Build and Run
 
 [Build Docs](docs/build.md)
+
 [Deploy Docs](docs/deploy.md)
 
 ## TODO
