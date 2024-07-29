@@ -2,39 +2,9 @@
 
 ## Server
 
-Server 部分由 Rust 语言编写.你首先应当安装 Rust.
-开发和部署都在 Docker 中完成，所以你也应当安装 Docker.
-docker-buildx 和 docker-compose 同样也需要安装.
+开发构建，请见[服务端开发](./server-develop-zh.md)
 
-然后你可以运行:
-
-```bash
-docker-compose up -d
-```
-
-来配置开发环境
-
-如果 Dockerfile 改变了，你可以运行`script/rebuild_dev_container.py`来重新构建镜像。
-
-构建并运行:
-
-```bash
-cargo run
-```
-
-但是启动服务端需要配置相应参数，可以见`config`目录下的示例
-
-启动时使用
-
-```bash
-cargo run -- --cfg=cfg.toml
-```
-
-启动单元测试的方法
-
-```bash
-cargo test
-```
+对于真正部署到生产环境，参见[部署指南](./deploy-zh.md)
 
 ## Web
 
