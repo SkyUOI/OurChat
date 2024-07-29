@@ -23,12 +23,12 @@ jobs:
           rustup default nightly
           setx MIRIFLAGS "-Zmiri-disable-isolation"
       - name: Build
-        run: cd web && cargo build --all
+        run: cd client/web && cargo build --all
       - name: Build Release
-        run: cd web && cargo build --all --release
+        run: cd client/web && cargo build --all --release
       - name: Run tests Debug
-        run: cd web && cargo test --all
+        run: cd client/web && cargo test --all
       - name: Run tests Release
-        run: cd web && cargo test --release --all
+        run: cd client/web && cargo test --release --all
       # - name: Run miri test
       #   run: cargo miri test

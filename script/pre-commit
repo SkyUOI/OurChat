@@ -2,8 +2,8 @@
 
 # Rust Check
 cd server && cargo fmt && cd ..
-cd src-tauri && cargo fmt && cd ..
-cd web && cargo fmt && cd ..
+cd client/src-tauri && cargo fmt && cd ../..
+cd client/web && cargo fmt && cd ../..
 # Python Check
 ruff format
 ruff check
