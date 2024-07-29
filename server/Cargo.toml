@@ -23,10 +23,18 @@ clap = { version = "4", features = ["derive"] }
 shadow-rs = "0"
 futures-util = "0"
 rand = "0"
-snowdon = "0.2.0"
-redis = { version = "0.26.0", features = ["tokio-rustls-comp"] }
+snowdon = "0"
+redis = { version = "0", features = ["tokio-rustls-comp"] }
 toml = "0"
+sea-orm = { version = "0", features = [
+    "sqlx-mysql",
+    "runtime-tokio-rustls",
+    "macros",
+] }
 
 
 [build-dependencies]
 shadow-rs = "0"
+
+[dev-dependencies]
+test_lib = { path = "test_lib" }
