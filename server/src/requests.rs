@@ -4,24 +4,24 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Register {
-    code: i32,
-    time: u64,
-    email: String,
-    password: String,
-    name: String,
+    pub code: i32,
+    pub time: u64,
+    pub email: String,
+    pub password: String,
+    pub name: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-enum LoginType {
+pub enum LoginType {
     Email = 0,
     Ocid = 1,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Login {
-    code: i32,
-    time: u64,
-    email: String,
-    login_type: LoginType,
-    password: String,
+    pub code: i32,
+    pub time: u64,
+    pub email: String,
+    pub login_type: LoginType,
+    pub password: String,
 }

@@ -1,8 +1,14 @@
+pub mod client_response;
+pub mod response;
+
 use crate::{
-    consts::{LOGIN_TYPE, REGISTER_TYPE},
-    requests, ShutdownRev,
+    consts::RequestType,
+    requests::{self},
+    ShutdownRev,
 };
-use futures_util::StreamExt;
+use client_response::register::RegisterResponse;
+use futures_util::{SinkExt, StreamExt};
+use response::RegisterError;
 use serde_json::Value;
 use tokio::{
     net::TcpStream,
@@ -12,8 +18,14 @@ use tokio::{
 use tokio_tungstenite::WebSocketStream;
 
 pub enum DBRequest {
-    Login(oneshot::Sender<()>),
-    Register(oneshot::Sender<()>),
+    Login {
+        request: requests::Login,
+        resp: oneshot::Sender<()>,
+    },
+    Register {
+        request: requests::Register,
+        resp: oneshot::Sender<Result<RegisterResponse, RegisterError>>,
+    },
 }
 
 type WS = WebSocketStream<TcpStream>;
@@ -42,26 +54,37 @@ impl Connection {
     async fn login_request(
         request_sender: &mpsc::Sender<DBRequest>,
         login_data: requests::Login,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<String> {
         let channel = oneshot::channel();
-        let request = DBRequest::Login(channel.0);
+        let request = DBRequest::Login {
+            request: login_data,
+            resp: channel.0,
+        };
         request_sender.send(request).await?;
-        Ok(())
+        let resp = channel.1.await?;
+        Ok(todo!())
     }
 
     /// 注册请求
     async fn register_request(
         request_sender: &mpsc::Sender<DBRequest>,
         register_data: requests::Register,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<String> {
         let channel = oneshot::channel();
-        let request = DBRequest::Register(channel.0);
+        let request = DBRequest::Register {
+            request: register_data,
+            resp: channel.0,
+        };
         request_sender.send(request).await?;
-        Ok(())
+        let resp = serde_json::to_string(&channel.1.await??).unwrap();
+        Ok(resp)
     }
 
     /// 验证客户端
-    async fn verify(ws: &mut WS, request_sender: &mpsc::Sender<DBRequest>) -> anyhow::Result<()> {
+    async fn verify(
+        ws: &mut WS,
+        request_sender: &mpsc::Sender<DBRequest>,
+    ) -> anyhow::Result<String> {
         let msg = match ws.next().await {
             None => {
                 anyhow::bail!("Failed to receive message when logining");
@@ -80,14 +103,14 @@ impl Connection {
         let code = &json["code"];
         if let Value::Number(code) = code {
             let code = code.as_u64();
-            if code == Some(LOGIN_TYPE) {
+            if code == Some(RequestType::Login as u64) {
                 let login_data: requests::Login = serde_json::from_value(json)?;
                 Self::login_request(request_sender, login_data).await?;
-                return Ok(());
-            } else if code == Some(REGISTER_TYPE) {
+                return Ok(todo!());
+            } else if code == Some(RequestType::Register as u64) {
                 let request_data: requests::Register = serde_json::from_value(json)?;
-                Self::register_request(request_sender, request_data).await?;
-                return Ok(());
+                let resp = Self::register_request(request_sender, request_data).await?;
+                return Ok(resp);
             } else {
                 anyhow::bail!(
                     "Failed to login,code is {:?},not login or register code",
@@ -97,14 +120,21 @@ impl Connection {
         } else {
             anyhow::bail!("Failed to login,code is not a number or missing");
         }
-        Ok(())
     }
 
     pub async fn work(&mut self) -> anyhow::Result<()> {
         let mut socket = self.socket.take().unwrap();
         let sender = self.request_sender.clone();
         select! {
-            _ = Connection::verify(&mut socket, &sender) => {},
+            ret = Connection::verify(&mut socket, &sender) => {
+                let ret = ret?;
+                select! {
+                    err = socket.send(tungstenite::Message::Text(ret)) => {
+                        err?
+                    },
+                    _ = self.shutdown_receiver.recv() => {},
+                }
+            },
             _ = self.shutdown_receiver.recv() => {},
         }
         Ok(())

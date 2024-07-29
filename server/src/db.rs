@@ -36,7 +36,7 @@ pub async fn init_db(db: &sea_orm::DatabaseConnection) -> anyhow::Result<()> {
             passwd CHAR(64) NOT NULL,
             name CHAR(15) NOT NULL,
             email CHAR(120) NOT NULL,
-            date INT UNSIGNED NOT NULL,
+            time BIGINT UNSIGNED NOT NULL,
             PRIMARY KEY(id),
             UNIQUE KEY(ocid),
             UNIQUE KEY(email)

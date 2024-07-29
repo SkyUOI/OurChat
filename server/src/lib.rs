@@ -7,9 +7,17 @@ pub mod requests;
 mod utils;
 
 use clap::Parser;
-use connection::DBRequest;
+use connection::{
+    client_response::{self, register::RegisterResponse},
+    response::{LoginError, RegisterError},
+    DBRequest,
+};
+use entities::user::ActiveModel as UserModel;
 use rand::Rng;
+use requests::Register;
+use sea_orm::ActiveModelTrait;
 use serde::{Deserialize, Serialize};
+use snowdon::ClassicLayoutSnowflakeExtension;
 use std::{fs, io::Write, net::SocketAddr, path, process::exit, sync::OnceLock};
 use tokio::{
     io::{self, AsyncBufReadExt, BufReader},
@@ -119,8 +127,40 @@ impl Server {
     ) {
         while let Some(request) = receiver.recv().await {
             match request {
-                DBRequest::Login(channel) => {}
-                DBRequest::Register(channel) => {}
+                DBRequest::Login { resp, request } => {}
+                DBRequest::Register { resp, request } => {
+                    // 生成雪花id
+                    let id = utils::generator().generate().unwrap().into_i64() as u64;
+                    // 随机生成生成ocid
+                    let ocid = utils::generate_ocid(consts::OCID_LEN);
+                    let user = UserModel {
+                        id: sea_orm::ActiveValue::Set(id),
+                        ocid: sea_orm::ActiveValue::Set(ocid),
+                        passwd: sea_orm::ActiveValue::Set(request.password),
+                        name: sea_orm::ActiveValue::Set(request.name),
+                        email: sea_orm::ActiveValue::Set(request.email),
+                        time: sea_orm::ActiveValue::Set(request.time),
+                    };
+                    match user.insert(&mysql_connection).await {
+                        Ok(res) => {
+                            // 生成正确的响应
+                            let response = RegisterResponse::new(
+                                res.ocid,
+                                client_response::register::Status::Success,
+                            );
+                            resp.send(Ok(response)).unwrap();
+                        }
+                        Err(e) => {
+                            if let sea_orm::DbErr::RecordNotInserted = e {
+                                resp.send(Err(RegisterError::AlreadyExists)).unwrap();
+                            } else {
+                                log::error!("Database error:{e}");
+                                resp.send(Err(RegisterError::ServerError(e.to_string())))
+                                    .unwrap();
+                            }
+                        }
+                    }
+                }
             }
         }
     }

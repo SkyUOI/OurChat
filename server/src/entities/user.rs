@@ -13,7 +13,7 @@ pub struct Model {
     pub name: String,
     #[sea_orm(unique)]
     pub email: String,
-    pub date: u32,
+    pub time: u64,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
