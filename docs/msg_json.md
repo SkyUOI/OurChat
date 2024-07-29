@@ -32,13 +32,13 @@
 
 | key        | valueType | comment                                                        |
 | :--------- | :-------- | :------------------------------------------------------------- |
-| code       | int       | 信息类型                                                       |
-| time       | int       | 发消息的时间戳                                                 |
-| msg_id     | int       | message 的 ID，唯一 \*\*\*(注意：传输给服务器时无此字段)\_\*\* |
-| sender     | dict      | 发送者的相关数据                                               |
-| ocid       | str       | 发送者的 ocid                                                  |
-| session_id | int       | 发送者的会话 id                                                |
-| msg        | str       | 文本信息                                                       |
+| code       | Number    | 信息类型                                                       |
+| time       | Number    | 发消息的时间戳                                                 |
+| msg_id     | Number    | message 的 ID，唯一 \*\*\*(注意：传输给服务器时无此字段)\_\*\* |
+| sender     | Object    | 发送者的相关数据                                               |
+| ocid       | String    | 发送者的 ocid                                                  |
+| session_id | Number    | 发送者的会话 id                                                |
+| msg        | String    | 文本信息                                                       |
 
 **_code1,2,3 分别为还未制作的表情包(包括但不限于 gif)，图片发送，文件发送_**
 
@@ -59,10 +59,10 @@
 
 | key      | valueType | comment          |
 | :------- | :-------- | :--------------- |
-| code     | int       | 信息类型         |
-| email    | str       | 注册邮箱         |
-| password | str       | 注册密码(已加密) |
-| name     | str       | 昵称             |
+| code     | Number    | 信息类型         |
+| email    | String    | 注册邮箱         |
+| password | String    | 注册密码(已加密) |
+| name     | String    | 昵称             |
 
 ## 注册返回信息
 
@@ -80,9 +80,9 @@
 
 | key    | valueType | comment            |
 | :----- | :-------- | :----------------- |
-| code   | int       | 信息类型           |
-| status | int       | 服务端返回的状态码 |
-| ocid   | int       | 该账号的 OC 号     |
+| code   | Number    | 信息类型           |
+| status | Number    | 服务端返回的状态码 |
+| ocid   | Number    | 该账号的 OC 号     |
 
 | returnCode | comment    |
 | :--------- | :--------- |
@@ -107,10 +107,10 @@
 
 | key        | valueType | comment                      |
 | :--------- | :-------- | :--------------------------- |
-| code       | int       | 信息类型                     |
-| login_type | int       | 0 为邮箱登录，1 为 ocid 登录 |
-| account    | str       | 账号绑定的邮箱或 ocid        |
-| password   | str       | 密码                         |
+| code       | Number    | 信息类型                     |
+| login_type | Number    | 0 为邮箱登录，1 为 ocid 登录 |
+| account    | String    | 账号绑定的邮箱或 ocid        |
+| password   | String    | 密码                         |
 
 ## 登录返回信息
 
@@ -128,9 +128,9 @@
 
 | key    | valueType | comment            |
 | :----- | :-------- | :----------------- |
-| code   | int       | 信息类型           |
-| status | int       | 服务器返回的状态码 |
-| ocid   | int       | 该账号的 OCID      |
+| code   | Number    | 信息类型           |
+| status | Number    | 服务器返回的状态码 |
+| ocid   | Number    | 该账号的 OCID      |
 
 | returnCode | comment          |
 | :--------- | :--------------- |
@@ -155,8 +155,8 @@
 
 | key     | valueType | comment  |
 | :------ | :-------- | :------- |
-| code    | int       | 信息类型 |
-| members | list      | 会话成员 |
+| code    | Number    | 信息类型 |
+| members | Array     | 会话成员 |
 
 ## 新建会话返回信息
 
@@ -172,9 +172,9 @@
 
 | key     | valueType | comment          |
 | :------ | :-------- | :--------------- |
-| code    | int       | 信息类型         |
-| success | bool      | 新建会话是否成功 |
-| msg     | str       | 失败原因         |
+| code    | Number    | 信息类型         |
+| success | Boolean   | 新建会话是否成功 |
+| msg     | String    | 失败原因         |
 
 ## 获取账号信息
 
@@ -194,9 +194,9 @@
 
 | key            | valueType | comment              |
 | :------------- | :-------- | :------------------- |
-| code           | int       | 信息类型             |
-| ocid           | int       | 该账号的 ocid        |
-| request_values | list      | 需要服务端返回的信息 |
+| code           | Number    | 信息类型             |
+| ocid           | Number    | 该账号的 ocid        |
+| request_values | Array     | 需要服务端返回的信息 |
 
 | request_value | comment               |
 | :------------ | :-------------------- |
@@ -223,5 +223,5 @@
 
 | key  | valueType | comment                                           |
 | :--- | :-------- | :------------------------------------------------ |
-| code | int       | 信息类型                                          |
-| data | json      | 账号信息,详情[见上`request_value`](#获取账号信息) |
+| code | Number    | 信息类型                                          |
+| data | Object    | 账号信息,详情[见上`request_value`](#获取账号信息) |
