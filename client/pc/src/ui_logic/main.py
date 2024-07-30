@@ -6,8 +6,9 @@ from ui_logic.account import Ui_Account
 
 
 class Ui_Main(Ui_Main_NOLOGIC):
-    def __init__(self, uisystem) -> None:
-        self.uisystem = uisystem
+    def __init__(self, ourchat) -> None:
+        self.ourchat = ourchat
+        self.uisystem = self.ourchat.uisystem
         self.mainwindow = self.uisystem.mainwindow
         self.widget = None
 
@@ -25,7 +26,7 @@ class Ui_Main(Ui_Main_NOLOGIC):
         if self.widget is not None:
             self.verticalLayout_2.removeWidget(self.widget)
         self.widget = QWidget(self.mainwindow)
-        widget_ui = ui(self.uisystem, self.widget)
+        widget_ui = ui(self.ourchat, self.widget)
         widget_ui.setupUi()
         self.verticalLayout_2.addWidget(self.widget)
         self.widget.show()

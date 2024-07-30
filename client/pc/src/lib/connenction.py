@@ -1,4 +1,5 @@
 import websockets
+import json
 
 
 class Connection:
@@ -6,5 +7,20 @@ class Connection:
         self.server_ip = server_ip
         self.port = port
 
-    def connect(self):
-        self.conn = websockets.connect(f"ws://{self.server_ip}:{self.port}")
+    async def connect(self):
+        try:
+            self.conn = await websockets.connect(f"ws://{self.server_ip}:{self.port}")
+            return True
+        except Exception as e:
+            print(e)
+            return False
+
+    async def send(self, data):
+        json_str = json.dumps(data)
+        await self.conn.send(json_str)
+        response_json = await self.conn.recv()
+        response_data = json.loads(response_json)
+        return response_data
+
+    def close(self):
+        self.conn.close()

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>270</height>
+    <width>370</width>
+    <height>250</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -32,7 +32,7 @@
      <item>
       <widget class="QTabWidget" name="tabWidget">
        <property name="currentIndex">
-        <number>1</number>
+        <number>0</number>
        </property>
        <widget class="QWidget" name="login_tab">
         <attribute name="title">
@@ -60,7 +60,7 @@
           </widget>
          </item>
          <item row="1" column="1">
-          <widget class="QLineEdit" name="lineEdit_3"/>
+          <widget class="QLineEdit" name="login_account_editor"/>
          </item>
          <item row="2" column="0">
           <widget class="QLabel" name="label_4">
@@ -70,7 +70,11 @@
           </widget>
          </item>
          <item row="2" column="1">
-          <widget class="QLineEdit" name="lineEdit_4"/>
+          <widget class="QLineEdit" name="login_password_editor">
+           <property name="echoMode">
+            <enum>QLineEdit::Password</enum>
+           </property>
+          </widget>
          </item>
          <item row="3" column="1">
           <layout class="QHBoxLayout" name="horizontalLayout">
@@ -88,7 +92,7 @@
             </spacer>
            </item>
            <item>
-            <widget class="QCheckBox" name="checkBox">
+            <widget class="QCheckBox" name="login_show_checkbox">
              <property name="text">
               <string notr="true">Show</string>
              </property>
@@ -98,9 +102,9 @@
          </item>
         </layout>
        </widget>
-       <widget class="QWidget" name="signin_tab">
+       <widget class="QWidget" name="register_tab">
         <attribute name="title">
-         <string notr="true">Sign in</string>
+         <string notr="true">Register</string>
         </attribute>
         <layout class="QFormLayout" name="formLayout_2">
          <item row="0" column="1">
@@ -124,28 +128,7 @@
           </widget>
          </item>
          <item row="1" column="1">
-          <widget class="QLineEdit" name="lineEdit_5"/>
-         </item>
-         <item row="2" column="0">
-          <widget class="QLabel" name="label_7">
-           <property name="text">
-            <string notr="true">Verify Code</string>
-           </property>
-          </widget>
-         </item>
-         <item row="2" column="1">
-          <layout class="QHBoxLayout" name="horizontalLayout_3">
-           <item>
-            <widget class="QLineEdit" name="lineEdit_7"/>
-           </item>
-           <item>
-            <widget class="QPushButton" name="pushButton_3">
-             <property name="text">
-              <string notr="true">Get</string>
-             </property>
-            </widget>
-           </item>
-          </layout>
+          <widget class="QLineEdit" name="register_email_editor"/>
          </item>
          <item row="3" column="0">
           <widget class="QLabel" name="label_6">
@@ -155,7 +138,11 @@
           </widget>
          </item>
          <item row="3" column="1">
-          <widget class="QLineEdit" name="lineEdit_6"/>
+          <widget class="QLineEdit" name="register_password_editor">
+           <property name="echoMode">
+            <enum>QLineEdit::Password</enum>
+           </property>
+          </widget>
          </item>
          <item row="4" column="1">
           <layout class="QHBoxLayout" name="horizontalLayout_2">
@@ -173,7 +160,7 @@
             </spacer>
            </item>
            <item>
-            <widget class="QCheckBox" name="checkBox_2">
+            <widget class="QCheckBox" name="register_show_checkbox">
              <property name="text">
               <string notr="true">Show</string>
              </property>
@@ -203,12 +190,12 @@
        <item>
         <widget class="QLabel" name="label">
          <property name="text">
-          <string notr="true">Server Ip</string>
+          <string notr="true">Server   IP</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="lineEdit"/>
+        <widget class="QLineEdit" name="server_ip_editor"/>
        </item>
        <item>
         <spacer name="horizontalSpacer_8">
@@ -243,12 +230,12 @@
        <item>
         <widget class="QLabel" name="label_2">
          <property name="text">
-          <string notr="true">Server port</string>
+          <string notr="true">Server Port</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="lineEdit_2">
+        <widget class="QLineEdit" name="server_port_editor">
          <property name="text">
           <string notr="true"/>
          </property>
@@ -285,16 +272,16 @@
         </spacer>
        </item>
        <item>
-        <widget class="QPushButton" name="pushButton">
+        <widget class="QPushButton" name="connect_server_btn">
          <property name="text">
-          <string notr="true">Join</string>
+          <string notr="true">Connect server</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="pushButton_2">
+        <widget class="QPushButton" name="join_btn">
          <property name="text">
-          <string notr="true">Test Connection</string>
+          <string notr="true">Join</string>
          </property>
         </widget>
        </item>
@@ -329,13 +316,6 @@
     </spacer>
    </item>
   </layout>
-  <zorder>label</zorder>
-  <zorder>lineEdit</zorder>
-  <zorder>lineEdit_2</zorder>
-  <zorder>label_2</zorder>
-  <zorder>pushButton</zorder>
-  <zorder>pushButton_2</zorder>
-  <zorder>tabWidget</zorder>
   <zorder>horizontalSpacer_3</zorder>
   <zorder>horizontalSpacer_4</zorder>
  </widget>

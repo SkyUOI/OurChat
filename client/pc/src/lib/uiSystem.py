@@ -4,7 +4,8 @@ from qt_material import apply_stylesheet
 
 
 class UISystem:
-    def __init__(self, argv):
+    def __init__(self, ourchat, argv):
+        self.ourchat = ourchat
         QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
         QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
         QApplication.setHighDpiScaleFactorRoundingPolicy(
@@ -21,7 +22,7 @@ class UISystem:
         apply_stylesheet(self.app, self.theme)
 
     def setUI(self, ui_class):
-        self.ui = ui_class(self)
+        self.ui = ui_class(self.ourchat)
         self.ui.setupUi()
         return self.mainwindow
 
@@ -30,7 +31,7 @@ class UISystem:
 
     def setDialog(self, dialog_class, only=False):
         new_dialog = QDialog(self.mainwindow)
-        new_dialog_ui = dialog_class(self, new_dialog)
+        new_dialog_ui = dialog_class(self.ourchat, new_dialog)
 
         if only:
             remove_later = []

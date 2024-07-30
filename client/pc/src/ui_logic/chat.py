@@ -2,8 +2,9 @@ from ui.chat import Ui_Chat as Ui_Chat_NOLOGIC
 
 
 class Ui_Chat(Ui_Chat_NOLOGIC):
-    def __init__(self, uisystem, widget):
-        self.uisystem = uisystem
+    def __init__(self, ourchat, widget):
+        self.ourchat = ourchat
+        self.uisystem = self.ourchat.uisystem
         self.widget = widget
 
     def setupUi(
