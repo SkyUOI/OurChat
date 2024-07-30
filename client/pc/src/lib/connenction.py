@@ -22,5 +22,8 @@ class Connection:
         response_data = json.loads(response_json)
         return response_data
 
-    def close(self):
-        self.conn.close()
+    async def close(self):
+        await self.conn.close()
+
+    async def ping(self):
+        await self.conn.ping()

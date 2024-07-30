@@ -1,6 +1,16 @@
 from ui.login import Ui_Login as Ui_Login_NOLOGIC
 import asyncio
+from PyQt5.QtCore import QThread
 
+class AsyncConnectionSpawner(QThread):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def init(self, cor):
+        self.cor = cor
+    
+    def run(self):
+        asyncio.run(self.cor)
 
 class Ui_Login(Ui_Login_NOLOGIC):
     def __init__(self, ourchat, dialog):
@@ -32,4 +42,6 @@ class Ui_Login(Ui_Login_NOLOGIC):
         self.ourchat.setServer(
             self.server_ip_editor.text(), self.server_port_editor.text()
         )
-        print(asyncio.run(self.ourchat.connectToServer()))
+        async_thread = AsyncConnectionSpawner(self.connect_server_btn)
+        async_thread.init(self.ourchat.connectToServer())
+        async_thread.start()
