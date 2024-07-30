@@ -1,6 +1,7 @@
 //! 保存各种请求的结构体
 
 use serde::{Deserialize, Serialize};
+use serde_repr::{Deserialize_repr, Serialize_repr};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Register {
@@ -11,7 +12,8 @@ pub struct Register {
     pub name: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize_repr, Deserialize_repr)]
+#[repr(i32)]
 pub enum LoginType {
     Email = 0,
     Ocid = 1,
@@ -20,8 +22,7 @@ pub enum LoginType {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Login {
     pub code: i32,
-    pub time: u64,
-    pub email: String,
+    pub account: String,
     pub login_type: LoginType,
     pub password: String,
 }
