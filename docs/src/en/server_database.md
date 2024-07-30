@@ -1,8 +1,6 @@
-# 服务端的数据库设计
+# Database Design of Server
 
-## 用户表
-
-### user
+## User Table（user)
 
 | 列名   | 类型            | 用处                                               |
 | :----- | :-------------- | :------------------------------------------------- |
@@ -13,9 +11,7 @@
 | email  | CHAR(120)       | 邮箱                                               |
 | date   | int             | 时间戳                                             |
 
-## 好友表
-
-### friend
+## Friend Table(friend)
 
 | 列名      | 类型     | 用处                 |
 | :-------- | :------- | :------------------- |
@@ -23,9 +19,7 @@
 | friend_id | int      | 用户的好友           |
 | name      | char(15) | 用户给好友起的备注名 |
 
-## 聊天表
-
-### chat
+## Chat Table(chat)
 
 | 列名       | 类型     | 用处                           |
 | :--------- | :------- | :----------------------------- |
@@ -34,27 +28,21 @@
 | name       | char(15) | 标记用户在群里的昵称           |
 | group_name | char(30) | 标记用户对群聊的备注，默认为空 |
 
-## 群聊表
-
-### groupchat
+## Group Table(group)
 
 | 列名       | 类型     | 用处     |
 | :--------- | :------- | :------- |
 | group_id   | int      | 群聊 id  |
 | group_name | char(30) | 群聊名称 |
 
-## 用户聊天信息表
-
-### user_chat_msg
+## User Chat Message Record Table(user_chat_msg)
 
 | 列名        | 类型 | 用处      |
 | :---------- | :--- | :-------- |
 | user_id     | int  | 用户的 id |
 | chat_msg_id | int  | 信息的 id |
 
-## 聊天信息表
-
-### user_chat_id
+## User Chat Message Detail Table(user_chat_msg_id)
 
 | 列名        | 类型          | 用处          |
 | :---------- | :------------ | :------------ |

@@ -105,8 +105,8 @@ impl Connection {
             let code = code.as_u64();
             if code == Some(RequestType::Login as u64) {
                 let login_data: requests::Login = serde_json::from_value(json)?;
-                Self::login_request(request_sender, login_data).await?;
-                return Ok(todo!());
+                let resp = Self::login_request(request_sender, login_data).await?;
+                return Ok(resp);
             } else if code == Some(RequestType::Register as u64) {
                 let request_data: requests::Register = serde_json::from_value(json)?;
                 let resp = Self::register_request(request_sender, request_data).await?;
