@@ -36,7 +36,7 @@
 | :--------- | :-------- | :------------------------------------------------------------- |
 | code       | Number    | 信息类型                                                       |
 | time       | Number    | 发消息的时间戳                                                 |
-| msg_id     | Number    | message 的 ID，唯一 \*\*\*(注意：传输给服务器时无此字段)\_\*\* |
+| msg_id     | Number    | message 的 ID，唯一 **_(注意：传输给服务器时无此字段)_**          |
 | sender     | Object    | 发送者的相关数据                                               |
 | ocid       | String    | 发送者的 ocid                                                  |
 | session_id | Number    | 发送者的会话 id                                                |
@@ -254,3 +254,49 @@
 | :----- | :------- |
 | 0      | 正常运行  |
 | 1      | 维护中   |
+
+## 发起验证
+
+**_Server -> Client_**
+
+```json
+{
+  "code": 13
+}
+```
+
+| key  | valueType | comment           |
+| :--- | :-------- | :---------------- |
+| code | Number    | 信息类型           |
+
+## 生成验证码
+
+**_Server <- Client_**
+
+```json
+{
+  "code": 14
+}
+```
+
+## 验证码通过/失败
+
+**_Server <- Client_**
+
+```json
+{
+  "code": 15,
+  "status": 验证状态码
+}
+```
+
+| key  | valueType | comment           |
+| :--- | :-------- | :---------------- |
+| code | Number    | 信息类型           |
+|status| Number    | 验证状态码         |
+
+| status | comment  |
+| :----- | :------- |
+| 0      | 验证通过 |
+| 1      | 验证失败 |
+| 2      | 验证超时 |
