@@ -1,5 +1,7 @@
 # Summary
 
+[Language](./content.md)
+
 # English
 
 - [Introduction](./en/introduction.md)
