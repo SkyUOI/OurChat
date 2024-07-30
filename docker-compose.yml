@@ -5,8 +5,6 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     init: true
-    container_name: OurChatServer
-    network_mode: "host"
     image: ourchat_develop:latest
     command: tail -f /dev/null
     volumes:
@@ -17,10 +15,11 @@ services:
       - LC_ALL=C.UTF-8
     ports:
       - "7777:7777"
+    networks:
+      - net
   db:
     image: mysql:9.0.1
     restart: always
-    # network_mode: "host"
     environment:
       MYSQL_ROOT_PASSWORD: 123456
       MYSQL_DATABASE: OurChat
@@ -28,6 +27,8 @@ services:
       - "./mysql-data:/var/lib/mysql"
     ports:
       - "3306:3306"
+    networks:
+      - net
   redis:
     image: redis
     ports:
@@ -37,3 +38,9 @@ services:
       - ./config/redis.conf:/usr/local/etc/redis/redis.conf
     environment:
       - REDIS_PASSWORD=123456
+    networks:
+      - net
+
+networks:
+  net:
+    driver: bridge

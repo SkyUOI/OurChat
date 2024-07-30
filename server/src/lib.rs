@@ -231,7 +231,7 @@ pub async fn lib_main() -> anyhow::Result<()> {
     tokio::spawn(async move {
         match tokio::signal::ctrl_c().await {
             Ok(()) => {
-                log::info!("Exiting now...");
+                log::info!("Exit because of ctrl-c signal");
                 shutdown_sender_clone.send(())?;
             }
             Err(err) => {
@@ -249,10 +249,13 @@ pub async fn lib_main() -> anyhow::Result<()> {
             let command = match console_reader.next_line().await {
                 Ok(d) => match d {
                     Some(data) => data,
-                    None => break,
+                    None => {
+                        log::info!("Without stdin");
+                        loop {}
+                    }
                 },
                 Err(e) => {
-                    log::error!("{}", e);
+                    log::error!("stdin {}", e);
                     break;
                 }
             };
@@ -267,10 +270,13 @@ pub async fn lib_main() -> anyhow::Result<()> {
     select! {
         _ = input_loop => {
             shutdown_sender.send(())?;
+            log::info!("Exit because command loop has exited");
         },
         _ = shutdown_receiver.recv() => {
             log::info!("Command loop exited");
         }
     }
+    log::info!("Server exited");
+
     Ok(())
 }

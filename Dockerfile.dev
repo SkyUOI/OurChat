@@ -1,6 +1,5 @@
 FROM rust:latest
 
-# 设置工作目录
 WORKDIR /app
 
 RUN rustup component add rust-analyzer && rustup component add rustfmt && rustup component add clippy

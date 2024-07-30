@@ -1,26 +1,45 @@
-name: OurChatServer
+name: ourchat_server_prod
 services:
   OurChatServer:
     build:
       context: .
       dockerfile: Dockerfile.prod
     init: true
-    container_name: OurChatServer
-    network_mode: "host"
-    privileged: true
     image: ourchat_prod:latest
-    command: tail -f /dev/null
     volumes:
       - "/dev:/dev:rw"
+      - .:/app
     working_dir: /root
     environment:
-      - DISPLAY=$DISPLAY
       - LC_ALL=C.UTF-8
-    # - NVIDIA_DRIVER_CAPABILITIES=all
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: all
-    #           capabilities: [compute, graphics, video, utility, display]
+    ports:
+      - "7777:7777"
+    networks:
+      - net
+  db:
+    image: mysql:9.0.1
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: OurChat
+    volumes:
+      - "./mysql-data:/var/lib/mysql"
+    ports:
+      - "3306:3306"
+    networks:
+      - net
+  redis:
+    image: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./redis-data:/opt/redis/data
+      - ./config/redis.conf:/usr/local/etc/redis/redis.conf
+    environment:
+      - REDIS_PASSWORD=123456
+    networks:
+      - net
+
+networks:
+  net:
+    driver: bridge
