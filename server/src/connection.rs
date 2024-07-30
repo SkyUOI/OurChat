@@ -6,9 +6,9 @@ use crate::{
     requests::{self},
     ShutdownRev,
 };
-use client_response::register::RegisterResponse;
+use client_response::{login::LoginResponse, register::RegisterResponse};
 use futures_util::{SinkExt, StreamExt};
-use response::RegisterError;
+use response::{LoginError, RegisterError};
 use serde_json::Value;
 use tokio::{
     net::TcpStream,
@@ -20,7 +20,7 @@ use tokio_tungstenite::WebSocketStream;
 pub enum DBRequest {
     Login {
         request: requests::Login,
-        resp: oneshot::Sender<()>,
+        resp: oneshot::Sender<Result<LoginResponse, LoginError>>,
     },
     Register {
         request: requests::Register,
@@ -61,8 +61,8 @@ impl Connection {
             resp: channel.0,
         };
         request_sender.send(request).await?;
-        channel.1.await?;
-        Ok(todo!())
+        let data = serde_json::to_string(&channel.1.await??).unwrap();
+        Ok(data)
     }
 
     /// 注册请求

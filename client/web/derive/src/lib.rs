@@ -14,6 +14,7 @@ pub fn file_html(tok: TokenStream) -> TokenStream {
     let ret = quote! {
         yew::html! {
             #html_file
+        }
     }
     .into();
     println!("ret:{}", ret);

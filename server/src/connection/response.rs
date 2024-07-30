@@ -2,7 +2,7 @@
 
 use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum LoginError {}
 
 #[derive(Debug, Error)]
