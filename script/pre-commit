@@ -7,4 +7,3 @@ cd client/web && cargo fmt && cd ../..
 # Python Check
 ruff format
 ruff check
-git add .

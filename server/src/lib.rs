@@ -14,7 +14,6 @@ use connection::{
 };
 use entities::user::ActiveModel as UserModel;
 use rand::Rng;
-use requests::Register;
 use sea_orm::ActiveModelTrait;
 use serde::{Deserialize, Serialize};
 use snowdon::ClassicLayoutSnowflakeExtension;

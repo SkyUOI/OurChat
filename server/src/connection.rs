@@ -61,7 +61,7 @@ impl Connection {
             resp: channel.0,
         };
         request_sender.send(request).await?;
-        let resp = channel.1.await?;
+        channel.1.await?;
         Ok(todo!())
     }
 
@@ -98,7 +98,7 @@ impl Connection {
             Ok(text) => text,
             Err(e) => anyhow::bail!("Failed to convert message to text: {}", e),
         };
-        let json: serde_json::Value = serde_json::from_str(text)?;
+        let json: Value = serde_json::from_str(text)?;
         // 获取消息类型
         let code = &json["code"];
         if let Value::Number(code) = code {

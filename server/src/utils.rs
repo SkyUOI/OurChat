@@ -1,7 +1,5 @@
 use rand::seq::SliceRandom;
-use snowdon::{
-    ClassicLayout, ClassicLayoutSnowflakeExtension, Epoch, Generator, MachineId, Snowflake,
-};
+use snowdon::{ClassicLayout, Epoch, Generator, MachineId, Snowflake};
 use std::sync::OnceLock;
 
 use crate::machine_id;
@@ -25,7 +23,7 @@ pub type MySnowflakeGenerator = Generator<ClassicLayout<SnowflakeParams>, Snowfl
 
 pub fn generator() -> &'static MySnowflakeGenerator {
     static GENERATOR: OnceLock<MySnowflakeGenerator> = OnceLock::new();
-    GENERATOR.get_or_init(|| MySnowflakeGenerator::default())
+    GENERATOR.get_or_init(MySnowflakeGenerator::default)
 }
 
 const RANDOM_CHAR_POOL: [char; 62] = [

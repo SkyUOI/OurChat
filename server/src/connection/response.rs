@@ -1,7 +1,5 @@
 //! 服务器间处理请求的异常
 
-use std::fmt::Display;
-
 use thiserror::Error;
 
 #[derive(Debug)]

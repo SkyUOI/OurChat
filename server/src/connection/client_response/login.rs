@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct RegisterResponse {
+pub struct LoginResponse {
     code: RequestType,
     ocid: String,
     status: Status,
@@ -13,14 +13,14 @@ pub struct RegisterResponse {
 #[repr(i32)]
 pub enum Status {
     Success = 0,
-    Dup = 2,
-    Fail = 1,
+    ServerError = 2,
+    WrongPassword = 1,
 }
 
-impl RegisterResponse {
+impl LoginResponse {
     pub fn new(ocid: String, status: Status) -> Self {
         Self {
-            code: RequestType::RegisterRes,
+            code: RequestType::LoginRes,
             ocid,
             status,
         }
