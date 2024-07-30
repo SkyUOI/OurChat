@@ -149,3 +149,6 @@ mysql-data/**
 
 redis-data/**
 !redis-data/.gitkeep
+
+# mdbook
+book/

@@ -2,7 +2,7 @@
 
 感谢您愿意为我们做出贡献，由于该项目分为几个不同的部分，以下是贡献指南导引：
 
-- [Server Guide](./docs/server-develop-zh.md)
+- [Server Guide](https://skyuoi.github.io/OurChat/zh/server-develop.html)
 
 我们对于代码质量的要求并不是那么高，一般来说，只需要您的代码能够正常运行我们就会接受。但是，您依然需要撰写相应的自动化测试来保证您的代码的可维护性和正确性
 
