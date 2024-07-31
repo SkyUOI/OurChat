@@ -284,7 +284,7 @@
 
 ## 验证状态
 
-**_Server <- Client_**
+**_Server -> Client_**
 
 ```json
 {
