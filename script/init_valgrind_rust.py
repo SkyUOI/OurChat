@@ -6,8 +6,11 @@ import os
 
 
 def init_valgrind():
-    dir_name = os.path.expanduser("~/.cargo/config.toml")
-    with open(dir_name, "w") as f:
+    path_base = os.path.expanduser("~/.cargo/")
+    if os.path.exists(path_base):
+        os.makedirs(path_base)
+    toml_name = os.path.expanduser("~/.cargo/config.toml")
+    with open(toml_name, "w") as f:
         _ = f.write(
             """
 [target.'cfg(target_os = "linux")']
