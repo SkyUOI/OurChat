@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtCore import Qt, QTimer
-from lib.autoDestoryQDialog import AutoDestoryQDialog
+from lib.autoDestroyQDialog import AutoDestroyQDialog
 from qt_material import apply_stylesheet
 
 
@@ -37,7 +37,7 @@ class UISystem:
         self.app.exec_()
 
     def setDialog(self, dialog_class, only=False):
-        new_dialog = AutoDestoryQDialog(self.ourchat, self.mainwindow)
+        new_dialog = AutoDestroyQDialog(self.ourchat, self.mainwindow)
         new_dialog_ui = dialog_class(self.ourchat, new_dialog)
 
         if only:

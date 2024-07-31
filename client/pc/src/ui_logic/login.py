@@ -102,10 +102,10 @@ class Ui_Login(Ui_Login_NOLOGIC):
                 },
             )
         elif result["status"] == 1:
-            QMessageBox.critical(self.dialog, "ERROR", "Verify Error")
+            QMessageBox.warning(self.dialog, "ERROR", "Verify Error")
 
         elif result["status"] == 2:
-            QMessageBox.critical(self.dialog, "ERROR", "Verify Timeout")
+            QMessageBox.warning(self.dialog, "ERROR", "Verify Timeout")
 
     def registerResponse(self, result):
         if result["status"] == 0:
@@ -113,9 +113,9 @@ class Ui_Login(Ui_Login_NOLOGIC):
             self.uisystem.mainwindow.show()
             self.dialog.close()
         elif result["status"] == 1:
-            QMessageBox.critical(self.dialog, "ERROR", "Server Error")
+            QMessageBox.warning(self.dialog, "ERROR", "Server Error")
         elif result["status"] == 2:
-            QMessageBox.critical(self.dialog, "ERROR", "Email Exist")
+            QMessageBox.warning(self.dialog, "ERROR", "Email Exist")
         self.ourchat.unListen(REGISTER_RESPONSE, self.registerResponse)
 
     def loginResponse(self, result):
@@ -123,9 +123,9 @@ class Ui_Login(Ui_Login_NOLOGIC):
             self.uisystem.mainwindow.show()
             self.dialog.close()
         elif result["status"] == 1:
-            QMessageBox.critical(self.dialog, "ERROR", "Account/Password Error")
+            QMessageBox.warning(self.dialog, "ERROR", "Account/Password Error")
         elif result["status"] == 2:
-            QMessageBox.critical(self.dialog, "ERROR", "Server Error")
+            QMessageBox.warning(self.dialog, "ERROR", "Server Error")
         self.ourchat.unListen(LOGIN_RESPONSE, self.loginResponse)
 
     def showPassword(self, status):
