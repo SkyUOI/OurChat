@@ -7,7 +7,7 @@ import os
 
 def init_valgrind():
     path_base = os.path.expanduser("~/.cargo/")
-    if os.path.exists(path_base):
+    if not os.path.exists(path_base):
         os.makedirs(path_base)
     toml_name = os.path.expanduser("~/.cargo/config.toml")
     with open(toml_name, "w") as f:
