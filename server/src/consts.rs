@@ -9,4 +9,5 @@ pub enum RequestType {
     LoginRes = 7,
     Register = 4,
     RegisterRes = 5,
+    AccountDeletion = 16,
 }

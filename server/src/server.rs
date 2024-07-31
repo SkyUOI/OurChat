@@ -24,6 +24,7 @@ pub struct Server {
     redis: Option<redis::Client>,
     task_solver_sender: mpsc::Sender<DBRequest>,
     task_solver_receiver: Option<mpsc::Receiver<DBRequest>>,
+    test_mode: bool,
 }
 
 impl Server {
@@ -32,6 +33,7 @@ impl Server {
         port: usize,
         mysql: sea_orm::DatabaseConnection,
         redis: redis::Client,
+        test_mode: bool,
     ) -> anyhow::Result<Self> {
         let ip = ip.into();
         let bind_addr = format!("{}:{}", ip.clone(), port);
@@ -52,6 +54,7 @@ impl Server {
             redis: Some(redis),
             task_solver_sender,
             task_solver_receiver: Some(task_solver_receiver),
+            test_mode,
         };
         Ok(ret)
     }

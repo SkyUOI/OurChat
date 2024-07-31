@@ -1,11 +1,11 @@
-mod cfg;
-mod connection;
+pub mod cfg;
+pub mod connection;
 pub mod consts;
 mod db;
 mod entities;
 pub mod requests;
 mod server;
-mod utils;
+pub mod utils;
 
 use clap::Parser;
 use rand::Rng;
@@ -30,6 +30,8 @@ struct ArgsParser {
     ip: String,
     #[arg(long)]
     cfg: String,
+    #[arg(long, default_value_t = false)]
+    test_mode: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -67,7 +69,7 @@ pub async fn lib_main() -> anyhow::Result<()> {
     let db = db::connect_to_db(&db::get_db_url(&cfg.dbcfg)?).await?;
     db::init_db(&db).await?;
     let redis = db::connect_to_redis(&db::get_redis_url(&cfg.rediscfg)?).await?;
-    let mut server = server::Server::new(ip, port, db, redis).await?;
+    let mut server = server::Server::new(ip, port, db, redis, parser.test_mode).await?;
     tokio::spawn(async move {
         server
             .accept_sockets(shutdown_sender_clone, shutdown_receiver_clone)

@@ -2,7 +2,7 @@ use rand::seq::SliceRandom;
 use snowdon::{ClassicLayout, Epoch, Generator, MachineId, Snowflake};
 use std::sync::OnceLock;
 
-use crate::machine_id;
+use crate::{cfg, consts, machine_id};
 
 pub struct SnowflakeParams;
 
@@ -42,4 +42,9 @@ pub fn generate_ocid(bits: u32) -> String {
         ret.push(*c)
     }
     ret
+}
+
+pub fn ws_bind_addr() -> &'static str {
+    static BIND_ADDR: OnceLock<String> = OnceLock::new();
+    BIND_ADDR.get_or_init(|| format!("ws://{}:{}", cfg::DEFAULT_IP, cfg::DEFAULT_PORT))
 }

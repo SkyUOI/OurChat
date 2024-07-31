@@ -35,15 +35,15 @@
 }
 ```
 
-| key        | valueType | comment                                                        |
-| :--------- | :-------- | :------------------------------------------------------------- |
-| code       | Number    | 信息类型                                                       |
-| time       | Number    | 发消息的时间戳                                                 |
-| msg_id     | Number    | message 的 ID，唯一 **_(注意：传输给服务器时无此字段)_**          |
-| sender     | Object    | 发送者的相关数据                                               |
-| ocid       | String    | 发送者的 ocid                                                  |
-| session_id | Number    | 发送者的会话 id                                                |
-| msg        | String    | 文本信息                                                       |
+| key        | valueType | comment                                                  |
+| :--------- | :-------- | :------------------------------------------------------- |
+| code       | Number    | 信息类型                                                 |
+| time       | Number    | 发消息的时间戳                                           |
+| msg_id     | Number    | message 的 ID，唯一 **_(注意：传输给服务器时无此字段)_** |
+| sender     | Object    | 发送者的相关数据                                         |
+| ocid       | String    | 发送者的 ocid                                            |
+| session_id | Number    | 发送者的会话 id                                          |
+| msg        | String    | 文本信息                                                 |
 
 **_code1,2,3 分别为还未制作的表情包(包括但不限于 gif)，图片发送，文件发送_**
 
@@ -137,11 +137,11 @@
 | status | Number    | 服务器返回的状态码 |
 | ocid   | Number    | 该账号的 OCID      |
 
-| status     | comment          |
-| :--------- | :--------------- |
-| 0          | 登录成功         |
-| 1          | 账号或密码不正确 |
-| 2          | 服务器错误       |
+| status | comment          |
+| :----- | :--------------- |
+| 0      | 登录成功         |
+| 1      | 账号或密码不正确 |
+| 2      | 服务器错误       |
 
 ## 新建会话请求信息
 
@@ -175,17 +175,17 @@
 }
 ```
 
-| key      | valueType | comment          |
-| :------  | :-------- | :--------------- |
-| code     | Number    | 信息类型          |
-| status   | Number    | 会话状态码        |
-|session_id| Number    | 会话id            |
+| key        | valueType | comment    |
+| :--------- | :-------- | :--------- |
+| code       | Number    | 信息类型   |
+| status     | Number    | 会话状态码 |
+| session_id | Number    | 会话 id    |
 
-| status     | comment          |
-| :--------- | :--------------- |
-| 0          | 创建成功          |
-| 1          | 服务器错误        |
-| 2          | 到达创建会话上限   |
+| status | comment          |
+| :----- | :--------------- |
+| 0      | 创建成功         |
+| 1      | 服务器错误       |
+| 2      | 到达创建会话上限 |
 
 ## 获取账号信息
 
@@ -248,14 +248,14 @@
 }
 ```
 
-| key  | valueType | comment           |
-| :--- | :-------- | :---------------- |
-| code | Number    | 信息类型           |
-|status| Number    | 服务器状态码       |
+| key    | valueType | comment      |
+| :----- | :-------- | :----------- |
+| code   | Number    | 信息类型     |
+| status | Number    | 服务器状态码 |
 
 | status | comment  |
 | :----- | :------- |
-| 0      | 正常运行  |
+| 0      | 正常运行 |
 | 1      | 维护中   |
 
 ## 发起验证
@@ -268,9 +268,9 @@
 }
 ```
 
-| key  | valueType | comment           |
-| :--- | :-------- | :---------------- |
-| code | Number    | 信息类型           |
+| key  | valueType | comment  |
+| :--- | :-------- | :------- |
+| code | Number    | 信息类型 |
 
 ## 生成验证码
 
@@ -293,10 +293,10 @@
 }
 ```
 
-| key  | valueType | comment           |
-| :--- | :-------- | :---------------- |
-| code | Number    | 信息类型           |
-|status| Number    | 验证状态码         |
+| key    | valueType | comment    |
+| :----- | :-------- | :--------- |
+| code   | Number    | 信息类型   |
+| status | Number    | 验证状态码 |
 
 | status | comment  |
 | :----- | :------- |

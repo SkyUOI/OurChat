@@ -26,7 +26,7 @@ pub enum DBRequest {
     },
 }
 
-type WS = WebSocketStream<TcpStream>;
+pub type WS = WebSocketStream<TcpStream>;
 
 /// 一个到客户端的连接
 pub struct Connection {
@@ -41,7 +41,7 @@ enum VerifyStatus {
 
 impl Connection {
     pub fn new(
-        socket: WebSocketStream<TcpStream>,
+        socket: WS,
         shutdown_receiver: ShutdownRev,
         request_sender: mpsc::Sender<DBRequest>,
     ) -> Self {

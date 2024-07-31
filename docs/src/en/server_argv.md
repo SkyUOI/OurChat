@@ -1,8 +1,9 @@
 # Server Arguments
 
-| name                   |                                                      usage |
-| :--------------------- | ---------------------------------------------------------: |
-| --cfg=config file path | choose the database config.[example](#config-file-example) |
+| name                   |                                                    usage |
+| :--------------------- | -------------------------------------------------------: |
+| --cfg=config file path | choose the server config.[example](#config-file-example) |
+| --test_mode            |                Run in test mode,only for debug and test. |
 
 ## config file example
 

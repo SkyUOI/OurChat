@@ -2352,7 +2352,6 @@ dependencies = [
  "shadow-rs",
  "snowdon",
  "sqlx 0.8.0",
- "test_lib",
  "thiserror",
  "tokio",
  "tokio-tungstenite",
@@ -2894,15 +2893,10 @@ checksum = "3369f5ac52d5eb6ab48c6b4ffdc8efbcad6b89c765749064ba298f2c68a16a76"
 name = "test_lib"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "assert_cmd",
- "futures-util",
  "serde",
  "serde_json",
  "server",
- "tokio",
- "tokio-tungstenite",
- "tungstenite",
 ]
 
 [[package]]
