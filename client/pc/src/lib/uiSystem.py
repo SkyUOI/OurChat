@@ -1,25 +1,31 @@
 from PyQt5.QtWidgets import QApplication, QMainWindow, QDialog
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer
 from qt_material import apply_stylesheet
 
 
 class UISystem:
     def __init__(self, ourchat, argv):
         self.ourchat = ourchat
-        QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
-        QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
-        QApplication.setHighDpiScaleFactorRoundingPolicy(
-            Qt.HighDpiScaleFactorRoundingPolicy.Round
-        )
-        self.app = QApplication(argv)
+        self.app = self.createApp(argv)
         self.mainwindow = QMainWindow()
         self.ui = None
         self.dialogs = [
             # (dialog,ui_obj)
         ]
+        self.tick_timer = QTimer()
+        self.tick_timer.timeout.connect(self.ourchat.tick)
+        self.tick_timer.start(10)
         self.theme = "dark_amber.xml"
 
         apply_stylesheet(self.app, self.theme)
+
+    def createApp(self, argv):
+        QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
+        QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
+        QApplication.setHighDpiScaleFactorRoundingPolicy(
+            Qt.HighDpiScaleFactorRoundingPolicy.Round
+        )
+        return QApplication(argv)
 
     def setUI(self, ui_class):
         self.ui = ui_class(self.ourchat)

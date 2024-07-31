@@ -2,30 +2,17 @@ from lib.connenction import Connection
 from lib.uiSystem import UISystem
 from ui_logic.main import Ui_Main
 from ui_logic.login import Ui_Login
-from lib.msg_code import GENERATE_VERIFY
+from concurrent.futures import ThreadPoolExecutor, wait
 import hashlib
 import sys
 
 
 class OurChat:
     def __init__(self):
-        self.conn = None
+        self.conn = Connection()
         self.uisystem = None
-
-    def setServer(self, ip, port):
-        self.ip = ip
-        self.port = port
-
-    async def connectToServer(self):
-        self.conn = Connection(self.ip, self.port)
-        response = await self.conn.connect()
-        return response
-
-    async def sendData(self, data):
-        return await self.conn.send(data)
-
-    def gentateVerify(self):
-        self.sendData({"code": GENERATE_VERIFY})
+        self.thread_pool = ThreadPoolExecutor(2)
+        self.tasks = {}
 
     def run(self):
         self.uisystem = UISystem(self, sys.argv)
@@ -34,6 +21,27 @@ class OurChat:
         dialog = self.uisystem.setDialog(Ui_Login, True)
         dialog.show()
         self.uisystem.exec()
+
+    def runThread(self, task, func=None, *args):
+        future = self.thread_pool.submit(task, *args)
+        self.tasks[future] = func
+
+    def tick(self):
+        remove_ = []
+        tasks = list(self.tasks.keys())
+        for future in tasks:
+            if future.done():
+                func = self.tasks[future]
+                if func is not None:
+                    func(future.result())
+                remove_.append(future)
+        for r in remove_:
+            self.tasks.pop(r)
+
+    def close(self):
+        self.conn.close()
+        wait(list(self.tasks.keys()))
+        self.thread_pool.shutdown()
 
 
 class OurChatAccount:

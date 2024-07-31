@@ -1,29 +1,53 @@
-import websockets
+from websockets.sync import client
+from websockets.exceptions import ConnectionClosedError as CloseError
+from websockets.exceptions import ConnectionClosedOK as CloseOK
 import json
 
 
 class Connection:
-    def __init__(self, server_ip="127.0.0.1", port=7777):
-        self.server_ip = server_ip
+    def __init__(self, ip="127.0.0.1", port=7777):
+        self.conn = None
+        self.setServer(ip, port)
+
+    def setServer(self, ip, port):
+        self.ip = ip
         self.port = port
 
-    async def connect(self):
+    def connect(self):
+        if self.conn is not None:
+            self.conn.close()
+            self.conn = None
         try:
-            self.conn = await websockets.connect(f"ws://{self.server_ip}:{self.port}")
-            return True
-        except Exception as e:
-            print(e)
-            return False
+            self.conn = client.connect(f"ws://{self.ip}:{self.port}")
+            return True, None
+        except Exception:
+            self.conn = None
+            return False, Exception
 
-    async def send(self, data):
+    def send(self, data):
         json_str = json.dumps(data)
-        await self.conn.send(json_str)
-        response_json = await self.conn.recv()
-        response_data = json.loads(response_json)
-        return response_data
+        self.conn.send(json_str)
 
-    async def close(self):
-        await self.conn.close()
+    def recv(self):
+        while True:
+            try:
+                message = self.conn.recv()
+                print(message)
+            except CloseError:
+                flag = False
+                times = 0
+                while not flag or times < 5:
+                    flag = self.connect()
+                    times += 1
+                    print("reconnect...")
+                if not flag:
+                    continue
+            except CloseOK:
+                print("closeok")
+                return
 
-    async def ping(self):
-        await self.conn.ping()
+    def close(self):
+        if self.conn is None:
+            return
+        self.conn.close()
+        self.conn = None
