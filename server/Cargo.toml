@@ -33,6 +33,7 @@ sea-orm = { version = "0", features = [
     "macros",
 ] }
 thiserror = "1"
+chrono = "0"
 
 [profile.release]
 lto = true

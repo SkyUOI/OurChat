@@ -148,7 +148,7 @@ impl Server {
                         passwd: sea_orm::ActiveValue::Set(request.password),
                         name: sea_orm::ActiveValue::Set(request.name),
                         email: sea_orm::ActiveValue::Set(request.email),
-                        time: sea_orm::ActiveValue::Set(request.time),
+                        time: sea_orm::ActiveValue::Set(chrono::Utc::now().timestamp() as u64),
                     };
                     match user.insert(&mysql_connection).await {
                         Ok(res) => {

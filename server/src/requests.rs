@@ -6,7 +6,6 @@ use serde_repr::{Deserialize_repr, Serialize_repr};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Register {
     pub code: i32,
-    pub time: u64,
     pub email: String,
     pub password: String,
     pub name: String,

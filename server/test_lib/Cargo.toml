@@ -13,3 +13,4 @@ tokio-tungstenite = "0"
 tungstenite = "0"
 tokio = { version = "1", features = ["full"] }
 futures-util = "0"
+env_logger = "0"

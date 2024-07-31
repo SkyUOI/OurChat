@@ -56,6 +56,15 @@ fn machine_id() -> u64 {
 
 pub async fn lib_main() -> anyhow::Result<()> {
     let parser = ArgsParser::parse();
+    if parser.test_mode {
+        let mut builder = env_logger::Builder::from_default_env();
+        builder.target(env_logger::Target::Pipe(Box::new(
+            fs::File::create("test.log").unwrap(),
+        )));
+        builder.init();
+    } else {
+        env_logger::init();
+    }
     let cfg_path = parser.cfg;
     let cfg = fs::read_to_string(cfg_path)?;
     let cfg: Cfg = toml::from_str(&cfg).unwrap();
