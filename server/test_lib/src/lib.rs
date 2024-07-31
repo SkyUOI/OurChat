@@ -48,7 +48,7 @@ struct AccountDeletion {
 impl AccountDeletion {
     fn new() -> Self {
         Self {
-            code: RequestType::AccountDeletion,
+            code: RequestType::Unregister,
         }
     }
 }

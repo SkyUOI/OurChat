@@ -6,7 +6,10 @@ use crate::{
     ShutdownRev,
 };
 use client_response::{login::LoginResponse, register::RegisterResponse};
-use futures_util::{SinkExt, StreamExt};
+use futures_util::{
+    stream::{SplitSink, SplitStream},
+    SinkExt, StreamExt,
+};
 use serde_json::Value;
 use tokio::{
     net::TcpStream,
@@ -14,6 +17,7 @@ use tokio::{
     sync::{mpsc, oneshot},
 };
 use tokio_tungstenite::WebSocketStream;
+use tungstenite::Message;
 
 pub enum DBRequest {
     Login {
@@ -148,6 +152,88 @@ impl Connection {
         }
     }
 
+    async fn send_error_msg(
+        sender: &mpsc::Sender<Message>,
+        msg: impl Into<String>,
+    ) -> anyhow::Result<()> {
+        let error_resp = client_response::error_msg::ErrorMsgResponse::new(msg.into());
+        sender
+            .send(Message::Text(serde_json::to_string(&error_resp)?))
+            .await?;
+        Ok(())
+    }
+
+    pub async fn read_loop(
+        mut incoming: SplitStream<WS>,
+        sender: mpsc::Sender<Message>,
+    ) -> anyhow::Result<()> {
+        loop {
+            let msg = incoming.next().await;
+            if msg.is_none() {
+                return Ok(());
+            }
+            let msg = msg.unwrap();
+            let msg = match msg {
+                Ok(msg) => {
+                    log::debug!("recv msg:{}", msg);
+                    msg
+                }
+                Err(e) => {
+                    log::error!("recv error:{}", e);
+                    Err(e)?
+                }
+            };
+            match msg {
+                tungstenite::Message::Text(msg) => {
+                    let json: Value = serde_json::from_str(&msg)?;
+                    let code = &json["code"];
+                    if let Value::Number(code) = code {
+                        let code = code.as_u64();
+                        match code {
+                            None => {
+                                Self::send_error_msg(&sender, "code is not a unsigned number")
+                                    .await?;
+                            }
+                            Some(num) => {
+                                let code = match RequestType::try_from(num as i32) {
+                                    Ok(num) => num,
+                                    Err(_) => {
+                                        Self::send_error_msg(
+                                            &sender,
+                                            format!("Not a valid code {}", num),
+                                        )
+                                        .await?;
+                                        return Ok(());
+                                    }
+                                };
+                            }
+                        }
+                    } else {
+                        Self::send_error_msg(&sender, "Without code").await?
+                    }
+                }
+                tungstenite::Message::Binary(_) => todo!(),
+                tungstenite::Message::Ping(_) => {
+                    sender.send(Message::Pong(vec![])).await?;
+                }
+                tungstenite::Message::Pong(_) => {
+                    log::info!("recv pong");
+                }
+                tungstenite::Message::Close(_) => {
+                    return Ok(());
+                }
+                tungstenite::Message::Frame(_) => todo!(),
+            }
+        }
+    }
+
+    pub async fn write_loop(
+        mut outgoing: SplitSink<WS, Message>,
+        receiver: mpsc::Receiver<Message>,
+    ) -> anyhow::Result<()> {
+        todo!()
+    }
+
     pub async fn work(&mut self) -> anyhow::Result<()> {
         let mut socket = self.socket.take().unwrap();
         let sender = self.request_sender.clone();
@@ -174,6 +260,10 @@ impl Connection {
                 },
             }
         }
+        let (outgoing, incoming) = socket.split();
+        let (sender, receiver) = mpsc::channel(32);
+        Self::read_loop(incoming, sender).await?;
+        Self::write_loop(outgoing, receiver).await?;
         Ok(())
     }
 }
