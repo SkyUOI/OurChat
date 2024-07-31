@@ -70,18 +70,14 @@ impl Connection {
         };
         request_sender.send(request).await?;
         match channel.1.await? {
-            Ok(ok_resp) => {
-                return Ok((
-                    serde_json::to_string(&ok_resp).unwrap(),
-                    VerifyStatus::Success,
-                ));
-            }
-            Err(e) => {
-                return Ok((
-                    serde_json::to_string(&LoginResponse::failed(e)).unwrap(),
-                    VerifyStatus::Fail,
-                ))
-            }
+            Ok(ok_resp) => Ok((
+                serde_json::to_string(&ok_resp).unwrap(),
+                VerifyStatus::Success,
+            )),
+            Err(e) => Ok((
+                serde_json::to_string(&LoginResponse::failed(e)).unwrap(),
+                VerifyStatus::Fail,
+            )),
         }
     }
 
@@ -97,18 +93,14 @@ impl Connection {
         };
         request_sender.send(request).await?;
         match channel.1.await? {
-            Ok(ok_resp) => {
-                return Ok((
-                    serde_json::to_string(&ok_resp).unwrap(),
-                    VerifyStatus::Success,
-                ));
-            }
-            Err(e) => {
-                return Ok((
-                    serde_json::to_string(&RegisterResponse::failed(e)).unwrap(),
-                    VerifyStatus::Fail,
-                ))
-            }
+            Ok(ok_resp) => Ok((
+                serde_json::to_string(&ok_resp).unwrap(),
+                VerifyStatus::Success,
+            )),
+            Err(e) => Ok((
+                serde_json::to_string(&RegisterResponse::failed(e)).unwrap(),
+                VerifyStatus::Fail,
+            )),
         }
     }
 
@@ -138,7 +130,7 @@ impl Connection {
             if code == Some(MessageType::Login as u64) {
                 let login_data: requests::Login = serde_json::from_value(json)?;
                 let resp = Self::login_request(request_sender, login_data).await?;
-                return Ok(resp);
+                Ok(resp)
             } else if code == Some(MessageType::Register as u64) {
                 let request_data: requests::Register = serde_json::from_value(json)?;
                 let resp = Self::register_request(request_sender, request_data).await?;

@@ -27,7 +27,7 @@ impl SetUpHandle {
         };
         let cmd = Command::cargo_bin("server")
             .unwrap()
-            .args(&["--cfg", &config_file, "--test-mode"])
+            .args(["--cfg", &config_file, "--test-mode"])
             .spawn()
             .unwrap();
         Self { server_handle: cmd }
@@ -67,7 +67,7 @@ impl Drop for TearDown {
 
 fn set_up_server() {
     static TMP: OnceLock<SetUpHandle> = OnceLock::new();
-    TMP.get_or_init(|| SetUpHandle::new());
+    TMP.get_or_init(SetUpHandle::new);
 }
 
 struct Conn {

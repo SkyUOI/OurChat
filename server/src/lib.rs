@@ -100,6 +100,7 @@ pub async fn lib_main() -> anyhow::Result<()> {
         anyhow::Ok(())
     });
     let mut console_reader = BufReader::new(io::stdin()).lines();
+    let mut input_loop_shutdown_receiver = shutdown_sender.subscribe();
     let input_loop = async {
         loop {
             print!(">>>");
@@ -109,7 +110,8 @@ pub async fn lib_main() -> anyhow::Result<()> {
                     Some(data) => data,
                     None => {
                         log::info!("Without stdin");
-                        loop {}
+                        input_loop_shutdown_receiver.recv().await.unwrap();
+                        String::default()
                     }
                 },
                 Err(e) => {
