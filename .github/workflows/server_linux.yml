@@ -23,10 +23,6 @@ jobs:
         run: cd server && cargo check --all
       - name: Build Release
         run: cd server && cargo check --all --release
-      - name: Install Docker
-        uses: KengoTODA/actions-setup-docker-compose@main
-        with:
-          version: 2.29.1
       - name: Test
         uses: SkyUOI/github-action-docker-compose-test-run@main
         with:
