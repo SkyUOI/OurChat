@@ -1,11 +1,13 @@
+//! 处理到客户端的连接
+
 pub mod client_response;
 
 use crate::{
-    consts::RequestType,
+    consts::MessageType,
     requests::{self},
     ShutdownRev,
 };
-use client_response::{login::LoginResponse, register::RegisterResponse};
+use client_response::{LoginResponse, RegisterResponse};
 use futures_util::{
     stream::{SplitSink, SplitStream},
     SinkExt, StreamExt,
@@ -133,11 +135,11 @@ impl Connection {
         let code = &json["code"];
         if let Value::Number(code) = code {
             let code = code.as_u64();
-            if code == Some(RequestType::Login as u64) {
+            if code == Some(MessageType::Login as u64) {
                 let login_data: requests::Login = serde_json::from_value(json)?;
                 let resp = Self::login_request(request_sender, login_data).await?;
                 return Ok(resp);
-            } else if code == Some(RequestType::Register as u64) {
+            } else if code == Some(MessageType::Register as u64) {
                 let request_data: requests::Register = serde_json::from_value(json)?;
                 let resp = Self::register_request(request_sender, request_data).await?;
                 return Ok(resp);
@@ -166,6 +168,7 @@ impl Connection {
     pub async fn read_loop(
         mut incoming: SplitStream<WS>,
         sender: mpsc::Sender<Message>,
+        request_sender: mpsc::Sender<DBRequest>,
     ) -> anyhow::Result<()> {
         loop {
             let msg = incoming.next().await;
@@ -195,7 +198,7 @@ impl Connection {
                                     .await?;
                             }
                             Some(num) => {
-                                let code = match RequestType::try_from(num as i32) {
+                                let code = match MessageType::try_from(num as i32) {
                                     Ok(num) => num,
                                     Err(_) => {
                                         Self::send_error_msg(
@@ -206,6 +209,18 @@ impl Connection {
                                         return Ok(());
                                     }
                                 };
+                                match code {
+                                    MessageType::Unregister => {
+                                        // let unregister  =
+                                    }
+                                    _ => {
+                                        Self::send_error_msg(
+                                            &sender,
+                                            format!("Not a valid code {}", num),
+                                        )
+                                        .await?;
+                                    }
+                                }
                             }
                         }
                     } else {
@@ -236,11 +251,11 @@ impl Connection {
 
     pub async fn work(&mut self) -> anyhow::Result<()> {
         let mut socket = self.socket.take().unwrap();
-        let sender = self.request_sender.clone();
+        let request_sender = self.request_sender.clone();
         // 循环验证直到验证通过
         'verify: loop {
             select! {
-                ret = Connection::verify(&mut socket, &sender) => {
+                ret = Connection::verify(&mut socket, &request_sender) => {
                     let ret = ret?;
                     select! {
                         err = socket.send(tungstenite::Message::Text(ret.0)) => {
@@ -262,7 +277,7 @@ impl Connection {
         }
         let (outgoing, incoming) = socket.split();
         let (sender, receiver) = mpsc::channel(32);
-        Self::read_loop(incoming, sender).await?;
+        Self::read_loop(incoming, sender, request_sender).await?;
         Self::write_loop(outgoing, receiver).await?;
         Ok(())
     }

@@ -5,7 +5,7 @@ pub mod register;
 
 use assert_cmd::prelude::*;
 use serde::{Deserialize, Serialize};
-use server::consts::RequestType;
+use server::consts::MessageType;
 use std::{
     fs,
     process::{Child, Command},
@@ -42,13 +42,13 @@ impl Drop for SetUpHandle {
 
 #[derive(Debug, Serialize, Deserialize)]
 struct AccountDeletion {
-    code: RequestType,
+    code: MessageType,
 }
 
 impl AccountDeletion {
     fn new() -> Self {
         Self {
-            code: RequestType::Unregister,
+            code: MessageType::Unregister,
         }
     }
 }

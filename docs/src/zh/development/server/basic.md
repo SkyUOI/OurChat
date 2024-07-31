@@ -17,3 +17,7 @@ os.putenv("OURCHAT_CONFIG_FILE", "../local/ourchat.toml")
 ## 测试
 
 由于服务端测试具有特殊性，我们引入了一个`test_lib`模块用于辅助测试，具体可以参考已有的单元测试。
+
+## 文档
+
+请善用`cargo doc`，我们为你提供了详尽的文档参考！调用`cargo doc --document-private-items`来生成私有的文档

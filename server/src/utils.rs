@@ -1,8 +1,8 @@
+//! Some utils functions
+use crate::{consts, machine_id};
 use rand::seq::SliceRandom;
 use snowdon::{ClassicLayout, Epoch, Generator, MachineId, Snowflake};
 use std::sync::OnceLock;
-
-use crate::{cfg, consts, machine_id};
 
 pub struct SnowflakeParams;
 
@@ -21,6 +21,7 @@ impl MachineId for SnowflakeParams {
 pub type MySnowflake = Snowflake<ClassicLayout<SnowflakeParams>, SnowflakeParams>;
 pub type MySnowflakeGenerator = Generator<ClassicLayout<SnowflakeParams>, SnowflakeParams>;
 
+/// 生成一个Snowflake的生成器
 pub fn generator() -> &'static MySnowflakeGenerator {
     static GENERATOR: OnceLock<MySnowflakeGenerator> = OnceLock::new();
     GENERATOR.get_or_init(MySnowflakeGenerator::default)
@@ -33,6 +34,7 @@ const RANDOM_CHAR_POOL: [char; 62] = [
     'V', 'W', 'X', 'Y', 'Z',
 ];
 
+/// 生成一个随机的ocid
 pub fn generate_ocid(bits: u32) -> String {
     let mut ret = String::new();
     ret.reserve(bits as usize);
@@ -44,7 +46,8 @@ pub fn generate_ocid(bits: u32) -> String {
     ret
 }
 
+/// 获取ws绑定地址
 pub fn ws_bind_addr() -> &'static str {
     static BIND_ADDR: OnceLock<String> = OnceLock::new();
-    BIND_ADDR.get_or_init(|| format!("ws://{}:{}", cfg::DEFAULT_IP, cfg::DEFAULT_PORT))
+    BIND_ADDR.get_or_init(|| format!("ws://{}:{}", consts::DEFAULT_IP, consts::DEFAULT_PORT))
 }

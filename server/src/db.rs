@@ -1,3 +1,5 @@
+//! Database
+
 pub mod user;
 
 use sea_orm::{ConnectionTrait, Statement};
@@ -12,6 +14,7 @@ struct DbCfg {
     passwd: String,
 }
 
+/// 根据配置文件生成连接数据库的url
 pub fn get_db_url(path: &str) -> anyhow::Result<String> {
     let json = std::fs::read_to_string(path)?;
     let cfg: DbCfg = serde_json::from_str(&json)?;
@@ -22,11 +25,13 @@ pub fn get_db_url(path: &str) -> anyhow::Result<String> {
     Ok(path)
 }
 
+/// 根据url连接数据库
 pub async fn connect_to_db(url: &str) -> anyhow::Result<sea_orm::DatabaseConnection> {
     log::info!("Connecting to {}", url);
     Ok(sea_orm::Database::connect(url).await?)
 }
 
+/// 初始化数据库,生成一些表
 pub async fn init_db(db: &sea_orm::DatabaseConnection) -> anyhow::Result<()> {
     db.execute(Statement::from_string(
         db.get_database_backend(),
@@ -111,6 +116,7 @@ struct RedisCfg {
     user: String,
 }
 
+/// 根据配置文件生成连接redis的url
 pub fn get_redis_url(path: &str) -> anyhow::Result<String> {
     let json = std::fs::read_to_string(path)?;
     let cfg: RedisCfg = serde_json::from_str(&json)?;
@@ -121,6 +127,7 @@ pub fn get_redis_url(path: &str) -> anyhow::Result<String> {
     Ok(path)
 }
 
+/// 根据url连接redis
 pub async fn connect_to_redis(url: &str) -> anyhow::Result<redis::Client> {
     let client = redis::Client::open(url)?;
     Ok(client)

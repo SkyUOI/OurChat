@@ -13,21 +13,21 @@ pub enum Status {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UnregisterResponse {
-    pub code: consts::RequestType,
+    pub code: consts::MessageType,
     pub status: Status,
 }
 
 impl UnregisterResponse {
     pub fn success() -> Self {
         Self {
-            code: consts::RequestType::Unregister,
+            code: consts::MessageType::Unregister,
             status: Status::Success,
         }
     }
 
     pub fn failed() -> Self {
         Self {
-            code: consts::RequestType::Unregister,
+            code: consts::MessageType::Unregister,
             status: Status::Failed,
         }
     }

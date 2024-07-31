@@ -1,16 +1,16 @@
-use crate::consts::{self, RequestType};
+use crate::consts::{self, MessageType};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ErrorMsgResponse {
-    pub code: RequestType,
+    pub code: MessageType,
     pub details: String,
 }
 
 impl ErrorMsgResponse {
     pub fn new(details: String) -> Self {
         Self {
-            code: consts::RequestType::ErrorMsg,
+            code: consts::MessageType::ErrorMsg,
             details,
         }
     }

@@ -1,11 +1,11 @@
-use crate::consts::RequestType;
+use crate::consts::MessageType;
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 use thiserror::Error;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RegisterResponse {
-    code: RequestType,
+    code: MessageType,
     #[serde(skip_serializing_if = "Option::is_none")]
     ocid: Option<String>,
     status: Status,
@@ -25,7 +25,7 @@ pub enum Status {
 impl RegisterResponse {
     pub fn success(ocid: String) -> Self {
         Self {
-            code: RequestType::RegisterRes,
+            code: MessageType::RegisterRes,
             ocid: Some(ocid),
             status: Status::Success,
         }
@@ -33,7 +33,7 @@ impl RegisterResponse {
 
     pub fn failed(status: Status) -> Self {
         Self {
-            code: RequestType::RegisterRes,
+            code: MessageType::RegisterRes,
             ocid: None,
             status,
         }

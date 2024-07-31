@@ -1,6 +1,8 @@
+//! 服务端
+
 use crate::connection::client_response;
-use crate::connection::client_response::login::LoginResponse;
-use crate::connection::client_response::register::RegisterResponse;
+use crate::connection::client_response::LoginResponse;
+use crate::connection::client_response::RegisterResponse;
 use crate::{connection, consts, utils};
 use crate::{connection::DBRequest, entities, requests};
 use entities::user::ActiveModel as UserModel;

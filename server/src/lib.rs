@@ -1,4 +1,3 @@
-pub mod cfg;
 pub mod connection;
 pub mod consts;
 mod db;
@@ -24,9 +23,9 @@ type ShutdownRev = broadcast::Receiver<()>;
 #[derive(Debug, Parser)]
 #[command(author = "SkyUOI", version = build::VERSION, about = "The Server of OurChat")]
 struct ArgsParser {
-    #[arg(short, long, default_value_t = cfg::DEFAULT_PORT)]
+    #[arg(short, long, default_value_t = consts::DEFAULT_PORT)]
     port: usize,
-    #[arg(long, default_value_t = String::from(cfg::DEFAULT_IP))]
+    #[arg(long, default_value_t = String::from(consts::DEFAULT_IP))]
     ip: String,
     #[arg(long)]
     cfg: String,
@@ -55,6 +54,7 @@ fn machine_id() -> u64 {
     })
 }
 
+/// 真正被调用的主函数
 pub async fn lib_main() -> anyhow::Result<()> {
     let parser = ArgsParser::parse();
     if parser.test_mode {

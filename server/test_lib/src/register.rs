@@ -1,27 +1,8 @@
 use crate::{connect_to_server_internal, get_test_user};
 use futures_util::{SinkExt, StreamExt};
-use serde::{Deserialize, Serialize};
-use server::consts::RequestType;
+use server::requests::Register;
 use std::thread;
 
-#[derive(Debug, Serialize, Deserialize)]
-struct Register {
-    code: RequestType,
-    name: String,
-    password: String,
-    email: String,
-}
-
-impl Register {
-    fn new(name: String, password: String, email: String) -> Self {
-        Self {
-            code: RequestType::Register,
-            name,
-            password,
-            email,
-        }
-    }
-}
 /// 在这里测试注册顺便初始化服务器，注册需要在所有测试前运行，所以只能在这里测试
 pub(crate) async fn test_register() {
     let user = get_test_user();
