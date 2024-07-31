@@ -47,6 +47,7 @@ fn machine_id() -> u64 {
         if state {
             return u64::from_be_bytes(fs::read("machine_id").unwrap().try_into().unwrap());
         }
+        log::info!("Create machine id");
         let mut f = fs::File::create("machine_id").unwrap();
         let id: u64 = rand::thread_rng().gen_range(0..(1024 - 1));
         f.write_all(&id.to_be_bytes()).unwrap();

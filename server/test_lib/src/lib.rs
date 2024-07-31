@@ -10,7 +10,6 @@ use std::{
     fs,
     process::{Child, Command},
     sync::OnceLock,
-    thread,
 };
 use tokio::net::TcpStream;
 use tokio_tungstenite::WebSocketStream;
@@ -22,9 +21,13 @@ struct SetUpHandle {
 impl SetUpHandle {
     fn new() -> Self {
         std::env::set_var("RUST_LOG", "DEBUG");
+        let config_file = match std::env::var("OURCHAT_CONFIG_FILE") {
+            Ok(v) => v,
+            Err(_) => "../config/ourchat.toml".to_string(),
+        };
         let cmd = Command::cargo_bin("server")
             .unwrap()
-            .args(&["--cfg", "../config/ourchat.toml", "--test-mode"])
+            .args(&["--cfg", &config_file, "--test-mode"])
             .spawn()
             .unwrap();
         Self { server_handle: cmd }
@@ -67,21 +70,48 @@ fn set_up_server() {
     TMP.get_or_init(|| SetUpHandle::new());
 }
 
+struct Conn {
+    pub ws: ClientWS,
+}
+
+impl Drop for Conn {
+    fn drop(&mut self) {
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        runtime
+            .block_on(async {
+                let ret = self.ws.close(None).await;
+                eprintln!("close ws");
+                ret
+            })
+            .unwrap()
+    }
+}
+
+impl Conn {
+    pub fn new(ws: ClientWS) -> Self {
+        Self { ws }
+    }
+}
+
 pub fn init_server() -> &'static ClientWS {
-    static TMP: OnceLock<(TearDown, ClientWS)> = OnceLock::new();
+    static TMP: OnceLock<(TearDown, Conn)> = OnceLock::new();
     &TMP.get_or_init(|| {
         set_up_server();
         let runtime = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()
             .unwrap();
-        let conn = runtime.block_on(async {
+        let conn = Conn::new(runtime.block_on(async {
             register::test_register().await;
             login::test_login().await
-        });
+        }));
         (TearDown {}, conn)
     })
     .1
+    .ws
 }
 
 pub type ClientWS = WebSocketStream<tokio_tungstenite::MaybeTlsStream<TcpStream>>;

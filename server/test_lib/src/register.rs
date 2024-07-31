@@ -49,4 +49,5 @@ pub(crate) async fn test_register() {
         .unwrap();
     let ret = stream.next().await.unwrap().unwrap();
     println!("{}", ret);
+    stream.close(None).await.unwrap();
 }

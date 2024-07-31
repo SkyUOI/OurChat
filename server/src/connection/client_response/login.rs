@@ -6,6 +6,7 @@ use thiserror::Error;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LoginResponse {
     code: RequestType,
+    #[serde(skip_serializing_if = "Option::is_none")]
     ocid: Option<String>,
     status: Status,
 }

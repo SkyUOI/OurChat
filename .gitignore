@@ -152,3 +152,7 @@ redis-data/**
 
 # mdbook
 book/
+
+machine_id
+
+local/
