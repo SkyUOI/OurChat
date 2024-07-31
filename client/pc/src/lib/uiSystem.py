@@ -1,5 +1,6 @@
-from PyQt5.QtWidgets import QApplication, QMainWindow, QDialog
+from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtCore import Qt, QTimer
+from lib.autoDestoryQDialog import AutoDestoryQDialog
 from qt_material import apply_stylesheet
 
 
@@ -36,7 +37,7 @@ class UISystem:
         self.app.exec_()
 
     def setDialog(self, dialog_class, only=False):
-        new_dialog = QDialog(self.mainwindow)
+        new_dialog = AutoDestoryQDialog(self.ourchat, self.mainwindow)
         new_dialog_ui = dialog_class(self.ourchat, new_dialog)
 
         if only:
@@ -54,3 +55,10 @@ class UISystem:
         new_dialog_ui.setupUi()
         self.dialogs.append((new_dialog, new_dialog_ui))
         return new_dialog
+
+    def removeDialog(self, rm_dialog):
+        for i in range(len(self.dialogs)):
+            dialog, dialog_ui = self.dialogs[i]
+            if dialog == rm_dialog:
+                self.dialogs.pop(i)
+                break

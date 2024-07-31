@@ -5,9 +5,10 @@ import json
 
 
 class Connection:
-    def __init__(self, ip="127.0.0.1", port=7777):
+    def __init__(self, ourchat):
+        self.ourchat = ourchat
         self.conn = None
-        self.setServer(ip, port)
+        self.setServer("127.0.0.1", 7777)
 
     def setServer(self, ip, port):
         self.ip = ip
@@ -20,9 +21,9 @@ class Connection:
         try:
             self.conn = client.connect(f"ws://{self.ip}:{self.port}")
             return True, None
-        except Exception:
+        except Exception as e:
             self.conn = None
-            return False, Exception
+            return False, e
 
     def send(self, data):
         json_str = json.dumps(data)
@@ -32,8 +33,10 @@ class Connection:
         while True:
             try:
                 message = self.conn.recv()
-                print(message)
+                data = json.loads(message)
+                self.ourchat.getMessage(data)
             except CloseError:
+                print("closeerror")
                 flag = False
                 times = 0
                 while not flag or times < 5:
@@ -43,8 +46,9 @@ class Connection:
                 if not flag:
                     continue
             except CloseOK:
-                print("closeok")
                 return
+            except Exception:
+                print(Exception)
 
     def close(self):
         if self.conn is None:

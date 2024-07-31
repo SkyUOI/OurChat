@@ -87,12 +87,12 @@ class Ui_Login(object):
         self.label_6 = QtWidgets.QLabel(self.register_tab)
         self.label_6.setText("Password")
         self.label_6.setObjectName("label_6")
-        self.formLayout_2.setWidget(3, QtWidgets.QFormLayout.LabelRole, self.label_6)
+        self.formLayout_2.setWidget(2, QtWidgets.QFormLayout.LabelRole, self.label_6)
         self.register_password_editor = QtWidgets.QLineEdit(self.register_tab)
         self.register_password_editor.setEchoMode(QtWidgets.QLineEdit.Password)
         self.register_password_editor.setObjectName("register_password_editor")
         self.formLayout_2.setWidget(
-            3, QtWidgets.QFormLayout.FieldRole, self.register_password_editor
+            2, QtWidgets.QFormLayout.FieldRole, self.register_password_editor
         )
         self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
@@ -105,7 +105,7 @@ class Ui_Login(object):
         self.register_show_checkbox.setObjectName("register_show_checkbox")
         self.horizontalLayout_2.addWidget(self.register_show_checkbox)
         self.formLayout_2.setLayout(
-            4, QtWidgets.QFormLayout.FieldRole, self.horizontalLayout_2
+            3, QtWidgets.QFormLayout.FieldRole, self.horizontalLayout_2
         )
         self.tabWidget.addTab(self.register_tab, "Register")
         self.verticalLayout.addWidget(self.tabWidget)

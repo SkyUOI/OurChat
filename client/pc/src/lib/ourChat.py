@@ -9,15 +9,16 @@ import sys
 
 class OurChat:
     def __init__(self):
-        self.conn = Connection()
+        self.conn = Connection(self)
         self.uisystem = None
         self.thread_pool = ThreadPoolExecutor(2)
+        self.listen_message = {}
         self.tasks = {}
+        self.message_queue = []
 
     def run(self):
         self.uisystem = UISystem(self, sys.argv)
         self.uisystem.setUI(Ui_Main)
-        self.uisystem.mainwindow.setEnabled(False)
         dialog = self.uisystem.setDialog(Ui_Login, True)
         dialog.show()
         self.uisystem.exec()
@@ -37,11 +38,28 @@ class OurChat:
                 remove_.append(future)
         for r in remove_:
             self.tasks.pop(r)
+        for i in range(len(self.message_queue)):
+            data = self.message_queue[-1]
+            self.message_queue.pop(-1)
+            for func in self.listen_message[data["code"]]:
+                func(data)
+        self.message_queue.clear()
 
     def close(self):
         self.conn.close()
         wait(list(self.tasks.keys()))
         self.thread_pool.shutdown()
+
+    def listen(self, message_code, func):
+        if message_code not in self.listen_message:
+            self.listen_message[message_code] = []
+        self.listen_message[message_code].append(func)
+
+    def unListen(self, message_code, func):
+        self.listen_message[message_code].remove(func)
+
+    def getMessage(self, data):
+        self.message_queue.append(data)
 
 
 class OurChatAccount:

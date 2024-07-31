@@ -15,8 +15,7 @@ async def func(a: WebSocketServerProtocol):
         message = await a.recv()
         data = json.loads(message)
         index = auto_reply_data[data["code"]]
-        print(index)
-        # print(f"{a.remote_address} >>> {message}")
+        print(f"{a.remote_address} >>> {message}")
         # print("-" * 50)
         # for i in range(len(samples)):
         #     print(f"{i+1}. {samples[i]}")
@@ -27,7 +26,7 @@ async def func(a: WebSocketServerProtocol):
                 replay = f.read()
         else:
             replay = message
-        print(f"<<< {replay}")
+        print(f"{a.remote_address} <<< {index}\n{replay}")
         await a.send(replay)
 
 
