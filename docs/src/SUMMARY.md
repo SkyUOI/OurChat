@@ -30,15 +30,16 @@
 
 # 开发指南
 
-- [运行](./zh/build.md)
+- [运行](./zh/run/build.md)
 
-  - [服务端参数](./zh/server_argv.md)
+  - [服务端参数](./zh/run/server_argv.md)
 
-- [开发](./zh/development.md)
+- [开发](./zh/development/development.md)
 
-  - [服务端](./zh/server-develop.md)
-    - [数据库](./zh/server_database.md)
-  - [数据交换格式](./zh/msg_json.md)
+  - [服务端](./zh/development/server/server-develop.md)
+    - [基础](./zh/development/server/basic.md)
+    - [数据库](./zh/development/server/server_database.md)
+  - [数据交换格式](./zh/development/msg_json.md)
 
 # 部署指南
 
