@@ -2,6 +2,7 @@ import init_valgrind_rust
 import test_server
 import os
 
+os.chdir("script")
 init_valgrind_rust.init_valgrind()
 os.system("apt update")
 os.system("apt install valgrind -y")

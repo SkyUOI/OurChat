@@ -1,4 +1,4 @@
-name: RustLinux
+name: ServerLinux
 
 on:
   push:
@@ -28,7 +28,7 @@ jobs:
         with:
           file: docker-compose.yml
           service: OurChatServer
-          command: "cd script && python3 action_test_server.py"
+          command: "script/action_test_server.py"
           registry: "ghcr.io"
           docker-compose-version: "2.29.1"
-          entrypoint: ""
+          entrypoint: "python3"

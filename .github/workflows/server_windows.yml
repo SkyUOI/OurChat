@@ -1,4 +1,4 @@
-name: RustWindows
+name: ServerWindows
 
 on:
   push:
