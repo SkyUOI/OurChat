@@ -7,7 +7,10 @@ from lib.msg_code import LOGIN_RESPONSE
 from lib.msg_code import GENERATE_VERIFY
 from lib.msg_code import VERIFY_STATUS
 from PyQt5.QtWidgets import QMessageBox, QLineEdit
+from logging import getLogger
 import hashlib
+
+logger = getLogger(__name__)
 
 
 class Ui_Login(Ui_Login_NOLOGIC):
@@ -17,6 +20,7 @@ class Ui_Login(Ui_Login_NOLOGIC):
         self.dialog = dialog
 
     def setupUi(self):
+        logger.info("setup Ui")
         super().setupUi(self.dialog)
         self.needReconnect(None)
         self.fillText()
@@ -26,6 +30,7 @@ class Ui_Login(Ui_Login_NOLOGIC):
         pass
 
     def bind(self):
+        logger.info("bind event")
         self.join_btn.clicked.connect(self.join)
         self.connect_server_btn.clicked.connect(self.connectToServer)
         self.login_show_checkbox.clicked.connect(self.showPassword)
@@ -34,14 +39,17 @@ class Ui_Login(Ui_Login_NOLOGIC):
         self.server_port_editor.textChanged.connect(self.needReconnect)
 
     def join(self):
+        logger.debug("clicked Join Button")
         index = self.tabWidget.currentIndex()
         if index:  # register
+            logger.info("begin to register")
             self.ourchat.listen(VERIFY_STATUS, self.verifyResponse)
             self.ourchat.runThread(
                 self.ourchat.conn.send, None, {"code": GENERATE_VERIFY}
             )
             QMessageBox.information(self.dialog, "Success", "Please check your email")
         else:  # login
+            logger.info("begin to login")
             sha256 = hashlib.sha256()
             sha256.update(self.login_password_editor.text().encode("ascii"))
             if "@" in self.login_account_editor.text():
@@ -61,6 +69,7 @@ class Ui_Login(Ui_Login_NOLOGIC):
             )
 
     def connectToServer(self):
+        logger.debug("clicked Connect Server Button")
         self.ourchat.conn.setServer(
             self.server_ip_editor.text(), self.server_port_editor.text()
         )
@@ -82,6 +91,7 @@ class Ui_Login(Ui_Login_NOLOGIC):
         self.ourchat.unListen(SERVER_STATUS, self.serverStatusResponse)
         if result["status"] == 1:
             QMessageBox.warning(self.dialog, "Failed", "Maintenance in progress")
+            logger.info("Maintenance in progress")
             return
         self.connect_server_btn.setEnabled(False)
         self.join_btn.setEnabled(True)
@@ -92,6 +102,7 @@ class Ui_Login(Ui_Login_NOLOGIC):
             self.ourchat.listen(REGISTER_RESPONSE, self.registerResponse)
             sha256 = hashlib.sha256()
             sha256.update(self.register_password_editor.text().encode("ascii"))
+            logger.info("verify successfully,send register message")
             self.ourchat.runThread(
                 self.ourchat.conn.send,
                 None,
@@ -109,6 +120,7 @@ class Ui_Login(Ui_Login_NOLOGIC):
 
     def registerResponse(self, result):
         if result["status"] == 0:
+            logger.info("register success")
             QMessageBox.information(self.dialog, "Success", "Register Success")
             self.uisystem.mainwindow.show()
             self.dialog.close()
@@ -120,6 +132,7 @@ class Ui_Login(Ui_Login_NOLOGIC):
 
     def loginResponse(self, result):
         if result["status"] == 0:
+            logger.info("login success")
             self.uisystem.mainwindow.show()
             self.dialog.close()
         elif result["status"] == 1:
@@ -129,6 +142,7 @@ class Ui_Login(Ui_Login_NOLOGIC):
         self.ourchat.unListen(LOGIN_RESPONSE, self.loginResponse)
 
     def showPassword(self, status):
+        logger.debug(f"show password: {status}")
         self.login_show_checkbox.setChecked(status)
         self.register_show_checkbox.setChecked(status)
 
@@ -140,5 +154,6 @@ class Ui_Login(Ui_Login_NOLOGIC):
         self.register_password_editor.setEchoMode(echo_mode)
 
     def needReconnect(self, a):
+        logger.debug("ip/port has changed")
         self.join_btn.setEnabled(False)
         self.connect_server_btn.setEnabled(True)
