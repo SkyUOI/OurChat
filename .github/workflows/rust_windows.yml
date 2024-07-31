@@ -15,13 +15,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Nightly
-        run: |
-          rustup toolchain install nightly --component miri
-          rustup override set nightly
-          cargo miri setup
-          rustup default nightly
-          setx MIRIFLAGS "-Zmiri-disable-isolation"
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
       - name: Build
         run: cd server && cargo build --all
       - name: Build Release

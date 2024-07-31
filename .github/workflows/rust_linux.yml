@@ -15,17 +15,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Nightly
-        run: |
-          rustup toolchain install nightly --component miri
-          rustup override set nightly
-          cargo miri setup
-          export MIRIFLAGS="-Zmiri-disable-isolation"
-      - name: Setting Up Valgrind
-        run: |
-          python3 ./script/init_valgrind_rust.py
-          sudo apt update
-          sudo apt install valgrind -y
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
       - name: Build
         run: cd server && cargo build --all
       - name: Build Release
@@ -37,5 +30,4 @@ jobs:
           service: OurChatServer
           command: "cd script && python3 action_test_server.py"
           registry: "ghcr.io"
-      # - name: Run miri test
-      #   run: cargo miri test
+          docker-compose-version: "2.29.1"
