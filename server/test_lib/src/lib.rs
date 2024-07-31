@@ -9,12 +9,12 @@ use tokio_tungstenite::WebSocketStream;
 
 fn set_up_server() {
     let mut cmd = assert_cmd::Command::cargo_bin("server").unwrap();
-    let _ = cmd
+    let ret = cmd
         .arg("--cfg")
         .arg("../config/ourchat.toml")
-        .arg("--test_mode")
+        .arg("--test-mode")
         .assert();
-    eprintln!("Server started");
+    eprintln!("Server Error:{}", ret);
 }
 
 #[derive(Debug, Serialize, Deserialize)]
