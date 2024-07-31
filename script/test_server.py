@@ -3,8 +3,11 @@ import os
 
 def test_server():
     os.chdir("../server")
-    return os.system("cargo test -- --test-threads=1")
+    code = os.system("cargo test -- --test-threads=1")
+    print(code)
+    return code
 
 
 if __name__ == "__main__":
-    exit(test_server())
+    if test_server() != 0:
+        raise Exception("Server tests failed")

@@ -6,4 +6,5 @@ os.chdir("script")
 init_valgrind_rust.init_valgrind()
 os.system("apt update")
 os.system("apt install valgrind -y")
-exit(test_server.test_server())
+if test_server.test_server() != 0:
+    raise Exception("Server tests failed")

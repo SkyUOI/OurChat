@@ -15,14 +15,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      # - name: Install Rust
-      #   uses: actions-rs/toolchain@v1
-      #   with:
-      #     toolchain: nightly
-      # - name: Build
-      #   run: cd server && cargo check --all
-      # - name: Build Release
-      #   run: cd server && cargo check --all --release
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+      - name: Build
+        run: cd server && cargo check --all
+      - name: Build Release
+        run: cd server && cargo check --all --release
       - name: Test
         uses: SkyUOI/github-action-docker-compose-test-run@main
         with:
