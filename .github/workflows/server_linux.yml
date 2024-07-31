@@ -20,11 +20,15 @@ jobs:
         with:
           toolchain: nightly
       - name: Build
-        run: cd server && cargo build --all
+        run: cd server && cargo check --all
       - name: Build Release
-        run: cd server && cargo build --all --release
+        run: cd server && cargo check --all --release
+      - name: Install Docker
+        uses: KengoTODA/actions-setup-docker-compose@main
+        with:
+          version: 2.29.1
       - name: Test
-        uses: cloudposse/github-action-docker-compose-test-run@main
+        uses: SkyUOI/github-action-docker-compose-test-run@main
         with:
           file: docker-compose.yml
           service: OurChatServer

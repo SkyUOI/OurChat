@@ -20,8 +20,6 @@ jobs:
         with:
           toolchain: nightly
       - name: Build
-        run: cd server && cargo build --all
+        run: cd server && cargo check --all
       - name: Build Release
-        run: cd server && cargo build --all --release
-      # - name: Run miri test
-      #   run: cargo miri test
+        run: cd server && cargo check --all --release
