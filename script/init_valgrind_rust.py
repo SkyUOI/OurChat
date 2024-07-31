@@ -4,11 +4,17 @@
 
 import os
 
-dir_name = os.path.expanduser("~/.cargo/config.toml")
-with open(dir_name, "w") as f:
-    _ = f.write(
-        """
+
+def init_valgrind():
+    dir_name = os.path.expanduser("~/.cargo/config.toml")
+    with open(dir_name, "w") as f:
+        _ = f.write(
+            """
 [target.'cfg(target_os = "linux")']
 runner = "valgrind --leak-check=full"
     """
-    )
+        )
+
+
+if __name__ == "__main__":
+    init_valgrind()

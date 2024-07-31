@@ -30,9 +30,12 @@ jobs:
         run: cd server && cargo build --all
       - name: Build Release
         run: cd server && cargo build --all --release
-      - name: Run tests Debug
-        run: cd server && cargo test --all
-      - name: Run tests Release
-        run: cd server && cargo test --all --release
+      - name: Test
+        uses: cloudposse/github-action-docker-compose-test-run@main
+        with:
+          file: docker-compose.yml
+          service: OurChatServer
+          command: "cd script && python3 action_test_server.py"
+          registry: "ghcr.io"
       # - name: Run miri test
       #   run: cargo miri test

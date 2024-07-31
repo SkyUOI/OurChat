@@ -26,9 +26,5 @@ jobs:
         run: cd server && cargo build --all
       - name: Build Release
         run: cd server && cargo build --all --release
-      - name: Run tests Debug
-        run: cd server && cargo test --all
-      - name: Run tests Release
-        run: cd server && cargo test --release --all
       # - name: Run miri test
       #   run: cargo miri test
