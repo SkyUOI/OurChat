@@ -20,6 +20,7 @@ class OurChat:
         self.listen_message = {}
         self.tasks = {}
         self.message_queue = []
+        self.later_func = {}
 
     def run(self):
         logger.info("OurChat UI Run")
@@ -36,6 +37,7 @@ class OurChat:
         self.tasks[future] = func
 
     def tick(self):
+        # threads
         remove_ = []
         tasks = list(self.tasks.keys())
         for future in tasks:
@@ -49,6 +51,7 @@ class OurChat:
         for r in remove_:
             self.tasks.pop(r)
 
+        # message
         for i in range(len(self.message_queue)):
             data = self.message_queue[-1]
             logger.info("deal with message data")
@@ -57,6 +60,14 @@ class OurChat:
             for func in self.listen_message[data["code"]]:
                 logger.info(f"run {func.__name__}")
                 func(data)
+
+        # later
+        for func in self.later_func:
+            func(self.later_func[func])
+        self.later_func.clear()
+
+    def runLater(self, func, *args):
+        self.later_func[func] = args
 
     def close(self):
         logger.info("OurChat begin to close")

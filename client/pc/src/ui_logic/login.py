@@ -18,11 +18,16 @@ class Ui_Login(Ui_Login_NOLOGIC):
         self.ourchat = ourchat
         self.uisystem = self.ourchat.uisystem
         self.widget = widget
+        self.toggle_status = 0
+        self.size = None
 
     def setupUi(self):
         logger.info("setup Ui")
         super().setupUi(self.widget)
+        self.server_box.hide()
         self.needReconnect(None)
+        self.size = self.widget.size()
+
         self.fillText()
         self.bind()
 
@@ -37,6 +42,7 @@ class Ui_Login(Ui_Login_NOLOGIC):
         self.register_show_checkbox.clicked.connect(self.showPassword)
         self.server_ip_editor.textChanged.connect(self.needReconnect)
         self.server_port_editor.textChanged.connect(self.needReconnect)
+        self.more_btn.clicked.connect(self.toggle)
 
     def join(self):
         logger.debug("clicked Join Button")
@@ -157,3 +163,18 @@ class Ui_Login(Ui_Login_NOLOGIC):
         logger.debug("ip/port has changed")
         self.join_btn.setEnabled(False)
         self.connect_server_btn.setEnabled(True)
+
+    def resize(self, size):
+        self.widget.resize(size[0])
+
+    def toggle(self):
+        if self.toggle_status:
+            self.server_box.hide()
+            self.toggle_status = 0
+            self.ourchat.runLater(self.resize, self.size)
+            self.more_btn.setText("More")
+        else:
+            self.size = self.widget.size()
+            self.more_btn.setText("Less")
+            self.server_box.show()
+            self.toggle_status = 1
