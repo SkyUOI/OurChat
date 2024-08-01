@@ -20,9 +20,7 @@ class UISystem:
         self.tick_timer = QTimer()
         self.tick_timer.timeout.connect(self.ourchat.tick)
         self.tick_timer.start(10)
-        self.theme = "dark_amber.xml"
-
-        apply_stylesheet(self.app, self.theme)
+        self.setTheme("dark_amber.xml")
 
     def createApp(self, argv):
         logger.info("createApp")
@@ -75,3 +73,11 @@ class UISystem:
                 logger.info(f"remove dialog {dialog_ui.__class__.__qualname__}")
                 self.dialogs.pop(i)
                 break
+
+    def setTheme(self, theme):
+        self.theme = theme
+        theme_type, theme_color = theme.split(".")[0].split("_")
+        invert_secondary = False
+        if theme_type == "light":
+            invert_secondary = True
+        apply_stylesheet(self.app, f"theme/{theme}", invert_secondary=invert_secondary)
