@@ -25,9 +25,8 @@ class OurChat:
         logger.info("OurChat UI Run")
         self.uisystem = UISystem(self, sys.argv)
         self.uisystem.setUI(Ui_Main)
-        dialog = self.uisystem.setDialog(Ui_Login, True)
-        dialog = self.uisystem.setDialog(Ui_Login, True)
-        dialog.show()
+        widget = self.uisystem.setWidget(Ui_Login, True)
+        widget.show()
         self.uisystem.exec()
 
     def runThread(self, task, func=None, *args):
@@ -88,7 +87,7 @@ class OurChat:
             QMessageBox.information(f"Because {message}.\nOutChat will restart later")
         self.uisystem.app.closeAllWindows()
         self.uisystem.setUI(Ui_Main)
-        dialog = self.uisystem.setDialog(Ui_Login, True)
+        dialog = self.uisystem.setWidget(Ui_Login, True)
         dialog.show()
 
 

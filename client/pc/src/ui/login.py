@@ -15,13 +15,12 @@ class Ui_Login(object):
     def setupUi(self, Login):
         Login.setObjectName("Login")
         Login.resize(370, 250)
-        Login.setWindowTitle("Dialog")
-        self.horizontalLayout_7 = QtWidgets.QHBoxLayout(Login)
-        self.horizontalLayout_7.setObjectName("horizontalLayout_7")
+        self.horizontalLayout_3 = QtWidgets.QHBoxLayout(Login)
+        self.horizontalLayout_3.setObjectName("horizontalLayout_3")
         spacerItem = QtWidgets.QSpacerItem(
-            30, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+            21, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
         )
-        self.horizontalLayout_7.addItem(spacerItem)
+        self.horizontalLayout_3.addItem(spacerItem)
         self.verticalLayout = QtWidgets.QVBoxLayout()
         self.verticalLayout.setObjectName("verticalLayout")
         self.tabWidget = QtWidgets.QTabWidget(Login)
@@ -165,15 +164,16 @@ class Ui_Login(object):
         )
         self.horizontalLayout_6.addItem(spacerItem10)
         self.verticalLayout.addLayout(self.horizontalLayout_6)
-        self.horizontalLayout_7.addLayout(self.verticalLayout)
+        self.horizontalLayout_3.addLayout(self.verticalLayout)
         spacerItem11 = QtWidgets.QSpacerItem(
-            30, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+            25, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
         )
-        self.horizontalLayout_7.addItem(spacerItem11)
+        self.horizontalLayout_3.addItem(spacerItem11)
 
         self.retranslateUi(Login)
         self.tabWidget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(Login)
 
     def retranslateUi(self, Login):
-        pass
+        _translate = QtCore.QCoreApplication.translate
+        Login.setWindowTitle(_translate("Login", "Form"))

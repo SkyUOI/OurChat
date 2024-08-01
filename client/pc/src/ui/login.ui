@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>Login</class>
- <widget class="QDialog" name="Login">
+ <widget class="QWidget" name="Login">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -11,9 +11,9 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string notr="true">Dialog</string>
+   <string>Form</string>
   </property>
-  <layout class="QHBoxLayout" name="horizontalLayout_7">
+  <layout class="QHBoxLayout" name="horizontalLayout_3">
    <item>
     <spacer name="horizontalSpacer_3">
      <property name="orientation">
@@ -21,7 +21,7 @@
      </property>
      <property name="sizeHint" stdset="0">
       <size>
-       <width>30</width>
+       <width>21</width>
        <height>20</height>
       </size>
      </property>
@@ -309,15 +309,13 @@
      </property>
      <property name="sizeHint" stdset="0">
       <size>
-       <width>30</width>
+       <width>25</width>
        <height>20</height>
       </size>
      </property>
     </spacer>
    </item>
   </layout>
-  <zorder>horizontalSpacer_3</zorder>
-  <zorder>horizontalSpacer_4</zorder>
  </widget>
  <resources/>
  <connections/>
