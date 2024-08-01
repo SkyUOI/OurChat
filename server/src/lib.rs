@@ -99,44 +99,47 @@ pub async fn lib_main() -> anyhow::Result<()> {
         }
         anyhow::Ok(())
     });
-    let mut console_reader = BufReader::new(io::stdin()).lines();
-    let input_loop = async {
-        let mut shutdown_receiver = shutdown_sender.subscribe();
-        loop {
-            print!(">>>");
-            std::io::stdout().flush().unwrap();
-            let command = match console_reader.next_line().await {
-                Ok(d) => match d {
-                    Some(data) => data,
-                    None => {
-                        log::info!("Without stdin");
-                        shutdown_receiver.recv().await.unwrap();
-                        String::default()
+    if !parser.test_mode {
+        let mut console_reader = BufReader::new(io::stdin()).lines();
+        let input_loop = async {
+            let mut shutdown_receiver = shutdown_sender.subscribe();
+            loop {
+                print!(">>>");
+                std::io::stdout().flush().unwrap();
+                let command = match console_reader.next_line().await {
+                    Ok(d) => match d {
+                        Some(data) => data,
+                        None => {
+                            log::info!("Without stdin");
+                            shutdown_receiver.recv().await.unwrap();
+                            String::default()
+                        }
+                    },
+                    Err(e) => {
+                        log::error!("stdin {}", e);
+                        break;
                     }
-                },
-                Err(e) => {
-                    log::error!("stdin {}", e);
+                };
+                let command = command.trim();
+                if command == "exit" {
+                    log::info!("Exiting now...");
                     break;
                 }
-            };
-            let command = command.trim();
-            if command == "exit" {
-                log::info!("Exiting now...");
-                break;
+            }
+            anyhow::Ok(())
+        };
+        select! {
+            _ = input_loop => {
+                shutdown_sender.send(())?;
+                log::info!("Exit because command loop has exited");
+            },
+            _ = shutdown_receiver.recv() => {
+                log::info!("Command loop exited");
             }
         }
-        anyhow::Ok(())
-    };
-    select! {
-        _ = input_loop => {
-            shutdown_sender.send(())?;
-            log::info!("Exit because command loop has exited");
-        },
-        _ = shutdown_receiver.recv() => {
-            log::info!("Command loop exited");
-        }
+    } else {
+        shutdown_receiver.recv().await?;
     }
     log::info!("Server exited");
-
     Ok(())
 }

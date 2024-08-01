@@ -20,6 +20,10 @@ jobs:
         with:
           toolchain: nightly
       - name: Build
-        run: cd server && cargo check --all
+        run: cargo check --all
       - name: Build Release
-        run: cd server && cargo check --all --release
+        run: cargo check --all --release
+      - name: Test Web
+        run: cd client/web/web && cargo test && cargo test --release
+      - name: Test Tauri
+        run: cd client/src-tauri && cargo test && cargo test --release

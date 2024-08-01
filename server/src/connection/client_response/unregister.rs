@@ -4,7 +4,7 @@ use crate::consts;
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 
-#[derive(Debug, Serialize_repr, Deserialize_repr)]
+#[derive(Debug, Serialize_repr, Deserialize_repr, PartialEq, Eq)]
 #[repr(i32)]
 pub enum Status {
     Success = 0,
@@ -18,17 +18,10 @@ pub struct UnregisterResponse {
 }
 
 impl UnregisterResponse {
-    pub fn success() -> Self {
+    pub fn new(status: Status) -> Self {
         Self {
-            code: consts::MessageType::Unregister,
-            status: Status::Success,
-        }
-    }
-
-    pub fn failed() -> Self {
-        Self {
-            code: consts::MessageType::Unregister,
-            status: Status::Failed,
+            code: consts::MessageType::UnregisterRes,
+            status,
         }
     }
 }

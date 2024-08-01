@@ -1,16 +1,10 @@
 # OurChat
 
-| 平台    | 服务器状态                                                                                               |
-| :------ | :------------------------------------------------------------------------------------------------------- |
-| Linux   | ![Linux Test](https://img.shields.io/github/actions/workflow/status/skyuoi/ourchat/server_linux.yml)     |
-| Windows | ![Windows Test](https://img.shields.io/github/actions/workflow/status/skyuoi/ourchat/server_windows.yml) |
-| Macos   | ![Macos Test](https://img.shields.io/github/actions/workflow/status/skyuoi/ourchat/server_macos.yml)     |
-
-| 平台    | Web 版状态                                                                                       |
-| :------ | :----------------------------------------------------------------------------------------------- |
-| Linux   | ![Linux](https://img.shields.io/github/actions/workflow/status/skyuoi/ourchat/web_linux.yml)     |
-| Windows | ![Windows](https://img.shields.io/github/actions/workflow/status/skyuoi/ourchat/web_windows.yml) |
-| Macos   | ![Macos](https://img.shields.io/github/actions/workflow/status/skyuoi/ourchat/web_macos.yml)     |
+| 平台    | 状态                                                                                                   |
+| :------ | :----------------------------------------------------------------------------------------------------- |
+| Linux   | ![Linux Test](https://img.shields.io/github/actions/workflow/status/skyuoi/ourchat/rust_linux.yml)     |
+| Windows | ![Windows Test](https://img.shields.io/github/actions/workflow/status/skyuoi/ourchat/rust_windows.yml) |
+| Macos   | ![Macos Test](https://img.shields.io/github/actions/workflow/status/skyuoi/ourchat/rust_macos.yml)     |
 
 OurChat 是一个可以在 Linux，Windows 和 Macos 上运行的聊天软件。它提供了一个网页端, 一个用 python 写的客户端和一个使用 Tauri 构建的客户端.
 

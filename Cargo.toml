@@ -1,0 +1,14 @@
+[workspace]
+members = [
+    "server",
+    "server/test_lib",
+    "client/src-tauri",
+    "client/web",
+    "client/web/derive",
+]
+resolver = "2"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true

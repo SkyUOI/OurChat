@@ -7,12 +7,13 @@ use crate::{
     requests::{self, Unregister},
     ShutdownRev,
 };
-use client_response::{LoginResponse, RegisterResponse};
+use client_response::{LoginResponse, RegisterResponse, UnregisterResponse};
 use futures_util::{
     stream::{SplitSink, SplitStream},
-    SinkExt, StreamExt,
+    SinkExt, StreamExt, TryFutureExt,
 };
 use serde_json::Value;
+use shadow_rs::new;
 use tokio::{
     net::TcpStream,
     select,
@@ -232,6 +233,13 @@ impl Connection {
                                         };
                                         request_sender.send(unregister).await?;
                                         let ret = channel.1.await?;
+                                        let resp = UnregisterResponse::new(ret);
+                                        // log::debug!("!!!");
+                                        sender
+                                            .send(Message::Text(
+                                                serde_json::to_string(&resp).unwrap(),
+                                            ))
+                                            .await?;
                                     }
                                     _ => {
                                         Self::send_error_msg(
@@ -267,7 +275,9 @@ impl Connection {
         mut receiver: mpsc::Receiver<Message>,
     ) -> anyhow::Result<()> {
         while let Some(msg) = receiver.recv().await {
-            outgoing.send(msg).await?;
+            log::debug!("send msg:{}", msg);
+            outgoing.send(msg).await.unwrap();
+            log::debug!("send successful");
         }
         Ok(())
     }
@@ -302,8 +312,8 @@ impl Connection {
         }
         let (outgoing, incoming) = socket.split();
         let (sender, receiver) = mpsc::channel(32);
+        tokio::spawn(Self::write_loop(outgoing, receiver));
         Self::read_loop(incoming, id, sender, request_sender).await?;
-        Self::write_loop(outgoing, receiver).await?;
         Ok(())
     }
 }
