@@ -1,10 +1,10 @@
 use crate::{create_connection, get_test_user};
 use futures_util::{SinkExt, StreamExt};
-use server::requests::Register;
+use server::{connection::client_response, consts::MessageType, requests::Register};
 use std::thread;
 
 /// 在这里测试注册顺便初始化服务器，注册需要在所有测试前运行，所以只能在这里测试
-pub(crate) async fn test_register() {
+pub(crate) async fn test_register() -> String {
     let user = get_test_user();
     let request = Register::new(user.name.clone(), user.password.clone(), user.email.clone());
     let mut stream = None;
@@ -29,6 +29,9 @@ pub(crate) async fn test_register() {
         .await
         .unwrap();
     let ret = stream.next().await.unwrap().unwrap();
-    println!("{}", ret);
     stream.close(None).await.unwrap();
+    let json: client_response::RegisterResponse = serde_json::from_str(&ret.to_string()).unwrap();
+    assert_eq!(json.status, client_response::register::Status::Success);
+    assert_eq!(json.code, MessageType::RegisterRes);
+    json.ocid.unwrap()
 }

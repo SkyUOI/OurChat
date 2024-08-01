@@ -9,11 +9,22 @@ use serde::{Deserialize, Serialize};
 use std::{
     fs,
     process::{Child, Command},
+    ptr::drop_in_place,
     sync::{Arc, OnceLock},
 };
 use tokio::net::TcpStream;
 use tokio::sync::Mutex;
 use tokio_tungstenite::WebSocketStream;
+
+#[macro_export]
+macro_rules! cleanup {
+    () => {
+        #[test]
+        fn cleanup() {
+            test_lib::teardown();
+        }
+    };
+}
 
 struct SetUpHandle {
     server_handle: Child,
@@ -41,8 +52,7 @@ impl Drop for SetUpHandle {
     }
 }
 
-/// 用于清理测试环境
-struct TearDown;
+struct UnregisterHook;
 
 fn get_tokio_runtime() -> &'static tokio::runtime::Runtime {
     static TMP: OnceLock<tokio::runtime::Runtime> = OnceLock::new();
@@ -54,7 +64,7 @@ fn get_tokio_runtime() -> &'static tokio::runtime::Runtime {
     })
 }
 
-impl Drop for TearDown {
+impl Drop for UnregisterHook {
     fn drop(&mut self) {
         // 注意此处不可使用 get_tokio_runtime()，因为此时get_tokio_runtime可能已经被析构
         let runtime = tokio::runtime::Builder::new_current_thread()
@@ -98,18 +108,19 @@ impl Conn {
 
 /// 初始化服务器并创建到服务器的连接
 pub fn init_server() -> Arc<Mutex<ClientWS>> {
-    static TMP: OnceLock<(TearDown, Conn)> = OnceLock::new();
+    init_server_internal().1.ws.clone()
+}
+
+fn init_server_internal() -> &'static (UnregisterHook, Conn) {
+    static TMP: OnceLock<(UnregisterHook, Conn)> = OnceLock::new();
     TMP.get_or_init(|| {
         set_up_server();
         let conn = Conn::new(Arc::new(Mutex::new(get_tokio_runtime().block_on(async {
-            register::test_register().await;
-            login::test_login().await
+            let ocid = register::test_register().await;
+            login::test_login(ocid).await
         }))));
-        (TearDown {}, conn)
+        (UnregisterHook {}, conn)
     })
-    .1
-    .ws
-    .clone()
 }
 
 pub type ClientWS = WebSocketStream<tokio_tungstenite::MaybeTlsStream<TcpStream>>;
@@ -131,7 +142,6 @@ pub struct TestUser {
     pub name: String,
     pub password: String,
     pub email: String,
-    pub ocid: String,
 }
 
 /// 获取测试用户
@@ -143,4 +153,10 @@ pub fn get_test_user() -> &'static TestUser {
         )
         .unwrap()
     })
+}
+
+pub fn teardown() {
+    let ptr =
+        (init_server_internal()) as *const (UnregisterHook, Conn) as *mut (UnregisterHook, Conn);
+    unsafe { drop_in_place(ptr) }
 }

@@ -2923,6 +2923,7 @@ dependencies = [
  "assert_cmd",
  "env_logger",
  "futures-util",
+ "parking_lot 0.11.2",
  "serde",
  "serde_json",
  "server",

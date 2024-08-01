@@ -123,8 +123,17 @@ impl Server {
                         Ok(data) => match data {
                             Some(user) => {
                                 if user.passwd == request.password {
-                                    resp.send(Ok((LoginResponse::success(user.ocid), user.id)))
-                                        .unwrap()
+                                    match request.login_type {
+                                        requests::LoginType::Email => resp
+                                            .send(Ok((
+                                                LoginResponse::success_email(user.ocid),
+                                                user.id,
+                                            )))
+                                            .unwrap(),
+                                        requests::LoginType::Ocid => resp
+                                            .send(Ok((LoginResponse::success_ocid(), user.id)))
+                                            .unwrap(),
+                                    }
                                 } else {
                                     resp.send(Err(Status::WrongPassword)).unwrap()
                                 }
