@@ -2,16 +2,17 @@
 
 pub mod login;
 pub mod register;
+pub mod unregister;
 
 use assert_cmd::prelude::*;
 use serde::{Deserialize, Serialize};
-use server::consts::MessageType;
 use std::{
     fs,
     process::{Child, Command},
-    sync::OnceLock,
+    sync::{Arc, OnceLock},
 };
 use tokio::net::TcpStream;
+use tokio::sync::Mutex;
 use tokio_tungstenite::WebSocketStream;
 
 struct SetUpHandle {
@@ -40,28 +41,27 @@ impl Drop for SetUpHandle {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct AccountDeletion {
-    code: MessageType,
-}
-
-impl AccountDeletion {
-    fn new() -> Self {
-        Self {
-            code: MessageType::Unregister,
-        }
-    }
-}
-
-/// 清理测试环境时顺便测试帐号删除，删除需要在所有测试后运行，所以只能在这里测试
-fn test_account_deletion() {}
-
 /// 用于清理测试环境
 struct TearDown;
 
+fn get_tokio_runtime() -> &'static tokio::runtime::Runtime {
+    static TMP: OnceLock<tokio::runtime::Runtime> = OnceLock::new();
+    TMP.get_or_init(|| {
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+    })
+}
+
 impl Drop for TearDown {
     fn drop(&mut self) {
-        test_account_deletion();
+        // 注意此处不可使用 get_tokio_runtime()，因为此时get_tokio_runtime可能已经被析构
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        runtime.block_on(unregister::test_unregister());
     }
 }
 
@@ -71,7 +71,7 @@ fn set_up_server() {
 }
 
 struct Conn {
-    pub ws: ClientWS,
+    pub ws: Arc<Mutex<ClientWS>>,
 }
 
 impl Drop for Conn {
@@ -82,7 +82,7 @@ impl Drop for Conn {
             .unwrap();
         runtime
             .block_on(async {
-                let ret = self.ws.close(None).await;
+                let ret = self.ws.lock().await.close(None).await;
                 eprintln!("close ws");
                 ret
             })
@@ -91,39 +91,38 @@ impl Drop for Conn {
 }
 
 impl Conn {
-    pub fn new(ws: ClientWS) -> Self {
+    pub fn new(ws: Arc<Mutex<ClientWS>>) -> Self {
         Self { ws }
     }
 }
 
-pub fn init_server() -> &'static ClientWS {
+/// 初始化服务器并创建到服务器的连接
+pub fn init_server() -> Arc<Mutex<ClientWS>> {
     static TMP: OnceLock<(TearDown, Conn)> = OnceLock::new();
-    &TMP.get_or_init(|| {
+    TMP.get_or_init(|| {
         set_up_server();
-        let runtime = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .unwrap();
-        let conn = Conn::new(runtime.block_on(async {
+        let conn = Conn::new(Arc::new(Mutex::new(get_tokio_runtime().block_on(async {
             register::test_register().await;
             login::test_login().await
-        }));
+        }))));
         (TearDown {}, conn)
     })
     .1
     .ws
+    .clone()
 }
 
 pub type ClientWS = WebSocketStream<tokio_tungstenite::MaybeTlsStream<TcpStream>>;
 
-async fn connect_to_server_internal() -> anyhow::Result<ClientWS> {
+/// 创建到服务器的连接
+async fn create_connection() -> anyhow::Result<ClientWS> {
     let (ws, _) =
         tokio_tungstenite::connect_async(server::utils::ws_bind_addr().to_string()).await?;
     Ok(ws)
 }
 
-/// 连接到服务器
-pub async fn get_connection() -> &'static ClientWS {
+/// 连接到服务器,该方法可以反复调用
+pub fn get_connection() -> Arc<Mutex<ClientWS>> {
     init_server()
 }
 
@@ -135,6 +134,7 @@ pub struct TestUser {
     pub ocid: String,
 }
 
+/// 获取测试用户
 pub fn get_test_user() -> &'static TestUser {
     static TMP: OnceLock<TestUser> = OnceLock::new();
     TMP.get_or_init(|| {

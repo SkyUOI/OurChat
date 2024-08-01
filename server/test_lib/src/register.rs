@@ -1,4 +1,4 @@
-use crate::{connect_to_server_internal, get_test_user};
+use crate::{create_connection, get_test_user};
 use futures_util::{SinkExt, StreamExt};
 use server::requests::Register;
 use std::thread;
@@ -11,7 +11,7 @@ pub(crate) async fn test_register() {
     // 服务器启动可能没那么快
     for i in 0..10 {
         eprintln!("Try to connect to server:{}", i);
-        let ret = connect_to_server_internal().await;
+        let ret = create_connection().await;
         if ret.is_ok() {
             stream = ret.ok();
             break;
