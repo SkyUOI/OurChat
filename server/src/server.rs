@@ -3,6 +3,7 @@
 use crate::connection::client_response;
 use crate::connection::client_response::LoginResponse;
 use crate::connection::client_response::RegisterResponse;
+use crate::consts::ID;
 use crate::{connection, consts, utils};
 use crate::{connection::DBRequest, entities, requests};
 use entities::user::ActiveModel as UserModel;
@@ -122,7 +123,8 @@ impl Server {
                         Ok(data) => match data {
                             Some(user) => {
                                 if user.passwd == request.password {
-                                    resp.send(Ok(LoginResponse::success(user.ocid))).unwrap()
+                                    resp.send(Ok((LoginResponse::success(user.ocid), user.id)))
+                                        .unwrap()
                                 } else {
                                     resp.send(Err(Status::WrongPassword)).unwrap()
                                 }
@@ -141,7 +143,7 @@ impl Server {
                 }
                 DBRequest::Register { resp, request } => {
                     // 生成雪花id
-                    let id = utils::generator().generate().unwrap().into_i64() as u64;
+                    let id = utils::generator().generate().unwrap().into_i64() as ID;
                     // 随机生成生成ocid
                     let ocid = utils::generate_ocid(consts::OCID_LEN);
                     let user = UserModel {
@@ -156,7 +158,7 @@ impl Server {
                         Ok(res) => {
                             // 生成正确的响应
                             let response = RegisterResponse::success(res.ocid);
-                            resp.send(Ok(response)).unwrap();
+                            resp.send(Ok((response, res.id))).unwrap();
                         }
                         Err(e) => {
                             if let sea_orm::DbErr::RecordNotInserted = e {
@@ -167,6 +169,20 @@ impl Server {
                                 resp.send(Err(client_response::register::Status::ServerError))
                                     .unwrap();
                             }
+                        }
+                    }
+                }
+                DBRequest::Unregister { id, resp } => {
+                    let user = UserModel {
+                        id: ActiveValue::Set(id),
+                        ..Default::default()
+                    };
+                    use client_response::unregister::Status;
+                    match user.delete(&mysql_connection).await {
+                        Ok(_) => resp.send(Status::Success).unwrap(),
+                        Err(e) => {
+                            log::error!("Database error:{e}");
+                            resp.send(Status::Failed).unwrap();
                         }
                     }
                 }

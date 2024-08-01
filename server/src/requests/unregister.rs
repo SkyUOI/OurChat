@@ -5,3 +5,11 @@ use serde::{Deserialize, Serialize};
 pub struct Unregister {
     pub code: MessageType,
 }
+
+impl Unregister {
+    pub fn new() -> Self {
+        Self {
+            code: MessageType::Unregister,
+        }
+    }
+}

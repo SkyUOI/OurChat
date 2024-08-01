@@ -3,8 +3,8 @@
 pub mod client_response;
 
 use crate::{
-    consts::MessageType,
-    requests::{self},
+    consts::{MessageType, ID},
+    requests::{self, Unregister},
     ShutdownRev,
 };
 use client_response::{LoginResponse, RegisterResponse};
@@ -24,11 +24,15 @@ use tungstenite::Message;
 pub enum DBRequest {
     Login {
         request: requests::Login,
-        resp: oneshot::Sender<Result<LoginResponse, client_response::login::Status>>,
+        resp: oneshot::Sender<Result<(LoginResponse, ID), client_response::login::Status>>,
     },
     Register {
         request: requests::Register,
-        resp: oneshot::Sender<Result<RegisterResponse, client_response::register::Status>>,
+        resp: oneshot::Sender<Result<(RegisterResponse, ID), client_response::register::Status>>,
+    },
+    Unregister {
+        id: ID,
+        resp: oneshot::Sender<client_response::unregister::Status>,
     },
 }
 
@@ -43,6 +47,11 @@ pub struct Connection {
 enum VerifyStatus {
     Success,
     Fail,
+}
+
+struct VerifyRes {
+    status: VerifyStatus,
+    id: ID,
 }
 
 impl Connection {
@@ -62,7 +71,7 @@ impl Connection {
     async fn login_request(
         request_sender: &mpsc::Sender<DBRequest>,
         login_data: requests::Login,
-    ) -> anyhow::Result<(String, VerifyStatus)> {
+    ) -> anyhow::Result<(String, VerifyRes)> {
         let channel = oneshot::channel();
         let request = DBRequest::Login {
             request: login_data,
@@ -71,12 +80,18 @@ impl Connection {
         request_sender.send(request).await?;
         match channel.1.await? {
             Ok(ok_resp) => Ok((
-                serde_json::to_string(&ok_resp).unwrap(),
-                VerifyStatus::Success,
+                serde_json::to_string(&ok_resp.0).unwrap(),
+                VerifyRes {
+                    status: VerifyStatus::Success,
+                    id: ok_resp.1,
+                },
             )),
             Err(e) => Ok((
                 serde_json::to_string(&LoginResponse::failed(e)).unwrap(),
-                VerifyStatus::Fail,
+                VerifyRes {
+                    status: VerifyStatus::Fail,
+                    id: ID::default(),
+                },
             )),
         }
     }
@@ -85,7 +100,7 @@ impl Connection {
     async fn register_request(
         request_sender: &mpsc::Sender<DBRequest>,
         register_data: requests::Register,
-    ) -> anyhow::Result<(String, VerifyStatus)> {
+    ) -> anyhow::Result<(String, VerifyRes)> {
         let channel = oneshot::channel();
         let request = DBRequest::Register {
             request: register_data,
@@ -94,12 +109,18 @@ impl Connection {
         request_sender.send(request).await?;
         match channel.1.await? {
             Ok(ok_resp) => Ok((
-                serde_json::to_string(&ok_resp).unwrap(),
-                VerifyStatus::Success,
+                serde_json::to_string(&ok_resp.0).unwrap(),
+                VerifyRes {
+                    status: VerifyStatus::Success,
+                    id: ok_resp.1,
+                },
             )),
             Err(e) => Ok((
                 serde_json::to_string(&RegisterResponse::failed(e)).unwrap(),
-                VerifyStatus::Fail,
+                VerifyRes {
+                    status: VerifyStatus::Fail,
+                    id: ID::default(),
+                },
             )),
         }
     }
@@ -108,7 +129,7 @@ impl Connection {
     async fn verify(
         ws: &mut WS,
         request_sender: &mpsc::Sender<DBRequest>,
-    ) -> anyhow::Result<(String, VerifyStatus)> {
+    ) -> anyhow::Result<(String, VerifyRes)> {
         let msg = match ws.next().await {
             None => {
                 anyhow::bail!("Failed to receive message when logining");
@@ -159,6 +180,7 @@ impl Connection {
 
     pub async fn read_loop(
         mut incoming: SplitStream<WS>,
+        id: ID,
         sender: mpsc::Sender<Message>,
         request_sender: mpsc::Sender<DBRequest>,
     ) -> anyhow::Result<()> {
@@ -203,7 +225,13 @@ impl Connection {
                                 };
                                 match code {
                                     MessageType::Unregister => {
-                                        // let unregister  =
+                                        let channel = oneshot::channel();
+                                        let unregister = DBRequest::Unregister {
+                                            id,
+                                            resp: channel.0,
+                                        };
+                                        request_sender.send(unregister).await?;
+                                        let ret = channel.1.await?;
                                     }
                                     _ => {
                                         Self::send_error_msg(
@@ -236,14 +264,18 @@ impl Connection {
 
     pub async fn write_loop(
         mut outgoing: SplitSink<WS, Message>,
-        receiver: mpsc::Receiver<Message>,
+        mut receiver: mpsc::Receiver<Message>,
     ) -> anyhow::Result<()> {
-        todo!()
+        while let Some(msg) = receiver.recv().await {
+            outgoing.send(msg).await?;
+        }
+        Ok(())
     }
 
     pub async fn work(&mut self) -> anyhow::Result<()> {
         let mut socket = self.socket.take().unwrap();
         let request_sender = self.request_sender.clone();
+        let id;
         // 循环验证直到验证通过
         'verify: loop {
             select! {
@@ -257,8 +289,9 @@ impl Connection {
                             return Ok(())
                         },
                     }
-                    if let VerifyStatus::Success = ret.1 {
+                    if let VerifyStatus::Success = ret.1.status {
                         // 验证通过，跳出循环
+                        id = ret.1.id;
                         break 'verify;
                     }
                 },
@@ -269,7 +302,7 @@ impl Connection {
         }
         let (outgoing, incoming) = socket.split();
         let (sender, receiver) = mpsc::channel(32);
-        Self::read_loop(incoming, sender, request_sender).await?;
+        Self::read_loop(incoming, id, sender, request_sender).await?;
         Self::write_loop(outgoing, receiver).await?;
         Ok(())
     }

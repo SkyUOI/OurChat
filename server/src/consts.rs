@@ -26,3 +26,5 @@ pub const DEFAULT_PORT: usize = 7777;
 
 /// 时间戳类型(与chrono不一致)
 pub type TimeStamp = u64;
+/// id类型
+pub type ID = u64;
