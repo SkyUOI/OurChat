@@ -14,7 +14,7 @@ pub async fn test_unregister() {
     lock.send(Message::text(serde_json::to_string(&req).unwrap()))
         .await
         .unwrap();
-    let ret = lock.next().await.unwrap().unwrap();
+    let ret = (*lock).next().await.unwrap().unwrap();
     let json: UnregisterResponse = serde_json::from_str(ret.to_text().unwrap()).unwrap();
     assert_eq!(json.code, MessageType::UnregisterRes);
     assert_eq!(json.status, Status::Success);

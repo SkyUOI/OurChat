@@ -4,20 +4,18 @@ pub mod client_response;
 
 use crate::{
     consts::{MessageType, ID},
-    requests::{self, Unregister},
-    ShutdownRev,
+    requests::{self},
 };
 use client_response::{LoginResponse, RegisterResponse, UnregisterResponse};
 use futures_util::{
     stream::{SplitSink, SplitStream},
-    SinkExt, StreamExt, TryFutureExt,
+    SinkExt, StreamExt,
 };
 use serde_json::Value;
-use shadow_rs::new;
 use tokio::{
     net::TcpStream,
     select,
-    sync::{mpsc, oneshot},
+    sync::{broadcast, mpsc, oneshot},
 };
 use tokio_tungstenite::WebSocketStream;
 use tungstenite::Message;
@@ -42,7 +40,7 @@ pub type WS = WebSocketStream<TcpStream>;
 /// 一个到客户端的连接
 pub struct Connection {
     socket: Option<WebSocketStream<TcpStream>>,
-    shutdown_receiver: ShutdownRev,
+    shutdown_sender: broadcast::Sender<()>,
     request_sender: mpsc::Sender<DBRequest>,
 }
 enum VerifyStatus {
@@ -58,12 +56,12 @@ struct VerifyRes {
 impl Connection {
     pub fn new(
         socket: WS,
-        shutdown_receiver: ShutdownRev,
+        shutdown_sender: broadcast::Sender<()>,
         request_sender: mpsc::Sender<DBRequest>,
     ) -> Self {
         Self {
             socket: Some(socket),
-            shutdown_receiver,
+            shutdown_sender,
             request_sender,
         }
     }
@@ -184,88 +182,99 @@ impl Connection {
         id: ID,
         sender: mpsc::Sender<Message>,
         request_sender: mpsc::Sender<DBRequest>,
+        mut shutdown_receiver: broadcast::Receiver<()>,
     ) -> anyhow::Result<()> {
-        loop {
-            let msg = incoming.next().await;
-            if msg.is_none() {
-                return Ok(());
-            }
-            let msg = msg.unwrap();
-            let msg = match msg {
-                Ok(msg) => {
-                    log::debug!("recv msg:{}", msg);
-                    msg
+        let work = async {
+            loop {
+                let msg = incoming.next().await;
+                if msg.is_none() {
+                    return Ok(());
                 }
-                Err(e) => {
-                    log::error!("recv error:{}", e);
-                    Err(e)?
-                }
-            };
-            match msg {
-                tungstenite::Message::Text(msg) => {
-                    let json: Value = serde_json::from_str(&msg)?;
-                    let code = &json["code"];
-                    if let Value::Number(code) = code {
-                        let code = code.as_u64();
-                        match code {
-                            None => {
-                                Self::send_error_msg(&sender, "code is not a unsigned number")
-                                    .await?;
-                            }
-                            Some(num) => {
-                                let code = match MessageType::try_from(num as i32) {
-                                    Ok(num) => num,
-                                    Err(_) => {
-                                        Self::send_error_msg(
-                                            &sender,
-                                            format!("Not a valid code {}", num),
-                                        )
+                let msg = msg.unwrap();
+                let msg = match msg {
+                    Ok(msg) => {
+                        log::debug!("recv msg:{}", msg);
+                        msg
+                    }
+                    Err(e) => {
+                        log::error!("recv error:{}", e);
+                        Err(e)?
+                    }
+                };
+                match msg {
+                    tungstenite::Message::Text(msg) => {
+                        let json: Value = serde_json::from_str(&msg)?;
+                        let code = &json["code"];
+                        if let Value::Number(code) = code {
+                            let code = code.as_u64();
+                            match code {
+                                None => {
+                                    Self::send_error_msg(&sender, "code is not a unsigned number")
                                         .await?;
-                                        return Ok(());
-                                    }
-                                };
-                                match code {
-                                    MessageType::Unregister => {
-                                        let channel = oneshot::channel();
-                                        let unregister = DBRequest::Unregister {
-                                            id,
-                                            resp: channel.0,
-                                        };
-                                        request_sender.send(unregister).await?;
-                                        let ret = channel.1.await?;
-                                        let resp = UnregisterResponse::new(ret);
-                                        // log::debug!("!!!");
-                                        sender
-                                            .send(Message::Text(
-                                                serde_json::to_string(&resp).unwrap(),
-                                            ))
+                                }
+                                Some(num) => {
+                                    let code = match MessageType::try_from(num as i32) {
+                                        Ok(num) => num,
+                                        Err(_) => {
+                                            Self::send_error_msg(
+                                                &sender,
+                                                format!("Not a valid code {}", num),
+                                            )
                                             .await?;
-                                    }
-                                    _ => {
-                                        Self::send_error_msg(
-                                            &sender,
-                                            format!("Not a valid code {}", num),
-                                        )
-                                        .await?;
+                                            return Ok(());
+                                        }
+                                    };
+                                    match code {
+                                        MessageType::Unregister => {
+                                            let channel = oneshot::channel();
+                                            let unregister = DBRequest::Unregister {
+                                                id,
+                                                resp: channel.0,
+                                            };
+                                            request_sender.send(unregister).await?;
+                                            let ret = channel.1.await?;
+                                            let resp = UnregisterResponse::new(ret);
+                                            // log::debug!("!!!");
+                                            sender
+                                                .send(Message::Text(
+                                                    serde_json::to_string(&resp).unwrap(),
+                                                ))
+                                                .await?;
+                                            sender.send(Message::Close(None)).await?;
+                                            return Ok(());
+                                        }
+                                        _ => {
+                                            Self::send_error_msg(
+                                                &sender,
+                                                format!("Not a valid code {}", num),
+                                            )
+                                            .await?;
+                                        }
                                     }
                                 }
                             }
+                        } else {
+                            Self::send_error_msg(&sender, "Without code").await?
                         }
-                    } else {
-                        Self::send_error_msg(&sender, "Without code").await?
                     }
+                    tungstenite::Message::Binary(_) => todo!(),
+                    tungstenite::Message::Ping(_) => {
+                        sender.send(Message::Pong(vec![])).await?;
+                    }
+                    tungstenite::Message::Pong(_) => {
+                        log::info!("recv pong");
+                    }
+                    tungstenite::Message::Close(_) => {
+                        return Ok(());
+                    }
+                    tungstenite::Message::Frame(_) => todo!(),
                 }
-                tungstenite::Message::Binary(_) => todo!(),
-                tungstenite::Message::Ping(_) => {
-                    sender.send(Message::Pong(vec![])).await?;
-                }
-                tungstenite::Message::Pong(_) => {
-                    log::info!("recv pong");
-                }
-                tungstenite::Message::Close(_) => {
-                    return Ok(());
-                }
-                tungstenite::Message::Frame(_) => todo!(),
+            }
+        };
+        select! {
+            ret = work => {ret},
+            _ = shutdown_receiver.recv() => {
+                Ok(())
             }
         }
     }
@@ -273,18 +282,28 @@ impl Connection {
     pub async fn write_loop(
         mut outgoing: SplitSink<WS, Message>,
         mut receiver: mpsc::Receiver<Message>,
+        mut shutdown_receiver: broadcast::Receiver<()>,
     ) -> anyhow::Result<()> {
-        while let Some(msg) = receiver.recv().await {
-            log::debug!("send msg:{}", msg);
-            outgoing.send(msg).await.unwrap();
-            log::debug!("send successful");
+        let work = async {
+            while let Some(msg) = receiver.recv().await {
+                log::debug!("send msg:{}", msg);
+                outgoing.send(msg).await.unwrap();
+                log::debug!("send successful");
+            }
+            Ok(())
+        };
+        select! {
+            ret = work => {ret},
+            _ = shutdown_receiver.recv() => {
+                Ok(())
+            }
         }
-        Ok(())
     }
 
     pub async fn work(&mut self) -> anyhow::Result<()> {
         let mut socket = self.socket.take().unwrap();
         let request_sender = self.request_sender.clone();
+        let mut shutdown_receiver = self.shutdown_sender.subscribe();
         let id;
         // 循环验证直到验证通过
         'verify: loop {
@@ -295,7 +314,7 @@ impl Connection {
                         err = socket.send(tungstenite::Message::Text(ret.0)) => {
                             err?
                         },
-                        _ = self.shutdown_receiver.recv() => {
+                        _ = shutdown_receiver.recv() => {
                             return Ok(())
                         },
                     }
@@ -305,15 +324,19 @@ impl Connection {
                         break 'verify;
                     }
                 },
-                _ = self.shutdown_receiver.recv() => {
+                _ = shutdown_receiver.recv() => {
                     return Ok(());
                 },
             }
         }
         let (outgoing, incoming) = socket.split();
         let (sender, receiver) = mpsc::channel(32);
-        tokio::spawn(Self::write_loop(outgoing, receiver));
-        Self::read_loop(incoming, id, sender, request_sender).await?;
+        tokio::spawn(Self::write_loop(
+            outgoing,
+            receiver,
+            self.shutdown_sender.subscribe(),
+        ));
+        Self::read_loop(incoming, id, sender, request_sender, shutdown_receiver).await?;
         Ok(())
     }
 }
