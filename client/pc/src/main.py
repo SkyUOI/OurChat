@@ -1,6 +1,10 @@
 from lib.OurChat import OurChat
 import datetime
 from logging import getLogger, basicConfig, INFO
+import os
+
+if "log" not in os.listdir():
+    os.mkdir("log")
 
 logger = getLogger(__name__)
 basicConfig(
