@@ -2,7 +2,7 @@ import os
 
 
 def test_server():
-    os.chdir("../server")
+    os.chdir("server")
     code = os.system("cargo test -- --test-threads=1")
     print(code)
     return code
