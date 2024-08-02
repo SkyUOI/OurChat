@@ -21,6 +21,8 @@ jobs:
           python3 ./script/init_valgrind_rust.py
           sudo apt update
           sudo apt install valgrind -y
+      - name: Install gtk
+        run: sudo apt-get install libgtk-3-dev -y
       - name: Build
         run: cargo check --all
       - name: Build Release
