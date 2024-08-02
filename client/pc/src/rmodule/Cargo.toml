@@ -9,5 +9,5 @@ name = "rmodule"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = "0.22.0"
+pyo3 = "0"
 base = { path = "../../../../base" }

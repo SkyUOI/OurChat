@@ -53,13 +53,15 @@ static MACHINE_ID: LazyLock<u64> = LazyLock::new(|| {
 pub async fn lib_main() -> anyhow::Result<()> {
     let parser = ArgsParser::parse();
     if parser.test_mode {
-        let mut builder = env_logger::Builder::from_default_env();
-        builder.target(env_logger::Target::Pipe(Box::new(
-            fs::File::create("test.log").unwrap(),
-        )));
-        builder.init();
+        // 是测试模式，记录到一个test.log中
+        let file = std::fs::File::create("test.log").unwrap();
+        let (non_blocking, _guard) = tracing_appender::non_blocking(file);
+        tracing_subscriber::fmt().with_writer(non_blocking).init();
     } else {
-        env_logger::init();
+        // 不是测试模式，记录按天滚动的日志
+        let file_appender = tracing_appender::rolling::daily("log", "ourchat");
+        let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
+        tracing_subscriber::fmt().with_writer(non_blocking).init();
     }
     let cfg_path = parser.cfg;
     let cfg = fs::read_to_string(cfg_path)?;

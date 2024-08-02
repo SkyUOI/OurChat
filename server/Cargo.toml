@@ -20,7 +20,6 @@ sqlx = { version = "0", features = [
     "macros",
 ] }
 log = "0"
-env_logger = "0"
 clap = { version = "4", features = ["derive"] }
 shadow-rs = "0"
 futures-util = "0"
@@ -37,6 +36,9 @@ thiserror = "1"
 chrono = "0"
 num_enum = "0"
 base = { path = "../base" }
+tracing = "0"
+tracing-appender = "0"
+tracing-subscriber = "0"
 
 [build-dependencies]
 shadow-rs = "0"
