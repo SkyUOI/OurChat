@@ -13,3 +13,9 @@ impl Unregister {
         }
     }
 }
+
+impl Default for Unregister {
+    fn default() -> Self {
+        Self::new()
+    }
+}

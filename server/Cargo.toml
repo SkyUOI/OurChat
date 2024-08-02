@@ -2,6 +2,7 @@
 name = "server"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.80"
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
@@ -41,3 +42,4 @@ shadow-rs = "0"
 
 [dev-dependencies]
 test_lib = { path = "test_lib" }
+serial_test = "3"

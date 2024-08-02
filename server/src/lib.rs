@@ -9,7 +9,7 @@ pub mod utils;
 use clap::Parser;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
-use std::{fs, io::Write, path, sync::OnceLock};
+use std::{fs, io::Write, path, sync::LazyLock};
 use tokio::{
     io::{self, AsyncBufReadExt, BufReader},
     select,
@@ -39,20 +39,17 @@ struct Cfg {
     dbcfg: String,
 }
 
-fn machine_id() -> u64 {
-    static TMP: OnceLock<u64> = OnceLock::new();
-    *TMP.get_or_init(|| {
-        let state = path::Path::new("machine_id").exists();
-        if state {
-            return u64::from_be_bytes(fs::read("machine_id").unwrap().try_into().unwrap());
-        }
-        log::info!("Create machine id");
-        let mut f = fs::File::create("machine_id").unwrap();
-        let id: u64 = rand::thread_rng().gen_range(0..(1024 - 1));
-        f.write_all(&id.to_be_bytes()).unwrap();
-        id
-    })
-}
+static MACHINE_ID: LazyLock<u64> = LazyLock::new(|| {
+    let state = path::Path::new("machine_id").exists();
+    if state {
+        return u64::from_be_bytes(fs::read("machine_id").unwrap().try_into().unwrap());
+    }
+    log::info!("Create machine id");
+    let mut f = fs::File::create("machine_id").unwrap();
+    let id: u64 = rand::thread_rng().gen_range(0..(1024 - 1));
+    f.write_all(&id.to_be_bytes()).unwrap();
+    id
+});
 
 /// 真正被调用的主函数
 pub async fn lib_main() -> anyhow::Result<()> {

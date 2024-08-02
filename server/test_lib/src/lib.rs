@@ -10,7 +10,7 @@ use std::{
     fs,
     process::{Child, Command},
     ptr::drop_in_place,
-    sync::{Arc, OnceLock},
+    sync::{Arc, LazyLock},
 };
 use tokio::net::TcpStream;
 use tokio::sync::Mutex;
@@ -20,6 +20,7 @@ use tokio_tungstenite::WebSocketStream;
 macro_rules! cleanup {
     () => {
         #[test]
+        #[serial_test::serial]
         fn cleanup() {
             test_lib::teardown();
         }
@@ -54,15 +55,12 @@ impl Drop for SetUpHandle {
 
 struct UnregisterHook;
 
-fn get_tokio_runtime() -> &'static tokio::runtime::Runtime {
-    static TMP: OnceLock<tokio::runtime::Runtime> = OnceLock::new();
-    TMP.get_or_init(|| {
-        tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .unwrap()
-    })
-}
+static TOKIO_RUNTIME: LazyLock<tokio::runtime::Runtime> = LazyLock::new(|| {
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+});
 
 impl Drop for UnregisterHook {
     fn drop(&mut self) {
@@ -75,10 +73,7 @@ impl Drop for UnregisterHook {
     }
 }
 
-fn set_up_server() {
-    static TMP: OnceLock<SetUpHandle> = OnceLock::new();
-    TMP.get_or_init(SetUpHandle::new);
-}
+static SERVER_HANDLE: LazyLock<SetUpHandle> = LazyLock::new(SetUpHandle::new);
 
 struct Conn {
     pub ws: Arc<Mutex<ClientWS>>,
@@ -108,27 +103,23 @@ impl Conn {
 
 /// 初始化服务器并创建到服务器的连接
 pub fn init_server() -> Arc<Mutex<ClientWS>> {
-    init_server_internal().1.ws.clone()
+    INIT_SERVER.1.ws.clone()
 }
 
-fn init_server_internal() -> &'static (UnregisterHook, Conn) {
-    static TMP: OnceLock<(UnregisterHook, Conn)> = OnceLock::new();
-    TMP.get_or_init(|| {
-        set_up_server();
-        let conn = Conn::new(Arc::new(Mutex::new(get_tokio_runtime().block_on(async {
-            let ocid = register::test_register().await;
-            login::test_login(ocid).await
-        }))));
-        (UnregisterHook {}, conn)
-    })
-}
+static INIT_SERVER: LazyLock<(UnregisterHook, Conn)> = LazyLock::new(|| {
+    let _ = &*SERVER_HANDLE;
+    let conn = Conn::new(Arc::new(Mutex::new(TOKIO_RUNTIME.block_on(async {
+        let ocid = register::test_register().await;
+        login::test_login(ocid).await
+    }))));
+    (UnregisterHook {}, conn)
+});
 
 pub type ClientWS = WebSocketStream<tokio_tungstenite::MaybeTlsStream<TcpStream>>;
 
 /// 创建到服务器的连接
 async fn create_connection() -> anyhow::Result<ClientWS> {
-    let (ws, _) =
-        tokio_tungstenite::connect_async(server::utils::ws_bind_addr().to_string()).await?;
+    let (ws, _) = tokio_tungstenite::connect_async(server::utils::WS_BIND_ADDR.to_string()).await?;
     Ok(ws)
 }
 
@@ -144,19 +135,15 @@ pub struct TestUser {
     pub email: String,
 }
 
-/// 获取测试用户
-pub fn get_test_user() -> &'static TestUser {
-    static TMP: OnceLock<TestUser> = OnceLock::new();
-    TMP.get_or_init(|| {
-        serde_json::from_str(
-            &fs::read_to_string("config/test_user.json").expect("Cannot read test_user.json"),
-        )
-        .unwrap()
-    })
-}
+/// 测试用户
+static TEST_USER: LazyLock<TestUser> = LazyLock::new(|| {
+    serde_json::from_str(
+        &fs::read_to_string("config/test_user.json").expect("Cannot read test_user.json"),
+    )
+    .unwrap()
+});
 
 pub fn teardown() {
-    let ptr =
-        (init_server_internal()) as *const (UnregisterHook, Conn) as *mut (UnregisterHook, Conn);
+    let ptr = (&*INIT_SERVER) as *const (UnregisterHook, Conn) as *mut (UnregisterHook, Conn);
     unsafe { drop_in_place(ptr) }
 }

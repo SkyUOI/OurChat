@@ -154,7 +154,7 @@ impl Server {
                 }
                 DBRequest::Register { resp, request } => {
                     // 生成雪花id
-                    let id = utils::generator().generate().unwrap().into_i64() as ID;
+                    let id = utils::GENERATOR.generate().unwrap().into_i64() as ID;
                     // 随机生成生成ocid
                     let ocid = utils::generate_ocid(consts::OCID_LEN);
                     let user = UserModel {

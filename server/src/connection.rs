@@ -156,10 +156,22 @@ impl Connection {
                 let resp = Self::register_request(request_sender, request_data).await?;
                 return Ok(resp);
             } else {
-                anyhow::bail!(
+                // 验证不通过
+                let resp =
+                    serde_json::to_string(&client_response::error_msg::ErrorMsgResponse::new(
+                        "Not login or register code".to_string(),
+                    ))?;
+                log::info!(
                     "Failed to login,code is {:?},not login or register code",
                     code
                 );
+                Ok((
+                    resp,
+                    VerifyRes {
+                        status: VerifyStatus::Fail,
+                        id: ID::default(),
+                    },
+                ))
             }
         } else {
             anyhow::bail!("Failed to login,code is not a number or missing");
@@ -304,30 +316,35 @@ impl Connection {
         let mut socket = self.socket.take().unwrap();
         let request_sender = self.request_sender.clone();
         let mut shutdown_receiver = self.shutdown_sender.subscribe();
-        let id;
-        // 循环验证直到验证通过
-        'verify: loop {
-            select! {
-                ret = Connection::verify(&mut socket, &request_sender) => {
-                    let ret = ret?;
-                    select! {
-                        err = socket.send(tungstenite::Message::Text(ret.0)) => {
-                            err?
-                        },
-                        _ = shutdown_receiver.recv() => {
-                            return Ok(())
-                        },
-                    }
-                    if let VerifyStatus::Success = ret.1.status {
-                        // 验证通过，跳出循环
-                        id = ret.1.id;
-                        break 'verify;
-                    }
-                },
-                _ = shutdown_receiver.recv() => {
-                    return Ok(());
-                },
+        let mut shutdown_receiver_clone = self.shutdown_sender.subscribe();
+        let mut id = ID::default();
+        let verify_loop = async {
+            loop {
+                let ret = Connection::verify(&mut socket, &request_sender).await?;
+                select! {
+                    err = socket.send(tungstenite::Message::Text(ret.0)) => {
+                        err?
+                    },
+                    _ = shutdown_receiver.recv() => {
+                        return anyhow::Ok(())
+                    },
+                }
+                if let VerifyStatus::Success = ret.1.status {
+                    // 验证通过，跳出循环
+                    id = ret.1.id;
+                    break;
+                }
             }
+            Ok(())
+        };
+        // 循环验证直到验证通过
+        select! {
+            ret = verify_loop => {
+                ret?
+            },
+            _ = shutdown_receiver_clone.recv() => {
+                return Ok(());
+            },
         }
         let (outgoing, incoming) = socket.split();
         let (sender, receiver) = mpsc::channel(32);
