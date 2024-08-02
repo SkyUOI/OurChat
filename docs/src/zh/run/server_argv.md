@@ -8,8 +8,8 @@
 ## 配置文件示例
 
 ```toml
-dbcfg = "../config/database.json"
-rediscfg = "../config/redis_connect.json"
+dbcfg = "config/database.json"
+rediscfg = "config/redis_connect.json"
 ```
 
 数据库示例:
