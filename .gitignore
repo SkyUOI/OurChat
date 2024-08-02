@@ -156,3 +156,8 @@ book/
 machine_id
 
 local/
+
+# PC
+client/pc/src/config.json
+client/pc/src/theme
+client/pc/src/out

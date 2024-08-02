@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QApplication, QMainWindow
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import Qt, QTimer, QDir
 from lib.OurChatUI import AutoDestroyQDialog, AutoDestroyQWidget
-from qt_material import apply_stylesheet
+from PyQt5.QtGui import QFontDatabase
 from logging import getLogger
 
 logger = getLogger(__name__)
@@ -23,7 +23,8 @@ class UISystem:
         self.tick_timer = QTimer()
         self.tick_timer.timeout.connect(self.ourchat.tick)
         self.tick_timer.start(10)
-        self.setTheme("dark_amber.xml")
+        QFontDatabase.addApplicationFont("resources/fonts/Roboto-Medium.ttf")
+        self.setTheme("dark_amber")
 
     def createApp(self, argv):
         logger.info("createApp")
@@ -111,9 +112,7 @@ class UISystem:
                 break
 
     def setTheme(self, theme):
-        self.theme = theme
-        theme_type, theme_color = theme.split(".")[0].split("_")
-        invert_secondary = False
-        if theme_type == "light":
-            invert_secondary = True
-        apply_stylesheet(self.app, f"theme/{theme}", invert_secondary=invert_secondary)
+        QDir.setSearchPaths("icon", [f"theme/{theme}/resources"])
+        with open(f"theme/{theme}/{theme}.qss", "r") as f:
+            qss = f.read()
+        self.app.setStyleSheet(qss)

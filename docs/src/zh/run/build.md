@@ -2,9 +2,9 @@
 
 ## Server
 
-开发构建，请见[服务端开发](../development/server/server-develop.md)
+开发构建，请见[服务端开发](./server-develop-zh.md)
 
-对于真正部署到生产环境，参见[部署指南](../deploy.md)
+对于真正部署到生产环境，参见[部署指南](./deploy-zh.md)
 
 ## Web
 
@@ -46,14 +46,23 @@ cd src-tauri && cargo tauri dev
 
 来构建和运行 Tauri 应用.
 
-## client
+## client-pc
 
-client 部分由 python 编写，无需编译，要求是 python3 以上,通过以下命令进行安装和运行
+client-pc 部分由 python 编写，无需编译，要求是 python3 以上,通过以下命令进行安装和运行
 
-## PC
+### 运行
 
 ```bash
-cd ./client/pc/
-pip3 install -r requirement.txt
-python3 main.py
+python -m pip install -r client/pc/requirement.txt # 安装依赖库
+python script/export_themes.py # 导出主题到client/pc/src/theme中
+cd ./client/pc/src
+python main.py # 运行
 ```
+
+### 打包为可执行文件
+
+```bash
+python script/build_pc.py
+```
+
+等待脚本运行完毕后，`client/pc/src/out/main.dist`目录中即为可执行文件及其依赖文件
