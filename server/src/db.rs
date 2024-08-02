@@ -27,7 +27,7 @@ pub fn get_db_url(path: &str) -> anyhow::Result<String> {
 
 /// 根据url连接数据库
 pub async fn connect_to_db(url: &str) -> anyhow::Result<sea_orm::DatabaseConnection> {
-    log::info!("Connecting to {}", url);
+    tracing::info!("Connecting to {}", url);
     Ok(sea_orm::Database::connect(url).await?)
 }
 
@@ -104,7 +104,7 @@ pub async fn init_db(db: &sea_orm::DatabaseConnection) -> anyhow::Result<()> {
             .to_string(),
     ))
     .await?;
-    log::info!("Initialized database");
+    tracing::info!("Initialized database");
     Ok(())
 }
 

@@ -161,7 +161,7 @@ impl Connection {
                     serde_json::to_string(&client_response::error_msg::ErrorMsgResponse::new(
                         "Not login or register code".to_string(),
                     ))?;
-                log::info!(
+                tracing::info!(
                     "Failed to login,code is {:?},not login or register code",
                     code
                 );
@@ -205,11 +205,11 @@ impl Connection {
                 let msg = msg.unwrap();
                 let msg = match msg {
                     Ok(msg) => {
-                        log::debug!("recv msg:{}", msg);
+                        tracing::debug!("recv msg:{}", msg);
                         msg
                     }
                     Err(e) => {
-                        log::error!("recv error:{}", e);
+                        tracing::error!("recv error:{}", e);
                         Err(e)?
                     }
                 };
@@ -246,7 +246,7 @@ impl Connection {
                                             request_sender.send(unregister).await?;
                                             let ret = channel.1.await?;
                                             let resp = UnregisterResponse::new(ret);
-                                            // log::debug!("!!!");
+                                            // tracing::debug!("!!!");
                                             sender
                                                 .send(Message::Text(
                                                     serde_json::to_string(&resp).unwrap(),
@@ -274,7 +274,7 @@ impl Connection {
                         sender.send(Message::Pong(vec![])).await?;
                     }
                     tungstenite::Message::Pong(_) => {
-                        log::info!("recv pong");
+                        tracing::info!("recv pong");
                     }
                     tungstenite::Message::Close(_) => {
                         return Ok(());
@@ -298,9 +298,9 @@ impl Connection {
     ) -> anyhow::Result<()> {
         let work = async {
             while let Some(msg) = receiver.recv().await {
-                log::debug!("send msg:{}", msg);
+                tracing::debug!("send msg:{}", msg);
                 outgoing.send(msg).await.unwrap();
-                log::debug!("send successful");
+                tracing::debug!("send successful");
             }
             Ok(())
         };

@@ -43,7 +43,7 @@ impl Server {
         let tcplistener = match TcpListener::bind(&bind_addr).await {
             Ok(listener) => listener,
             Err(e) => {
-                log::error!("Failed to bind {}:{}", bind_addr, e);
+                tracing::error!("Failed to bind {}:{}", bind_addr, e);
                 exit(1)
             }
         };
@@ -79,7 +79,7 @@ impl Server {
                 let shutdown_handle = shutdown_sender_clone.clone();
                 match ret {
                     Ok((socket, addr)) => {
-                        log::info!("Connected to a socket");
+                        tracing::info!("Connected to a socket");
                         tokio::spawn(async move {
                             Server::handle_connection(socket, addr, shutdown_handle, task_sender)
                                 .await
@@ -92,7 +92,7 @@ impl Server {
         select! {
             _ = async_loop => {},
             _ = shutdown_receiver.recv() => {
-                log::info!("Accepting loop exited")
+                tracing::info!("Accepting loop exited")
             }
         }
     }
@@ -146,7 +146,7 @@ impl Server {
                             if let DbErr::RecordNotFound(_) = e {
                                 resp.send(Err(Status::WrongPassword)).unwrap()
                             } else {
-                                log::error!("database error:{}", e);
+                                tracing::error!("database error:{}", e);
                                 resp.send(Err(Status::ServerError)).unwrap()
                             }
                         }
@@ -176,7 +176,7 @@ impl Server {
                                 resp.send(Err(client_response::register::Status::Dup))
                                     .unwrap();
                             } else {
-                                log::error!("Database error:{e}");
+                                tracing::error!("Database error:{e}");
                                 resp.send(Err(client_response::register::Status::ServerError))
                                     .unwrap();
                             }
@@ -192,7 +192,7 @@ impl Server {
                     match user.delete(&mysql_connection).await {
                         Ok(_) => resp.send(Status::Success).unwrap(),
                         Err(e) => {
-                            log::error!("Database error:{e}");
+                            tracing::error!("Database error:{e}");
                             resp.send(Status::Failed).unwrap();
                         }
                     }
@@ -210,7 +210,7 @@ impl Server {
         let ws_stream = match tokio_tungstenite::accept_async(stream).await {
             Ok(data) => data,
             Err(e) => {
-                log::error!("Error during websocket handshake: {}", e);
+                tracing::error!("Error during websocket handshake: {}", e);
                 return;
             }
         };
@@ -219,10 +219,10 @@ impl Server {
                 connection::Connection::new(ws_stream, shutdown_sender, task_sender);
             match connection.work().await {
                 Ok(_) => {
-                    log::info!("Connection closed: {}", addr);
+                    tracing::info!("Connection closed: {}", addr);
                 }
                 Err(e) => {
-                    log::error!("Connection error: {}", e);
+                    tracing::error!("Connection error: {}", e);
                 }
             }
         });
