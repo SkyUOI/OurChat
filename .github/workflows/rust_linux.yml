@@ -20,7 +20,7 @@ jobs:
       # with:
       # toolchain: nightly
       - name: Setup Rust
-        uses: MatteoH2O1999/setup-rust
+        uses: MatteoH2O1999/setup-rust@master
         with:
           channel: nightly
       - name: Setting Up Valgrind
