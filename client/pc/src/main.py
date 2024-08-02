@@ -1,4 +1,4 @@
-from lib.ourChat import OurChat
+from lib.OurChat import OurChat
 import datetime
 from logging import getLogger, basicConfig, INFO
 

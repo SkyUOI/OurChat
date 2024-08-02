@@ -71,16 +71,18 @@ impl Server {
             self.task_solver_receiver.take().unwrap(),
             self.mysql.take().unwrap(),
         ));
+        let shutdown_sender_clone = shutdown_sender.clone();
         let async_loop = async move {
             loop {
                 let task_sender = self.task_solver_sender.clone();
                 let ret = self.tcplistener.accept().await;
+                let shutdown_handle = shutdown_sender_clone.clone();
                 match ret {
                     Ok((socket, addr)) => {
-                        let shutdown = shutdown_sender.subscribe();
                         log::info!("Connected to a socket");
                         tokio::spawn(async move {
-                            Server::handle_connection(socket, addr, shutdown, task_sender).await
+                            Server::handle_connection(socket, addr, shutdown_handle, task_sender)
+                                .await
                         });
                     }
                     Err(_) => todo!(),
@@ -123,8 +125,17 @@ impl Server {
                         Ok(data) => match data {
                             Some(user) => {
                                 if user.passwd == request.password {
-                                    resp.send(Ok((LoginResponse::success(user.ocid), user.id)))
-                                        .unwrap()
+                                    match request.login_type {
+                                        requests::LoginType::Email => resp
+                                            .send(Ok((
+                                                LoginResponse::success_email(user.ocid),
+                                                user.id,
+                                            )))
+                                            .unwrap(),
+                                        requests::LoginType::Ocid => resp
+                                            .send(Ok((LoginResponse::success_ocid(), user.id)))
+                                            .unwrap(),
+                                    }
                                 } else {
                                     resp.send(Err(Status::WrongPassword)).unwrap()
                                 }
@@ -143,7 +154,7 @@ impl Server {
                 }
                 DBRequest::Register { resp, request } => {
                     // 生成雪花id
-                    let id = utils::generator().generate().unwrap().into_i64() as ID;
+                    let id = utils::GENERATOR.generate().unwrap().into_i64() as ID;
                     // 随机生成生成ocid
                     let ocid = utils::generate_ocid(consts::OCID_LEN);
                     let user = UserModel {
@@ -193,7 +204,7 @@ impl Server {
     async fn handle_connection(
         stream: TcpStream,
         addr: SocketAddr,
-        shutdown_receiver: broadcast::Receiver<()>,
+        shutdown_sender: broadcast::Sender<()>,
         task_sender: mpsc::Sender<DBRequest>,
     ) {
         let ws_stream = match tokio_tungstenite::accept_async(stream).await {
@@ -205,7 +216,7 @@ impl Server {
         };
         tokio::spawn(async move {
             let mut connection =
-                connection::Connection::new(ws_stream, shutdown_receiver, task_sender);
+                connection::Connection::new(ws_stream, shutdown_sender, task_sender);
             match connection.work().await {
                 Ok(_) => {
                     log::info!("Connection closed: {}", addr);

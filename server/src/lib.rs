@@ -9,7 +9,7 @@ pub mod utils;
 use clap::Parser;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
-use std::{fs, io::Write, path, sync::OnceLock};
+use std::{fs, io::Write, path, sync::LazyLock};
 use tokio::{
     io::{self, AsyncBufReadExt, BufReader},
     select,
@@ -39,20 +39,17 @@ struct Cfg {
     dbcfg: String,
 }
 
-fn machine_id() -> u64 {
-    static TMP: OnceLock<u64> = OnceLock::new();
-    *TMP.get_or_init(|| {
-        let state = path::Path::new("machine_id").exists();
-        if state {
-            return u64::from_be_bytes(fs::read("machine_id").unwrap().try_into().unwrap());
-        }
-        log::info!("Create machine id");
-        let mut f = fs::File::create("machine_id").unwrap();
-        let id: u64 = rand::thread_rng().gen_range(0..(1024 - 1));
-        f.write_all(&id.to_be_bytes()).unwrap();
-        id
-    })
-}
+static MACHINE_ID: LazyLock<u64> = LazyLock::new(|| {
+    let state = path::Path::new("machine_id").exists();
+    if state {
+        return u64::from_be_bytes(fs::read("machine_id").unwrap().try_into().unwrap());
+    }
+    log::info!("Create machine id");
+    let mut f = fs::File::create("machine_id").unwrap();
+    let id: u64 = rand::thread_rng().gen_range(0..(1024 - 1));
+    f.write_all(&id.to_be_bytes()).unwrap();
+    id
+});
 
 /// 真正被调用的主函数
 pub async fn lib_main() -> anyhow::Result<()> {
@@ -99,44 +96,47 @@ pub async fn lib_main() -> anyhow::Result<()> {
         }
         anyhow::Ok(())
     });
-    let mut console_reader = BufReader::new(io::stdin()).lines();
-    let input_loop = async {
-        let mut shutdown_receiver = shutdown_sender.subscribe();
-        loop {
-            print!(">>>");
-            std::io::stdout().flush().unwrap();
-            let command = match console_reader.next_line().await {
-                Ok(d) => match d {
-                    Some(data) => data,
-                    None => {
-                        log::info!("Without stdin");
-                        shutdown_receiver.recv().await.unwrap();
-                        String::default()
+    if !parser.test_mode {
+        let mut console_reader = BufReader::new(io::stdin()).lines();
+        let input_loop = async {
+            let mut shutdown_receiver = shutdown_sender.subscribe();
+            loop {
+                print!(">>>");
+                std::io::stdout().flush().unwrap();
+                let command = match console_reader.next_line().await {
+                    Ok(d) => match d {
+                        Some(data) => data,
+                        None => {
+                            log::info!("Without stdin");
+                            shutdown_receiver.recv().await.unwrap();
+                            String::default()
+                        }
+                    },
+                    Err(e) => {
+                        log::error!("stdin {}", e);
+                        break;
                     }
-                },
-                Err(e) => {
-                    log::error!("stdin {}", e);
+                };
+                let command = command.trim();
+                if command == "exit" {
+                    log::info!("Exiting now...");
                     break;
                 }
-            };
-            let command = command.trim();
-            if command == "exit" {
-                log::info!("Exiting now...");
-                break;
+            }
+            anyhow::Ok(())
+        };
+        select! {
+            _ = input_loop => {
+                shutdown_sender.send(())?;
+                log::info!("Exit because command loop has exited");
+            },
+            _ = shutdown_receiver.recv() => {
+                log::info!("Command loop exited");
             }
         }
-        anyhow::Ok(())
-    };
-    select! {
-        _ = input_loop => {
-            shutdown_sender.send(())?;
-            log::info!("Exit because command loop has exited");
-        },
-        _ = shutdown_receiver.recv() => {
-            log::info!("Command loop exited");
-        }
+    } else {
+        shutdown_receiver.recv().await?;
     }
     log::info!("Server exited");
-
     Ok(())
 }

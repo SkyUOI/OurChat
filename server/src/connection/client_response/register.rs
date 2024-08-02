@@ -5,13 +5,13 @@ use thiserror::Error;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RegisterResponse {
-    code: MessageType,
+    pub code: MessageType,
     #[serde(skip_serializing_if = "Option::is_none")]
-    ocid: Option<String>,
-    status: Status,
+    pub ocid: Option<String>,
+    pub status: Status,
 }
 
-#[derive(Debug, Serialize_repr, Deserialize_repr, Error)]
+#[derive(Debug, Serialize_repr, Deserialize_repr, Error, PartialEq, Eq)]
 #[repr(i32)]
 pub enum Status {
     #[error("success")]

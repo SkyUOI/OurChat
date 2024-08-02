@@ -5,10 +5,10 @@ use thiserror::Error;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LoginResponse {
-    code: MessageType,
+    pub code: MessageType,
     #[serde(skip_serializing_if = "Option::is_none")]
-    ocid: Option<String>,
-    status: Status,
+    pub ocid: Option<String>,
+    pub status: Status,
 }
 
 #[derive(Debug, Serialize_repr, Deserialize_repr, Error)]
@@ -23,10 +23,18 @@ pub enum Status {
 }
 
 impl LoginResponse {
-    pub fn success(ocid: String) -> Self {
+    pub fn success_email(ocid: String) -> Self {
         Self {
             code: MessageType::LoginRes,
             ocid: Some(ocid),
+            status: Status::Success,
+        }
+    }
+
+    pub fn success_ocid() -> Self {
+        Self {
+            code: MessageType::LoginRes,
+            ocid: None,
             status: Status::Success,
         }
     }

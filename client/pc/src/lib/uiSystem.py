@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtCore import Qt, QTimer
-from lib.autoDestroyQDialog import AutoDestroyQDialog
+from lib.OurChatUI import AutoDestroyQDialog, AutoDestroyQWidget
 from qt_material import apply_stylesheet
 from logging import getLogger
 
@@ -17,12 +17,13 @@ class UISystem:
         self.dialogs = [
             # (dialog,ui_obj)
         ]
+        self.widgets = [
+            # (widget,ui_obj)
+        ]
         self.tick_timer = QTimer()
         self.tick_timer.timeout.connect(self.ourchat.tick)
         self.tick_timer.start(10)
-        self.theme = "dark_amber.xml"
-
-        apply_stylesheet(self.app, self.theme)
+        self.setTheme("dark_amber.xml")
 
     def createApp(self, argv):
         logger.info("createApp")
@@ -68,6 +69,31 @@ class UISystem:
         logger.info(f"add dialog {dialog_class.__qualname__}")
         return new_dialog
 
+    def setWidget(self, widget_class, only=False):
+        logger.info(f"new widget {widget_class.__qualname__}")
+        new_widget = AutoDestroyQWidget(self.ourchat)
+        new_widget_ui = widget_class(self.ourchat, new_widget)
+
+        if only:
+            remove_later = []
+            for index in range(len(self.widgets)):
+                widget, widget_ui = self.widgets[index]
+                if type(widget_ui) is type(new_widget_ui):
+                    widget.destroy()
+                    remove_later.append(index)
+
+            for i in range(len(remove_later)):
+                logger.info(
+                    f"remove widget {self.widgets[remove_later[-1]][1].__class__.__qualname__}"
+                )
+                self.widgets.pop(remove_later[-1])
+                remove_later.pop(-1)
+
+        new_widget_ui.setupUi()
+        self.widgets.append((new_widget, new_widget_ui))
+        logger.info(f"add widget {widget_class.__qualname__}")
+        return new_widget
+
     def removeDialog(self, rm_dialog):
         for i in range(len(self.dialogs)):
             dialog, dialog_ui = self.dialogs[i]
@@ -75,3 +101,19 @@ class UISystem:
                 logger.info(f"remove dialog {dialog_ui.__class__.__qualname__}")
                 self.dialogs.pop(i)
                 break
+
+    def removeWidget(self, rm_widget):
+        for i in range(len(self.widgets)):
+            widget, widget_ui = self.widgets[i]
+            if widget == rm_widget:
+                logger.info(f"remove widget {widget_ui.__class__.__qualname__}")
+                self.widgets.pop(i)
+                break
+
+    def setTheme(self, theme):
+        self.theme = theme
+        theme_type, theme_color = theme.split(".")[0].split("_")
+        invert_secondary = False
+        if theme_type == "light":
+            invert_secondary = True
+        apply_stylesheet(self.app, f"theme/{theme}", invert_secondary=invert_secondary)

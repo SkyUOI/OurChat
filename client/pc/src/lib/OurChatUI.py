@@ -11,3 +11,14 @@ class AutoDestroyQDialog(QDialog):
     def closeEvent(self, a0: QCloseEvent) -> None:
         self.uisystem.removeDialog(self)
         return super().closeEvent(a0)
+
+
+class AutoDestroyQWidget(QWidget):
+    def __init__(self, ourchat):
+        self.ourchat = ourchat
+        self.uisystem = self.ourchat.uisystem
+        super().__init__(None)
+
+    def closeEvent(self, a0: QCloseEvent) -> None:
+        self.uisystem.removeWidget(self)
+        return super().closeEvent(a0)
