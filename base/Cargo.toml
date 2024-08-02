@@ -1,0 +1,10 @@
+[package]
+name = "base"
+edition = "2021"
+version.workspace = true
+
+[dependencies]
+shadow-rs = "0"
+
+[build-dependencies]
+shadow-rs = "0"

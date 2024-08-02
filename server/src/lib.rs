@@ -16,12 +16,10 @@ use tokio::{
     sync::broadcast,
 };
 
-shadow_rs::shadow!(build);
-
 type ShutdownRev = broadcast::Receiver<()>;
 
 #[derive(Debug, Parser)]
-#[command(author = "SkyUOI", version = build::VERSION, about = "The Server of OurChat")]
+#[command(author = "SkyUOI", version = base::build::VERSION, about = "The Server of OurChat")]
 struct ArgsParser {
     #[arg(short, long, default_value_t = consts::DEFAULT_PORT)]
     port: usize,

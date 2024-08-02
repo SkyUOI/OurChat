@@ -5,6 +5,8 @@ members = [
     "client/src-tauri",
     "client/web",
     "client/web/derive",
+    "client/pc/src/rmodule",
+    "base",
 ]
 resolver = "2"
 
@@ -12,3 +14,6 @@ resolver = "2"
 lto = true
 codegen-units = 1
 strip = true
+
+[workspace.package]
+version = "0.1.0"
