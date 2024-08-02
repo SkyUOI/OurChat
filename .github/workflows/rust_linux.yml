@@ -15,14 +15,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      # - name: Install Rust
-      # uses: actions-rs/toolchain@v1
-      # with:
-      # toolchain: nightly
-      - name: Setup Rust
-        uses: MatteoH2O1999/setup-rust@master
-        with:
-          channel: nightly
+      - uses: dtolnay/rust-toolchain@stable
       - name: Setting Up Valgrind
         run: |
           python3 ./script/init_valgrind_rust.py
