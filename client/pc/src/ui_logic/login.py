@@ -8,6 +8,7 @@ from lib.msg_code import GENERATE_VERIFY
 from lib.msg_code import VERIFY_STATUS
 from PyQt5.QtWidgets import QMessageBox, QLineEdit
 from logging import getLogger
+from ui_logic.setting import Ui_Setting
 import hashlib
 
 logger = getLogger(__name__)
@@ -18,15 +19,10 @@ class Ui_Login(Ui_Login_NOLOGIC):
         self.ourchat = ourchat
         self.uisystem = self.ourchat.uisystem
         self.widget = widget
-        self.toggle_status = 0
-        self.size = None
 
     def setupUi(self):
         logger.info("setup Ui")
         super().setupUi(self.widget)
-        self.server_box.hide()
-        self.needReconnect(None)
-        self.size = self.widget.size()
 
         self.fillText()
         self.bind()
@@ -40,9 +36,7 @@ class Ui_Login(Ui_Login_NOLOGIC):
         self.connect_server_btn.clicked.connect(self.connectToServer)
         self.login_show_checkbox.clicked.connect(self.showPassword)
         self.register_show_checkbox.clicked.connect(self.showPassword)
-        self.server_ip_editor.textChanged.connect(self.needReconnect)
-        self.server_port_editor.textChanged.connect(self.needReconnect)
-        self.more_btn.clicked.connect(self.toggle)
+        self.setting_btn.clicked.connect(self.showSetting)
 
     def join(self):
         logger.debug("clicked Join Button")
@@ -76,9 +70,6 @@ class Ui_Login(Ui_Login_NOLOGIC):
 
     def connectToServer(self):
         logger.debug("clicked Connect Server Button")
-        self.ourchat.conn.setServer(
-            self.server_ip_editor.text(), self.server_port_editor.text()
-        )
         self.ourchat.runThread(self.ourchat.conn.connect, self.connectedServer)
 
     def connectedServer(self, result):
@@ -159,22 +150,5 @@ class Ui_Login(Ui_Login_NOLOGIC):
         self.login_password_editor.setEchoMode(echo_mode)
         self.register_password_editor.setEchoMode(echo_mode)
 
-    def needReconnect(self, a):
-        logger.debug("ip/port has changed")
-        self.join_btn.setEnabled(False)
-        self.connect_server_btn.setEnabled(True)
-
-    def resize(self, size):
-        self.widget.resize(size[0])
-
-    def toggle(self):
-        if self.toggle_status:
-            self.server_box.hide()
-            self.toggle_status = 0
-            self.ourchat.runLater(self.resize, self.size)
-            self.more_btn.setText("More")
-        else:
-            self.size = self.widget.size()
-            self.more_btn.setText("Less")
-            self.server_box.show()
-            self.toggle_status = 1
+    def showSetting(self):
+        self.ourchat.uisystem.setWidget(Ui_Setting, True).show()

@@ -14,7 +14,7 @@ from PyQt5 import QtCore, QtWidgets
 class Ui_Login(object):
     def setupUi(self, Login):
         Login.setObjectName("Login")
-        Login.resize(340, 270)
+        Login.resize(330, 210)
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(Login)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.tabWidget = QtWidgets.QTabWidget(Login)
@@ -59,15 +59,19 @@ class Ui_Login(object):
         self.formLayout.setLayout(
             3, QtWidgets.QFormLayout.FieldRole, self.horizontalLayout
         )
+        spacerItem2 = QtWidgets.QSpacerItem(
+            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
+        self.formLayout.setItem(4, QtWidgets.QFormLayout.FieldRole, spacerItem2)
         self.tabWidget.addTab(self.login_tab, "Login")
         self.register_tab = QtWidgets.QWidget()
         self.register_tab.setObjectName("register_tab")
         self.formLayout_2 = QtWidgets.QFormLayout(self.register_tab)
         self.formLayout_2.setObjectName("formLayout_2")
-        spacerItem2 = QtWidgets.QSpacerItem(
+        spacerItem3 = QtWidgets.QSpacerItem(
             20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
         )
-        self.formLayout_2.setItem(0, QtWidgets.QFormLayout.FieldRole, spacerItem2)
+        self.formLayout_2.setItem(0, QtWidgets.QFormLayout.FieldRole, spacerItem3)
         self.label_5 = QtWidgets.QLabel(self.register_tab)
         self.label_5.setText("Email")
         self.label_5.setObjectName("label_5")
@@ -89,10 +93,10 @@ class Ui_Login(object):
         )
         self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
-        spacerItem3 = QtWidgets.QSpacerItem(
+        spacerItem4 = QtWidgets.QSpacerItem(
             40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
         )
-        self.horizontalLayout_2.addItem(spacerItem3)
+        self.horizontalLayout_2.addItem(spacerItem4)
         self.register_show_checkbox = QtWidgets.QCheckBox(self.register_tab)
         self.register_show_checkbox.setText("Show")
         self.register_show_checkbox.setObjectName("register_show_checkbox")
@@ -100,59 +104,21 @@ class Ui_Login(object):
         self.formLayout_2.setLayout(
             3, QtWidgets.QFormLayout.FieldRole, self.horizontalLayout_2
         )
+        spacerItem5 = QtWidgets.QSpacerItem(
+            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
+        self.formLayout_2.setItem(4, QtWidgets.QFormLayout.FieldRole, spacerItem5)
         self.tabWidget.addTab(self.register_tab, "Register")
         self.verticalLayout_2.addWidget(self.tabWidget)
-        self.server_box = QtWidgets.QGroupBox(Login)
-        self.server_box.setObjectName("server_box")
-        self.verticalLayout = QtWidgets.QVBoxLayout(self.server_box)
-        self.verticalLayout.setObjectName("verticalLayout")
-        self.horizontalLayout_4 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_4.setObjectName("horizontalLayout_4")
-        spacerItem4 = QtWidgets.QSpacerItem(
-            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
-        )
-        self.horizontalLayout_4.addItem(spacerItem4)
-        self.label = QtWidgets.QLabel(self.server_box)
-        self.label.setText("Server   IP")
-        self.label.setObjectName("label")
-        self.horizontalLayout_4.addWidget(self.label)
-        self.server_ip_editor = QtWidgets.QLineEdit(self.server_box)
-        self.server_ip_editor.setObjectName("server_ip_editor")
-        self.horizontalLayout_4.addWidget(self.server_ip_editor)
-        spacerItem5 = QtWidgets.QSpacerItem(
-            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
-        )
-        self.horizontalLayout_4.addItem(spacerItem5)
-        self.verticalLayout.addLayout(self.horizontalLayout_4)
-        self.horizontalLayout_5 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_5.setObjectName("horizontalLayout_5")
+        self.horizontalLayout_6 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_6.setObjectName("horizontalLayout_6")
+        self.setting_btn = QtWidgets.QPushButton(Login)
+        self.setting_btn.setObjectName("setting_btn")
+        self.horizontalLayout_6.addWidget(self.setting_btn)
         spacerItem6 = QtWidgets.QSpacerItem(
             40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
         )
-        self.horizontalLayout_5.addItem(spacerItem6)
-        self.label_2 = QtWidgets.QLabel(self.server_box)
-        self.label_2.setText("Server Port")
-        self.label_2.setObjectName("label_2")
-        self.horizontalLayout_5.addWidget(self.label_2)
-        self.server_port_editor = QtWidgets.QLineEdit(self.server_box)
-        self.server_port_editor.setText("")
-        self.server_port_editor.setObjectName("server_port_editor")
-        self.horizontalLayout_5.addWidget(self.server_port_editor)
-        spacerItem7 = QtWidgets.QSpacerItem(
-            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
-        )
-        self.horizontalLayout_5.addItem(spacerItem7)
-        self.verticalLayout.addLayout(self.horizontalLayout_5)
-        self.verticalLayout_2.addWidget(self.server_box)
-        self.horizontalLayout_6 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_6.setObjectName("horizontalLayout_6")
-        self.more_btn = QtWidgets.QPushButton(Login)
-        self.more_btn.setObjectName("more_btn")
-        self.horizontalLayout_6.addWidget(self.more_btn)
-        spacerItem8 = QtWidgets.QSpacerItem(
-            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
-        )
-        self.horizontalLayout_6.addItem(spacerItem8)
+        self.horizontalLayout_6.addItem(spacerItem6)
         self.connect_server_btn = QtWidgets.QPushButton(Login)
         self.connect_server_btn.setText("Connect Server")
         self.connect_server_btn.setObjectName("connect_server_btn")
@@ -161,10 +127,10 @@ class Ui_Login(object):
         self.join_btn.setText("Join")
         self.join_btn.setObjectName("join_btn")
         self.horizontalLayout_6.addWidget(self.join_btn)
-        spacerItem9 = QtWidgets.QSpacerItem(
+        spacerItem7 = QtWidgets.QSpacerItem(
             40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
         )
-        self.horizontalLayout_6.addItem(spacerItem9)
+        self.horizontalLayout_6.addItem(spacerItem7)
         self.verticalLayout_2.addLayout(self.horizontalLayout_6)
 
         self.retranslateUi(Login)
@@ -174,5 +140,4 @@ class Ui_Login(object):
     def retranslateUi(self, Login):
         _translate = QtCore.QCoreApplication.translate
         Login.setWindowTitle(_translate("Login", "Form"))
-        self.server_box.setTitle(_translate("Login", "Server"))
-        self.more_btn.setText(_translate("Login", "More"))
+        self.setting_btn.setText(_translate("Login", "Setting"))
