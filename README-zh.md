@@ -1,5 +1,7 @@
 # OurChat
 
+![ourchat](./resource/logo.png)
+
 | 平台    | 状态                                                                                                   |
 | :------ | :----------------------------------------------------------------------------------------------------- |
 | Linux   | ![Linux Test](https://img.shields.io/github/actions/workflow/status/skyuoi/ourchat/rust_linux.yml)     |

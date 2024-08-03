@@ -146,4 +146,6 @@ static TEST_USER: LazyLock<TestUser> = LazyLock::new(|| {
 pub fn teardown() {
     let ptr = (&*INIT_SERVER) as *const (UnregisterHook, Conn) as *mut (UnregisterHook, Conn);
     unsafe { drop_in_place(ptr) }
+    let server_handle = &*SERVER_HANDLE as *const SetUpHandle as *mut SetUpHandle;
+    unsafe { drop_in_place(server_handle) }
 }

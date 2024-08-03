@@ -1,5 +1,7 @@
 # OurChat
 
+![ourchat](./resource/logo.png)
+
 ## [中文](./README-zh.md)
 
 | Platform | Status                                                                                                 |
