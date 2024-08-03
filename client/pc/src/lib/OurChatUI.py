@@ -1,5 +1,5 @@
-from PyQt5.QtWidgets import QDialog, QWidget
-from PyQt5.QtGui import QCloseEvent
+from PyQt6.QtWidgets import QDialog, QWidget
+from PyQt6.QtGui import QCloseEvent
 
 
 class AutoDestroyQDialog(QDialog):

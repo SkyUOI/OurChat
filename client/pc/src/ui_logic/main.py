@@ -1,5 +1,5 @@
 from ui.main import Ui_Main as Ui_Main_NOLOGIC
-from PyQt5.QtWidgets import QWidget
+from PyQt6.QtWidgets import QWidget
 from ui_logic.chat import Ui_Chat
 from ui_logic.setting import Ui_Setting
 from ui_logic.account import Ui_Account

@@ -1,7 +1,7 @@
-from PyQt5.QtWidgets import QApplication, QMainWindow
-from PyQt5.QtCore import Qt, QTimer, QDir
+from PyQt6.QtWidgets import QApplication, QMainWindow
+from PyQt6.QtCore import QTimer, QDir
 from lib.OurChatUI import AutoDestroyQDialog, AutoDestroyQWidget
-from PyQt5.QtGui import QFontDatabase
+from PyQt6.QtGui import QFontDatabase
 from logging import getLogger
 
 logger = getLogger(__name__)
@@ -11,7 +11,7 @@ class UISystem:
     def __init__(self, ourchat, argv):
         logger.info("UISystem init")
         self.ourchat = ourchat
-        self.app = self.createApp(argv)
+        self.app = QApplication(argv)
         self.mainwindow = QMainWindow()
         self.ui = None
         self.dialogs = [
@@ -26,15 +26,6 @@ class UISystem:
         QFontDatabase.addApplicationFont("resources/fonts/Roboto-Medium.ttf")
         self.setTheme("dark_amber")
 
-    def createApp(self, argv):
-        logger.info("createApp")
-        QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
-        QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
-        QApplication.setHighDpiScaleFactorRoundingPolicy(
-            Qt.HighDpiScaleFactorRoundingPolicy.Round
-        )
-        return QApplication(argv)
-
     def setUI(self, ui_class):
         logger.info(f"setUi to {ui_class.__qualname__}")
         self.ui = ui_class(self.ourchat)
@@ -43,7 +34,7 @@ class UISystem:
 
     def exec(self):
         logger.info("start ui mainloop")
-        self.app.exec_()
+        self.app.exec()
 
     def setDialog(self, dialog_class, only=False):
         logger.info(f"new dialog {dialog_class.__qualname__}")

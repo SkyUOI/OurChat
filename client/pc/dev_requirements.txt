@@ -1,5 +1,5 @@
-PyQt5
+PyQt6
 qt_material
 websockets
 maturin
-pyqt5-tools
+pyqt6-tools

@@ -4,7 +4,7 @@ from ui_logic.main import Ui_Main
 from ui_logic.login import Ui_Login
 from concurrent.futures import ThreadPoolExecutor, wait
 from logging import getLogger
-from PyQt5.QtWidgets import QMessageBox
+from PyQt6.QtWidgets import QMessageBox
 import hashlib
 import sys
 

@@ -6,7 +6,7 @@ from lib.msg_code import LOGIN
 from lib.msg_code import LOGIN_RESPONSE
 from lib.msg_code import GENERATE_VERIFY
 from lib.msg_code import VERIFY_STATUS
-from PyQt5.QtWidgets import QMessageBox, QLineEdit
+from PyQt6.QtWidgets import QMessageBox, QLineEdit
 from logging import getLogger
 from ui_logic.setting import Ui_Setting
 import hashlib
