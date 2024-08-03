@@ -23,6 +23,7 @@ class Ui_Login(Ui_Login_NOLOGIC):
     def setupUi(self):
         logger.info("setup Ui")
         super().setupUi(self.widget)
+        self.join_btn.setEnabled(False)
 
         self.fillText()
         self.bind()
@@ -144,9 +145,9 @@ class Ui_Login(Ui_Login_NOLOGIC):
         self.register_show_checkbox.setChecked(status)
 
         if status:
-            echo_mode = QLineEdit.Normal
+            echo_mode = QLineEdit.EchoMode.Normal
         else:
-            echo_mode = QLineEdit.Password
+            echo_mode = QLineEdit.EchoMode.Password
         self.login_password_editor.setEchoMode(echo_mode)
         self.register_password_editor.setEchoMode(echo_mode)
 
