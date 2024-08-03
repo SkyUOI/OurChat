@@ -3,12 +3,13 @@ from lib.uiSystem import UISystem
 from ui_logic.main import Ui_Main
 from ui_logic.login import Ui_Login
 from concurrent.futures import ThreadPoolExecutor, wait
-from logging import getLogger, INFO
+from logging import getLogger, DEBUG, INFO, WARNING, CRITICAL, ERROR
 from PyQt6.QtWidgets import QMessageBox
 import sys
 import os
 import json
 import datetime
+import re
 
 logger = getLogger(__name__)
 
@@ -17,6 +18,9 @@ class OurChat:
     def __init__(self):
         logger.info("OurChat init")
         self.config = OurChatConfig()
+        self.language = OurChatLanguage(
+            filename=f'{self.config["general"]["language"]}.lang'
+        )
         self.conn = Connection(self)
         self.conn.setServer(self.config["server"]["ip"], self.config["server"]["port"])
         self.uisystem = None
@@ -99,6 +103,8 @@ class OurChat:
 
     def clearLog(self):
         logger.info("start to clear log")
+        if self.config["advanced"]["log_saving_limit"] == -1:
+            return
         logs = os.listdir("log")
         logs.sort()
         for log in logs:
@@ -124,8 +130,8 @@ class OurChatConfig:
 
     def defaultConfig(self):
         return {
-            "server": {"ip": "127.0.0.1", "port": 7777},
-            "general": {"theme": "dark_amber", "language": "en_us"},
+            "server": {"ip": "127.0.0.1", "port": 7777, "reconnection_attempt": 5},
+            "general": {"theme": "dark_amber", "language": "en-us"},
             "advanced": {"log_level": INFO, "log_saving_limit": 30},
         }
 
@@ -144,6 +150,7 @@ class OurChatConfig:
             self.write()
         with open(os.path.join(self.path, self.filename), "r") as f:
             self.config = json.load(f)
+        self.check()
 
     def __getitem__(self, key):
         if key not in self.config.keys():
@@ -157,3 +164,95 @@ class OurChatConfig:
 
     def __setitem__(self, key, value):
         self.config[key] = value
+
+    def checkType(self, value_type=None, default_value=None, config=None):
+        if value_type is None:
+            logger.info("check config")
+            value_type = {
+                "server": {"ip": str, "port": int, "reconnection_attempt": int},
+                "general": {"theme": str, "language": str},
+                "advanced": {"log_level": int, "log_saving_limit": int},
+            }
+            default_value = self.defaultConfig()
+            config = self.config
+
+        if isinstance(default_value, dict):
+            for key in value_type.keys():
+                if key not in config.keys():
+                    config[key] = default_value[key]
+                else:
+                    config[key] = self.checkType(
+                        value_type[key], default_value[key], config[key]
+                    )
+            return config
+        else:
+            if isinstance(config, value_type):
+                return config
+            else:
+                return default_value
+
+    def check(self):
+        logger.info("check config")
+        self.checkType()
+
+        default = self.defaultConfig()
+        ip = re.match(
+            "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$",
+            self["server"]["ip"],
+        )
+        if ip is None:
+            self["server"]["ip"] = default["server"]["ip"]
+
+        themes = os.listdir("theme")
+        if self["general"]["theme"] not in themes:
+            if default["general"]["theme"] in themes:
+                self["general"]["theme"] = default["general"]["theme"]
+            elif len(themes) > 0:
+                self["general"]["theme"] = themes[0]
+            else:
+                self["general"]["theme"] = None
+
+        languages = [language.replace(".lang", "") for language in os.listdir("lang")]
+        if self["general"]["language"] not in languages:
+            if default["general"]["language"] in languages:
+                self["general"]["language"] = default["general"]["language"]
+            elif len(languages) > 0:
+                self["general"]["language"] = languages[0]
+            else:
+                self["general"]["language"] = None
+
+        if self["advanced"]["log_level"] not in [DEBUG, INFO, WARNING, ERROR, CRITICAL]:
+            self["advanced"]["log_level"] = default["advanced"]["log_level"]
+
+        if (
+            self["advanced"]["log_saving_limit"] < 1
+            and self["advanced"]["log_saving_limit"] != -1
+        ):
+            self["advanced"]["log_saving_limit"] = default["advanced"][
+                "log_saving_limit"
+            ]
+
+
+class OurChatLanguage:
+    def __init__(self, path="./lang", filename="en-us.lang"):
+        self.path = path
+        self.filename = filename
+        self.translate = {}
+        self.read()
+
+    def read(self):
+        self.translate = {}
+        with open(os.path.join(self.path, self.filename), "r") as f:
+            for line in f.readlines():
+                line = line.strip()
+                line = line.split("#")[0]
+                if "=" not in line:
+                    continue
+                key, value = line.split("=")
+                key, value = key.strip(), value.strip()
+                self.translate[key] = value
+
+    def __getitem__(self, key):
+        if key not in self.translate.keys():
+            return key
+        return self.translate[key]

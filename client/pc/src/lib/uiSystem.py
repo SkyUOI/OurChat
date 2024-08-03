@@ -103,6 +103,8 @@ class UISystem:
                 break
 
     def setTheme(self, theme):
+        if theme is None:
+            return
         QDir.setSearchPaths("icon", [f"theme/{theme}/resources"])
         with open(f"theme/{theme}/{theme}.qss", "r") as f:
             qss = f.read()
