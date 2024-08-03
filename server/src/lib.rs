@@ -22,6 +22,9 @@ use tracing_subscriber::{
     fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer, Registry,
 };
 
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 type ShutdownRev = broadcast::Receiver<()>;
 
 #[derive(Debug, Parser)]

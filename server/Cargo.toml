@@ -40,6 +40,7 @@ tracing = { version = "0" }
 tracing-appender = "0"
 tracing-subscriber = { version = "0", features = ["tracing-log", "env-filter"] }
 migration = { path = "migration" }
+mimalloc = "0"
 
 [build-dependencies]
 shadow-rs = "0"
