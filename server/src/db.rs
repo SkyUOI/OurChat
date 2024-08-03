@@ -2,6 +2,7 @@
 
 pub mod user;
 
+use migration::MigratorTrait;
 use sea_orm::{ConnectionTrait, Statement};
 use serde::{Deserialize, Serialize};
 
@@ -31,79 +32,9 @@ pub async fn connect_to_db(url: &str) -> anyhow::Result<sea_orm::DatabaseConnect
     Ok(sea_orm::Database::connect(url).await?)
 }
 
-/// 初始化数据库,生成一些表
+/// 初始化数据库并运行迁移
 pub async fn init_db(db: &sea_orm::DatabaseConnection) -> anyhow::Result<()> {
-    db.execute(Statement::from_string(
-        db.get_database_backend(),
-        r#"CREATE TABLE IF NOT EXISTS user(
-            id BIGINT UNSIGNED,
-            ocid CHAR(10) NOT NULL,
-            passwd CHAR(64) NOT NULL,
-            name CHAR(15) NOT NULL,
-            email CHAR(120) NOT NULL,
-            time BIGINT UNSIGNED NOT NULL,
-            PRIMARY KEY(id),
-            UNIQUE KEY(ocid),
-            UNIQUE KEY(email)
-            )DEFAULT CHARSET=utf8mb4;"#
-            .to_string(),
-    ))
-    .await?;
-    db.execute(Statement::from_string(
-        db.get_database_backend(),
-        r#"CREATE TABLE IF NOT EXISTS friend(
-            user_id BIGINT UNSIGNED,
-            friend_id BIGINT UNSIGNED NOT NULL,
-            name CHAR(15) NOT NULL,
-            PRIMARY KEY(user_id)
-            )DEFAULT CHARSET=utf8mb4;"#
-            .to_string(),
-    ))
-    .await?;
-    db.execute(Statement::from_string(
-        db.get_database_backend(),
-        r#"CREATE TABLE IF NOT EXISTS chat(
-            group_id BIGINT UNSIGNED,
-            user_id BIGINT UNSIGNED NOT NULL,
-            name CHAR(15) NOT NULL,
-            group_name CHAR(30) NOT NULL,
-            PRIMARY KEY(group_id)
-            )DEFAULT CHARSET=utf8mb4;"#
-            .to_string(),
-    ))
-    .await?;
-    db.execute(Statement::from_string(
-        db.get_database_backend(),
-        r#"CREATE TABLE IF NOT EXISTS chatgroup(
-            group_id BIGINT UNSIGNED,
-            group_name CHAR(30) NOT NULL,
-            PRIMARY KEY(group_id)
-            )DEFAULT CHARSET=utf8mb4;"#
-            .to_string(),
-    ))
-    .await?;
-    db.execute(Statement::from_string(
-        db.get_database_backend(),
-        r#"CREATE TABLE IF NOT EXISTS user_chat_msg(
-            user_id BIGINT UNSIGNED NOT NULL,
-            chat_msg_id INT UNSIGNED NOT NULL,
-            PRIMARY KEY(chat_msg_id)
-            )DEFAULT CHARSET=utf8mb4;"#
-            .to_string(),
-    ))
-    .await?;
-    db.execute(Statement::from_string(
-        db.get_database_backend(),
-        r#"CREATE TABLE IF NOT EXISTS user_chat_id(
-            chat_msg_id INT UNSIGNED AUTO_INCREMENT,
-            msg_type INT UNSIGNED NOT NULL,
-            msg_data VARCHAR(8000) NOT NULL,
-            sender_id BIGINT UNSIGNED NOT NULL,
-            PRIMARY KEY(chat_msg_id)
-            )DEFAULT CHARSET=utf8mb4;"#
-            .to_string(),
-    ))
-    .await?;
+    migration::Migrator::up(db, None).await?;
     tracing::info!("Initialized database");
     Ok(())
 }
