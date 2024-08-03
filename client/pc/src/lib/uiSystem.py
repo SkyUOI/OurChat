@@ -24,7 +24,7 @@ class UISystem:
         self.tick_timer.timeout.connect(self.ourchat.tick)
         self.tick_timer.start(10)
         QFontDatabase.addApplicationFont("resources/fonts/Roboto-Medium.ttf")
-        self.setTheme("dark_amber")
+        self.setTheme(self.ourchat.config["general"]["theme"])
 
     def setUI(self, ui_class):
         logger.info(f"setUi to {ui_class.__qualname__}")

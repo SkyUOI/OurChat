@@ -3,10 +3,12 @@ from lib.uiSystem import UISystem
 from ui_logic.main import Ui_Main
 from ui_logic.login import Ui_Login
 from concurrent.futures import ThreadPoolExecutor, wait
-from logging import getLogger
+from logging import getLogger, INFO
 from PyQt6.QtWidgets import QMessageBox
-import hashlib
 import sys
+import os
+import json
+import datetime
 
 logger = getLogger(__name__)
 
@@ -14,7 +16,9 @@ logger = getLogger(__name__)
 class OurChat:
     def __init__(self):
         logger.info("OurChat init")
+        self.config = OurChatConfig()
         self.conn = Connection(self)
+        self.conn.setServer(self.config["server"]["ip"], self.config["server"]["port"])
         self.uisystem = None
         self.thread_pool = ThreadPoolExecutor(2)
         self.listen_message = {}
@@ -92,15 +96,64 @@ class OurChat:
         dialog = self.uisystem.setWidget(Ui_Login, True)
         dialog.show()
 
+    def clearLog(self):
+        logger.info("start to clear log")
+        logs = os.listdir("log")
+        logs.sort()
+        for log in logs:
+            date = datetime.datetime.strptime(
+                log.replace(".log", ""), "%Y-%m-%d"
+            ).date()
+            now = datetime.datetime.now().date()
+            days = (now - date).days
+            if days > self.config["advanced"]["log_saving_limit"]:
+                logger.info(f"remove log {log}")
+                os.remove(os.path.join("log", log))
+
 
 class OurChatAccount:
-    def __init__(self, ourchat: OurChat):
-        self.ourchat = ourchat
-        self.ocid = None
+    pass
 
-    def register(self, email, password):
-        sha256 = hashlib.sha256()
-        sha256.update(password.encode("ascii"))
-        encoded_password = sha256.hexdigest()
-        data = {"code": 4, "email": email, "password": encoded_password}
-        self.ourchat.sendData(data)
+
+class OurChatConfig:
+    def __init__(self, path="./", filename="config.json"):
+        self.path = path
+        self.filename = filename
+        self.read()
+
+    def defaultConfig(self):
+        return {
+            "server": {"ip": "127.0.0.1", "port": 7777},
+            "general": {"theme": "dark_amber", "language": "en_us"},
+            "advanced": {"log_level": INFO, "log_saving_limit": 30},
+        }
+
+    def write(self, data):
+        logger.info(f"write config to {os.path.join(self.path,self.filename)}")
+        with open(os.path.join(self.path, self.filename), "w") as f:
+            json.dump(data, f, indent=1)
+
+    def read(self):
+        logger.info(f"read config from {os.path.join(self.path,self.filename)}")
+        if not os.path.exists(os.path.join(self.path, self.filename)):
+            logger.info(
+                f"{os.path.join(self.path,self.filename)} not exist, use default config"
+            )
+            self.config = self.defaultConfig()
+            self.write(self.config)
+        with open(os.path.join(self.path, self.filename), "r") as f:
+            self.config = json.load(f)
+
+    def __getitem__(self, key):
+        if key not in self.config.keys():
+            default = self.defaultConfig()
+            if key in default.keys():
+                self[key] = default[key]
+                return self[key]
+            else:
+                return None
+        return self.config[key]
+
+    def __setitem__(self, key, value):
+        self.config[key] = value
+        self.write(self.config)
