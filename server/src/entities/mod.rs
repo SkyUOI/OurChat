@@ -3,7 +3,7 @@
 pub mod prelude;
 
 pub mod chat;
-pub mod chatgroup;
+pub mod chat_group;
 pub mod friend;
 pub mod user;
 pub mod user_chat_id;

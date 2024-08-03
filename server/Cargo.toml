@@ -39,6 +39,7 @@ base = { path = "../base" }
 tracing = { version = "0" }
 tracing-appender = "0"
 tracing-subscriber = { version = "0", features = ["tracing-log", "env-filter"] }
+migration = { path = "migration" }
 
 [build-dependencies]
 shadow-rs = "0"
