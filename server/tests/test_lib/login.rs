@@ -1,4 +1,4 @@
-use crate::{create_connection, ClientWS, TEST_USER};
+use super::{create_connection, ClientWS, TEST_USER};
 use futures_util::{SinkExt, StreamExt};
 use server::{
     connection::client_response::{self, ErrorMsgResponse},

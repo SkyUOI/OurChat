@@ -1,4 +1,4 @@
-use crate::{create_connection, TEST_USER};
+use super::{create_connection, TEST_USER};
 use futures_util::{SinkExt, StreamExt};
 use server::{connection::client_response, consts::MessageType, requests::Register};
 use std::thread;

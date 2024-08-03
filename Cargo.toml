@@ -2,7 +2,6 @@
 members = [
     "server",
     "server/migration",
-    "server/test_lib",
     "client/src-tauri",
     "client/web",
     "client/web/derive",

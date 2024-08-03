@@ -1,3 +1,5 @@
+mod test_lib;
+
 use futures_util::{SinkExt, StreamExt};
 use server::{
     connection::client_response::{self, ErrorMsgResponse, LoginResponse},
@@ -11,4 +13,4 @@ fn test_login_register() {
     test_lib::init_server();
 }
 
-test_lib::cleanup!();
+cleanup!();
