@@ -71,6 +71,7 @@ class OurChat:
         logger.debug("wait for threads")
         wait(self.tasks)
         self.thread_pool.shutdown()
+        self.config.write()
         logger.info("OurChat has been closed")
 
     def listen(self, message_code, func):
@@ -128,10 +129,10 @@ class OurChatConfig:
             "advanced": {"log_level": INFO, "log_saving_limit": 30},
         }
 
-    def write(self, data):
+    def write(self):
         logger.info(f"write config to {os.path.join(self.path,self.filename)}")
         with open(os.path.join(self.path, self.filename), "w") as f:
-            json.dump(data, f, indent=1)
+            json.dump(self.config, f, indent=1)
 
     def read(self):
         logger.info(f"read config from {os.path.join(self.path,self.filename)}")
@@ -140,7 +141,7 @@ class OurChatConfig:
                 f"{os.path.join(self.path,self.filename)} not exist, use default config"
             )
             self.config = self.defaultConfig()
-            self.write(self.config)
+            self.write()
         with open(os.path.join(self.path, self.filename), "r") as f:
             self.config = json.load(f)
 
@@ -156,4 +157,3 @@ class OurChatConfig:
 
     def __setitem__(self, key, value):
         self.config[key] = value
-        self.write(self.config)
