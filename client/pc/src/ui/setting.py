@@ -40,33 +40,33 @@ class Ui_Setting(object):
         self.horizontalLayout.addItem(spacerItem1)
         self.formLayout = QtWidgets.QFormLayout()
         self.formLayout.setObjectName("formLayout")
-        self.label = QtWidgets.QLabel(parent=self.server)
-        self.label.setText("IP")
-        self.label.setObjectName("label")
+        self.ip_label = QtWidgets.QLabel(parent=self.server)
+        self.ip_label.setText("IP")
+        self.ip_label.setObjectName("ip_label")
         self.formLayout.setWidget(
-            0, QtWidgets.QFormLayout.ItemRole.LabelRole, self.label
+            0, QtWidgets.QFormLayout.ItemRole.LabelRole, self.ip_label
         )
         self.ip_editor = QtWidgets.QLineEdit(parent=self.server)
         self.ip_editor.setObjectName("ip_editor")
         self.formLayout.setWidget(
             0, QtWidgets.QFormLayout.ItemRole.FieldRole, self.ip_editor
         )
-        self.label_2 = QtWidgets.QLabel(parent=self.server)
-        self.label_2.setText("Port")
-        self.label_2.setObjectName("label_2")
+        self.port_label = QtWidgets.QLabel(parent=self.server)
+        self.port_label.setText("Port")
+        self.port_label.setObjectName("port_label")
         self.formLayout.setWidget(
-            1, QtWidgets.QFormLayout.ItemRole.LabelRole, self.label_2
+            1, QtWidgets.QFormLayout.ItemRole.LabelRole, self.port_label
         )
         self.port_editor = QtWidgets.QLineEdit(parent=self.server)
         self.port_editor.setObjectName("port_editor")
         self.formLayout.setWidget(
             1, QtWidgets.QFormLayout.ItemRole.FieldRole, self.port_editor
         )
-        self.label_3 = QtWidgets.QLabel(parent=self.server)
-        self.label_3.setText("Reconnection Attempt")
-        self.label_3.setObjectName("label_3")
+        self.reconnection_attemp_label = QtWidgets.QLabel(parent=self.server)
+        self.reconnection_attemp_label.setText("Reconnection Attempt")
+        self.reconnection_attemp_label.setObjectName("reconnection_attemp_label")
         self.formLayout.setWidget(
-            2, QtWidgets.QFormLayout.ItemRole.LabelRole, self.label_3
+            2, QtWidgets.QFormLayout.ItemRole.LabelRole, self.reconnection_attemp_label
         )
         self.reconnection_attempt_box = QtWidgets.QSpinBox(parent=self.server)
         self.reconnection_attempt_box.setMinimum(1)
@@ -114,22 +114,22 @@ class Ui_Setting(object):
         self.horizontalLayout_3.addItem(spacerItem5)
         self.formLayout_2 = QtWidgets.QFormLayout()
         self.formLayout_2.setObjectName("formLayout_2")
-        self.label_4 = QtWidgets.QLabel(parent=self.general)
-        self.label_4.setText("Language")
-        self.label_4.setObjectName("label_4")
+        self.language_label = QtWidgets.QLabel(parent=self.general)
+        self.language_label.setText("Language")
+        self.language_label.setObjectName("language_label")
         self.formLayout_2.setWidget(
-            0, QtWidgets.QFormLayout.ItemRole.LabelRole, self.label_4
+            0, QtWidgets.QFormLayout.ItemRole.LabelRole, self.language_label
         )
         self.language_combobox = QtWidgets.QComboBox(parent=self.general)
         self.language_combobox.setObjectName("language_combobox")
         self.formLayout_2.setWidget(
             0, QtWidgets.QFormLayout.ItemRole.FieldRole, self.language_combobox
         )
-        self.label_5 = QtWidgets.QLabel(parent=self.general)
-        self.label_5.setText("Theme")
-        self.label_5.setObjectName("label_5")
+        self.theme_label = QtWidgets.QLabel(parent=self.general)
+        self.theme_label.setText("Theme")
+        self.theme_label.setObjectName("theme_label")
         self.formLayout_2.setWidget(
-            1, QtWidgets.QFormLayout.ItemRole.LabelRole, self.label_5
+            1, QtWidgets.QFormLayout.ItemRole.LabelRole, self.theme_label
         )
         self.theme_combobox = QtWidgets.QComboBox(parent=self.general)
         self.theme_combobox.setObjectName("theme_combobox")
@@ -175,32 +175,32 @@ class Ui_Setting(object):
         self.horizontalLayout_6.addItem(spacerItem9)
         self.formLayout_3 = QtWidgets.QFormLayout()
         self.formLayout_3.setObjectName("formLayout_3")
-        self.label_6 = QtWidgets.QLabel(parent=self.advanced)
-        self.label_6.setText("Log Level")
-        self.label_6.setObjectName("label_6")
+        self.log_level_label = QtWidgets.QLabel(parent=self.advanced)
+        self.log_level_label.setText("Log Level")
+        self.log_level_label.setObjectName("log_level_label")
         self.formLayout_3.setWidget(
-            0, QtWidgets.QFormLayout.ItemRole.LabelRole, self.label_6
+            0, QtWidgets.QFormLayout.ItemRole.LabelRole, self.log_level_label
         )
         self.log_level_combobox = QtWidgets.QComboBox(parent=self.advanced)
         self.log_level_combobox.setObjectName("log_level_combobox")
         self.formLayout_3.setWidget(
             0, QtWidgets.QFormLayout.ItemRole.FieldRole, self.log_level_combobox
         )
-        self.label_7 = QtWidgets.QLabel(parent=self.advanced)
-        self.label_7.setText("Log Saving Limit")
-        self.label_7.setObjectName("label_7")
+        self.log_saving_limit_label = QtWidgets.QLabel(parent=self.advanced)
+        self.log_saving_limit_label.setText("Log Saving Limit")
+        self.log_saving_limit_label.setObjectName("log_saving_limit_label")
         self.formLayout_3.setWidget(
-            1, QtWidgets.QFormLayout.ItemRole.LabelRole, self.label_7
+            1, QtWidgets.QFormLayout.ItemRole.LabelRole, self.log_saving_limit_label
         )
         self.horizontalLayout_4 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_4.setObjectName("horizontalLayout_4")
         self.log_saving_combobox = QtWidgets.QComboBox(parent=self.advanced)
         self.log_saving_combobox.setObjectName("log_saving_combobox")
         self.horizontalLayout_4.addWidget(self.log_saving_combobox)
-        self.label_8 = QtWidgets.QLabel(parent=self.advanced)
-        self.label_8.setText("Day(s)")
-        self.label_8.setObjectName("label_8")
-        self.horizontalLayout_4.addWidget(self.label_8)
+        self.days_label = QtWidgets.QLabel(parent=self.advanced)
+        self.days_label.setText("Day(s)")
+        self.days_label.setObjectName("days_label")
+        self.horizontalLayout_4.addWidget(self.days_label)
         self.formLayout_3.setLayout(
             1, QtWidgets.QFormLayout.ItemRole.FieldRole, self.horizontalLayout_4
         )
@@ -250,20 +250,20 @@ class Ui_Setting(object):
         self.horizontalLayout_7.setObjectName("horizontalLayout_7")
         self.verticalLayout_5 = QtWidgets.QVBoxLayout()
         self.verticalLayout_5.setObjectName("verticalLayout_5")
-        self.label_12 = QtWidgets.QLabel(parent=self.about)
-        self.label_12.setText("Main Developer")
-        self.label_12.setObjectName("label_12")
-        self.verticalLayout_5.addWidget(self.label_12)
+        self.main_developer_label = QtWidgets.QLabel(parent=self.about)
+        self.main_developer_label.setText("Main Developers")
+        self.main_developer_label.setObjectName("main_developer_label")
+        self.verticalLayout_5.addWidget(self.main_developer_label)
         self.main_developer_text = QtWidgets.QTextBrowser(parent=self.about)
         self.main_developer_text.setObjectName("main_developer_text")
         self.verticalLayout_5.addWidget(self.main_developer_text)
         self.horizontalLayout_7.addLayout(self.verticalLayout_5)
         self.verticalLayout_6 = QtWidgets.QVBoxLayout()
         self.verticalLayout_6.setObjectName("verticalLayout_6")
-        self.label_13 = QtWidgets.QLabel(parent=self.about)
-        self.label_13.setText("All Contributors")
-        self.label_13.setObjectName("label_13")
-        self.verticalLayout_6.addWidget(self.label_13)
+        self.all_contributor_label = QtWidgets.QLabel(parent=self.about)
+        self.all_contributor_label.setText("All Contributors")
+        self.all_contributor_label.setObjectName("all_contributor_label")
+        self.verticalLayout_6.addWidget(self.all_contributor_label)
         self.all_contributor_text = QtWidgets.QTextBrowser(parent=self.about)
         self.all_contributor_text.setObjectName("all_contributor_text")
         self.verticalLayout_6.addWidget(self.all_contributor_text)

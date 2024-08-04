@@ -55,7 +55,7 @@
          <item>
           <layout class="QFormLayout" name="formLayout">
            <item row="0" column="0">
-            <widget class="QLabel" name="label">
+            <widget class="QLabel" name="ip_label">
              <property name="text">
               <string notr="true">IP</string>
              </property>
@@ -65,7 +65,7 @@
             <widget class="QLineEdit" name="ip_editor"/>
            </item>
            <item row="1" column="0">
-            <widget class="QLabel" name="label_2">
+            <widget class="QLabel" name="port_label">
              <property name="text">
               <string notr="true">Port</string>
              </property>
@@ -75,7 +75,7 @@
             <widget class="QLineEdit" name="port_editor"/>
            </item>
            <item row="2" column="0">
-            <widget class="QLabel" name="label_3">
+            <widget class="QLabel" name="reconnection_attemp_label">
              <property name="text">
               <string notr="true">Reconnection Attempt</string>
              </property>
@@ -159,7 +159,7 @@
          <item>
           <layout class="QFormLayout" name="formLayout_2">
            <item row="0" column="0">
-            <widget class="QLabel" name="label_4">
+            <widget class="QLabel" name="language_label">
              <property name="text">
               <string notr="true">Language</string>
              </property>
@@ -169,7 +169,7 @@
             <widget class="QComboBox" name="language_combobox"/>
            </item>
            <item row="1" column="0">
-            <widget class="QLabel" name="label_5">
+            <widget class="QLabel" name="theme_label">
              <property name="text">
               <string notr="true">Theme</string>
              </property>
@@ -246,7 +246,7 @@
          <item>
           <layout class="QFormLayout" name="formLayout_3">
            <item row="0" column="0">
-            <widget class="QLabel" name="label_6">
+            <widget class="QLabel" name="log_level_label">
              <property name="text">
               <string notr="true">Log Level</string>
              </property>
@@ -256,7 +256,7 @@
             <widget class="QComboBox" name="log_level_combobox"/>
            </item>
            <item row="1" column="0">
-            <widget class="QLabel" name="label_7">
+            <widget class="QLabel" name="log_saving_limit_label">
              <property name="text">
               <string notr="true">Log Saving Limit</string>
              </property>
@@ -268,7 +268,7 @@
               <widget class="QComboBox" name="log_saving_combobox"/>
              </item>
              <item>
-              <widget class="QLabel" name="label_8">
+              <widget class="QLabel" name="days_label">
                <property name="text">
                 <string notr="true">Day(s)</string>
                </property>
@@ -354,9 +354,9 @@
          <item>
           <layout class="QVBoxLayout" name="verticalLayout_5">
            <item>
-            <widget class="QLabel" name="label_12">
+            <widget class="QLabel" name="main_developer_label">
              <property name="text">
-              <string notr="true">Main Developer</string>
+              <string notr="true">Main Developers</string>
              </property>
             </widget>
            </item>
@@ -368,7 +368,7 @@
          <item>
           <layout class="QVBoxLayout" name="verticalLayout_6">
            <item>
-            <widget class="QLabel" name="label_13">
+            <widget class="QLabel" name="all_contributor_label">
              <property name="text">
               <string notr="true">All Contributors</string>
              </property>

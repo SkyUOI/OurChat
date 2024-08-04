@@ -39,10 +39,8 @@ if __name__ == "__main__":
             "resources.rcc",
             invert_secondary=invert_secondary,
             output="resources",
-            # extra={
-            #     'font_family': 'Minecraft AE',
-            #     'font_size': '13px',
-            #     'line_height': '13px',
-            # }
+            extra={
+                'font_family': '{FONT_FAMILY}',
+            }
         )
         os.chdir("..")

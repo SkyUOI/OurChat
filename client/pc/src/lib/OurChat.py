@@ -242,7 +242,7 @@ class OurChatLanguage:
 
     def read(self):
         self.translate = {}
-        with open(os.path.join(self.path, self.filename), "r") as f:
+        with open(os.path.join(self.path, self.filename), "r", encoding="utf-8") as f:
             for line in f.readlines():
                 line = line.strip()
                 line = line.split("#")[0]

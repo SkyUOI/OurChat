@@ -29,7 +29,19 @@ class Ui_Login(Ui_Login_NOLOGIC):
         self.bind()
 
     def fillText(self):
-        pass
+        self.tabWidget.setTabText(0, self.ourchat.language["login"])
+        self.tabWidget.setTabText(1, self.ourchat.language["register"])
+        self.ocid_email_label.setText(
+            f'{self.ourchat.language["ocid"]}/{self.ourchat.language["email"]}'
+        )
+        self.login_password_label.setText(self.ourchat.language["password"])
+        self.login_show_checkbox.setText(self.ourchat.language["show_password"])
+        self.email_label.setText(self.ourchat.language["email"])
+        self.register_password_label.setText(self.ourchat.language["password"])
+        self.register_show_checkbox.setText(self.ourchat.language["show_password"])
+        self.setting_btn.setText(self.ourchat.language["setting"])
+        self.connect_server_btn.setText(self.ourchat.language["connect_server"])
+        self.join_btn.setText(self.ourchat.language["join"])
 
     def bind(self):
         logger.info("bind event")

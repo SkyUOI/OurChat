@@ -1,4 +1,4 @@
-# Form implementation generated from reading ui file '.\login.ui'
+# Form implementation generated from reading ui file 'login.ui'
 #
 # Created by: PyQt6 UI code generator 6.4.2
 #
@@ -28,22 +28,22 @@ class Ui_Login(object):
             QtWidgets.QSizePolicy.Policy.Expanding,
         )
         self.formLayout.setItem(0, QtWidgets.QFormLayout.ItemRole.FieldRole, spacerItem)
-        self.label_3 = QtWidgets.QLabel(parent=self.login_tab)
-        self.label_3.setText("OCID/Email")
-        self.label_3.setObjectName("label_3")
+        self.ocid_email_label = QtWidgets.QLabel(parent=self.login_tab)
+        self.ocid_email_label.setText("OCID/Email")
+        self.ocid_email_label.setObjectName("ocid_email_label")
         self.formLayout.setWidget(
-            1, QtWidgets.QFormLayout.ItemRole.LabelRole, self.label_3
+            1, QtWidgets.QFormLayout.ItemRole.LabelRole, self.ocid_email_label
         )
         self.login_account_editor = QtWidgets.QLineEdit(parent=self.login_tab)
         self.login_account_editor.setObjectName("login_account_editor")
         self.formLayout.setWidget(
             1, QtWidgets.QFormLayout.ItemRole.FieldRole, self.login_account_editor
         )
-        self.label_4 = QtWidgets.QLabel(parent=self.login_tab)
-        self.label_4.setText("Password")
-        self.label_4.setObjectName("label_4")
+        self.login_password_label = QtWidgets.QLabel(parent=self.login_tab)
+        self.login_password_label.setText("Password")
+        self.login_password_label.setObjectName("login_password_label")
         self.formLayout.setWidget(
-            2, QtWidgets.QFormLayout.ItemRole.LabelRole, self.label_4
+            2, QtWidgets.QFormLayout.ItemRole.LabelRole, self.login_password_label
         )
         self.login_password_editor = QtWidgets.QLineEdit(parent=self.login_tab)
         self.login_password_editor.setEchoMode(QtWidgets.QLineEdit.EchoMode.Password)
@@ -90,22 +90,22 @@ class Ui_Login(object):
         self.formLayout_2.setItem(
             0, QtWidgets.QFormLayout.ItemRole.FieldRole, spacerItem3
         )
-        self.label_5 = QtWidgets.QLabel(parent=self.register_tab)
-        self.label_5.setText("Email")
-        self.label_5.setObjectName("label_5")
+        self.email_label = QtWidgets.QLabel(parent=self.register_tab)
+        self.email_label.setText("Email")
+        self.email_label.setObjectName("email_label")
         self.formLayout_2.setWidget(
-            1, QtWidgets.QFormLayout.ItemRole.LabelRole, self.label_5
+            1, QtWidgets.QFormLayout.ItemRole.LabelRole, self.email_label
         )
         self.register_email_editor = QtWidgets.QLineEdit(parent=self.register_tab)
         self.register_email_editor.setObjectName("register_email_editor")
         self.formLayout_2.setWidget(
             1, QtWidgets.QFormLayout.ItemRole.FieldRole, self.register_email_editor
         )
-        self.label_6 = QtWidgets.QLabel(parent=self.register_tab)
-        self.label_6.setText("Password")
-        self.label_6.setObjectName("label_6")
+        self.register_password_label = QtWidgets.QLabel(parent=self.register_tab)
+        self.register_password_label.setText("Password")
+        self.register_password_label.setObjectName("register_password_label")
         self.formLayout_2.setWidget(
-            2, QtWidgets.QFormLayout.ItemRole.LabelRole, self.label_6
+            2, QtWidgets.QFormLayout.ItemRole.LabelRole, self.register_password_label
         )
         self.register_password_editor = QtWidgets.QLineEdit(parent=self.register_tab)
         self.register_password_editor.setEchoMode(QtWidgets.QLineEdit.EchoMode.Password)
