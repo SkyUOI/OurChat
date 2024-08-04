@@ -40,7 +40,7 @@ if __name__ == "__main__":
             invert_secondary=invert_secondary,
             output="resources",
             extra={
-                'font_family': '{FONT_FAMILY}',
-            }
+                "font_family": "{FONT_FAMILY}",
+            },
         )
         os.chdir("..")
