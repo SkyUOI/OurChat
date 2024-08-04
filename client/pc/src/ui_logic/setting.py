@@ -35,6 +35,5 @@ class Ui_Setting(Ui_Setting_NOLOGIC):
         self.ip_editor.setText(self.ourchat.config["server"]["ip"])
         self.port_editor.setText(str(self.ourchat.config["server"]["port"]))
 
-
     def bind(self):
         pass

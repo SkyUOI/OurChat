@@ -1,6 +1,6 @@
 FONT_FAMILY=Roboto
 login=Login
-register=Reigster
+register=Register
 ocid=OCID
 email=Email
 password=Password
@@ -14,7 +14,7 @@ advanced=Advanced
 about=About
 ip=IP
 port=Port
-reconnection_attempt=Reconnection Attemp
+reconnection_attempt=Reconnection Attempt
 language=Language
 theme=Theme
 log_level=Log Level
