@@ -19,8 +19,8 @@ class Ui_Setting(Ui_Setting_NOLOGIC):
         self.tabWidget.setTabText(3, self.ourchat.language["about"])
         self.ip_label.setText(self.ourchat.language["ip"])
         self.port_label.setText(self.ourchat.language["port"])
-        self.reconnection_attemp_label.setText(
-            self.ourchat.language["reconnection_attemp"]
+        self.reconnection_attempt_label.setText(
+            self.ourchat.language["reconnection_attempt"]
         )
         self.language_label.setText(self.ourchat.language["language"])
         self.theme_label.setText(self.ourchat.language["theme"])
@@ -31,6 +31,10 @@ class Ui_Setting(Ui_Setting_NOLOGIC):
         self.all_contributor_label.setText(self.ourchat.language["all_contributor"])
         self.ok_btn.setText(f'{self.ourchat.language["save&apply"]}')
         self.cancel_btn.setText(self.ourchat.language["cancel"])
+
+        self.ip_editor.setText(self.ourchat.config["server"]["ip"])
+        self.port_editor.setText(str(self.ourchat.config["server"]["port"]))
+
 
     def bind(self):
         pass
