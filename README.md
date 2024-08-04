@@ -1,6 +1,8 @@
 # OurChat
 
-![ourchat](./resource/logo.png)
+<div style="text-align: center;">
+    <img src="./resource/logo.png" alt="OurChat_logo" />
+</div>
 
 ## [中文](./README-zh.md)
 
