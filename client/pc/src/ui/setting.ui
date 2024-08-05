@@ -71,9 +71,6 @@
              </property>
             </widget>
            </item>
-           <item row="1" column="1">
-            <widget class="QLineEdit" name="port_editor"/>
-           </item>
            <item row="2" column="0">
             <widget class="QLabel" name="reconnection_attempt_label">
              <property name="text">
@@ -82,12 +79,25 @@
             </widget>
            </item>
            <item row="2" column="1">
-            <widget class="QSpinBox" name="reconnection_attempt_box">
+            <widget class="QSpinBox" name="reconnection_attempt_editor">
              <property name="minimum">
               <number>1</number>
              </property>
              <property name="maximum">
               <number>100</number>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QSpinBox" name="port_editor">
+             <property name="minimum">
+              <number>1</number>
+             </property>
+             <property name="maximum">
+              <number>65535</number>
+             </property>
+             <property name="value">
+              <number>77</number>
              </property>
             </widget>
            </item>
@@ -265,7 +275,14 @@
            <item row="1" column="1">
             <layout class="QHBoxLayout" name="horizontalLayout_4">
              <item>
-              <widget class="QComboBox" name="log_saving_combobox"/>
+              <widget class="QComboBox" name="log_saving_combobox">
+               <property name="editable">
+                <bool>true</bool>
+               </property>
+               <property name="currentText">
+                <string notr="true"/>
+               </property>
+              </widget>
              </item>
              <item>
               <widget class="QLabel" name="days_label">
@@ -312,7 +329,7 @@
       <attribute name="title">
        <string notr="true">About</string>
       </attribute>
-      <layout class="QVBoxLayout" name="verticalLayout_7">
+      <layout class="QVBoxLayout" name="verticalLayout_7" stretch="4,6">
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_5">
          <item>
@@ -361,7 +378,11 @@
             </widget>
            </item>
            <item>
-            <widget class="QTextBrowser" name="main_developer_text"/>
+            <widget class="QTextBrowser" name="main_developer_text">
+             <property name="openExternalLinks">
+              <bool>true</bool>
+             </property>
+            </widget>
            </item>
           </layout>
          </item>
@@ -375,7 +396,11 @@
             </widget>
            </item>
            <item>
-            <widget class="QTextBrowser" name="all_contributor_text"/>
+            <widget class="QTextBrowser" name="all_contributor_text">
+             <property name="openExternalLinks">
+              <bool>true</bool>
+             </property>
+            </widget>
            </item>
           </layout>
          </item>

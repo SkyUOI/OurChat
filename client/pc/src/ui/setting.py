@@ -57,23 +57,28 @@ class Ui_Setting(object):
         self.formLayout.setWidget(
             1, QtWidgets.QFormLayout.ItemRole.LabelRole, self.port_label
         )
-        self.port_editor = QtWidgets.QLineEdit(parent=self.server)
-        self.port_editor.setObjectName("port_editor")
-        self.formLayout.setWidget(
-            1, QtWidgets.QFormLayout.ItemRole.FieldRole, self.port_editor
-        )
         self.reconnection_attempt_label = QtWidgets.QLabel(parent=self.server)
         self.reconnection_attempt_label.setText("Reconnection Attempt")
         self.reconnection_attempt_label.setObjectName("reconnection_attempt_label")
         self.formLayout.setWidget(
             2, QtWidgets.QFormLayout.ItemRole.LabelRole, self.reconnection_attempt_label
         )
-        self.reconnection_attempt_box = QtWidgets.QSpinBox(parent=self.server)
-        self.reconnection_attempt_box.setMinimum(1)
-        self.reconnection_attempt_box.setMaximum(100)
-        self.reconnection_attempt_box.setObjectName("reconnection_attempt_box")
+        self.reconnection_attempt_editor = QtWidgets.QSpinBox(parent=self.server)
+        self.reconnection_attempt_editor.setMinimum(1)
+        self.reconnection_attempt_editor.setMaximum(100)
+        self.reconnection_attempt_editor.setObjectName("reconnection_attempt_editor")
         self.formLayout.setWidget(
-            2, QtWidgets.QFormLayout.ItemRole.FieldRole, self.reconnection_attempt_box
+            2,
+            QtWidgets.QFormLayout.ItemRole.FieldRole,
+            self.reconnection_attempt_editor,
+        )
+        self.port_editor = QtWidgets.QSpinBox(parent=self.server)
+        self.port_editor.setMinimum(1)
+        self.port_editor.setMaximum(65535)
+        self.port_editor.setProperty("value", 77)
+        self.port_editor.setObjectName("port_editor")
+        self.formLayout.setWidget(
+            1, QtWidgets.QFormLayout.ItemRole.FieldRole, self.port_editor
         )
         self.horizontalLayout.addLayout(self.formLayout)
         spacerItem2 = QtWidgets.QSpacerItem(
@@ -195,6 +200,8 @@ class Ui_Setting(object):
         self.horizontalLayout_4 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_4.setObjectName("horizontalLayout_4")
         self.log_saving_combobox = QtWidgets.QComboBox(parent=self.advanced)
+        self.log_saving_combobox.setEditable(True)
+        self.log_saving_combobox.setCurrentText("")
         self.log_saving_combobox.setObjectName("log_saving_combobox")
         self.horizontalLayout_4.addWidget(self.log_saving_combobox)
         self.days_label = QtWidgets.QLabel(parent=self.advanced)
@@ -255,6 +262,7 @@ class Ui_Setting(object):
         self.main_developer_label.setObjectName("main_developer_label")
         self.verticalLayout_5.addWidget(self.main_developer_label)
         self.main_developer_text = QtWidgets.QTextBrowser(parent=self.about)
+        self.main_developer_text.setOpenExternalLinks(True)
         self.main_developer_text.setObjectName("main_developer_text")
         self.verticalLayout_5.addWidget(self.main_developer_text)
         self.horizontalLayout_7.addLayout(self.verticalLayout_5)
@@ -265,10 +273,13 @@ class Ui_Setting(object):
         self.all_contributor_label.setObjectName("all_contributor_label")
         self.verticalLayout_6.addWidget(self.all_contributor_label)
         self.all_contributor_text = QtWidgets.QTextBrowser(parent=self.about)
+        self.all_contributor_text.setOpenExternalLinks(True)
         self.all_contributor_text.setObjectName("all_contributor_text")
         self.verticalLayout_6.addWidget(self.all_contributor_text)
         self.horizontalLayout_7.addLayout(self.verticalLayout_6)
         self.verticalLayout_7.addLayout(self.horizontalLayout_7)
+        self.verticalLayout_7.setStretch(0, 4)
+        self.verticalLayout_7.setStretch(1, 6)
         self.tabWidget.addTab(self.about, "About")
         self.verticalLayout_2.addWidget(self.tabWidget)
         self.horizontalLayout_2 = QtWidgets.QHBoxLayout()

@@ -24,3 +24,7 @@ main_developer=主要开发者
 all_contributor=所有贡献者
 save&apply=保存并应用
 cancel=取消
+always=永远
+restart=重启
+restart_reason=OurChat将会重启，因为 {}
+server_information_is_modified=修改了服务器信息

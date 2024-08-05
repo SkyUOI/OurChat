@@ -43,4 +43,12 @@ if __name__ == "__main__":
                 "font_family": "{FONT_FAMILY}",
             },
         )
+        with open(f"{name}.qss", "r") as f:
+            qss = f.read()
+        color = qss[
+            qss.index("QPushButton {\n  color: ") + len("QPushButton {\n  color: ") :
+        ].split(";")[0]
+        with open(f"{name}.qss", "w") as f:
+            f.write(f"/* COLOR: {color}; */\n")
+            f.write(qss)
         os.chdir("..")

@@ -24,3 +24,7 @@ main_developer=Main Developers
 all_contributor=All contributors
 save&apply=Save and Apply
 cancel=Cancel
+always=Always
+restart=Restart
+restart_reason=Because: {} .OurChat will restart later.
+server_information_is_modified=Server information is modified.

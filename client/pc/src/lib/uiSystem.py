@@ -3,6 +3,9 @@ from PyQt6.QtCore import QTimer, QDir
 from lib.OurChatUI import AutoDestroyQDialog, AutoDestroyQWidget
 from PyQt6.QtGui import QFontDatabase
 from logging import getLogger
+from ui_logic.login import Ui_Login
+from ui_logic.main import Ui_Main
+import os
 
 logger = getLogger(__name__)
 
@@ -14,6 +17,8 @@ class UISystem:
         self.app = QApplication(argv)
         self.mainwindow = QMainWindow()
         self.ui = None
+        self.theme = None
+        self.main_color = "#000000"
         self.dialogs = [
             # (dialog,ui_obj)
         ]
@@ -25,10 +30,6 @@ class UISystem:
         self.tick_timer.start(10)
         QFontDatabase.addApplicationFont("resources/fonts/Roboto-Medium.ttf")
         QFontDatabase.addApplicationFont("resources/fonts/MiSans-Medium.ttf")
-        self.setTheme(
-            self.ourchat.config["general"]["theme"],
-            self.ourchat.language["FONT_FAMILY"],
-        )
 
     def setUI(self, ui_class):
         logger.info(f"setUi to {ui_class.__qualname__}")
@@ -113,4 +114,30 @@ class UISystem:
         with open(f"theme/{theme}/{theme}.qss", "r") as f:
             qss = f.read()
         qss.replace("{FONT_FAMILY}", font_family)
+        self.main_color = qss[
+            qss.index(
+                "COLOR: ",
+            )
+            + len("COLOR: ") :
+        ].split(";")[0]
         self.app.setStyleSheet(qss)
+
+    def getThemes(self):
+        return os.listdir("theme")
+
+    def run(self):
+        self.setUI(Ui_Main)
+        widget = self.setWidget(Ui_Login, True)
+        widget.show()
+
+    def configUpdated(self):
+        self.setTheme(
+            self.ourchat.config["general"]["theme"],
+            self.ourchat.language["FONT_FAMILY"],
+        )
+        for widget, widget_ui in self.widgets:
+            widget_ui.fillText()
+        for dialog, dialog_ui in self.dialogs:
+            dialog_ui.fillText()
+        if self.ui is not None:
+            self.ui.fillText()

@@ -1,11 +1,11 @@
 from ui.login import Ui_Login as Ui_Login_NOLOGIC
-from lib.msg_code import SERVER_STATUS
-from lib.msg_code import REGISTER
-from lib.msg_code import REGISTER_RESPONSE
-from lib.msg_code import LOGIN
-from lib.msg_code import LOGIN_RESPONSE
-from lib.msg_code import GENERATE_VERIFY
-from lib.msg_code import VERIFY_STATUS
+from lib.const import SERVER_STATUS_MSG
+from lib.const import REGISTER_MSG
+from lib.const import REGISTER_RESPONSE_MSG
+from lib.const import LOGIN_MSG
+from lib.const import LOGIN_RESPONSE_MSG
+from lib.const import GENERATE_VERIFY_MSG
+from lib.const import VERIFY_STATUS_MSG
 from PyQt6.QtWidgets import QMessageBox, QLineEdit
 from logging import getLogger
 from ui_logic.setting import Ui_Setting
@@ -56,9 +56,9 @@ class Ui_Login(Ui_Login_NOLOGIC):
         index = self.tabWidget.currentIndex()
         if index:  # register
             logger.info("begin to register")
-            self.ourchat.listen(VERIFY_STATUS, self.verifyResponse)
+            self.ourchat.listen(VERIFY_STATUS_MSG, self.verifyResponse)
             self.ourchat.runThread(
-                self.ourchat.conn.send, None, {"code": GENERATE_VERIFY}
+                self.ourchat.conn.send, None, {"code": GENERATE_VERIFY_MSG}
             )
             QMessageBox.information(self.widget, "Success", "Please check your email")
         else:  # login
@@ -69,12 +69,12 @@ class Ui_Login(Ui_Login_NOLOGIC):
                 login_type = 0
             else:
                 login_type = 1
-            self.ourchat.listen(LOGIN_RESPONSE, self.loginResponse)
+            self.ourchat.listen(LOGIN_RESPONSE_MSG, self.loginResponse)
             self.ourchat.runThread(
                 self.ourchat.conn.send,
                 None,
                 {
-                    "code": LOGIN,
+                    "code": LOGIN_MSG,
                     "login_type": login_type,
                     "account": self.login_account_editor.text(),
                     "password": sha256.hexdigest(),
@@ -88,9 +88,9 @@ class Ui_Login(Ui_Login_NOLOGIC):
     def connectedServer(self, result):
         if result[0]:
             self.ourchat.runThread(self.ourchat.conn.recv)
-            self.ourchat.listen(SERVER_STATUS, self.serverStatusResponse)
+            self.ourchat.listen(SERVER_STATUS_MSG, self.serverStatusResponse)
             self.ourchat.runThread(
-                self.ourchat.conn.send, None, {"code": SERVER_STATUS}
+                self.ourchat.conn.send, None, {"code": SERVER_STATUS_MSG}
             )
         else:
             QMessageBox.warning(
@@ -98,7 +98,7 @@ class Ui_Login(Ui_Login_NOLOGIC):
             )
 
     def serverStatusResponse(self, result):
-        self.ourchat.unListen(SERVER_STATUS, self.serverStatusResponse)
+        self.ourchat.unListen(SERVER_STATUS_MSG, self.serverStatusResponse)
         if result["status"] == 1:
             QMessageBox.warning(self.widget, "Failed", "Maintenance in progress")
             logger.info("Maintenance in progress")
@@ -107,9 +107,9 @@ class Ui_Login(Ui_Login_NOLOGIC):
         self.join_btn.setEnabled(True)
 
     def verifyResponse(self, result):
-        self.ourchat.unListen(VERIFY_STATUS, self.verifyResponse)
+        self.ourchat.unListen(VERIFY_STATUS_MSG, self.verifyResponse)
         if result["status"] == 0:
-            self.ourchat.listen(REGISTER_RESPONSE, self.registerResponse)
+            self.ourchat.listen(REGISTER_RESPONSE_MSG, self.registerResponse)
             sha256 = hashlib.sha256()
             sha256.update(self.register_password_editor.text().encode("ascii"))
             logger.info("verify successfully,send register message")
@@ -117,7 +117,7 @@ class Ui_Login(Ui_Login_NOLOGIC):
                 self.ourchat.conn.send,
                 None,
                 {
-                    "code": REGISTER,
+                    "code": REGISTER_MSG,
                     "email": self.register_email_editor.text(),
                     "password": sha256.hexdigest(),
                 },
@@ -138,7 +138,7 @@ class Ui_Login(Ui_Login_NOLOGIC):
             QMessageBox.warning(self.widget, "ERROR", "Server Error")
         elif result["status"] == 2:
             QMessageBox.warning(self.widget, "ERROR", "Email Exist")
-        self.ourchat.unListen(REGISTER_RESPONSE, self.registerResponse)
+        self.ourchat.unListen(REGISTER_RESPONSE_MSG, self.registerResponse)
 
     def loginResponse(self, result):
         if result["status"] == 0:
@@ -149,7 +149,7 @@ class Ui_Login(Ui_Login_NOLOGIC):
             QMessageBox.warning(self.widget, "ERROR", "Account/Password Error")
         elif result["status"] == 2:
             QMessageBox.warning(self.widget, "ERROR", "Server Error")
-        self.ourchat.unListen(LOGIN_RESPONSE, self.loginResponse)
+        self.ourchat.unListen(LOGIN_RESPONSE_MSG, self.loginResponse)
 
     def showPassword(self, status):
         logger.debug(f"show password: {status}")

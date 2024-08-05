@@ -1,10 +1,9 @@
 from lib.connenction import Connection
 from lib.uiSystem import UISystem
-from ui_logic.main import Ui_Main
-from ui_logic.login import Ui_Login
 from concurrent.futures import ThreadPoolExecutor, wait
 from logging import getLogger, DEBUG, INFO, WARNING, CRITICAL, ERROR
 from PyQt6.QtWidgets import QMessageBox
+from copy import deepcopy
 import sys
 import os
 import json
@@ -18,12 +17,10 @@ class OurChat:
     def __init__(self):
         logger.info("OurChat init")
         self.config = OurChatConfig()
-        self.language = OurChatLanguage(
-            filename=f'{self.config["general"]["language"]}.lang'
-        )
+        self.language = OurChatLanguage()
         self.conn = Connection(self)
-        self.conn.setServer(self.config["server"]["ip"], self.config["server"]["port"])
         self.uisystem = None
+        self.configUpdated()
         self.thread_pool = ThreadPoolExecutor(2)
         self.listen_message = {}
         self.tasks = {}
@@ -32,9 +29,8 @@ class OurChat:
     def run(self):
         logger.info("OurChat UI Run")
         self.uisystem = UISystem(self, sys.argv)
-        self.uisystem.setUI(Ui_Main)
-        widget = self.uisystem.setWidget(Ui_Login, True)
-        widget.show()
+        self.uisystem.configUpdated()
+        self.uisystem.run()
         self.uisystem.exec()
 
     def runThread(self, task, func=None, *args):
@@ -70,6 +66,7 @@ class OurChat:
 
     def close(self):
         logger.info("OurChat begin to close")
+        self.uisystem.app.closeAllWindows()
         logger.debug("close connection")
         self.conn.close()
         logger.debug("wait for threads")
@@ -94,12 +91,15 @@ class OurChat:
         self.message_queue.append(data)
 
     def restart(self, message=None):
+        logger.info("OurChat restart")
         if message is not None:
-            QMessageBox.information(f"Because {message}.\nOutChat will restart later")
-        self.uisystem.app.closeAllWindows()
-        self.uisystem.setUI(Ui_Main)
-        dialog = self.uisystem.setWidget(Ui_Login, True)
-        dialog.show()
+            QMessageBox.information(
+                self.uisystem.mainwindow,
+                self.language["restart"],
+                self.language["restart_reason"].format(message),
+            )
+        self.close()
+        self.uisystem.run()
 
     def clearLog(self):
         logger.info("start to clear log")
@@ -116,6 +116,18 @@ class OurChat:
             if days > self.config["advanced"]["log_saving_limit"]:
                 logger.info(f"remove log {log}")
                 os.remove(os.path.join("log", log))
+
+    def getLanguages(self):
+        language_files = os.listdir("lang")
+        return [language_file.replace(".lang", "") for language_file in language_files]
+
+    def configUpdated(self):
+        self.language.setPath("lang", f'{self.config["general"]["language"]}.lang')
+        self.language.read()
+        self.conn.close()
+        self.conn.setServer(self.config["server"]["ip"], self.config["server"]["port"])
+        if self.uisystem is not None:
+            self.uisystem.configUpdated()
 
 
 class OurChatAccount:
@@ -137,6 +149,7 @@ class OurChatConfig:
 
     def write(self):
         logger.info(f"write config to {os.path.join(self.path,self.filename)}")
+        self.check()
         with open(os.path.join(self.path, self.filename), "w") as f:
             json.dump(self.config, f, indent=1)
 
@@ -167,7 +180,6 @@ class OurChatConfig:
 
     def checkType(self, value_type=None, default_value=None, config=None):
         if value_type is None:
-            logger.info("check config")
             value_type = {
                 "server": {"ip": str, "port": int, "reconnection_attempt": int},
                 "general": {"theme": str, "language": str},
@@ -202,6 +214,8 @@ class OurChatConfig:
         )
         if ip is None:
             self["server"]["ip"] = default["server"]["ip"]
+        if self["server"]["port"] < 1 or self["server"]["port"] > 65535:
+            self["server"]["port"] = default["server"]["port"]
 
         themes = os.listdir("theme")
         if self["general"]["theme"] not in themes:
@@ -232,13 +246,27 @@ class OurChatConfig:
                 "log_saving_limit"
             ]
 
+    def setConfig(self, config):
+        if isinstance(config, dict):
+            self.config = deepcopy(config)
+        elif isinstance(config, OurChatConfig):
+            self.config = deepcopy(config.config)
+
+    def compareConfig(self, config):
+        if isinstance(config, dict):
+            return self.config == config
+        elif isinstance(config, OurChatConfig):
+            return self.config == config.config
+
 
 class OurChatLanguage:
     def __init__(self, path="./lang", filename="en-us.lang"):
+        self.setPath(path, filename)
+        self.translate = {}
+
+    def setPath(self, path, filename):
         self.path = path
         self.filename = filename
-        self.translate = {}
-        self.read()
 
     def read(self):
         self.translate = {}
