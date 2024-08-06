@@ -9,6 +9,7 @@ import os
 import json
 import datetime
 import re
+import rmodule
 
 logger = getLogger(__name__)
 
@@ -16,15 +17,18 @@ logger = getLogger(__name__)
 class OurChat:
     def __init__(self):
         logger.info("OurChat init")
-        self.config = OurChatConfig()
-        self.language = OurChatLanguage()
-        self.conn = Connection(self)
-        self.uisystem = None
-        self.configUpdated()
-        self.thread_pool = ThreadPoolExecutor(2)
         self.listen_message = {}
         self.tasks = {}
         self.message_queue = []
+        self.version_details = {}
+        self.uisystem = None
+
+        self.config = OurChatConfig()
+        self.language = OurChatLanguage()
+        self.conn = Connection(self)
+        self.configUpdated()
+        self.thread_pool = ThreadPoolExecutor(2)
+        self.getVersion()
 
     def run(self):
         logger.info("OurChat UI Run")
@@ -128,6 +132,17 @@ class OurChat:
         self.conn.setServer(self.config["server"]["ip"], self.config["server"]["port"])
         if self.uisystem is not None:
             self.uisystem.configUpdated()
+
+    def getVersion(self):
+        version_details = rmodule.version_details.split("\n")
+        self.version_details = {}
+        for i in version_details:
+            if ":" not in i:
+                continue
+            index = i.index(":")
+            key = i[:index]
+            value = i[index + 1 :]
+            self.version_details[key] = value
 
 
 class OurChatAccount:

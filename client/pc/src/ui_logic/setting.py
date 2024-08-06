@@ -2,6 +2,8 @@ from ui.setting import Ui_Setting as Ui_Setting_NOLOGIC
 from lib.const import log_level2str, str2log_level
 from lib.OurChatUI import ImageLabel
 from lib import OurChat
+from PyQt6.QtWidgets import QMessageBox
+import webbrowser
 
 
 class Ui_Setting(Ui_Setting_NOLOGIC):
@@ -93,6 +95,11 @@ class Ui_Setting(Ui_Setting_NOLOGIC):
         self.main_developer_text.setText(
             f'<a href="https://github.com/limuy2022" style="color:{self.uisystem.main_color}">Limuy</a><br><a href="https://github.com/senlinjun" style="color:{self.uisystem.main_color}">senlinjun</a>'
         )
+
+        self.license_label.setText("License: GNU LICENSE 3.0")
+        self.version_label.setText(
+            f"Version: {self.ourchat.version_details['pkg_version']}({self.ourchat.version_details['branch']}+{self.ourchat.version_details['commit_hash']})"
+        )
         self.filling = False
 
     def bind(self):
@@ -103,6 +110,7 @@ class Ui_Setting(Ui_Setting_NOLOGIC):
         self.language_combobox.currentTextChanged.connect(self.valueChanged)
         self.log_level_combobox.currentTextChanged.connect(self.valueChanged)
         self.log_saving_combobox.currentTextChanged.connect(self.valueChanged)
+        self.github_btn.clicked.connect(self.openGithub)
 
         self.ok_btn.clicked.connect(self.ok)
         self.cancel_btn.clicked.connect(self.widget.close)
@@ -139,3 +147,14 @@ class Ui_Setting(Ui_Setting_NOLOGIC):
             return
         self.ourchat.configUpdated()
         self.widget.close()
+
+    def openGithub(self):
+        response = webbrowser.open("https://github.com/SkyUOI/OurChat")
+        if not response:
+            QMessageBox.critical(
+                self.widget,
+                self.ourchat.language["error"],
+                self.ourchat.language["open_github_fail"].format(
+                    "https://github.com/SkyUOI/OurChat"
+                ),
+            )
