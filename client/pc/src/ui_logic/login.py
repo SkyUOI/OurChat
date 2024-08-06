@@ -44,7 +44,6 @@ class Ui_Login(Ui_Login_NOLOGIC):
         self.join_btn.setText(self.ourchat.language["join"])
 
     def bind(self):
-        logger.info("bind event")
         self.join_btn.clicked.connect(self.join)
         self.connect_server_btn.clicked.connect(self.connectToServer)
         self.login_show_checkbox.clicked.connect(self.showPassword)
@@ -52,7 +51,6 @@ class Ui_Login(Ui_Login_NOLOGIC):
         self.setting_btn.clicked.connect(self.showSetting)
 
     def join(self):
-        logger.debug("clicked Join Button")
         index = self.tabWidget.currentIndex()
         if index:  # register
             logger.info("begin to register")
@@ -60,7 +58,11 @@ class Ui_Login(Ui_Login_NOLOGIC):
             self.ourchat.runThread(
                 self.ourchat.conn.send, None, {"code": GENERATE_VERIFY_MSG}
             )
-            QMessageBox.information(self.widget, "Success", "Please check your email")
+            QMessageBox.information(
+                self.widget,
+                self.ourchat.language["info"],
+                self.ourchat.language["check_email"],
+            )
         else:  # login
             logger.info("begin to login")
             sha256 = hashlib.sha256()
@@ -82,7 +84,6 @@ class Ui_Login(Ui_Login_NOLOGIC):
             )
 
     def connectToServer(self):
-        logger.debug("clicked Connect Server Button")
         self.ourchat.runThread(self.ourchat.conn.connect, self.connectedServer)
 
     def connectedServer(self, result):
@@ -94,13 +95,19 @@ class Ui_Login(Ui_Login_NOLOGIC):
             )
         else:
             QMessageBox.warning(
-                self.widget, "Failed", f"Failed to connect to server:\n{result[1]}"
+                self.widget,
+                self.ourchat.language["error"],
+                self.ourchat.language["connect_server_fail"].format(result[1]),
             )
 
     def serverStatusResponse(self, result):
         self.ourchat.unListen(SERVER_STATUS_MSG, self.serverStatusResponse)
         if result["status"] == 1:
-            QMessageBox.warning(self.widget, "Failed", "Maintenance in progress")
+            QMessageBox.warning(
+                self.widget,
+                self.ourchat.language["error"],
+                self.ourchat.language["maintenance"],
+            )
             logger.info("Maintenance in progress")
             return
         self.connect_server_btn.setEnabled(False)
@@ -123,21 +130,41 @@ class Ui_Login(Ui_Login_NOLOGIC):
                 },
             )
         elif result["status"] == 1:
-            QMessageBox.warning(self.widget, "ERROR", "Verify Error")
+            QMessageBox.warning(
+                self.widget,
+                self.ourchat.language["error"],
+                self.ourchat.language["verify_error"],
+            )
 
         elif result["status"] == 2:
-            QMessageBox.warning(self.widget, "ERROR", "Verify Timeout")
+            QMessageBox.warning(
+                self.widget,
+                self.ourchat.language["error"],
+                self.ourchat.language["verify_timeout"],
+            )
 
     def registerResponse(self, result):
         if result["status"] == 0:
             logger.info("register success")
-            QMessageBox.information(self.widget, "Success", "Register Success")
+            QMessageBox.information(
+                self.widget,
+                self.ourchat.language["info"],
+                self.ourchat.language["register_success"],
+            )
             self.uisystem.mainwindow.show()
             self.widget.close()
         elif result["status"] == 1:
-            QMessageBox.warning(self.widget, "ERROR", "Server Error")
+            QMessageBox.warning(
+                self.widget,
+                self.ourchat.language["error"],
+                self.ourchat.language["server_error"],
+            )
         elif result["status"] == 2:
-            QMessageBox.warning(self.widget, "ERROR", "Email Exist")
+            QMessageBox.warning(
+                self.widget,
+                self.ourchat.language["error"],
+                self.ourchat.language["email_exist"],
+            )
         self.ourchat.unListen(REGISTER_RESPONSE_MSG, self.registerResponse)
 
     def loginResponse(self, result):
@@ -146,9 +173,17 @@ class Ui_Login(Ui_Login_NOLOGIC):
             self.uisystem.mainwindow.show()
             self.widget.close()
         elif result["status"] == 1:
-            QMessageBox.warning(self.widget, "ERROR", "Account/Password Error")
+            QMessageBox.warning(
+                self.widget,
+                self.ourchat.language["error"],
+                self.ourchat.language["wrong_a/p"],
+            )
         elif result["status"] == 2:
-            QMessageBox.warning(self.widget, "ERROR", "Server Error")
+            QMessageBox.warning(
+                self.widget,
+                self.ourchat.language["error"],
+                self.ourchat.language["server_error"],
+            )
         self.ourchat.unListen(LOGIN_RESPONSE_MSG, self.loginResponse)
 
     def showPassword(self, status):

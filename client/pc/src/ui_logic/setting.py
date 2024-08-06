@@ -4,6 +4,9 @@ from lib.OurChatUI import ImageLabel
 from lib import OurChat
 from PyQt6.QtWidgets import QMessageBox
 import webbrowser
+from logging import getLogger
+
+logger = getLogger(__name__)
 
 
 class Ui_Setting(Ui_Setting_NOLOGIC):
@@ -15,6 +18,7 @@ class Ui_Setting(Ui_Setting_NOLOGIC):
         self.filling = False
 
     def setupUi(self):
+        logger.info("setup Ui")
         super().setupUi(self.widget)
         self.ok_btn.setEnabled(False)
         self.logo_label.deleteLater()
@@ -149,6 +153,7 @@ class Ui_Setting(Ui_Setting_NOLOGIC):
         self.widget.close()
 
     def openGithub(self):
+        logger.info("open github")
         response = webbrowser.open("https://github.com/SkyUOI/OurChat")
         if not response:
             QMessageBox.critical(
