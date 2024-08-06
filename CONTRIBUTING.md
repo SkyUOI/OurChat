@@ -1,7 +1,7 @@
 # Contribution Guide
 
-[Overview](#overview)
-[Commit Changes](#commit-changes)
+- [Overview](#overview)
+- [Commit Changes](#commit-changes)
 
 ## Overview
 
