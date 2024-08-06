@@ -21,7 +21,6 @@ sqlx = { version = "0", features = [
 ] }
 log = "0"
 clap = { version = "4", features = ["derive"] }
-shadow-rs = "0"
 futures-util = "0"
 rand = "0"
 snowdon = "0"
@@ -42,9 +41,6 @@ tracing-subscriber = { version = "0", features = ["tracing-log", "env-filter"] }
 migration = { path = "migration" }
 mimalloc = "0"
 parking_lot = "0"
-
-[build-dependencies]
-shadow-rs = "0"
 
 [dev-dependencies]
 serial_test = "3"
