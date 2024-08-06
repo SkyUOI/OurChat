@@ -16,14 +16,14 @@ class UISystem:
         self.ourchat = ourchat
         self.app = QApplication(argv)
         self.mainwindow = QMainWindow()
-        self.ui = None
+        self.ui_logic = None
         self.theme = None
         self.main_color = "#000000"
         self.dialogs = [
-            # (dialog,ui_obj)
+            # (dialog,ui_logic)
         ]
         self.widgets = [
-            # (widget,ui_obj)
+            # (widget,ui_logic)
         ]
         self.tick_timer = QTimer()
         self.tick_timer.timeout.connect(self.ourchat.tick)
@@ -33,8 +33,8 @@ class UISystem:
 
     def setUI(self, ui_class):
         logger.info(f"setUi to {ui_class.__qualname__}")
-        self.ui = ui_class(self.ourchat)
-        self.ui.setupUi()
+        self.ui_logic = ui_class(self.ourchat)
+        self.ui_logic.setupUi()
         return self.mainwindow
 
     def exec(self):
@@ -44,13 +44,13 @@ class UISystem:
     def setDialog(self, dialog_class, only=False):
         logger.info(f"new dialog {dialog_class.__qualname__}")
         new_dialog = OurChatDialog(self.ourchat)
-        new_dialog_ui = dialog_class(self.ourchat, new_dialog)
+        new_ui_logic = dialog_class(self.ourchat, new_dialog)
 
         if only:
             remove_later = []
             for index in range(len(self.dialogs)):
-                dialog, dialog_ui = self.dialogs[index]
-                if type(dialog_ui) is type(new_dialog_ui):
+                dialog, ui_logic = self.dialogs[index]
+                if type(ui_logic) is type(new_ui_logic):
                     dialog.destroy()
                     remove_later.append(index)
 
@@ -61,21 +61,21 @@ class UISystem:
                 self.dialogs.pop(remove_later[-1])
                 remove_later.pop(-1)
 
-        new_dialog_ui.setupUi()
-        self.dialogs.append((new_dialog, new_dialog_ui))
+        new_ui_logic.setupUi()
+        self.dialogs.append((new_dialog, new_ui_logic))
         logger.info(f"add dialog {dialog_class.__qualname__}")
         return new_dialog
 
     def setWidget(self, widget_class, only=False):
         logger.info(f"new widget {widget_class.__qualname__}")
         new_widget = OutChatWidget(self.ourchat)
-        new_widget_ui = widget_class(self.ourchat, new_widget)
+        new_ui_logic = widget_class(self.ourchat, new_widget)
 
         if only:
             remove_later = []
             for index in range(len(self.widgets)):
-                widget, widget_ui = self.widgets[index]
-                if type(widget_ui) is type(new_widget_ui):
+                widget, ui_logic = self.widgets[index]
+                if type(ui_logic) is type(new_ui_logic):
                     widget.destroy()
                     remove_later.append(index)
 
@@ -86,24 +86,24 @@ class UISystem:
                 self.widgets.pop(remove_later[-1])
                 remove_later.pop(-1)
 
-        new_widget_ui.setupUi()
-        self.widgets.append((new_widget, new_widget_ui))
+        new_ui_logic.setupUi()
+        self.widgets.append((new_widget, new_ui_logic))
         logger.info(f"add widget {widget_class.__qualname__}")
         return new_widget
 
     def removeDialog(self, rm_dialog):
         for i in range(len(self.dialogs)):
-            dialog, dialog_ui = self.dialogs[i]
+            dialog, ui_logic = self.dialogs[i]
             if dialog == rm_dialog:
-                logger.info(f"remove dialog {dialog_ui.__class__.__qualname__}")
+                logger.info(f"remove dialog {ui_logic.__class__.__qualname__}")
                 self.dialogs.pop(i)
                 break
 
     def removeWidget(self, rm_widget):
         for i in range(len(self.widgets)):
-            widget, widget_ui = self.widgets[i]
+            widget, ui_logic = self.widgets[i]
             if widget == rm_widget:
-                logger.info(f"remove widget {widget_ui.__class__.__qualname__}")
+                logger.info(f"remove widget {ui_logic.__class__.__qualname__}")
                 self.widgets.pop(i)
                 break
 
@@ -135,9 +135,9 @@ class UISystem:
             self.ourchat.config["general"]["theme"],
             self.ourchat.language["FONT_FAMILY"],
         )
-        for widget, widget_ui in self.widgets:
-            widget_ui.fillText()
-        for dialog, dialog_ui in self.dialogs:
-            dialog_ui.fillText()
-        if self.ui is not None:
-            self.ui.fillText()
+        for widget, ui_logic in self.widgets:
+            ui_logic.fillText()
+        for dialog, ui_logic in self.dialogs:
+            ui_logic.fillText()
+        if self.ui_logic is not None:
+            self.ui_logic.fillText()
