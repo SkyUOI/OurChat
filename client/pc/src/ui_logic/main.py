@@ -14,11 +14,7 @@ class Ui_Main(Ui_Main_NOLOGIC):
 
     def setupUi(self):
         super().setupUi(self.mainwindow)
-
-        # self.widget = QWidget(self.mainwindow)
-
         self.setWidget(Ui_Chat)
-
         self.fillText()
         self.bind()
 
@@ -26,8 +22,8 @@ class Ui_Main(Ui_Main_NOLOGIC):
         if self.widget is not None:
             self.verticalLayout_2.removeWidget(self.widget)
         self.widget = QWidget(self.mainwindow)
-        widget_ui = ui(self.ourchat, self.widget)
-        widget_ui.setupUi()
+        self.widget_ui = ui(self.ourchat, self.widget)
+        self.widget_ui.setupUi()
         self.verticalLayout_2.addWidget(self.widget)
         self.widget.show()
 

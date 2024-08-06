@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QApplication, QMainWindow
 from PyQt6.QtCore import QTimer, QDir
-from lib.OurChatUI import AutoDestroyQDialog, AutoDestroyQWidget
+from lib.OurChatUI import OurChatDialog, OutChatWidget
 from PyQt6.QtGui import QFontDatabase
 from logging import getLogger
 from ui_logic.login import Ui_Login
@@ -43,7 +43,7 @@ class UISystem:
 
     def setDialog(self, dialog_class, only=False):
         logger.info(f"new dialog {dialog_class.__qualname__}")
-        new_dialog = AutoDestroyQDialog(self.ourchat, self.mainwindow)
+        new_dialog = OurChatDialog(self.ourchat)
         new_dialog_ui = dialog_class(self.ourchat, new_dialog)
 
         if only:
@@ -68,7 +68,7 @@ class UISystem:
 
     def setWidget(self, widget_class, only=False):
         logger.info(f"new widget {widget_class.__qualname__}")
-        new_widget = AutoDestroyQWidget(self.ourchat)
+        new_widget = OutChatWidget(self.ourchat)
         new_widget_ui = widget_class(self.ourchat, new_widget)
 
         if only:

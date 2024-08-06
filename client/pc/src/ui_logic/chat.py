@@ -1,4 +1,5 @@
 from ui.chat import Ui_Chat as Ui_Chat_NOLOGIC
+from lib.OurChatUI import SessionList
 
 
 class Ui_Chat(Ui_Chat_NOLOGIC):
@@ -11,7 +12,10 @@ class Ui_Chat(Ui_Chat_NOLOGIC):
         self,
     ):
         super().setupUi(self.widget)
-
+        self.session_list.deleteLater()
+        self.session_list = SessionList(self.widget)
+        self.session_list.addSession("resources/images/test.jpg", "Name", "detail")
+        self.left_panel.addWidget(self.session_list)
         self.fillText()
         self.bind()
 

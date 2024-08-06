@@ -15,65 +15,21 @@
   </property>
   <layout class="QHBoxLayout" name="horizontalLayout" stretch="2,5">
    <item>
-    <layout class="QVBoxLayout" name="verticalLayout_3">
+    <layout class="QVBoxLayout" name="left_panel">
      <item>
       <widget class="QLineEdit" name="search_chat"/>
      </item>
      <item>
-      <widget class="QScrollArea" name="chat_list">
-       <property name="horizontalScrollBarPolicy">
-        <enum>Qt::ScrollBarAlwaysOff</enum>
+      <widget class="QListWidget" name="session_list">
+       <property name="resizeMode">
+        <enum>QListView::Adjust</enum>
        </property>
-       <property name="widgetResizable">
-        <bool>false</bool>
-       </property>
-       <widget class="QWidget" name="scrollAreaWidgetContents">
-        <property name="geometry">
-         <rect>
-          <x>0</x>
-          <y>0</y>
-          <width>200</width>
-          <height>60</height>
-         </rect>
-        </property>
-        <layout class="QVBoxLayout" name="verticalLayout_2">
-         <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_4" stretch="2,7">
-           <item>
-            <widget class="QLabel" name="label">
-             <property name="text">
-              <string notr="true">img</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <layout class="QVBoxLayout" name="verticalLayout" stretch="2,1">
-             <item>
-              <widget class="QLabel" name="label_2">
-               <property name="text">
-                <string notr="true">name</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QLabel" name="label_3">
-               <property name="text">
-                <string notr="true">recent_message</string>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </item>
-          </layout>
-         </item>
-        </layout>
-       </widget>
       </widget>
      </item>
     </layout>
    </item>
    <item>
-    <layout class="QVBoxLayout" name="verticalLayout_5" stretch="1,10,6,1">
+    <layout class="QVBoxLayout" name="right_panel" stretch="1,10,6,1">
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout_2">
        <item>
