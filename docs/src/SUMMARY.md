@@ -8,15 +8,15 @@
 
 # Development Guide
 
-- [Run](./en/build.md)
+- [Run](./en/run/build.md)
 
-  - [Server arguments](./en/server_argv.md)
+  - [Server arguments](./en/run/server_argv.md)
 
-- [Development](./en/development.md)
+- [Development](./en/development/development.md)
 
-  - [Server](./en/server-develop.md)
-    - [Database](./en/server_database.md)
-  - [Message Protocol](./en/msg_json.md)
+  - [Server](./en/development/server/server-develop.md)
+    - [Database](./en/development/server/server_database.md)
+  - [Message Protocol](./en/development/msg_json.md)
 
 # Deployment Guide
 
