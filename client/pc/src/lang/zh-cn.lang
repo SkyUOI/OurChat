@@ -1,5 +1,6 @@
 FONT_FAMILY=MiSans
 about=关于
+account=账号
 advanced=高级
 all_contributor=所有贡献者
 always=永远
@@ -35,6 +36,7 @@ save&apply=保存并应用
 server=服务器
 server_error=服务器错误
 server_information_is_modified=修改了服务器信息
+session=会话
 setting=设置
 show_password=显示
 theme=主题

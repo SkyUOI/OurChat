@@ -1,4 +1,4 @@
-# Form implementation generated from reading ui file '.\chat.ui'
+# Form implementation generated from reading ui file '.\session.ui'
 #
 # Created by: PyQt6 UI code generator 6.4.2
 #
@@ -9,19 +9,19 @@
 from PyQt6 import QtCore, QtWidgets
 
 
-class Ui_Chat(object):
-    def setupUi(self, Chat):
-        Chat.setObjectName("Chat")
-        Chat.resize(400, 300)
-        Chat.setWindowTitle("Form")
-        self.horizontalLayout = QtWidgets.QHBoxLayout(Chat)
+class Ui_Session(object):
+    def setupUi(self, Session):
+        Session.setObjectName("Session")
+        Session.resize(400, 300)
+        Session.setWindowTitle("Form")
+        self.horizontalLayout = QtWidgets.QHBoxLayout(Session)
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.left_panel = QtWidgets.QVBoxLayout()
         self.left_panel.setObjectName("left_panel")
-        self.search_chat = QtWidgets.QLineEdit(parent=Chat)
+        self.search_chat = QtWidgets.QLineEdit(parent=Session)
         self.search_chat.setObjectName("search_chat")
         self.left_panel.addWidget(self.search_chat)
-        self.session_list = QtWidgets.QListWidget(parent=Chat)
+        self.session_list = QtWidgets.QListWidget(parent=Session)
         self.session_list.setResizeMode(QtWidgets.QListView.ResizeMode.Adjust)
         self.session_list.setObjectName("session_list")
         self.left_panel.addWidget(self.session_list)
@@ -37,7 +37,7 @@ class Ui_Chat(object):
             QtWidgets.QSizePolicy.Policy.Minimum,
         )
         self.horizontalLayout_2.addItem(spacerItem)
-        self.title = QtWidgets.QLabel(parent=Chat)
+        self.title = QtWidgets.QLabel(parent=Session)
         self.title.setText("Title")
         self.title.setObjectName("title")
         self.horizontalLayout_2.addWidget(self.title)
@@ -49,7 +49,7 @@ class Ui_Chat(object):
         )
         self.horizontalLayout_2.addItem(spacerItem1)
         self.right_panel.addLayout(self.horizontalLayout_2)
-        self.record = QtWidgets.QScrollArea(parent=Chat)
+        self.record = QtWidgets.QScrollArea(parent=Session)
         self.record.setWidgetResizable(True)
         self.record.setObjectName("record")
         self.scrollAreaWidgetContents_2 = QtWidgets.QWidget()
@@ -57,7 +57,7 @@ class Ui_Chat(object):
         self.scrollAreaWidgetContents_2.setObjectName("scrollAreaWidgetContents_2")
         self.record.setWidget(self.scrollAreaWidgetContents_2)
         self.right_panel.addWidget(self.record)
-        self.editor = QtWidgets.QTextEdit(parent=Chat)
+        self.editor = QtWidgets.QTextEdit(parent=Session)
         self.editor.setObjectName("editor")
         self.right_panel.addWidget(self.editor)
         self.horizontalLayout_3 = QtWidgets.QHBoxLayout()
@@ -69,7 +69,7 @@ class Ui_Chat(object):
             QtWidgets.QSizePolicy.Policy.Minimum,
         )
         self.horizontalLayout_3.addItem(spacerItem2)
-        self.send_btn = QtWidgets.QPushButton(parent=Chat)
+        self.send_btn = QtWidgets.QPushButton(parent=Session)
         self.send_btn.setText("send")
         self.send_btn.setObjectName("send_btn")
         self.horizontalLayout_3.addWidget(self.send_btn)
@@ -82,8 +82,8 @@ class Ui_Chat(object):
         self.horizontalLayout.setStretch(0, 2)
         self.horizontalLayout.setStretch(1, 5)
 
-        self.retranslateUi(Chat)
-        QtCore.QMetaObject.connectSlotsByName(Chat)
+        self.retranslateUi(Session)
+        QtCore.QMetaObject.connectSlotsByName(Session)
 
-    def retranslateUi(self, Chat):
+    def retranslateUi(self, Session):
         pass

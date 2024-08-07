@@ -18,9 +18,9 @@
     <item>
      <layout class="QVBoxLayout" name="verticalLayout">
       <item>
-       <widget class="QPushButton" name="to_chat">
+       <widget class="QPushButton" name="to_session">
         <property name="text">
-         <string notr="true">Chat</string>
+         <string notr="true">Session</string>
         </property>
        </widget>
       </item>

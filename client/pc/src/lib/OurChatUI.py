@@ -2,15 +2,13 @@ from PyQt6.QtWidgets import (
     QDialog,
     QWidget,
     QLabel,
-    QListWidget,
-    QListWidgetItem,
     QVBoxLayout,
     QHBoxLayout,
     QSpacerItem,
     QSizePolicy,
 )
 from PyQt6.QtGui import QCloseEvent, QPixmap, QResizeEvent
-from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtCore import Qt
 
 
 class OurChatDialog(QDialog):
@@ -77,13 +75,3 @@ class SessionWidget(QWidget):
             40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
         )
         main_layout.addSpacerItem(spacer_item)
-
-
-class SessionList(QListWidget):
-    def addSession(self, avatar_path, name, detail):
-        item = QListWidgetItem()
-        item.setSizeHint(QSize(60, 60))
-        self.addItem(item)
-        widget = SessionWidget(self)
-        widget.setSession(avatar_path, name, detail)
-        self.setItemWidget(item, widget)

@@ -9,6 +9,8 @@ os.system(
 print("-" * 45, "Over", "-" * 45)
 print("copy resources...")
 shutil.copytree("resources", "out/main.dist/resources")
+print("copy languages...")
+shutil.copytree("lang", "out/main.dist/lang")
 os.chdir("../../..")
 print("export themes...")
 os.system("python script/export_themes.py --dir=client/pc/src/out/main.dist")

@@ -1,5 +1,6 @@
 FONT_FAMILY=Roboto
 about=About
+account=Account
 advanced=Advanced
 all_contributor=All contributors
 always=Always
@@ -35,6 +36,7 @@ save&apply=Save and Apply
 server=Server
 server_error=Server Error
 server_information_is_modified=Server information is modified.
+session=Session
 setting=Setting
 show_password=Show
 theme=Theme
