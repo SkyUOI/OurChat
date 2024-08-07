@@ -38,6 +38,8 @@ struct ArgsParser {
     cfg: String,
     #[arg(long, default_value_t = false)]
     test_mode: bool,
+    #[arg(long, default_value_t = false)]
+    clear: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -93,12 +95,26 @@ fn logger_init(test_mode: bool) -> WorkerGuard {
     guard
 }
 
+fn clear() -> anyhow::Result<()> {
+    let dirpath = std::path::Path::new("log");
+    if !dirpath.exists() {
+        tracing::warn!("try clear log but not found");
+        return Ok(());
+    }
+    fs::remove_dir_all(dirpath)?;
+    fs::create_dir(dirpath)?;
+    Ok(())
+}
+
 /// 真正被调用的主函数
 #[instrument]
 pub async fn lib_main() -> anyhow::Result<()> {
     let parser = ArgsParser::parse();
 
     let _forever = logger_init(parser.test_mode);
+    if parser.clear {
+        clear()?;
+    }
     let cfg_path = if parser.cfg.is_empty() {
         if let Ok(env) = std::env::var("OURCHAT_CONFIG_FILE") {
             env
