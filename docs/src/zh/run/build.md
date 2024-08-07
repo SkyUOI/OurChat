@@ -2,9 +2,9 @@
 
 ## Server
 
-开发构建，请见[服务端开发](./server-develop-zh.md)
+开发构建，请见[服务端开发](../development/server/server-develop.md)
 
-对于真正部署到生产环境，参见[部署指南](./deploy-zh.md)
+对于真正部署到生产环境，参见[部署指南](../deploy.md)
 
 ## Web
 

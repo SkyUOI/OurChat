@@ -2,9 +2,9 @@
 
 ## Server
 
-For development building, please refer to [Server Development](./server-develop.md).
+For development building, please refer to [Server Development](../development/server/server-develop.md).
 
-For actual deployment to a production environment, refer to the [Deployment Guide](./deploy.md)
+For actual deployment to a production environment, refer to the [Deployment Guide](../deploy.md)
 
 ## Web
 
