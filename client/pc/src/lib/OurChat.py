@@ -103,6 +103,7 @@ class OurChat:
                 self.language["restart_reason"].format(message),
             )
         self.close()
+        self.uisystem.configUpdated()
         self.uisystem.run()
 
     def clearLog(self):
