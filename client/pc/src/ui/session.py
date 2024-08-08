@@ -49,14 +49,22 @@ class Ui_Session(object):
         )
         self.horizontalLayout_2.addItem(spacerItem1)
         self.right_panel.addLayout(self.horizontalLayout_2)
-        self.record = QtWidgets.QScrollArea(parent=Session)
-        self.record.setWidgetResizable(True)
-        self.record.setObjectName("record")
-        self.scrollAreaWidgetContents_2 = QtWidgets.QWidget()
-        self.scrollAreaWidgetContents_2.setGeometry(QtCore.QRect(0, 0, 265, 132))
-        self.scrollAreaWidgetContents_2.setObjectName("scrollAreaWidgetContents_2")
-        self.record.setWidget(self.scrollAreaWidgetContents_2)
-        self.right_panel.addWidget(self.record)
+        self.message_list = QtWidgets.QListWidget(parent=Session)
+        self.message_list.setSizeAdjustPolicy(
+            QtWidgets.QAbstractScrollArea.SizeAdjustPolicy.AdjustIgnored
+        )
+        self.message_list.setSelectionMode(
+            QtWidgets.QAbstractItemView.SelectionMode.NoSelection
+        )
+        self.message_list.setVerticalScrollMode(
+            QtWidgets.QAbstractItemView.ScrollMode.ScrollPerPixel
+        )
+        self.message_list.setHorizontalScrollMode(
+            QtWidgets.QAbstractItemView.ScrollMode.ScrollPerPixel
+        )
+        self.message_list.setResizeMode(QtWidgets.QListView.ResizeMode.Adjust)
+        self.message_list.setObjectName("message_list")
+        self.right_panel.addWidget(self.message_list)
         self.editor = QtWidgets.QTextEdit(parent=Session)
         self.editor.setObjectName("editor")
         self.right_panel.addWidget(self.editor)

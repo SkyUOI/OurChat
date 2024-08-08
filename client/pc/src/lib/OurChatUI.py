@@ -6,9 +6,11 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QSpacerItem,
     QSizePolicy,
+    QTextBrowser,
+    QListWidgetItem,
 )
 from PyQt6.QtGui import QCloseEvent, QPixmap, QResizeEvent
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QSize
 
 
 class OurChatDialog(QDialog):
@@ -75,3 +77,67 @@ class SessionWidget(QWidget):
             40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
         )
         main_layout.addSpacerItem(spacer_item)
+
+
+class MessageWidget(QWidget):
+    def setMessage(self, item: QListWidgetItem, avatar_path, name, message, me=False):
+        self.item = item
+        self.avatar_path = avatar_path
+        self.name = name
+        self.message = message
+        self.me = me
+
+        self.layout = QHBoxLayout()
+        self.avatar = ImageLabel(self)
+        self.avatar.setMinimumHeight(40)
+        self.avatar.setImage(avatar_path)
+        self.avatar_layout = QVBoxLayout()
+        self.avatar_layout.addWidget(self.avatar)
+        self.avatar_layout.addSpacerItem(
+            QSpacerItem(
+                20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding
+            )
+        )
+        self.detail_layout = QVBoxLayout()
+        self.name_label = QLabel(self)
+        self.name_label.setText(name)
+        self.text_browser = QTextBrowser(self)
+        self.text_browser.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+        self.text_browser.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        self.text_browser.setText(message)
+        self.text_browser.document().adjustSize()
+        self.text_browser.setMaximumWidth(
+            self.text_browser.document().size().toSize().width() + 50
+        )
+        self.detail_layout.addWidget(self.name_label)
+        self.detail_layout.addWidget(self.text_browser)
+        if me:
+            self.name_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+            self.layout.addSpacerItem(
+                QSpacerItem(
+                    40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
+                )
+            )
+            self.layout.addLayout(self.detail_layout)
+            self.layout.addLayout(self.avatar_layout)
+        else:
+            self.name_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+            self.layout.addLayout(self.avatar_layout)
+            self.layout.addLayout(self.detail_layout)
+            self.layout.addSpacerItem(
+                QSpacerItem(
+                    40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
+                )
+            )
+        self.setLayout(self.layout)
+        item.setSizeHint(
+            QSize(1, self.text_browser.document().size().toSize().height() + 70)
+        )
+
+    def resizeEvent(self, a0: QResizeEvent) -> None:
+        self.item.setSizeHint(
+            QSize(1, self.text_browser.document().size().toSize().height() + 70)
+        )
+        return super().resizeEvent(a0)

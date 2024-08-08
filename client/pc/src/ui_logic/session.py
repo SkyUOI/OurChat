@@ -1,5 +1,5 @@
 from ui.session import Ui_Session as Ui_Session_NOLOGIC
-from lib.OurChatUI import SessionWidget
+from lib.OurChatUI import SessionWidget, MessageWidget
 from PyQt6.QtWidgets import QListWidgetItem
 from PyQt6.QtCore import QSize
 
@@ -14,6 +14,7 @@ class Ui_Session(Ui_Session_NOLOGIC):
         self,
     ):
         super().setupUi(self.widget)
+        self.message_list.verticalScrollBar().setSingleStep(10)
         self.fillText()
         self.bind()
 
@@ -30,3 +31,10 @@ class Ui_Session(Ui_Session_NOLOGIC):
         widget.setSession(avatar_path, name, detail)
         self.session_list.addItem(item)
         self.session_list.setItemWidget(item, widget)
+
+    def addMessage(self, avatar_path, name, message, me):
+        item = QListWidgetItem(self.message_list)
+        widget = MessageWidget(self.message_list)
+        widget.setMessage(item, avatar_path, name, message, me)
+        self.message_list.addItem(item)
+        self.message_list.setItemWidget(item, widget)
