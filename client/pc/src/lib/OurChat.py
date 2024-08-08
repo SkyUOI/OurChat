@@ -103,6 +103,7 @@ class OurChat:
                 self.language["restart_reason"].format(message),
             )
         self.close()
+        self.thread_pool = ThreadPoolExecutor(2)
         self.uisystem.configUpdated()
         self.uisystem.run()
 
