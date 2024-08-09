@@ -2,6 +2,9 @@ from ui.session import Ui_Session as Ui_Session_NOLOGIC
 from lib.OurChatUI import SessionWidget, MessageWidget
 from PyQt6.QtWidgets import QListWidgetItem
 from PyQt6.QtCore import QSize
+from logging import getLogger
+
+logger = getLogger(__name__)
 
 
 class Ui_Session(Ui_Session_NOLOGIC):
@@ -13,6 +16,7 @@ class Ui_Session(Ui_Session_NOLOGIC):
     def setupUi(
         self,
     ):
+        logger.info("setup Ui")
         super().setupUi(self.widget)
         self.message_list.verticalScrollBar().setSingleStep(10)
         self.fillText()

@@ -51,9 +51,7 @@
 | ocid       | String    | 发送者的 ocid                                            |
 | session_id | Number    | 发送者的会话 id                                          |
 | msg        | Array    | 消息列表                                                 |
-| type       | Number    | 用户消息类型，详细见[用户消息传递格式](user_msg_json.md)                                                 |
-
-**_code1,2,3 分别为还未制作的表情包(包括但不限于 gif)，图片发送，文件发送_**
+| type       | Number    | 用户消息类型，详细见[用户消息传递格式](user_msg_json.md)   |
 
 ## 注册信息
 
