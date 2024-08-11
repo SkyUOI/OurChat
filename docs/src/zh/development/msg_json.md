@@ -212,7 +212,7 @@
 | ocid          | 该账号的 ocid         |
 | nickname      | 昵称                  |
 | status        | 该账号的状态          |
-| avater        | 该账号头像的 url 链接 |
+| avatar        | 该账号头像的 url 链接 |
 | time          | 该账号注册的时间戳    |
 
 ## 获取账号信息返回信息
