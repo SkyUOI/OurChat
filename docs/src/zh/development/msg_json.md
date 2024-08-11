@@ -29,7 +29,7 @@
   "time": 消息发送时的时间戳,
   "msg_id": 该消息的id,唯一, //传输给服务器时无此字段
   "sender": {
-    "ocid":发送者ocid,
+    "ocid":"发送者ocid",
     "session_id":发送此消息的会话id
   },
   "msg": [
@@ -42,7 +42,7 @@
 }
 ```
 
-| key        | valueType | comment                                                  |
+| key        | ValueType | comment                                                  |
 | :--------- | :-------- | :------------------------------------------------------- |
 | code       | Number    | 信息类型                                                 |
 | time       | Number    | 发消息的时间戳                                           |
@@ -50,8 +50,8 @@
 | sender     | Object    | 发送者的相关数据                                         |
 | ocid       | String    | 发送者的 ocid                                            |
 | session_id | Number    | 发送者的会话 id                                          |
-| msg        | Array    | 消息列表                                                 |
-| type       | Number    | 用户消息类型，详细见[用户消息传递格式](user_msg_json.md)   |
+| msg        | Array     | 消息列表                                                 |
+| type       | Number    | 用户消息类型，详细见[用户消息传递格式](user_msg_json.md) |
 
 ## 注册信息
 
@@ -66,7 +66,7 @@
 }
 ```
 
-| key      | valueType | comment          |
+| key      | ValueType | comment          |
 | :------- | :-------- | :--------------- |
 | code     | Number    | 信息类型         |
 | email    | String    | 注册邮箱         |
@@ -85,7 +85,7 @@
 }
 ```
 
-| key    | valueType | comment            |
+| key    | ValueType | comment            |
 | :----- | :-------- | :----------------- |
 | code   | Number    | 信息类型           |
 | status | Number    | 服务端返回的状态码 |
@@ -110,7 +110,7 @@
 }
 ```
 
-| key        | valueType | comment                      |
+| key        | ValueType | comment                      |
 | :--------- | :-------- | :--------------------------- |
 | code       | Number    | 信息类型                     |
 | login_type | Number    | 0 为邮箱登录，1 为 ocid 登录 |
@@ -129,7 +129,7 @@
 }
 ```
 
-| key    | valueType | comment            |
+| key    | ValueType | comment            |
 | :----- | :-------- | :----------------- |
 | code   | Number    | 信息类型           |
 | status | Number    | 服务器返回的状态码 |
@@ -156,7 +156,7 @@
 }
 ```
 
-| key     | valueType | comment  |
+| key     | ValueType | comment  |
 | :------ | :-------- | :------- |
 | code    | Number    | 信息类型 |
 | members | Array     | 会话成员 |
@@ -173,7 +173,7 @@
 }
 ```
 
-| key        | valueType | comment    |
+| key        | ValueType | comment    |
 | :--------- | :-------- | :--------- |
 | code       | Number    | 信息类型   |
 | status     | Number    | 会话状态码 |
@@ -201,7 +201,7 @@
 }
 ```
 
-| key            | valueType | comment              |
+| key            | ValueType | comment              |
 | :------------- | :-------- | :------------------- |
 | code           | Number    | 信息类型             |
 | ocid           | Number    | 该账号的 ocid        |
@@ -223,14 +223,14 @@
 {
   "code": 11,
   "data":{
-    "ocid": 该账号的OCID,
-    "nickname": 昵称,
+    "ocid": "该账号的OCID",
+    "nickname": "昵称",
     ...
   }
 }
 ```
 
-| key  | valueType | comment                                           |
+| key  | ValueType | comment                                           |
 | :--- | :-------- | :------------------------------------------------ |
 | code | Number    | 信息类型                                          |
 | data | Object    | 账号信息,详情[见上`request_value`](#获取账号信息) |
@@ -246,7 +246,7 @@
 }
 ```
 
-| key    | valueType | comment      |
+| key    | ValueType | comment      |
 | :----- | :-------- | :----------- |
 | code   | Number    | 信息类型     |
 | status | Number    | 服务器状态码 |
@@ -266,7 +266,7 @@
 }
 ```
 
-| key  | valueType | comment  |
+| key  | ValueType | comment  |
 | :--- | :-------- | :------- |
 | code | Number    | 信息类型 |
 
@@ -291,7 +291,7 @@
 }
 ```
 
-| key    | valueType | comment    |
+| key    | ValueType | comment    |
 | :----- | :-------- | :--------- |
 | code   | Number    | 信息类型   |
 | status | Number    | 验证状态码 |
@@ -325,7 +325,7 @@
 }
 ```
 
-| key    | valueType | comment    |
+| key    | ValueType | comment    |
 | :----- | :-------- | :--------- |
 | code   | Number    | 信息类型   |
 | status | Number    | 注销状态码 |
@@ -342,6 +342,11 @@
 ```json
 {
   "code": 18,
-  "details": 错误信息
+  "details": "错误信息"
 }
 ```
+
+| Key     | ValueType | Comment       |
+| :------ | :-------- | :------------ |
+| code    | Number    | 信息类型  |
+| details | String    | 异常信息 |

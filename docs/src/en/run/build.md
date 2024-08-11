@@ -1,42 +1,42 @@
-# How to build this project
+# How to Build the Project
 
 ## Server
 
-For development building, please refer to [Server Development](../development/server/server-develop.md).
+For development and building, see [Backend Development](../development/server/server-develop.md).
 
-For actual deployment to a production environment, refer to the [Deployment Guide](../deploy.md)
+For actual deployment to a production environment, see [Deployment Guide](../deploy.md).
 
 ## Web
 
-First,you should run:
+Firstly, you need to run:
 
 ```bash
 rustup target add wasm32-unknown-unknown
 ```
 
-to add wasm support.
+to add support for WebAssembly.
 
-then you should run:
+Then you should run:
 
 ```bash
 cargo install trunk
 ```
 
-to install [trunk](https://github.com/trunk-rs/trunk) to build and run web application.
+to install [trunk](https://github.com/trunk-rs/trunk) for building and running web applications.
 
-Then run `trunk serve` and `trunk build` to build and run web application.
+Next, run `trunk serve` and `trunk build` to build and run the web application.
 
 ## Tauri-client
 
-Tauri-client is developed in rust.Use the same frontend of web client.
+The Tauri-client is developed using Rust. It uses the same frontend as the web version.
 
-First you should run:
+First, you should run:
 
 ```bash
 cargo install tauri-cli
 ```
 
-to install a tool to manage the tauri application.
+to install a tool for managing Tauri projects.
 
 Then run:
 
@@ -44,16 +44,25 @@ Then run:
 cd src-tauri && cargo tauri dev
 ```
 
-to build and run tauri application.
+to build and run the Tauri application.
 
-## client
+## client-pc
 
-client is developed in python.Require python3 or higher.Install and run:
+The client-pc part is written in Python and does not require compilation. It requires Python 3 or above. Install and run with the following commands:
 
-## PC
+### Running
 
 ```bash
-cd ./client/pc/
-pip3 install -r requirement.txt
-python3 main.py
+python -m pip install -r client/pc/requirement.txt # Install the dependency libraries
+python script/export_themes.py # Export themes to client/pc/src/theme
+cd ./client/pc/src
+python main.py # Run
 ```
+
+### Packaging into an Executable
+
+```bash
+python script/build_pc.py
+```
+
+After the script finishes running, the executable file and its dependencies will be in the `client/pc/src/out/main.dist` directory.

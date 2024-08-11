@@ -1,18 +1,19 @@
-# Server Arguments
+# Server Parameters
 
-| name                   |                                                    usage |
-| :--------------------- | -------------------------------------------------------: |
-| --cfg=config file path | choose the server config.[example](#config-file-example) |
-| --test_mode            |                Run in test mode,only for debug and test. |
+| Name                   |                                                                 Usage |
+| :--------------------- | --------------------------------------------------------------------: |
+| --cfg=config file path | Select the configuration file. [Example](#configuration-file-example) |
+| --test-mode            |     Start the server in test mode, for development and debugging only |
+| --clear                |                              Clear server cache and logs upon startup |
 
-## config file example
+## Configuration File Example
 
 ```toml
-dbcfg = "../config/database.json"
-rediscfg = "../config/redis_connect.json"
+dbcfg = "config/database.json"
+rediscfg = "config/redis_connect.json"
 ```
 
-dbcfg example:
+Database Example(dbcfg):
 
 ```json
 {
@@ -24,7 +25,7 @@ dbcfg example:
 }
 ```
 
-redis example:
+Redis Example(rediscfg):
 
 ```json
 {

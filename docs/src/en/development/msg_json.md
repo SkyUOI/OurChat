@@ -1,149 +1,147 @@
-﻿# OurChat 信息传递格式
+﻿# OurChat Message Passing Format
 
-## 目录
+## Table of Contents
 
-- [文本信息](#文本信息)
-- [注册信息](#注册信息)
-- [注册返回信息](#注册返回信息)
-- [登录信息](#登录信息)
-- [登录返回信息](#登录返回信息)
-- [新建会话请求信息](#新建会话请求信息)
-- [新建会话返回信息](#新建会话返回信息)
-- [获取账号信息](#获取账号信息)
-- [获取账号信息返回信息](#获取账号信息返回信息)
-- [获取服务器状态](#获取服务器状态)
-- [发起验证](#发起验证)
-- [生成验证码](#生成验证码)
-- [验证状态](#验证状态)
+- [User Information](#user-information)
+- [Registration Information](#registration-information)
+- [Registration Return Information](#registration-return-information)
+- [Login Information](#login-information)
+- [Login Return Information](#login-return-information)
+- [New Session Request Information](#new-session-request-information)
+- [New Session Return Information](#new-session-return-information)
+- [Get Account Information](#get-account-information)
+- [Get Account Information Return Information](#get-account-information-return-information)
+- [Get Server Status](#get-server-status)
+- [Initiate Verification](#initiate-verification)
+- [Generate Verification Code](#generate-verification-code)
+- [Verification Status](#verification-status)
+- [Logout](#logout)
+- [Logout Return Information](#logout-return-information)
+- [Error Information](#error-information)
 
-## 文本信息
+## User Information
 
 **_Server <-> Client_**
-
-格式如下
 
 ```json
 {
   "code": 0,
-  "time": 消息发送时的时间戳,
-  "msg_id": 该信息的id,唯一, //传输给服务器时无此字段
+  "time": Timestamp of the message sent,
+  "msg_id": The unique ID of the message, // This field is not present when transmitting to the server
   "sender": {
-    "ocid":发送者ocid,
-    "session_id":发送此信息的会话id,
+    "ocid": The ocid of the sender,
+    "session_id": The session ID of the message sent
   },
-  "msg": "文本信息"
+  "msg": [
+    {
+      "type": User message type,
+      ... // Relevant data
+    },
+    ...
+  ]
 }
 ```
 
-| key        | valueType | comment                                                  |
-| :--------- | :-------- | :------------------------------------------------------- |
-| code       | Number    | 信息类型                                                 |
-| time       | Number    | 发消息的时间戳                                           |
-| msg_id     | Number    | message 的 ID，唯一 **_(注意：传输给服务器时无此字段)_** |
-| sender     | Object    | 发送者的相关数据                                         |
-| ocid       | String    | 发送者的 ocid                                            |
-| session_id | Number    | 发送者的会话 id                                          |
-| msg        | String    | 文本信息                                                 |
+| Key        | ValueType | Comment                                                                                                      |
+| :--------- | :-------- | :----------------------------------------------------------------------------------------------------------- |
+| code       | Number    | Message type                                                                                                 |
+| time       | Number    | Timestamp of the message sent                                                                                |
+| msg_id     | Number    | The ID of the message, unique **_(Please note: This field is not present when transmitting to the server)_** |
+| sender     | Object    | Relevant data of the sender                                                                                  |
+| ocid       | String    | The ocid of the sender                                                                                       |
+| session_id | Number    | The session ID of the sender                                                                                 |
+| msg        | Array     | Message list                                                                                                 |
+| type       | Number    | User message type, details see [User Message Passing Format](user_msg_json.md)                               |
 
-**_code1,2,3 分别为还未制作的表情包(包括但不限于 gif)，图片发送，文件发送_**
-
-## 注册信息
+## Registration Information
 
 **_Server <- Client_**
-
-格式如下
 
 ```json
 {
   "code": 4,
-  "email": "注册使用的邮箱",
-  "password": "注册密码(已加密)",
-  "name": "昵称"
+  "email": "Email used for registration",
+  "password": "Encrypted registration password",
+  "name": "Nickname"
 }
 ```
 
-| key      | valueType | comment          |
-| :------- | :-------- | :--------------- |
-| code     | Number    | 信息类型         |
-| email    | String    | 注册邮箱         |
-| password | String    | 注册密码(已加密) |
-| name     | String    | 昵称             |
+| Key      | ValueType | Comment                         |
+| :------- | :-------- | :------------------------------ |
+| code     | Number    | Message type                    |
+| email    | String    | Registration email              |
+| password | String    | Encrypted registration password |
+| name     | String    | Nickname                        |
 
-## 注册返回信息
+## Registration Return Information
 
 **_Server -> Client_**
-
-格式如下
 
 ```json
 {
   "code": 5,
-  "status": 返回码,
-  "ocid": "注册账号的OC号"
+  "status": Return code,
+  "ocid": "OC number of the registered account"
 }
 ```
 
-| key    | valueType | comment            |
-| :----- | :-------- | :----------------- |
-| code   | Number    | 信息类型           |
-| status | Number    | 服务端返回的状态码 |
-| ocid   | Number    | 该账号的 OC 号     |
+| Key    | ValueType | Comment                   |
+| :----- | :-------- | :------------------------ |
+| code   | Number    | Message type              |
+| status | Number    | Server return status code |
+| ocid   | Number    | OC number of the account  |
 
-| returnCode | comment    |
-| :--------- | :--------- |
-| 0          | 注册成功   |
-| 1          | 服务器错误 |
-| 2          | 邮箱重复   |
+| ReturnCode | Comment                 |
+| :--------- | :---------------------- |
+| 0          | Registration successful |
+| 1          | Server error            |
+| 2          | Email already in use    |
 
-## 登录信息
+## Login Information
 
 **_Server <- Client_**
-
-格式如下
 
 ```json
 {
   "code": 6,
-  "login_type": 登陆方式,
-  "account": "邮箱/OCID",
-  "password": "密码"
+  "login_type": Login method,
+  "account": "Email/OCID",
+  "password": "Password"
 }
 ```
 
-| key        | valueType | comment                      |
-| :--------- | :-------- | :--------------------------- |
-| code       | Number    | 信息类型                     |
-| login_type | Number    | 0 为邮箱登录，1 为 ocid 登录 |
-| account    | String    | 账号绑定的邮箱或 ocid        |
-| password   | String    | 密码                         |
+| Key        | ValueType | Comment                             |
+| :--------- | :-------- | :---------------------------------- |
+| code       | Number    | Message type                        |
+| login_type | Number    | 0 for email login, 1 for ocid login |
+| account    | String    | Email or ocid bound to the account  |
+| password   | String    | Password                            |
 
-## 登录返回信息
+## Login Return Information
 
 **_Server -> Client_**
-
-格式如下
 
 ```json
 {
   "code": 7,
-  "status": 登录状态码,
-  "ocid":该账号的ocid
+  "status": Login status code,
+  "ocid": The ocid of the account
 }
 ```
 
-| key    | valueType | comment            |
-| :----- | :-------- | :----------------- |
-| code   | Number    | 信息类型           |
-| status | Number    | 服务器返回的状态码 |
-| ocid   | Number    | 该账号的 OCID      |
+| Key    | ValueType | Comment                   |
+| :----- | :-------- | :------------------------ |
+| code   | Number    | Message type              |
+| status | Number    | Server return status code |
+| ocid   | Number    | The ocid of the account   |
 
-| status | comment          |
-| :----- | :--------------- |
-| 0      | 登录成功         |
-| 1      | 账号或密码不正确 |
-| 2      | 服务器错误       |
+| Status | Comment                       |
+| :----- | :---------------------------- |
+| 0      | Login successful              |
+| 1      | Incorrect account or password |
+| 2      | Server error                  |
 
-## 新建会话请求信息
+## New Session Request Information
 
 **_Server <- Client_**
 
@@ -158,43 +156,43 @@
 }
 ```
 
-| key     | valueType | comment  |
-| :------ | :-------- | :------- |
-| code    | Number    | 信息类型 |
-| members | Array     | 会话成员 |
+| Key     | ValueType | Comment         |
+| :------ | :-------- | :-------------- |
+| code    | Number    | Message type    |
+| members | Array     | Session members |
 
-## 新建会话返回信息
+## New Session Return Information
 
 **_Server -> Client_**
 
 ```json
 {
   "code": 9,
-  "status": 会话状态码,
-  "session_id": 会话id // 仅当创建成功时有此字段
+  "status": Session status code,
+  "session_id": Session id // Only present if creation is successful
 }
 ```
 
-| key        | valueType | comment    |
-| :--------- | :-------- | :--------- |
-| code       | Number    | 信息类型   |
-| status     | Number    | 会话状态码 |
-| session_id | Number    | 会话 id    |
+| Key        | ValueType | Comment             |
+| :--------- | :-------- | :------------------ |
+| code       | Number    | Message type        |
+| status     | Number    | Session status code |
+| session_id | Number    | Session id          |
 
-| status | comment          |
-| :----- | :--------------- |
-| 0      | 创建成功         |
-| 1      | 服务器错误       |
-| 2      | 到达创建会话上限 |
+| Status | Comment                            |
+| :----- | :--------------------------------- |
+| 0      | Creation successful                |
+| 1      | Server error                       |
+| 2      | Reached the session creation limit |
 
-## 获取账号信息
+## Get Account Information
 
 **_Server <- Client_**
 
 ```json
 {
   "code": 10,
-  "ocid": 该账号的OCID,
+  "ocid": The ocid of the account,
   "request_values":[
     "ocid",
     "nickname",
@@ -203,21 +201,21 @@
 }
 ```
 
-| key            | valueType | comment              |
-| :------------- | :-------- | :------------------- |
-| code           | Number    | 信息类型             |
-| ocid           | Number    | 该账号的 ocid        |
-| request_values | Array     | 需要服务端返回的信息 |
+| Key            | ValueType | Comment                                         |
+| :------------- | :-------- | :---------------------------------------------- |
+| code           | Number    | Message type                                    |
+| ocid           | Number    | The ocid of the account                         |
+| request_values | Array     | Information needed to be returned by the server |
 
-| request_value | comment               |
-| :------------ | :-------------------- |
-| ocid          | 该账号的 ocid         |
-| nickname      | 昵称                  |
-| status        | 该账号的状态          |
-| avater        | 该账号头像的 url 链接 |
-| time          | 该账号注册的时间戳    |
+| RequestValue | Comment                               |
+| :----------- | :------------------------------------ |
+| ocid         | The ocid of the account               |
+| nickname     | Nickname                              |
+| status       | The status of the account             |
+| avatar       | URL link of the account's avatar      |
+| time         | Timestamp of the account registration |
 
-## 获取账号信息返回信息
+## Get Account Information Return Information
 
 **_Server -> Client_**
 
@@ -225,40 +223,40 @@
 {
   "code": 11,
   "data":{
-    "ocid": 该账号的OCID,
-    "nickname": 昵称,
+    "ocid": The ocid of the account,
+    "nickname": Nickname,
     ...
   }
 }
 ```
 
-| key  | valueType | comment                                           |
-| :--- | :-------- | :------------------------------------------------ |
-| code | Number    | 信息类型                                          |
-| data | Object    | 账号信息,详情[见上`request_value`](#获取账号信息) |
+| Key  | ValueType | Comment                                                                            |
+| :--- | :-------- | :--------------------------------------------------------------------------------- |
+| code | Number    | Message type                                                                       |
+| data | Object    | Account information, details [see above `request_value`](#get-account-information) |
 
-## 获取服务器状态
+## Get Server Status
 
 **_Server <-> Client_**
 
 ```json
 {
   "code": 12,
-  "status": 服务器状态码, // 传输给服务器时无此字段
+  "status": Server status code, // This field is not present when transmitting to the server
 }
 ```
 
-| key    | valueType | comment      |
-| :----- | :-------- | :----------- |
-| code   | Number    | 信息类型     |
-| status | Number    | 服务器状态码 |
+| Key    | ValueType | Comment            |
+| :----- | :-------- | :----------------- |
+| code   | Number    | Message type       |
+| status | Number    | Server status code |
 
-| status | comment  |
-| :----- | :------- |
-| 0      | 正常运行 |
-| 1      | 维护中   |
+| Status | Comment           |
+| :----- | :---------------- |
+| 0      | Running normally  |
+| 1      | Under maintenance |
 
-## 发起验证
+## Initiate Verification
 
 **_Server -> Client_**
 
@@ -268,11 +266,11 @@
 }
 ```
 
-| key  | valueType | comment  |
-| :--- | :-------- | :------- |
-| code | Number    | 信息类型 |
+| Key  | ValueType | Comment      |
+| :--- | :-------- | :----------- |
+| code | Number    | Message type |
 
-## 生成验证码
+## Generate Verification Code
 
 **_Server <- Client_**
 
@@ -282,24 +280,73 @@
 }
 ```
 
-## 验证状态
+## Verification Status
 
-**_Server <- Client_**
+**_Server -> Client_**
 
 ```json
 {
   "code": 15,
-  "status": 验证状态码
+  "status": Verification status code
 }
 ```
 
-| key    | valueType | comment    |
-| :----- | :-------- | :--------- |
-| code   | Number    | 信息类型   |
-| status | Number    | 验证状态码 |
+| Key    | ValueType | Comment                  |
+| :----- | :-------- | :----------------------- |
+| code   | Number    | Message type             |
+| status | Number    | Verification status code |
 
-| status | comment  |
-| :----- | :------- |
-| 0      | 验证通过 |
-| 1      | 验证失败 |
-| 2      | 验证超时 |
+| Status | Comment                |
+| :----- | :--------------------- |
+| 0      | Verification passed    |
+| 1      | Verification failed    |
+| 2      | Verification timed out |
+
+## Logout
+
+**_Server<-Client_**
+
+```json
+{
+  "code": 16
+}
+```
+
+**_Warning: This logout refers to the deletion of the account, do not misuse the interface_**
+
+## Logout Return Information
+
+**_Server -> Client_**
+
+```json
+{
+  "code": 17,
+  "status": Logout status code
+}
+```
+
+| Key    | ValueType | Comment            |
+| :----- | :-------- | :----------------- |
+| code   | Number    | Message type       |
+| status | Number    | Logout status code |
+
+| Status | Comment           |
+| :----- | :---------------- |
+| 0      | Logout successful |
+| 1      | Logout failed     |
+
+## Error Information
+
+**_Server -> Client_**
+
+```json
+{
+  "code": 18,
+  "details": "Error details"
+}
+```
+
+| Key     | ValueType | Comment       |
+| :------ | :-------- | :------------ |
+| code    | Number    | Message type  |
+| details | String    | Error message |
