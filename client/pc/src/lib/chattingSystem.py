@@ -21,19 +21,19 @@ class ChattingSystem:
 
     def connectToDB(self, path: str = "record.db"):
         logger.info(f"connect to chatting record datebase({path})")
-        self.datebase = SqliteDatabase(path)
-        SessionRecord._meta.database = self.datebase
-        self.datebase.connect()
+        self.database = SqliteDatabase(path)
+        SessionRecord._meta.database = self.database
+        self.database.connect()
 
     def createSessionTable(self, session: str):
         logger.info("create table")
         logger.debug(f"create table {session}")
         table = SessionRecord
         table._meta.table_name = session
-        self.datebase.create_tables([table])
+        self.database.create_tables([table])
 
     def addRecord(self, session: str, data: dict):
-        if not self.datebase.table_exists(session):
+        if not self.database.table_exists(session):
             self.createSessionTable(session)
         table = SessionRecord
         table._meta.table_name = session
@@ -65,7 +65,7 @@ class ChattingSystem:
 
     def close(self):
         logger.info("close chatting record datebase")
-        self.datebase.close()
+        self.database.close()
 
     def gotMessage(self, data):
         self.addRecord(data["sender"]["session_id"], data)
