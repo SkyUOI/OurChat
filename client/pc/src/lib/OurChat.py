@@ -21,6 +21,7 @@ class OurChat:
         self.listen_message = {}
         self.tasks = {}
         self.message_queue = []
+        self.runQueue = []
         self.version_details = {}
         self.uisystem = None
         self.chatting_system = ChattingSystem(self)
@@ -69,6 +70,12 @@ class OurChat:
             for func in self.listen_message[data["code"]]:
                 logger.info(f"run {func.__name__}")
                 func(data)
+
+        # later
+        for func in self.runQueue:
+            logger.info(f"run {func.__name__}")
+            func()
+        self.runQueue.clear()
 
     def close(self):
         logger.info("OurChat begin to close")
@@ -153,6 +160,9 @@ class OurChat:
             key = i[:index]
             value = i[index + 1 :]
             self.version_details[key] = value
+
+    def runInMainThread(self, func):
+        self.runQueue.append(func)
 
 
 class OurChatAccount:

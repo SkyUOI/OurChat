@@ -58,9 +58,17 @@ class Connection:
                     logger.info("reconnect successfully")
                     continue
                 logger.info("return to login ui")
-                self.ourchat.restart("Disconnect from the server")
+                self.ourchat.runInMainThread(
+                    lambda: self.ourchat.restart(self.ourchat.language["disconnect"])
+                )
+                return
             except CloseOK:
                 logger.info("connection has been close normally")
+                self.ourchat.runInMainThread(
+                    lambda: self.ourchat.restart(
+                        self.ourchat.language["server_shutdown"]
+                    )
+                )
                 return
             except Exception as e:
                 logger.warning(f"unknown error: {str(e)}")

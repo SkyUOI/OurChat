@@ -1,38 +1,57 @@
-from websockets.server import serve
-from websockets.server import WebSocketServerProtocol
-import asyncio
+from websockets.sync.server import serve
+from threading import Thread
 import os
 import json
 
-samples = os.listdir("message_samples")
-with open("auto_reply.json", "r") as f:
-    auto_reply_data = json.load(f)
+samples = list(os.listdir("message_samples"))
+recommend_answer = {
+    4: ["reg_email_error.json", "reg_server_error.json", "reg_success.json"],
+    6: [
+        "login_server_error.json",
+        "login_wrong_account_or_psw.json",
+        "login_success.json",
+    ],
+    8: ["new_session_success.json", "new_session_error.json"],
+    10: ["account_info.json"],
+    12: ["server_maintenance.json", "server_status_normal.json"],
+    14: [
+        "verify_status_fail.json",
+        "verify_status_success.json",
+        "verify_status_timeout.json",
+    ],
+    16: ["sign_out_fail.json", "sign_out_success.json"],
+}
 
 
-async def func(a: WebSocketServerProtocol):
-    print(a.remote_address)
-    while not a.closed:
-        message = await a.recv()
-        data = json.loads(message)
-        index = auto_reply_data[data["code"]]
-        print(f"{a.remote_address} >>> {message}")
-        # print("-" * 50)
-        # for i in range(len(samples)):
-        #     print(f"{i+1}. {samples[i]}")
-        # print("-" * 50)
-        # index = int(input()) - 1
-        if index is not None:
-            with open(f"message_samples/{index}", "r") as f:
-                replay = f.read()
-        else:
-            replay = message
-        print(f"{a.remote_address} <<< {index}\n{replay}")
-        await a.send(replay)
+def recv(s):
+    while True:
+        msg = s.recv()
+        print(">>>", msg)
+        data = json.loads(msg)
+        print("=" * 50)
+        for i in range(len(samples)):
+            recommend = " "
+            if samples[i] in recommend_answer[data["code"]]:
+                recommend = "@"
+            print(f"[{recommend}]{i+1}. {samples[i]}")
+        print("=" * 50)
 
 
-async def main():
-    async with serve(func, "127.0.0.1", 7777):
-        await asyncio.Future()
+def server(s):
+    Thread(target=recv, args=(s,), daemon=True).start()
+    while True:
+        answer = input("<<< ")
+        if answer == "exit":
+            s.close()
+            break
+        try:
+            index = int(answer)
+            with open(f"message_samples/{samples[index-1]}", "r") as f:
+                answer = f.read()
+        except Exception:
+            pass
+        s.send(answer)
 
 
-asyncio.run(main())
+with serve(server, host="127.0.0.1", port=7777) as s:
+    s.serve_forever()
