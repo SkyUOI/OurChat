@@ -20,7 +20,7 @@ class ChattingSystem:
         self.ourchat.listen(USER_MSG, self.gotMessage)
 
     def connectToDB(self, path: str = "record.db"):
-        logger.info(f"connect to chatting record datebase({path})")
+        logger.info(f"connect to chatting record database({path})")
         self.database = SqliteDatabase(path)
         SessionRecord._meta.database = self.database
         self.database.connect()
@@ -64,7 +64,7 @@ class ChattingSystem:
         return data
 
     def close(self):
-        logger.info("close chatting record datebase")
+        logger.info("close chatting record database")
         self.database.close()
 
     def gotMessage(self, data):
