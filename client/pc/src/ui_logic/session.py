@@ -23,7 +23,7 @@ class Ui_Session(Ui_Session_NOLOGIC):
         self.bind()
 
     def fillText(self):
-        pass
+        self.widget.setWindowTitle(f"Ourchat - {self.ourchat.language['session']}")
 
     def bind(self):
         pass

@@ -33,7 +33,7 @@ class Ui_Main(Ui_Main_NOLOGIC):
         self.to_setting.clicked.connect(lambda: self.setWidget(Ui_Setting))
 
     def fillText(self):
-        self.mainwindow.setWindowTitle("OurChat")
+        self.mainwindow.setWindowTitle(f"Ourchat - {self.ourchat.language['session']}")
         self.to_session.setText(self.ourchat.language["session"])
         self.to_account.setText(self.ourchat.language["account"])
         self.to_setting.setText(self.ourchat.language["setting"])

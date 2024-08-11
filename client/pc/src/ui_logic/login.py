@@ -42,6 +42,7 @@ class Ui_Login(Ui_Login_NOLOGIC):
         self.setting_btn.setText(self.ourchat.language["setting"])
         self.connect_server_btn.setText(self.ourchat.language["connect_server"])
         self.join_btn.setText(self.ourchat.language["join"])
+        self.widget.setWindowTitle(f"Ourchat - {self.ourchat.language['login']}")
 
     def bind(self):
         self.join_btn.clicked.connect(self.join)

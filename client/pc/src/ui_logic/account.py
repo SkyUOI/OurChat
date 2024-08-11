@@ -13,7 +13,7 @@ class Ui_Account(Ui_Account_NOLOGIC):
         self.bind()
 
     def fillText(self):
-        pass
+        self.widget.setWindowTitle(f"Ourchat - {self.ourchat.language['account']}")
 
     def bind(self):
         pass

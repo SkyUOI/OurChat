@@ -104,6 +104,7 @@ class Ui_Setting(Ui_Setting_NOLOGIC):
         self.version_label.setText(
             f"Version: {self.ourchat.version_details['pkg_version']}({self.ourchat.version_details['branch']}+{self.ourchat.version_details['commit_hash']})"
         )
+        self.widget.setWindowTitle(f"Ourchat - {self.ourchat.language['setting']}")
         self.filling = False
 
     def bind(self):
