@@ -4,6 +4,7 @@ from concurrent.futures import ThreadPoolExecutor, wait
 from logging import getLogger, DEBUG, INFO, WARNING, CRITICAL, ERROR
 from PyQt6.QtWidgets import QMessageBox
 from copy import deepcopy
+from lib.chattingSystem import ChattingSystem
 import sys
 import os
 import json
@@ -22,6 +23,7 @@ class OurChat:
         self.message_queue = []
         self.version_details = {}
         self.uisystem = None
+        self.chatting_system = ChattingSystem(self)
 
         self.config = OurChatConfig()
         self.language = OurChatLanguage()
@@ -71,11 +73,15 @@ class OurChat:
     def close(self):
         logger.info("OurChat begin to close")
         self.uisystem.app.closeAllWindows()
-        logger.debug("close connection")
         self.conn.close()
         logger.debug("wait for threads")
         wait(self.tasks)
         self.thread_pool.shutdown()
+        self.listen_message = {}
+        self.tasks = {}
+        self.message_queue = []
+        self.version_details = {}
+        self.chatting_system.close()
         self.config.write()
         logger.info("OurChat has been closed")
 
@@ -104,7 +110,8 @@ class OurChat:
             )
         self.close()
         self.thread_pool = ThreadPoolExecutor(2)
-        self.uisystem.configUpdated()
+        self.configUpdated()
+        self.getVersion()
         self.uisystem.run()
 
     def clearLog(self):
@@ -132,6 +139,7 @@ class OurChat:
         self.language.read()
         self.conn.close()
         self.conn.setServer(self.config["server"]["ip"], self.config["server"]["port"])
+        self.chatting_system.connectToDB()
         if self.uisystem is not None:
             self.uisystem.configUpdated()
 

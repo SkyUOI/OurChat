@@ -1,3 +1,4 @@
 PyQt6
 qt_material
 websockets
+peewee
