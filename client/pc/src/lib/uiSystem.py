@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import QApplication, QMainWindow
 from PyQt6.QtCore import QTimer, QDir
 from lib.OurChatUI import OurChatDialog, OutChatWidget
-from PyQt6.QtGui import QFontDatabase,QIcon
+from PyQt6.QtGui import QFontDatabase, QIcon
 from logging import getLogger
 from ui_logic.login import Ui_Login
 from ui_logic.main import Ui_Main
