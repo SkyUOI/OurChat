@@ -54,5 +54,5 @@ enum ServerManager {
 enum Authority {
     Table,
     Id,
-    Description
+    Description,
 }

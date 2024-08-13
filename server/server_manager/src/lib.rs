@@ -1,3 +1,3 @@
-pub async fn lib_main() -> anyhow::Result<()>{
+pub async fn lib_main() -> anyhow::Result<()> {
     Ok(())
 }
