@@ -1,11 +1,5 @@
 mod test_lib;
 
-use futures_util::{SinkExt, StreamExt};
-use server::{
-    connection::client_response::{self, ErrorMsgResponse, LoginResponse},
-    consts::MessageType,
-};
-
 #[test]
 #[serial_test::serial]
 fn test_login_register() {

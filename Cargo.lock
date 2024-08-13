@@ -4685,7 +4685,6 @@ dependencies = [
  "serde_repr",
  "serial_test",
  "snowdon",
- "sqlx",
  "thiserror",
  "tokio",
  "tokio-tungstenite",
@@ -4694,6 +4693,14 @@ dependencies = [
  "tracing-appender",
  "tracing-subscriber",
  "tungstenite",
+]
+
+[[package]]
+name = "server_manager"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "tokio",
 ]
 
 [[package]]

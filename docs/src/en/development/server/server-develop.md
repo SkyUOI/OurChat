@@ -22,7 +22,7 @@ We provide a Dockerfile for the development environment.
 You can run:
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 to set up the development environment.

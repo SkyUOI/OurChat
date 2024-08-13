@@ -7,16 +7,16 @@ For this project, we provide a Dockerfile suitable for production environments, 
 Here are the specific steps:
 
 ```bash
-docker-compose -f docker-compose.prod.yml up -d
+docker compose -f compose.prod.yml up -d
 ```
 
 Completing this step only creates the most basic environment, but the security is far from adequate. To ensure security, you need to change the passwords for MySQL and Redis.
 
 Here are the specific steps:
 
-- Change the `password` `123456` in the `docker-compose.prod.yml` to your own strong passwords.
+- Change the `password` `123456` in the `compose.prod.yml` to your own strong passwords.
 - Modify `config/database.json` to the new MySQL password, and `config/redis_connection.json` to the new Redis password.
-- Run `docker-compose -f docker-compose.prod.yml up -d` again.
+- Run `docker compose -f compose.prod.yml up -d` again.
 
 After completing these steps, you have successfully deployed the project.
 
@@ -28,7 +28,7 @@ For computers with low performance and those that have not installed Docker, we 
 
 ### Install MySQL
 
-MySQL version is 9.0.1 (if this document is not updated in time, you can check the MySQL version in the [`docker-compose.yml`](https://github.com/SkyUOI/OurChat/blob/main/docker-compose.yml)).
+MySQL version is 9.0.1 (if this document is not updated in time, you can check the MySQL version in the [`compose.yml`](https://github.com/SkyUOI/OurChat/blob/main/compose.yml)).
 
 ### Install Redis
 

@@ -34,7 +34,7 @@ jobs:
       - name: Test
         uses: SkyUOI/github-action-docker-compose-test-run@main
         with:
-          file: docker-compose.yml
+          file: compose.yml
           service: OurChatServer
           command: "script/action_test_server.py"
           registry: "ghcr.io"

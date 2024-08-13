@@ -2,6 +2,7 @@
 members = [
     "server",
     "server/migration",
+    "server/server_manager",
     "client/src-tauri",
     "client/web",
     "client/web/derive",
@@ -18,3 +19,4 @@ strip = true
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.80"

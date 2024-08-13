@@ -2,9 +2,11 @@
 
 pub mod prelude;
 
+pub mod authority;
 pub mod chat;
 pub mod chat_group;
 pub mod friend;
+pub mod server_manager;
 pub mod user;
 pub mod user_chat_id;
 pub mod user_chat_msg;

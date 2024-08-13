@@ -22,7 +22,7 @@ docker-buildx 和 docker-compose 同样也需要安装.
 你可以运行:
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 来配置开发环境
