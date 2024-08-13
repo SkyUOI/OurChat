@@ -1,6 +1,8 @@
 //! 处理到客户端的连接
 
+mod basic;
 pub mod client_response;
+mod process;
 
 use crate::{
     consts::{MessageType, ID},
@@ -178,21 +180,10 @@ impl Connection {
         }
     }
 
-    async fn send_error_msg(
-        sender: &mpsc::Sender<Message>,
-        msg: impl Into<String>,
-    ) -> anyhow::Result<()> {
-        let error_resp = client_response::error_msg::ErrorMsgResponse::new(msg.into());
-        sender
-            .send(Message::Text(serde_json::to_string(&error_resp)?))
-            .await?;
-        Ok(())
-    }
-
     pub async fn read_loop(
         mut incoming: SplitStream<WS>,
         id: ID,
-        sender: mpsc::Sender<Message>,
+        net_sender: mpsc::Sender<Message>,
         request_sender: mpsc::Sender<DBRequest>,
         mut shutdown_receiver: broadcast::Receiver<()>,
     ) -> anyhow::Result<()> {
@@ -221,15 +212,18 @@ impl Connection {
                             let code = code.as_u64();
                             match code {
                                 None => {
-                                    Self::send_error_msg(&sender, "code is not a unsigned number")
-                                        .await?;
+                                    Self::send_error_msg(
+                                        &net_sender,
+                                        "code is not a unsigned number",
+                                    )
+                                    .await?;
                                 }
                                 Some(num) => {
                                     let code = match MessageType::try_from(num as i32) {
                                         Ok(num) => num,
                                         Err(_) => {
                                             Self::send_error_msg(
-                                                &sender,
+                                                &net_sender,
                                                 format!("Not a valid code {}", num),
                                             )
                                             .await?;
@@ -238,26 +232,13 @@ impl Connection {
                                     };
                                     match code {
                                         MessageType::Unregister => {
-                                            let channel = oneshot::channel();
-                                            let unregister = DBRequest::Unregister {
-                                                id,
-                                                resp: channel.0,
-                                            };
-                                            request_sender.send(unregister).await?;
-                                            let ret = channel.1.await?;
-                                            let resp = UnregisterResponse::new(ret);
-                                            // tracing::debug!("!!!");
-                                            sender
-                                                .send(Message::Text(
-                                                    serde_json::to_string(&resp).unwrap(),
-                                                ))
+                                            Self::unregister(id, &request_sender, net_sender)
                                                 .await?;
-                                            sender.send(Message::Close(None)).await?;
                                             return Ok(());
                                         }
                                         _ => {
                                             Self::send_error_msg(
-                                                &sender,
+                                                &net_sender,
                                                 format!("Not a valid code {}", num),
                                             )
                                             .await?;
@@ -266,12 +247,12 @@ impl Connection {
                                 }
                             }
                         } else {
-                            Self::send_error_msg(&sender, "Without code").await?
+                            Self::send_error_msg(&net_sender, "Without code").await?
                         }
                     }
                     tungstenite::Message::Binary(_) => todo!(),
                     tungstenite::Message::Ping(_) => {
-                        sender.send(Message::Pong(vec![])).await?;
+                        net_sender.send(Message::Pong(vec![])).await?;
                     }
                     tungstenite::Message::Pong(_) => {
                         tracing::info!("recv pong");
