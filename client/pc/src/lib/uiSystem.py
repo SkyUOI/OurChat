@@ -1,11 +1,12 @@
-from PyQt6.QtWidgets import QApplication, QMainWindow
-from PyQt6.QtCore import QTimer, QDir
-from lib.OurChatUI import OurChatDialog, OutChatWidget
-from PyQt6.QtGui import QFontDatabase, QIcon
-from logging import getLogger
-from ui_logic.login import Ui_Login
-from ui_logic.main import Ui_Main
 import os
+from logging import getLogger
+
+from lib.OurChatUI import OurChatDialog, OurChatWidget
+from PyQt6.QtCore import QDir, QTimer
+from PyQt6.QtGui import QFontDatabase, QIcon
+from PyQt6.QtWidgets import QApplication, QMainWindow
+from ui_logic.login import LoginUI
+from ui_logic.main import MainUI
 
 logger = getLogger(__name__)
 
@@ -27,7 +28,6 @@ class UISystem:
         ]
         self.tick_timer = QTimer()
         self.tick_timer.timeout.connect(self.ourchat.tick)
-        self.tick_timer.start(10)
         QFontDatabase.addApplicationFont("resources/fonts/Roboto-Medium.ttf")
         QFontDatabase.addApplicationFont("resources/fonts/MiSans-Medium.ttf")
 
@@ -68,7 +68,7 @@ class UISystem:
 
     def setWidget(self, widget_class, only=False):
         logger.info(f"new widget {widget_class.__qualname__}")
-        new_widget = OutChatWidget(self.ourchat)
+        new_widget = OurChatWidget(self.ourchat)
         new_ui_logic = widget_class(self.ourchat, new_widget)
 
         if only:
@@ -126,10 +126,11 @@ class UISystem:
         return os.listdir("theme")
 
     def run(self):
-        self.setUI(Ui_Main)
+        self.setUI(MainUI)
         self.app.setWindowIcon(QIcon("resources/images/logo.ico"))
-        widget = self.setWidget(Ui_Login, True)
+        widget = self.setWidget(LoginUI, True)
         widget.show()
+        self.tick_timer.start(1)
 
     def configUpdated(self):
         self.setTheme(
@@ -142,3 +143,7 @@ class UISystem:
             ui_logic.fillText()
         if self.ui_logic is not None:
             self.ui_logic.fillText()
+
+    def close(self):
+        self.app.closeAllWindows()
+        self.tick_timer.stop()

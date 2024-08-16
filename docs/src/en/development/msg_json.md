@@ -3,6 +3,8 @@
 ## Table of Contents
 
 - [User Information](#user-information)
+- [Retrieve Conversation Information](#retrieve-conversation-information)
+- [Retrieve Conversation Information Return Information](#retrieve-conversation-information-return-information)
 - [Registration Information](#registration-information)
 - [Registration Return Information](#registration-return-information)
 - [Login Information](#login-information)
@@ -43,7 +45,7 @@
 ```
 
 | Key        | ValueType | Comment                                                                                                      |
-| :--------- | :-------- | :----------------------------------------------------------------------------------------------------------- |
+|:-----------|:----------|:-------------------------------------------------------------------------------------------------------------|
 | code       | Number    | Message type                                                                                                 |
 | time       | Number    | Timestamp of the message sent                                                                                |
 | msg_id     | Number    | The ID of the message, unique **_(Please note: This field is not present when transmitting to the server)_** |
@@ -52,6 +54,58 @@
 | session_id | Number    | The session ID of the sender                                                                                 |
 | msg        | Array     | Message list                                                                                                 |
 | type       | Number    | User message type, details see [User Message Passing Format](user_msg_json.md)                               |
+
+## Retrieve Conversation Information
+
+### Server <- Client
+
+```json
+{
+  "code": 1,
+  "session_id": "The ID of the session",
+  "request_values": [
+    "name",
+    ...
+  ]
+}
+```
+
+| key            | ValueType | comment                                         |
+|:---------------|:----------|:------------------------------------------------|
+| code           | Number    | Type of information                             |
+| session_id     | String    | The ID of the session                           |
+| request_values | Array     | Information needed to be returned by the server |
+
+| request_value | comment                                          |
+|:--------------|:-------------------------------------------------|
+| session_id    | The ID of the session                            |
+| name          | Name of the session                              |
+| avatar        | URL link to the session avatar                   |
+| avatar_hash   | Hash value of the session avatar                 |
+| time          | Timestamp when the session was created           |
+| update_time   | Timestamp of the last update of the session data |
+| members       | List of members in the session                   |
+| owner         | The OC ID of the session owner                   |
+
+## Retrieve Conversation Information Return Information
+
+### Server -> Client
+
+```json
+{
+  "code": 2,
+  "data": {
+    "session_id": "The ID of the session",
+    "name": "Session Name",
+    ...
+  }
+}
+```
+
+| key  | ValueType | comment                                                                                                                            |
+|:-----|:----------|:-----------------------------------------------------------------------------------------------------------------------------------|
+| code | Number    | Type of information                                                                                                                |
+| data | Object    | Account information, details [see above **Retrieve Conversation Information** `request_value`](#retrieve-conversation-information) |
 
 ## Registration Information
 
@@ -67,7 +121,7 @@
 ```
 
 | Key      | ValueType | Comment                         |
-| :------- | :-------- | :------------------------------ |
+|:---------|:----------|:--------------------------------|
 | code     | Number    | Message type                    |
 | email    | String    | Registration email              |
 | password | String    | Encrypted registration password |
@@ -86,13 +140,13 @@
 ```
 
 | Key    | ValueType | Comment                   |
-| :----- | :-------- | :------------------------ |
+|:-------|:----------|:--------------------------|
 | code   | Number    | Message type              |
 | status | Number    | Server return status code |
-| ocid   | Number    | OC number of the account  |
+| ocid   | String    | OC number of the account  |
 
 | ReturnCode | Comment                 |
-| :--------- | :---------------------- |
+|:-----------|:------------------------|
 | 0          | Registration successful |
 | 1          | Server error            |
 | 2          | Email already in use    |
@@ -111,7 +165,7 @@
 ```
 
 | Key        | ValueType | Comment                             |
-| :--------- | :-------- | :---------------------------------- |
+|:-----------|:----------|:------------------------------------|
 | code       | Number    | Message type                        |
 | login_type | Number    | 0 for email login, 1 for ocid login |
 | account    | String    | Email or ocid bound to the account  |
@@ -130,13 +184,13 @@
 ```
 
 | Key    | ValueType | Comment                   |
-| :----- | :-------- | :------------------------ |
+|:-------|:----------|:--------------------------|
 | code   | Number    | Message type              |
 | status | Number    | Server return status code |
-| ocid   | Number    | The ocid of the account   |
+| ocid   | String    | The ocid of the account   |
 
 | Status | Comment                       |
-| :----- | :---------------------------- |
+|:-------|:------------------------------|
 | 0      | Login successful              |
 | 1      | Incorrect account or password |
 | 2      | Server error                  |
@@ -157,7 +211,7 @@
 ```
 
 | Key     | ValueType | Comment         |
-| :------ | :-------- | :-------------- |
+|:--------|:----------|:----------------|
 | code    | Number    | Message type    |
 | members | Array     | Session members |
 
@@ -174,13 +228,13 @@
 ```
 
 | Key        | ValueType | Comment             |
-| :--------- | :-------- | :------------------ |
+|:-----------|:----------|:--------------------|
 | code       | Number    | Message type        |
 | status     | Number    | Session status code |
 | session_id | Number    | Session id          |
 
 | Status | Comment                            |
-| :----- | :--------------------------------- |
+|:-------|:-----------------------------------|
 | 0      | Creation successful                |
 | 1      | Server error                       |
 | 2      | Reached the session creation limit |
@@ -202,13 +256,13 @@
 ```
 
 | Key            | ValueType | Comment                                         |
-| :------------- | :-------- | :---------------------------------------------- |
+|:---------------|:----------|:------------------------------------------------|
 | code           | Number    | Message type                                    |
-| ocid           | Number    | The ocid of the account                         |
+| ocid           | String    | The ocid of the account                         |
 | request_values | Array     | Information needed to be returned by the server |
 
 | RequestValue | Comment                               |
-| :----------- | :------------------------------------ |
+|:-------------|:--------------------------------------|
 | ocid         | The ocid of the account               |
 | nickname     | Nickname                              |
 | status       | The status of the account             |
@@ -231,7 +285,7 @@
 ```
 
 | Key  | ValueType | Comment                                                                            |
-| :--- | :-------- | :--------------------------------------------------------------------------------- |
+|:-----|:----------|:-----------------------------------------------------------------------------------|
 | code | Number    | Message type                                                                       |
 | data | Object    | Account information, details [see above `request_value`](#get-account-information) |
 
@@ -247,12 +301,12 @@
 ```
 
 | Key    | ValueType | Comment            |
-| :----- | :-------- | :----------------- |
+|:-------|:----------|:-------------------|
 | code   | Number    | Message type       |
 | status | Number    | Server status code |
 
 | Status | Comment           |
-| :----- | :---------------- |
+|:-------|:------------------|
 | 0      | Running normally  |
 | 1      | Under maintenance |
 
@@ -267,7 +321,7 @@
 ```
 
 | Key  | ValueType | Comment      |
-| :--- | :-------- | :----------- |
+|:-----|:----------|:-------------|
 | code | Number    | Message type |
 
 ## Generate Verification Code
@@ -292,12 +346,12 @@
 ```
 
 | Key    | ValueType | Comment                  |
-| :----- | :-------- | :----------------------- |
+|:-------|:----------|:-------------------------|
 | code   | Number    | Message type             |
 | status | Number    | Verification status code |
 
 | Status | Comment                |
-| :----- | :--------------------- |
+|:-------|:-----------------------|
 | 0      | Verification passed    |
 | 1      | Verification failed    |
 | 2      | Verification timed out |
@@ -326,12 +380,12 @@
 ```
 
 | Key    | ValueType | Comment            |
-| :----- | :-------- | :----------------- |
+|:-------|:----------|:-------------------|
 | code   | Number    | Message type       |
 | status | Number    | Logout status code |
 
 | Status | Comment           |
-| :----- | :---------------- |
+|:-------|:------------------|
 | 0      | Logout successful |
 | 1      | Logout failed     |
 
@@ -347,6 +401,6 @@
 ```
 
 | Key     | ValueType | Comment       |
-| :------ | :-------- | :------------ |
+|:--------|:----------|:--------------|
 | code    | Number    | Message type  |
 | details | String    | Error message |

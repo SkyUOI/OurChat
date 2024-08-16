@@ -1,0 +1,13 @@
+{
+    "code": 2,
+    "data":{
+      "session_id": "114514",
+      "name": "OurChat项目组",
+      "avatar":"http://img.senlinjun.top/imgs/2024/08/c57c426151947784.png",
+      "avatar_hash":"6856e25c44cce62e5577c23506bcfea8fdd440ad63594ef82a5d9e36951e240a",
+      "time":114514,
+      "update_time":17237184354380,
+      "members":["0000000001","0000000000"],
+      "owner":"0000000000"
+    }
+  }

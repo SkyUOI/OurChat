@@ -1,6 +1,7 @@
-import qt_material
 import os
 import sys
+
+import qt_material
 
 
 def remove_dir(path):

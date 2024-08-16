@@ -1,8 +1,9 @@
-from lib.OurChat import OurChat
 import datetime
-from logging import getLogger, basicConfig
-from lib.OurChat import OurChatConfig
 import os
+from logging import basicConfig, getLogger
+
+from lib.OurChat import OurChat
+from lib.OurChatConfig import OurChatConfig
 
 if "log" not in os.listdir():
     os.mkdir("log")

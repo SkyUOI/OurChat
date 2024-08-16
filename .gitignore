@@ -131,6 +131,7 @@ dmypy.json
 .idea/
 .vscode/
 .fleet/
+Ourchat.code-workspace
 
 database_local.json
 CMakeLists.txt
@@ -164,3 +165,4 @@ client/pc/src/out
 client/pc/src/record.db
 client/pc/src/resources/images/limuy.png
 client/pc/src/resources/images/senlinjun.jpg
+client/pc/src/cache.db

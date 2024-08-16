@@ -1,26 +1,32 @@
-from ui.login import Ui_Login as Ui_Login_NOLOGIC
-from lib.const import SERVER_STATUS_MSG
-from lib.const import REGISTER_MSG
-from lib.const import REGISTER_RESPONSE_MSG
-from lib.const import LOGIN_MSG
-from lib.const import LOGIN_RESPONSE_MSG
-from lib.const import GENERATE_VERIFY_MSG
-from lib.const import VERIFY_STATUS_MSG
-from PyQt6.QtWidgets import QMessageBox, QLineEdit
-from logging import getLogger
-from ui_logic.setting import Ui_Setting
 import hashlib
+from logging import getLogger
+from typing import Union
+
+from lib.const import (
+    GENERATE_VERIFY_MSG,
+    LOGIN_MSG,
+    LOGIN_RESPONSE_MSG,
+    REGISTER_MSG,
+    REGISTER_RESPONSE_MSG,
+    SERVER_STATUS_MSG,
+    VERIFY_STATUS_MSG,
+)
+from lib.OurChatAccount import OurChatAccount
+from lib.OurChatUI import OurChatWidget
+from PyQt6.QtWidgets import QLineEdit, QMessageBox
+from ui.login import Ui_Login
+from ui_logic import setting
 
 logger = getLogger(__name__)
 
 
-class Ui_Login(Ui_Login_NOLOGIC):
-    def __init__(self, ourchat, widget):
+class LoginUI(Ui_Login):
+    def __init__(self, ourchat, widget: OurChatWidget) -> None:
         self.ourchat = ourchat
         self.uisystem = self.ourchat.uisystem
         self.widget = widget
 
-    def setupUi(self):
+    def setupUi(self) -> None:
         logger.info("setup Ui")
         super().setupUi(self.widget)
         self.join_btn.setEnabled(False)
@@ -28,7 +34,7 @@ class Ui_Login(Ui_Login_NOLOGIC):
         self.fillText()
         self.bind()
 
-    def fillText(self):
+    def fillText(self) -> None:
         self.tabWidget.setTabText(0, self.ourchat.language["login"])
         self.tabWidget.setTabText(1, self.ourchat.language["register"])
         self.ocid_email_label.setText(
@@ -44,14 +50,14 @@ class Ui_Login(Ui_Login_NOLOGIC):
         self.join_btn.setText(self.ourchat.language["join"])
         self.widget.setWindowTitle(f"Ourchat - {self.ourchat.language['login']}")
 
-    def bind(self):
+    def bind(self) -> None:
         self.join_btn.clicked.connect(self.join)
         self.connect_server_btn.clicked.connect(self.connectToServer)
         self.login_show_checkbox.clicked.connect(self.showPassword)
         self.register_show_checkbox.clicked.connect(self.showPassword)
         self.setting_btn.clicked.connect(self.showSetting)
 
-    def join(self):
+    def join(self) -> None:
         index = self.tabWidget.currentIndex()
         if index:  # register
             logger.info("begin to register")
@@ -84,10 +90,10 @@ class Ui_Login(Ui_Login_NOLOGIC):
                 },
             )
 
-    def connectToServer(self):
+    def connectToServer(self) -> None:
         self.ourchat.runThread(self.ourchat.conn.connect, self.connectedServer)
 
-    def connectedServer(self, result):
+    def connectedServer(self, result: Union[bool, str]) -> None:
         if result[0]:
             self.ourchat.runThread(self.ourchat.conn.recv)
             self.ourchat.listen(SERVER_STATUS_MSG, self.serverStatusResponse)
@@ -101,7 +107,7 @@ class Ui_Login(Ui_Login_NOLOGIC):
                 self.ourchat.language["connect_server_fail"].format(result[1]),
             )
 
-    def serverStatusResponse(self, result):
+    def serverStatusResponse(self, result: dict) -> None:
         self.ourchat.unListen(SERVER_STATUS_MSG, self.serverStatusResponse)
         if result["status"] == 1:
             QMessageBox.warning(
@@ -114,7 +120,7 @@ class Ui_Login(Ui_Login_NOLOGIC):
         self.connect_server_btn.setEnabled(False)
         self.join_btn.setEnabled(True)
 
-    def verifyResponse(self, result):
+    def verifyResponse(self, result: dict) -> None:
         self.ourchat.unListen(VERIFY_STATUS_MSG, self.verifyResponse)
         if result["status"] == 0:
             self.ourchat.listen(REGISTER_RESPONSE_MSG, self.registerResponse)
@@ -144,7 +150,7 @@ class Ui_Login(Ui_Login_NOLOGIC):
                 self.ourchat.language["verify_timeout"],
             )
 
-    def registerResponse(self, result):
+    def registerResponse(self, result: dict) -> None:
         if result["status"] == 0:
             logger.info("register success")
             QMessageBox.information(
@@ -152,7 +158,10 @@ class Ui_Login(Ui_Login_NOLOGIC):
                 self.ourchat.language["info"],
                 self.ourchat.language["register_success"],
             )
+            account = OurChatAccount(self.ourchat, result["ocid"])
+            self.ourchat.setAccount(account)
             self.uisystem.mainwindow.show()
+            self.uisystem.ui_logic.show()
             self.widget.close()
         elif result["status"] == 1:
             QMessageBox.warning(
@@ -168,9 +177,12 @@ class Ui_Login(Ui_Login_NOLOGIC):
             )
         self.ourchat.unListen(REGISTER_RESPONSE_MSG, self.registerResponse)
 
-    def loginResponse(self, result):
+    def loginResponse(self, result: dict) -> None:
         if result["status"] == 0:
             logger.info("login success")
+            account = OurChatAccount(self.ourchat, result["ocid"])
+            self.ourchat.setAccount(account)
+            self.uisystem.ui_logic.show()
             self.uisystem.mainwindow.show()
             self.widget.close()
         elif result["status"] == 1:
@@ -187,7 +199,7 @@ class Ui_Login(Ui_Login_NOLOGIC):
             )
         self.ourchat.unListen(LOGIN_RESPONSE_MSG, self.loginResponse)
 
-    def showPassword(self, status):
+    def showPassword(self, status: bool) -> None:
         logger.debug(f"show password: {status}")
         self.login_show_checkbox.setChecked(status)
         self.register_show_checkbox.setChecked(status)
@@ -199,5 +211,5 @@ class Ui_Login(Ui_Login_NOLOGIC):
         self.login_password_editor.setEchoMode(echo_mode)
         self.register_password_editor.setEchoMode(echo_mode)
 
-    def showSetting(self):
-        self.ourchat.uisystem.setWidget(Ui_Setting, True).show()
+    def showSetting(self) -> None:
+        self.ourchat.uisystem.setWidget(setting.SettingUI, True).show()

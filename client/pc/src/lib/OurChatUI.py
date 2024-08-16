@@ -1,16 +1,21 @@
+from logging import getLogger
+from typing import overload
+
+from PyQt6.QtCore import QSize, Qt
+from PyQt6.QtGui import QCloseEvent, QPixmap, QResizeEvent
 from PyQt6.QtWidgets import (
     QDialog,
-    QWidget,
-    QLabel,
-    QVBoxLayout,
     QHBoxLayout,
-    QSpacerItem,
-    QSizePolicy,
-    QTextBrowser,
+    QLabel,
     QListWidgetItem,
+    QSizePolicy,
+    QSpacerItem,
+    QTextBrowser,
+    QVBoxLayout,
+    QWidget,
 )
-from PyQt6.QtGui import QCloseEvent, QPixmap, QResizeEvent
-from PyQt6.QtCore import Qt, QSize
+
+logger = getLogger(__name__)
 
 
 class OurChatDialog(QDialog):
@@ -21,23 +26,36 @@ class OurChatDialog(QDialog):
 
     def closeEvent(self, a0: QCloseEvent) -> None:
         self.uisystem.removeDialog(self)
-        return super().closeEvent(a0)
+        super().closeEvent(a0)
 
 
-class OutChatWidget(QWidget):
-    def __init__(self, ourchat):
+class OurChatWidget(QWidget):
+    def __init__(self, ourchat) -> None:
         self.ourchat = ourchat
         self.uisystem = self.ourchat.uisystem
         super().__init__(None)
 
     def closeEvent(self, a0: QCloseEvent) -> None:
         self.uisystem.removeWidget(self)
-        return super().closeEvent(a0)
+        super().closeEvent(a0)
 
 
 class ImageLabel(QLabel):
-    def setImage(self, path):
-        self.img = QPixmap(path)
+    @overload
+    def setImage(self, path: str) -> None: ...
+
+    @overload
+    def setImage(self, data: bytes) -> None: ...
+
+    def setImage(self, data) -> None:
+        self.img = QPixmap()
+        if isinstance(data, str):
+            self.img.load(data)
+        elif isinstance(data, bytes):
+            self.img.loadFromData(data)
+        else:
+            logger.info("unknown data type")
+            return
         size = self.size()
         size.setWidth(max(size.width(), 200) - 20)
         scaled_img = self.img.scaled(
@@ -52,16 +70,19 @@ class ImageLabel(QLabel):
             size, aspectRatioMode=Qt.AspectRatioMode.KeepAspectRatio
         )
         self.setPixmap(scaled_img)
-        return super().resizeEvent(a0)
+        super().resizeEvent(a0)
 
 
 class SessionWidget(QWidget):
-    def setSession(self, avatar_path, name, detail):
+    def setSession(
+        self, session_id: str, avatar: bytes, name: str, detail: str
+    ) -> None:
+        self.session_id = session_id
         main_layout = QHBoxLayout()
         self.setLayout(main_layout)
 
         img = ImageLabel(self)
-        img.setImage(avatar_path)
+        img.setImage(avatar)
         main_layout.addWidget(img)
 
         info_layout = QVBoxLayout()
@@ -80,9 +101,17 @@ class SessionWidget(QWidget):
 
 
 class MessageWidget(QWidget):
-    def setMessage(self, item: QListWidgetItem, avatar_path, name, message, me=False):
+    def setMessage(
+        self,
+        item: QListWidgetItem,
+        avatar: bytes,
+        name: str,
+        message: str,
+        me: bool = False,
+    ) -> None:
+        self.msg_id = None
         self.item = item
-        self.avatar_path = avatar_path
+        self.avatar = avatar
         self.name = name
         self.message = message
         self.me = me
@@ -90,7 +119,7 @@ class MessageWidget(QWidget):
         self.layout = QHBoxLayout()
         self.avatar = ImageLabel(self)
         self.avatar.setMinimumHeight(40)
-        self.avatar.setImage(avatar_path)
+        self.avatar.setImage(avatar)
         self.avatar_layout = QVBoxLayout()
         self.avatar_layout.addWidget(self.avatar)
         self.avatar_layout.addSpacerItem(
@@ -140,4 +169,4 @@ class MessageWidget(QWidget):
         self.item.setSizeHint(
             QSize(1, self.text_browser.document().size().toSize().height() + 70)
         )
-        return super().resizeEvent(a0)
+        super().resizeEvent(a0)

@@ -1,20 +1,21 @@
-from ui.setting import Ui_Setting as Ui_Setting_NOLOGIC
-from lib.const import log_level2str, str2log_level
-from lib.OurChatUI import ImageLabel
-from lib import OurChat
-from PyQt6.QtWidgets import QMessageBox
 import webbrowser
 from logging import getLogger
+
+from lib.const import log_level2str, str2log_level
+from lib.OurChatConfig import OurChatConfig
+from lib.OurChatUI import ImageLabel
+from PyQt6.QtWidgets import QMessageBox
+from ui.setting import Ui_Setting
 
 logger = getLogger(__name__)
 
 
-class Ui_Setting(Ui_Setting_NOLOGIC):
+class SettingUI(Ui_Setting):
     def __init__(self, ourchat, widget):
         self.ourchat = ourchat
         self.uisystem = self.ourchat.uisystem
         self.widget = widget
-        self.cache_config = OurChat.OurChatConfig()
+        self.cache_config = OurChatConfig()
         self.filling = False
 
     def setupUi(self):
