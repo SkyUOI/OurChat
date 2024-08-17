@@ -35,6 +35,7 @@ pub async fn connect_to_db(url: &str) -> anyhow::Result<sea_orm::DatabaseConnect
 /// 初始化数据库并运行迁移
 pub async fn init_db(db: &sea_orm::DatabaseConnection) -> anyhow::Result<()> {
     migration::Migrator::up(db, None).await?;
+    tracing::info!("Runned all migrations of databases");
     tracing::info!("Initialized database");
     Ok(())
 }

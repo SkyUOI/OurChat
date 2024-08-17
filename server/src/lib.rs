@@ -8,6 +8,7 @@ pub mod utils;
 
 use anyhow::bail;
 use clap::Parser;
+use consts::DEFAULT_PORT;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::{fs, io::Write, path, sync::LazyLock};
@@ -30,8 +31,8 @@ type ShutdownRev = broadcast::Receiver<()>;
 #[derive(Debug, Parser)]
 #[command(author = "SkyUOI", version = base::build::VERSION, about = "The Server of OurChat")]
 struct ArgsParser {
-    #[arg(short, long, default_value_t = consts::DEFAULT_PORT)]
-    port: usize,
+    #[arg(short, long)]
+    port: Option<usize>,
     #[arg(long, default_value_t = String::from(consts::DEFAULT_IP))]
     ip: String,
     #[arg(long, default_value_t = String::default())]
@@ -46,6 +47,8 @@ struct ArgsParser {
 struct Cfg {
     rediscfg: String,
     dbcfg: String,
+    #[serde(default)]
+    port: Option<usize>,
 }
 
 static MACHINE_ID: LazyLock<u64> = LazyLock::new(|| {
@@ -127,7 +130,13 @@ pub async fn lib_main() -> anyhow::Result<()> {
     };
     let cfg = fs::read_to_string(cfg_path)?;
     let cfg: Cfg = toml::from_str(&cfg).unwrap();
-    let port = parser.port;
+    let port = match parser.port {
+        None => match cfg.port {
+            Some(port) => port,
+            None => DEFAULT_PORT,
+        },
+        Some(port) => port,
+    };
     let ip = parser.ip;
     // 用于通知关闭的channel
     let (shutdown_sender, mut shutdown_receiver) = broadcast::channel(32);
