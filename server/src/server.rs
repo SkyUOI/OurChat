@@ -197,6 +197,7 @@ impl Server {
                         }
                     }
                 }
+                DBRequest::NewSession { resp } => {}
             }
         }
     }

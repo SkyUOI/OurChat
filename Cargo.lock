@@ -171,9 +171,9 @@ checksum = "69f7f8c3906b62b754cd5326047894316021dcfe5a194c8ea52bdd94934a3457"
 
 [[package]]
 name = "arrayvec"
-version = "0.7.4"
+version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "96d30a06541fbafbc7f82ed10c06164cfbd2c401138f6addd8404629c4b16711"
+checksum = "e74af30536aa51ee717f837b749c4a27467fa1dd63e9bae4b7f6dfb050f1e703"
 
 [[package]]
 name = "assert_cmd"

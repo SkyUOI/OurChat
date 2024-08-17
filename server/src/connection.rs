@@ -6,9 +6,9 @@ mod process;
 
 use crate::{
     consts::{MessageType, ID},
-    requests::{self},
+    requests::{self, new_session::NewSession},
 };
-use client_response::{LoginResponse, RegisterResponse, UnregisterResponse};
+use client_response::{LoginResponse, NewSessionResponse, RegisterResponse};
 use futures_util::{
     stream::{SplitSink, SplitStream},
     SinkExt, StreamExt,
@@ -34,6 +34,9 @@ pub enum DBRequest {
     Unregister {
         id: ID,
         resp: oneshot::Sender<client_response::unregister::Status>,
+    },
+    NewSession {
+        resp: oneshot::Sender<Result<NewSessionResponse, client_response::new_session::Status>>,
     },
 }
 
@@ -188,7 +191,7 @@ impl Connection {
         mut shutdown_receiver: broadcast::Receiver<()>,
     ) -> anyhow::Result<()> {
         let work = async {
-            loop {
+            'con_loop: loop {
                 let msg = incoming.next().await;
                 if msg.is_none() {
                     return Ok(());
@@ -227,14 +230,27 @@ impl Connection {
                                                 format!("Not a valid code {}", num),
                                             )
                                             .await?;
-                                            return Ok(());
+                                            continue 'con_loop;
                                         }
                                     };
                                     match code {
                                         MessageType::Unregister => {
-                                            Self::unregister(id, &request_sender, net_sender)
+                                            Self::unregister(id, &request_sender, &net_sender)
                                                 .await?;
-                                            return Ok(());
+                                            continue 'con_loop;
+                                        }
+                                        MessageType::NewSession => {
+                                            let json: NewSession =
+                                                match serde_json::from_value(json) {
+                                                    Err(_) => {
+                                                        tracing::warn!("Wrong json structure");
+                                                        continue 'con_loop;
+                                                    }
+                                                    Ok(data) => data,
+                                                };
+                                            Self::new_session(&request_sender, &net_sender, json)
+                                                .await?;
+                                            continue 'con_loop;
                                         }
                                         _ => {
                                             Self::send_error_msg(

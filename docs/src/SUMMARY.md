@@ -1,3 +1,5 @@
+<!--markdownlint-disable MD025-->
+
 # Summary
 
 [Language](./content.md)
@@ -17,6 +19,7 @@
   - [Server](./en/development/server/server-develop.md)
     - [Database](./en/development/server/server_database.md)
   - [Message Protocol](./en/development/msg_json.md)
+  - [Special String literal](./en/development/special_string.md)
 
 # Deployment Guide
 
@@ -40,6 +43,7 @@
     - [基础](./zh/development/server/basic.md)
     - [数据库](./zh/development/server/server_database.md)
   - [数据交换格式](./zh/development/msg_json.md)
+  - [特殊字符串字面量](./zh/development/special_string.md)
 
 # 部署指南
 

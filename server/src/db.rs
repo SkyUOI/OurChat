@@ -3,7 +3,6 @@
 pub mod user;
 
 use migration::MigratorTrait;
-use sea_orm::{ConnectionTrait, Statement};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]

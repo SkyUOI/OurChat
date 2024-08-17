@@ -17,6 +17,8 @@ pub enum MessageType {
     Unregister = 16,
     UnregisterRes = 17,
     ErrorMsg = 18,
+    NewSession = 8,
+    NewSessionResponse = 9,
 }
 
 /// 默认ip
@@ -28,3 +30,5 @@ pub const DEFAULT_PORT: usize = 7777;
 pub type TimeStamp = u64;
 /// id类型
 pub type ID = u64;
+/// ocid type
+pub type OCID = String;
