@@ -1,5 +1,5 @@
 """
-用于初始化rust的valgrind配置，主要用于CI/CD的valgrind检测单元测试
+用于初始化rust的valgrind配置,主要用于CI/CD的valgrind检测单元测试
 """
 
 import os

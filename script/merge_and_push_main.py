@@ -1,7 +1,7 @@
-import os
+from basic import msg_system
 
-os.system("git checkout main")
-os.system("git merge dev")
-os.system("git push")
-os.system("git checkout dev")
+msg_system("git checkout main")
+msg_system("git merge dev")
+msg_system("git push")
+msg_system("git checkout dev")
 input("ok")

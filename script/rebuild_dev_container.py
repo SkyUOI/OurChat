@@ -1,3 +1,3 @@
-import os
+from basic import msg_system
 
-_ = os.system("docker buildx build -f Dockerfile.dev -t ourchat_develop:latest .")
+msg_system("docker buildx build -f Dockerfile.dev -t ourchat_develop:latest .")
