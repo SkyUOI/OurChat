@@ -1,6 +1,10 @@
 # OurChat
 
-![ourchat](./resource/logo.png)
+<!-- markdownlint-disable MD033 -->
+<div style="text-align: center;">
+    <img src="./resource/logo.png" alt="OurChat_logo" />
+</div>
+<!-- markdownlint-enable MD033 -->
 
 | 平台    | 状态                                                                                                   |
 | :------ | :----------------------------------------------------------------------------------------------------- |
