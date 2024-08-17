@@ -21,13 +21,14 @@ class ChattingSystem:
         logger.info("ChattingSystem init")
         self.ourchat = ourchat
         self.havenot_read = {}
+        self.database = None
 
     def connectToDB(self, path: str = "record.db") -> None:
         logger.info(f"connect to chatting record database({path})")
         self.database = SqliteDatabase(path)
         SessionRecord._meta.database = self.database
         self.database.connect()
-        self.getHavenotRead()
+        self.readHavenotRead()
         self.ourchat.listen(USER_MSG, self.gotMessage)
 
     def createSessionTable(self, session: str) -> None:
@@ -74,10 +75,13 @@ class ChattingSystem:
 
     def close(self) -> None:
         logger.info("close chatting record database")
-        self.database.close()
+        if self.database is not None and not self.database.is_closed():
+            self.database.close()
 
     def gotMessage(self, data) -> None:
         self.addRecord(data["sender"]["session_id"], data)
+        if data["sender"]["session_id"] not in self.havenot_read:
+            self.havenot_read[data["sender"]["session_id"]] = 0
         self.havenot_read[data["sender"]["session_id"]] += 1
 
     def readSession(self, session: str) -> None:
@@ -88,7 +92,7 @@ class ChattingSystem:
         table.update({table.read: True}).where(table.read == 0).execute()
         self.havenot_read[session] = 0
 
-    def getHavenotRead(self) -> None:
+    def readHavenotRead(self) -> None:
         tables = self.getSessions()
         for table_name in tables:
             table = SessionRecord
@@ -99,3 +103,8 @@ class ChattingSystem:
 
     def getSessions(self) -> Union[list, None]:
         return self.database.get_tables()
+
+    def getHavenotReadNumber(self, session_id) -> int:
+        if session_id not in self.havenot_read:
+            return 0
+        return self.havenot_read[session_id]

@@ -1,5 +1,5 @@
 from logging import getLogger
-from typing import overload
+from typing import Any, overload
 
 from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtGui import QCloseEvent, QPixmap, QResizeEvent
@@ -74,9 +74,15 @@ class ImageLabel(QLabel):
 
 
 class SessionWidget(QWidget):
+    @overload
     def setSession(
         self, session_id: str, avatar: bytes, name: str, detail: str
-    ) -> None:
+    ) -> None: ...
+    @overload
+    def setSession(
+        self, session_id: str, avatar: str, name: str, detail: str
+    ) -> None: ...
+    def setSession(self, session_id: str, avatar: Any, name: str, detail: str) -> None:
         self.session_id = session_id
         self.main_layout = QHBoxLayout()
         self.setLayout(self.main_layout)
@@ -111,12 +117,33 @@ class SessionWidget(QWidget):
     def setAvatar(self, data) -> None:
         self.img.setImage(data)
 
+    def setDetail(self, detail: str) -> None:
+        self.detail_label.setText(detail)
+
 
 class MessageWidget(QWidget):
+    @overload
     def setMessage(
         self,
         item: QListWidgetItem,
         avatar: bytes,
+        name: str,
+        message: str,
+        me: bool = False,
+    ) -> None: ...
+    @overload
+    def setMessage(
+        self,
+        item: QListWidgetItem,
+        avatar: str,
+        name: str,
+        message: str,
+        me: bool = False,
+    ) -> None: ...
+    def setMessage(
+        self,
+        item: QListWidgetItem,
+        avatar: Any,
         name: str,
         message: str,
         me: bool = False,
@@ -176,6 +203,18 @@ class MessageWidget(QWidget):
         item.setSizeHint(
             QSize(1, self.text_browser.document().size().toSize().height() + 70)
         )
+
+    @overload
+    def setAvatar(self, path: str) -> None: ...
+
+    @overload
+    def setAvatar(self, data: bytes) -> None: ...
+
+    def setAvatar(self, data) -> None:
+        self.avatar.setImage(data)
+
+    def setName(self, name: str):
+        self.name_label.setText(name)
 
     def resizeEvent(self, a0: QResizeEvent) -> None:
         self.item.setSizeHint(

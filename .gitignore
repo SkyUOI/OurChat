@@ -162,7 +162,7 @@ local/
 client/pc/src/config.json
 client/pc/src/theme
 client/pc/src/out
-client/pc/src/record.db
+client/pc/src/record_*.db
 client/pc/src/resources/images/limuy.png
 client/pc/src/resources/images/senlinjun.jpg
 client/pc/src/cache.db

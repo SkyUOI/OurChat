@@ -13,6 +13,7 @@ class Connection:
     def __init__(self, ourchat) -> None:
         self.ourchat = ourchat
         self.conn = None
+        self.closed = True
         self.setServer("127.0.0.1", 7777)
 
     def setServer(self, ip: str, port: int) -> None:
@@ -22,6 +23,7 @@ class Connection:
 
     def connect(self) -> Tuple[bool, str]:
         logger.info("try to connect to server")
+        self.closed = False
         if self.conn is not None:
             self.conn.close()
             self.conn = None
@@ -65,12 +67,15 @@ class Connection:
                 )
                 return
             except CloseOK:
-                logger.info("connection has been close normally")
-                self.ourchat.runInMainThread(
-                    lambda: self.ourchat.restart(
-                        self.ourchat.language["server_shutdown"]
+                if not self.closed:
+                    logger.info("connection has been close with CLOSEOK by server")
+                    self.ourchat.runInMainThread(
+                        lambda: self.ourchat.restart(
+                            self.ourchat.language["server_shutdown"]
+                        )
                     )
-                )
+                else:
+                    logger.info("connection has been close with CLOSEOK")
                 return
             except Exception as e:
                 logger.warning(f"unknown error: {str(e)}")
@@ -78,6 +83,7 @@ class Connection:
 
     def close(self) -> None:
         logger.info("close connection")
+        self.closed = True
         if self.conn is None:
             return
         self.conn.close()

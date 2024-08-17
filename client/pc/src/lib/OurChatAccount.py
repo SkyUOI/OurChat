@@ -58,6 +58,7 @@ class OurChatAccount:
             sha256.update(avatar_binary_data)
             self.ourchat.cache.setImage(sha256.hexdigest(), avatar_binary_data)
         self.avatar_binary_data = avatar_binary_data
+        print("get avatar")
         self.have_got_avatar = True
         self.ourchat.triggerEvent(
             {"code": ACCOUNT_FINISH_GET_AVATAR, "ocid": self.ocid}
@@ -66,7 +67,7 @@ class OurChatAccount:
     def getInfo(self) -> None:
         logger.info(f"get info(ocid:{self.ocid})")
         account_info = self.ourchat.cache.getAccount(self.ocid)
-        if account_info is not None:
+        if not self.me and account_info is not None:
             self.data = account_info
             self.ourchat.listen(ACCOUNT_INFO_RESPONSE_MSG, self.getUpdateTimeResponse)
             self.ourchat.conn.send(

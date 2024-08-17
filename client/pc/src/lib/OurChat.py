@@ -39,8 +39,7 @@ class OurChat:
         self.conn = Connection(self)
         self.configUpdated()
         self.cache.connectToDB()
-        self.chatting_system.connectToDB()
-        self.thread_pool = ThreadPoolExecutor(2)
+        self.thread_pool = ThreadPoolExecutor(4)
         self.getVersion()
 
     def run(self) -> None:
@@ -132,10 +131,9 @@ class OurChat:
         self.close()
 
         # start again
-        self.thread_pool = ThreadPoolExecutor(2)
+        self.thread_pool = ThreadPoolExecutor(4)
         self.configUpdated()
         self.cache.connectToDB()
-        self.chatting_system.connectToDB()
         self.getVersion()
         self.uisystem.run()
 
@@ -182,6 +180,7 @@ class OurChat:
 
     def setAccount(self, account: OurChatAccount) -> None:
         self.account = account
+        self.chatting_system.connectToDB(f"record_{account.ocid}.db")
 
     def getAccount(self, ocid: str, me: bool = False) -> OurChatAccount:
         if ocid not in self.accounts_cache:

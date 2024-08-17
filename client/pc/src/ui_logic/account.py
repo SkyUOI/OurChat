@@ -23,6 +23,8 @@ class AccountUI(Ui_Account):
         self.ocid_label.setText(self.ourchat.account.ocid)
         self.nickname_label.setText("Nickname")
         self.avatar_label.setImage("resources/images/logo.png")
+        self.logout_btn.setText(self.ourchat.language["logout"])
+        self.unregister_btn.setText(self.ourchat.language["unregister"])
         if self.ourchat.account.have_got_info:
             self.nickname_label.setText(self.ourchat.account.data["nickname"])
         else:
@@ -49,4 +51,4 @@ class AccountUI(Ui_Account):
             self.avatar_label.setImage(account.avatar_binary_data)
 
     def bind(self) -> None:
-        pass
+        self.logout_btn.clicked.connect(self.ourchat.restart)

@@ -23,8 +23,6 @@ class AccountCache(Model):
     avatar_hash = TextField(null=False)
     time = IntegerField(null=False)
     update_time = IntegerField(null=False)
-    sessions = TextField(null=True)
-    friends = TextField(null=True)
 
     class Meta:
         table_name = "account_cache"
@@ -76,8 +74,6 @@ class OurChatCache:
             "avatar_hash": account_info.avatar_hash,
             "time": account_info.time,
             "update_time": account_info.update_time,
-            "sessions": json.loads(account_info.sessions),
-            "friends": json.loads(account_info.friends),
         }
 
     def getSession(self, session_id: str) -> Union[None, dict]:
@@ -107,8 +103,6 @@ class OurChatCache:
             avatar_hash=data["avatar_hash"],
             time=data["time"],
             update_time=data["update_time"],
-            sessions=json.dumps(data["sessions"]),
-            friends=json.dumps(data["friends"]),
         )
 
     def setSession(self, session_id: str, data: dict) -> None:
