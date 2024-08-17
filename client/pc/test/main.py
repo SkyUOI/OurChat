@@ -1,8 +1,5 @@
 import json
 import os
-import random
-import time
-from threading import Thread
 
 from websockets import ConnectionClosedOK
 from websockets.sync.server import serve
@@ -29,7 +26,7 @@ recommend_answer = {
 }
 
 
-def recv(c,s):
+def recv(c, s):
     global code
     ocid = None
     while True:
@@ -57,10 +54,15 @@ def recv(c,s):
         #     print(f"[{recommend}]{i+1}. {samples[i]}")
         # print("=" * 50)
         print(f"<<<{recommend_answer[data['code']][0]}")
-        with open(f"message_samples/{recommend_answer[data['code']][0]}","r",encoding="utf-8") as f:
+        with open(
+            f"message_samples/{recommend_answer[data['code']][0]}",
+            "r",
+            encoding="utf-8",
+        ) as f:
             c.send(f.read())
     s.shutdown()
 
+
 print("Waiting for connection...")
-with serve(lambda c:recv(c,s), host="127.0.0.1", port=7777) as s:
+with serve(lambda c: recv(c, s), host="127.0.0.1", port=7777) as s:
     s.serve_forever()

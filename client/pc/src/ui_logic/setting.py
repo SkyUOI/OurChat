@@ -1,11 +1,10 @@
 import webbrowser
 from logging import getLogger
 
-from PyQt6.QtWidgets import QMessageBox
-
 from lib.const import log_level2str, str2log_level
 from lib.OurChatConfig import OurChatConfig
 from lib.OurChatUI import ImageLabel
+from PyQt6.QtWidgets import QMessageBox
 from ui.setting import Ui_Setting
 
 logger = getLogger(__name__)

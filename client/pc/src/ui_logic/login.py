@@ -2,8 +2,6 @@ import hashlib
 from logging import getLogger
 from typing import Union
 
-from PyQt6.QtWidgets import QLineEdit, QMessageBox
-
 from lib.const import (
     GENERATE_VERIFY_MSG,
     LOGIN_MSG,
@@ -14,6 +12,7 @@ from lib.const import (
     VERIFY_STATUS_MSG,
 )
 from lib.OurChatUI import OurChatWidget
+from PyQt6.QtWidgets import QLineEdit, QMessageBox
 from ui.login import Ui_Login
 from ui_logic import setting
 

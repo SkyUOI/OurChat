@@ -1,11 +1,10 @@
 import os
 from logging import getLogger
 
+from lib.OurChatUI import OurChatDialog, OurChatWidget
 from PyQt6.QtCore import QDir, QTimer
 from PyQt6.QtGui import QFontDatabase, QIcon
 from PyQt6.QtWidgets import QApplication, QMainWindow
-
-from lib.OurChatUI import OurChatDialog, OurChatWidget
 from ui_logic.login import LoginUI
 from ui_logic.main import MainUI
 

@@ -2,9 +2,8 @@ import json
 from logging import getLogger
 from typing import Union
 
-from peewee import IntegerField, Model, SqliteDatabase, TextField
-
 from lib.const import USER_MSG
+from peewee import IntegerField, Model, SqliteDatabase, TextField
 
 logger = getLogger(__name__)
 

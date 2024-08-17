@@ -1,6 +1,7 @@
 import os
 import shutil
 
+
 def remove_dir(path):
     os.chdir(path)
     for i in os.listdir():
@@ -10,6 +11,7 @@ def remove_dir(path):
             os.remove(i)
     os.chdir("..")
     os.rmdir(path)
+
 
 os.chdir("client/pc/src")
 if "out" in os.listdir():

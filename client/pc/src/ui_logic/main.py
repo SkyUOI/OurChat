@@ -1,7 +1,6 @@
 from typing import Any
 
 from PyQt6.QtWidgets import QWidget
-
 from ui.main import Ui_Main
 from ui_logic import account, session, setting
 

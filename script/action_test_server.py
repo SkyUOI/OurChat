@@ -1,6 +1,7 @@
+import os
+
 import init_valgrind_rust
 import test_server
-import os
 
 init_valgrind_rust.init_valgrind()
 os.system("apt update")

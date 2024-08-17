@@ -5,8 +5,6 @@ from concurrent.futures import ThreadPoolExecutor, wait
 from logging import getLogger
 from typing import Any, List
 
-from PyQt6.QtWidgets import QMessageBox
-
 import rmodule
 from lib.chattingSystem import ChattingSystem
 from lib.connection import Connection
@@ -16,6 +14,7 @@ from lib.OurChatConfig import OurChatConfig
 from lib.OurChatLanguage import OurChatLanguage
 from lib.OurChatSession import OurChatSession
 from lib.uiSystem import UISystem
+from PyQt6.QtWidgets import QMessageBox
 
 logger = getLogger(__name__)
 

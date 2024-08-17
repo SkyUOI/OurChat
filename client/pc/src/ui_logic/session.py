@@ -1,8 +1,5 @@
 from logging import getLogger
 
-from PyQt6.QtCore import QSize
-from PyQt6.QtWidgets import QListWidgetItem
-
 from lib.const import (
     ACCOUNT_FINISH_GET_INFO,
     SESSION_FINISH_GET_AVATAR,
@@ -10,6 +7,8 @@ from lib.const import (
 )
 from lib.OurChatSession import OurChatSession
 from lib.OurChatUI import OurChatWidget, SessionWidget
+from PyQt6.QtCore import QSize
+from PyQt6.QtWidgets import QListWidgetItem
 from ui.session import Ui_Session
 
 logger = getLogger(__name__)
