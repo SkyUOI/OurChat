@@ -1,9 +1,15 @@
 from logging import getLogger
 
-from lib.OurChatSession import OurChatSession
-from lib.OurChatUI import OurChatWidget, SessionWidget
 from PyQt6.QtCore import QSize
 from PyQt6.QtWidgets import QListWidgetItem
+
+from lib.const import (
+    ACCOUNT_FINISH_GET_INFO,
+    SESSION_FINISH_GET_AVATAR,
+    SESSION_FINISH_GET_INFO,
+)
+from lib.OurChatSession import OurChatSession
+from lib.OurChatUI import OurChatWidget, SessionWidget
 from ui.session import Ui_Session
 
 logger = getLogger(__name__)
@@ -14,7 +20,7 @@ class SessionUI(Ui_Session):
         self.ourchat = ourchat
         self.uisystem = self.ourchat.uisystem
         self.widget = widget
-        self.sessions = []
+        self.sessions = {}
 
     def setupUi(self) -> None:
         logger.info("setup Ui")
@@ -23,35 +29,53 @@ class SessionUI(Ui_Session):
         self.fillText()
         self.bind()
 
-        self.session_list.clear()
-        self.message_list.clear()
-
-    def sessionUpdateResponse(self, session: OurChatSession) -> None:
-        print(session.session_id)
-        self.addSession(session)
-
     def fillText(self) -> None:
         self.widget.setWindowTitle(f"Ourchat - {self.ourchat.language['session']}")
+        self.send_btn.setEnabled(False)
+        self.title.setText("")
+        self.editor.setEnabled(False)
+        self.send_btn.setText(self.ourchat.language["send"])
+        self.addSessions()
+
+    def addSessions(self):
+        if self.ourchat.account.have_got_info:
+            for session in self.ourchat.account.sessions:
+                self.addSession(self.ourchat.account.sessions[session])
+            self.ourchat.listen(SESSION_FINISH_GET_INFO, self.getSessionInfoResponse)
+            self.ourchat.listen(
+                SESSION_FINISH_GET_AVATAR, self.getSessionAvatarResponse
+            )
+        else:
+            self.ourchat.listen(ACCOUNT_FINISH_GET_INFO, self.getAccountInfoResponse)
 
     def bind(self) -> None:
         self.session_list.itemClicked.connect(self.openSession)
 
     def addSession(self, session: OurChatSession) -> None:
-        recent_msg = self.ourchat.chatting_system.getRecord(session.session_id, 1)[0]
-        user_msg = recent_msg["msg"]
+        recent_msg = self.ourchat.chatting_system.getRecord(session.session_id, 1)
+        avatar = "resources/images/logo.png"
+        name = session.session_id
+        recent_msg_text = ""
+
+        if session.have_got_avatar:
+            avatar = session.avatar_binary_data
+        if session.have_got_info:
+            name = session.data["name"]
+        if len(recent_msg) >= 1:
+            recent_msg_text = recent_msg[0]["text"]
 
         item = QListWidgetItem(self.session_list)
         item.setSizeHint(QSize(65, 65))
         widget = SessionWidget(self.session_list)
         widget.setSession(
             session.session_id,
-            session.avatar,
-            session.data["name"],
-            user_msg[0]["text"],
+            avatar,
+            name,
+            recent_msg_text,
         )
         self.session_list.addItem(item)
         self.session_list.setItemWidget(item, widget)
-        self.sessions.append(session.session_id)
+        self.sessions[session.session_id] = widget
 
     def addMessage(self, message) -> None:
         pass
@@ -59,20 +83,27 @@ class SessionUI(Ui_Session):
     def openSession(self, item: QListWidgetItem) -> None:
         session_id = self.session_list.itemWidget(item).session_id
         self.ourchat.chatting_system.readSession(session_id)
-        print(self.ourchat.chatting_system.getRecord(session_id))
-
-    def updateSession(self) -> None:
-        for session_id in self.ourchat.chatting_system.getSessions():
-            if session_id not in self.sessions:
-                recent_msg = self.ourchat.chatting_system.getRecord(session_id, 1)[0]
-                user_msg = recent_msg["msg"]
-                self.addSession(
-                    session_id,
-                    "resources/images/senlinjun.jpg",
-                    session_id,
-                    f"[{self.ourchat.chatting_system.havenot_read[session_id]}条] {user_msg[0]['text'][:5]}{'...' if len(user_msg[0]['text']) > 5 else ''}",
-                )
+        self.title.setText(self.ourchat.getSession(session_id).data["name"])
+        self.send_btn.setEnabled(True)
+        self.editor.setEnabled(True)
+        self.editor.clear()
 
     def insertMessages(self, messages) -> None:
         for message in messages:
             self.addMessage(message)
+
+    def getAccountInfoResponse(self, data: dict) -> None:
+        account = self.ourchat.getAccount(data["ocid"])
+        if account == self.ourchat.account:
+            self.ourchat.unListen(ACCOUNT_FINISH_GET_INFO, self.getAccountInfoResponse)
+            self.addSessions()
+
+    def getSessionInfoResponse(self, data: dict) -> None:
+        session = self.ourchat.getSession(data["session_id"])
+        session_widget = self.sessions[session.session_id]
+        session_widget.setName(session.data["name"])
+
+    def getSessionAvatarResponse(self, data: dict) -> None:
+        session = self.ourchat.getSession(data["session_id"])
+        session_widget = self.sessions[session.session_id]
+        session_widget.setAvatar(session.avatar_binary_data)

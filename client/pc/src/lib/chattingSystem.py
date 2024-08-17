@@ -2,8 +2,9 @@ import json
 from logging import getLogger
 from typing import Union
 
-from lib.const import USER_MSG
 from peewee import IntegerField, Model, SqliteDatabase, TextField
+
+from lib.const import USER_MSG
 
 logger = getLogger(__name__)
 
@@ -51,6 +52,10 @@ class ChattingSystem:
         )
 
     def getRecord(self, session: str, maximum=50, before=-1) -> list:
+        if not self.database.table_exists(session):
+            logger.warning("table not found")
+            logger.debug(f"table {session} not found")
+            return []
         table = SessionRecord
         table._meta.table_name = session
         query = table.select().order_by(SessionRecord.time.desc()).limit(maximum)
@@ -77,6 +82,8 @@ class ChattingSystem:
         self.havenot_read[data["sender"]["session_id"]] += 1
 
     def readSession(self, session: str) -> None:
+        if not self.database.table_exists(session):
+            return
         table = SessionRecord
         table._meta.table_name = session
         table.update({table.read: True}).where(table.read == 0).execute()

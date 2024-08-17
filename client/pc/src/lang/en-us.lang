@@ -46,3 +46,4 @@ verify_error=Verify Error
 verify_timeout=Verify Timeout
 warning=Warning
 wrong_a/p=Wrong Account/Password
+send=Send

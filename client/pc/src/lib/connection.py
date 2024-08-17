@@ -46,7 +46,7 @@ class Connection:
                 data = json.loads(message)
                 logger.info("receive message")
                 logger.debug(f"receive message: {data}")
-                self.ourchat.getMessage(data)
+                self.ourchat.triggerEvent(data)
             except CloseError as ce:
                 logger.warning(f"connection close error: {str(ce)}")
                 self.conn = None

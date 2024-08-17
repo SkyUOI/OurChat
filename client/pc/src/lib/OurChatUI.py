@@ -78,26 +78,38 @@ class SessionWidget(QWidget):
         self, session_id: str, avatar: bytes, name: str, detail: str
     ) -> None:
         self.session_id = session_id
-        main_layout = QHBoxLayout()
-        self.setLayout(main_layout)
+        self.main_layout = QHBoxLayout()
+        self.setLayout(self.main_layout)
 
-        img = ImageLabel(self)
-        img.setImage(avatar)
-        main_layout.addWidget(img)
+        self.img = ImageLabel(self)
+        self.img.setImage(avatar)
+        self.main_layout.addWidget(self.img)
 
-        info_layout = QVBoxLayout()
-        name_label = QLabel(self)
-        name_label.setText(name)
-        detail_label = QLabel(self)
-        detail_label.setText(detail)
-        info_layout.addWidget(name_label)
-        info_layout.addWidget(detail_label)
-        main_layout.addLayout(info_layout)
+        self.info_layout = QVBoxLayout()
+        self.name_label = QLabel(self)
+        self.name_label.setText(name)
+        self.detail_label = QLabel(self)
+        self.detail_label.setText(detail)
+        self.info_layout.addWidget(self.name_label)
+        self.info_layout.addWidget(self.detail_label)
+        self.main_layout.addLayout(self.info_layout)
 
         spacer_item = QSpacerItem(
             40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
         )
-        main_layout.addSpacerItem(spacer_item)
+        self.main_layout.addSpacerItem(spacer_item)
+
+    def setName(self, name: str) -> None:
+        self.name_label.setText(name)
+
+    @overload
+    def setAvatar(self, path: str) -> None: ...
+
+    @overload
+    def setAvatar(self, data: bytes) -> None: ...
+
+    def setAvatar(self, data) -> None:
+        self.img.setImage(data)
 
 
 class MessageWidget(QWidget):

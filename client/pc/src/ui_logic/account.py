@@ -1,3 +1,4 @@
+from lib.const import ACCOUNT_FINISH_GET_AVATAR, ACCOUNT_FINISH_GET_INFO
 from lib.OurChatUI import ImageLabel, OurChatWidget
 from ui.account import Ui_Account
 
@@ -20,11 +21,32 @@ class AccountUI(Ui_Account):
     def fillText(self) -> None:
         self.widget.setWindowTitle(f"Ourchat - {self.ourchat.language['account']}")
         self.ocid_label.setText(self.ourchat.account.ocid)
-        if self.ourchat.account.avatar_binary_data is not None:
-            print(type(self.ourchat.account.avatar_binary_data))
-            self.avatar_label.setImage(self.ourchat.account.avatar_binary_data)
-        if "nickname" in self.ourchat.account.data:
+        self.nickname_label.setText("Nickname")
+        self.avatar_label.setImage("resources/images/logo.png")
+        if self.ourchat.account.have_got_info:
             self.nickname_label.setText(self.ourchat.account.data["nickname"])
+        else:
+            self.ourchat.listen(ACCOUNT_FINISH_GET_INFO, self.getAccountInfoResponse)
+        if self.ourchat.account.have_got_avatar:
+            self.avatar_label.setImage(self.ourchat.account.avatar_binary_data)
+        else:
+            self.ourchat.listen(
+                ACCOUNT_FINISH_GET_AVATAR, self.getAccountAvatarResponse
+            )
+
+    def getAccountInfoResponse(self, data: dict) -> None:
+        account = self.ourchat.getAccount(data["ocid"])
+        if account == self.ourchat.account:
+            self.ourchat.unListen(ACCOUNT_FINISH_GET_INFO, self.getAccountInfoResponse)
+            self.nickname_label.setText(account.data["nickname"])
+
+    def getAccountAvatarResponse(self, data: dict) -> None:
+        account = self.ourchat.getAccount(data["ocid"])
+        if account == self.ourchat.account:
+            self.ourchat.unListen(
+                ACCOUNT_FINISH_GET_AVATAR, self.getAccountAvatarResponse
+            )
+            self.avatar_label.setImage(account.avatar_binary_data)
 
     def bind(self) -> None:
         pass

@@ -2,6 +2,8 @@ import hashlib
 from logging import getLogger
 from typing import Union
 
+from PyQt6.QtWidgets import QLineEdit, QMessageBox
+
 from lib.const import (
     GENERATE_VERIFY_MSG,
     LOGIN_MSG,
@@ -11,9 +13,7 @@ from lib.const import (
     SERVER_STATUS_MSG,
     VERIFY_STATUS_MSG,
 )
-from lib.OurChatAccount import OurChatAccount
 from lib.OurChatUI import OurChatWidget
-from PyQt6.QtWidgets import QLineEdit, QMessageBox
 from ui.login import Ui_Login
 from ui_logic import setting
 
@@ -158,7 +158,7 @@ class LoginUI(Ui_Login):
                 self.ourchat.language["info"],
                 self.ourchat.language["register_success"],
             )
-            account = OurChatAccount(self.ourchat, result["ocid"])
+            account = self.ourchat.getAccount(result["ocid"], True)
             self.ourchat.setAccount(account)
             self.uisystem.mainwindow.show()
             self.uisystem.ui_logic.show()
@@ -180,7 +180,7 @@ class LoginUI(Ui_Login):
     def loginResponse(self, result: dict) -> None:
         if result["status"] == 0:
             logger.info("login success")
-            account = OurChatAccount(self.ourchat, result["ocid"])
+            account = self.ourchat.getAccount(result["ocid"], True)
             self.ourchat.setAccount(account)
             self.uisystem.ui_logic.show()
             self.uisystem.mainwindow.show()

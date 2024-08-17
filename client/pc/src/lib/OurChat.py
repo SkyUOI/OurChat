@@ -5,6 +5,8 @@ from concurrent.futures import ThreadPoolExecutor, wait
 from logging import getLogger
 from typing import Any, List
 
+from PyQt6.QtWidgets import QMessageBox
+
 import rmodule
 from lib.chattingSystem import ChattingSystem
 from lib.connection import Connection
@@ -12,8 +14,8 @@ from lib.OurChatAccount import OurChatAccount
 from lib.OurChatCache import OurChatCache
 from lib.OurChatConfig import OurChatConfig
 from lib.OurChatLanguage import OurChatLanguage
+from lib.OurChatSession import OurChatSession
 from lib.uiSystem import UISystem
-from PyQt6.QtWidgets import QMessageBox
 
 logger = getLogger(__name__)
 
@@ -21,13 +23,15 @@ logger = getLogger(__name__)
 class OurChat:
     def __init__(self) -> None:
         logger.info("OurChat init")
-        self.listen_message = {}
+        self.listen_event = {}
         self.tasks = {}
-        self.message_queue = []
+        self.event_queue = []
         self.runQueue = []
         self.version_details = {}
         self.uisystem = None
         self.account = None
+        self.accounts_cache = {}
+        self.sessions_cache = {}
 
         self.config = OurChatConfig()
         self.language = OurChatLanguage()
@@ -68,13 +72,15 @@ class OurChat:
         for r in remove_:
             self.tasks.pop(r)
 
-        # message
-        for i in range(len(self.message_queue)):
-            data = self.message_queue[-1]
-            logger.info("deal with message data")
-            logger.debug(f"deal with message data: {data}")
-            self.message_queue.pop(-1)
-            for func in self.listen_message[data["code"]]:
+        # event
+        for i in range(len(self.event_queue)):
+            data = self.event_queue[-1]
+            logger.info("deal with event")
+            logger.debug(f"deal with event(data:{data})")
+            self.event_queue.pop(-1)
+            if data["code"] not in self.listen_event:
+                continue
+            for func in self.listen_event[data["code"]]:
                 logger.info(f"run {func.__name__}")
                 func(data)
 
@@ -93,28 +99,28 @@ class OurChat:
         logger.debug("wait for threads")
         wait(self.tasks)
         self.thread_pool.shutdown()
-        self.listen_message = {}
+        self.listen_event = {}
         self.tasks = {}
-        self.message_queue = []
+        self.event_queue = []
         self.version_details = {}
         self.chatting_system.close()
         self.config.write()
         logger.info("OurChat has been closed")
 
-    def listen(self, message_code: int, func: Any) -> None:
-        logger.info(f"listen to CODE{message_code} for {func.__name__}")
-        if message_code not in self.listen_message:
-            self.listen_message[message_code] = []
-        self.listen_message[message_code].append(func)
+    def listen(self, event_code: int, func: Any) -> None:
+        logger.info(f"listen to CODE{event_code} for {func.__name__}")
+        if event_code not in self.listen_event:
+            self.listen_event[event_code] = []
+        self.listen_event[event_code].append(func)
 
-    def unListen(self, message_code: int, func: Any) -> None:
-        logger.info(f"unlisten to CODE{message_code} for {func.__name__}")
-        self.listen_message[message_code].remove(func)
+    def unListen(self, event_code: int, func: Any) -> None:
+        logger.info(f"unlisten to CODE{event_code} for {func.__name__}")
+        self.listen_event[event_code].remove(func)
 
-    def getMessage(self, data: dict) -> None:
-        logger.info("add message to message_queue")
-        logger.debug(f"add message to message_queue: {data}")
-        self.message_queue.append(data)
+    def triggerEvent(self, data: dict) -> None:
+        logger.info("add event to event_queue")
+        logger.debug(f"add event to event_queue: {data}")
+        self.event_queue.append(data)
 
     def restart(self, message: str | None = None) -> None:
         logger.info("OurChat restart")
@@ -177,3 +183,15 @@ class OurChat:
 
     def setAccount(self, account: OurChatAccount) -> None:
         self.account = account
+
+    def getAccount(self, ocid: str, me: bool = False) -> OurChatAccount:
+        if ocid not in self.accounts_cache:
+            account = OurChatAccount(self, ocid, me)
+            self.accounts_cache[ocid] = account
+        return self.accounts_cache[ocid]
+
+    def getSession(self, session_id: str) -> OurChatSession:
+        if session_id not in self.sessions_cache:
+            session = OurChatSession(self, session_id)
+            self.sessions_cache[session_id] = session
+        return self.sessions_cache[session_id]

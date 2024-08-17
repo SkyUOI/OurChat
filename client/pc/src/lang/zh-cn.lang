@@ -46,3 +46,4 @@ verify_error=验证失败
 verify_timeout=验证超时
 warning=警告
 wrong_a/p=账号/密码错误
+send=发送

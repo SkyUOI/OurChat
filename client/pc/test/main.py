@@ -10,6 +10,7 @@ from websockets.sync.server import serve
 samples = list(os.listdir("message_samples"))
 code = None
 recommend_answer = {
+    1: ["session_info.json"],
     4: ["reg_success.json", "reg_email_error.json", "reg_server_error.json"],
     6: [
         "login_success.json",
@@ -28,61 +29,38 @@ recommend_answer = {
 }
 
 
-def recv(s):
+def recv(c,s):
     global code
+    ocid = None
     while True:
         try:
-            msg = s.recv()
+            msg = c.recv()
         except ConnectionClosedOK:
+            break
+        except Exception as e:
+            print(e)
             break
         print(">>>", msg)
         data = json.loads(msg)
         code = data["code"]
-        print("=" * 50)
-        for i in range(len(samples)):
-            recommend = " "
-            if samples[i] in recommend_answer[data["code"]]:
-                recommend = "@"
-            print(f"[{recommend}]{i+1}. {samples[i]}")
-        print("=" * 50)
-
-
-def server(c, s):
-    global code
-    Thread(target=recv, args=(c,), daemon=True).start()
-    print("Connected!")
-    while True:
-        answer = input("")
-        if answer == "exit":
-            c.close()
-            break
-        try:
-            if answer != "":
-                index = int(answer)
-                if index == 0:
-                    answer = json.dumps(
-                        {
-                            "code": 0,
-                            "time": int(time.time()),
-                            "msg_id": str(random.randint(-10000000000, 1000000000)),
-                            "sender": {"ocid": "0000000000", "session_id": "114514"},
-                            "msg": [{"type": 0, "text": f"It's {time.time()} now."}],
-                        }
-                    )
-                else:
-                    with open(f"message_samples/{samples[index-1]}", "r") as f:
-                        answer = f.read()
-        except Exception as e:
-            print(e)
-        if answer == "":
-            with open(f"message_samples/{recommend_answer[code][0]}", "r") as f:
-                print(f"USE {recommend_answer[code][0]}")
-                answer = f.read()
-        c.send(answer)
-    c.close()
+        if code == 0:
+            data["sender"]["ocid"] = ocid
+        if code == 6:
+            ocid = data["account"]
+        if code == 4:
+            ocid = "0000000000"
+        # print("=" * 50)
+        # for i in range(len(samples)):
+        #     recommend = " "
+        #     if samples[i] in recommend_answer[data["code"]]:
+        #         recommend = "@"
+        #     print(f"[{recommend}]{i+1}. {samples[i]}")
+        # print("=" * 50)
+        print(f"<<<{recommend_answer[data['code']][0]}")
+        with open(f"message_samples/{recommend_answer[data['code']][0]}","r",encoding="utf-8") as f:
+            c.send(f.read())
     s.shutdown()
 
-
 print("Waiting for connection...")
-with serve(lambda c: server(c, s), host="127.0.0.1", port=7777) as s:
+with serve(lambda c:recv(c,s), host="127.0.0.1", port=7777) as s:
     s.serve_forever()

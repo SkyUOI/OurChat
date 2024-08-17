@@ -1,9 +1,11 @@
 import hashlib
+import time
 import urllib.request
 from logging import getLogger
-from typing import Any
 
 from lib.const import (
+    SESSION_FINISH_GET_AVATAR,
+    SESSION_FINISH_GET_INFO,
     SESSION_INFO_MSG,
     SESSION_INFO_RESPONSE_MSG,
 )
@@ -12,13 +14,10 @@ logger = getLogger(__name__)
 
 
 class OurChatSession:
-    def __init__(
-        self, ourchat, session_id: str, update_func: Any | None = None
-    ) -> None:
+    def __init__(self, ourchat, session_id: str) -> None:
         self.ourchat = ourchat
         self.session_id = session_id
         self.data = {}
-        self.update_func = update_func
         self.request_values = [
             "name",
             "avatar",
@@ -28,24 +27,38 @@ class OurChatSession:
             "members",
             "owner",
         ]
+        self.have_got_avatar = False
+        self.have_got_info = False
         self.ourchat.runThread(self.getInfo)
 
-    def getAvatar(self) -> None:
+    def getAvatar(self, depth: int = 0) -> None:
+        if depth >= 5:
+            return
         logger.info(f"get avatar(session_id:{self.session_id})")
         avatar_binary_data = self.ourchat.cache.getImage(self.data["avatar_hash"])
         if avatar_binary_data is None:
             logger.info("avatar cache not found,started to download")
-            response = urllib.request.urlopen(self.data["avatar"])
-            avatar_binary_data = response.read()
+            try:
+                response = urllib.request.urlopen(self.data["avatar"])
+                avatar_binary_data = response.read()
+            except Exception as e:
+                logger.warning(f"avatar download failed({str(e)})")
+                logger.info(f"retry after 3s({depth+1})")
+                time.sleep(3)
+                self.getAvatar(depth + 1)
+                return
             logger.info("avatar download complete")
             sha256 = hashlib.sha256()
             sha256.update(avatar_binary_data)
             self.ourchat.cache.setImage(sha256.hexdigest(), avatar_binary_data)
         self.avatar_binary_data = avatar_binary_data
-        if self.update_func is not None:
-            self.update_func(self)
+        self.have_got_avatar = True
+        self.ourchat.triggerEvent(
+            {"code": SESSION_FINISH_GET_AVATAR, "session_id": self.session_id}
+        )
 
     def getInfo(self) -> None:
+        logger.info(f"get info(session_id:{self.session_id})")
         session_info = self.ourchat.cache.getSession(self.session_id)
         if session_info is not None:
             self.data = session_info
@@ -65,12 +78,14 @@ class OurChatSession:
         update_time = data["data"]["update_time"]
         if self.data["update_time"] != update_time:
             self.sendInfoRequest()
+        else:
+            self.finishGetInfo()
 
     def getInfoResponse(self, data: dict) -> None:
         self.ourchat.unListen(SESSION_INFO_RESPONSE_MSG, self.getInfoResponse)
         self.data = data["data"]
         self.ourchat.cache.setSession(self.session_id, self.data)
-        self.getAvatar()
+        self.finishGetInfo()
 
     def sendInfoRequest(self) -> None:
         self.ourchat.listen(SESSION_INFO_RESPONSE_MSG, self.getInfoResponse)
@@ -81,3 +96,10 @@ class OurChatSession:
                 "request_values": self.request_values,
             }
         )
+
+    def finishGetInfo(self) -> None:
+        self.have_got_info = True
+        self.ourchat.triggerEvent(
+            {"code": SESSION_FINISH_GET_INFO, "session_id": self.session_id}
+        )
+        self.getAvatar()
