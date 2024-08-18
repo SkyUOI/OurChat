@@ -20,7 +20,7 @@ The web client is written in Rust(both frontend and backend),using yew framework
 
 The project is under rapid development and there is also a lot of work to be done. It can not be used directly by now.
 
-## [Documentation](https://skyuoi.github.io/OurChat/)
+## [Documentation](http://ourchat-docs.rtfd.io/)
 
 ## Contribution
 
