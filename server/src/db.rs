@@ -2,6 +2,8 @@
 
 pub mod user;
 
+use std::sync::OnceLock;
+
 use migration::MigratorTrait;
 use serde::{Deserialize, Serialize};
 
@@ -12,6 +14,27 @@ struct DbCfg {
     db: String,
     port: usize,
     passwd: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub enum DbType {
+    #[serde(rename = "mysql")]
+    Mysql,
+    #[serde(rename = "sqlite")]
+    Sqlite,
+}
+
+impl Default for DbType {
+    fn default() -> Self {
+        Self::Mysql
+    }
+}
+
+pub const DB_TYPE: OnceLock<DbType> = OnceLock::new();
+
+/// 初始化数据库层
+pub fn init_db_system(db_type: DbType) {
+    DB_TYPE.get_or_init(|| db_type);
 }
 
 /// 根据配置文件生成连接数据库的url

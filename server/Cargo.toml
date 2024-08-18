@@ -22,6 +22,7 @@ redis = { version = "0", features = ["tokio-rustls-comp"] }
 toml = "0"
 sea-orm = { version = "1", features = [
     "sqlx-mysql",
+    "sqlx-sqlite",
     "runtime-tokio-rustls",
     "macros",
 ] }

@@ -9,6 +9,7 @@ pub mod utils;
 use anyhow::bail;
 use clap::Parser;
 use consts::DEFAULT_PORT;
+use db::DbType;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::{fs, io::Write, path, sync::LazyLock};
@@ -49,6 +50,8 @@ struct Cfg {
     dbcfg: String,
     #[serde(default)]
     port: Option<usize>,
+    #[serde(default)]
+    db_type: DbType,
 }
 
 static MACHINE_ID: LazyLock<u64> = LazyLock::new(|| {
@@ -138,14 +141,18 @@ pub async fn lib_main() -> anyhow::Result<()> {
         Some(port) => port,
     };
     let ip = parser.ip;
+    // 处理数据库
+    let db_type = cfg.db_type;
+    db::init_db_system(db_type);
+    let db = db::connect_to_db(&db::get_db_url(&cfg.dbcfg)?).await?;
+    db::init_db(&db).await?;
+    let redis = db::connect_to_redis(&db::get_redis_url(&cfg.rediscfg)?).await?;
+
     // 用于通知关闭的channel
     let (shutdown_sender, mut shutdown_receiver) = broadcast::channel(32);
     let shutdown_sender_clone = shutdown_sender.clone();
     let shutdown_receiver_clone = shutdown_sender.subscribe();
 
-    let db = db::connect_to_db(&db::get_db_url(&cfg.dbcfg)?).await?;
-    db::init_db(&db).await?;
-    let redis = db::connect_to_redis(&db::get_redis_url(&cfg.rediscfg)?).await?;
     let mut server = server::Server::new(ip, port, db, redis, parser.test_mode).await?;
     tokio::spawn(async move {
         server

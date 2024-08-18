@@ -3,6 +3,8 @@
 use num_enum::TryFromPrimitive;
 use serde_repr::{Deserialize_repr, Serialize_repr};
 
+use crate::db::DbType;
+
 /// OCID 长度
 pub const OCID_LEN: u32 = 10;
 
@@ -25,6 +27,8 @@ pub enum MessageType {
 pub const DEFAULT_IP: &str = "127.0.0.1";
 /// 默认端口
 pub const DEFAULT_PORT: usize = 7777;
+/// 默认采用的数据库类型
+pub const DB_TYPE: DbType = DbType::Mysql;
 
 /// 时间戳类型(与chrono不一致)
 pub type TimeStamp = u64;

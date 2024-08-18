@@ -1,4 +1,4 @@
-sphinx
+sphinx==8.0.2
 sphinx-intl
 myst-parser
 myst-parser[linkify]
