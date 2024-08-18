@@ -1,4 +1,4 @@
-# 部署指南
+# 服务端部署指南
 
 ## Docker(推荐)
 
@@ -66,4 +66,4 @@ cargo install cargo-pgo
 
 - 运行项目
 
-这一步请参考[服务器参数](./run/server_argv.md)进行运行，可执行文件位于``target/server`
+这一步请参考[服务器参数](../run/server_argv.md)进行运行，可执行文件位于``target/server`

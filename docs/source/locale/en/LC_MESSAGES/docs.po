@@ -1,0 +1,1288 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2024, OutChat
+# This file is distributed under the same license as the OurChat-Docs
+# package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2024.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: OurChat-Docs \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-08-18 00:06+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: en\n"
+"Language-Team: en <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.16.0\n"
+
+#: ../../source/docs/deploy/document-deploy.md:1
+msgid "本地文档部署指南"
+msgstr "Local Document Deployment Guide"
+
+#: ../../source/docs/deploy/document-deploy.md:3
+msgid "该文档使用Sphinx作为文档生成器"
+msgstr "This document uses Sphinx as the document generator"
+
+#: ../../source/docs/deploy/document-deploy.md:5
+msgid "环境配置"
+msgstr "Environment Configuration"
+
+#: ../../source/docs/deploy/document-deploy.md:7
+msgid "Python: python3 以上即可"
+msgstr "Python: python3 or higher"
+
+#: ../../source/docs/deploy/document-deploy.md:8
+msgid "相关依赖: 见下方说明"
+msgstr "Dependencies: see explanation below"
+
+#: ../../source/docs/deploy/document-deploy.md:10
+msgid "在`update_docs`目录下运行下方命令以安装相关依赖"
+msgstr "Run the following command in the `update_docs` directory to install the dependencies"
+
+#: ../../source/docs/deploy/document-deploy.md:16
+msgid "生成文档"
+msgstr "Generate Documentation"
+
+#: ../../source/docs/deploy/document-deploy.md:18
+msgid "在`update_docs`目录下运行"
+msgstr "Run in the `update_docs` directory"
+
+#: ../../source/docs/deploy/document-deploy.md:24
+msgid "即可查看所有可用的生成器"
+msgstr "You can view all available generators"
+
+#: ../../source/docs/deploy/document-deploy.md:32
+msgid "使用"
+msgstr "Usage"
+
+#: ../../source/docs/deploy/document-deploy.md:38
+msgid "即可生成指定类型的文档，生成完毕后请检查`build/target`目录"
+msgstr "This will generate the specified type of document, please check the `build/target` directory after generation"
+
+#: ../../source/docs/deploy/document-deploy.md:40
+msgid "Example"
+msgstr "Example"
+
+#: ../../source/docs/deploy/document-deploy.md:42
+msgid "例如: 生成html文档"
+msgstr "For example: Generate HTML documentation"
+
+#: ../../source/docs/deploy/document-deploy.md:49
+msgid "文档将会生成在`build/html`目录中"
+msgstr "The documentation will be generated in the `build/html` directory"
+
+#: ../../source/docs/deploy/index.rst:5
+#: ../../source/docs/development/index.rst:7
+#: ../../source/docs/development/server/index.rst:5
+#: ../../source/docs/run/index.rst:5
+msgid "目录:"
+msgstr "Table of Contents:"
+
+#: ../../source/docs/deploy/index.rst:2
+msgid "部署"
+msgstr "Deployment"
+
+#: ../../source/docs/deploy/index.rst:3
+msgid "有关部署OurChat的文档"
+msgstr "Documentation for deploying OurChat"
+
+#: ../../source/docs/deploy/server-deploy.md:1
+msgid "服务端部署指南"
+msgstr "Server Deployment Guide"
+
+#: ../../source/docs/deploy/server-deploy.md:3
+msgid "Docker(推荐)"
+msgstr "Docker (Recommended)"
+
+#: ../../source/docs/deploy/server-deploy.md:5
+msgid "对于该项目，我们提供了一个生产环境中使用的 dockerfile，可以直接构建并运行项目。"
+msgstr "For this project, we provide a dockerfile for use in a production environment, which can be used to build and run the project directly."
+
+#: ../../source/docs/deploy/server-deploy.md:7
+msgid "以下是具体操作步骤："
+msgstr "Here are the specific steps to follow:"
+
+#: ../../source/docs/deploy/server-deploy.md:13
+msgid "这一步完成只是创建了一个最基本的环境，但是安全性还远远没有达到，为了保证安全性，你需要修改 MySQL 和 Redis 的密码。"
+msgstr "Completing this step only creates a very basic environment, but the security is far from adequate. To ensure security, you need to change the passwords for MySQL and Redis."
+
+#: ../../source/docs/deploy/server-deploy.md:15
+msgid "具体有以下几步:"
+msgstr "Here are the specific steps:"
+
+#: ../../source/docs/deploy/server-deploy.md:17
+msgid "修改`compose.prod.yml`中的两个`password`的`123456`为你自己的强密码"
+msgstr "Change the `123456` for the two `password` fields in `compose.prod.yml` to your own strong password"
+
+#: ../../source/docs/deploy/server-deploy.md:18
+msgid ""
+"修改`config/database.json`为改后的 MySQL 密码，`config/redis_connection.json`为改后的 "
+"Redis 密码"
+msgstr ""
+"Change `config/database.json` to the new MySQL password, and `config/redis_connection.json` to the new Redis password"
+
+#: ../../source/docs/deploy/server-deploy.md:19
+msgid "再次运行`docker compose -f compose.prod.yml up -d`"
+msgstr "Run `docker compose -f compose.prod.yml up -d` again"
+
+#: ../../source/docs/deploy/server-deploy.md:21
+msgid "完成这几步之后，你就成功部署了该项目。"
+msgstr "After completing these steps, you have successfully deployed the project."
+
+#: ../../source/docs/deploy/server-deploy.md:23
+msgid "对于容器中的数据，我们将其映射在了`mysql-data`和`redis-data`中，你可以随时保存数据"
+msgstr "For data in the container, we have mapped it to `mysql-data` and `redis-data`, so you can save data at any time"
+
+#: ../../source/docs/deploy/server-deploy.md:25
+msgid "手动部署"
+msgstr "Manual Deployment"
+
+#: ../../source/docs/deploy/server-deploy.md:27
+msgid "对于性能不高和未安装docker的计算机，我们也提供了手动部署的文档，关于这一点，建议部署在linux环境，其他环境未经过严格的测试。"
+msgstr "For computers with low performance and no Docker installed, we also provide documentation for manual deployment. For this, it is recommended to deploy in a Linux environment, as other environments have not been rigorously tested."
+
+#: ../../source/docs/deploy/server-deploy.md:29
+msgid "安装mysql"
+msgstr "Install MySQL"
+
+#: ../../source/docs/deploy/server-deploy.md:31
+msgid "mysql版本为9.0.1（如果该文档未及时更新可以查看`[compose.yml](https://github.com/SkyUOI/OurChat/blob/main/compose.yml)中的mysql版本）"
+msgstr "MySQL version is 9.0.1 (if this document is not updated in time, you can check the MySQL version in `[compose.yml](https://github.com/SkyUOI/OurChat/blob/main/compose.yml)`)"
+
+#: ../../source/docs/deploy/server-deploy.md:33
+msgid "安装redis"
+msgstr "Install Redis"
+
+#: ../../source/docs/deploy/server-deploy.md:35
+msgid "可以直接安装最新版的redis"
+msgstr "You can directly install the latest version of Redis"
+
+#: ../../source/docs/deploy/server-deploy.md:37
+msgid "安装ourchat server"
+msgstr "Install OurChat server"
+
+#: ../../source/docs/deploy/server-deploy.md:39
+msgid "此处存在两种备选的方案:"
+msgstr "There are two alternative options here:"
+
+#: ../../source/docs/deploy/server-deploy.md:41
+msgid ""
+"1.(推荐)从github "
+"release下载最新的linux编译结果，此版本经过官方的pgo优化，性能会更高，如果遇到CPU架构和其他兼容性问题，可能需要手动编译，参见下一节"
+msgstr ""
+"1. (Recommended) Download the latest Linux compilation results from the GitHub "
+"release. This version has been officially optimized with pgo for higher performance. If you encounter CPU architecture and other compatibility issues, you may need to compile it manually, see the next section."
+
+#: ../../source/docs/deploy/server-deploy.md:43
+msgid "2.手动编译"
+msgstr "2. Manual Compilation"
+
+#: ../../source/docs/deploy/server-deploy.md:45
+msgid "拉取源代码:"
+msgstr "Pull the source code:"
+
+#: ../../source/docs/deploy/server-deploy.md:51
+msgid "安装rust工具链"
+msgstr "Install the Rust toolchain"
+
+#: ../../source/docs/deploy/server-deploy.md:53
+msgid "编译项目"
+msgstr "Compile the project"
+
+#: ../../source/docs/deploy/server-deploy.md:59
+msgid "(可选)pgo优化"
+msgstr "(Optional) PGO Optimization"
+
+#: ../../source/docs/deploy/server-deploy.md:61
+msgid "该步骤会消耗大量时间，收集运行时信息来进行程序的优化，如果对于性能没有苛刻的要求不建议这么做"
+msgstr "This step will take a lot of time, collecting runtime information to optimize the program. It is not recommended if there are no stringent performance requirements."
+
+#: ../../source/docs/deploy/server-deploy.md:67
+msgid "运行项目"
+msgstr "Run the project"
+
+#: ../../source/docs/deploy/server-deploy.md:69
+msgid "这一步请参考[服务器参数](../run/server_argv.md)进行运行，可执行文件位于``target/server`"
+msgstr "Please refer to the [Server Arguments](../run/server_argv.md) for this step to run the executable file located at ``target/server`"
+
+#: ../../source/docs/development/index.rst:2
+msgid "开发"
+msgstr "Development"
+
+#: ../../source/docs/development/index.rst:3
+msgid "此部分是对开发具有帮助的文档，包括实现细节和参考文档。"
+msgstr "This section is documentation that is helpful for development, including implementation details and reference documents."
+
+#: ../../source/docs/development/index.rst:5
+msgid ""
+"对于开发，请参考 `CONTRIBUTING "
+"<https://github.com/SkyUOI/OurChat/blob/main/CONTRIBUTING.md>`_"
+msgstr ""
+"For development, please refer to `CONTRIBUTING "
+"<https://github.com/SkyUOI/OurChat/blob/main/CONTRIBUTING.md>`_"
+
+#: ../../source/docs/development/msg_json.md:1
+msgid "OurChat 信息传递格式"
+msgstr "OurChat Message Passing Format"
+
+#: ../../source/docs/development/msg_json.md:3
+msgid "用户信息"
+msgstr "User Information"
+
+#: ../../source/docs/development/msg_json.md:5
+#: ../../source/docs/development/msg_json.md:288
+msgid "**_Server <-> Client_**"
+msgstr "**Server <-> Client**"
+
+#: ../../source/docs/development/msg_json.md
+msgid "key"
+msgstr "Key"
+
+#: ../../source/docs/development/msg_json.md
+msgid "ValueType"
+msgstr "Value Type"
+
+#: ../../source/docs/development/msg_json.md
+#: ../../source/docs/development/user_msg_json.md
+msgid "comment"
+msgstr "Comment"
+
+#: ../../source/docs/development/msg_json.md
+msgid "code"
+msgstr "Code"
+
+#: ../../source/docs/development/msg_json.md
+#: ../../source/docs/development/user_msg_json.md
+msgid "Number"
+msgstr "Number"
+
+#: ../../source/docs/development/msg_json.md
+#: ../../source/docs/development/user_msg_json.md
+msgid "信息类型"
+msgstr "Message Type"
+
+#: ../../source/docs/development/msg_json.md
+msgid "time"
+msgstr "Time"
+
+#: ../../source/docs/development/msg_json.md
+msgid "发消息的时间戳"
+msgstr "Timestamp of the message sent"
+
+#: ../../source/docs/development/msg_json.md
+msgid "msg_id"
+msgstr "Message ID"
+
+#: ../../source/docs/development/msg_json.md
+msgid "message 的 ID，唯一 **_(注意：传输给服务器时无此字段)_**"
+msgstr "Message ID, unique **_(Note: This field is not present when transmitted to the server)_**"
+
+#: ../../source/docs/development/msg_json.md
+msgid "sender"
+msgstr "Sender"
+
+#: ../../source/docs/development/msg_json.md
+msgid "Object"
+msgstr "Object"
+
+#: ../../source/docs/development/msg_json.md
+msgid "发送者的相关数据"
+msgstr "Relevant data of the sender"
+
+#: ../../source/docs/development/msg_json.md
+#: ../../source/docs/development/server/server-database.md
+msgid "ocid"
+msgstr "OCID"
+
+#: ../../source/docs/development/msg_json.md
+#: ../../source/docs/development/user_msg_json.md
+msgid "String"
+msgstr "String"
+
+#: ../../source/docs/development/msg_json.md
+msgid "发送者的 ocid"
+msgstr "Sender's OCID"
+
+#: ../../source/docs/development/msg_json.md
+msgid "session_id"
+msgstr "Session ID"
+
+#: ../../source/docs/development/msg_json.md
+msgid "发送者的会话 id"
+msgstr "Sender's session ID"
+
+#: ../../source/docs/development/msg_json.md
+msgid "msg"
+msgstr "Message"
+
+#: ../../source/docs/development/msg_json.md
+msgid "Array"
+msgstr "Array"
+
+#: ../../source/docs/development/msg_json.md
+msgid "消息列表"
+msgstr "Message List"
+
+#: ../../source/docs/development/msg_json.md
+#: ../../source/docs/development/user_msg_json.md
+msgid "type"
+msgstr "Type"
+
+#: ../../source/docs/development/msg_json.md
+msgid "用户消息类型，详细见[用户消息传递格式](user_msg_json.md)"
+msgstr "User message type, see [User Message Passing Format](user_msg_json.md) for details"
+
+#: ../../source/docs/development/msg_json.md:38
+msgid "获取会话信息"
+msgstr "Get Session Information"
+
+#: ../../source/docs/development/msg_json.md:40
+#: ../../source/docs/development/msg_json.md:94
+#: ../../source/docs/development/msg_json.md:140
+#: ../../source/docs/development/msg_json.md:186
+#: ../../source/docs/development/msg_json.md:232
+#: ../../source/docs/development/msg_json.md:325
+msgid "**_Server <- Client_**"
+msgstr "**Server <- Client**"
+
+#: ../../source/docs/development/msg_json.md
+msgid "该会话的ID"
+msgstr "The ID of this session"
+
+#: ../../source/docs/development/msg_json.md
+msgid "request_values"
+msgstr "Requested Values"
+
+#: ../../source/docs/development/msg_json.md
+msgid "需要服务端返回的信息"
+msgstr "Information required to be returned by the server"
+
+#: ../../source/docs/development/msg_json.md
+msgid "request_value"
+msgstr "Requested Value"
+
+#: ../../source/docs/development/msg_json.md
+#: ../../source/docs/development/server/server-database.md
+#: ../../source/docs/run/server_argv.md
+msgid "name"
+msgstr "Name"
+
+#: ../../source/docs/development/msg_json.md
+msgid "会话名称"
+msgstr "Session Name"
+
+#: ../../source/docs/development/msg_json.md
+msgid "avatar"
+msgstr "Avatar"
+
+#: ../../source/docs/development/msg_json.md
+msgid "该会话头像的 url 链接"
+msgstr "The URL link of the session avatar"
+
+#: ../../source/docs/development/msg_json.md
+msgid "avatar_hash"
+msgstr "Avatar Hash"
+
+#: ../../source/docs/development/msg_json.md
+msgid "该会话头像的哈希值"
+msgstr "The hash value of the session avatar"
+
+#: ../../source/docs/development/msg_json.md
+msgid "该会话创建的时间戳"
+msgstr "The timestamp when the session was created"
+
+#: ../../source/docs/development/msg_json.md
+msgid "update_time"
+msgstr "Update Time"
+
+#: ../../source/docs/development/msg_json.md
+msgid "该会话数据最后更新的时间戳"
+msgstr "The timestamp of the last update of the session data"
+
+#: ../../source/docs/development/msg_json.md
+msgid "members"
+msgstr "Members"
+
+#: ../../source/docs/development/msg_json.md
+msgid "该会话的成员列表"
+msgstr "The member list of the session"
+
+#: ../../source/docs/development/msg_json.md
+msgid "owner"
+msgstr "Owner"
+
+#: ../../source/docs/development/msg_json.md
+msgid "该会话拥有者的 ocid"
+msgstr "The OCID of the owner of the session"
+
+#: ../../source/docs/development/msg_json.md:71
+msgid "获取会话信息返回信息"
+msgstr "Get Session Information Return Information"
+
+#: ../../source/docs/development/msg_json.md:73
+#: ../../source/docs/development/msg_json.md:115
+#: ../../source/docs/development/msg_json.md:161
+#: ../../source/docs/development/msg_json.md:207
+#: ../../source/docs/development/msg_json.md:267
+#: ../../source/docs/development/msg_json.md:310
+#: ../../source/docs/development/msg_json.md:336
+#: ../../source/docs/development/msg_json.md:372
+#: ../../source/docs/development/msg_json.md:394
+msgid "**_Server -> Client_**"
+msgstr "**Server -> Client**"
+
+#: ../../source/docs/development/msg_json.md:71
+msgid "获取会话信息返回信息"
+msgstr "Session Information Retrieval Response"
+
+#: ../../source/docs/development/msg_json.md
+msgid "data"
+msgstr "Data"
+
+#: ../../source/docs/development/msg_json.md
+msgid "账号信息,详情[见上**获取会话信息**`request_value`](#获取会话信息)"
+msgstr "Account information, details [see above **Session Information Retrieval** `request_value`](#Get-Session-Information)"
+
+#: ../../source/docs/development/msg_json.md:92
+msgid "注册信息"
+msgstr "Registration Information"
+
+#: ../../source/docs/development/msg_json.md
+#: ../../source/docs/development/server/server-database.md
+msgid "email"
+msgstr "Email"
+
+#: ../../source/docs/development/msg_json.md
+msgid "注册邮箱"
+msgstr "Registered Email"
+
+#: ../../source/docs/development/msg_json.md
+msgid "password"
+msgstr "Password"
+
+#: ../../source/docs/development/msg_json.md
+msgid "注册密码(已加密)"
+msgstr "Registration Password (Encrypted)"
+
+#: ../../source/docs/development/msg_json.md
+#: ../../source/docs/development/server/server-database.md
+msgid "昵称"
+msgstr "Nickname"
+
+#: ../../source/docs/development/msg_json.md:113
+msgid "注册返回信息"
+msgstr "Registration Return Information"
+
+#: ../../source/docs/development/msg_json.md
+msgid "status"
+msgstr "Status"
+
+#: ../../source/docs/development/msg_json.md
+msgid "服务端返回的状态码"
+msgstr "Status code returned by the server"
+
+#: ../../source/docs/development/msg_json.md
+msgid "该账号的 OC 号"
+msgstr "The OC number of the account"
+
+#: ../../source/docs/development/msg_json.md
+msgid "returnCode"
+msgstr "Return Code"
+
+#: ../../source/docs/development/msg_json.md
+msgid "0"
+msgstr "0"
+
+#: ../../source/docs/development/msg_json.md
+msgid "注册成功"
+msgstr "Registration Successful"
+
+#: ../../source/docs/development/msg_json.md
+msgid "1"
+msgstr "1"
+
+#: ../../source/docs/development/msg_json.md
+msgid "服务器错误"
+msgstr "Server Error"
+
+#: ../../source/docs/development/msg_json.md
+msgid "2"
+msgstr "2"
+
+#: ../../source/docs/development/msg_json.md
+msgid "邮箱重复"
+msgstr "Email Duplicate"
+
+#: ../../source/docs/development/msg_json.md:138
+msgid "登录信息"
+msgstr "Login Information"
+
+#: ../../source/docs/development/msg_json.md
+msgid "login_type"
+msgstr "Login Type"
+
+#: ../../source/docs/development/msg_json.md
+msgid "0 为邮箱登录，1 为 ocid 登录"
+msgstr "0 for email login, 1 for ocid login"
+
+#: ../../source/docs/development/msg_json.md
+msgid "account"
+msgstr "Account"
+
+#: ../../source/docs/development/msg_json.md
+msgid "账号绑定的邮箱或 ocid"
+msgstr "Email or ocid bound to the account"
+
+#: ../../source/docs/development/msg_json.md
+msgid "密码"
+msgstr "Password"
+
+#: ../../source/docs/development/msg_json.md:159
+msgid "登录返回信息"
+msgstr "Login Return Information"
+
+#: ../../source/docs/development/msg_json.md
+msgid "服务器返回的状态码"
+msgstr "Status code returned by the server"
+
+#: ../../source/docs/development/msg_json.md
+msgid "该账号的 OCID"
+msgstr "The OCID of the account"
+
+#: ../../source/docs/development/msg_json.md
+msgid "登录成功"
+msgstr "Login Successful"
+
+#: ../../source/docs/development/msg_json.md
+msgid "账号或密码不正确"
+msgstr "Account or password is incorrect"
+
+#: ../../source/docs/development/msg_json.md:184
+msgid "新建会话请求信息"
+msgstr "New Session Request Information"
+
+#: ../../source/docs/development/msg_json.md
+msgid "会话成员"
+msgstr "Session Members"
+
+#: ../../source/docs/development/msg_json.md:205
+msgid "新建会话返回信息"
+msgstr "New Session Return Information"
+
+#: ../../source/docs/development/msg_json.md
+msgid "会话状态码"
+msgstr "Session Status Code"
+
+#: ../../source/docs/development/msg_json.md
+msgid "会话 id"
+msgstr "Session ID"
+
+#: ../../source/docs/development/msg_json.md
+msgid "创建成功"
+msgstr "Created Successfully"
+
+#: ../../source/docs/development/msg_json.md
+msgid "到达创建会话上限"
+msgstr "Reached the maximum number of sessions"
+
+#: ../../source/docs/development/msg_json.md:230
+msgid "获取账号信息"
+msgstr "Get Account Information"
+
+#: ../../source/docs/development/msg_json.md
+msgid "该账号的 ocid"
+msgstr "The ocid of the account"
+
+#: ../../source/docs/development/msg_json.md
+msgid "nickname"
+msgstr "Nickname"
+
+#: ../../source/docs/development/msg_json.md
+msgid "该账号的状态"
+msgstr "The status of the account"
+
+#: ../../source/docs/development/msg_json.md
+msgid "该账号头像的 url 链接"
+msgstr "The URL link of the account's avatar"
+
+#: ../../source/docs/development/msg_json.md
+msgid "该账号头像的 hash"
+msgstr "The hash of the account's avatar"
+
+#: ../../source/docs/development/msg_json.md
+msgid "该账号注册的时间戳"
+msgstr "The timestamp when the account was registered"
+
+#: ../../source/docs/development/msg_json.md
+msgid "该账号数据最后更新的时间戳"
+msgstr "The timestamp of the last update of the account's data"
+
+#: ../../source/docs/development/msg_json.md
+msgid "sessions"
+msgstr "Sessions"
+
+#: ../../source/docs/development/msg_json.md
+msgid "该账号加入/创建的会话列表(仅本账号可获取)"
+msgstr "The list of sessions joined/created by the account (only accessible by this account)"
+
+#: ../../source/docs/development/msg_json.md
+msgid "friends"
+msgstr "Friends"
+
+#: ../../source/docs/development/msg_json.md
+msgid "该账号的好友列表 (仅本账号可获取)"
+msgstr "The friend list of the account (only accessible by this account)"
+
+#: ../../source/docs/development/msg_json.md:265
+msgid "获取账号信息返回信息"
+msgstr "Get Account Information Return Information"
+
+#: ../../source/docs/development/msg_json.md
+msgid "账号信息,详情[见上**获取账号信息**`request_value`](#获取账号信息)"
+msgstr "Account information, details [see above **Get Account Information** `request_value`](#Get-Account-Information)"
+
+#: ../../source/docs/development/msg_json.md:286
+msgid "获取服务器状态"
+msgstr "Get Server Status"
+
+#: ../../source/docs/development/msg_json.md
+msgid "服务器状态码"
+msgstr "Server Status Code"
+
+#: ../../source/docs/development/msg_json.md
+msgid "正常运行"
+msgstr "Running Normally"
+
+#: ../../source/docs/development/msg_json.md
+msgid "维护中"
+msgstr "Under Maintenance"
+
+#: ../../source/docs/development/msg_json.md:308
+msgid "发起验证"
+msgstr "Initiate Verification"
+
+#: ../../source/docs/development/msg_json.md:323
+msgid "生成验证码"
+msgstr "Generate Verification Code"
+
+#: ../../source/docs/development/msg_json.md:334
+msgid "验证状态"
+msgstr "Verification Status"
+
+#: ../../source/docs/development/msg_json.md
+msgid "验证状态码"
+msgstr "Verification Status Code"
+
+#: ../../source/docs/development/msg_json.md
+msgid "验证通过"
+msgstr "Verification Passed"
+
+#: ../../source/docs/development/msg_json.md
+msgid "验证失败"
+msgstr "Verification Failed"
+
+#: ../../source/docs/development/msg_json.md
+msgid "验证超时"
+msgstr "Verification Timeout"
+
+#: ../../source/docs/development/msg_json.md:357
+msgid "注销"
+msgstr "Logout"
+
+#: ../../source/docs/development/msg_json.md:359
+msgid "**_Server<-Client_**"
+msgstr "**Server<-Client**"
+
+#: ../../source/docs/development/msg_json.md:368
+msgid "**警告：该注销是删除帐号的意思，请勿误用接口_**"
+msgstr "**Warning: This logout refers to the deletion of the account, please do not misuse the interface_**"
+
+#: ../../source/docs/development/msg_json.md:370
+msgid "注销返回信息"
+msgstr "Logout Return Information"
+
+#: ../../source/docs/development/msg_json.md
+msgid "注销状态码"
+msgstr "Logout Status Code"
+
+#: ../../source/docs/development/msg_json.md
+msgid "注销成功"
+msgstr "Logout Successful"
+
+#: ../../source/docs/development/msg_json.md
+msgid "注销失败"
+msgstr "Logout Failed"
+
+#: ../../source/docs/development/msg_json.md:392
+msgid "错误信息"
+msgstr "Error Information"
+
+#: ../../source/docs/development/msg_json.md
+msgid "Key"
+msgstr "Key"
+
+#: ../../source/docs/development/msg_json.md
+msgid "Comment"
+msgstr "Comment"
+
+#: ../../source/docs/development/msg_json.md
+msgid "details"
+msgstr "Details"
+
+#: ../../source/docs/development/msg_json.md
+msgid "异常信息"
+msgstr "Exception Information"
+
+#: ../../source/docs/development/server/basic.md:1
+msgid "开发基本注意事项"
+msgstr "Basic Development Precautions"
+
+#: ../../source/docs/development/server/basic.md:3
+msgid "脚本"
+msgstr "Scripts"
+
+#: ../../source/docs/development/server/basic.md:5
+msgid "我们提供了一系列脚本，帮助您处理日常简单事物。"
+msgstr "We provide a series of scripts to help you handle daily simple tasks."
+
+#: ../../source/docs/development/server/basic.md:7
+msgid "你可以运行`script/test_server.py`来运行服务端的测试。为了您可以自定义设置，您可以新建一个`local`文件夹(该文件夹已经被添加到`.gitignore`)，然后将脚本复制进去。"
+msgstr "You can run `script/test_server.py` to test the server. To customize the settings, you can create a new `local` folder (which has been added to `.gitignore`) and then copy the script into it."
+
+#: ../../source/docs/development/server/basic.md:9
+msgid "例如，我们设置了`OURCHAT_CONFIG_FILE`环境变量来读取服务器运行的配置文件，你可以将`script/test_server.py`复制到`local`文件夹，复制`ourchat.toml`等配置文件，然后添加:"
+msgstr "For example, we have set the `OURCHAT_CONFIG_FILE` environment variable to read the configuration file for the server operation. You can copy `script/test_server.py` to the `local` folder, copy configuration files such as `ourchat.toml`, and then add:"
+
+#: ../../source/docs/development/server/basic.md:15
+msgid "从而进行服务端测试的自定义。"
+msgstr "to customize the server testing."
+
+#: ../../source/docs/development/server/basic.md:17
+msgid "测试"
+msgstr "Testing"
+
+#: ../../source/docs/development/server/basic.md:19
+msgid "由于服务端测试具有特殊性，我们引入了一个`test_lib`模块用于辅助测试，具体可以参考已有的单元测试。"
+msgstr "Due to the particularity of server-side testing, we have introduced a `test_lib` module to assist with testing, which you can reference in the existing unit tests."
+
+#: ../../source/docs/development/server/basic.md:21
+msgid "文档"
+msgstr "Documentation"
+
+#: ../../source/docs/development/server/basic.md:23
+msgid ""
+"请善用`cargo doc`，我们为你提供了详尽的文档参考！调用`cargo doc --document-private-"
+"items`来生成私有的文档"
+msgstr ""
+"Please make good use of `cargo doc`, we have provided you with detailed documentation! Call `cargo doc --document-private-"
+"items` to generate private documentation."
+
+#: ../../source/docs/development/server/index.rst:2
+msgid "开发-服务器"
+msgstr "Development - Server"
+
+#: ../../source/docs/development/server/index.rst:3
+msgid "此部分是关于服务器的开发文档"
+msgstr "This section is about the server development documentation"
+
+#: ../../source/docs/development/server/server-database.md:1
+msgid "服务端的数据库设计"
+msgstr "Server Database Design"
+
+#: ../../source/docs/development/server/server-database.md:3
+msgid ""
+"注意：为了方便和文档的准确性，具体数据类型请直接参考[orm "
+"entities](https://github.com/SkyUOI/OurChat/tree/main/server/src/entities)"
+msgstr ""
+"Note: For convenience and accuracy of the documentation, please refer to the specific data types directly in the [ORM "
+"entities](https://github.com/SkyUOI/OurChat/tree/main/server/src/entities)"
+
+#: ../../source/docs/development/server/server-database.md:5
+msgid "用户表(user)"
+msgstr "User Table (user)"
+
+#: ../../source/docs/development/server/server-database.md
+msgid "列名"
+msgstr "Column Name"
+
+#: ../../source/docs/development/server/server-database.md
+msgid "用处"
+msgstr "Purpose"
+
+#: ../../source/docs/development/server/server-database.md
+msgid "id"
+msgstr "ID"
+
+#: ../../source/docs/development/server/server-database.md
+msgid "主键，唯一的标识符(使用雪花 id)"
+msgstr "Primary key, unique identifier (using Snowflake ID)"
+
+#: ../../source/docs/development/server/server-database.md
+msgid "显示给用户的唯一 id 号(使用随机生成的 10 位字符串)"
+msgstr "Unique ID number displayed to the user (using a randomly generated 10-character string)"
+
+#: ../../source/docs/development/server/server-database.md
+msgid "passwd"
+msgstr "Password"
+
+#: ../../source/docs/development/server/server-database.md
+msgid "用户的密码，经过 sha256 加密，不可还原"
+msgstr "User's password, encrypted with sha256, irreversible"
+
+#: ../../source/docs/development/server/server-database.md
+msgid "邮箱"
+msgstr "Email"
+
+#: ../../source/docs/development/server/server-database.md
+msgid "date"
+msgstr "Date"
+
+#: ../../source/docs/development/server/server-database.md
+msgid "时间戳"
+msgstr "Timestamp"
+
+#: ../../source/docs/development/server/server-database.md:16
+msgid "好友表(friend)"
+msgstr "Friends Table (friend)"
+
+#: ../../source/docs/development/server/server-database.md
+msgid "user_id"
+msgstr "User ID"
+
+#: ../../source/docs/development/server/server-database.md
+msgid "用户"
+msgstr "User"
+
+#: ../../source/docs/development/server/server-database.md
+msgid "friend_id"
+msgstr "Friend ID"
+
+#: ../../source/docs/development/server/server-database.md
+msgid "用户的好友"
+msgstr "User's friend"
+
+#: ../../source/docs/development/server/server-database.md
+msgid "用户给好友起的备注名"
+msgstr "Alias given to the friend by the user"
+
+#: ../../source/docs/development/server/server-database.md:24
+msgid "聊天表(chat)"
+msgstr "Chat Table (chat)"
+
+#: ../../source/docs/development/server/server-database.md
+msgid "group_id"
+msgstr "Group ID"
+
+#: ../../source/docs/development/server/server-database.md
+msgid "群聊"
+msgstr "Group chat"
+
+#: ../../source/docs/development/server/server-database.md
+msgid "标记用户在该群中"
+msgstr "Mark the user in this group"
+
+#: ../../source/docs/development/server/server-database.md
+msgid "标记用户在群里的昵称"
+msgstr "Mark the user's nickname in the group"
+
+#: ../../source/docs/development/server/server-database.md
+msgid "group_name"
+msgstr "Group Name"
+
+#: ../../source/docs/development/server/server-database.md
+msgid "标记用户对群聊的备注，默认为空"
+msgstr "Mark the user's note for the group chat, default is empty"
+
+#: ../../source/docs/development/server/server-database.md:33
+msgid "群聊表(groupchat)"
+msgstr "Group Chat Table (groupchat)"
+
+#: ../../source/docs/development/server/server-database.md
+msgid "群聊 id"
+msgstr "Group chat ID"
+
+#: ../../source/docs/development/server/server-database.md
+msgid "群聊名称"
+msgstr "Group chat name"
+
+#: ../../source/docs/development/server/server-database.md:40
+msgid "用户聊天信息表(user_chat_msg)"
+msgstr "User Chat Information Table (user_chat_msg)"
+
+#: ../../source/docs/development/server/server-database.md
+msgid "用户的 id"
+msgstr "User's ID"
+
+#: ../../source/docs/development/server/server-database.md
+msgid "chat_msg_id"
+msgstr "Chat message ID"
+
+#: ../../source/docs/development/server/server-database.md
+msgid "信息的 id"
+msgstr "Information's ID"
+
+#: ../../source/docs/development/server/server-database.md:47
+msgid "聊天信息表(user_chat_id)"
+msgstr "Chat Information Table (user_chat_id)"
+
+#: ../../source/docs/development/server/server-database.md
+msgid "char_msg_id"
+msgstr "Character message ID"
+
+#: ../../source/docs/development/server/server-database.md
+msgid "聊天信息的 id"
+msgstr "Chat information's ID"
+
+#: ../../source/docs/development/server/server-database.md
+msgid "msg_type"
+msgstr "Message type"
+
+#: ../../source/docs/development/server/server-database.md
+msgid "信息的类型"
+msgstr "Type of information"
+
+#: ../../source/docs/development/server/server-database.md
+msgid "msg_data"
+msgstr "Message data"
+
+#: ../../source/docs/development/server/server-database.md
+msgid "信息的数据"
+msgstr "Data of the message"
+
+#: ../../source/docs/development/server/server-database.md
+msgid "属于哪个群"
+msgstr "Which group it belongs to"
+
+#: ../../source/docs/development/server/server-database.md
+msgid "sender_id"
+msgstr "Sender ID"
+
+#: ../../source/docs/development/server/server-database.md
+msgid "发送者的 id"
+msgstr "Sender's ID"
+
+#: ../../source/docs/development/server/server-develop.md:1
+msgid "服务端开发指南"
+msgstr "Server Development Guide"
+
+#: ../../source/docs/development/server/server-develop.md:3
+msgid "[项目构建依赖](#项目构建依赖)"
+msgstr "[Project Build Dependencies](#Project-Build-Dependencies)"
+
+#: ../../source/docs/development/server/server-develop.md:4
+msgid "[容器开发](#容器开发)"
+msgstr "[Container Development](#Container-Development)"
+
+#: ../../source/docs/development/server/server-develop.md:5
+msgid "[数据库](#数据库)"
+msgstr "[Database](#Database)"
+
+#: ../../source/docs/development/server/server-develop.md:6
+msgid "[服务器配置文件](#服务器配置文件)"
+msgstr "[Server Configuration File](#Server-Configuration-File)"
+
+#: ../../source/docs/development/server/server-develop.md:8
+msgid "项目构建依赖"
+msgstr "Project Build Dependencies"
+
+#: ../../source/docs/development/server/server-develop.md:10
+msgid ""
+"Server 部分由 Rust 语言编写.你首先应当安装 Rust. 开发和部署都在 Docker 中完成，所以你也应当安装 Docker. "
+"docker-buildx 和 docker-compose 同样也需要安装."
+msgstr ""
+"The Server part is written in Rust. You should first install Rust. Development and deployment are both done in Docker, so you should also install Docker. "
+"docker-buildx and docker-compose also need to be installed."
+
+#: ../../source/docs/development/server/server-develop.md:14
+msgid "服务器配置文件"
+msgstr "Server Configuration File"
+
+#: ../../source/docs/development/server/server-develop.md:16
+msgid "于`config`目录下存放了所有配置文件的示例，在开发阶段请最好不要更改这些配置文件。"
+msgstr "Examples of all configuration files are stored in the `config` directory. It is best not to change these configuration files during the development phase."
+
+#: ../../source/docs/development/server/server-develop.md:18
+msgid "容器开发"
+msgstr "Container Development"
+
+#: ../../source/docs/development/server/server-develop.md:20
+msgid "我们提供了一个用于开发环境的 Dockerfile"
+msgstr "We provide a Dockerfile for the development environment"
+
+#: ../../source/docs/development/server/server-develop.md:22
+msgid "你可以运行:"
+msgstr "You can run:"
+
+#: ../../source/docs/development/server/server-develop.md:28
+msgid "来配置开发环境"
+msgstr "to configure the development environment"
+
+#: ../../source/docs/development/server/server-develop.md:30
+msgid "如果 Dockerfile 改变了，你可以运行`script/rebuild_dev_container.py`来重新构建镜像。"
+msgstr "If the Dockerfile has changed, you can run `script/rebuild_dev_container.py` to rebuild the image."
+
+#: ../../source/docs/development/server/server-develop.md:32
+msgid "我们直接将本地文件夹映射到了容器中的`/app`文件夹，这使得你可以放心地重置容器而不用担心数据丢失。"
+msgstr "We directly map the local folder to the `/app` folder in the container, which allows you to reset the container without worrying about data loss."
+
+#: ../../source/docs/development/server/server-develop.md:34
+msgid "推荐的开发方式是在本地使用编辑器编辑，同时使用`docker exec -it OurChatServer bash`进入容器运行并观察结果"
+msgstr "The recommended development method is to edit locally with an editor, while using `docker exec -it OurChatServer bash` to enter the container to run and observe the results."
+
+#: ../../source/docs/development/server/server-develop.md:36
+msgid "首先，切换进`server`目录中，开发都将在这里进行。"
+msgstr "First, switch to the `server` directory, all development will be done here."
+
+#: ../../source/docs/development/server/server-develop.md:38
+msgid "启动时使用"
+msgstr "Use when starting up"
+
+#: ../../source/docs/development/server/server-develop.md:44
+msgid "启动测试:"
+msgstr "Start testing:"
+
+#: ../../source/docs/development/server/server-develop.md:50
+msgid "数据库"
+msgstr "Database"
+
+#: ../../source/docs/development/server/server-develop.md:52
+msgid ""
+"本项目采用 Redis 和 MySQL 作为数据库，同时采用 sea-orm 作为 ORM 框架。为了更好地使用该 ORM "
+"框架，在修改数据库表后，您可以运行`script/regenerate_entity.py`来重新生成 ORM 框架需要的文件"
+msgstr ""
+"This project uses Redis and MySQL as databases, and also uses sea-orm as the ORM framework. To better use this ORM "
+"framework, after modifying the database tables, you can run `script/regenerate_entity.py` to regenerate the files needed by the ORM framework"
+
+#: ../../source/docs/development/server/server-develop.md:54
+msgid "为了运行这个脚本，你首先需要运行`cargo install sea-orm-cli`"
+msgstr "To run this script, you first need to run `cargo install sea-orm-cli`"
+
+#: ../../source/docs/development/server/server-develop.md:56
+msgid "注意：如果可以，请最好保证`sea-orm-cli`是最新的"
+msgstr "Note: If possible, please make sure that `sea-orm-cli` is the latest version"
+
+#: ../../source/docs/development/server/server-develop.md:58
+msgid "数据库迁移"
+msgstr "Database Migration"
+
+#: ../../source/docs/development/server/server-develop.md:60
+msgid ""
+"`migration`中是数据库迁移模块，在server启动时会自动运行未运行的数据库迁移，为了定义一个新的数据库迁移，请参考[sea "
+"orm](https://www.sea-ql.org/SeaORM/docs/migration/setting-up-migration/)"
+msgstr ""
+"The `migration` directory contains the database migration module, which will automatically run pending database migrations when the server starts. To define a new database migration, please refer to [sea "
+"orm](https://www.sea-ql.org/SeaORM/docs/migration/setting-up-migration/)"
+
+#: ../../source/docs/development/special_string.md:1
+msgid "特殊字符串字面量"
+msgstr "Special String Literals"
+
+#: ../../source/docs/development/special_string.md:3
+msgid "我们定义了一系列特殊含义的字符串，现在列举如下:"
+msgstr "We have defined a series of strings with special meanings, now listed as follows:"
+
+#: ../../source/docs/development/special_string.md
+msgid "字符串"
+msgstr "String"
+
+#: ../../source/docs/development/special_string.md
+msgid "含义"
+msgstr "Meaning"
+
+#: ../../source/docs/development/user_msg_json.md:1
+msgid "OurChat 用户消息传递格式"
+msgstr "OurChat User Message Passing Format"
+
+#: ../../source/docs/development/user_msg_json.md:3
+msgid "目录"
+msgstr "Table of Contents"
+
+#: ../../source/docs/development/user_msg_json.md:5
+msgid "[文本消息](#文本消息)"
+msgstr "[Text Message](#Text-Message)"
+
+#: ../../source/docs/development/user_msg_json.md:7
+msgid "文本消息"
+msgstr "Text Message"
+
+#: ../../source/docs/development/user_msg_json.md
+msgid "valueType"
+msgstr "Value Type"
+
+#: ../../source/docs/development/user_msg_json.md
+msgid "text"
+msgstr "Text"
+
+#: ../../source/docs/development/user_msg_json.md
+msgid "文本消息内容"
+msgstr "Text Message Content"
+
+#: ../../source/docs/run/build.md:1
+msgid "如何构建该项目"
+msgstr "How to Build This Project"
+
+#: ../../source/docs/run/build.md:3
+msgid "Server"
+msgstr "Server"
+
+#: ../../source/docs/run/build.md:5
+msgid "开发构建，请见[服务端开发](../development/server/server-develop.md)"
+msgstr "For development build, see [Server Development](../development/server/server-develop.md)"
+
+#: ../../source/docs/run/build.md:7
+msgid "对于真正部署到生产环境，参见[部署指南](../deploy/server-deploy.md)"
+msgstr "For actual deployment to a production environment, see [Deployment Guide](../deploy/server-deploy.md)"
+
+#: ../../source/docs/run/build.md:9
+msgid "Web"
+msgstr "Web"
+
+#: ../../source/docs/run/build.md:11
+msgid "首先，你需要运行:"
+msgstr "Firstly, you need to run:"
+
+#: ../../source/docs/run/build.md:17
+msgid "来添加 wasm 支持."
+msgstr "to add wasm support."
+
+#: ../../source/docs/run/build.md:19
+msgid "然后你应该运行:"
+msgstr "Then you should run:"
+
+#: ../../source/docs/run/build.md:25
+msgid "来安装用于构建和运行 web 应用的[trunk](https://github.com/trunk-rs/trunk)."
+msgstr "to install [trunk](https://github.com/trunk-rs/trunk) for building and running web applications."
+
+#: ../../source/docs/run/build.md:27
+msgid "接着运行`trunk serve`和`trunk build` 来构建和运行 web 应用."
+msgstr "Then run `trunk serve` and `trunk build` to build and run the web application."
+
+#: ../../source/docs/run/build.md:29
+msgid "Tauri-client"
+msgstr "Tauri-client"
+
+#: ../../source/docs/run/build.md:31
+msgid "Tauri-client 使用 Rust 开发.使用与 web 端相同的前端."
+msgstr "Tauri-client is developed using Rust. It uses the same front end as the web version."
+
+#: ../../source/docs/run/build.md:33
+msgid "首先你应当运行:"
+msgstr "First, you should run:"
+
+#: ../../source/docs/run/build.md:39
+msgid "来安装一个管理 tauri 项目的工具."
+msgstr "to install a tool for managing tauri projects."
+
+#: ../../source/docs/run/build.md:41
+msgid "然后运行:"
+msgstr "Then run:"
+
+#: ../../source/docs/run/build.md:47
+msgid "来构建和运行 Tauri 应用."
+msgstr "to build and run the Tauri application."
+
+#: ../../source/docs/run/build.md:49
+msgid "client-pc"
+msgstr "client-pc"
+
+#: ../../source/docs/run/build.md:51
+msgid "client-pc 部分由 python 编写，无需编译，要求是 python3 以上,通过以下命令进行安装和运行"
+msgstr "The client-pc part is written in python, no compilation is required, python3 or higher is required, install and run with the following commands"
+
+#: ../../source/docs/run/build.md:53
+#: ../../source/docs/run/index.rst:2
+msgid "运行"
+msgstr "Run"
+
+#: ../../source/docs/run/build.md:62
+msgid "打包为可执行文件"
+msgstr "Package as an Executable"
+
+#: ../../source/docs/run/build.md:68
+msgid "等待脚本运行完毕后，`client/pc/src/out/main.dist`目录中即为可执行文件及其依赖文件"
+msgstr "After the script has finished running, the `client/pc/src/out/main.dist` directory will contain the executable file and its dependent files"
+
+#: ../../source/docs/run/index.rst:3
+msgid "此部分是关于运行该项目的文档"
+msgstr "This section is about the documentation for running this project"
+
+#: ../../source/docs/run/server_argv.md:1
+msgid "服务器参数"
+msgstr "Server Arguments"
+
+#: ../../source/docs/run/server_argv.md
+msgid "usage"
+msgstr "Usage"
+
+#: ../../source/docs/run/server_argv.md
+msgid "default"
+msgstr "Default"
+
+#: ../../source/docs/run/server_argv.md
+msgid "--cfg=config file path"
+msgstr "--cfg=path_to_config_file"
+
+#: ../../source/docs/run/server_argv.md
+msgid "选择配置文件.[example](#配置文件示例)"
+msgstr "Select the configuration file. [example](#Configuration-File-Example)"
+
+#: ../../source/docs/run/server_argv.md
+msgid "--test-mode"
+msgstr "--test-mode"
+
+#: ../../source/docs/run/server_argv.md
+msgid "以测试模式启动服务器，仅供开发调试使用"
+msgstr "Start the server in test mode, for development and debugging only"
+
+#: ../../source/docs/run/server_argv.md
+msgid "--clear"
+msgstr "--clear"
+
+#: ../../source/docs/run/server_argv.md
+msgid "在启动时清除服务器缓存和日志"
+msgstr "Clear server cache and logs on startup"
+
+#: ../../source/docs/run/server_argv.md
+msgid "--port=server listening port"
+msgstr "--port=port_number_to_listen"
+
+#: ../../source/docs/run/server_argv.md
+msgid "服务器监听的端口"
+msgstr "Port the server listens on"
+
+#: ../../source/docs/run/server_argv.md
+msgid "7777"
+msgstr ""
+
+#: ../../source/docs/run/server_argv.md
+msgid "--ip=server listening ip"
+msgstr "--ip=ip_address_to_listen"
+
+#: ../../source/docs/run/server_argv.md
+msgid "服务器监听的 ip"
+msgstr "IP the server listens on"
+
+#: ../../source/docs/run/server_argv.md
+msgid "127.0.0.1"
+msgstr ""
+
+#: ../../source/docs/run/server_argv.md:11
+msgid "配置文件示例"
+msgstr "Configuration File Example"
+
+#: ../../source/docs/run/server_argv.md:19
+msgid "注意，当配置文件和命令行参数冲突时，以命令行参数覆盖配置文件参数"
+msgstr "Note that when there is a conflict between the configuration file and command line arguments, the command line arguments will override the configuration file parameters"
+
+#: ../../source/docs/run/server_argv.md:21
+msgid "数据库示例:"
+msgstr "Database Example:"
+
+#: ../../source/docs/run/server_argv.md:33
+msgid "Redis 示例:"
+msgstr "Redis Example:"
