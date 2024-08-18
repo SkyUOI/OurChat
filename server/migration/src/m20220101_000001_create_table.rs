@@ -128,6 +128,7 @@ enum User {
 enum Friend {
     Table,
     UserId,
+    #[allow(clippy::enum_variant_names)]
     FriendId,
     Name,
 }

@@ -30,12 +30,16 @@ impl Connection {
     }
 
     pub async fn new_session(
+        id: ID,
         request_sender: &mpsc::Sender<DBRequest>,
         net_sender: &mpsc::Sender<Message>,
         json: NewSession,
     ) -> anyhow::Result<()> {
         let channel = oneshot::channel();
-        let new_session = DBRequest::NewSession { resp: channel.0 };
+        let new_session = DBRequest::NewSession {
+            id,
+            resp: channel.0,
+        };
         request_sender.send(new_session).await?;
         let ret = channel.1.await?;
         let resp = match ret {

@@ -36,6 +36,7 @@ pub enum DBRequest {
         resp: oneshot::Sender<client_response::unregister::Status>,
     },
     NewSession {
+        id: ID,
         resp: oneshot::Sender<Result<NewSessionResponse, client_response::new_session::Status>>,
     },
 }
@@ -248,8 +249,13 @@ impl Connection {
                                                     }
                                                     Ok(data) => data,
                                                 };
-                                            Self::new_session(&request_sender, &net_sender, json)
-                                                .await?;
+                                            Self::new_session(
+                                                id,
+                                                &request_sender,
+                                                &net_sender,
+                                                json,
+                                            )
+                                            .await?;
                                             continue 'con_loop;
                                         }
                                         _ => {
