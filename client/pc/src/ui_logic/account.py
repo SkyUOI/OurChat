@@ -1,6 +1,7 @@
 from lib.const import ACCOUNT_FINISH_GET_AVATAR, ACCOUNT_FINISH_GET_INFO
 from lib.OurChatUI import ImageLabel, OurChatWidget
 from ui.account import Ui_Account
+from ui_logic.accountSetting import AccountSettingUI
 
 
 class AccountUI(Ui_Account):
@@ -14,7 +15,7 @@ class AccountUI(Ui_Account):
         self.avatar_label.deleteLater()
         self.avatar_label = ImageLabel(self.widget)
         self.avatar_label.setImage("resources/images/logo.png")  # default
-        self.horizontalLayout.insertWidget(0, self.avatar_label)
+        self.horizontalLayout.insertWidget(1, self.avatar_label)
         self.fillText()
         self.bind()
 
@@ -39,16 +40,20 @@ class AccountUI(Ui_Account):
     def getAccountInfoResponse(self, data: dict) -> None:
         account = self.ourchat.getAccount(data["ocid"])
         if account == self.ourchat.account:
-            self.ourchat.unListen(ACCOUNT_FINISH_GET_INFO, self.getAccountInfoResponse)
             self.nickname_label.setText(account.data["nickname"])
 
     def getAccountAvatarResponse(self, data: dict) -> None:
         account = self.ourchat.getAccount(data["ocid"])
         if account == self.ourchat.account:
-            self.ourchat.unListen(
-                ACCOUNT_FINISH_GET_AVATAR, self.getAccountAvatarResponse
-            )
             self.avatar_label.setImage(account.avatar_binary_data)
 
     def bind(self) -> None:
-        self.logout_btn.clicked.connect(self.ourchat.restart)
+        self.logout_btn.clicked.connect(self.logout)
+        self.profile_btn.clicked.connect(self.profile)
+
+    def profile(self) -> None:
+        dialog = self.uisystem.setDialog(AccountSettingUI, True)
+        dialog.show()
+
+    def logout(self) -> None:
+        self.ourchat.restart()

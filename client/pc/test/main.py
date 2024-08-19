@@ -1,134 +1,310 @@
+import asyncio
 import json
 import os
 import random
+import time
 from threading import Thread
 
-from websockets import ConnectionClosedOK
-from websockets.sync.server import serve
+from peewee import IntegerField, Model, SqliteDatabase, TextField, fn
+from websockets.server import serve
 
-samples = list(os.listdir("message_samples"))
-code = None
-recommend_answer = {
-    1: ["session_info.json"],
-    4: ["reg_success.json", "reg_email_error.json", "reg_server_error.json"],
-    6: [
-        "login_success.json",
-        "login_server_error.json",
-        "login_wrong_account_or_psw.json",
-    ],
-    8: ["new_session_success.json", "new_session_error.json"],
-    10: ["account_info.json"],
-    12: ["server_status_normal.json", "server_maintenance.json"],
-    14: [
-        "verify_status_success.json",
-        "verify_status_fail.json",
-        "verify_status_timeout.json",
-    ],
-    16: ["sign_out_success.json", "sign_out_fail.json"],
-}
+db = SqliteDatabase("database.db")
+db.connect()
 
-account = {
-    "0000000000": (
-        "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "senlinjun",
-        "http://img.senlinjun.top/imgs/2024/06/012bb970f4d8b5c3.jpg",
-        "06c46dcc4d7c79cf89a5030e5cd6bd48826f97dc711c28d42507afdc1da7cbac",
-        ["0000000001"],
-    ),
-    "0000000001": (
-        "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "limuy",
-        "http://img.senlinjun.top/imgs/2024/08/2d7b8b76596ae8bf.png",
-        "04428d018bf89cd7271ffdd1c7271d0dd0071d1ad4a0664533c72defd0ab10cc",
-        ["0000000000"],
-    ),
-}
-sessions = {"114514": ["0000000000", "0000000001"]}
+
+class Account(Model):
+    ocid = TextField(null=False, primary_key=True)
+    email = TextField(null=False)
+    password = TextField(null=False)
+    nickname = TextField(null=False)
+    status = IntegerField(null=False)
+    avatar = TextField(null=False)
+    avatar_hash = TextField(null=False)
+    time = IntegerField(null=False)
+    public_update_time = IntegerField(null=False)
+    private_update_time = IntegerField(null=False)
+    sessions = TextField(null=False)
+    friends = TextField(null=False)
+
+    class Meta:
+        database = db
+        table_name = "account"
+
+
+class Session(Model):
+    session_id = TextField(null=False, primary_key=True)
+    name = TextField(null=False)
+    avatar = TextField(null=False)
+    avatar_hash = TextField(null=False)
+    time = IntegerField(null=False)
+    update_time = IntegerField(null=False)
+    members = TextField(null=False)
+    owner = TextField(null=False)
+
+    class Meta:
+        database = db
+        table_name = "session"
+
+
+messages = os.listdir("message_samples")
+s = None
 connections = {}
 
 
-def main(conn, serve_obj):
-    global connections
-    ocid = None
-    print("new connection")
-    while True:
-        try:
-            message = conn.recv()
-        except ConnectionClosedOK:
-            break
-        except Exception as e:
-            print(e)
-        data = json.loads(message)
-        code = data["code"]
-        response_data = None
-        if code == 0:
-            data["sender"]["ocid"] = ocid
-            data["msg_id"] = "".join([str(random.randint(0, 9)) for _ in range(10)])
-            for member in sessions[data["sender"]["session_id"]]:
-                if member == ocid:
-                    continue
-                response_data = data
-                if member not in connections:
-                    continue
-                connections[member].send(json.dumps(response_data))
-                print(f"{member} >>> {json.dumps(response_data)}")
+class Connection:
+    def __init__(self, conn):
+        global connections
+        self.conn = conn
+        self.address = f"{self.conn.remote_address[0]}:{self.conn.remote_address[1]}"
+        self.ocid = None
+        connections[self.address] = self
+        print(f"[INFO]({self.address})>>> CONNECTED")
 
-        elif code == 6:
-            if (
-                data["account"] in account
-                and account[data["account"]][0] == data["password"]
-            ):
-                ocid = data["account"]
-                response_data = {"code": 7, "time": 114514, "status": 0, "ocid": ocid}
-                print(f"{ocid} login")
-                connections[ocid] = conn
-            else:
-                response_data = "login_wrong_account_or_psw.json"
+    async def send(self, data):
+        await self.conn.send(json.dumps(data))
+        print(f"[INFO]({self.address})<<< SEND MESSAGE {data}")
 
-        elif code == 10:
-            request_ocid = data["ocid"]
-            password, nickname, avatar, avatar_hash, friends = account[request_ocid]
-            response_data = {
-                "code": 11,
-                "time": 114514,
-                "data": {
-                    "ocid": request_ocid,
-                    "nickname": nickname,
-                    "status": "died",
-                    "avatar": avatar,
-                    "avatar_hash": avatar_hash,
-                    "time": 114514,
-                    "update_time": 17237184354380,
-                    "sessions": ["114514"],
-                    "friends": ["0000000001"],
-                },
-            }
+    async def recvAndReply(self):
+        global connections
+        async for message in self.conn:
+            data = json.loads(message)
+            print(f"[INFO]({self.address})>>> GET MESSAGE {data}")
+            if data["code"] in auto_reply:
+                sample, func = auto_reply[data["code"]]
+                with open(f"message_samples/{sample}", "r") as f:
+                    sample_data = json.loads(f.read())
+                reply_data = func(self, sample_data, data)
+                await self.conn.send(json.dumps(reply_data))
+                print(f"[INFO]({self.address})>>> AUTO-REPLY MESSAGE {reply_data}")
+        print(f"[INFO]({self.address})>>> CLOSE")
+        connections.pop(self.address)
 
-        if response_data is None:
-            response_data = recommend_answer[code][0]
-
-        if isinstance(response_data, str):
-            with open("message_samples/" + response_data, "r", encoding="utf-8") as f:
-                response_data = json.loads(f.read())
-
-        print(f"{ocid} >>> {json.dumps(response_data)}")
-        conn.send(json.dumps(response_data))
-    serve_obj.shutdown()
+    def close(self):
+        self.conn.close()
+        connections.pop(self.address)
+        print(f"[INFO]({self.address})<<< CLOSE")
 
 
-def serve_func():
-    try:
-        with serve(lambda conn: main(conn, serve_obj), "127.0.0.1", 7777) as serve_obj:
-            serve_obj.serve_forever()
-    except Exception as e:
-        print(e)
+def account_info(conn: Connection, sample: dict, data: dict) -> dict:
+    print(len(data["ocid"]))
+    account_info = Account.get_or_none(Account.ocid == data["ocid"])
+    print(data["ocid"])
+    for key in data["request_values"]:
+        if key == "ocid":
+            sample["data"][key] = account_info.ocid
+        elif key == "nickname":
+            sample["data"][key] = account_info.nickname
+        elif key == "status":
+            sample["data"][key] = account_info.status
+        elif key == "avatar":
+            sample["data"][key] = account_info.avatar
+        elif key == "avatar_hash":
+            sample["data"][key] = account_info.avatar_hash
+        elif key == "time":
+            sample["data"][key] = account_info.time
+        elif key == "public_update_time":
+            sample["data"][key] = account_info.public_update_time
+        elif key == "private_update_time":
+            sample["data"][key] = account_info.private_update_time
+        elif key == "sessions":
+            sample["data"][key] = account_info.sessions
+            if conn.ocid != account_info.ocid:
+                sample["data"][key] = None
+        elif key == "friends":
+            sample["data"][key] = account_info.friends
+            if conn.ocid != account_info.ocid:
+                sample["data"][key] = None
+    return sample
 
+
+def login(conn: Connection, sample: dict, data: dict) -> dict:
+    if data["login_type"] == 0:
+        email = data["account"]
+        account = Account.get_or_none(Account.email == email)
+    else:
+        ocid = data["account"]
+        account = Account.get_or_none(Account.ocid == ocid)
+    if account is None:
+        sample["status"] = 1
+    else:
+        if data["password"] == account.password:
+            conn.ocid = account.ocid
+            sample["ocid"] = account.ocid
+            sample["status"] = 0
+        else:
+            sample["status"] = 1
+
+    return sample
+
+
+def session_info(conn: Connection, sample: dict, data: dict) -> dict:
+    session = Session.get_or_none(Session.session_id == data["session_id"])
+    for key in data["request_values"]:
+        if key == "session_id":
+            sample["data"][key] = session.session_id
+        elif key == "name":
+            sample["data"][key] = session.name
+        elif key == "avatar":
+            sample["data"][key] = session.avatar
+        elif key == "avatar_hash":
+            sample["data"][key] = session.avatar_hash
+        elif key == "time":
+            sample["data"][key] = session.time
+        elif key == "update_time":
+            sample["data"][key] = session.update_time
+        elif key == "members":
+            sample["data"][key] = session.members
+        elif key == "owner":
+            sample["data"][key] = session.owner
+    return sample
+
+
+def register(conn: Connection, sample: dict, data: dict) -> dict:
+    account = Account.get_or_none(Account.email == data["email"])
+    if account is not None:
+        sample["status"] = 2
+    else:
+        max_ocid = Account.select(fn.Max(Account.ocid)).scalar()
+        if max_ocid is None:
+            ocid = "0" * 10
+        else:
+            ocid = "0" * (10 - len(str(int(max_ocid)))) + str(int(max_ocid) + 1)
+        Account.create(
+            ocid=ocid,
+            email=data["email"],
+            password=data["password"],
+            nickname="OurChat User",
+            status=0,
+            avatar="http://img.senlinjun.top/imgs/2024/08/c57c426151947784.png",
+            avatar_hash="6856e25c44cce62e5577c23506bcfea8fdd440ad63594ef82a5d9e36951e240a",
+            time=time.time(),
+            public_update_time=time.time(),
+            private_update_time=time.time(),
+            sessions=[],
+            friends=[],
+        )
+        conn.ocid = ocid
+        sample["ocid"] = ocid
+        sample["status"] = 0
+
+    return sample
+
+
+def normal(conn: Connection, sample: dict, data: dict) -> dict:
+    return sample
+
+
+def user_msg(conn: Connection, sample: dict, data: dict) -> dict:
+    session = Session.get_or_none(Session.session_id == data["sender"]["session_id"])
+    if session is None:
+        return
+    sample["time"] = time.time()
+    sample["msg_id"] = "".join([str(random.randint(0, 9)) for _ in range(10)])
+    sample["sender"]["ocid"] = conn.ocid
+    sample["sender"]["session_id"] = data["sender"]["session_id"]
+    sample["msg"] = data["msg"]
+
+    for address in connections:
+        user_conn = connections[address]
+        if user_conn == conn:
+            continue
+        if user_conn in session.members:
+            user_conn.send(sample)
+
+    return sample
+
+
+def new_session(conn: Connection, sample: dict, data: dict) -> dict:
+    avatar = "http://img.senlinjun.top/imgs/2024/08/c57c426151947784.png"
+    avatar_hash = "6856e25c44cce62e5577c23506bcfea8fdd440ad63594ef82a5d9e36951e240a"
+    name = "%OURCHAT_DEFAULT_SESSION_NAME%"
+
+    if "avatar" in data:
+        avatar = data["avatar"]
+    if "avatar_hash" in data:
+        avatar_hash = data["avatar_hash"]
+    if "name" in data:
+        name = data["name"]
+
+    max_session_id = Session.select(fn.Max(Session.session_id)).scalar()
+    if max_session_id is None:
+        session_id = "0" * 10
+    else:
+        session_id = "0" * (10 - str(int(max_session_id) + 1)) + str(
+            int(max_session_id) + 1
+        )
+
+    Session.create(
+        session_id=session_id,
+        name=name,
+        avatar=avatar,
+        avatar_hash=avatar_hash,
+        time=time.time(),
+        update_time=time.time(),
+        members=data["members"],
+        owner=conn.ocid,
+    )
+
+    sample["status"] = 0
+    sample["session_id"] = session_id
+
+    return sample
+
+
+auto_reply = {
+    0: ("user_msg.json", user_msg),
+    1: ("session_info.json", session_info),
+    4: ("register.json", register),
+    6: ("login.json", login),
+    10: ("account_info.json", account_info),
+    12: ("server_status.json", normal),
+    14: ("verify_status.json", normal),
+}
+
+
+async def connected(websocket):
+    await Connection(websocket).recvAndReply()
+
+
+async def server_forever():
+    async with serve(connected, "localhost", 7777):
+        await asyncio.Future()  # run forever
+
+
+def start_serve():
+    asyncio.run(server_forever())
+
+
+Account.create_table(safe=True)
+Session.create_table(safe=True)
+
+Thread(target=start_serve, daemon=True).start()
 
 while True:
-    print("waiting for connect...")
-    Thread(target=serve_func, daemon=True).start()
-    _ = input('press enter to create a server\n"exit" to exit\n')
-    if _ == "exit":
-        for ocid in connections:
-            connections[ocid].close()
+    print("=" * 40)
+    for i in range(len(messages)):
+        print(f"{i+1}. {messages[i]}")
+    print("=" * 40)
+    user_input = input(
+        "input {address}<<<{msgid}/{json} to send message\ninput blank to exit\n"
+    )
+    if user_input == "":
         break
+    address, data = user_input.split("<<<")
+    send_data = None
+    try:
+        index = int(data)
+        with open(f"message_samples/{messages[index-1]}") as f:
+            send_data = json.loads(f.read())
+    except ValueError:
+        send_data = json.loads(data)
+    if address not in connections:
+        print("[ERROR] address not found")
+        continue
+    connections[address].send(send_data)
+
+print("CLOSING...")
+keys = list(connections.keys())
+for address in keys:
+    connections[address].close()
+db.close()

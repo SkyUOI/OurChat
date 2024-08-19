@@ -1,4 +1,4 @@
-# Form implementation generated from reading ui file 'account.ui'
+# Form implementation generated from reading ui file '.\account.ui'
 #
 # Created by: PyQt6 UI code generator 6.4.2
 #
@@ -14,26 +14,24 @@ class Ui_Account(object):
         Account.setObjectName("Account")
         Account.resize(400, 300)
         Account.setWindowTitle("Form")
-        self.horizontalLayout_3 = QtWidgets.QHBoxLayout(Account)
-        self.horizontalLayout_3.setObjectName("horizontalLayout_3")
+        self.verticalLayout_2 = QtWidgets.QVBoxLayout(Account)
+        self.verticalLayout_2.setObjectName("verticalLayout_2")
         spacerItem = QtWidgets.QSpacerItem(
+            20,
+            74,
+            QtWidgets.QSizePolicy.Policy.Minimum,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+        )
+        self.verticalLayout_2.addItem(spacerItem)
+        self.horizontalLayout = QtWidgets.QHBoxLayout()
+        self.horizontalLayout.setObjectName("horizontalLayout")
+        spacerItem1 = QtWidgets.QSpacerItem(
             102,
             20,
             QtWidgets.QSizePolicy.Policy.Expanding,
             QtWidgets.QSizePolicy.Policy.Minimum,
         )
-        self.horizontalLayout_3.addItem(spacerItem)
-        self.verticalLayout_2 = QtWidgets.QVBoxLayout()
-        self.verticalLayout_2.setObjectName("verticalLayout_2")
-        spacerItem1 = QtWidgets.QSpacerItem(
-            20,
-            40,
-            QtWidgets.QSizePolicy.Policy.Minimum,
-            QtWidgets.QSizePolicy.Policy.Expanding,
-        )
-        self.verticalLayout_2.addItem(spacerItem1)
-        self.horizontalLayout = QtWidgets.QHBoxLayout()
-        self.horizontalLayout.setObjectName("horizontalLayout")
+        self.horizontalLayout.addItem(spacerItem1)
         self.avatar_label = QtWidgets.QLabel(parent=Account)
         self.avatar_label.setText("Avatar")
         self.avatar_label.setObjectName("avatar_label")
@@ -56,16 +54,35 @@ class Ui_Account(object):
         self.ocid_label.setObjectName("ocid_label")
         self.verticalLayout.addWidget(self.ocid_label)
         self.horizontalLayout.addLayout(self.verticalLayout)
-        self.verticalLayout_2.addLayout(self.horizontalLayout)
         spacerItem3 = QtWidgets.QSpacerItem(
+            102,
             20,
-            40,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+            QtWidgets.QSizePolicy.Policy.Minimum,
+        )
+        self.horizontalLayout.addItem(spacerItem3)
+        self.horizontalLayout.setStretch(0, 3)
+        self.horizontalLayout.setStretch(1, 2)
+        self.horizontalLayout.setStretch(2, 1)
+        self.horizontalLayout.setStretch(3, 2)
+        self.horizontalLayout.setStretch(4, 3)
+        self.verticalLayout_2.addLayout(self.horizontalLayout)
+        spacerItem4 = QtWidgets.QSpacerItem(
+            155,
+            49,
             QtWidgets.QSizePolicy.Policy.Minimum,
             QtWidgets.QSizePolicy.Policy.Expanding,
         )
-        self.verticalLayout_2.addItem(spacerItem3)
+        self.verticalLayout_2.addItem(spacerItem4)
         self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
+        spacerItem5 = QtWidgets.QSpacerItem(
+            40,
+            20,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+            QtWidgets.QSizePolicy.Policy.Minimum,
+        )
+        self.horizontalLayout_2.addItem(spacerItem5)
         self.logout_btn = QtWidgets.QPushButton(parent=Account)
         self.logout_btn.setText("Logout")
         self.logout_btn.setObjectName("logout_btn")
@@ -73,27 +90,29 @@ class Ui_Account(object):
         self.unregister_btn = QtWidgets.QPushButton(parent=Account)
         self.unregister_btn.setObjectName("unregister_btn")
         self.horizontalLayout_2.addWidget(self.unregister_btn)
-        self.verticalLayout_2.addLayout(self.horizontalLayout_2)
-        spacerItem4 = QtWidgets.QSpacerItem(
-            20,
+        self.profile_btn = QtWidgets.QPushButton(parent=Account)
+        self.profile_btn.setObjectName("profile_btn")
+        self.horizontalLayout_2.addWidget(self.profile_btn)
+        spacerItem6 = QtWidgets.QSpacerItem(
             40,
+            20,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+            QtWidgets.QSizePolicy.Policy.Minimum,
+        )
+        self.horizontalLayout_2.addItem(spacerItem6)
+        self.verticalLayout_2.addLayout(self.horizontalLayout_2)
+        spacerItem7 = QtWidgets.QSpacerItem(
+            155,
+            23,
             QtWidgets.QSizePolicy.Policy.Minimum,
             QtWidgets.QSizePolicy.Policy.Expanding,
         )
-        self.verticalLayout_2.addItem(spacerItem4)
+        self.verticalLayout_2.addItem(spacerItem7)
         self.verticalLayout_2.setStretch(0, 3)
         self.verticalLayout_2.setStretch(1, 2)
-        self.verticalLayout_2.setStretch(2, 1)
-        self.verticalLayout_2.setStretch(3, 1)
+        self.verticalLayout_2.setStretch(2, 2)
+        self.verticalLayout_2.setStretch(3, 2)
         self.verticalLayout_2.setStretch(4, 1)
-        self.horizontalLayout_3.addLayout(self.verticalLayout_2)
-        spacerItem5 = QtWidgets.QSpacerItem(
-            102,
-            20,
-            QtWidgets.QSizePolicy.Policy.Expanding,
-            QtWidgets.QSizePolicy.Policy.Minimum,
-        )
-        self.horizontalLayout_3.addItem(spacerItem5)
 
         self.retranslateUi(Account)
         QtCore.QMetaObject.connectSlotsByName(Account)
@@ -101,3 +120,4 @@ class Ui_Account(object):
     def retranslateUi(self, Account):
         _translate = QtCore.QCoreApplication.translate
         self.unregister_btn.setText(_translate("Account", "Unregister"))
+        self.profile_btn.setText(_translate("Account", "Profile"))

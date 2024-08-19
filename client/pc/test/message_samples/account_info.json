@@ -1,15 +1,6 @@
 {
-    "code": 11,
-    "time": 114514,
+    "code":11,
     "data":{
-      "ocid": "0000000000",
-      "nickname": "senlinjun",
-      "status": "died",
-      "avatar":"http://img.senlinjun.top/imgs/2024/06/012bb970f4d8b5c3.jpg",
-      "avatar_hash":"06c46dcc4d7c79cf89a5030e5cd6bd48826f97dc711c28d42507afdc1da7cbac",
-      "time":114514,
-      "update_time":17237184354380,
-      "sessions":["114514"],
-      "friends":["0000000001"]
+        
     }
-  }
+}

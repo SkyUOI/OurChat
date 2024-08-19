@@ -1,0 +1,10 @@
+{
+    "code":0,
+    "time":0,
+    "msg_id":"0",
+    "sender":{
+        "ocid":"",
+        "session_id":""
+    },
+    "msg":[]
+}

@@ -174,7 +174,7 @@ class MessageWidget(QWidget):
         self.text_browser.setVerticalScrollBarPolicy(
             Qt.ScrollBarPolicy.ScrollBarAlwaysOff
         )
-        self.text_browser.setText(message)
+        self.text_browser.setPlainText(message)
         self.text_browser.document().adjustSize()
         self.text_browser.setMaximumWidth(
             self.text_browser.document().size().toSize().width() + 50

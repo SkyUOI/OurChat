@@ -22,7 +22,8 @@ class AccountCache(Model):
     avatar = TextField(null=False)
     avatar_hash = TextField(null=False)
     time = IntegerField(null=False)
-    update_time = IntegerField(null=False)
+    public_update_time = IntegerField(null=False)
+    private_update_time = IntegerField(null=False)
 
     class Meta:
         table_name = "account_cache"
@@ -73,7 +74,8 @@ class OurChatCache:
             "avatar": account_info.avatar,
             "avatar_hash": account_info.avatar_hash,
             "time": account_info.time,
-            "update_time": account_info.update_time,
+            "public_update_time": account_info.public_update_time,
+            "private_update_time": account_info.private_update_time,
         }
 
     def getSession(self, session_id: str) -> Union[None, dict]:
@@ -92,30 +94,60 @@ class OurChatCache:
         }
 
     def setImage(self, image_hash: str, image_data: bytes) -> None:
-        ImageCache.get_or_create(image_hash=image_hash, image_data=image_data)
+        if ImageCache.get_or_none(ImageCache.image_hash == image_hash) is None:
+            ImageCache.create(image_hash=image_hash, image_data=image_data)
+        else:
+            ImageCache.update(image_hash=image_hash, image_data=image_data).where(
+                ImageCache.image_hash == image_hash
+            ).execute()
 
     def setAccount(self, ocid: str, data: dict) -> None:
-        AccountCache.get_or_create(
-            ocid=ocid,
-            nickname=data["nickname"],
-            status=data["status"],
-            avatar=data["avatar"],
-            avatar_hash=data["avatar_hash"],
-            time=data["time"],
-            update_time=data["update_time"],
-        )
+        if AccountCache.get_or_none(AccountCache.ocid == ocid) is None:
+            AccountCache.create(
+                ocid=ocid,
+                nickname=data["nickname"],
+                status=data["status"],
+                avatar=data["avatar"],
+                avatar_hash=data["avatar_hash"],
+                time=data["time"],
+                public_update_time=data["public_update_time"],
+                private_update_time=data["private_update_time"],
+            )
+        else:
+            AccountCache.update(
+                ocid=ocid,
+                nickname=data["nickname"],
+                status=data["status"],
+                avatar=data["avatar"],
+                avatar_hash=data["avatar_hash"],
+                time=data["time"],
+                public_update_time=data["public_update_time"],
+                private_update_time=data["private_update_time"],
+            ).where(AccountCache.ocid == ocid).execute()
 
     def setSession(self, session_id: str, data: dict) -> None:
-        SessionCache.get_or_create(
-            session_id=session_id,
-            name=data["name"],
-            avatar=data["avatar"],
-            avatar_hash=data["avatar_hash"],
-            time=data["time"],
-            update_time=data["update_time"],
-            members=json.dumps(data["members"]),
-            owner=json.dumps(data["owner"]),
-        )
+        if SessionCache.get_or_none(SessionCache.session_id == session_id) is None:
+            SessionCache.create(
+                session_id=session_id,
+                name=data["name"],
+                avatar=data["avatar"],
+                avatar_hash=data["avatar_hash"],
+                time=data["time"],
+                update_time=data["update_time"],
+                members=json.dumps(data["members"]),
+                owner=json.dumps(data["owner"]),
+            )
+        else:
+            SessionCache.update(
+                session_id=session_id,
+                name=data["name"],
+                avatar=data["avatar"],
+                avatar_hash=data["avatar_hash"],
+                time=data["time"],
+                update_time=data["update_time"],
+                members=json.dumps(data["members"]),
+                owner=json.dumps(data["owner"]),
+            ).where(SessionCache.session_id == session_id).execute()
 
     def close(self) -> None:
         logger.info("close cache database")
