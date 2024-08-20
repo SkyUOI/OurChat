@@ -1,7 +1,7 @@
 from lib.const import ACCOUNT_FINISH_GET_AVATAR, ACCOUNT_FINISH_GET_INFO
 from lib.OurChatUI import ImageLabel, OurChatWidget
 from ui.account import Ui_Account
-from ui_logic.accountSetting import AccountSettingUI
+from ui_logic.profile import ProfileUI
 
 
 class AccountUI(Ui_Account):
@@ -16,6 +16,7 @@ class AccountUI(Ui_Account):
         self.avatar_label = ImageLabel(self.widget)
         self.avatar_label.setImage("resources/images/logo.png")  # default
         self.horizontalLayout.insertWidget(1, self.avatar_label)
+        self.listen()
         self.fillText()
         self.bind()
 
@@ -26,16 +27,11 @@ class AccountUI(Ui_Account):
         self.avatar_label.setImage("resources/images/logo.png")
         self.logout_btn.setText(self.ourchat.language["logout"])
         self.unregister_btn.setText(self.ourchat.language["unregister"])
+        self.profile_btn.setText(self.ourchat.language["profile"])
         if self.ourchat.account.have_got_info:
             self.nickname_label.setText(self.ourchat.account.data["nickname"])
-        else:
-            self.ourchat.listen(ACCOUNT_FINISH_GET_INFO, self.getAccountInfoResponse)
         if self.ourchat.account.have_got_avatar:
             self.avatar_label.setImage(self.ourchat.account.avatar_binary_data)
-        else:
-            self.ourchat.listen(
-                ACCOUNT_FINISH_GET_AVATAR, self.getAccountAvatarResponse
-            )
 
     def getAccountInfoResponse(self, data: dict) -> None:
         account = self.ourchat.getAccount(data["ocid"])
@@ -52,8 +48,12 @@ class AccountUI(Ui_Account):
         self.profile_btn.clicked.connect(self.profile)
 
     def profile(self) -> None:
-        dialog = self.uisystem.setDialog(AccountSettingUI, True)
+        dialog = self.uisystem.setDialog(ProfileUI, True)
         dialog.show()
 
     def logout(self) -> None:
         self.ourchat.restart()
+
+    def listen(self):
+        self.ourchat.listen(ACCOUNT_FINISH_GET_INFO, self.getAccountInfoResponse)
+        self.ourchat.listen(ACCOUNT_FINISH_GET_AVATAR, self.getAccountAvatarResponse)

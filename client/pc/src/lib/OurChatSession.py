@@ -1,6 +1,4 @@
 import hashlib
-import time
-import urllib.request
 from logging import getLogger
 
 from lib.const import (
@@ -9,6 +7,7 @@ from lib.const import (
     SESSION_INFO_MSG,
     SESSION_INFO_RESPONSE_MSG,
 )
+from PyQt6.QtWidgets import QMessageBox
 
 logger = getLogger(__name__)
 
@@ -38,15 +37,15 @@ class OurChatSession:
         avatar_binary_data = self.ourchat.cache.getImage(self.data["avatar_hash"])
         if avatar_binary_data is None:
             logger.info("avatar cache not found,started to download")
-            try:
-                response = urllib.request.urlopen(self.data["avatar"])
-                avatar_binary_data = response.read()
-            except Exception as e:
-                logger.warning(f"avatar download failed({str(e)})")
-                logger.info(f"retry after 3s({depth+1})")
-                time.sleep(3)
-                self.getAvatar(depth + 1)
-                return
+            avatar_binary_data = self.ourchat.download(self.data["avatar"])
+            if avatar_binary_data is None:
+                self.ourchat.runInMainThread(
+                    QMessageBox.warning(
+                        None,
+                        self.ourchat.language["warning"],
+                        self.ourchat.language["avatar_download_failed"],
+                    )
+                )
             logger.info("avatar download complete")
             sha256 = hashlib.sha256()
             sha256.update(avatar_binary_data)

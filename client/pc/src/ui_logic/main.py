@@ -11,6 +11,7 @@ class MainUI(Ui_Main):
         self.uisystem = self.ourchat.uisystem
         self.mainwindow = self.uisystem.mainwindow
         self.widget = None
+        self.widget_ui = None
 
     def setupUi(self) -> None:
         super().setupUi(self.mainwindow)
@@ -24,7 +25,10 @@ class MainUI(Ui_Main):
         if self.widget is not None:
             self.verticalLayout_2.removeWidget(self.widget)
         self.widget = QWidget(self.mainwindow)
-        self.widget_ui = ui(self.ourchat, self.widget)
+        if ui == setting.SettingUI:
+            self.widget_ui = ui(self.ourchat, self.widget, True)
+        else:
+            self.widget_ui = ui(self.ourchat, self.widget)
         self.widget_ui.setupUi()
         self.verticalLayout_2.addWidget(self.widget)
         self.widget.show()
@@ -39,3 +43,5 @@ class MainUI(Ui_Main):
         self.to_session.setText(self.ourchat.language["session"])
         self.to_account.setText(self.ourchat.language["account"])
         self.to_setting.setText(self.ourchat.language["setting"])
+        if self.widget_ui is not None:
+            self.widget_ui.fillText()

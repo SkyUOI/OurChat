@@ -88,7 +88,6 @@ class Connection:
 def account_info(conn: Connection, sample: dict, data: dict) -> dict:
     print(len(data["ocid"]))
     account_info = Account.get_or_none(Account.ocid == data["ocid"])
-    print(data["ocid"])
     for key in data["request_values"]:
         if key == "ocid":
             sample["data"][key] = account_info.ocid
@@ -251,6 +250,46 @@ def new_session(conn: Connection, sample: dict, data: dict) -> dict:
     return sample
 
 
+def unregister(conn: Connection, sample: dict, data: dict) -> dict:
+    account = Account.get_or_none(Account.ocid == conn.ocid)
+    if account is None:
+        return sample
+    account.delete_instance()
+    sample["status"] = 0
+    return sample
+
+
+def set_account(conn: Connection, sample: dict, data: dict) -> dict:
+    if conn.ocid != data["ocid"]:
+        sample["status"] = 1
+        return sample
+    account = Account.get_or_none(Account.ocid == data["ocid"])
+    nickname = account.nickname
+    status = account.status
+    avatar = account.avatar
+    avatar_hash = account.avatar_hash
+    public_update_time = account.public_update_time
+    for key in data["data"]:
+        if key == "nickname":
+            nickname = data["data"][key]
+        elif key == "status":
+            status = data["data"][key]
+        elif key == "avatar":
+            avatar = data["data"][key]
+        elif key == "avatar_hash":
+            avatar_hash = data["data"][key]
+    public_update_time = time.time()
+    Account.update(
+        nickname=nickname,
+        status=status,
+        avatar=avatar,
+        avatar_hash=avatar_hash,
+        public_update_time=public_update_time,
+    ).where(Account.ocid == data["ocid"]).execute()
+    sample["status"] = 0
+    return sample
+
+
 auto_reply = {
     0: ("user_msg.json", user_msg),
     1: ("session_info.json", session_info),
@@ -259,6 +298,8 @@ auto_reply = {
     10: ("account_info.json", account_info),
     12: ("server_status.json", normal),
     14: ("verify_status.json", normal),
+    16: ("unregister.json", unregister),
+    19: ("set_account.json", set_account),
 }
 
 

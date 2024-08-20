@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>AccountSetting</class>
- <widget class="QDialog" name="AccountSetting">
+ <class>Profile</class>
+ <widget class="QDialog" name="Profile">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -30,7 +30,7 @@
       </spacer>
      </item>
      <item>
-      <layout class="QVBoxLayout" name="verticalLayout_2" stretch="2,3,2">
+      <layout class="QVBoxLayout" name="verticalLayout_2" stretch="2,4,2">
        <item>
         <spacer name="verticalSpacer_2">
          <property name="orientation">

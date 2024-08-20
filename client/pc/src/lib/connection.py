@@ -54,8 +54,8 @@ class Connection:
                 self.conn = None
                 flag = False
                 times = 1
-                while not flag or times <= 5:
-                    flag = self.connect()
+                while not flag and times <= 5:
+                    flag = self.connect()[0]
                     times += 1
                     logger.info(f"reconnect... ({times})")
                 if not flag:

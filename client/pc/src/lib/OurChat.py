@@ -1,9 +1,11 @@
 import datetime
 import os
 import sys
+import time
+import urllib.request
 from concurrent.futures import ThreadPoolExecutor, wait
 from logging import getLogger
-from typing import Any, List
+from typing import Any, List, Union
 
 import rmodule
 from lib.chattingSystem import ChattingSystem
@@ -61,10 +63,14 @@ class OurChat:
         tasks = list(self.tasks.keys())
         for future in tasks:
             if future.done():
-                logger.info(f"A task had done. result: {future.result()}")
+                logger.info(
+                    f"A task had done. result: {str(future.result())[:100]+'...' if len(str(future.result()))>100 else str(future.result())[100:]}"
+                )
                 func = self.tasks[future]
                 if func is not None:
-                    logger.info(f"call function: {func.__name__}({future.result()})")
+                    logger.info(
+                        f"call function: {func.__name__}({str(future.result())[:100]+'...' if len(str(future.result()))>100 else str(future.result())[100:]})"
+                    )
                     func(future.result())
                 remove_.append(future)
         for r in remove_:
@@ -101,6 +107,8 @@ class OurChat:
         self.tasks = {}
         self.event_queue = []
         self.version_details = {}
+        self.accounts_cache = {}
+        self.sessions_cache = {}
         self.chatting_system.close()
         self.config.write()
         logger.info("OurChat has been closed")
@@ -193,3 +201,21 @@ class OurChat:
             session = OurChatSession(self, session_id)
             self.sessions_cache[session_id] = session
         return self.sessions_cache[session_id]
+
+    def download(self, url: str, depth: int = 0) -> Union[bytes, None]:
+        if depth == 0:
+            logger.info(f"begin to download (URL: {url})")
+        if depth >= 5:
+            logger.warning(f"download failed (URL: {url})")
+            return None
+        try:
+            logger.info(f"download (URL: {url})(retry: {depth})")
+            response = urllib.request.urlopen(url)
+            data = response.read()
+            logger.info(f"download success (URL: {url})")
+            return data
+        except Exception as e:
+            logger.warning(f"download failed({str(e)})")
+            logger.info(f"retry after 3s (URL: {url})")
+            time.sleep(3)
+            return self.download(url, depth + 1)

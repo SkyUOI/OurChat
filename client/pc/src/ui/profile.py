@@ -1,4 +1,4 @@
-# Form implementation generated from reading ui file '.\accountSetting.ui'
+# Form implementation generated from reading ui file 'profile.ui'
 #
 # Created by: PyQt6 UI code generator 6.4.2
 #
@@ -9,12 +9,12 @@
 from PyQt6 import QtCore, QtWidgets
 
 
-class Ui_AccountSetting(object):
-    def setupUi(self, AccountSetting):
-        AccountSetting.setObjectName("AccountSetting")
-        AccountSetting.resize(400, 300)
-        AccountSetting.setWindowTitle("Dialog")
-        self.verticalLayout_3 = QtWidgets.QVBoxLayout(AccountSetting)
+class Ui_Profile(object):
+    def setupUi(self, Profile):
+        Profile.setObjectName("Profile")
+        Profile.resize(400, 300)
+        Profile.setWindowTitle("Dialog")
+        self.verticalLayout_3 = QtWidgets.QVBoxLayout(Profile)
         self.verticalLayout_3.setObjectName("verticalLayout_3")
         self.horizontalLayout_4 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_4.setObjectName("horizontalLayout_4")
@@ -38,22 +38,22 @@ class Ui_AccountSetting(object):
         self.horizontalLayout_5.setObjectName("horizontalLayout_5")
         self.verticalLayout = QtWidgets.QVBoxLayout()
         self.verticalLayout.setObjectName("verticalLayout")
-        self.avatar_label = QtWidgets.QLabel(parent=AccountSetting)
+        self.avatar_label = QtWidgets.QLabel(parent=Profile)
         self.avatar_label.setText("Avatar")
         self.avatar_label.setObjectName("avatar_label")
         self.verticalLayout.addWidget(self.avatar_label)
-        self.set_avatar_btn = QtWidgets.QPushButton(parent=AccountSetting)
+        self.set_avatar_btn = QtWidgets.QPushButton(parent=Profile)
         self.set_avatar_btn.setText("Set")
         self.set_avatar_btn.setObjectName("set_avatar_btn")
         self.verticalLayout.addWidget(self.set_avatar_btn)
         self.verticalLayout.setStretch(0, 5)
         self.verticalLayout.setStretch(1, 1)
         self.horizontalLayout_5.addLayout(self.verticalLayout)
-        self.label_2 = QtWidgets.QLabel(parent=AccountSetting)
+        self.label_2 = QtWidgets.QLabel(parent=Profile)
         self.label_2.setText("Nickname")
         self.label_2.setObjectName("label_2")
         self.horizontalLayout_5.addWidget(self.label_2)
-        self.nickname_editor = QtWidgets.QLineEdit(parent=AccountSetting)
+        self.nickname_editor = QtWidgets.QLineEdit(parent=Profile)
         self.nickname_editor.setObjectName("nickname_editor")
         self.horizontalLayout_5.addWidget(self.nickname_editor)
         self.horizontalLayout_5.setStretch(0, 3)
@@ -68,7 +68,7 @@ class Ui_AccountSetting(object):
         )
         self.verticalLayout_2.addItem(spacerItem2)
         self.verticalLayout_2.setStretch(0, 2)
-        self.verticalLayout_2.setStretch(1, 3)
+        self.verticalLayout_2.setStretch(1, 4)
         self.verticalLayout_2.setStretch(2, 2)
         self.horizontalLayout_4.addLayout(self.verticalLayout_2)
         spacerItem3 = QtWidgets.QSpacerItem(
@@ -88,18 +88,18 @@ class Ui_AccountSetting(object):
             QtWidgets.QSizePolicy.Policy.Minimum,
         )
         self.horizontalLayout.addItem(spacerItem4)
-        self.ok_btn = QtWidgets.QPushButton(parent=AccountSetting)
+        self.ok_btn = QtWidgets.QPushButton(parent=Profile)
         self.ok_btn.setText("OK")
         self.ok_btn.setObjectName("ok_btn")
         self.horizontalLayout.addWidget(self.ok_btn)
-        self.cancel_btn = QtWidgets.QPushButton(parent=AccountSetting)
+        self.cancel_btn = QtWidgets.QPushButton(parent=Profile)
         self.cancel_btn.setText("Cancel")
         self.cancel_btn.setObjectName("cancel_btn")
         self.horizontalLayout.addWidget(self.cancel_btn)
         self.verticalLayout_3.addLayout(self.horizontalLayout)
 
-        self.retranslateUi(AccountSetting)
-        QtCore.QMetaObject.connectSlotsByName(AccountSetting)
+        self.retranslateUi(Profile)
+        QtCore.QMetaObject.connectSlotsByName(Profile)
 
-    def retranslateUi(self, AccountSetting):
+    def retranslateUi(self, Profile):
         pass

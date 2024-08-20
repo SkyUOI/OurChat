@@ -11,12 +11,13 @@ logger = getLogger(__name__)
 
 
 class SettingUI(Ui_Setting):
-    def __init__(self, ourchat, widget):
+    def __init__(self, ourchat, widget, inbuilt: bool = False):
         self.ourchat = ourchat
         self.uisystem = self.ourchat.uisystem
         self.widget = widget
         self.cache_config = OurChatConfig()
         self.filling = False
+        self.inbuilt = inbuilt
 
     def setupUi(self):
         logger.info("setup Ui")
@@ -25,6 +26,8 @@ class SettingUI(Ui_Setting):
         self.logo_label.deleteLater()
         self.logo_label = ImageLabel(self.widget)
         self.horizontalLayout_5.insertWidget(0, self.logo_label)
+        if self.inbuilt:
+            self.cancel_btn.setVisible(False)
         self.fillText()
         self.bind()
 
@@ -152,7 +155,8 @@ class SettingUI(Ui_Setting):
             )
             return
         self.ourchat.configUpdated()
-        self.widget.close()
+        if not self.inbuilt:
+            self.widget.close()
 
     def openGithub(self):
         logger.info("open github")
