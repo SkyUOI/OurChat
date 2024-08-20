@@ -1,3 +1,6 @@
+#![feature(asm_goto)]
+#![feature(asm_const)]
+
 pub mod connection;
 pub mod consts;
 mod db;
