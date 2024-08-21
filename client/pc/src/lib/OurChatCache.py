@@ -122,7 +122,7 @@ class OurChatCache:
                 avatar_hash=data["avatar_hash"],
                 time=data["time"],
                 public_update_time=data["public_update_time"],
-                private_update_time=data["private_update_time"],
+                update_time=data["update_time"],
             ).where(AccountCache.ocid == ocid).execute()
 
     def setSession(self, session_id: str, data: dict) -> None:
