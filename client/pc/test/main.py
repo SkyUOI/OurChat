@@ -22,7 +22,7 @@ class Account(Model):
     avatar_hash = TextField(null=False)
     time = IntegerField(null=False)
     public_update_time = IntegerField(null=False)
-    private_update_time = IntegerField(null=False)
+    update_time = IntegerField(null=False)
     sessions = TextField(null=False)
     friends = TextField(null=False)
 
@@ -103,8 +103,8 @@ def account_info(conn: Connection, sample: dict, data: dict) -> dict:
             sample["data"][key] = account_info.time
         elif key == "public_update_time":
             sample["data"][key] = account_info.public_update_time
-        elif key == "private_update_time":
-            sample["data"][key] = account_info.private_update_time
+        elif key == "update_time":
+            sample["data"][key] = account_info.update_time
         elif key == "sessions":
             sample["data"][key] = account_info.sessions
             if conn.ocid != account_info.ocid:
@@ -178,7 +178,7 @@ def register(conn: Connection, sample: dict, data: dict) -> dict:
             avatar_hash="6856e25c44cce62e5577c23506bcfea8fdd440ad63594ef82a5d9e36951e240a",
             time=time.time(),
             public_update_time=time.time(),
-            private_update_time=time.time(),
+            update_time=time.time(),
             sessions=[],
             friends=[],
         )

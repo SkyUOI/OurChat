@@ -27,7 +27,7 @@ class OurChatAccount:
             "avatar_hash",
             "time",
             "public_update_time",
-            "private_update_time",
+            "update_time",
         ]
         self.have_got_avatar = False
         self.have_got_info = False
@@ -72,7 +72,7 @@ class OurChatAccount:
                 {
                     "code": ACCOUNT_INFO_MSG,
                     "ocid": self.ocid,
-                    "request_values": ["public_update_time", "private_update_time"],
+                    "request_values": ["public_update_time", "update_time"],
                 }
             )
         else:
@@ -83,8 +83,8 @@ class OurChatAccount:
         cache_update_time = self.data["public_update_time"]
         cloud_update_time = data["data"]["public_update_time"]
         if self.me:
-            cache_update_time = self.data["private_update_time"]
-            cloud_update_time = data["data"]["private_update_time"]
+            cache_update_time = self.data["update_time"]
+            cloud_update_time = data["data"]["update_time"]
         if cache_update_time != cloud_update_time:
             self.sendInfoRequest()
         else:

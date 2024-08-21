@@ -23,7 +23,7 @@ class AccountCache(Model):
     avatar_hash = TextField(null=False)
     time = IntegerField(null=False)
     public_update_time = IntegerField(null=False)
-    private_update_time = IntegerField(null=False)
+    update_time = IntegerField(null=False)
 
     class Meta:
         table_name = "account_cache"
@@ -75,7 +75,7 @@ class OurChatCache:
             "avatar_hash": account_info.avatar_hash,
             "time": account_info.time,
             "public_update_time": account_info.public_update_time,
-            "private_update_time": account_info.private_update_time,
+            "update_time": account_info.update_time,
         }
 
     def getSession(self, session_id: str) -> Union[None, dict]:
@@ -111,7 +111,7 @@ class OurChatCache:
                 avatar_hash=data["avatar_hash"],
                 time=data["time"],
                 public_update_time=data["public_update_time"],
-                private_update_time=data["private_update_time"],
+                update_time=data["update_time"],
             )
         else:
             AccountCache.update(
