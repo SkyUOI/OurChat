@@ -51,6 +51,8 @@ class Connection:
                 self.ourchat.triggerEvent(data)
             except CloseError as ce:
                 logger.warning(f"connection close error: {str(ce)}")
+                if self.closed:
+                    return
                 self.conn = None
                 flag = False
                 times = 1
