@@ -33,12 +33,14 @@ impl Default for DbType {
     }
 }
 
-pub const DB_TYPE: OnceLock<DbType> = OnceLock::new();
+pub static DB_TYPE: OnceLock<DbType> = OnceLock::new();
 define_static_key_false!(DB_INIT);
 
 /// 初始化数据库层
 pub fn init_db_system(db_type: DbType) {
+    tracing::info!("Init db system");
     DB_TYPE.get_or_init(|| db_type);
+    tracing::info!("db type: {:?}", DB_TYPE.get().unwrap());
     if static_branch_unlikely!(DB_INIT) {
         tracing::error!("Init db system twice");
         panic!("Init db system twice");
