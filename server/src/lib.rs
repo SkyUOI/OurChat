@@ -1,5 +1,5 @@
 #![feature(asm_goto)]
-#![feature(asm_const)]
+#![feature(decl_macro)]
 
 pub mod connection;
 pub mod consts;

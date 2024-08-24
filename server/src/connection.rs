@@ -25,7 +25,7 @@ use tungstenite::Message;
 pub enum DBRequest {
     Login {
         request: requests::Login,
-        resp: oneshot::Sender<Result<(LoginResponse, ID), client_response::login::Status>>,
+        resp: oneshot::Sender<Result<(LoginResponse, ID), requests::Status>>,
     },
     Register {
         request: requests::Register,

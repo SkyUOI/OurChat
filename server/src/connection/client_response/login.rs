@@ -1,7 +1,5 @@
-use crate::consts::MessageType;
+use crate::{consts::MessageType, requests::Status};
 use serde::{Deserialize, Serialize};
-use serde_repr::{Deserialize_repr, Serialize_repr};
-use thiserror::Error;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LoginResponse {
@@ -11,15 +9,8 @@ pub struct LoginResponse {
     pub status: Status,
 }
 
-#[derive(Debug, Serialize_repr, Deserialize_repr, Error)]
-#[repr(i32)]
-pub enum Status {
-    #[error("Success")]
-    Success = 0,
-    #[error("ServerError")]
-    ServerError = 2,
-    #[error("WrongPassword")]
-    WrongPassword = 1,
+pub macro Status(WrongPassword) {
+    $crate::requests::Status::ArgumentError
 }
 
 impl LoginResponse {

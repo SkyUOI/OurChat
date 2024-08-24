@@ -14,11 +14,12 @@ use tokio::sync::oneshot;
 impl Server {
     pub async fn login(
         request: requests::Login,
-        resp: oneshot::Sender<Result<(LoginResponse, ID), client_response::login::Status>>,
+        resp: oneshot::Sender<Result<(LoginResponse, ID), requests::Status>>,
         mysql_connection: &DatabaseConnection,
     ) {
         use client_response::login::Status;
         use entities::user::*;
+        use requests::Status;
         // 判断帐号类型
         let user = match request.login_type {
             requests::LoginType::Email => {
@@ -47,14 +48,14 @@ impl Server {
                                 .unwrap(),
                         }
                     } else {
-                        resp.send(Err(Status::WrongPassword)).unwrap()
+                        resp.send(Err(Status!(WrongPassword))).unwrap()
                     }
                 }
-                None => resp.send(Err(Status::WrongPassword)).unwrap(),
+                None => resp.send(Err(Status!(WrongPassword))).unwrap(),
             },
             Err(e) => {
                 if let DbErr::RecordNotFound(_) = e {
-                    resp.send(Err(Status::WrongPassword)).unwrap()
+                    resp.send(Err(Status!(WrongPassword))).unwrap()
                 } else {
                     tracing::error!("database error:{}", e);
                     resp.send(Err(Status::ServerError)).unwrap()
