@@ -32,18 +32,25 @@ impl Default for DbType {
 }
 
 pub static DB_TYPE: OnceLock<DbType> = OnceLock::new();
+
 define_static_key_false!(DB_INIT);
+pub static mut MYSQL_TYPE: static_keys::StaticFalseKey = static_keys::new_static_false_key();
+pub static mut SQLITE_TYPE: static_keys::StaticFalseKey = static_keys::new_static_false_key();
 
 /// 初始化数据库层
 pub fn init_db_system(db_type: DbType) {
     tracing::info!("Init db system");
-    DB_TYPE.get_or_init(|| db_type);
+    DB_TYPE.get_or_init(|| db_type.clone());
     tracing::info!("db type: {:?}", DB_TYPE.get().unwrap());
     if static_branch_unlikely!(DB_INIT) {
         tracing::error!("Init db system twice");
         panic!("Init db system twice");
     } else {
         unsafe { DB_INIT.enable() }
+        match db_type {
+            DbType::Mysql => unsafe { MYSQL_TYPE.enable() },
+            DbType::Sqlite => unsafe { SQLITE_TYPE.enable() },
+        }
     }
 }
 

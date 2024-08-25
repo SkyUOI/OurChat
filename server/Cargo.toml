@@ -38,6 +38,7 @@ mimalloc = "0"
 parking_lot = "0"
 static-keys = "0"
 sqlx = { version = "0", features = ["runtime-tokio-rustls", "sqlite"] }
+derive = { path = "../derive" }
 
 [dev-dependencies]
 serial_test = "3"

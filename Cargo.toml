@@ -2,10 +2,8 @@
 members = [
     "server",
     "server/migration",
+    "derive",
     "server/server_manager",
-    "client/src-tauri",
-    "client/web",
-    "client/web/derive",
     "client/pc/src/rmodule",
     "base",
 ]

@@ -2,9 +2,9 @@ use super::Server;
 use crate::{
     connection::client_response::{self, LoginResponse, NewSessionResponse, RegisterResponse},
     consts::{self, ID},
-    entities, requests, utils,
+    entities::{self, entities},
+    requests, utils,
 };
-use entities::user::ActiveModel as UserModel;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter,
 };
@@ -12,26 +12,28 @@ use snowdon::ClassicLayoutSnowflakeExtension;
 use tokio::sync::oneshot;
 
 impl Server {
+    #[derive::db_compatibility]
     pub async fn login(
         request: requests::Login,
         resp: oneshot::Sender<Result<(LoginResponse, ID), requests::Status>>,
-        mysql_connection: &DatabaseConnection,
+        db_connection: &DatabaseConnection,
     ) {
         use client_response::login::Status;
-        use entities::user::*;
+        use entities::prelude::*;
+        use entities::user::Column;
         use requests::Status;
         // 判断帐号类型
         let user = match request.login_type {
             requests::LoginType::Email => {
-                Entity::find()
+                User::find()
                     .filter(Column::Email.eq(request.account))
-                    .one(mysql_connection)
+                    .one(db_connection)
                     .await
             }
             requests::LoginType::Ocid => {
-                Entity::find()
+                User::find()
                     .filter(Column::Ocid.eq(request.account))
-                    .one(mysql_connection)
+                    .one(db_connection)
                     .await
             }
         };
@@ -39,12 +41,19 @@ impl Server {
             Ok(data) => match data {
                 Some(user) => {
                     if user.passwd == request.password {
+                        #[allow(clippy::useless_conversion)]
                         match request.login_type {
                             requests::LoginType::Email => resp
-                                .send(Ok((LoginResponse::success_email(user.ocid), user.id)))
+                                .send(Ok((
+                                    LoginResponse::success_email(user.ocid),
+                                    user.id.try_into().unwrap(),
+                                )))
                                 .unwrap(),
                             requests::LoginType::Ocid => resp
-                                .send(Ok((LoginResponse::success_ocid(), user.id)))
+                                .send(Ok((
+                                    LoginResponse::success_ocid(),
+                                    user.id.try_into().unwrap(),
+                                )))
                                 .unwrap(),
                         }
                     } else {
@@ -64,28 +73,31 @@ impl Server {
         }
     }
 
+    #[derive::db_compatibility]
     pub async fn register(
         request: requests::Register,
         resp: oneshot::Sender<Result<(RegisterResponse, ID), requests::Status>>,
         mysql_connection: &DatabaseConnection,
     ) {
+        use entities::user::ActiveModel as UserModel;
         // 生成雪花id
         let id = utils::GENERATOR.generate().unwrap().into_i64() as ID;
         // 随机生成生成ocid
         let ocid = utils::generate_ocid(consts::OCID_LEN);
         let user = UserModel {
-            id: sea_orm::ActiveValue::Set(id),
+            id: sea_orm::ActiveValue::Set(id.try_into().unwrap()),
             ocid: sea_orm::ActiveValue::Set(ocid),
             passwd: sea_orm::ActiveValue::Set(request.password),
             name: sea_orm::ActiveValue::Set(request.name),
             email: sea_orm::ActiveValue::Set(request.email),
-            time: sea_orm::ActiveValue::Set(chrono::Utc::now().timestamp() as u64),
+            time: sea_orm::ActiveValue::Set(chrono::Utc::now().timestamp().try_into().unwrap()),
         };
         match user.insert(mysql_connection).await {
             Ok(res) => {
                 // 生成正确的响应
                 let response = RegisterResponse::success(res.ocid);
-                resp.send(Ok((response, res.id))).unwrap();
+                resp.send(Ok((response, res.id.try_into().unwrap())))
+                    .unwrap();
             }
             Err(e) => {
                 if let sea_orm::DbErr::RecordNotInserted = e {
@@ -98,13 +110,15 @@ impl Server {
         }
     }
 
+    #[derive::db_compatibility]
     pub async fn unregister(
         id: ID,
         resp: oneshot::Sender<client_response::unregister::Status>,
         mysql_connection: &DatabaseConnection,
     ) {
+        use entities::user::ActiveModel as UserModel;
         let user = UserModel {
-            id: ActiveValue::Set(id),
+            id: ActiveValue::Set(id.try_into().unwrap()),
             ..Default::default()
         };
         use client_response::unregister::Status;

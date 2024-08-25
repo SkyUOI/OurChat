@@ -20,7 +20,3 @@ jobs:
         run: cargo check --all
       - name: Build Release
         run: cargo check --all --release
-      - name: Test Web
-        run: cd client/web && cargo test && cargo test --release
-      - name: Test Tauri
-        run: cd client/src-tauri && cargo test && cargo test --release

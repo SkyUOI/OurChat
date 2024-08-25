@@ -1,8 +1,0 @@
-[package]
-name = "web"
-version.workspace = true
-edition.workspace = true
-
-[dependencies]
-yew = { version = "0.21", features = ["csr"] }
-derive = { path = "derive" }
