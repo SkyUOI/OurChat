@@ -45,6 +45,8 @@ struct ArgsParser {
     test_mode: bool,
     #[arg(long, default_value_t = false)]
     clear: bool,
+    #[arg(long)]
+    db_type: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -145,7 +147,18 @@ pub async fn lib_main() -> anyhow::Result<()> {
     };
     let ip = parser.ip;
     // 处理数据库
-    let db_type = cfg.db_type;
+    let db_type = match parser.db_type {
+        None => cfg.db_type,
+        Some(db_type) => {
+            if db_type == "mysql" {
+                DbType::Mysql
+            } else if db_type == "sqlite" {
+                DbType::Sqlite
+            } else {
+                bail!("Unknown database type. Only support mysql and sqlite");
+            }
+        }
+    };
     db::init_db_system(db_type);
     let db = db::connect_to_db(&db::get_db_url(&cfg.dbcfg)?).await?;
     db::init_db(&db).await?;

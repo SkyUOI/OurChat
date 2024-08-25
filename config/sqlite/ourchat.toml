@@ -1,0 +1,4 @@
+dbcfg = "../config/sqlite/database.json"
+rediscfg = "../config/sqlite/redis_connect.json"
+port = 7777
+db_type = "sqlite"

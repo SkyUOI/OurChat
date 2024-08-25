@@ -9,12 +9,17 @@ use serde::{Deserialize, Serialize};
 use static_keys::{define_static_key_false, static_branch_likely, static_branch_unlikely};
 
 #[derive(Debug, Deserialize, Serialize)]
-struct DbCfg {
+struct MysqlDbCfg {
     host: String,
     user: String,
     db: String,
     port: usize,
     passwd: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct SqliteDbCfg {
+    path: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -67,16 +72,19 @@ pub fn get_db_type() -> DbType {
 pub fn get_db_url(path: &str) -> anyhow::Result<String> {
     let db_type = get_db_type();
     let json = std::fs::read_to_string(path)?;
-    let cfg: DbCfg = serde_json::from_str(&json)?;
     match db_type {
         DbType::Mysql => {
+            let cfg: MysqlDbCfg = serde_json::from_str(&json)?;
             let path = format!(
                 "mysql://{}:{}@{}:{}/{}",
                 cfg.user, cfg.passwd, cfg.host, cfg.port, cfg.db
             );
             Ok(path)
         }
-        DbType::Sqlite => Ok("sqlite://ourchat.db".to_owned()),
+        DbType::Sqlite => {
+            let cfg: SqliteDbCfg = serde_json::from_str(&json)?;
+            Ok(format!("sqlite://{}", cfg.path))
+        }
     }
 }
 

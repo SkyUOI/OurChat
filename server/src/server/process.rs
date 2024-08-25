@@ -75,7 +75,7 @@ impl Server {
     pub async fn register(
         request: requests::Register,
         resp: oneshot::Sender<Result<(RegisterResponse, ID), requests::Status>>,
-        mysql_connection: &DatabaseConnection,
+        db_connection: &DatabaseConnection,
     ) {
         use entities::user::ActiveModel as UserModel;
         // 生成雪花id
@@ -90,7 +90,7 @@ impl Server {
             email: sea_orm::ActiveValue::Set(request.email),
             time: sea_orm::ActiveValue::Set(chrono::Utc::now().timestamp().try_into().unwrap()),
         };
-        match user.insert(mysql_connection).await {
+        match user.insert(db_connection).await {
             Ok(res) => {
                 // 生成正确的响应
                 let response = RegisterResponse::success(res.ocid);
@@ -112,7 +112,7 @@ impl Server {
     pub async fn unregister(
         id: ID,
         resp: oneshot::Sender<client_response::unregister::Status>,
-        mysql_connection: &DatabaseConnection,
+        db_connection: &DatabaseConnection,
     ) {
         use entities::user::ActiveModel as UserModel;
         let user = UserModel {
@@ -120,7 +120,7 @@ impl Server {
             ..Default::default()
         };
         use client_response::unregister::Status;
-        match user.delete(mysql_connection).await {
+        match user.delete(db_connection).await {
             Ok(_) => resp.send(Status::Success).unwrap(),
             Err(e) => {
                 tracing::error!("Database error:{e}");
@@ -132,7 +132,7 @@ impl Server {
     pub async fn new_session(
         id: ID,
         resp: oneshot::Sender<Result<NewSessionResponse, requests::Status>>,
-        mysql_connection: &DatabaseConnection,
+        db_connection: &DatabaseConnection,
     ) {
     }
 }

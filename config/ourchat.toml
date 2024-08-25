@@ -1,4 +1,0 @@
-dbcfg = "../config/database.json"
-rediscfg = "../config/redis_connect.json"
-port = 7777
-db_type = "mysql"

@@ -18,7 +18,7 @@ pub struct Server {
     port: usize,
     bind_addr: String,
     tcplistener: TcpListener,
-    mysql: Option<sea_orm::DatabaseConnection>,
+    db: Option<sea_orm::DatabaseConnection>,
     redis: Option<redis::Client>,
     task_solver_sender: mpsc::Sender<DBRequest>,
     task_solver_receiver: Option<mpsc::Receiver<DBRequest>>,
@@ -29,7 +29,7 @@ impl Server {
     pub async fn new(
         ip: impl Into<String>,
         port: usize,
-        mysql: sea_orm::DatabaseConnection,
+        db: sea_orm::DatabaseConnection,
         redis: redis::Client,
         test_mode: bool,
     ) -> anyhow::Result<Self> {
@@ -48,7 +48,7 @@ impl Server {
             port,
             bind_addr,
             tcplistener,
-            mysql: Some(mysql),
+            db: Some(db),
             redis: Some(redis),
             task_solver_sender,
             task_solver_receiver: Some(task_solver_receiver),
@@ -64,7 +64,7 @@ impl Server {
     ) {
         tokio::spawn(Self::process_db_request(
             self.task_solver_receiver.take().unwrap(),
-            self.mysql.take().unwrap(),
+            self.db.take().unwrap(),
         ));
         let shutdown_sender_clone = shutdown_sender.clone();
         let async_loop = async move {
@@ -94,21 +94,21 @@ impl Server {
 
     async fn process_db_request(
         mut receiver: mpsc::Receiver<DBRequest>,
-        mysql_connection: sea_orm::DatabaseConnection,
+        db_connection: sea_orm::DatabaseConnection,
     ) {
         while let Some(request) = receiver.recv().await {
             match request {
                 DBRequest::Login { resp, request } => {
-                    Self::login(request, resp, &mysql_connection).await
+                    Self::login(request, resp, &db_connection).await
                 }
                 DBRequest::Register { resp, request } => {
-                    Self::register(request, resp, &mysql_connection).await;
+                    Self::register(request, resp, &db_connection).await;
                 }
                 DBRequest::Unregister { id, resp } => {
-                    Self::unregister(id, resp, &mysql_connection).await;
+                    Self::unregister(id, resp, &db_connection).await;
                 }
                 DBRequest::NewSession { id, resp } => {
-                    Self::new_session(id, resp, &mysql_connection).await;
+                    Self::new_session(id, resp, &db_connection).await;
                 }
             }
         }

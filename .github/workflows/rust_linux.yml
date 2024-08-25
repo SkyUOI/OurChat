@@ -27,7 +27,7 @@ jobs:
         run: cargo check --all
       - name: Build Release
         run: cargo check --all --release
-      - name: Test
+      - name: Mysql Test
         uses: SkyUOI/github-action-docker-compose-test-run@main
         with:
           file: compose.yml
@@ -36,3 +36,6 @@ jobs:
           registry: "ghcr.io"
           docker-compose-version: "2.29.1"
           entrypoint: "python3"
+      - name: Sqlite Test
+        run: |
+          python3 script/action_test_server.py

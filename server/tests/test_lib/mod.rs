@@ -36,11 +36,19 @@ impl SetUpHandle {
         std::env::set_var("RUST_LOG", "DEBUG");
         let config_file = match std::env::var("OURCHAT_CONFIG_FILE") {
             Ok(v) => v,
-            Err(_) => "../config/ourchat.toml".to_string(),
+            Err(_) => "../config/mysql/ourchat.toml".to_string(),
         };
+        let mut argv_list: Vec<&str> = vec!["--cfg", &config_file, "--test-mode"];
+        let argv = match std::env::var("OURCHAT_ARGVS") {
+            Ok(v) => v,
+            Err(_) => "".to_string(),
+        };
+        if !argv.is_empty() {
+            argv_list.push(&argv);
+        }
         let cmd = Command::cargo_bin("server")
             .unwrap()
-            .args(["--cfg", &config_file, "--test-mode"])
+            .args(&argv_list)
             .spawn()
             .unwrap();
         Self { server_handle: cmd }
