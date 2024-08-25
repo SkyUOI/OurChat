@@ -37,4 +37,4 @@ jobs:
       - name: Sqlite Test
         run: |
           export OURCHAT_CONFIG_FILE=../config/sqlite/ourchat.toml
-          python3 script/action_test_server.py
+          python3 script/test_server.py

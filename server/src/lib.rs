@@ -35,17 +35,21 @@ type ShutdownRev = broadcast::Receiver<()>;
 #[derive(Debug, Parser)]
 #[command(author = "SkyUOI", version = base::build::VERSION, about = "The Server of OurChat")]
 struct ArgsParser {
-    #[arg(short, long)]
+    #[arg(short, long, help = "binding port")]
     port: Option<usize>,
-    #[arg(long, default_value_t = String::from(consts::DEFAULT_IP))]
+    #[arg(long, default_value_t = String::from(consts::DEFAULT_IP), help = "binding ip")]
     ip: String,
-    #[arg(long, default_value_t = String::default())]
+    #[arg(long, default_value_t = String::default(), help = "ourchat config file path")]
     cfg: String,
-    #[arg(long, default_value_t = false)]
+    #[arg(
+        long,
+        default_value_t = false,
+        help = "enable test mode(only for development)"
+    )]
     test_mode: bool,
-    #[arg(long, default_value_t = false)]
+    #[arg(long, default_value_t = false, help = "clear files, such as logs")]
     clear: bool,
-    #[arg(long)]
+    #[arg(long, help = "database type,mysql or sqlite")]
     db_type: Option<String>,
 }
 

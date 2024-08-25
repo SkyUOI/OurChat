@@ -170,3 +170,5 @@ client/pc/test/database.db
 
 # Server SQLite db
 ourchat.db
+ourchat.db-shm
+ourchat.db-wal
