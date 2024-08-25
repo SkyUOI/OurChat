@@ -24,7 +24,7 @@ The project is under rapid development and there is also a lot of work to be don
 
 ## Contribution
 
-Please see [CONTRIBUTING](CONTRIBUTING.md)
+Please see [CONTRIBUTING](https://ourchat.readthedocs.io/en/latest/docs/development/contributing.html)
 
 ## TODO
 
