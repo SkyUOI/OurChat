@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import init_valgrind_rust
 import test_server
 from basic import msg_system

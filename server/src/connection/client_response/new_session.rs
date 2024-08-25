@@ -3,7 +3,6 @@
 use crate::consts::{self, ID};
 use crate::requests::Status;
 use serde::{Deserialize, Serialize};
-use serde_repr::{Deserialize_repr, Serialize_repr};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NewSessionResponse {

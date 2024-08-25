@@ -6,9 +6,7 @@ use std::sync::OnceLock;
 
 use migration::MigratorTrait;
 use serde::{Deserialize, Serialize};
-use static_keys::{
-    define_static_key_false, define_static_key_true, static_branch_likely, static_branch_unlikely,
-};
+use static_keys::{define_static_key_false, static_branch_likely, static_branch_unlikely};
 
 #[derive(Debug, Deserialize, Serialize)]
 struct DbCfg {
@@ -71,14 +69,34 @@ pub fn get_db_url(path: &str) -> anyhow::Result<String> {
             );
             Ok(path)
         }
-        DbType::Sqlite => {
-            todo!()
+        DbType::Sqlite => Ok("sqlite://ourchat.db".to_owned()),
+    }
+}
+
+pub async fn create_sqliet_db(url: &str) -> anyhow::Result<()> {
+    use sqlx::{migrate::MigrateDatabase, Sqlite};
+    if !Sqlite::database_exists(url).await.unwrap_or(false) {
+        tracing::info!("Creating sqlite database {}", url);
+        match Sqlite::create_database(url).await {
+            Ok(_) => {
+                tracing::info!("Created sqlite database {}", url);
+            }
+            Err(e) => {
+                tracing::error!("Failed to create sqlite database: {}", e);
+                anyhow::bail!("Failed to create sqlite database: {}", e);
+            }
         }
     }
+
+    Ok(())
 }
 
 /// 根据url连接数据库
 pub async fn connect_to_db(url: &str) -> anyhow::Result<sea_orm::DatabaseConnection> {
+    let db_type = get_db_type();
+    if let DbType::Sqlite = db_type {
+        create_sqliet_db(url).await?;
+    }
     tracing::info!("Connecting to {}", url);
     Ok(sea_orm::Database::connect(url).await?)
 }

@@ -167,3 +167,6 @@ client/pc/src/resources/images/limuy.png
 client/pc/src/resources/images/senlinjun.jpg
 client/pc/src/cache.db
 client/pc/test/database.db
+
+# Server SQLite db
+ourchat.db

@@ -3,7 +3,7 @@
 
 pub mod connection;
 pub mod consts;
-mod db;
+pub mod db;
 mod entities;
 pub mod requests;
 mod server;

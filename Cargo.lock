@@ -4741,6 +4741,7 @@ dependencies = [
  "serde_repr",
  "serial_test",
  "snowdon",
+ "sqlx",
  "static-keys",
  "thiserror",
  "tokio",

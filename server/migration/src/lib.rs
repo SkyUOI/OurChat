@@ -1,5 +1,6 @@
 pub use sea_orm_migration::prelude::*;
 
+mod basic;
 mod m20220101_000001_create_table;
 mod m20240812_083747_server_manager;
 

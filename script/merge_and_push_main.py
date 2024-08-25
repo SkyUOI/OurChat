@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from basic import msg_system
 
 msg_system("git checkout main")
