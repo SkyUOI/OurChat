@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
 use proc_macro2::Span;
-use quote::{quote, ToTokens};
-use syn::{parse2, parse_macro_input, Block, Ident, Item, Stmt, UseTree};
+use quote::quote;
+use syn::{parse2, parse_macro_input, Attribute, Block, Ident, Item, Stmt, UseTree};
 
 fn db_replace(stmts: Vec<Stmt>, path: syn::Ident) -> Vec<Stmt> {
     let mut output = vec![];
@@ -28,7 +28,6 @@ fn db_replace(stmts: Vec<Stmt>, path: syn::Ident) -> Vec<Stmt> {
 #[proc_macro_attribute]
 pub fn db_compatibility(_attr: TokenStream, tok: TokenStream) -> TokenStream {
     let mut funcbody = parse_macro_input!(tok as syn::ItemFn);
-    let mut output: Vec<Block> = vec![];
     let mysql = db_replace(
         funcbody.block.stmts.clone(),
         Ident::new("mysql", Span::call_site()),
@@ -48,7 +47,8 @@ pub fn db_compatibility(_attr: TokenStream, tok: TokenStream) -> TokenStream {
     })
     .unwrap();
     funcbody.block = Box::new(ret);
-    let ret = quote! {#funcbody}.into();
-    // println!("{}", ret);
-    ret
+    funcbody
+        .attrs
+        .push(syn::parse_quote! {#[allow(clippy::useless_conversion)]});
+    quote! {#funcbody}.into()
 }

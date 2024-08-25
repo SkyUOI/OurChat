@@ -2,7 +2,6 @@ use super::Server;
 use crate::{
     connection::client_response::{self, LoginResponse, NewSessionResponse, RegisterResponse},
     consts::{self, ID},
-    entities::{self, entities},
     requests, utils,
 };
 use sea_orm::{
@@ -41,7 +40,6 @@ impl Server {
             Ok(data) => match data {
                 Some(user) => {
                     if user.passwd == request.password {
-                        #[allow(clippy::useless_conversion)]
                         match request.login_type {
                             requests::LoginType::Email => resp
                                 .send(Ok((
