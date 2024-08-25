@@ -229,7 +229,7 @@ def new_session(conn: Connection, sample: dict, data: dict) -> dict:
     if max_session_id is None:
         session_id = "0" * 10
     else:
-        session_id = "0" * (10 - str(int(max_session_id) + 1)) + str(
+        session_id = "0" * (10 - len(str(int(max_session_id)))) + str(
             int(max_session_id) + 1
         )
 
