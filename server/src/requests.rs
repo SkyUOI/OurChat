@@ -11,7 +11,7 @@ use serde_repr::{Deserialize_repr, Serialize_repr};
 use thiserror::Error;
 pub use unregister::Unregister;
 
-#[derive(Debug, Serialize_repr, Deserialize_repr, Error)]
+#[derive(Debug, Serialize_repr, Deserialize_repr, Error, PartialEq, Eq)]
 #[repr(u32)]
 pub enum Status {
     // basic define

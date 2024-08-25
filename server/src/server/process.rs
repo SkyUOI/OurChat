@@ -66,7 +66,7 @@ impl Server {
 
     pub async fn register(
         request: requests::Register,
-        resp: oneshot::Sender<Result<(RegisterResponse, ID), client_response::register::Status>>,
+        resp: oneshot::Sender<Result<(RegisterResponse, ID), requests::Status>>,
         mysql_connection: &DatabaseConnection,
     ) {
         // 生成雪花id
@@ -89,12 +89,10 @@ impl Server {
             }
             Err(e) => {
                 if let sea_orm::DbErr::RecordNotInserted = e {
-                    resp.send(Err(client_response::register::Status::Dup))
-                        .unwrap();
+                    resp.send(Err(requests::Status::Dup)).unwrap();
                 } else {
                     tracing::error!("Database error:{e}");
-                    resp.send(Err(client_response::register::Status::ServerError))
-                        .unwrap();
+                    resp.send(Err(requests::Status::ServerError)).unwrap();
                 }
             }
         }
@@ -121,7 +119,7 @@ impl Server {
 
     pub async fn new_session(
         id: ID,
-        resp: oneshot::Sender<Result<NewSessionResponse, client_response::new_session::Status>>,
+        resp: oneshot::Sender<Result<NewSessionResponse, requests::Status>>,
         mysql_connection: &DatabaseConnection,
     ) {
     }

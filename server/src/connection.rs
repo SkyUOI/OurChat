@@ -29,7 +29,7 @@ pub enum DBRequest {
     },
     Register {
         request: requests::Register,
-        resp: oneshot::Sender<Result<(RegisterResponse, ID), client_response::register::Status>>,
+        resp: oneshot::Sender<Result<(RegisterResponse, ID), requests::Status>>,
     },
     Unregister {
         id: ID,
@@ -37,7 +37,7 @@ pub enum DBRequest {
     },
     NewSession {
         id: ID,
-        resp: oneshot::Sender<Result<NewSessionResponse, client_response::new_session::Status>>,
+        resp: oneshot::Sender<Result<NewSessionResponse, requests::Status>>,
     },
 }
 

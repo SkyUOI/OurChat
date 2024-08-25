@@ -1,16 +1,9 @@
 //! new session response
 
 use crate::consts::{self, ID};
+use crate::requests::Status;
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
-
-#[derive(Debug, Serialize_repr, Deserialize_repr, PartialEq, Eq)]
-#[repr(i32)]
-pub enum Status {
-    Success = 0,
-    Failed = 1,
-    UpToLimit = 2,
-}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NewSessionResponse {
