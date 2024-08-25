@@ -295,6 +295,7 @@ auto_reply = {
     1: ("session_info.json", session_info),
     4: ("register.json", register),
     6: ("login.json", login),
+    8: ("new_session.json", new_session),
     10: ("account_info.json", account_info),
     12: ("server_status.json", normal),
     14: ("verify_status.json", normal),
