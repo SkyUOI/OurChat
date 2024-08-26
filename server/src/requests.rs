@@ -1,5 +1,6 @@
 //! 保存各种请求的结构体
 
+pub mod get_status;
 pub mod login;
 pub mod new_session;
 pub mod register;

@@ -21,6 +21,7 @@ pub enum MessageType {
     ErrorMsg = 18,
     NewSession = 8,
     NewSessionResponse = 9,
+    GetStatus = 12,
 }
 
 /// 默认ip

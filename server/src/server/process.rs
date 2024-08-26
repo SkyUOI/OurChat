@@ -111,7 +111,7 @@ impl Server {
     #[derive::db_compatibility]
     pub async fn unregister(
         id: ID,
-        resp: oneshot::Sender<client_response::unregister::Status>,
+        resp: oneshot::Sender<requests::Status>,
         db_connection: &DatabaseConnection,
     ) {
         use entities::user::ActiveModel as UserModel;
@@ -119,12 +119,11 @@ impl Server {
             id: ActiveValue::Set(id.try_into().unwrap()),
             ..Default::default()
         };
-        use client_response::unregister::Status;
         match user.delete(db_connection).await {
-            Ok(_) => resp.send(Status::Success).unwrap(),
+            Ok(_) => resp.send(requests::Status::Success).unwrap(),
             Err(e) => {
                 tracing::error!("Database error:{e}");
-                resp.send(Status::Failed).unwrap();
+                resp.send(requests::Status::ServerError).unwrap();
             }
         }
     }

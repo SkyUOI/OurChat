@@ -15,6 +15,7 @@ use consts::DEFAULT_PORT;
 use db::DbType;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
+use static_keys::define_static_key_false;
 use std::{fs, io::Write, path, sync::LazyLock};
 use tokio::{
     io::{self, AsyncBufReadExt, BufReader},
@@ -51,7 +52,15 @@ struct ArgsParser {
     clear: bool,
     #[arg(long, help = "database type,mysql or sqlite")]
     db_type: Option<String>,
+    #[arg(
+        long,
+        help = "enable when server is maintaining",
+        default_value_t = false
+    )]
+    maintaining: bool,
 }
+
+define_static_key_false!(MAINTAINING);
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Cfg {
@@ -140,8 +149,10 @@ pub async fn lib_main() -> anyhow::Result<()> {
     } else {
         parser.cfg
     };
+    // 读取配置文件
     let cfg = fs::read_to_string(cfg_path)?;
     let cfg: Cfg = toml::from_str(&cfg).unwrap();
+    // 配置端口
     let port = match parser.port {
         None => match cfg.port {
             Some(port) => port,
@@ -150,6 +161,13 @@ pub async fn lib_main() -> anyhow::Result<()> {
         Some(port) => port,
     };
     let ip = parser.ip;
+    // 启动维护模式
+    if parser.maintaining {
+        unsafe {
+            MAINTAINING.enable();
+        }
+        tracing::info!("Server is in maintaining mode");
+    }
     // 处理数据库
     let db_type = match parser.db_type {
         None => cfg.db_type,

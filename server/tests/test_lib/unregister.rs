@@ -1,8 +1,8 @@
 use futures_util::{SinkExt, StreamExt};
 use server::{
-    connection::client_response::{unregister::Status, UnregisterResponse},
+    connection::client_response::UnregisterResponse,
     consts::MessageType,
-    requests::Unregister,
+    requests::{self, Unregister},
 };
 use tungstenite::Message;
 
@@ -17,5 +17,5 @@ pub async fn test_unregister() {
     let ret = (*lock).next().await.unwrap().unwrap();
     let json: UnregisterResponse = serde_json::from_str(ret.to_text().unwrap()).unwrap();
     assert_eq!(json.code, MessageType::UnregisterRes);
-    assert_eq!(json.status, Status::Success);
+    assert_eq!(json.status, requests::Status::Success);
 }

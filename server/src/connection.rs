@@ -7,13 +7,18 @@ mod process;
 use crate::{
     consts::{MessageType, ID},
     requests::{self, new_session::NewSession},
+    MAINTAINING,
 };
-use client_response::{LoginResponse, NewSessionResponse, RegisterResponse};
+use anyhow::bail;
+use client_response::{
+    get_status::GetStatusResponse, LoginResponse, NewSessionResponse, RegisterResponse,
+};
 use futures_util::{
     stream::{SplitSink, SplitStream},
     SinkExt, StreamExt,
 };
 use serde_json::Value;
+use static_keys::static_branch_unlikely;
 use tokio::{
     net::TcpStream,
     select,
@@ -33,7 +38,7 @@ pub enum DBRequest {
     },
     Unregister {
         id: ID,
-        resp: oneshot::Sender<client_response::unregister::Status>,
+        resp: oneshot::Sender<requests::Status>,
     },
     NewSession {
         id: ID,
@@ -131,6 +136,7 @@ impl Connection {
     }
 
     /// 验证客户端
+    /// 注意：我们允许一些级别很低的非验证操作在此阶段运行
     async fn verify(
         ws: &mut WS,
         request_sender: &mpsc::Sender<DBRequest>,
@@ -315,12 +321,57 @@ impl Connection {
         }
     }
 
+    async fn maintaining(socket: &mut WS) -> anyhow::Result<()> {
+        while let Some(msg) = socket.next().await {
+            match msg {
+                Ok(msg) => match msg {
+                    tungstenite::Message::Text(msg) => {
+                        let json: Value = serde_json::from_str(&msg)?;
+                        let code = &json["code"];
+                        if let Value::Number(code) = code {
+                            let code = code.as_u64();
+                            if let Some(code) = code {
+                                if code == MessageType::GetStatus as u64 {
+                                    let resp = GetStatusResponse::mataining();
+                                    socket
+                                        .send(Message::Text(serde_json::to_string(&resp).unwrap()))
+                                        .await?;
+                                    tracing::debug!("Send maintaining msg");
+                                }
+                            } else {
+                                bail!("Wrong json msg code");
+                            }
+                        } else {
+                            bail!("Wrong json structure");
+                        }
+                    }
+                    tungstenite::Message::Ping(_) => {
+                        socket.send(Message::Pong(vec![])).await?;
+                    }
+                    tungstenite::Message::Pong(_) => {
+                        tracing::info!("recv pong");
+                    }
+                    tungstenite::Message::Close(_) => {
+                        return Ok(());
+                    }
+                    _ => {}
+                },
+                Err(e) => Err(e)?,
+            };
+        }
+        Ok(())
+    }
+
     pub async fn work(&mut self) -> anyhow::Result<()> {
         let mut socket = self.socket.take().unwrap();
         let request_sender = self.request_sender.clone();
         let mut shutdown_receiver = self.shutdown_sender.subscribe();
         let mut shutdown_receiver_clone = self.shutdown_sender.subscribe();
         let mut id = ID::default();
+
+        if static_branch_unlikely!(MAINTAINING) {
+            Self::maintaining(&mut socket).await?
+        }
         let verify_loop = async {
             loop {
                 let ret = Connection::verify(&mut socket, &request_sender).await?;
