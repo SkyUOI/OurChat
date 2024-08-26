@@ -40,6 +40,12 @@ parking_lot = "0"
 static-keys = "0"
 sqlx = { version = "0", features = ["runtime-tokio-rustls", "sqlite"] }
 derive = { path = "../derive" }
+actix-web = { version = "4", features = ["rustls"] }
+
+# Useful crates
+collection_literals = "1"
+colored = "2"
+strum = { version = "0", features = ["derive"] }
 
 [dev-dependencies]
 serial_test = "3"

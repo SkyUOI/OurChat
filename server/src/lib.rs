@@ -1,6 +1,7 @@
 #![feature(asm_goto)]
 #![feature(decl_macro)]
 
+mod cmd;
 pub mod connection;
 pub mod consts;
 pub mod db;
@@ -190,13 +191,15 @@ pub async fn lib_main() -> anyhow::Result<()> {
     let (shutdown_sender, mut shutdown_receiver) = broadcast::channel(32);
     let shutdown_sender_clone = shutdown_sender.clone();
     let shutdown_receiver_clone = shutdown_sender.subscribe();
-
+    // 构建websocket服务端
     let mut server = server::Server::new(ip, port, db, redis, parser.test_mode).await?;
     tokio::spawn(async move {
         server
             .accept_sockets(shutdown_sender_clone, shutdown_receiver_clone)
             .await
     });
+    // 构建web服务端
+
     let shutdown_sender_clone = shutdown_sender.clone();
     tokio::spawn(async move {
         match tokio::signal::ctrl_c().await {
@@ -212,40 +215,13 @@ pub async fn lib_main() -> anyhow::Result<()> {
         anyhow::Ok(())
     });
     if !parser.test_mode {
-        let mut console_reader = BufReader::new(io::stdin()).lines();
-        let input_loop = async {
-            let mut shutdown_receiver = shutdown_sender.subscribe();
-            loop {
-                print!(">>> ");
-                std::io::stdout().flush().unwrap();
-                let command = match console_reader.next_line().await {
-                    Ok(d) => match d {
-                        Some(data) => data,
-                        None => {
-                            tracing::info!("Without stdin");
-                            shutdown_receiver.recv().await.unwrap();
-                            String::default()
-                        }
-                    },
-                    Err(e) => {
-                        tracing::error!("stdin {}", e);
-                        break;
-                    }
-                };
-                let command = command.trim();
-                if command == "exit" {
-                    tracing::info!("Exiting now...");
-                    break;
-                }
-            }
-            anyhow::Ok(())
-        };
+        let mut shutdown_receiver2 = shutdown_sender.subscribe();
         select! {
-            _ = input_loop => {
+            _ = cmd::cmd_process_loop(shutdown_receiver) => {
                 shutdown_sender.send(())?;
                 tracing::info!("Exit because command loop has exited");
             },
-            _ = shutdown_receiver.recv() => {
+            _ = shutdown_receiver2.recv() => {
                 tracing::info!("Command loop exited");
             }
         }
