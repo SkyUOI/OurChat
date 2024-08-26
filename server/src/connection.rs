@@ -293,6 +293,8 @@ impl Connection {
                         tracing::info!("recv pong");
                     }
                     tungstenite::Message::Close(_) => {
+                        net_sender.send(Message::Close(None)).await?;
+                        drop(net_sender);
                         return Ok(());
                     }
                     tungstenite::Message::Frame(_) => todo!(),
@@ -318,6 +320,7 @@ impl Connection {
                 outgoing.send(msg).await.unwrap();
                 tracing::debug!("send successful");
             }
+            outgoing.close().await?;
             Ok(())
         };
         select! {
@@ -359,6 +362,7 @@ impl Connection {
                         tracing::info!("recv pong");
                     }
                     tungstenite::Message::Close(_) => {
+                        socket.close(None).await?;
                         return Ok(());
                     }
                     _ => {}
