@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::quote;
-use syn::{parse2, parse_macro_input, Attribute, Block, Ident, Item, Stmt, UseTree};
+use syn::{parse2, parse_macro_input, Block, Ident, Item, Stmt, UseTree};
 
 fn db_replace(stmts: Vec<Stmt>, path: syn::Ident) -> Vec<Stmt> {
     let mut output = vec![];
@@ -10,12 +10,9 @@ fn db_replace(stmts: Vec<Stmt>, path: syn::Ident) -> Vec<Stmt> {
             if let UseTree::Path(ref item_use) = use_item.tree {
                 if item_use.ident == "entities" {
                     let tree = &item_use.tree;
-                    output.push(
-                        syn::parse2(quote! {
-                            use crate::entities::#path::#tree;
-                        })
-                        .unwrap(),
-                    );
+                    output.push(syn::parse_quote! {
+                        use crate::entities::#path::#tree;
+                    });
                     return;
                 }
             }
