@@ -300,7 +300,9 @@ impl Connection {
                         tracing::info!("recv pong");
                     }
                     tungstenite::Message::Frame(_) => todo!(),
-                    _ => {}
+                    tungstenite::Message::Close(_) => {
+                        break 'con_loop;
+                    }
                 }
             }
             tracing::debug!("connection closed");
