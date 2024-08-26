@@ -11,6 +11,7 @@ from websockets.server import serve
 
 db = SqliteDatabase("database.db")
 
+
 class Account(Model):
     ocid = TextField(null=False, primary_key=True)
     email = TextField(null=False)
@@ -319,13 +320,14 @@ async def connected(websocket):
     await Connection(websocket).recvAndReply()
 
 
-async def server_forever(ip,port):
-    async with serve(connected, ip,port):
+async def server_forever(ip, port):
+    async with serve(connected, ip, port):
         await asyncio.Future()
 
 
-def start_serve(ip,port):
-    asyncio.run(server_forever(ip,port))
+def start_serve(ip, port):
+    asyncio.run(server_forever(ip, port))
+
 
 if __name__ == "__main__":
     ip = "localhost"
@@ -339,7 +341,7 @@ if __name__ == "__main__":
     Account.create_table(safe=True)
     Session.create_table(safe=True)
 
-    Thread(target=start_serve, daemon=True,args=(ip,port)).start()
+    Thread(target=start_serve, daemon=True, args=(ip, port)).start()
 
     while True:
         print("=" * 40)
