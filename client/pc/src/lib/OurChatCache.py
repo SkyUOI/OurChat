@@ -31,9 +31,9 @@ class AccountCache(Model):
 
 class SessionCache(Model):
     session_id = TextField(null=False, primary_key=True)
-    name = TextField(null=False)
-    avatar = TextField(null=False)
-    avatar_hash = TextField(null=False)
+    name = TextField(null=True)
+    avatar = TextField(null=True)
+    avatar_hash = TextField(null=True)
     time = IntegerField(null=False)
     update_time = IntegerField(null=False)
     members = TextField(null=False)

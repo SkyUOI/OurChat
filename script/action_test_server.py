@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
+import sys
+
 import init_valgrind_rust
 import test_server
-import sys
 
 init_valgrind_rust.init_valgrind()
 if len(sys.argv) > 1:

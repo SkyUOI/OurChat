@@ -17,7 +17,24 @@
    <item>
     <layout class="QVBoxLayout" name="left_panel">
      <item>
-      <widget class="QLineEdit" name="search_chat"/>
+      <layout class="QHBoxLayout" name="horizontalLayout_4">
+       <item>
+        <widget class="QLineEdit" name="search_chat"/>
+       </item>
+       <item>
+        <widget class="QToolButton" name="add_session_btn">
+         <property name="maximumSize">
+          <size>
+           <width>30</width>
+           <height>30</height>
+          </size>
+         </property>
+         <property name="text">
+          <string notr="true">+</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </item>
      <item>
       <widget class="QListWidget" name="session_list">

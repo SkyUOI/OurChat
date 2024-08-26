@@ -40,7 +40,7 @@ class ProfileUI(Ui_Profile):
         account = self.ourchat.getAccount(data["ocid"])
         if account != self.ourchat.account:
             return
-        self.avatar_label.setImage(account.avatar_binary_data)
+        self.avatar_label.setImage(account.avatar_data)
         self.avatar_url = account.data["avatar"]
         self.avatar_hash = account.data["avatar_hash"]
 
@@ -54,7 +54,7 @@ class ProfileUI(Ui_Profile):
         if account.have_got_info:
             self.nickname_editor.setText(account.data["nickname"])
         if account.have_got_avatar:
-            self.avatar_label.setImage(account.avatar_binary_data)
+            self.avatar_label.setImage(account.avatar_data)
             self.avatar_url = account.data["avatar"]
             self.avatar_hash = account.data["avatar_hash"]
 
@@ -106,8 +106,8 @@ class ProfileUI(Ui_Profile):
                 self.ourchat.download, self.downloadAvatarResponse, url[0]
             )
 
-    def downloadAvatarResponse(self, avatar_binary_data: Union[bytes, None]) -> None:
-        if avatar_binary_data is None:
+    def downloadAvatarResponse(self, avatar_data: Union[bytes, None]) -> None:
+        if avatar_data is None:
             self.ok_btn.setEnabled(True)
             QMessageBox.warning(
                 self.dialog,
@@ -116,8 +116,8 @@ class ProfileUI(Ui_Profile):
             )
             return
         hash = hashlib.sha256()
-        hash.update(avatar_binary_data)
-        self.ourchat.cache.setImage(hash.hexdigest(), avatar_binary_data)
+        hash.update(avatar_data)
+        self.ourchat.cache.setImage(hash.hexdigest(), avatar_data)
         self.avatar_hash = hash.hexdigest()
-        self.avatar_label.setImage(avatar_binary_data)
+        self.avatar_label.setImage(avatar_data)
         self.ok_btn.setEnabled(True)

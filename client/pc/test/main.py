@@ -33,9 +33,9 @@ class Account(Model):
 
 class Session(Model):
     session_id = TextField(null=False, primary_key=True)
-    name = TextField(null=False)
-    avatar = TextField(null=False)
-    avatar_hash = TextField(null=False)
+    name = TextField(null=True)
+    avatar = TextField(null=True)
+    avatar_hash = TextField(null=True)
     time = IntegerField(null=False)
     update_time = IntegerField(null=False)
     members = TextField(null=False)
@@ -179,8 +179,8 @@ def register(conn: Connection, sample: dict, data: dict) -> dict:
             time=time.time(),
             public_update_time=time.time(),
             update_time=time.time(),
-            sessions=[],
-            friends=[],
+            sessions=json.dumps([]),
+            friends=json.dumps([]),
         )
         conn.ocid = ocid
         sample["ocid"] = ocid
@@ -214,9 +214,9 @@ def user_msg(conn: Connection, sample: dict, data: dict) -> dict:
 
 
 def new_session(conn: Connection, sample: dict, data: dict) -> dict:
-    avatar = "http://img.senlinjun.top/imgs/2024/08/c57c426151947784.png"
-    avatar_hash = "6856e25c44cce62e5577c23506bcfea8fdd440ad63594ef82a5d9e36951e240a"
-    name = "%OURCHAT_DEFAULT_SESSION_NAME%"
+    avatar = None
+    avatar_hash = None
+    name = None
 
     if "avatar" in data:
         avatar = data["avatar"]
@@ -233,6 +233,14 @@ def new_session(conn: Connection, sample: dict, data: dict) -> dict:
             int(max_session_id) + 1
         )
 
+    for ocid in data["members"]:
+        account = Account.get(Account.ocid == ocid)
+        sessions = json.loads(account.sessions)
+        sessions.append(session_id)
+        Account.update(sessions=json.dumps(sessions)).where(
+            Account.ocid == ocid
+        ).execute()
+
     Session.create(
         session_id=session_id,
         name=name,
@@ -240,7 +248,7 @@ def new_session(conn: Connection, sample: dict, data: dict) -> dict:
         avatar_hash=avatar_hash,
         time=time.time(),
         update_time=time.time(),
-        members=data["members"],
+        members=json.dumps(data["members"]),
         owner=conn.ocid,
     )
 

@@ -18,6 +18,7 @@ class OurChatSession:
         self.session_id = session_id
         self.data = {}
         self.request_values = [
+            "session_id",
             "name",
             "avatar",
             "avatar_hash",
@@ -33,12 +34,17 @@ class OurChatSession:
     def getAvatar(self, depth: int = 0) -> None:
         if depth >= 5:
             return
-        logger.info(f"get avatar(session_id:{self.session_id})")
-        avatar_binary_data = self.ourchat.cache.getImage(self.data["avatar_hash"])
-        if avatar_binary_data is None:
+        logger.info("get session avatar")
+        logger.debug(f"get session avatar: {self.session_id}")
+        if self.data["avatar"] is None:
+            logger.info("avatar field is None,use default avatar")
+            self.avatar_data = "resources/images/logo.png"
+            return
+        avatar_data = self.ourchat.cache.getImage(self.data["avatar_hash"])
+        if avatar_data is None:
             logger.info("avatar cache not found,started to download")
-            avatar_binary_data = self.ourchat.download(self.data["avatar"])
-            if avatar_binary_data is None:
+            avatar_data = self.ourchat.download(self.data["avatar"])
+            if avatar_data is None:
                 self.ourchat.runInMainThread(
                     QMessageBox.warning(
                         None,
@@ -48,16 +54,17 @@ class OurChatSession:
                 )
             logger.info("avatar download complete")
             sha256 = hashlib.sha256()
-            sha256.update(avatar_binary_data)
-            self.ourchat.cache.setImage(sha256.hexdigest(), avatar_binary_data)
-        self.avatar_binary_data = avatar_binary_data
+            sha256.update(avatar_data)
+            self.ourchat.cache.setImage(sha256.hexdigest(), avatar_data)
+        self.avatar_data = avatar_data
         self.have_got_avatar = True
         self.ourchat.triggerEvent(
             {"code": SESSION_FINISH_GET_AVATAR, "session_id": self.session_id}
         )
 
     def getInfo(self) -> None:
-        logger.info(f"get info(session_id:{self.session_id})")
+        logger.info("get session info")
+        logger.debug(f"get session info: {self.session_id}")
         session_info = self.ourchat.cache.getSession(self.session_id)
         if session_info is not None:
             self.data = session_info
@@ -66,13 +73,15 @@ class OurChatSession:
                 {
                     "code": SESSION_INFO_MSG,
                     "session_id": self.session_id,
-                    "request_values": ["update_time"],
+                    "request_values": ["session_id", "update_time"],
                 }
             )
         else:
             self.sendInfoRequest()
 
     def getUpdateTimeResponse(self, data: dict) -> None:
+        if data["data"]["session_id"] != self.session_id:
+            return
         self.ourchat.unListen(SESSION_INFO_RESPONSE_MSG, self.getUpdateTimeResponse)
         update_time = data["data"]["update_time"]
         if self.data["update_time"] != update_time:
@@ -81,6 +90,8 @@ class OurChatSession:
             self.finishGetInfo()
 
     def getInfoResponse(self, data: dict) -> None:
+        if data["data"]["session_id"] != self.session_id:
+            return
         self.ourchat.unListen(SESSION_INFO_RESPONSE_MSG, self.getInfoResponse)
         self.data = data["data"]
         self.ourchat.cache.setSession(self.session_id, self.data)
@@ -98,6 +109,8 @@ class OurChatSession:
 
     def finishGetInfo(self) -> None:
         self.have_got_info = True
+        if self.data["name"] is None:
+            self.data["name"] = self.ourchat.language["default_session_name"]
         self.ourchat.triggerEvent(
             {"code": SESSION_FINISH_GET_INFO, "session_id": self.session_id}
         )

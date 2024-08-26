@@ -19,8 +19,9 @@ class OurChatAccount:
         self.ocid = ocid
         self.data = {}
         self.me = me
-        self.avatar_binary_data = None
+        self.avatar_data = None
         self.request_values = [
+            "ocid",
             "nickname",
             "status",
             "avatar",
@@ -39,12 +40,13 @@ class OurChatAccount:
         self.ourchat.runThread(self.getInfo)
 
     def getAvatar(self) -> None:
-        logger.info(f"get avatar(ocid:{self.ocid})")
-        avatar_binary_data = self.ourchat.cache.getImage(self.data["avatar_hash"])
-        if avatar_binary_data is None:
+        logger.info("get avatar")
+        logger.debug(f"get avatar: {self.ocid}")
+        avatar_data = self.ourchat.cache.getImage(self.data["avatar_hash"])
+        if avatar_data is None:
             logger.info("avatar cache not found,started to download")
-            avatar_binary_data = self.ourchat.download(self.data["avatar"])
-            if avatar_binary_data is None:
+            avatar_data = self.ourchat.download(self.data["avatar"])
+            if avatar_data is None:
                 self.ourchat.runInMainThread(
                     QMessageBox.warning(
                         None,
@@ -54,16 +56,17 @@ class OurChatAccount:
                 )
             logger.info("avatar download complete")
             sha256 = hashlib.sha256()
-            sha256.update(avatar_binary_data)
-            self.ourchat.cache.setImage(sha256.hexdigest(), avatar_binary_data)
-        self.avatar_binary_data = avatar_binary_data
+            sha256.update(avatar_data)
+            self.ourchat.cache.setImage(sha256.hexdigest(), avatar_data)
+        self.avatar_data = avatar_data
         self.have_got_avatar = True
         self.ourchat.triggerEvent(
             {"code": ACCOUNT_FINISH_GET_AVATAR, "ocid": self.ocid}
         )
 
     def getInfo(self) -> None:
-        logger.info(f"get info(ocid:{self.ocid})")
+        logger.info("get account info")
+        logger.debug(f"get account info: {self.ocid}")
         account_info = self.ourchat.cache.getAccount(self.ocid)
         if not self.me and account_info is not None:
             self.data = account_info
@@ -72,13 +75,15 @@ class OurChatAccount:
                 {
                     "code": ACCOUNT_INFO_MSG,
                     "ocid": self.ocid,
-                    "request_values": ["public_update_time", "update_time"],
+                    "request_values": ["ocid", "public_update_time", "update_time"],
                 }
             )
         else:
             self.sendInfoRequest()
 
     def getUpdateTimeResponse(self, data: dict) -> None:
+        if data["data"]["ocid"] != self.ocid:
+            return
         self.ourchat.unListen(ACCOUNT_INFO_RESPONSE_MSG, self.getUpdateTimeResponse)
         cache_update_time = self.data["public_update_time"]
         cloud_update_time = data["data"]["public_update_time"]
@@ -91,6 +96,8 @@ class OurChatAccount:
             self.finishGetInfo()
 
     def getInfoResponse(self, data: dict) -> None:
+        if data["data"]["ocid"] != self.ocid:
+            return
         self.ourchat.unListen(ACCOUNT_INFO_RESPONSE_MSG, self.getInfoResponse)
         self.data = data["data"]
         self.data["sessions"] = json.loads(self.data["sessions"])
