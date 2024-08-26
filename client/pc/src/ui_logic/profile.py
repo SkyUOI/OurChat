@@ -1,15 +1,23 @@
 import hashlib
 import re
+from logging import getLogger
 from typing import Union
 
 from lib.const import (
     ACCOUNT_FINISH_GET_AVATAR,
     ACCOUNT_FINISH_GET_INFO,
+    RUN_NORMALLY,
+    SERVER_ERROR,
+    SERVER_UNDER_MAINTENANCE,
     SET_ACCOUNT_INFO_MSG,
+    SET_ACCOUNT_INFO_RESPONSE_MSG,
+    UNKNOWN_ERROR,
 )
 from lib.OurChatUI import ImageLabel
 from PyQt6.QtWidgets import QInputDialog, QMessageBox
 from ui.profile import Ui_Profile
+
+logger = getLogger(__name__)
 
 
 class ProfileUI(Ui_Profile):
@@ -29,6 +37,7 @@ class ProfileUI(Ui_Profile):
     def listen(self) -> None:
         self.ourchat.listen(ACCOUNT_FINISH_GET_AVATAR, self.getAccountInfoResponse)
         self.ourchat.listen(ACCOUNT_FINISH_GET_INFO, self.getAccountAvatarResponse)
+        self.ourchat.listen(SET_ACCOUNT_INFO_RESPONSE_MSG, self.setAccountInfoResponse)
 
     def getAccountInfoResponse(self, data: dict) -> None:
         account = self.ourchat.getAccount(data["ocid"])
@@ -85,7 +94,6 @@ class ProfileUI(Ui_Profile):
             }
         )
         self.ourchat.runThread(self.ourchat.account.getInfo)
-        self.dialog.close()
 
     def setAvatar(self) -> None:
         url = QInputDialog.getText(self.dialog, "set avatar", "avatar url: ")
@@ -121,3 +129,34 @@ class ProfileUI(Ui_Profile):
         self.avatar_hash = hash.hexdigest()
         self.avatar_label.setImage(avatar_data)
         self.ok_btn.setEnabled(True)
+
+    def setAccountInfoResponse(self, data: dict) -> None:
+        if data["status_code"] == RUN_NORMALLY:
+            self.dialog.close()
+        elif data["status_code"] == SERVER_ERROR:
+            logger.warning("set account info failed: server error")
+            QMessageBox.warning(
+                self.dialog,
+                self.ourchat.language["warning"],
+                self.ourchat.language["set_account_info_failed"].format(
+                    self.ourchat.language["server_error"]
+                ),
+            )
+        elif data["status_code"] == SERVER_UNDER_MAINTENANCE:
+            logger.warning("set account info failed: server under maintenance")
+            QMessageBox.warning(
+                self.dialog,
+                self.ourchat.language["warning"],
+                self.ourchat.language["set_account_info_failed"].format(
+                    self.ourchat.language["maintenance"]
+                ),
+            )
+        elif data["status_code"] == UNKNOWN_ERROR:
+            logger.warning("set account info failed: unknown error")
+            QMessageBox.warning(
+                self.dialog,
+                self.ourchat.language["warning"],
+                self.ourchat.language["set_account_info_failed"].format(
+                    self.ourchat.language["unknown_error"]
+                ),
+            )

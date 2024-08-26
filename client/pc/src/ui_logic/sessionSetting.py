@@ -1,16 +1,24 @@
 import hashlib
 import re
+from logging import getLogger
 from typing import Union
 
 from lib.const import (
     ACCOUNT_FINISH_GET_AVATAR,
     ACCOUNT_FINISH_GET_INFO,
+    ACCOUNT_LIMIT,
     NEW_SESSION_MSG,
     NEW_SESSION_RESPONSE_MSG,
+    RUN_NORMALLY,
+    SERVER_ERROR,
+    SERVER_UNDER_MAINTENANCE,
+    UNKNOWN_ERROR,
 )
 from lib.OurChatUI import AccountListItemWidget, ImageLabel
 from PyQt6.QtWidgets import QInputDialog, QListWidgetItem, QMessageBox
 from ui.sessionSetting import Ui_SessionSetting
+
+logger = getLogger(__name__)
 
 
 class SessionSettingUI(Ui_SessionSetting):
@@ -35,6 +43,10 @@ class SessionSettingUI(Ui_SessionSetting):
         self.bind()
 
     def fillText(self):
+        self.dialog.setWindowTitle(f"Ourchat - {self.ourchat.language['session']}")
+        self.session_name_editor.setPlaceholderText(
+            self.ourchat.language["default_session_name"]
+        )
         self.avatar_label.setImage("resources/images/logo.png")
         for friend_ocid in self.ourchat.account.friends:
             friend_account = self.ourchat.account.friends[friend_ocid]
@@ -96,15 +108,54 @@ class SessionSettingUI(Ui_SessionSetting):
         self.dialog.close()
 
     def newSessionResponse(self, data: dict) -> None:
-        self.ourchat.unListen(NEW_SESSION_RESPONSE_MSG, self.newSessionResponse)
-        session_id = data["session_id"]
-        self.ourchat.account.sessions[session_id] = self.ourchat.getSession(session_id)
-        QMessageBox.information(
-            self.dialog,
-            self.ourchat.language["success"],
-            self.ourchat.language["create_session_success"],
-        )
-        self.dialog.close()
+        if data["status_code"] == RUN_NORMALLY:
+            self.ourchat.unListen(NEW_SESSION_RESPONSE_MSG, self.newSessionResponse)
+            session_id = data["session_id"]
+            self.ourchat.account.sessions[session_id] = self.ourchat.getSession(
+                session_id
+            )
+            QMessageBox.information(
+                self.dialog,
+                self.ourchat.language["success"],
+                self.ourchat.language["create_session_success"],
+            )
+            self.dialog.close()
+        elif data["status_code"] == SERVER_ERROR:
+            logger.warning("create session failed: server error")
+            QMessageBox.warning(
+                self.widget,
+                self.ourchat.language["warning"],
+                self.ourchat.language["create_session_failed"].format(
+                    self.ourchat.language["server_error"]
+                ),
+            )
+        elif data["status_code"] == SERVER_UNDER_MAINTENANCE:
+            logger.warning("create session failed: server under maintenance")
+            QMessageBox.warning(
+                self.widget,
+                self.ourchat.language["warning"],
+                self.ourchat.language["create_session_failed"].format(
+                    self.ourchat.language["maintenance"]
+                ),
+            )
+        elif data["status_code"] == ACCOUNT_LIMIT:
+            logger.warning("create session failed: reach sessions limit")
+            QMessageBox.warning(
+                self.widget,
+                self.ourchat.language["warning"],
+                self.ourchat.language["create_session_failed"].format(
+                    self.ourchat.language["reach_sessions_limit"]
+                ),
+            )
+        elif data["status_code"] == UNKNOWN_ERROR:
+            logger.warning("create session failed: unknown error")
+            QMessageBox.warning(
+                self.widget,
+                self.ourchat.language["warning"],
+                self.ourchat.language["create_session_failed"].format(
+                    self.ourchat.language["unknown_error"]
+                ),
+            )
 
     def setAvatar(self) -> None:
         url = QInputDialog.getText(self.dialog, "set avatar", "avatar url: ")

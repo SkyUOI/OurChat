@@ -5,6 +5,7 @@ from lib.const import (
     ACCOUNT_FINISH_GET_AVATAR,
     ACCOUNT_FINISH_GET_INFO,
     NEW_SESSION_RESPONSE_MSG,
+    RUN_NORMALLY,
     SESSION_FINISH_GET_AVATAR,
     SESSION_FINISH_GET_INFO,
     USER_MSG,
@@ -210,4 +211,5 @@ class SessionUI(Ui_Session):
         dialog.show()
 
     def newSessionResponse(self, data: dict) -> None:
-        self.addSessionItem(self.ourchat.getSession(data["session_id"]))
+        if data["status_code"] == RUN_NORMALLY:
+            self.addSessionItem(self.ourchat.getSession(data["session_id"]))

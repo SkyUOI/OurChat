@@ -58,3 +58,14 @@ verify_error=Verify Error
 verify_timeout=Verify Timeout
 warning=Warning
 wrong_a/p=Wrong Account/Password
+get_account_info_failed=Get account info failed：{}
+account_not_found=Account not found
+unknown_error=Unknown Error
+session_not_fount=Session not found
+verify_failed=Verify failed: {}
+login_failed:Login failed: {}
+register_failed=Register failed: {}
+pending_verification=Pending Verification
+create_session_failed=: Create session failed: {}
+reach_sessions_limit=Reach sessions limit
+set_account_info_failed=Set account info failed: {}

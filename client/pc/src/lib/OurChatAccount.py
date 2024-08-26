@@ -7,6 +7,11 @@ from lib.const import (
     ACCOUNT_FINISH_GET_INFO,
     ACCOUNT_INFO_MSG,
     ACCOUNT_INFO_RESPONSE_MSG,
+    REQUEST_INFO_NOT_FOUND,
+    RUN_NORMALLY,
+    SERVER_ERROR,
+    SERVER_UNDER_MAINTENANCE,
+    UNKNOWN_ERROR,
 )
 from PyQt6.QtWidgets import QMessageBox
 
@@ -82,31 +87,105 @@ class OurChatAccount:
             self.sendInfoRequest()
 
     def getUpdateTimeResponse(self, data: dict) -> None:
-        if data["data"]["ocid"] != self.ocid:
-            return
-        self.ourchat.unListen(ACCOUNT_INFO_RESPONSE_MSG, self.getUpdateTimeResponse)
-        cache_update_time = self.data["public_update_time"]
-        cloud_update_time = data["data"]["public_update_time"]
-        if self.me:
-            cache_update_time = self.data["update_time"]
-            cloud_update_time = data["data"]["update_time"]
-        if cache_update_time != cloud_update_time:
-            self.sendInfoRequest()
-        else:
-            self.finishGetInfo()
+        if data["status_code"] == RUN_NORMALLY:
+            if data["data"]["ocid"] != self.ocid:
+                return
+            self.ourchat.unListen(ACCOUNT_INFO_RESPONSE_MSG, self.getUpdateTimeResponse)
+            cache_update_time = self.data["public_update_time"]
+            cloud_update_time = data["data"]["public_update_time"]
+            if self.me:
+                cache_update_time = self.data["update_time"]
+                cloud_update_time = data["data"]["update_time"]
+            if cache_update_time != cloud_update_time:
+                self.sendInfoRequest()
+            else:
+                self.finishGetInfo()
+        elif data["status_code"] == SERVER_ERROR:
+            logger.warning("get account info failed: server error")
+            QMessageBox.warning(
+                None,
+                self.ourchat.language["warning"],
+                self.ourchat.language["get_account_info_failed"].format(
+                    self.ourchat.language["server_error"]
+                ),
+            )
+        elif data["status_code"] == SERVER_UNDER_MAINTENANCE:
+            logger.warning("get account info failed: server under maintenance")
+            QMessageBox.warning(
+                None,
+                self.ourchat.language["warning"],
+                self.ourchat.language["get_account_info_failed"].format(
+                    self.ourchat.language["maintenance"]
+                ),
+            )
+        elif data["status_code"] == REQUEST_INFO_NOT_FOUND:
+            logger.warning("get account info failed: account not found")
+            QMessageBox.warning(
+                None,
+                self.ourchat.language["warning"],
+                self.ourchat.language["get_account_info_failed"].format(
+                    self.ourchat.language["account_not_found"]
+                ),
+            )
+        elif data["status_code"] == UNKNOWN_ERROR:
+            logger.warning("get account info failed: unknown error")
+            QMessageBox.warning(
+                None,
+                self.ourchat.language["warning"],
+                self.ourchat.language["get_account_info_failed"].format(
+                    self.ourchat.language["unknown_error"]
+                ),
+            )
 
     def getInfoResponse(self, data: dict) -> None:
-        if data["data"]["ocid"] != self.ocid:
-            return
-        self.ourchat.unListen(ACCOUNT_INFO_RESPONSE_MSG, self.getInfoResponse)
-        self.data = data["data"]
-        self.data["sessions"] = json.loads(self.data["sessions"])
-        self.data["friends"] = json.loads(self.data["friends"])
-        if not self.me:
-            self.data["sessions"] = None
-            self.data["friends"] = None
-        self.ourchat.cache.setAccount(self.ocid, self.data)
-        self.finishGetInfo()
+        if data["status_code"] == RUN_NORMALLY:
+            if data["data"]["ocid"] != self.ocid:
+                return
+            self.ourchat.unListen(ACCOUNT_INFO_RESPONSE_MSG, self.getInfoResponse)
+            self.data = data["data"]
+            self.data["sessions"] = json.loads(self.data["sessions"])
+            self.data["friends"] = json.loads(self.data["friends"])
+            if not self.me:
+                self.data["sessions"] = None
+                self.data["friends"] = None
+            self.ourchat.cache.setAccount(self.ocid, self.data)
+            self.finishGetInfo()
+        elif data["status_code"] == SERVER_ERROR:
+            logger.warning("get account info failed: server error")
+            QMessageBox.warning(
+                None,
+                self.ourchat.language["warning"],
+                self.ourchat.language["get_account_info_failed"].format(
+                    self.ourchat.language["server_error"]
+                ),
+            )
+        elif data["status_code"] == SERVER_UNDER_MAINTENANCE:
+            logger.warning("get account info failed: server under maintenance")
+            QMessageBox.warning(
+                None,
+                self.ourchat.language["warning"],
+                self.ourchat.language["get_account_info_failed"].format(
+                    self.ourchat.language["maintenance"]
+                ),
+            )
+        elif data["status_code"] == REQUEST_INFO_NOT_FOUND:
+            logger.warning("get account info failed: account not found")
+            QMessageBox.warning(
+                None,
+                self.ourchat.language["warning"],
+                self.ourchat.language["get_account_info_failed"].format(
+                    self.ourchat.language["account_not_found"]
+                ),
+            )
+        elif data["status_code"] == UNKNOWN_ERROR:
+            logger.warning("get account info failed: unknown error")
+            QMessageBox.warning(
+                None,
+                self.ourchat.language["warning"],
+                self.ourchat.language["get_account_info_failed"].format(
+                    self.ourchat.language["unknown_error"]
+                ),
+            )
 
     def sendInfoRequest(self) -> None:
         self.ourchat.listen(ACCOUNT_INFO_RESPONSE_MSG, self.getInfoResponse)
