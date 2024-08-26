@@ -1,4 +1,4 @@
-# Form implementation generated from reading ui file '.\session.ui'
+# Form implementation generated from reading ui file 'session.ui'
 #
 # Created by: PyQt6 UI code generator 6.4.2
 #
@@ -18,9 +18,17 @@ class Ui_Session(object):
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.left_panel = QtWidgets.QVBoxLayout()
         self.left_panel.setObjectName("left_panel")
+        self.horizontalLayout_4 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_4.setObjectName("horizontalLayout_4")
         self.search_chat = QtWidgets.QLineEdit(parent=Session)
         self.search_chat.setObjectName("search_chat")
-        self.left_panel.addWidget(self.search_chat)
+        self.horizontalLayout_4.addWidget(self.search_chat)
+        self.add_session_btn = QtWidgets.QToolButton(parent=Session)
+        self.add_session_btn.setMaximumSize(QtCore.QSize(30, 30))
+        self.add_session_btn.setText("+")
+        self.add_session_btn.setObjectName("add_session_btn")
+        self.horizontalLayout_4.addWidget(self.add_session_btn)
+        self.left_panel.addLayout(self.horizontalLayout_4)
         self.session_list = QtWidgets.QListWidget(parent=Session)
         self.session_list.setResizeMode(QtWidgets.QListView.ResizeMode.Adjust)
         self.session_list.setObjectName("session_list")

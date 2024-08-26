@@ -31,7 +31,7 @@ class AccountUI(Ui_Account):
         if self.ourchat.account.have_got_info:
             self.nickname_label.setText(self.ourchat.account.data["nickname"])
         if self.ourchat.account.have_got_avatar:
-            self.avatar_label.setImage(self.ourchat.account.avatar_binary_data)
+            self.avatar_label.setImage(self.ourchat.account.avatar_data)
 
     def getAccountInfoResponse(self, data: dict) -> None:
         account = self.ourchat.getAccount(data["ocid"])
@@ -41,7 +41,7 @@ class AccountUI(Ui_Account):
     def getAccountAvatarResponse(self, data: dict) -> None:
         account = self.ourchat.getAccount(data["ocid"])
         if account == self.ourchat.account:
-            self.avatar_label.setImage(account.avatar_binary_data)
+            self.avatar_label.setImage(account.avatar_data)
 
     def bind(self) -> None:
         self.logout_btn.clicked.connect(self.logout)

@@ -57,16 +57,26 @@ class Ui_SessionSetting(object):
         self.session_name_editor.setObjectName("session_name_editor")
         self.horizontalLayout_5.addWidget(self.session_name_editor)
         self.verticalLayout_2.addLayout(self.horizontalLayout_5)
-        self.member_box = QtWidgets.QGroupBox(parent=SessionSetting)
-        self.member_box.setObjectName("member_box")
-        self.horizontalLayout_3 = QtWidgets.QHBoxLayout(self.member_box)
-        self.horizontalLayout_3.setObjectName("horizontalLayout_3")
-        self.member_list = QtWidgets.QListWidget(parent=self.member_box)
+        self.member_list = QtWidgets.QListWidget(parent=SessionSetting)
+        self.member_list.setSelectionMode(
+            QtWidgets.QAbstractItemView.SelectionMode.NoSelection
+        )
+        self.member_list.setSelectionBehavior(
+            QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows
+        )
+        self.member_list.setVerticalScrollMode(
+            QtWidgets.QAbstractItemView.ScrollMode.ScrollPerPixel
+        )
+        self.member_list.setHorizontalScrollMode(
+            QtWidgets.QAbstractItemView.ScrollMode.ScrollPerPixel
+        )
+        self.member_list.setMovement(QtWidgets.QListView.Movement.Static)
+        self.member_list.setResizeMode(QtWidgets.QListView.ResizeMode.Adjust)
+        self.member_list.setUniformItemSizes(False)
         self.member_list.setObjectName("member_list")
-        self.horizontalLayout_3.addWidget(self.member_list)
-        self.verticalLayout_2.addWidget(self.member_box)
+        self.verticalLayout_2.addWidget(self.member_list)
         self.verticalLayout_2.setStretch(0, 3)
-        self.verticalLayout_2.setStretch(1, 5)
+        self.verticalLayout_2.setStretch(1, 3)
         self.horizontalLayout_4.addLayout(self.verticalLayout_2)
         spacerItem2 = QtWidgets.QSpacerItem(
             40,
@@ -106,5 +116,4 @@ class Ui_SessionSetting(object):
         QtCore.QMetaObject.connectSlotsByName(SessionSetting)
 
     def retranslateUi(self, SessionSetting):
-        _translate = QtCore.QCoreApplication.translate
-        self.member_box.setTitle(_translate("SessionSetting", "Members"))
+        pass

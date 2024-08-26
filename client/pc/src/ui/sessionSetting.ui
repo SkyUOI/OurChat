@@ -43,7 +43,7 @@
       </spacer>
      </item>
      <item>
-      <layout class="QVBoxLayout" name="verticalLayout_2" stretch="3,5">
+      <layout class="QVBoxLayout" name="verticalLayout_2" stretch="3,3">
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_5">
          <item>
@@ -77,15 +77,28 @@
         </layout>
        </item>
        <item>
-        <widget class="QGroupBox" name="member_box">
-         <property name="title">
-          <string>Members</string>
+        <widget class="QListWidget" name="member_list">
+         <property name="selectionMode">
+          <enum>QAbstractItemView::NoSelection</enum>
          </property>
-         <layout class="QHBoxLayout" name="horizontalLayout_3">
-          <item>
-           <widget class="QListWidget" name="member_list"/>
-          </item>
-         </layout>
+         <property name="selectionBehavior">
+          <enum>QAbstractItemView::SelectRows</enum>
+         </property>
+         <property name="verticalScrollMode">
+          <enum>QAbstractItemView::ScrollPerPixel</enum>
+         </property>
+         <property name="horizontalScrollMode">
+          <enum>QAbstractItemView::ScrollPerPixel</enum>
+         </property>
+         <property name="movement">
+          <enum>QListView::Static</enum>
+         </property>
+         <property name="resizeMode">
+          <enum>QListView::Adjust</enum>
+         </property>
+         <property name="uniformItemSizes">
+          <bool>false</bool>
+         </property>
         </widget>
        </item>
       </layout>

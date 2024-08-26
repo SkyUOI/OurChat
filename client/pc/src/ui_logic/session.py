@@ -4,15 +4,18 @@ from logging import getLogger
 from lib.const import (
     ACCOUNT_FINISH_GET_AVATAR,
     ACCOUNT_FINISH_GET_INFO,
+    NEW_SESSION_RESPONSE_MSG,
+    RUN_NORMALLY,
     SESSION_FINISH_GET_AVATAR,
     SESSION_FINISH_GET_INFO,
     USER_MSG,
 )
 from lib.OurChatSession import OurChatSession
-from lib.OurChatUI import MessageWidget, OurChatWidget, SessionWidget
+from lib.OurChatUI import MessageListItemWidget, OurChatWidget, SessionListItemWidget
 from PyQt6.QtCore import QSize
 from PyQt6.QtWidgets import QListWidgetItem
 from ui.session import Ui_Session
+from ui_logic.sessionSetting import SessionSettingUI
 
 logger = getLogger(__name__)
 
@@ -39,29 +42,30 @@ class SessionUI(Ui_Session):
         self.title.setText("")
         self.editor.setEnabled(False)
         self.send_btn.setText(self.ourchat.language["send"])
+        self.add_session_btn.setText("+")
         self.addSessions()
 
     def addSessions(self):
         if self.ourchat.account.have_got_info:
             for session in self.ourchat.account.sessions:
-                self.addSession(self.ourchat.account.sessions[session])
+                self.addSessionItem(self.ourchat.account.sessions[session])
 
     def bind(self) -> None:
         self.session_list.itemClicked.connect(self.openSession)
         self.send_btn.clicked.connect(self.send)
+        self.add_session_btn.clicked.connect(self.createSession)
 
-    def addSession(self, session: OurChatSession) -> None:
+    def addSessionItem(self, session: OurChatSession) -> None:
         recent_msg = self.ourchat.chatting_system.getRecord(session.session_id, 1)
         avatar = "resources/images/logo.png"
         name = session.session_id
         recent_msg_text = ""
 
         if session.have_got_avatar:
-            avatar = session.avatar_binary_data
+            avatar = session.avatar_data
         if session.have_got_info:
             name = session.data["name"]
         if len(recent_msg) >= 1:
-            print(recent_msg)
             recent_msg_text = recent_msg[0]["msg"][0]["text"]
 
         have_not_read = self.ourchat.chatting_system.getHavenotReadNumber(
@@ -69,7 +73,7 @@ class SessionUI(Ui_Session):
         )
         item = QListWidgetItem(self.session_list)
         item.setSizeHint(QSize(65, 65))
-        widget = SessionWidget(self.session_list)
+        widget = SessionListItemWidget(self.session_list)
         widget.setSession(
             session.session_id,
             avatar,
@@ -80,10 +84,10 @@ class SessionUI(Ui_Session):
         self.session_list.setItemWidget(item, widget)
         self.sessions[session.session_id] = widget
 
-    def addMessage(self, message) -> None:
+    def addMessageItem(self, message) -> None:
         item = QListWidgetItem(self.message_list)
         self.message_list.addItem(item)
-        widget = MessageWidget(self.message_list)
+        widget = MessageListItemWidget(self.message_list)
         widget.ocid = message["sender"]["ocid"]
         sender_account = self.ourchat.getAccount(message["sender"]["ocid"])
         avatar = "resources/images/logo.png"
@@ -93,7 +97,7 @@ class SessionUI(Ui_Session):
         if account.have_got_info:
             name = account.data["nickname"]
         if account.have_got_avatar:
-            avatar = account.avatar_binary_data
+            avatar = account.avatar_data
 
         widget.setMessage(
             item,
@@ -118,7 +122,7 @@ class SessionUI(Ui_Session):
 
     def insertMessages(self, messages) -> None:
         for message in messages:
-            self.addMessage(message)
+            self.addMessageItem(message)
 
     def getAccountInfoResponse(self, data: dict) -> None:
         account = self.ourchat.getAccount(data["ocid"])
@@ -132,7 +136,7 @@ class SessionUI(Ui_Session):
         account = self.ourchat.getAccount(data["ocid"])
         for message in self.messages:
             if message.ocid == account.ocid:
-                message.setAvatar(account.avatar_binary_data)
+                message.setAvatar(account.avatar_data)
 
     def getSessionInfoResponse(self, data: dict) -> None:
         session = self.ourchat.getSession(data["session_id"])
@@ -146,7 +150,7 @@ class SessionUI(Ui_Session):
         if session.session_id not in self.sessions:
             return
         session_widget = self.sessions[session.session_id]
-        session_widget.setAvatar(session.avatar_binary_data)
+        session_widget.setAvatar(session.avatar_data)
 
     def send(self):
         text = self.editor.toPlainText()
@@ -182,7 +186,7 @@ class SessionUI(Ui_Session):
             )
             record.reverse()
             for message in record:
-                self.addMessage(message)
+                self.addMessageItem(message)
             self.ourchat.chatting_system.readSession(current_session_widget.session_id)
         have_not_read = self.ourchat.chatting_system.getHavenotReadNumber(session_id)
         message_record = self.ourchat.chatting_system.getRecord(session_id, 1)
@@ -200,3 +204,12 @@ class SessionUI(Ui_Session):
         self.ourchat.listen(USER_MSG, self.messageResponse)
         self.ourchat.listen(ACCOUNT_FINISH_GET_INFO, self.getAccountInfoResponse)
         self.ourchat.listen(ACCOUNT_FINISH_GET_AVATAR, self.getAccountAvatarResponse)
+        self.ourchat.listen(NEW_SESSION_RESPONSE_MSG, self.newSessionResponse)
+
+    def createSession(self):
+        dialog = self.uisystem.setDialog(SessionSettingUI, True)
+        dialog.show()
+
+    def newSessionResponse(self, data: dict) -> None:
+        if data["status_code"] == RUN_NORMALLY:
+            self.addSessionItem(self.ourchat.getSession(data["session_id"]))

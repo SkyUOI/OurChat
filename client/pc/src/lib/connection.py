@@ -13,7 +13,7 @@ class Connection:
     def __init__(self, ourchat) -> None:
         self.ourchat = ourchat
         self.conn = None
-        self.closed = True
+        self.closing = True
         self.setServer("127.0.0.1", 7777)
 
     def setServer(self, ip: str, port: int) -> None:
@@ -23,10 +23,8 @@ class Connection:
 
     def connect(self) -> Tuple[bool, str]:
         logger.info("try to connect to server")
-        self.closed = False
         if self.conn is not None:
-            self.conn.close()
-            self.conn = None
+            self.close()
         try:
             self.conn = client.connect(f"ws://{self.ip}:{self.port}")
             logger.info("connect to server successfully")
@@ -51,7 +49,8 @@ class Connection:
                 self.ourchat.triggerEvent(data)
             except CloseError as ce:
                 logger.warning(f"connection close error: {str(ce)}")
-                if self.closed:
+                if self.closing:
+                    self.closing = False
                     return
                 self.conn = None
                 flag = False
@@ -69,7 +68,7 @@ class Connection:
                 )
                 return
             except CloseOK:
-                if not self.closed:
+                if not self.closing:
                     logger.info("connection has been close with CLOSEOK by server")
                     self.ourchat.runInMainThread(
                         lambda: self.ourchat.restart(
@@ -78,6 +77,7 @@ class Connection:
                     )
                 else:
                     logger.info("connection has been close with CLOSEOK")
+                    self.closing = False
                 return
             except Exception as e:
                 logger.warning(f"unknown error: {str(e)}")
@@ -85,7 +85,7 @@ class Connection:
 
     def close(self) -> None:
         logger.info("close connection")
-        self.closed = True
+        self.closing = True
         if self.conn is None:
             return
         self.conn.close()

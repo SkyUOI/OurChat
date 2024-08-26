@@ -4,13 +4,12 @@ import os
 import random
 import time
 from threading import Thread
+import sys
 
 from peewee import IntegerField, Model, SqliteDatabase, TextField, fn
 from websockets.server import serve
 
 db = SqliteDatabase("database.db")
-db.connect()
-
 
 class Account(Model):
     ocid = TextField(null=False, primary_key=True)
@@ -33,9 +32,9 @@ class Account(Model):
 
 class Session(Model):
     session_id = TextField(null=False, primary_key=True)
-    name = TextField(null=False)
-    avatar = TextField(null=False)
-    avatar_hash = TextField(null=False)
+    name = TextField(null=True)
+    avatar = TextField(null=True)
+    avatar_hash = TextField(null=True)
     time = IntegerField(null=False)
     update_time = IntegerField(null=False)
     members = TextField(null=False)
@@ -86,33 +85,36 @@ class Connection:
 
 
 def account_info(conn: Connection, sample: dict, data: dict) -> dict:
-    print(len(data["ocid"]))
     account_info = Account.get_or_none(Account.ocid == data["ocid"])
-    for key in data["request_values"]:
-        if key == "ocid":
-            sample["data"][key] = account_info.ocid
-        elif key == "nickname":
-            sample["data"][key] = account_info.nickname
-        elif key == "status":
-            sample["data"][key] = account_info.status
-        elif key == "avatar":
-            sample["data"][key] = account_info.avatar
-        elif key == "avatar_hash":
-            sample["data"][key] = account_info.avatar_hash
-        elif key == "time":
-            sample["data"][key] = account_info.time
-        elif key == "public_update_time":
-            sample["data"][key] = account_info.public_update_time
-        elif key == "update_time":
-            sample["data"][key] = account_info.update_time
-        elif key == "sessions":
-            sample["data"][key] = account_info.sessions
-            if conn.ocid != account_info.ocid:
-                sample["data"][key] = None
-        elif key == "friends":
-            sample["data"][key] = account_info.friends
-            if conn.ocid != account_info.ocid:
-                sample["data"][key] = None
+    if account_info is not None:
+        for key in data["request_values"]:
+            if key == "ocid":
+                sample["data"][key] = account_info.ocid
+            elif key == "nickname":
+                sample["data"][key] = account_info.nickname
+            elif key == "status":
+                sample["data"][key] = account_info.status
+            elif key == "avatar":
+                sample["data"][key] = account_info.avatar
+            elif key == "avatar_hash":
+                sample["data"][key] = account_info.avatar_hash
+            elif key == "time":
+                sample["data"][key] = account_info.time
+            elif key == "public_update_time":
+                sample["data"][key] = account_info.public_update_time
+            elif key == "update_time":
+                sample["data"][key] = account_info.update_time
+            elif key == "sessions":
+                sample["data"][key] = account_info.sessions
+                if conn.ocid != account_info.ocid:
+                    sample["data"][key] = None
+            elif key == "friends":
+                sample["data"][key] = account_info.friends
+                if conn.ocid != account_info.ocid:
+                    sample["data"][key] = None
+        sample["status_code"] = 0
+    else:
+        sample["status_code"] = 3
     return sample
 
 
@@ -124,44 +126,48 @@ def login(conn: Connection, sample: dict, data: dict) -> dict:
         ocid = data["account"]
         account = Account.get_or_none(Account.ocid == ocid)
     if account is None:
-        sample["status"] = 1
+        sample["status_code"] = 5
     else:
         if data["password"] == account.password:
             conn.ocid = account.ocid
             sample["ocid"] = account.ocid
-            sample["status"] = 0
+            sample["status_code"] = 0
         else:
-            sample["status"] = 1
+            sample["status_code"] = 5
 
     return sample
 
 
 def session_info(conn: Connection, sample: dict, data: dict) -> dict:
     session = Session.get_or_none(Session.session_id == data["session_id"])
-    for key in data["request_values"]:
-        if key == "session_id":
-            sample["data"][key] = session.session_id
-        elif key == "name":
-            sample["data"][key] = session.name
-        elif key == "avatar":
-            sample["data"][key] = session.avatar
-        elif key == "avatar_hash":
-            sample["data"][key] = session.avatar_hash
-        elif key == "time":
-            sample["data"][key] = session.time
-        elif key == "update_time":
-            sample["data"][key] = session.update_time
-        elif key == "members":
-            sample["data"][key] = session.members
-        elif key == "owner":
-            sample["data"][key] = session.owner
+    if session is None:
+        sample["status_code"] = 3
+    else:
+        for key in data["request_values"]:
+            if key == "session_id":
+                sample["data"][key] = session.session_id
+            elif key == "name":
+                sample["data"][key] = session.name
+            elif key == "avatar":
+                sample["data"][key] = session.avatar
+            elif key == "avatar_hash":
+                sample["data"][key] = session.avatar_hash
+            elif key == "time":
+                sample["data"][key] = session.time
+            elif key == "update_time":
+                sample["data"][key] = session.update_time
+            elif key == "members":
+                sample["data"][key] = session.members
+            elif key == "owner":
+                sample["data"][key] = session.owner
+        sample["status_code"] = 0
     return sample
 
 
 def register(conn: Connection, sample: dict, data: dict) -> dict:
     account = Account.get_or_none(Account.email == data["email"])
     if account is not None:
-        sample["status"] = 2
+        sample["status_code"] = 4
     else:
         max_ocid = Account.select(fn.Max(Account.ocid)).scalar()
         if max_ocid is None:
@@ -179,12 +185,12 @@ def register(conn: Connection, sample: dict, data: dict) -> dict:
             time=time.time(),
             public_update_time=time.time(),
             update_time=time.time(),
-            sessions=[],
-            friends=[],
+            sessions=json.dumps([]),
+            friends=json.dumps([]),
         )
         conn.ocid = ocid
         sample["ocid"] = ocid
-        sample["status"] = 0
+        sample["status_code"] = 0
 
     return sample
 
@@ -214,9 +220,9 @@ def user_msg(conn: Connection, sample: dict, data: dict) -> dict:
 
 
 def new_session(conn: Connection, sample: dict, data: dict) -> dict:
-    avatar = "http://img.senlinjun.top/imgs/2024/08/c57c426151947784.png"
-    avatar_hash = "6856e25c44cce62e5577c23506bcfea8fdd440ad63594ef82a5d9e36951e240a"
-    name = "%OURCHAT_DEFAULT_SESSION_NAME%"
+    avatar = None
+    avatar_hash = None
+    name = None
 
     if "avatar" in data:
         avatar = data["avatar"]
@@ -233,6 +239,14 @@ def new_session(conn: Connection, sample: dict, data: dict) -> dict:
             int(max_session_id) + 1
         )
 
+    for ocid in data["members"]:
+        account = Account.get(Account.ocid == ocid)
+        sessions = json.loads(account.sessions)
+        sessions.append(session_id)
+        Account.update(sessions=json.dumps(sessions)).where(
+            Account.ocid == ocid
+        ).execute()
+
     Session.create(
         session_id=session_id,
         name=name,
@@ -240,11 +254,11 @@ def new_session(conn: Connection, sample: dict, data: dict) -> dict:
         avatar_hash=avatar_hash,
         time=time.time(),
         update_time=time.time(),
-        members=data["members"],
+        members=json.dumps(data["members"]),
         owner=conn.ocid,
     )
 
-    sample["status"] = 0
+    sample["status_code"] = 0
     sample["session_id"] = session_id
 
     return sample
@@ -255,15 +269,12 @@ def unregister(conn: Connection, sample: dict, data: dict) -> dict:
     if account is None:
         return sample
     account.delete_instance()
-    sample["status"] = 0
+    sample["status_code"] = 0
     return sample
 
 
 def set_account(conn: Connection, sample: dict, data: dict) -> dict:
-    if conn.ocid != data["ocid"]:
-        sample["status"] = 1
-        return sample
-    account = Account.get_or_none(Account.ocid == data["ocid"])
+    account = Account.get_or_none(Account.ocid == conn.ocid)
     nickname = account.nickname
     status = account.status
     avatar = account.avatar
@@ -286,7 +297,7 @@ def set_account(conn: Connection, sample: dict, data: dict) -> dict:
         avatar_hash=avatar_hash,
         public_update_time=public_update_time,
     ).where(Account.ocid == data["ocid"]).execute()
-    sample["status"] = 0
+    sample["status_code"] = 0
     return sample
 
 
@@ -308,45 +319,53 @@ async def connected(websocket):
     await Connection(websocket).recvAndReply()
 
 
-async def server_forever():
-    async with serve(connected, "localhost", 7777):
-        await asyncio.Future()  # run forever
+async def server_forever(ip,port):
+    async with serve(connected, ip,port):
+        await asyncio.Future()
 
 
-def start_serve():
-    asyncio.run(server_forever())
+def start_serve(ip,port):
+    asyncio.run(server_forever(ip,port))
 
+if __name__ == "__main__":
+    ip = "localhost"
+    port = 7777
+    if "--ip" in sys.argv:
+        ip = sys.argv[sys.argv.index("--ip") + 1]
+    if "--port" in sys.argv:
+        port = int(sys.argv[sys.argv.index("--port") + 1])
 
-Account.create_table(safe=True)
-Session.create_table(safe=True)
+    db.connect()
+    Account.create_table(safe=True)
+    Session.create_table(safe=True)
 
-Thread(target=start_serve, daemon=True).start()
+    Thread(target=start_serve, daemon=True,args=(ip,port)).start()
 
-while True:
-    print("=" * 40)
-    for i in range(len(messages)):
-        print(f"{i+1}. {messages[i]}")
-    print("=" * 40)
-    user_input = input(
-        "input {address}<<<{msgid}/{json} to send message\ninput blank to exit\n"
-    )
-    if user_input == "":
-        break
-    address, data = user_input.split("<<<")
-    send_data = None
-    try:
-        index = int(data)
-        with open(f"message_samples/{messages[index-1]}") as f:
-            send_data = json.loads(f.read())
-    except ValueError:
-        send_data = json.loads(data)
-    if address not in connections:
-        print("[ERROR] address not found")
-        continue
-    connections[address].send(send_data)
+    while True:
+        print("=" * 40)
+        for i in range(len(messages)):
+            print(f"{i+1}. {messages[i]}")
+        print("=" * 40)
+        user_input = input(
+            "input {address}<<<{msgid}/{json} to send message\ninput blank to exit\n"
+        )
+        if user_input == "":
+            break
+        address, data = user_input.split("<<<")
+        send_data = None
+        try:
+            index = int(data)
+            with open(f"message_samples/{messages[index-1]}") as f:
+                send_data = json.loads(f.read())
+        except ValueError:
+            send_data = json.loads(data)
+        if address not in connections:
+            print("[ERROR] address not found")
+            continue
+        connections[address].send(send_data)
 
-print("CLOSING...")
-keys = list(connections.keys())
-for address in keys:
-    connections[address].close()
-db.close()
+    print("CLOSING...")
+    keys = list(connections.keys())
+    for address in keys:
+        connections[address].close()
+    db.close()

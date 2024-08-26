@@ -4,6 +4,7 @@ from typing import Any, overload
 from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtGui import QCloseEvent, QPixmap, QResizeEvent
 from PyQt6.QtWidgets import (
+    QCheckBox,
     QDialog,
     QHBoxLayout,
     QLabel,
@@ -73,7 +74,7 @@ class ImageLabel(QLabel):
         super().resizeEvent(a0)
 
 
-class SessionWidget(QWidget):
+class SessionListItemWidget(QWidget):
     @overload
     def setSession(
         self, session_id: str, avatar: bytes, name: str, detail: str
@@ -121,7 +122,7 @@ class SessionWidget(QWidget):
         self.detail_label.setText(detail)
 
 
-class MessageWidget(QWidget):
+class MessageListItemWidget(QWidget):
     @overload
     def setMessage(
         self,
@@ -221,3 +222,37 @@ class MessageWidget(QWidget):
             QSize(1, self.text_browser.document().size().toSize().height() + 70)
         )
         super().resizeEvent(a0)
+
+
+class AccountListItemWidget(QWidget):
+    def setAccount(self, item: QListWidgetItem, avatar, nickname, checked=None):
+        self.layout = QHBoxLayout(self)
+        self.avatar_label = ImageLabel(self)
+        self.avatar_label.setImage(avatar)
+        self.layout.addWidget(self.avatar_label)
+        self.nickname_label = QLabel(self)
+        self.nickname_label.setText(nickname)
+        self.layout.addWidget(self.nickname_label)
+        self.layout.addSpacerItem(
+            QSpacerItem(
+                40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
+            )
+        )
+        if checked is not None:
+            self.checkbox = QCheckBox(self)
+            self.checkbox.setChecked(checked)
+            self.layout.addWidget(self.checkbox)
+        self.setLayout(self.layout)
+        item.setSizeHint(QSize(60, 60))
+
+    def setNickname(self, nickname: str):
+        self.nickname_label.setText(nickname)
+
+    @overload
+    def setAvatar(self, avatar: bytes) -> None: ...
+
+    @overload
+    def setAvatar(self, path: str) -> None: ...
+
+    def setAvatar(self, avatar):
+        self.avatar_label.setImage(avatar)
