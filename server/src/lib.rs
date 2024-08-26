@@ -216,7 +216,7 @@ pub async fn lib_main() -> anyhow::Result<()> {
         let input_loop = async {
             let mut shutdown_receiver = shutdown_sender.subscribe();
             loop {
-                print!(">>>");
+                print!(">>> ");
                 std::io::stdout().flush().unwrap();
                 let command = match console_reader.next_line().await {
                     Ok(d) => match d {

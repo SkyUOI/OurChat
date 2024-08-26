@@ -140,7 +140,7 @@ impl Connection {
     async fn verify(
         ws: &mut WS,
         request_sender: &mpsc::Sender<DBRequest>,
-    ) -> anyhow::Result<(String, VerifyRes)> {
+    ) -> anyhow::Result<Option<(String, VerifyRes)>> {
         loop {
             let msg = match ws.next().await {
                 None => {
@@ -151,48 +151,55 @@ impl Connection {
                     Err(e) => Err(e)?,
                 },
             };
-            let text = match msg.to_text() {
-                Ok(text) => text,
-                Err(e) => anyhow::bail!("Failed to convert message to text: {}", e),
-            };
-            let json: Value = serde_json::from_str(text)?;
-            // 获取消息类型
-            let code = &json["code"];
-            if let Value::Number(code) = code {
-                let code = code.as_u64();
-                if code == Some(MessageType::Login as u64) {
-                    let login_data: requests::Login = serde_json::from_value(json)?;
-                    let resp = Self::login_request(request_sender, login_data).await?;
-                    return Ok(resp);
-                } else if code == Some(MessageType::Register as u64) {
-                    let request_data: requests::Register = serde_json::from_value(json)?;
-                    let resp = Self::register_request(request_sender, request_data).await?;
-                    return Ok(resp);
-                } else if code == Some(MessageType::GetStatus as u64) {
-                    let resp = GetStatusResponse::normal();
-                    let resp = serde_json::to_string(&resp)?;
-                    ws.send(Message::Text(resp)).await?;
-                    continue;
-                } else {
-                    // 验证不通过
-                    let resp =
-                        serde_json::to_string(&client_response::error_msg::ErrorMsgResponse::new(
-                            "Not login or register code".to_string(),
-                        ))?;
-                    tracing::info!(
-                        "Failed to login,code is {:?},not login or register code",
-                        code
-                    );
-                    return Ok((
-                        resp,
-                        VerifyRes {
-                            status: VerifyStatus::Fail,
-                            id: ID::default(),
-                        },
-                    ));
+            match msg {
+                Message::Text(text) => {
+                    let json: Value = serde_json::from_str(&text)?;
+                    // 获取消息类型
+                    let code = &json["code"];
+                    if let Value::Number(code) = code {
+                        let code = code.as_u64();
+                        if code == Some(MessageType::Login as u64) {
+                            let login_data: requests::Login = serde_json::from_value(json)?;
+                            let resp = Self::login_request(request_sender, login_data).await?;
+                            return Ok(Some(resp));
+                        } else if code == Some(MessageType::Register as u64) {
+                            let request_data: requests::Register = serde_json::from_value(json)?;
+                            let resp = Self::register_request(request_sender, request_data).await?;
+                            return Ok(Some(resp));
+                        } else if code == Some(MessageType::GetStatus as u64) {
+                            let resp = GetStatusResponse::normal();
+                            let resp = serde_json::to_string(&resp)?;
+                            ws.send(Message::Text(resp)).await?;
+                            continue;
+                        } else {
+                            // 验证不通过
+                            let resp = serde_json::to_string(
+                                &client_response::error_msg::ErrorMsgResponse::new(
+                                    "Not login or register code".to_string(),
+                                ),
+                            )?;
+                            tracing::info!(
+                                "Failed to login,code is {:?},not login or register code",
+                                code
+                            );
+                            return Ok(Some((
+                                resp,
+                                VerifyRes {
+                                    status: VerifyStatus::Fail,
+                                    id: ID::default(),
+                                },
+                            )));
+                        }
+                    } else {
+                        anyhow::bail!("Failed to login,code is not a number or missing");
+                    }
                 }
-            } else {
-                anyhow::bail!("Failed to login,code is not a number or missing");
+                Message::Close(_) => {
+                    return Ok(None);
+                }
+                _ => {
+                    anyhow::bail!("Failed to login,not a text message");
+                }
             }
         }
     }
@@ -208,7 +215,7 @@ impl Connection {
             'con_loop: loop {
                 let msg = incoming.next().await;
                 if msg.is_none() {
-                    return Ok(());
+                    break;
                 }
                 let msg = msg.unwrap();
                 let msg = match msg {
@@ -292,14 +299,12 @@ impl Connection {
                     tungstenite::Message::Pong(_) => {
                         tracing::info!("recv pong");
                     }
-                    tungstenite::Message::Close(_) => {
-                        net_sender.send(Message::Close(None)).await?;
-                        drop(net_sender);
-                        return Ok(());
-                    }
                     tungstenite::Message::Frame(_) => todo!(),
+                    _ => {}
                 }
             }
+            tracing::debug!("connection closed");
+            Ok(())
         };
         select! {
             ret = work => {ret},
@@ -361,10 +366,6 @@ impl Connection {
                     tungstenite::Message::Pong(_) => {
                         tracing::info!("recv pong");
                     }
-                    tungstenite::Message::Close(_) => {
-                        socket.close(None).await?;
-                        return Ok(());
-                    }
                     _ => {}
                 },
                 Err(e) => Err(e)?,
@@ -387,18 +388,25 @@ impl Connection {
         let verify_loop = async {
             loop {
                 let ret = Connection::verify(&mut socket, &request_sender).await?;
-                select! {
-                    err = socket.send(tungstenite::Message::Text(ret.0)) => {
-                        err?
-                    },
-                    _ = shutdown_receiver.recv() => {
-                        return anyhow::Ok(())
-                    },
-                }
-                if let VerifyStatus::Success = ret.1.status {
-                    // 验证通过，跳出循环
-                    id = ret.1.id;
-                    break;
+                match ret {
+                    None => {
+                        return anyhow::Ok(());
+                    }
+                    Some(ret) => {
+                        select! {
+                            err = socket.send(tungstenite::Message::Text(ret.0)) => {
+                                err?
+                            },
+                            _ = shutdown_receiver.recv() => {
+                                return anyhow::Ok(())
+                            },
+                        }
+                        if let VerifyStatus::Success = ret.1.status {
+                            // 验证通过，跳出循环
+                            id = ret.1.id;
+                            break;
+                        }
+                    }
                 }
             }
             Ok(())
