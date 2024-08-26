@@ -33,7 +33,8 @@ struct SetUpHandle {
 
 impl SetUpHandle {
     fn new() -> Self {
-        std::env::set_var("RUST_LOG", "DEBUG");
+        // Audit that the environment access only happens in single-threaded code.
+        unsafe { std::env::set_var("RUST_LOG", "DEBUG") };
         let config_file = match std::env::var("OURCHAT_CONFIG_FILE") {
             Ok(v) => v,
             Err(_) => "../config/mysql/ourchat.toml".to_string(),
