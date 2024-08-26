@@ -4,13 +4,12 @@ import os
 import random
 import time
 from threading import Thread
+import sys
 
 from peewee import IntegerField, Model, SqliteDatabase, TextField, fn
 from websockets.server import serve
 
 db = SqliteDatabase("database.db")
-db.connect()
-
 
 class Account(Model):
     ocid = TextField(null=False, primary_key=True)
@@ -320,45 +319,53 @@ async def connected(websocket):
     await Connection(websocket).recvAndReply()
 
 
-async def server_forever():
-    async with serve(connected, "localhost", 7777):
-        await asyncio.Future()  # run forever
+async def server_forever(ip,port):
+    async with serve(connected, ip,port):
+        await asyncio.Future()
 
 
-def start_serve():
-    asyncio.run(server_forever())
+def start_serve(ip,port):
+    asyncio.run(server_forever(ip,port))
 
+if __name__ == "__main__":
+    ip = "localhost"
+    port = 7777
+    if "--ip" in sys.argv:
+        ip = sys.argv[sys.argv.index("--ip") + 1]
+    if "--port" in sys.argv:
+        port = int(sys.argv[sys.argv.index("--port") + 1])
 
-Account.create_table(safe=True)
-Session.create_table(safe=True)
+    db.connect()
+    Account.create_table(safe=True)
+    Session.create_table(safe=True)
 
-Thread(target=start_serve, daemon=True).start()
+    Thread(target=start_serve, daemon=True,args=(ip,port)).start()
 
-while True:
-    print("=" * 40)
-    for i in range(len(messages)):
-        print(f"{i+1}. {messages[i]}")
-    print("=" * 40)
-    user_input = input(
-        "input {address}<<<{msgid}/{json} to send message\ninput blank to exit\n"
-    )
-    if user_input == "":
-        break
-    address, data = user_input.split("<<<")
-    send_data = None
-    try:
-        index = int(data)
-        with open(f"message_samples/{messages[index-1]}") as f:
-            send_data = json.loads(f.read())
-    except ValueError:
-        send_data = json.loads(data)
-    if address not in connections:
-        print("[ERROR] address not found")
-        continue
-    connections[address].send(send_data)
+    while True:
+        print("=" * 40)
+        for i in range(len(messages)):
+            print(f"{i+1}. {messages[i]}")
+        print("=" * 40)
+        user_input = input(
+            "input {address}<<<{msgid}/{json} to send message\ninput blank to exit\n"
+        )
+        if user_input == "":
+            break
+        address, data = user_input.split("<<<")
+        send_data = None
+        try:
+            index = int(data)
+            with open(f"message_samples/{messages[index-1]}") as f:
+                send_data = json.loads(f.read())
+        except ValueError:
+            send_data = json.loads(data)
+        if address not in connections:
+            print("[ERROR] address not found")
+            continue
+        connections[address].send(send_data)
 
-print("CLOSING...")
-keys = list(connections.keys())
-for address in keys:
-    connections[address].close()
-db.close()
+    print("CLOSING...")
+    keys = list(connections.keys())
+    for address in keys:
+        connections[address].close()
+    db.close()
