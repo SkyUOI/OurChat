@@ -141,52 +141,59 @@ impl Connection {
         ws: &mut WS,
         request_sender: &mpsc::Sender<DBRequest>,
     ) -> anyhow::Result<(String, VerifyRes)> {
-        let msg = match ws.next().await {
-            None => {
-                anyhow::bail!("Failed to receive message when logining");
-            }
-            Some(res) => match res {
-                Ok(msg) => msg,
-                Err(e) => Err(e)?,
-            },
-        };
-        let text = match msg.to_text() {
-            Ok(text) => text,
-            Err(e) => anyhow::bail!("Failed to convert message to text: {}", e),
-        };
-        let json: Value = serde_json::from_str(text)?;
-        // 获取消息类型
-        let code = &json["code"];
-        if let Value::Number(code) = code {
-            let code = code.as_u64();
-            if code == Some(MessageType::Login as u64) {
-                let login_data: requests::Login = serde_json::from_value(json)?;
-                let resp = Self::login_request(request_sender, login_data).await?;
-                Ok(resp)
-            } else if code == Some(MessageType::Register as u64) {
-                let request_data: requests::Register = serde_json::from_value(json)?;
-                let resp = Self::register_request(request_sender, request_data).await?;
-                return Ok(resp);
+        loop {
+            let msg = match ws.next().await {
+                None => {
+                    anyhow::bail!("Failed to receive message when logining");
+                }
+                Some(res) => match res {
+                    Ok(msg) => msg,
+                    Err(e) => Err(e)?,
+                },
+            };
+            let text = match msg.to_text() {
+                Ok(text) => text,
+                Err(e) => anyhow::bail!("Failed to convert message to text: {}", e),
+            };
+            let json: Value = serde_json::from_str(text)?;
+            // 获取消息类型
+            let code = &json["code"];
+            if let Value::Number(code) = code {
+                let code = code.as_u64();
+                if code == Some(MessageType::Login as u64) {
+                    let login_data: requests::Login = serde_json::from_value(json)?;
+                    let resp = Self::login_request(request_sender, login_data).await?;
+                    return Ok(resp);
+                } else if code == Some(MessageType::Register as u64) {
+                    let request_data: requests::Register = serde_json::from_value(json)?;
+                    let resp = Self::register_request(request_sender, request_data).await?;
+                    return Ok(resp);
+                } else if code == Some(MessageType::GetStatus as u64) {
+                    let resp = GetStatusResponse::normal();
+                    let resp = serde_json::to_string(&resp)?;
+                    ws.send(Message::Text(resp)).await?;
+                    continue;
+                } else {
+                    // 验证不通过
+                    let resp =
+                        serde_json::to_string(&client_response::error_msg::ErrorMsgResponse::new(
+                            "Not login or register code".to_string(),
+                        ))?;
+                    tracing::info!(
+                        "Failed to login,code is {:?},not login or register code",
+                        code
+                    );
+                    return Ok((
+                        resp,
+                        VerifyRes {
+                            status: VerifyStatus::Fail,
+                            id: ID::default(),
+                        },
+                    ));
+                }
             } else {
-                // 验证不通过
-                let resp =
-                    serde_json::to_string(&client_response::error_msg::ErrorMsgResponse::new(
-                        "Not login or register code".to_string(),
-                    ))?;
-                tracing::info!(
-                    "Failed to login,code is {:?},not login or register code",
-                    code
-                );
-                Ok((
-                    resp,
-                    VerifyRes {
-                        status: VerifyStatus::Fail,
-                        id: ID::default(),
-                    },
-                ))
+                anyhow::bail!("Failed to login,code is not a number or missing");
             }
-        } else {
-            anyhow::bail!("Failed to login,code is not a number or missing");
         }
     }
 
@@ -370,7 +377,8 @@ impl Connection {
         let mut id = ID::default();
 
         if static_branch_unlikely!(MAINTAINING) {
-            Self::maintaining(&mut socket).await?
+            Self::maintaining(&mut socket).await?;
+            return Ok(());
         }
         let verify_loop = async {
             loop {
