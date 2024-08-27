@@ -26,10 +26,7 @@ def run_tests(args: list):
     print("Test output:")
     print(test_process.stdout.decode())
 
-    if test_process.returncode == 0:
-        print("Tests passed.")
-    else:
-        print("Tests failed.")
+    if test_process.returncode != 0:
         raise Exception("Tests failed.")
 
 
@@ -68,6 +65,10 @@ def test_process() -> int:
         server_process.terminate()
         server_process.wait()
         print("Server terminated.")
+    if return_code == 0:
+        print("Test passed.")
+    else:
+        print("Test failed.")
     return return_code
 
 

@@ -1,6 +1,5 @@
 #![feature(asm_goto)]
 #![feature(decl_macro)]
-#![feature(allow_internal_unstable)]
 
 mod cmd;
 pub mod connection;
@@ -11,6 +10,7 @@ pub mod requests;
 mod server;
 pub mod utils;
 
+use actix_web::{App, HttpServer};
 use anyhow::bail;
 use clap::Parser;
 use consts::DEFAULT_PORT;
@@ -25,7 +25,7 @@ use std::{
     str::FromStr,
     sync::LazyLock,
 };
-use tokio::{select, sync::broadcast};
+use tokio::{select, signal::unix::SignalKind, sync::broadcast};
 use tracing::instrument;
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{
@@ -202,28 +202,55 @@ pub async fn lib_main() -> anyhow::Result<()> {
     let shutdown_sender_clone = shutdown_sender.clone();
     let shutdown_receiver_clone = shutdown_sender.subscribe();
     // 构建websocket服务端
-    let mut server = server::Server::new(ip, port, db, redis, parser.test_mode).await?;
+    let mut server = server::Server::new(ip.clone(), port, db, redis, parser.test_mode).await?;
     tokio::spawn(async move {
         server
             .accept_sockets(shutdown_sender_clone, shutdown_receiver_clone)
             .await
     });
-    // 构建web服务端
+    // 构建http服务端
+    let http_server = HttpServer::new(App::new).bind((ip.as_str(), 7778))?.run();
+    let mut shutdown_receiver_http = shutdown_sender.subscribe();
+    let http_server_handle = tokio::spawn(async move {
+        select! {
+            ret = http_server => {
+                tracing::info!("Http server exited internally");
+                ret
+            }
+            _ = shutdown_receiver_http.recv() => {
+                tracing::info!("Http server exited by shutdown signal");
+                Ok(())
+            }
+        }
+    });
 
     let shutdown_sender_clone = shutdown_sender.clone();
+    let shutdown_sender_clone2 = shutdown_sender.clone();
+    #[cfg(not(windows))]
+    tokio::spawn(async move {
+        if let Some(()) = tokio::signal::unix::signal(SignalKind::terminate())?
+            .recv()
+            .await
+        {
+            tracing::info!("Exit because of ctrl-c signal");
+            shutdown_sender_clone.send(())?;
+        }
+        anyhow::Ok(())
+    });
     tokio::spawn(async move {
         match tokio::signal::ctrl_c().await {
             Ok(()) => {
                 tracing::info!("Exit because of ctrl-c signal");
-                shutdown_sender_clone.send(())?;
+                shutdown_sender_clone2.send(())?;
             }
             Err(err) => {
                 tracing::error!("Unable to listen to ctrl-c signal:{}", err);
-                shutdown_sender_clone.send(())?;
+                shutdown_sender_clone2.send(())?;
             }
         }
         anyhow::Ok(())
     });
+
     if !parser.test_mode {
         let mut shutdown_receiver2 = shutdown_sender.subscribe();
         select! {
@@ -238,6 +265,7 @@ pub async fn lib_main() -> anyhow::Result<()> {
     } else {
         shutdown_receiver.recv().await?;
     }
+    http_server_handle.await??;
     tracing::info!("Server exited");
     Ok(())
 }
