@@ -2,8 +2,9 @@
 
 import init_valgrind_rust
 import os
+import test_server
 
 init_valgrind_rust.init_valgrind()
-os.chdir("server")
-if os.system("cargo test") != 0:
-    raise Exception("Server tests failed")
+code = test_server.test_process()
+if code != 0:
+    os._exit(code)

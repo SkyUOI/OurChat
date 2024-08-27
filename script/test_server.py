@@ -30,6 +30,7 @@ def run_tests(args: list):
         print("Tests passed.")
     else:
         print("Tests failed.")
+        raise Exception("Tests failed.")
 
 
 class Config:
@@ -45,7 +46,7 @@ def read_cfg(path) -> Config:
         return Config(json.load(f))
 
 
-def main():
+def test_process() -> int:
     if len(sys.argv) > 1:
         cfg = sys.argv[1]
     else:
@@ -55,15 +56,23 @@ def main():
         basic.msg_system(cfg.cmd_before_run)
     server_process = start_server(cfg.server_exec, cfg.server_args)
 
+    return_code = 0
     try:
         # 运行测试
         run_tests(cfg.test_args)
+    except Exception:
+        return_code = 1
     finally:
         # 终止服务器进程
         print("Terminating the server...")
         server_process.terminate()
         server_process.wait()
         print("Server terminated.")
+    return return_code
+
+
+def main():
+    sys.exit(test_process())
 
 
 if __name__ == "__main__":
