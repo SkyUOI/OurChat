@@ -1,10 +1,8 @@
 mod test_lib;
 
-#[test]
-#[serial_test::serial]
-fn test_login_register() {
+async fn test_login_register() {
     // 注册和登录会被自动运行
-    test_lib::init_server();
+    test_lib::get_connection();
 }
 
-cleanup!();
+register_test!(test_login_register);

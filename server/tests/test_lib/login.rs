@@ -45,7 +45,7 @@ async fn test_email_login(ocid: String) -> ClientWS {
 
 /// 登录失败
 async fn failed_login(conn: &mut ClientWS) {
-    let wrong_msg = r#"{"code":20}"#;
+    let wrong_msg = r#"{"code":65536}"#;
     conn.send(tungstenite::Message::Text(wrong_msg.to_string()))
         .await
         .unwrap();

@@ -151,12 +151,8 @@ mysql-data/**
 redis-data/**
 !redis-data/.gitkeep
 
-# mdbook
-book/
-
 machine_id
-
-local/
+log/
 
 # PC
 client/pc/src/config.json

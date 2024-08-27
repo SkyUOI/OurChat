@@ -8,7 +8,7 @@ use tungstenite::Message;
 
 /// 清理测试环境时顺便测试帐号删除，删除需要在所有测试后运行，所以只能在这里测试
 pub async fn test_unregister() {
-    let conn = super::get_connection();
+    let conn = super::get_connection().await;
     let req = Unregister::new();
     let mut lock = conn.lock().await;
     lock.send(Message::text(serde_json::to_string(&req).unwrap()))

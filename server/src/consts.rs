@@ -6,7 +6,7 @@ use serde_repr::{Deserialize_repr, Serialize_repr};
 use crate::db::DbType;
 
 /// OCID 长度
-pub const OCID_LEN: u32 = 10;
+pub const OCID_LEN: usize = 10;
 
 /// 往返的消息类型
 #[derive(Debug, Serialize_repr, Deserialize_repr, TryFromPrimitive, PartialEq, Eq)]
@@ -27,7 +27,7 @@ pub enum MessageType {
 /// 默认ip
 pub const DEFAULT_IP: &str = "127.0.0.1";
 /// 默认端口
-pub const DEFAULT_PORT: usize = 7777;
+pub const DEFAULT_PORT: u16 = 7777;
 /// 默认采用的数据库类型
 pub const DB_TYPE: DbType = DbType::Mysql;
 

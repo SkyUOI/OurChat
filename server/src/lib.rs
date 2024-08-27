@@ -1,5 +1,6 @@
 #![feature(asm_goto)]
 #![feature(decl_macro)]
+#![feature(allow_internal_unstable)]
 
 mod cmd;
 pub mod connection;
@@ -40,7 +41,7 @@ type ShutdownRev = broadcast::Receiver<()>;
 #[command(author = "SkyUOI", version = base::build::VERSION, about = "The Server of OurChat")]
 struct ArgsParser {
     #[arg(short, long, help = "binding port")]
-    port: Option<usize>,
+    port: Option<u16>,
     #[arg(long, default_value_t = String::from(consts::DEFAULT_IP), help = "binding ip")]
     ip: String,
     #[arg(long, default_value_t = String::default(), help = "ourchat config file path")]
@@ -70,7 +71,7 @@ struct Cfg {
     rediscfg: PathBuf,
     dbcfg: PathBuf,
     #[serde(default)]
-    port: Option<usize>,
+    port: Option<u16>,
     #[serde(default)]
     db_type: DbType,
 }

@@ -278,6 +278,10 @@ impl Connection {
                                             .await?;
                                             continue 'con_loop;
                                         }
+                                        MessageType::GetStatus => {
+                                            Self::get_status(&net_sender).await?;
+                                            continue 'con_loop;
+                                        }
                                         _ => {
                                             Self::send_error_msg(
                                                 &net_sender,

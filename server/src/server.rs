@@ -15,7 +15,7 @@ use tokio::{
 
 pub struct Server {
     ip: String,
-    port: usize,
+    port: u16,
     bind_addr: String,
     tcplistener: TcpListener,
     db: Option<sea_orm::DatabaseConnection>,
@@ -28,7 +28,7 @@ pub struct Server {
 impl Server {
     pub async fn new(
         ip: impl Into<String>,
-        port: usize,
+        port: u16,
         db: sea_orm::DatabaseConnection,
         redis: redis::Client,
         test_mode: bool,

@@ -48,5 +48,4 @@ colored = "2"
 strum = { version = "0", features = ["derive"] }
 
 [dev-dependencies]
-serial_test = "3"
 assert_cmd = "2"
