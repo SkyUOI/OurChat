@@ -1,6 +1,5 @@
 import json
 from logging import getLogger
-from typing import Union
 
 from lib.const import USER_MSG
 from peewee import IntegerField, Model, SqliteDatabase, TextField
@@ -13,7 +12,11 @@ class SessionRecord(Model):
     time = IntegerField(null=False)
     msg = TextField(null=False)
     sender_ocid = TextField(null=False)
+    sender_session_id = TextField(null=False)
     read = IntegerField(null=False)
+
+    class Meta:
+        table_name = "record"
 
 
 class ChattingSystem:
@@ -28,37 +31,30 @@ class ChattingSystem:
         self.database = SqliteDatabase(path)
         SessionRecord._meta.database = self.database
         self.database.connect()
-        self.readHavenotRead()
+        SessionRecord.create_table(safe=True)
         self.ourchat.listen(USER_MSG, self.gotMessage)
 
-    def createSessionTable(self, session: str) -> None:
-        logger.info("create table")
-        logger.debug(f"create table {session}")
-        table = SessionRecord
-        table._meta.table_name = session
-        self.database.create_tables([table])
-
-    def addRecord(self, session: str, data: dict) -> None:
-        if not self.database.table_exists(session):
-            self.createSessionTable(session)
-        table = SessionRecord
-        table._meta.table_name = session
-        table.create(
+    def addRecord(self, data: dict) -> None:
+        SessionRecord.create(
             msg_id=data["msg_id"],
             time=data["time"],
             msg=json.dumps(data["msg"]),
             sender_ocid=data["sender"]["ocid"],
+            sender_session_id=data["sender"]["session_id"],
             read=False,
         )
 
     def getRecord(self, session: str, maximum=50, before=-1) -> list:
-        if not self.database.table_exists(session):
+        if not self.database.table_exists(SessionRecord):
             logger.warning("table not found")
             logger.debug(f"table {session} not found")
             return []
-        table = SessionRecord
-        table._meta.table_name = session
-        query = table.select().order_by(SessionRecord.time.desc()).limit(maximum)
+        query = (
+            SessionRecord.select()
+            .order_by(SessionRecord.time.desc())
+            .limit(maximum)
+            .where(SessionRecord.sender_session_id == session)
+        )
         if before != -1:
             query = query.where(SessionRecord.time < before)
         data = []
@@ -79,32 +75,25 @@ class ChattingSystem:
             self.database.close()
 
     def gotMessage(self, data) -> None:
-        self.addRecord(data["sender"]["session_id"], data)
+        self.addRecord(data)
         if data["sender"]["session_id"] not in self.havenot_read:
             self.havenot_read[data["sender"]["session_id"]] = 0
         self.havenot_read[data["sender"]["session_id"]] += 1
 
     def readSession(self, session: str) -> None:
-        if not self.database.table_exists(session):
+        if not self.database.table_exists(SessionRecord):
             return
-        table = SessionRecord
-        table._meta.table_name = session
-        table.update({table.read: True}).where(table.read == 0).execute()
+        SessionRecord.update({SessionRecord.read: True}).where(
+            SessionRecord.read == 0
+        ).execute()
         self.havenot_read[session] = 0
 
-    def readHavenotRead(self) -> None:
-        tables = self.getSessions()
-        for table_name in tables:
-            table = SessionRecord
-            table._meta.table_name = table_name
-            self.havenot_read[table_name] = (
-                table.select().where(table.read == 0).count()
-            )
-
-    def getSessions(self) -> Union[list, None]:
-        return self.database.get_tables()
-
     def getHavenotReadNumber(self, session_id) -> int:
-        if session_id not in self.havenot_read:
-            return 0
-        return self.havenot_read[session_id]
+        return (
+            SessionRecord.select()
+            .where(
+                SessionRecord.sender_session_id == session_id
+                and SessionRecord.read == 0
+            )
+            .count()
+        )

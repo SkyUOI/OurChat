@@ -2,9 +2,9 @@ import asyncio
 import json
 import os
 import random
+import sys
 import time
 from threading import Thread
-import sys
 
 from peewee import IntegerField, Model, SqliteDatabase, TextField, fn
 from websockets.server import serve
@@ -70,11 +70,15 @@ class Connection:
             data = json.loads(message)
             print(f"[INFO]({self.address})>>> GET MESSAGE {data}")
             if data["code"] in auto_reply:
-                sample, func = auto_reply[data["code"]]
+                sample, func, need_await = auto_reply[data["code"]]
                 with open(f"message_samples/{sample}", "r") as f:
                     sample_data = json.loads(f.read())
-                reply_data = func(self, sample_data, data)
+                if need_await:
+                    reply_data = await func(self, sample_data, data)
+                else:
+                    reply_data = func(self, sample_data, data)
                 await self.conn.send(json.dumps(reply_data))
+
                 print(f"[INFO]({self.address})>>> AUTO-REPLY MESSAGE {reply_data}")
         print(f"[INFO]({self.address})>>> CLOSE")
         connections.pop(self.address)
@@ -200,7 +204,7 @@ def normal(conn: Connection, sample: dict, data: dict) -> dict:
     return sample
 
 
-def user_msg(conn: Connection, sample: dict, data: dict) -> dict:
+async def user_msg(conn: Connection, sample: dict, data: dict) -> dict:
     session = Session.get_or_none(Session.session_id == data["sender"]["session_id"])
     if session is None:
         return
@@ -214,13 +218,13 @@ def user_msg(conn: Connection, sample: dict, data: dict) -> dict:
         user_conn = connections[address]
         if user_conn == conn:
             continue
-        if user_conn in session.members:
-            user_conn.send(sample)
+        if user_conn.ocid in json.loads(session.members):
+            await user_conn.send(sample)
 
     return sample
 
 
-def new_session(conn: Connection, sample: dict, data: dict) -> dict:
+async def new_session(conn: Connection, sample: dict, data: dict) -> dict:
     avatar = None
     avatar_hash = None
     name = None
@@ -261,6 +265,13 @@ def new_session(conn: Connection, sample: dict, data: dict) -> dict:
 
     sample["status_code"] = 0
     sample["session_id"] = session_id
+
+    for address in connections:
+        user_conn = connections[address]
+        if user_conn == conn:
+            continue
+        if user_conn.ocid in data["members"]:
+            await user_conn.send(sample)
 
     return sample
 
@@ -303,16 +314,16 @@ def set_account(conn: Connection, sample: dict, data: dict) -> dict:
 
 
 auto_reply = {
-    0: ("user_msg.json", user_msg),
-    1: ("session_info.json", session_info),
-    4: ("register.json", register),
-    6: ("login.json", login),
-    8: ("new_session.json", new_session),
-    10: ("account_info.json", account_info),
-    12: ("server_status.json", normal),
-    14: ("verify_status.json", normal),
-    16: ("unregister.json", unregister),
-    19: ("set_account.json", set_account),
+    0: ("user_msg.json", user_msg, True),
+    1: ("session_info.json", session_info, False),
+    4: ("register.json", register, False),
+    6: ("login.json", login, False),
+    8: ("new_session.json", new_session, True),
+    10: ("account_info.json", account_info, False),
+    12: ("server_status.json", normal, False),
+    14: ("verify_status.json", normal, False),
+    16: ("unregister.json", unregister, False),
+    19: ("set_account.json", set_account, False),
 }
 
 
@@ -329,7 +340,7 @@ def start_serve(ip, port):
     asyncio.run(server_forever(ip, port))
 
 
-if __name__ == "__main__":
+async def main():
     ip = "localhost"
     port = 7777
     if "--ip" in sys.argv:
@@ -364,10 +375,14 @@ if __name__ == "__main__":
         if address not in connections:
             print("[ERROR] address not found")
             continue
-        connections[address].send(send_data)
+        await connections[address].send(send_data)
 
     print("CLOSING...")
     keys = list(connections.keys())
     for address in keys:
         connections[address].close()
     db.close()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

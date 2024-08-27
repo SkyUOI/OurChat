@@ -143,9 +143,10 @@ class OurChatAccount:
                 return
             self.ourchat.unListen(ACCOUNT_INFO_RESPONSE_MSG, self.getInfoResponse)
             self.data = data["data"]
-            self.data["sessions"] = json.loads(self.data["sessions"])
-            self.data["friends"] = json.loads(self.data["friends"])
-            if not self.me:
+            if self.me:
+                self.data["sessions"] = json.loads(self.data["sessions"])
+                self.data["friends"] = json.loads(self.data["friends"])
+            else:
                 self.data["sessions"] = None
                 self.data["friends"] = None
             self.ourchat.cache.setAccount(self.ocid, self.data)
