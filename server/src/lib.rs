@@ -17,12 +17,14 @@ use db::DbType;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use static_keys::define_static_key_false;
-use std::{fs, io::Write, path, sync::LazyLock};
-use tokio::{
-    io::{self, AsyncBufReadExt, BufReader},
-    select,
-    sync::broadcast,
+use std::{
+    fs,
+    io::Write,
+    path::{self, Path, PathBuf},
+    str::FromStr,
+    sync::LazyLock,
 };
+use tokio::{select, sync::broadcast};
 use tracing::instrument;
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{
@@ -65,12 +67,21 @@ define_static_key_false!(MAINTAINING);
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Cfg {
-    rediscfg: String,
-    dbcfg: String,
+    rediscfg: PathBuf,
+    dbcfg: PathBuf,
     #[serde(default)]
     port: Option<usize>,
     #[serde(default)]
     db_type: DbType,
+}
+
+impl Cfg {
+    fn convert_to_abs_path(&mut self, basepath: &Path) -> anyhow::Result<()> {
+        let full_basepath = basepath.canonicalize()?;
+        self.rediscfg = base::resolve_relative_path(&full_basepath, Path::new(&self.rediscfg))?;
+        self.dbcfg = base::resolve_relative_path(&full_basepath, Path::new(&self.dbcfg))?;
+        Ok(())
+    }
 }
 
 static MACHINE_ID: LazyLock<u64> = LazyLock::new(|| {
@@ -151,8 +162,11 @@ pub async fn lib_main() -> anyhow::Result<()> {
         parser.cfg
     };
     // 读取配置文件
-    let cfg = fs::read_to_string(cfg_path)?;
-    let cfg: Cfg = toml::from_str(&cfg).unwrap();
+    let cfg = fs::read_to_string(&cfg_path)?;
+    let cfg_path = path::Path::new(&cfg_path).parent().unwrap();
+    let mut cfg: Cfg = toml::from_str(&cfg).unwrap();
+    // 将相对路径转换
+    cfg.convert_to_abs_path(cfg_path)?;
     // 配置端口
     let port = match parser.port {
         None => match cfg.port {
@@ -172,18 +186,13 @@ pub async fn lib_main() -> anyhow::Result<()> {
     // 处理数据库
     let db_type = match parser.db_type {
         None => cfg.db_type,
-        Some(db_type) => {
-            if db_type == "mysql" {
-                DbType::Mysql
-            } else if db_type == "sqlite" {
-                DbType::Sqlite
-            } else {
-                bail!("Unknown database type. Only support mysql and sqlite");
-            }
-        }
+        Some(db_type) => match DbType::from_str(&db_type) {
+            Ok(db_type) => db_type,
+            Err(_) => bail!("Unknown database type. Only support mysql and sqlite"),
+        },
     };
     db::init_db_system(db_type);
-    let db = db::connect_to_db(&db::get_db_url(&cfg.dbcfg)?).await?;
+    let db = db::connect_to_db(&db::get_db_url(&cfg.dbcfg, cfg_path)?).await?;
     db::init_db(&db).await?;
     let redis = db::connect_to_redis(&db::get_redis_url(&cfg.rediscfg)?).await?;
 

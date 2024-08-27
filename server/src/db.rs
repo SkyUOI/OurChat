@@ -2,7 +2,10 @@
 
 pub mod user;
 
-use std::sync::OnceLock;
+use std::{
+    path::{Path, PathBuf},
+    sync::OnceLock,
+};
 
 use migration::MigratorTrait;
 use serde::{Deserialize, Serialize};
@@ -19,14 +22,23 @@ struct MysqlDbCfg {
 
 #[derive(Debug, Deserialize, Serialize)]
 struct SqliteDbCfg {
-    path: String,
+    path: PathBuf,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+impl SqliteDbCfg {
+    fn convert_to_abs_path(&mut self, basepath: &Path) -> anyhow::Result<()> {
+        self.path = base::resolve_relative_path(basepath, &self.path)?;
+        Ok(())
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, strum::EnumString)]
 pub enum DbType {
     #[serde(rename = "mysql")]
+    #[strum(serialize = "mysql")]
     Mysql,
     #[serde(rename = "sqlite")]
+    #[strum(serialize = "sqlite")]
     Sqlite,
 }
 
@@ -69,7 +81,7 @@ pub fn get_db_type() -> DbType {
 }
 
 /// 根据配置文件生成连接数据库的url
-pub fn get_db_url(path: &str) -> anyhow::Result<String> {
+pub fn get_db_url(path: &Path, basepath: &Path) -> anyhow::Result<String> {
     let db_type = get_db_type();
     let json = std::fs::read_to_string(path)?;
     match db_type {
@@ -82,8 +94,9 @@ pub fn get_db_url(path: &str) -> anyhow::Result<String> {
             Ok(path)
         }
         DbType::Sqlite => {
-            let cfg: SqliteDbCfg = serde_json::from_str(&json)?;
-            Ok(format!("sqlite://{}", cfg.path))
+            let mut cfg: SqliteDbCfg = serde_json::from_str(&json)?;
+            cfg.convert_to_abs_path(basepath)?;
+            Ok(format!("sqlite://{}", cfg.path.display()))
         }
     }
 }
@@ -133,7 +146,7 @@ struct RedisCfg {
 }
 
 /// 根据配置文件生成连接redis的url
-pub fn get_redis_url(path: &str) -> anyhow::Result<String> {
+pub fn get_redis_url(path: &Path) -> anyhow::Result<String> {
     let json = std::fs::read_to_string(path)?;
     let cfg: RedisCfg = serde_json::from_str(&json)?;
     let path = format!(
