@@ -19,8 +19,11 @@ def start_server(exec: str, args: list):
 
 def run_tests(args: list):
     print("Running tests...")
+    os.chdir("server")
     test_process = subprocess.run(
-        test_command.split() + args, stdout=subprocess.PIPE, stderr=sys.stderr
+        test_command.split() + args,
+        stdout=subprocess.PIPE,
+        stderr=sys.stderr,
     )
 
     print("Test output:")

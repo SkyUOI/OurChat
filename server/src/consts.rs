@@ -28,6 +28,8 @@ pub enum MessageType {
 pub const DEFAULT_IP: &str = "127.0.0.1";
 /// 默认端口
 pub const DEFAULT_PORT: u16 = 7777;
+/// http服务器默认端口
+pub const DEFAULT_HTTP_PORT: u16 = 7778;
 /// 默认采用的数据库类型
 pub const DB_TYPE: DbType = DbType::Mysql;
 

@@ -15,6 +15,7 @@ services:
       - LC_ALL=C.UTF-8
     ports:
       - "7777:7777"
+      - "7778:7778"
     networks:
       - net
   db:

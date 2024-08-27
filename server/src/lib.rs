@@ -13,7 +13,7 @@ pub mod utils;
 use actix_web::{App, HttpServer};
 use anyhow::bail;
 use clap::Parser;
-use consts::DEFAULT_PORT;
+use consts::{DEFAULT_HTTP_PORT, DEFAULT_PORT};
 use db::DbType;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
@@ -72,6 +72,8 @@ struct Cfg {
     dbcfg: PathBuf,
     #[serde(default)]
     port: Option<u16>,
+    #[serde(default)]
+    http_port: Option<u16>,
     #[serde(default)]
     db_type: DbType,
 }
@@ -176,6 +178,10 @@ pub async fn lib_main() -> anyhow::Result<()> {
         },
         Some(port) => port,
     };
+    let http_port = match cfg.http_port {
+        None => DEFAULT_HTTP_PORT,
+        Some(http_port) => http_port,
+    };
     let ip = parser.ip;
     // 启动维护模式
     if parser.maintaining {
@@ -209,7 +215,9 @@ pub async fn lib_main() -> anyhow::Result<()> {
             .await
     });
     // 构建http服务端
-    let http_server = HttpServer::new(App::new).bind((ip.as_str(), 7778))?.run();
+    let http_server = HttpServer::new(App::new)
+        .bind((ip.as_str(), http_port))?
+        .run();
     let mut shutdown_receiver_http = shutdown_sender.subscribe();
     let http_server_handle = tokio::spawn(async move {
         select! {
@@ -232,7 +240,7 @@ pub async fn lib_main() -> anyhow::Result<()> {
             .recv()
             .await
         {
-            tracing::info!("Exit because of ctrl-c signal");
+            tracing::info!("Exit because of sigterm signal");
             shutdown_sender_clone.send(())?;
         }
         anyhow::Ok(())
