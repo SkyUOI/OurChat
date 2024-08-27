@@ -25,7 +25,7 @@ use std::{
     str::FromStr,
     sync::LazyLock,
 };
-use tokio::{select, signal::unix::SignalKind, sync::broadcast};
+use tokio::{select, sync::broadcast};
 use tracing::instrument;
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{
@@ -236,7 +236,7 @@ pub async fn lib_main() -> anyhow::Result<()> {
     let shutdown_sender_clone2 = shutdown_sender.clone();
     #[cfg(not(windows))]
     tokio::spawn(async move {
-        if let Some(()) = tokio::signal::unix::signal(SignalKind::terminate())?
+        if let Some(()) = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())?
             .recv()
             .await
         {
