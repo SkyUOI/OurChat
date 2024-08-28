@@ -1,5 +1,6 @@
 //! 服务端
 
+pub mod httpserver;
 mod process;
 
 use crate::connection;
@@ -14,27 +15,26 @@ use tokio::{
 };
 
 pub struct Server {
-    ip: String,
-    port: u16,
-    bind_addr: String,
+    addr: (String, u16),
     tcplistener: TcpListener,
     db: Option<sea_orm::DatabaseConnection>,
     redis: Option<redis::Client>,
     task_solver_sender: mpsc::Sender<DBRequest>,
     task_solver_receiver: Option<mpsc::Receiver<DBRequest>>,
+    http_sender: mpsc::Sender<httpserver::Record>,
     test_mode: bool,
 }
 
 impl Server {
     pub async fn new(
-        ip: impl Into<String>,
-        port: u16,
+        addr: (impl Into<String>, u16),
         db: sea_orm::DatabaseConnection,
         redis: redis::Client,
+        http_sender: mpsc::Sender<httpserver::Record>,
         test_mode: bool,
     ) -> anyhow::Result<Self> {
-        let ip = ip.into();
-        let bind_addr = format!("{}:{}", ip.clone(), port);
+        let ip = addr.0.into();
+        let bind_addr = format!("{}:{}", &ip, addr.1);
         let tcplistener = match TcpListener::bind(&bind_addr).await {
             Ok(listener) => listener,
             Err(e) => {
@@ -44,15 +44,14 @@ impl Server {
         };
         let (task_solver_sender, task_solver_receiver) = mpsc::channel(32);
         let ret = Self {
-            ip: ip.clone(),
-            port,
-            bind_addr,
+            addr: (ip, addr.1),
             tcplistener,
             db: Some(db),
             redis: Some(redis),
             task_solver_sender,
             task_solver_receiver: Some(task_solver_receiver),
             test_mode,
+            http_sender,
         };
         Ok(ret)
     }
@@ -72,12 +71,19 @@ impl Server {
                 let task_sender = self.task_solver_sender.clone();
                 let ret = self.tcplistener.accept().await;
                 let shutdown_handle = shutdown_sender_clone.clone();
+                let http_sender = self.http_sender.clone();
                 match ret {
                     Ok((socket, addr)) => {
                         tracing::info!("Connected to a socket");
                         tokio::spawn(async move {
-                            Server::handle_connection(socket, addr, shutdown_handle, task_sender)
-                                .await
+                            Server::handle_connection(
+                                socket,
+                                addr,
+                                http_sender,
+                                shutdown_handle,
+                                task_sender,
+                            )
+                            .await
                         });
                     }
                     Err(_) => todo!(),
@@ -117,6 +123,7 @@ impl Server {
     async fn handle_connection(
         stream: TcpStream,
         addr: SocketAddr,
+        http_sender: mpsc::Sender<httpserver::Record>,
         shutdown_sender: broadcast::Sender<()>,
         task_sender: mpsc::Sender<DBRequest>,
     ) {
@@ -129,7 +136,7 @@ impl Server {
         };
         tokio::spawn(async move {
             let mut connection =
-                connection::Connection::new(ws_stream, shutdown_sender, task_sender);
+                connection::Connection::new(ws_stream, http_sender, shutdown_sender, task_sender);
             match connection.work().await {
                 Ok(_) => {
                     tracing::info!("Connection closed: {}", addr);

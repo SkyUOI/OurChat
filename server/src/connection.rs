@@ -7,6 +7,7 @@ mod process;
 use crate::{
     consts::{MessageType, ID},
     requests::{self, new_session::NewSession},
+    server::httpserver::Record,
     MAINTAINING,
 };
 use anyhow::bail;
@@ -53,6 +54,7 @@ pub struct Connection {
     socket: Option<WebSocketStream<TcpStream>>,
     shutdown_sender: broadcast::Sender<()>,
     request_sender: mpsc::Sender<DBRequest>,
+    http_file_request_sender: mpsc::Sender<Record>,
 }
 enum VerifyStatus {
     Success,
@@ -67,11 +69,13 @@ struct VerifyRes {
 impl Connection {
     pub fn new(
         socket: WS,
+        http_file_request_sender: mpsc::Sender<Record>,
         shutdown_sender: broadcast::Sender<()>,
         request_sender: mpsc::Sender<DBRequest>,
     ) -> Self {
         Self {
             socket: Some(socket),
+            http_file_request_sender,
             shutdown_sender,
             request_sender,
         }
@@ -280,6 +284,17 @@ impl Connection {
                                         }
                                         MessageType::GetStatus => {
                                             Self::get_status(&net_sender).await?;
+                                            continue 'con_loop;
+                                        }
+                                        MessageType::Upload => {
+                                            let json = match serde_json::from_value(json) {
+                                                Err(_) => {
+                                                    tracing::warn!("Wrong json structure");
+                                                    continue 'con_loop;
+                                                }
+                                                Ok(json) => json,
+                                            };
+                                            Self::upload(&net_sender, json).await?;
                                             continue 'con_loop;
                                         }
                                         _ => {

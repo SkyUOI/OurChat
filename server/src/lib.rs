@@ -10,13 +10,14 @@ pub mod requests;
 mod server;
 pub mod utils;
 
-use actix_web::{App, HttpServer};
+use actix_web::http::uri::Port;
 use anyhow::bail;
 use clap::Parser;
 use consts::{DEFAULT_HTTP_PORT, DEFAULT_PORT};
 use db::DbType;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
+use server::httpserver;
 use static_keys::define_static_key_false;
 use std::{
     fs,
@@ -25,7 +26,11 @@ use std::{
     str::FromStr,
     sync::LazyLock,
 };
-use tokio::{select, sync::broadcast};
+use tokio::{
+    select,
+    sync::{broadcast, mpsc},
+    task::JoinHandle,
+};
 use tracing::instrument;
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{
@@ -36,6 +41,7 @@ use tracing_subscriber::{
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 type ShutdownRev = broadcast::Receiver<()>;
+type ShutdownSdr = broadcast::Sender<()>;
 
 #[derive(Debug, Parser)]
 #[command(author = "SkyUOI", version = base::build::VERSION, about = "The Server of OurChat")]
@@ -145,6 +151,72 @@ fn clear() -> anyhow::Result<()> {
     Ok(())
 }
 
+async fn cmd_start(shutdown_sender: ShutdownSdr, test_mode: bool) -> anyhow::Result<()> {
+    let mut shutdown_receiver1 = shutdown_sender.subscribe();
+    if !test_mode {
+        let mut shutdown_receiver2 = shutdown_sender.subscribe();
+        select! {
+            _ = cmd::cmd_process_loop(shutdown_receiver1) => {
+                shutdown_sender.send(())?;
+                tracing::info!("Exit because command loop has exited");
+            },
+            _ = shutdown_receiver2.recv() => {
+                tracing::info!("Command loop exited");
+            }
+        }
+    } else {
+        shutdown_receiver1.recv().await?;
+    }
+    Ok(())
+}
+
+async fn exit_signal(shutdown_sender: ShutdownSdr) -> anyhow::Result<()> {
+    let shutdown_sender_clone = shutdown_sender.clone();
+    #[cfg(not(windows))]
+    tokio::spawn(async move {
+        if let Some(()) = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())?
+            .recv()
+            .await
+        {
+            tracing::info!("Exit because of sigterm signal");
+            shutdown_sender.send(())?;
+        }
+        anyhow::Ok(())
+    });
+    tokio::spawn(async move {
+        match tokio::signal::ctrl_c().await {
+            Ok(()) => {
+                tracing::info!("Exit because of ctrl-c signal");
+                shutdown_sender_clone.send(())?;
+            }
+            Err(err) => {
+                tracing::error!("Unable to listen to ctrl-c signal:{}", err);
+                shutdown_sender_clone.send(())?;
+            }
+        }
+        anyhow::Ok(())
+    });
+    Ok(())
+}
+
+async fn start_server(
+    addr: (impl Into<String>, u16),
+    db: sea_orm::DatabaseConnection,
+    redis: redis::Client,
+    test_mode: bool,
+    http_sender: mpsc::Sender<httpserver::Record>,
+    shutdown_sender: ShutdownSdr,
+    shutdown_receiver: broadcast::Receiver<()>,
+) -> anyhow::Result<()> {
+    let mut server = server::Server::new(addr, db, redis, http_sender, test_mode).await?;
+    tokio::spawn(async move {
+        server
+            .accept_sockets(shutdown_sender, shutdown_receiver)
+            .await
+    });
+    Ok(())
+}
+
 /// 真正被调用的主函数
 #[instrument]
 pub async fn lib_main() -> anyhow::Result<()> {
@@ -204,76 +276,25 @@ pub async fn lib_main() -> anyhow::Result<()> {
     let redis = db::connect_to_redis(&db::get_redis_url(&cfg.rediscfg)?).await?;
 
     // 用于通知关闭的channel
-    let (shutdown_sender, mut shutdown_receiver) = broadcast::channel(32);
-    let shutdown_sender_clone = shutdown_sender.clone();
-    let shutdown_receiver_clone = shutdown_sender.subscribe();
-    // 构建websocket服务端
-    let mut server = server::Server::new(ip.clone(), port, db, redis, parser.test_mode).await?;
-    tokio::spawn(async move {
-        server
-            .accept_sockets(shutdown_sender_clone, shutdown_receiver_clone)
-            .await
-    });
+    let (shutdown_sender, _) = broadcast::channel(32);
     // 构建http服务端
-    let http_server = HttpServer::new(App::new)
-        .bind((ip.as_str(), http_port))?
-        .run();
-    let mut shutdown_receiver_http = shutdown_sender.subscribe();
-    let http_server_handle = tokio::spawn(async move {
-        select! {
-            ret = http_server => {
-                tracing::info!("Http server exited internally");
-                ret
-            }
-            _ = shutdown_receiver_http.recv() => {
-                tracing::info!("Http server exited by shutdown signal");
-                Ok(())
-            }
-        }
-    });
+    let (handle, record_sender) =
+        server::httpserver::start(&ip, http_port, shutdown_sender.subscribe()).await?;
+    // 构建websocket服务端
+    start_server(
+        (ip.clone(), port),
+        db,
+        redis,
+        parser.test_mode,
+        record_sender,
+        shutdown_sender.clone(),
+        shutdown_sender.subscribe(),
+    )
+    .await?;
 
-    let shutdown_sender_clone = shutdown_sender.clone();
-    let shutdown_sender_clone2 = shutdown_sender.clone();
-    #[cfg(not(windows))]
-    tokio::spawn(async move {
-        if let Some(()) = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())?
-            .recv()
-            .await
-        {
-            tracing::info!("Exit because of sigterm signal");
-            shutdown_sender_clone.send(())?;
-        }
-        anyhow::Ok(())
-    });
-    tokio::spawn(async move {
-        match tokio::signal::ctrl_c().await {
-            Ok(()) => {
-                tracing::info!("Exit because of ctrl-c signal");
-                shutdown_sender_clone2.send(())?;
-            }
-            Err(err) => {
-                tracing::error!("Unable to listen to ctrl-c signal:{}", err);
-                shutdown_sender_clone2.send(())?;
-            }
-        }
-        anyhow::Ok(())
-    });
-
-    if !parser.test_mode {
-        let mut shutdown_receiver2 = shutdown_sender.subscribe();
-        select! {
-            _ = cmd::cmd_process_loop(shutdown_receiver) => {
-                shutdown_sender.send(())?;
-                tracing::info!("Exit because command loop has exited");
-            },
-            _ = shutdown_receiver2.recv() => {
-                tracing::info!("Command loop exited");
-            }
-        }
-    } else {
-        shutdown_receiver.recv().await?;
-    }
-    http_server_handle.await??;
+    exit_signal(shutdown_sender.clone()).await?;
+    cmd_start(shutdown_sender, parser.test_mode).await?;
+    handle.await??;
     tracing::info!("Server exited");
     Ok(())
 }

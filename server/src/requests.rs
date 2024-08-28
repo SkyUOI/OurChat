@@ -5,6 +5,7 @@ pub mod login;
 pub mod new_session;
 pub mod register;
 pub mod unregister;
+pub mod upload;
 
 pub use login::{Login, LoginType};
 pub use register::Register;

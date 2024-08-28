@@ -26,10 +26,14 @@ pub static GENERATOR: LazyLock<MySnowflakeGenerator> = LazyLock::new(MySnowflake
 
 /// 生成一个随机的ocid
 pub fn generate_ocid(bits: usize) -> String {
-    let mut rng = rand::thread_rng();
-    rng.sample_iter(Alphanumeric)
-        .take(bits)
+    generate_random_string(bits)
+}
+
+pub fn generate_random_string(len: usize) -> String {
+    let rng = rand::thread_rng();
+    rng.sample_iter(rand::distributions::Alphanumeric)
         .map(char::from)
+        .take(len)
         .collect()
 }
 

@@ -22,6 +22,8 @@ pub enum MessageType {
     NewSession = 8,
     NewSessionResponse = 9,
     GetStatus = 12,
+    Upload = 19,
+    UploadRes = 20,
 }
 
 /// 默认ip

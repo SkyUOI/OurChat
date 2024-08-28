@@ -1,10 +1,15 @@
 //! define functions process the requests from clients directly
 
+mod upload;
+
 use super::{
     client_response::{get_status::GetStatusResponse, NewSessionResponse, UnregisterResponse},
     Connection, DBRequest,
 };
-use crate::{consts::ID, requests::new_session::NewSession};
+use crate::{
+    consts::ID,
+    requests::{new_session::NewSession, upload::Upload},
+};
 use tokio::sync::{mpsc, oneshot};
 use tungstenite::Message;
 
