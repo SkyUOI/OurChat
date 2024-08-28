@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
-import init_valgrind_rust
 import os
+
+import init_valgrind_rust
 import test_server
 
 init_valgrind_rust.init_valgrind()

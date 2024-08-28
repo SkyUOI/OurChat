@@ -13,7 +13,7 @@ class Connection:
     def __init__(self, ourchat) -> None:
         self.ourchat = ourchat
         self.conn = None
-        self.closing = True
+        self.closing = False
         self.setServer("127.0.0.1", 7777)
 
     def setServer(self, ip: str, port: int) -> None:
@@ -55,11 +55,14 @@ class Connection:
                 self.conn = None
                 flag = False
                 times = 1
-                while not flag and times <= 5:
+                while (
+                    not flag
+                    and times <= self.ourchat.config["server"]["reconnection_attempt"]
+                ):
                     flag = self.connect()[0]
-                    times += 1
                     logger.info(f"reconnect... ({times})")
-                if not flag:
+                    times += 1
+                if flag:
                     logger.info("reconnect successfully")
                     continue
                 logger.info("server disconnect, restart")

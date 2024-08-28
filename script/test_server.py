@@ -1,6 +1,6 @@
+import json
 import os
 import subprocess
-import json
 import sys
 
 import basic
