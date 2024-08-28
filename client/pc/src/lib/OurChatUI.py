@@ -276,3 +276,25 @@ class OurChatMainWindow(QMainWindow):
     def keyPressEvent(self, a0: QKeyEvent) -> None:
         self.uisystem.mainWindowKeyPressEvent(a0)
         return super().keyPressEvent(a0)
+
+
+class OurChatEditor(QTextBrowser):
+    def __init__(self, parent: QWidget | None = ...) -> None:
+        self.pressing_key = []
+        self.hotkeys = []
+        super().__init__(parent)
+
+    def keyPressEvent(self, e: QKeyEvent) -> None:
+        self.pressing_key.append(e.key())
+        for hotkey, func in self.hotkeys:
+            if self.pressing_key == hotkey:
+                func()
+                return
+        return super().keyPressEvent(e)
+
+    def keyReleaseEvent(self, e: QKeyEvent) -> None:
+        self.pressing_key.remove(e.key())
+        return super().keyReleaseEvent(e)
+
+    def registerHotkey(self, key: list, func):
+        self.hotkeys.append((key, func))

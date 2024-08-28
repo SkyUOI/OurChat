@@ -11,9 +11,13 @@ from lib.const import (
     USER_MSG,
 )
 from lib.OurChatSession import OurChatSession
-from lib.OurChatUI import MessageListItemWidget, OurChatWidget, SessionListItemWidget
+from lib.OurChatUI import (
+    MessageListItemWidget,
+    OurChatEditor,
+    OurChatWidget,
+    SessionListItemWidget,
+)
 from PyQt6.QtCore import QSize, Qt
-from PyQt6.QtGui import QKeyEvent
 from PyQt6.QtWidgets import QListWidgetItem
 from ui.session import Ui_Session
 from ui_logic.basicUI import BasicUI
@@ -33,6 +37,14 @@ class SessionUI(BasicUI, Ui_Session):
     def setupUi(self) -> None:
         logger.info("setup Ui")
         super().setupUi(self.widget)
+        self.editor.deleteLater()
+        self.editor = OurChatEditor(parent=self.widget)
+        self.editor.setReadOnly(False)
+        self.editor.registerHotkey(
+            [Qt.Key.Key_Control, Qt.Key.Key_Return], self.newline
+        )
+        self.editor.registerHotkey([Qt.Key.Key_Return], self.send_btn.click)
+        self.right_panel.insertWidget(2, self.editor)
         self.message_list.verticalScrollBar().setSingleStep(10)
         self.listen()
         self.fillText()
@@ -216,6 +228,5 @@ class SessionUI(BasicUI, Ui_Session):
         if data["status_code"] == RUN_NORMALLY:
             self.addSessionItem(self.ourchat.getSession(data["session_id"]))
 
-    def keyPressEvent(self, event: QKeyEvent):
-        if event.key() == Qt.Key.Key_Return:
-            self.send_btn.click()
+    def newline(self):
+        self.editor.insertPlainText("\n")
