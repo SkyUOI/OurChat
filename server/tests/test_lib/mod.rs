@@ -7,10 +7,7 @@ pub mod unregister;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use server::utils::WS_BIND_ADDR;
-use std::{
-    ptr::drop_in_place,
-    sync::{Arc, LazyLock, OnceLock},
-};
+use std::sync::{Arc, LazyLock, OnceLock};
 use tokio::net::TcpStream;
 use tokio::sync::Mutex;
 use tokio_tungstenite::WebSocketStream;

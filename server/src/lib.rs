@@ -10,7 +10,6 @@ pub mod requests;
 mod server;
 pub mod utils;
 
-use actix_web::http::uri::Port;
 use anyhow::bail;
 use clap::Parser;
 use consts::{DEFAULT_HTTP_PORT, DEFAULT_PORT};
@@ -29,7 +28,6 @@ use std::{
 use tokio::{
     select,
     sync::{broadcast, mpsc},
-    task::JoinHandle,
 };
 use tracing::instrument;
 use tracing_appender::non_blocking::WorkerGuard;

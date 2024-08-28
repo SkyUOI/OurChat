@@ -1,6 +1,6 @@
 //! Database
 
-pub mod user;
+pub mod file_storage;
 
 use std::{
     path::{Path, PathBuf},

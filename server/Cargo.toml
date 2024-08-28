@@ -43,6 +43,7 @@ derive = { path = "../derive" }
 actix-web = { version = "4", features = ["rustls"] }
 actix-files = { version = "0" }
 dashmap = { "version" = "6" }
+sha2 = "0"
 
 # Useful crates
 collection_literals = "1"
@@ -51,3 +52,4 @@ strum = { version = "0", features = ["derive"] }
 
 [dev-dependencies]
 assert_cmd = "2"
+reqwest = "0"

@@ -1,11 +1,13 @@
 use crate::ShutdownRev;
 use actix_web::{
-    post,
+    get, post,
     web::{self, Data, Query},
     App, HttpResponse, HttpServer, Responder,
 };
-use dashmap::DashSet;
+use dashmap::DashMap;
+use futures_util::StreamExt;
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use tokio::{select, sync::mpsc, task::JoinHandle};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -17,16 +19,32 @@ struct File {
 pub struct Record {
     name: String,
     key: String,
+    hash: String,
+}
+
+impl Record {
+    pub fn new(name: impl Into<String>, key: impl Into<String>, hash: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            key: key.into(),
+            hash: hash.into(),
+        }
+    }
+}
+
+struct TempUrl {
+    hash: String,
+    key: String,
 }
 
 struct UploadManager {
-    records: DashSet<Record>,
+    records: DashMap<String, TempUrl>,
 }
 
 impl UploadManager {
     fn new() -> Self {
         Self {
-            records: DashSet::new(),
+            records: DashMap::new(),
         }
     }
 
@@ -35,14 +53,66 @@ impl UploadManager {
         mut request_receiver: mpsc::Receiver<Record>,
     ) -> anyhow::Result<()> {
         while let Some(record) = request_receiver.recv().await {
-            data.records.insert(record);
+            data.records.insert(
+                record.name,
+                TempUrl {
+                    hash: record.hash,
+                    key: record.key,
+                },
+            );
         }
         Ok(())
     }
+
+    fn get_records(&self, name: &str) -> Option<dashmap::mapref::one::Ref<'_, String, TempUrl>> {
+        self.records.get(name)
+    }
 }
 
-#[post("/upload/{name}")]
-async fn upload(path: web::Path<String>, key: Query<File>) -> impl Responder {
+#[post("/upload/{url}")]
+async fn upload(
+    url: web::Path<String>,
+    key: Query<File>,
+    manager: web::Data<UploadManager>,
+    mut payload: web::Payload,
+) -> impl Responder {
+    let url = url.into_inner();
+    let mut body = bytes::BytesMut::new();
+    // 获取临时url记录
+    let record = match manager.get_records(&url) {
+        None => {
+            return HttpResponse::NotFound();
+        }
+        Some(data) => data,
+    };
+    // 验证key
+    if record.key != key.key {
+        return HttpResponse::Unauthorized();
+    }
+    // 读取文件
+    while let Some(chunk) = payload.next().await {
+        let chunk = match chunk {
+            Ok(data) => data,
+            Err(_) => {
+                return HttpResponse::InternalServerError();
+            }
+        };
+        body.extend_from_slice(&chunk);
+    }
+    // 计算hash，并验证文件是否符合要求
+    let data = body.freeze();
+    let mut hasher = Sha256::new();
+    hasher.update(&data);
+    let result = hasher.finalize();
+    let hash = format!("{:x}", result);
+    if hash != record.hash {
+        return HttpResponse::BadRequest();
+    }
+    HttpResponse::Ok()
+}
+
+#[get("/download/{url}")]
+async fn download(url: web::Path<String>, key: Query<File>) -> impl Responder {
     HttpResponse::Ok()
 }
 
@@ -53,9 +123,10 @@ pub async fn start(
 ) -> anyhow::Result<(JoinHandle<anyhow::Result<()>>, mpsc::Sender<Record>)> {
     let shared_state = Data::new(UploadManager::new());
     let data_clone = shared_state.clone();
-    let http_server = HttpServer::new(move || App::new().app_data(data_clone.clone()))
-        .bind((ip, http_port))?
-        .run();
+    let http_server =
+        HttpServer::new(move || App::new().app_data(data_clone.clone()).service(upload))
+            .bind((ip, http_port))?
+            .run();
     let http_server_handle = tokio::spawn(async move {
         select! {
             ret = http_server => {

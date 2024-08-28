@@ -1,5 +1,5 @@
 use crate::{
-    connection::{client_response::UploadResponse, Connection, DBRequest},
+    connection::{client_response::UploadResponse, Connection},
     requests::upload::Upload,
     utils::generate_random_string,
 };
@@ -18,12 +18,19 @@ fn generate_url_name(hash: &str) -> String {
 }
 
 impl Connection {
-    pub async fn upload(net_sender: &mpsc::Sender<Message>, json: Upload) -> anyhow::Result<()> {
+    pub async fn upload(
+        net_sender: &mpsc::Sender<Message>,
+        json: &mut Upload,
+    ) -> anyhow::Result<(impl Future<Output = anyhow::Result<()>>, (String, String))> {
         let url_name = generate_url_name(&json.hash);
-        let resp = UploadResponse::new(url_name, generate_random_string(KEY_LEN));
-        net_sender
-            .send(Message::Text(serde_json::to_string(&resp).unwrap()))
-            .await?;
-        Ok(())
+        let key = generate_random_string(KEY_LEN);
+        let resp = UploadResponse::new(url_name.clone(), key.clone());
+        let send = async move {
+            net_sender
+                .send(Message::Text(serde_json::to_string(&resp).unwrap()))
+                .await?;
+            Ok(())
+        };
+        Ok((send, (url_name, key)))
     }
 }

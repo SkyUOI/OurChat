@@ -6,7 +6,7 @@ mod process;
 
 use crate::{
     consts::{MessageType, ID},
-    requests::{self, new_session::NewSession},
+    requests::{self, new_session::NewSession, upload::Upload},
     server::httpserver::Record,
     MAINTAINING,
 };
@@ -54,7 +54,7 @@ pub struct Connection {
     socket: Option<WebSocketStream<TcpStream>>,
     shutdown_sender: broadcast::Sender<()>,
     request_sender: mpsc::Sender<DBRequest>,
-    http_file_request_sender: mpsc::Sender<Record>,
+    http_file_request_sender: Option<mpsc::Sender<Record>>,
 }
 enum VerifyStatus {
     Success,
@@ -75,7 +75,7 @@ impl Connection {
     ) -> Self {
         Self {
             socket: Some(socket),
-            http_file_request_sender,
+            http_file_request_sender: Some(http_file_request_sender),
             shutdown_sender,
             request_sender,
         }
@@ -213,6 +213,7 @@ impl Connection {
         id: ID,
         net_sender: mpsc::Sender<Message>,
         request_sender: mpsc::Sender<DBRequest>,
+        http_file_sender: mpsc::Sender<Record>,
         mut shutdown_receiver: broadcast::Receiver<()>,
     ) -> anyhow::Result<()> {
         let work = async {
@@ -287,14 +288,21 @@ impl Connection {
                                             continue 'con_loop;
                                         }
                                         MessageType::Upload => {
-                                            let json = match serde_json::from_value(json) {
-                                                Err(_) => {
-                                                    tracing::warn!("Wrong json structure");
-                                                    continue 'con_loop;
-                                                }
-                                                Ok(json) => json,
-                                            };
-                                            Self::upload(&net_sender, json).await?;
+                                            let mut json: Upload =
+                                                match serde_json::from_value(json) {
+                                                    Err(_) => {
+                                                        tracing::warn!("Wrong json structure");
+                                                        continue 'con_loop;
+                                                    }
+                                                    Ok(json) => json,
+                                                };
+                                            // 先生成url再回复
+                                            let hash = json.hash.clone();
+                                            let (send, (url_name, key)) =
+                                                Self::upload(&net_sender, &mut json).await?;
+                                            let record = Record::new(url_name, key, hash);
+                                            http_file_sender.send(record).await?;
+                                            send.await?;
                                             continue 'con_loop;
                                         }
                                         _ => {
@@ -448,7 +456,16 @@ impl Connection {
             receiver,
             self.shutdown_sender.subscribe(),
         ));
-        Self::read_loop(incoming, id, sender, request_sender, shutdown_receiver).await?;
+        let http_file_sender = self.http_file_request_sender.take().unwrap();
+        Self::read_loop(
+            incoming,
+            id,
+            sender,
+            request_sender,
+            http_file_sender,
+            shutdown_receiver,
+        )
+        .await?;
         Ok(())
     }
 }
