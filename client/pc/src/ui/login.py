@@ -1,4 +1,4 @@
-# Form implementation generated from reading ui file 'login.ui'
+# Form implementation generated from reading ui file '.\login.ui'
 #
 # Created by: PyQt6 UI code generator 6.4.2
 #
@@ -152,21 +152,10 @@ class Ui_Login(object):
             QtWidgets.QSizePolicy.Policy.Minimum,
         )
         self.horizontalLayout_6.addItem(spacerItem6)
-        self.connect_server_btn = QtWidgets.QPushButton(parent=Login)
-        self.connect_server_btn.setText("Connect Server")
-        self.connect_server_btn.setObjectName("connect_server_btn")
-        self.horizontalLayout_6.addWidget(self.connect_server_btn)
         self.join_btn = QtWidgets.QPushButton(parent=Login)
         self.join_btn.setText("Join")
         self.join_btn.setObjectName("join_btn")
         self.horizontalLayout_6.addWidget(self.join_btn)
-        spacerItem7 = QtWidgets.QSpacerItem(
-            40,
-            20,
-            QtWidgets.QSizePolicy.Policy.Expanding,
-            QtWidgets.QSizePolicy.Policy.Minimum,
-        )
-        self.horizontalLayout_6.addItem(spacerItem7)
         self.verticalLayout_2.addLayout(self.horizontalLayout_6)
 
         self.retranslateUi(Login)

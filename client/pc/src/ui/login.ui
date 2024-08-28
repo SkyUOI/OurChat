@@ -206,31 +206,11 @@
       </spacer>
      </item>
      <item>
-      <widget class="QPushButton" name="connect_server_btn">
-       <property name="text">
-        <string notr="true">Connect Server</string>
-       </property>
-      </widget>
-     </item>
-     <item>
       <widget class="QPushButton" name="join_btn">
        <property name="text">
         <string notr="true">Join</string>
        </property>
       </widget>
-     </item>
-     <item>
-      <spacer name="horizontalSpacer_6">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>40</width>
-         <height>20</height>
-        </size>
-       </property>
-      </spacer>
      </item>
     </layout>
    </item>
