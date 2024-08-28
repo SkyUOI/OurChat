@@ -12,15 +12,17 @@ from lib.const import (
 )
 from lib.OurChatSession import OurChatSession
 from lib.OurChatUI import MessageListItemWidget, OurChatWidget, SessionListItemWidget
-from PyQt6.QtCore import QSize
+from PyQt6.QtCore import QSize, Qt
+from PyQt6.QtGui import QKeyEvent
 from PyQt6.QtWidgets import QListWidgetItem
 from ui.session import Ui_Session
+from ui_logic.basicUI import BasicUI
 from ui_logic.sessionSetting import SessionSettingUI
 
 logger = getLogger(__name__)
 
 
-class SessionUI(Ui_Session):
+class SessionUI(BasicUI, Ui_Session):
     def __init__(self, ourchat, widget: OurChatWidget) -> None:
         self.ourchat = ourchat
         self.uisystem = self.ourchat.uisystem
@@ -213,3 +215,7 @@ class SessionUI(Ui_Session):
     def newSessionResponse(self, data: dict) -> None:
         if data["status_code"] == RUN_NORMALLY:
             self.addSessionItem(self.ourchat.getSession(data["session_id"]))
+
+    def keyPressEvent(self, event: QKeyEvent):
+        if event.key() == Qt.Key.Key_Return:
+            self.send_btn.click()

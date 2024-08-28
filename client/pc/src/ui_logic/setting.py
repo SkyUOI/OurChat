@@ -6,11 +6,12 @@ from lib.OurChatConfig import OurChatConfig
 from lib.OurChatUI import ImageLabel
 from PyQt6.QtWidgets import QMessageBox
 from ui.setting import Ui_Setting
+from ui_logic.basicUI import BasicUI
 
 logger = getLogger(__name__)
 
 
-class SettingUI(Ui_Setting):
+class SettingUI(BasicUI, Ui_Setting):
     def __init__(self, ourchat, widget, inbuilt: bool = False):
         self.ourchat = ourchat
         self.uisystem = self.ourchat.uisystem

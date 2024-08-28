@@ -1,10 +1,11 @@
 from lib.const import ACCOUNT_FINISH_GET_AVATAR, ACCOUNT_FINISH_GET_INFO
 from lib.OurChatUI import ImageLabel, OurChatWidget
 from ui.account import Ui_Account
+from ui_logic.basicUI import BasicUI
 from ui_logic.profile import ProfileUI
 
 
-class AccountUI(Ui_Account):
+class AccountUI(BasicUI, Ui_Account):
     def __init__(self, ourchat, widget: OurChatWidget) -> None:
         self.ourchat = ourchat
         self.uisystem = self.ourchat.uisystem

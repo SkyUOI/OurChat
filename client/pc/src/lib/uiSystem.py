@@ -1,10 +1,10 @@
 import os
 from logging import getLogger
 
-from lib.OurChatUI import OurChatDialog, OurChatWidget
+from lib.OurChatUI import OurChatDialog, OurChatMainWindow, OurChatWidget
 from PyQt6.QtCore import QDir, QTimer
 from PyQt6.QtGui import QFontDatabase, QIcon
-from PyQt6.QtWidgets import QApplication, QMainWindow
+from PyQt6.QtWidgets import QApplication
 from ui_logic.login import LoginUI
 from ui_logic.main import MainUI
 
@@ -16,7 +16,7 @@ class UISystem:
         logger.info("UISystem init")
         self.ourchat = ourchat
         self.app = QApplication(argv)
-        self.mainwindow = QMainWindow()
+        self.mainwindow = None
         self.ui_logic = None
         self.theme = None
         self.main_color = "#000000"
@@ -126,6 +126,7 @@ class UISystem:
         return os.listdir("theme")
 
     def run(self):
+        self.mainwindow = OurChatMainWindow(self.ourchat)
         self.setUI(MainUI)
         self.app.setWindowIcon(QIcon("resources/images/logo.ico"))
         widget = self.setWidget(LoginUI, True)
@@ -145,5 +146,19 @@ class UISystem:
             self.ui_logic.fillText()
 
     def close(self):
+        self.mainwindow.close()
         self.app.closeAllWindows()
         self.tick_timer.stop()
+
+    def widgetKeyPressEvent(self, widget, event):
+        for widget, ui_logic in self.widgets:
+            if widget == widget:
+                ui_logic.keyPressEvent(event)
+
+    def dialogKeyPressEvent(self, dialog, event):
+        for dialog, ui_logic in self.dialogs:
+            if dialog == dialog:
+                ui_logic.keyPressEvent(event)
+
+    def mainWindowKeyPressEvent(self, event):
+        self.ui_logic.keyPressEvent(event)

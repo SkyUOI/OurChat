@@ -19,14 +19,16 @@ from lib.const import (
     VERIFY_STATUS_MSG,
 )
 from lib.OurChatUI import OurChatWidget
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QLineEdit, QMessageBox
 from ui.login import Ui_Login
 from ui_logic import setting
+from ui_logic.basicUI import BasicUI
 
 logger = getLogger(__name__)
 
 
-class LoginUI(Ui_Login):
+class LoginUI(BasicUI, Ui_Login):
     def __init__(self, ourchat, widget: OurChatWidget) -> None:
         self.ourchat = ourchat
         self.uisystem = self.ourchat.uisystem
@@ -351,3 +353,7 @@ class LoginUI(Ui_Login):
     def register2Login(self) -> None:
         self.login_account_editor.setText(self.register_email_editor.text())
         self.login_password_editor.setText(self.register_password_editor.text())
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_Return:
+            self.join_btn.click()

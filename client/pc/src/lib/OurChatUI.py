@@ -2,13 +2,14 @@ from logging import getLogger
 from typing import Any, overload
 
 from PyQt6.QtCore import QSize, Qt
-from PyQt6.QtGui import QCloseEvent, QPixmap, QResizeEvent
+from PyQt6.QtGui import QCloseEvent, QKeyEvent, QPixmap, QResizeEvent
 from PyQt6.QtWidgets import (
     QCheckBox,
     QDialog,
     QHBoxLayout,
     QLabel,
     QListWidgetItem,
+    QMainWindow,
     QSizePolicy,
     QSpacerItem,
     QTextBrowser,
@@ -29,6 +30,10 @@ class OurChatDialog(QDialog):
         self.uisystem.removeDialog(self)
         super().closeEvent(a0)
 
+    def keyPressEvent(self, a0: QKeyEvent) -> None:
+        self.uisystem.dialogKeyPressEvent(self, a0)
+        return super().keyPressEvent(a0)
+
 
 class OurChatWidget(QWidget):
     def __init__(self, ourchat) -> None:
@@ -39,6 +44,10 @@ class OurChatWidget(QWidget):
     def closeEvent(self, a0: QCloseEvent) -> None:
         self.uisystem.removeWidget(self)
         super().closeEvent(a0)
+
+    def keyPressEvent(self, a0: QKeyEvent) -> None:
+        self.uisystem.widgetKeyPressEvent(self, a0)
+        return super().keyPressEvent(a0)
 
 
 class ImageLabel(QLabel):
@@ -256,3 +265,14 @@ class AccountListItemWidget(QWidget):
 
     def setAvatar(self, avatar):
         self.avatar_label.setImage(avatar)
+
+
+class OurChatMainWindow(QMainWindow):
+    def __init__(self, ourchat) -> None:
+        self.ourchat = ourchat
+        self.uisystem = self.ourchat.uisystem
+        super().__init__(None)
+
+    def keyPressEvent(self, a0: QKeyEvent) -> None:
+        self.uisystem.mainWindowKeyPressEvent(a0)
+        return super().keyPressEvent(a0)

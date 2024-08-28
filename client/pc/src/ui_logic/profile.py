@@ -16,11 +16,12 @@ from lib.const import (
 from lib.OurChatUI import ImageLabel
 from PyQt6.QtWidgets import QInputDialog, QMessageBox
 from ui.profile import Ui_Profile
+from ui_logic.basicUI import BasicUI
 
 logger = getLogger(__name__)
 
 
-class ProfileUI(Ui_Profile):
+class ProfileUI(BasicUI, Ui_Profile):
     def __init__(self, ourchat, dialog) -> None:
         self.ourchat = ourchat
         self.dialog = dialog

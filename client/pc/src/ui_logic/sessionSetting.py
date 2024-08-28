@@ -17,11 +17,12 @@ from lib.const import (
 from lib.OurChatUI import AccountListItemWidget, ImageLabel
 from PyQt6.QtWidgets import QInputDialog, QListWidgetItem, QMessageBox
 from ui.sessionSetting import Ui_SessionSetting
+from ui_logic.basicUI import BasicUI
 
 logger = getLogger(__name__)
 
 
-class SessionSettingUI(Ui_SessionSetting):
+class SessionSettingUI(BasicUI, Ui_SessionSetting):
     def __init__(self, ourchat, dialog, session_id=None) -> None:
         self.ourchat = ourchat
         self.dialog = dialog
