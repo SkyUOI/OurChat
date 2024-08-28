@@ -93,3 +93,6 @@ class Connection:
             return
         self.conn.close()
         self.conn = None
+
+    def getConnectionStatus(self) -> bool:
+        return self.conn is not None
