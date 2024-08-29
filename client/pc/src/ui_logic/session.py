@@ -39,6 +39,10 @@ class SessionUI(BasicUI, Ui_Session):
         super().setupUi(self.widget)
         self.editor.deleteLater()
         self.editor = OurChatEditor(parent=self.widget)
+        self.right_panel.setStretch(0, 1)
+        self.right_panel.setStretch(1, 10)
+        self.right_panel.setStretch(2, 6)
+        self.right_panel.setStretch(3, 1)
         self.editor.setReadOnly(False)
         self.editor.registerHotkey(
             [Qt.Key.Key_Control, Qt.Key.Key_Return], self.newline
@@ -57,17 +61,20 @@ class SessionUI(BasicUI, Ui_Session):
         self.editor.setEnabled(False)
         self.send_btn.setText(self.ourchat.language["send"])
         self.add_session_btn.setText("+")
-        self.addSessions()
-
-    def addSessions(self):
         if self.ourchat.account.have_got_info:
-            for session in self.ourchat.account.sessions:
-                self.addSessionItem(self.ourchat.account.sessions[session])
+            self.updateSessionList()
+
+    def addSessions(self, sessions: list):
+        self.session_list.clear()
+        self.sessions = {}
+        for session in sessions:
+            self.addSessionItem(session)
 
     def bind(self) -> None:
         self.session_list.itemClicked.connect(self.openSession)
         self.send_btn.clicked.connect(self.send)
         self.add_session_btn.clicked.connect(self.createSession)
+        self.search_box.textChanged.connect(self.updateSessionList)
 
     def addSessionItem(self, session: OurChatSession) -> None:
         recent_msg = self.ourchat.chatting_system.getRecord(session.session_id, 1)
@@ -141,7 +148,7 @@ class SessionUI(BasicUI, Ui_Session):
     def getAccountInfoResponse(self, data: dict) -> None:
         account = self.ourchat.getAccount(data["ocid"])
         if account == self.ourchat.account:
-            self.addSessions()
+            self.updateSessionList()
         for message in self.messages:
             if message.ocid == account.ocid:
                 message.setName(account.data["nickname"])
@@ -226,7 +233,24 @@ class SessionUI(BasicUI, Ui_Session):
 
     def newSessionResponse(self, data: dict) -> None:
         if data["status_code"] == RUN_NORMALLY:
-            self.addSessionItem(self.ourchat.getSession(data["session_id"]))
+            self.updateSessionList()
 
     def newline(self):
         self.editor.insertPlainText("\n")
+
+    def updateSessionList(self):
+        result = []
+        keyword = self.search_box.text()
+        if keyword == "":
+            self.addSessions(
+                [
+                    self.ourchat.getSession(session_id)
+                    for session_id in self.ourchat.account.sessions
+                ]
+            )
+            return None
+        for session_id in self.ourchat.account.sessions:
+            session = self.ourchat.getSession(session_id)
+            if keyword in session.data["name"] or keyword in session_id:
+                result.append(session)
+        self.addSessions(result)

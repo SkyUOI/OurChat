@@ -19,7 +19,7 @@
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout_4">
        <item>
-        <widget class="QLineEdit" name="search_chat"/>
+        <widget class="QLineEdit" name="search_box"/>
        </item>
        <item>
         <widget class="QToolButton" name="add_session_btn">

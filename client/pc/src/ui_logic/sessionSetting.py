@@ -50,7 +50,7 @@ class SessionSettingUI(BasicUI, Ui_SessionSetting):
         )
         self.avatar_label.setImage("resources/images/logo.png")
         for friend_ocid in self.ourchat.account.friends:
-            friend_account = self.ourchat.account.friends[friend_ocid]
+            friend_account = self.ourchat.getAccount(friend_ocid)
             self.addAccount(friend_account, False)
 
     def addAccount(self, account, checked: bool = False) -> None:
@@ -112,9 +112,8 @@ class SessionSettingUI(BasicUI, Ui_SessionSetting):
         if data["status_code"] == RUN_NORMALLY:
             self.ourchat.unListen(NEW_SESSION_RESPONSE_MSG, self.newSessionResponse)
             session_id = data["session_id"]
-            self.ourchat.account.sessions[session_id] = self.ourchat.getSession(
-                session_id
-            )
+            self.ourchat.getSession(session_id)
+            self.ourchat.account.sessions.append(session_id)
             QMessageBox.information(
                 self.dialog,
                 self.ourchat.language["success"],

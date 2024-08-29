@@ -37,8 +37,8 @@ class OurChatAccount:
         ]
         self.have_got_avatar = False
         self.have_got_info = False
-        self.sessions = {}
-        self.friends = {}
+        self.sessions = []
+        self.friends = []
         if self.me:
             self.request_values.append("sessions")
             self.request_values.append("friends")
@@ -201,9 +201,11 @@ class OurChatAccount:
     def finishGetInfo(self) -> None:
         if self.me:
             for session_id in self.data["sessions"]:
-                self.sessions[session_id] = self.ourchat.getSession(session_id)
+                self.ourchat.getSession(session_id)
+                self.sessions.append(session_id)
             for ocid in self.data["friends"]:
-                self.friends[ocid] = self.ourchat.getAccount(ocid)
+                self.ourchat.getAccount(ocid)
+                self.friends.append(ocid)
         else:
             self.sessions = None
             self.friends = None
