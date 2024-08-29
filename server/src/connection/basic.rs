@@ -1,6 +1,6 @@
 use super::{client_response, Connection};
 use tokio::sync::mpsc;
-use tungstenite::Message;
+use tokio_tungstenite::tungstenite::protocol::Message;
 
 impl Connection {
     pub async fn send_error_msg(

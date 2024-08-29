@@ -25,8 +25,8 @@ use tokio::{
     select,
     sync::{broadcast, mpsc, oneshot},
 };
+use tokio_tungstenite::tungstenite::protocol::Message;
 use tokio_tungstenite::WebSocketStream;
-use tungstenite::Message;
 
 pub enum DBRequest {
     Login {
@@ -234,7 +234,7 @@ impl Connection {
                     }
                 };
                 match msg {
-                    tungstenite::Message::Text(msg) => {
+                    Message::Text(msg) => {
                         let json: Value = serde_json::from_str(&msg)?;
                         let code = &json["code"];
                         if let Value::Number(code) = code {
@@ -319,15 +319,15 @@ impl Connection {
                             Self::send_error_msg(&net_sender, "Without code").await?
                         }
                     }
-                    tungstenite::Message::Binary(_) => todo!(),
-                    tungstenite::Message::Ping(_) => {
+                    Message::Binary(_) => todo!(),
+                    Message::Ping(_) => {
                         net_sender.send(Message::Pong(vec![])).await?;
                     }
-                    tungstenite::Message::Pong(_) => {
+                    Message::Pong(_) => {
                         tracing::info!("recv pong");
                     }
-                    tungstenite::Message::Frame(_) => todo!(),
-                    tungstenite::Message::Close(_) => {
+                    Message::Frame(_) => todo!(),
+                    Message::Close(_) => {
                         break 'con_loop;
                     }
                 }
@@ -369,7 +369,7 @@ impl Connection {
         while let Some(msg) = socket.next().await {
             match msg {
                 Ok(msg) => match msg {
-                    tungstenite::Message::Text(msg) => {
+                    Message::Text(msg) => {
                         let json: Value = serde_json::from_str(&msg)?;
                         let code = &json["code"];
                         if let Value::Number(code) = code {
@@ -389,10 +389,10 @@ impl Connection {
                             bail!("Wrong json structure");
                         }
                     }
-                    tungstenite::Message::Ping(_) => {
+                    Message::Ping(_) => {
                         socket.send(Message::Pong(vec![])).await?;
                     }
-                    tungstenite::Message::Pong(_) => {
+                    Message::Pong(_) => {
                         tracing::info!("recv pong");
                     }
                     _ => {}
@@ -423,7 +423,7 @@ impl Connection {
                     }
                     Some(ret) => {
                         select! {
-                            err = socket.send(tungstenite::Message::Text(ret.0)) => {
+                            err = socket.send(Message::Text(ret.0)) => {
                                 err?
                             },
                             _ = shutdown_receiver.recv() => {

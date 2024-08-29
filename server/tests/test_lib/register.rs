@@ -6,6 +6,7 @@ use server::{
     requests::{self, Register},
 };
 use std::thread;
+use tokio_tungstenite::tungstenite::Message;
 
 /// 在这里测试注册顺便初始化服务器，注册需要在所有测试前运行，所以只能在这里测试
 pub(crate) async fn test_register() -> String {
@@ -30,9 +31,7 @@ pub(crate) async fn test_register() -> String {
     }
     let mut stream = stream.unwrap();
     stream
-        .send(tungstenite::Message::Text(
-            serde_json::to_string(&request).unwrap(),
-        ))
+        .send(Message::Text(serde_json::to_string(&request).unwrap()))
         .await
         .unwrap();
     let ret = stream.next().await.unwrap().unwrap();

@@ -11,7 +11,7 @@ use crate::{
     requests::{new_session::NewSession, upload::Upload},
 };
 use tokio::sync::{mpsc, oneshot};
-use tungstenite::Message;
+use tokio_tungstenite::tungstenite::protocol::Message;
 
 impl Connection {
     pub async fn unregister(

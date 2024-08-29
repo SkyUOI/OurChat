@@ -4,7 +4,7 @@ use crate::{
     utils::generate_random_string,
 };
 use tokio::sync::mpsc;
-use tungstenite::Message;
+use tokio_tungstenite::tungstenite::protocol::Message;
 
 const PREFIX_LEN: usize = 20;
 const KEY_LEN: usize = 15;

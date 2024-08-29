@@ -5,14 +5,13 @@ use server::{
     consts::MessageType,
     requests::{Login, LoginType},
 };
+use tokio_tungstenite::tungstenite::protocol::Message;
 
 // 测试ocid登录
 async fn test_ocid_login(ocid: String, mut connection: ClientWS) {
     let login_req = Login::new(ocid, TEST_USER.password.clone(), LoginType::Ocid);
     connection
-        .send(tungstenite::Message::Text(
-            serde_json::to_string(&login_req).unwrap(),
-        ))
+        .send(Message::Text(serde_json::to_string(&login_req).unwrap()))
         .await
         .unwrap();
     let ret = connection.next().await.unwrap().unwrap();
@@ -30,9 +29,7 @@ async fn test_email_login(ocid: String) -> ClientWS {
         LoginType::Email,
     );
     connection
-        .send(tungstenite::Message::Text(
-            serde_json::to_string(&login_req).unwrap(),
-        ))
+        .send(Message::Text(serde_json::to_string(&login_req).unwrap()))
         .await
         .unwrap();
     let ret = connection.next().await.unwrap().unwrap();
@@ -46,7 +43,7 @@ async fn test_email_login(ocid: String) -> ClientWS {
 /// 登录失败
 async fn failed_login(conn: &mut ClientWS) {
     let wrong_msg = r#"{"code":65536}"#;
-    conn.send(tungstenite::Message::Text(wrong_msg.to_string()))
+    conn.send(Message::Text(wrong_msg.to_string()))
         .await
         .unwrap();
     let ret = conn.next().await.unwrap().unwrap();

@@ -4,7 +4,7 @@ use server::{
     consts::MessageType,
     requests::{self, Unregister},
 };
-use tungstenite::Message;
+use tokio_tungstenite::tungstenite::Message;
 
 /// 清理测试环境时顺便测试帐号删除，删除需要在所有测试后运行，所以只能在这里测试
 pub async fn test_unregister() {
