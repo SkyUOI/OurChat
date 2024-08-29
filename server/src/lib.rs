@@ -276,8 +276,9 @@ pub async fn lib_main() -> anyhow::Result<()> {
     // 用于通知关闭的channel
     let (shutdown_sender, _) = broadcast::channel(32);
     // 构建http服务端
-    let (handle, record_sender) =
-        server::httpserver::start(&ip, http_port, shutdown_sender.subscribe()).await?;
+    let (handle, record_sender) = server::httpserver::HttpServer::new(db.clone())
+        .start(&ip, http_port, shutdown_sender.subscribe())
+        .await?;
     // 构建websocket服务端
     start_server(
         (ip.clone(), port),

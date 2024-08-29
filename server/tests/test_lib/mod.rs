@@ -36,15 +36,6 @@ impl Conn {
     }
 }
 
-// static INIT_SERVER: LazyLock<(UnregisterHook, Conn)> = LazyLock::new(|| {
-//     let _ = &*SERVER_HANDLE;
-//     let conn = Conn::new(Arc::new(Mutex::new(TOKIO_RUNTIME.block_on(async {
-//         let ocid = register::test_register().await;
-//         login::test_login(ocid).await
-//     }))));
-//     (UnregisterHook {}, conn)
-// });
-
 async fn init_server() -> &'static (UnregisterHook, Conn) {
     static LOCK: OnceLock<(UnregisterHook, Conn)> = OnceLock::new();
     match LOCK.get() {
@@ -84,7 +75,7 @@ impl TestUser {
         Self {
             name: rand::thread_rng()
                 .sample_iter(&rand::distributions::Alphanumeric)
-                .take(30)
+                .take(15)
                 .map(char::from)
                 .collect(),
             password: rand::thread_rng()
@@ -119,6 +110,7 @@ macro_rules! register_test {
         #[tokio::test]
         async fn test_internal() {
             $(
+                println!("Testing {}...", stringify!($testname));
                 $testname().await;
             )+
             $crate::test_lib::teardown().await;

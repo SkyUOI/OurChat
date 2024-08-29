@@ -2,10 +2,11 @@ use crate::ShutdownRev;
 use actix_web::{
     get, post,
     web::{self, Data, Query},
-    App, HttpResponse, HttpServer, Responder,
+    App, HttpResponse, Responder,
 };
 use dashmap::DashMap;
 use futures_util::StreamExt;
+use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use tokio::{select, sync::mpsc, task::JoinHandle};
@@ -15,7 +16,7 @@ struct File {
     key: String,
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub struct Record {
     name: String,
     key: String,
@@ -113,33 +114,49 @@ async fn upload(
 
 #[get("/download/{url}")]
 async fn download(url: web::Path<String>, key: Query<File>) -> impl Responder {
-    HttpResponse::Ok()
+    HttpResponse::Ok().content_type("file").body("body")
 }
 
-pub async fn start(
-    ip: &str,
-    http_port: u16,
-    mut shutdown_receiver: ShutdownRev,
-) -> anyhow::Result<(JoinHandle<anyhow::Result<()>>, mpsc::Sender<Record>)> {
-    let shared_state = Data::new(UploadManager::new());
-    let data_clone = shared_state.clone();
-    let http_server =
-        HttpServer::new(move || App::new().app_data(data_clone.clone()).service(upload))
-            .bind((ip, http_port))?
-            .run();
-    let http_server_handle = tokio::spawn(async move {
-        select! {
-            ret = http_server => {
-                tracing::info!("Http server exited internally");
-                ret?;
+pub struct HttpServer {
+    db: DatabaseConnection,
+}
+
+impl HttpServer {
+    pub fn new(db: DatabaseConnection) -> Self {
+        Self { db }
+    }
+
+    pub async fn start(
+        &mut self,
+        ip: &str,
+        http_port: u16,
+        mut shutdown_receiver: ShutdownRev,
+    ) -> anyhow::Result<(JoinHandle<anyhow::Result<()>>, mpsc::Sender<Record>)> {
+        let shared_state = Data::new(UploadManager::new());
+        let data_clone = shared_state.clone();
+        let http_server = actix_web::HttpServer::new(move || {
+            App::new().app_data(data_clone.clone()).service(upload)
+        })
+        .bind((ip, http_port))?
+        .run();
+        let http_server_handle = tokio::spawn(async move {
+            select! {
+                ret = http_server => {
+                    tracing::info!("Http server exited internally");
+                    ret?;
+                }
+                _ = shutdown_receiver.recv() => {
+                    tracing::info!("Http server exited by shutdown signal");
+                }
             }
-            _ = shutdown_receiver.recv() => {
-                tracing::info!("Http server exited by shutdown signal");
-            }
-        }
-        anyhow::Ok(())
-    });
-    let (request_sender, request_receiver) = mpsc::channel(100);
-    tokio::spawn(UploadManager::add_record(shared_state, request_receiver));
-    Ok((http_server_handle, request_sender))
+            anyhow::Ok(())
+        });
+        let (request_sender, request_receiver) = mpsc::channel(100);
+        tokio::spawn(UploadManager::add_record(shared_state, request_receiver));
+        Ok((http_server_handle, request_sender))
+    }
+
+    pub async fn db_loop() -> anyhow::Result<()> {
+        Ok(())
+    }
 }

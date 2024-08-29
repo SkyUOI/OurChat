@@ -1,0 +1,6 @@
+{
+    "cmd_before_run": "cd server && cargo build",
+    "server_exec": "target/debug/server",
+    "server_args": ["--cfg=config/mysql/ourchat.toml", "--test-mode"],
+    "test_args": []
+}

@@ -60,11 +60,13 @@ impl Server {
         &mut self,
         shutdown_sender: broadcast::Sender<()>,
         mut shutdown_receiver: broadcast::Receiver<()>,
-    ) {
-        tokio::spawn(Self::process_db_request(
-            self.task_solver_receiver.take().unwrap(),
-            self.db.take().unwrap(),
-        ));
+    ) -> anyhow::Result<()> {
+        let db_coon = self.db.take().unwrap();
+        let mut task_solver_receiver = self.task_solver_receiver.take().unwrap();
+        tokio::spawn(async move {
+            Self::process_db_request(&mut task_solver_receiver, &db_coon).await;
+            (task_solver_receiver, db_coon)
+        });
         let shutdown_sender_clone = shutdown_sender.clone();
         let async_loop = async move {
             loop {
@@ -86,7 +88,9 @@ impl Server {
                             .await
                         });
                     }
-                    Err(_) => todo!(),
+                    Err(e) => {
+                        tracing::warn!("Failed to accept a socket: {}", e);
+                    }
                 }
             }
         };
@@ -96,25 +100,26 @@ impl Server {
                 tracing::info!("Accepting loop exited")
             }
         }
+        Ok(())
     }
 
     async fn process_db_request(
-        mut receiver: mpsc::Receiver<DBRequest>,
-        db_connection: sea_orm::DatabaseConnection,
+        receiver: &mut mpsc::Receiver<DBRequest>,
+        db_connection: &sea_orm::DatabaseConnection,
     ) {
         while let Some(request) = receiver.recv().await {
             match request {
                 DBRequest::Login { resp, request } => {
-                    Self::login(request, resp, &db_connection).await
+                    Self::login(request, resp, db_connection).await
                 }
                 DBRequest::Register { resp, request } => {
-                    Self::register(request, resp, &db_connection).await;
+                    Self::register(request, resp, db_connection).await;
                 }
                 DBRequest::Unregister { id, resp } => {
-                    Self::unregister(id, resp, &db_connection).await;
+                    Self::unregister(id, resp, db_connection).await;
                 }
                 DBRequest::NewSession { id, resp } => {
-                    Self::new_session(id, resp, &db_connection).await;
+                    Self::new_session(id, resp, db_connection).await;
                 }
             }
         }
@@ -146,5 +151,12 @@ impl Server {
                 }
             }
         });
+    }
+
+    pub async fn delete(mut self) -> anyhow::Result<()> {
+        if let Some(db) = self.db.take() {
+            db.close().await?;
+        }
+        Ok(())
     }
 }

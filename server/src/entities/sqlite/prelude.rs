@@ -3,6 +3,7 @@
 pub use super::authority::Entity as Authority;
 pub use super::chat::Entity as Chat;
 pub use super::chat_group::Entity as ChatGroup;
+pub use super::files::Entity as Files;
 pub use super::friend::Entity as Friend;
 pub use super::server_manager::Entity as ServerManager;
 pub use super::user::Entity as User;

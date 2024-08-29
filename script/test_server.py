@@ -48,7 +48,7 @@ def read_cfg(path) -> Config:
 
 def test_process() -> int:
     if len(sys.argv) > 1:
-        cfg = sys.argv[1]
+        cfg = os.path.join(os.path.dirname(__file__), sys.argv[1])
     else:
         cfg = os.path.join(os.path.dirname(__file__), "server_test.json")
     cfg = read_cfg(cfg)

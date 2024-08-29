@@ -5,6 +5,7 @@ pub mod prelude;
 pub mod authority;
 pub mod chat;
 pub mod chat_group;
+pub mod files;
 pub mod friend;
 pub mod server_manager;
 pub mod user;
