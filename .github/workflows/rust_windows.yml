@@ -20,3 +20,7 @@ jobs:
         run: cargo check --all
       - name: Build Release
         run: cargo check --all --release
+      - name: Sqlite Test
+        run: |
+          python3 script/test_server.py
+          sudo rm -rf target/

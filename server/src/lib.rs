@@ -1,5 +1,6 @@
 #![feature(asm_goto)]
 #![feature(decl_macro)]
+#![feature(duration_constructors)]
 
 mod cmd;
 pub mod connection;
@@ -8,6 +9,7 @@ pub mod db;
 mod entities;
 pub mod requests;
 mod server;
+mod share_state;
 pub mod utils;
 
 use anyhow::bail;
@@ -80,6 +82,8 @@ struct Cfg {
     http_port: Option<u16>,
     #[serde(default)]
     db_type: DbType,
+    #[serde(default = "consts::default_clear_interval")]
+    auto_clean_duration: u64,
 }
 
 impl Cfg {
@@ -260,6 +264,8 @@ pub async fn lib_main() -> anyhow::Result<()> {
         }
         tracing::info!("Server is in maintaining mode");
     }
+    // 设置自动清理天数
+    *share_state::AUTO_CLEAN_DURATION.lock() = cfg.auto_clean_duration;
     // 处理数据库
     let db_type = match parser.db_type {
         None => cfg.db_type,

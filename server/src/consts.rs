@@ -41,3 +41,8 @@ pub type TimeStamp = u64;
 pub type ID = u64;
 /// ocid type
 pub type OCID = String;
+
+/// 默认清理间隔天数
+pub const fn default_clear_interval() -> u64 {
+    1
+}

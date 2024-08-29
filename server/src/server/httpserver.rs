@@ -2,7 +2,7 @@ use crate::ShutdownRev;
 use actix_web::{
     get, post,
     web::{self, Data, Query},
-    App, HttpResponse, Responder,
+    App, HttpRequest, HttpResponse, Responder,
 };
 use dashmap::DashMap;
 use futures_util::StreamExt;
@@ -70,14 +70,23 @@ impl UploadManager {
     }
 }
 
+const KEY: &str = "Key";
+
 #[post("/upload/{url}")]
 async fn upload(
+    req: HttpRequest,
     url: web::Path<String>,
-    key: Query<File>,
     manager: web::Data<UploadManager>,
     mut payload: web::Payload,
 ) -> impl Responder {
     let url = url.into_inner();
+    let key = match req.headers().get(KEY).and_then(|key| key.to_str().ok()) {
+        None => {
+            return HttpResponse::BadRequest();
+        }
+        Some(key) => key,
+    };
+
     let mut body = bytes::BytesMut::new();
     // 获取临时url记录
     let record = match manager.get_records(&url) {
@@ -87,7 +96,7 @@ async fn upload(
         Some(data) => data,
     };
     // 验证key
-    if record.key != key.key {
+    if record.key != key {
         return HttpResponse::Unauthorized();
     }
     // 读取文件
