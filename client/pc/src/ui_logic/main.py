@@ -1,5 +1,6 @@
 from typing import Any
 
+from PyQt6.QtGui import QKeyEvent
 from PyQt6.QtWidgets import QWidget
 from ui.main import Ui_Main
 from ui_logic import account, session, setting
@@ -47,5 +48,5 @@ class MainUI(BasicUI, Ui_Main):
         if self.widget_ui_logic is not None:
             self.widget_ui_logic.fillText()
 
-    def keyPressEvent(self, event: session.QKeyEvent):
+    def keyPressEvent(self, event: QKeyEvent):
         self.widget_ui_logic.keyPressEvent(event)
