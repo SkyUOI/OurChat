@@ -37,7 +37,7 @@ pub fn db_compatibility(_attr: TokenStream, tok: TokenStream) -> TokenStream {
         {
             if static_keys::static_branch_unlikely!(crate::db::SQLITE_TYPE) {
                 #(#sqlite)*
-            }else if static_keys::static_branch_unlikely!(crate::db::MYSQL_TYPE) {
+            }else {
                 #(#mysql)*
             }
         }
@@ -47,5 +47,7 @@ pub fn db_compatibility(_attr: TokenStream, tok: TokenStream) -> TokenStream {
     funcbody
         .attrs
         .push(syn::parse_quote! {#[allow(clippy::useless_conversion)]});
-    quote! {#funcbody}.into()
+    let ret = quote! {#funcbody}.into();
+    println!("{ret}");
+    ret
 }

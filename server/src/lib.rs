@@ -15,7 +15,7 @@ pub mod utils;
 use anyhow::bail;
 use clap::Parser;
 use consts::{DEFAULT_HTTP_PORT, DEFAULT_PORT};
-use db::DbType;
+use db::{file_storage, DbType};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use server::httpserver;
@@ -84,6 +84,8 @@ struct Cfg {
     db_type: DbType,
     #[serde(default = "consts::default_clear_interval")]
     auto_clean_duration: u64,
+    #[serde(default = "consts::default_file_save_days")]
+    file_save_days: u64,
 }
 
 impl Cfg {
@@ -266,6 +268,7 @@ pub async fn lib_main() -> anyhow::Result<()> {
     }
     // 设置自动清理天数
     *share_state::AUTO_CLEAN_DURATION.lock() = cfg.auto_clean_duration;
+    *share_state::FILE_SAVE_DAYS.lock() = cfg.file_save_days;
     // 处理数据库
     let db_type = match parser.db_type {
         None => cfg.db_type,
@@ -288,7 +291,7 @@ pub async fn lib_main() -> anyhow::Result<()> {
     // 构建websocket服务端
     start_server(
         (ip.clone(), port),
-        db,
+        db.clone(),
         redis,
         parser.test_mode,
         record_sender,
@@ -296,6 +299,8 @@ pub async fn lib_main() -> anyhow::Result<()> {
         shutdown_sender.subscribe(),
     )
     .await?;
+    // 启动数据库文件系统
+    file_storage::FileSys::new(db).start(shutdown_sender.subscribe());
 
     exit_signal(shutdown_sender.clone()).await?;
     cmd_start(shutdown_sender, parser.test_mode).await?;

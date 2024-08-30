@@ -46,3 +46,8 @@ pub type OCID = String;
 pub const fn default_clear_interval() -> u64 {
     1
 }
+
+/// 文件默认保存天数
+pub const fn default_file_save_days() -> u64 {
+    10
+}
