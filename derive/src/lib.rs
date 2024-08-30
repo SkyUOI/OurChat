@@ -47,7 +47,5 @@ pub fn db_compatibility(_attr: TokenStream, tok: TokenStream) -> TokenStream {
     funcbody
         .attrs
         .push(syn::parse_quote! {#[allow(clippy::useless_conversion)]});
-    let ret = quote! {#funcbody}.into();
-    println!("{ret}");
-    ret
+    quote! {#funcbody}.into()
 }

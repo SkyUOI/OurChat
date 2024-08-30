@@ -1,7 +1,12 @@
 //! 命令行控制系统
 
-use crate::{ShutdownRev, MAINTAINING};
+use crate::{
+    db::file_storage,
+    share_state::{self, get_maintaining},
+    ShutdownRev,
+};
 use colored::Colorize;
+use sea_orm::DatabaseConnection;
 use static_keys::static_branch_unlikely;
 use std::{cell::RefCell, collections::BTreeMap, io::Write, rc::Rc, str::FromStr};
 use tokio::io::{self, AsyncBufReadExt, BufReader};
@@ -24,9 +29,11 @@ enum InstName {
     #[strum(ascii_case_insensitive)]
     Exit,
     #[strum(ascii_case_insensitive)]
-    SetStatus,
+    Set,
     #[strum(ascii_case_insensitive)]
-    GetStatus,
+    Get,
+    #[strum(ascii_case_insensitive)]
+    CleanFS,
 }
 
 struct InstManager {
@@ -51,20 +58,42 @@ impl InstManager {
                 details_help: "Displap the help information Help.Usage: help command1 command2".to_string(),
                 command_process: help_process,
             }),
-            InstName::SetStatus => Rc::new(Inst {
-                name: InstName::SetStatus,
-                name_interbal: "setstatus",
-                short_help: "Set the status of the server".to_string(),
-                details_help: "Set the status of the server.Usage: status maintaining(m)|normal(n)".to_string(),
-                command_process: set_status_process,
+            InstName::Set => Rc::new(Inst {
+                name: InstName::Set,
+                name_interbal: "set",
+                short_help: "Set variable of the server".to_string(),
+                details_help: r#"Set variable of the server.
+Usage: set varname value
+
+variables are: Status, AutoCleanCycle, FileSaveDays
+
+Status(The status of server): Maintaining(m) or Normal(n)
+AutoCleanCycle(How long will be cleaned): Number of days
+FileSaveDays(How long the files will be kept): Number of days"#.to_string(),
+                command_process: set_process,
             }),
-            InstName::GetStatus => Rc::new(Inst {
-                name: InstName::GetStatus,
-                name_interbal: "getstatus",
-                short_help: "Get the status of the server".to_string(),
-                details_help: "Get the status of the server.Usage: getstatus".to_string(),
-                command_process: get_status_process,
+            InstName::Get => Rc::new(Inst {
+                name: InstName::Get,
+                name_interbal: "get",
+                short_help: "Get variable of the server".to_string(),
+                details_help: "Get variable of the server.
+Usage: get varname
+
+variables are: Status, AutoCleanCycle, FileSaveDays
+
+Status(The status of server): Maintaining(m) or Normal(n)
+AutoCleanCycle(How long will be cleaned): Number of days
+FileSaveDays(How long the files will be kept): Number of day".to_string(),
+                command_process: get_process,
             }),
+            InstName::CleanFS => Rc::new(Inst {
+                name: InstName::CleanFS,
+                name_interbal: "cleanfs",
+                short_help: "Clean the file system".to_string(),
+                details_help: "Clean the file system. Usage: cleanfs".to_string(),
+                command_process: cleanfs_process,
+            }),
+
         }));
         Self { insts }
     }
@@ -84,6 +113,13 @@ fn exit_process(_: &InstManager, argvs: Vec<String>) -> Result<(), String> {
         return Ok(());
     }
     Err("exit accept 0 args".to_string())
+}
+
+fn cleanfs_process(_: &InstManager, argvs: Vec<String>) -> Result<(), String> {
+    if !argvs.is_empty() {
+        return Err("cleanfs accept 0 args".to_string());
+    }
+    Ok(())
 }
 
 fn help_process(insts: &InstManager, argvs: Vec<String>) -> Result<(), String> {
@@ -120,50 +156,109 @@ enum ServerStatus {
     Normal,
 }
 
-fn set_status_process(_: &InstManager, argvs: Vec<String>) -> Result<(), String> {
-    if argvs.len() != 1 {
-        return Err("status accept 1 args".to_string());
+#[derive(strum::EnumString)]
+enum Variable {
+    #[strum(ascii_case_insensitive)]
+    Status,
+    #[strum(ascii_case_insensitive)]
+    AutoCleanCycle,
+    #[strum(ascii_case_insensitive)]
+    FileSaveDays,
+}
+
+fn gen_error_msg_template(help_msg: &str) -> String {
+    format!(
+        "Please input right variables,use '{}' for more information",
+        help_msg
+    )
+}
+
+fn set_process(_: &InstManager, argvs: Vec<String>) -> Result<(), String> {
+    if argvs.len() != 2 {
+        return Err("status accept 2 args".to_string());
     }
-    let status = match ServerStatus::from_str(&argvs[0]) {
-        Ok(status) => status,
+
+    let var = match Variable::from_str(&argvs[0]) {
+        Ok(var) => var,
         Err(_) => {
-            return Err("status accept maintaining(m)|normal(n)".to_string());
+            return Err(gen_error_msg_template("help set"));
         }
     };
-    match status {
-        ServerStatus::Maintaining => {
-            if !static_branch_unlikely!(MAINTAINING) {
-                unsafe { MAINTAINING.enable() }
-                println!("Set server status to Maintaining");
-            } else {
-                println!("Server status is already Maintaining");
+    match var {
+        Variable::Status => {
+            let status = match ServerStatus::from_str(&argvs[1]) {
+                Ok(status) => status,
+                Err(_) => {
+                    return Err(gen_error_msg_template("help set"));
+                }
+            };
+            match status {
+                ServerStatus::Maintaining => {
+                    if !share_state::get_maintaining() {
+                        unsafe { share_state::set_maintaining(true) };
+                        println!("Set server status to Maintaining");
+                    } else {
+                        println!("Server status is already Maintaining");
+                    }
+                }
+                ServerStatus::Normal => {
+                    if share_state::get_maintaining() {
+                        unsafe { share_state::set_maintaining(false) }
+                        println!("Set server status to Normal");
+                    } else {
+                        println!("Server status is already Normal");
+                    }
+                }
             }
         }
-        ServerStatus::Normal => {
-            if static_branch_unlikely!(MAINTAINING) {
-                unsafe { MAINTAINING.disable() }
-                println!("Set server status to Normal");
+        Variable::AutoCleanCycle => share_state::set_auto_clean_duration(match argvs[1].parse() {
+            Ok(d) => d,
+            Err(_) => {
+                return Err(format!("Wrong number {}", argvs[1]));
+            }
+        }),
+        Variable::FileSaveDays => share_state::set_file_save_days(match argvs[1].parse() {
+            Ok(d) => d,
+            Err(_) => {
+                return Err(format!("Wrong number {}", argvs[1]));
+            }
+        }),
+    }
+
+    Ok(())
+}
+
+fn get_process(_: &InstManager, argvs: Vec<String>) -> Result<(), String> {
+    if argvs.len() != 1 {
+        return Err("getstatus accept 1 args".to_string());
+    }
+
+    let var = match Variable::from_str(&argvs[0]) {
+        Ok(var) => var,
+        Err(_) => {
+            return Err(gen_error_msg_template("help get"));
+        }
+    };
+    match var {
+        Variable::Status => {
+            if share_state::get_maintaining() {
+                println!("Server status is Maintaining");
             } else {
-                println!("Server status is already Normal");
+                println!("Server status is Normal");
             }
         }
+        Variable::AutoCleanCycle => {
+            println!("AutoCleanCycle: {}", share_state::get_auto_clean_duration())
+        }
+        Variable::FileSaveDays => println!("FileSaveDays: {}", share_state::get_file_save_days()),
     }
     Ok(())
 }
 
-fn get_status_process(_: &InstManager, argvs: Vec<String>) -> Result<(), String> {
-    if !argvs.is_empty() {
-        return Err("getstatus accept 0 args".to_string());
-    }
-    if static_branch_unlikely!(MAINTAINING) {
-        println!("Server status is Maintaining");
-    } else {
-        println!("Server status is Normal");
-    }
-    Ok(())
-}
-
-pub async fn cmd_process_loop(mut shutdown_receiver: ShutdownRev) -> anyhow::Result<()> {
+pub async fn cmd_process_loop(
+    mut shutdown_receiver: ShutdownRev,
+    mut db_conn: DatabaseConnection,
+) -> anyhow::Result<()> {
     let mut console_reader = BufReader::new(io::stdin()).lines();
     let insts = InstManager::new();
     loop {
@@ -199,6 +294,14 @@ pub async fn cmd_process_loop(mut shutdown_receiver: ShutdownRev) -> anyhow::Res
                             match inst_enum {
                                 InstName::Exit => {
                                     return Ok(());
+                                }
+                                InstName::CleanFS => {
+                                    match file_storage::clean_files(&mut db_conn).await {
+                                        Ok(_) => {}
+                                        Err(e) => {
+                                            tracing::error!("CleanFS: {}", e);
+                                        }
+                                    }
                                 }
                                 _ => {}
                             }

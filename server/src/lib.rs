@@ -17,6 +17,7 @@ use clap::Parser;
 use consts::{DEFAULT_HTTP_PORT, DEFAULT_PORT};
 use db::{file_storage, DbType};
 use rand::Rng;
+use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 use server::httpserver;
 use static_keys::define_static_key_false;
@@ -70,8 +71,6 @@ struct ArgsParser {
     maintaining: bool,
 }
 
-define_static_key_false!(MAINTAINING);
-
 #[derive(Debug, Serialize, Deserialize)]
 struct Cfg {
     rediscfg: PathBuf,
@@ -86,6 +85,10 @@ struct Cfg {
     auto_clean_duration: u64,
     #[serde(default = "consts::default_file_save_days")]
     file_save_days: u64,
+    #[serde(default = "consts::default_enable_cmd")]
+    enable_cmd: bool,
+    #[serde(default)]
+    cmd_network_port: u16,
 }
 
 impl Cfg {
@@ -155,12 +158,16 @@ fn clear() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn cmd_start(shutdown_sender: ShutdownSdr, test_mode: bool) -> anyhow::Result<()> {
+async fn cmd_start(
+    shutdown_sender: ShutdownSdr,
+    db_conn: DatabaseConnection,
+    test_mode: bool,
+) -> anyhow::Result<()> {
     let mut shutdown_receiver1 = shutdown_sender.subscribe();
     if !test_mode {
         let mut shutdown_receiver2 = shutdown_sender.subscribe();
         select! {
-            _ = cmd::cmd_process_loop(shutdown_receiver1) => {
+            _ = cmd::cmd_process_loop(shutdown_receiver1, db_conn) => {
                 shutdown_sender.send(())?;
                 tracing::info!("Exit because command loop has exited");
             },
@@ -260,15 +267,12 @@ pub async fn lib_main() -> anyhow::Result<()> {
     };
     let ip = parser.ip;
     // 启动维护模式
-    if parser.maintaining {
-        unsafe {
-            MAINTAINING.enable();
-        }
-        tracing::info!("Server is in maintaining mode");
+    unsafe {
+        share_state::set_maintaining(parser.maintaining);
     }
     // 设置自动清理天数
-    *share_state::AUTO_CLEAN_DURATION.lock() = cfg.auto_clean_duration;
-    *share_state::FILE_SAVE_DAYS.lock() = cfg.file_save_days;
+    share_state::set_auto_clean_duration(cfg.auto_clean_duration);
+    share_state::set_file_save_days(cfg.file_save_days);
     // 处理数据库
     let db_type = match parser.db_type {
         None => cfg.db_type,
@@ -300,10 +304,10 @@ pub async fn lib_main() -> anyhow::Result<()> {
     )
     .await?;
     // 启动数据库文件系统
-    file_storage::FileSys::new(db).start(shutdown_sender.subscribe());
+    file_storage::FileSys::new(db.clone()).start(shutdown_sender.subscribe());
 
     exit_signal(shutdown_sender.clone()).await?;
-    cmd_start(shutdown_sender, parser.test_mode).await?;
+    cmd_start(shutdown_sender, db, parser.test_mode).await?;
     handle.await??;
     tracing::info!("Server exited");
     Ok(())

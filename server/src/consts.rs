@@ -51,3 +51,7 @@ pub const fn default_clear_interval() -> u64 {
 pub const fn default_file_save_days() -> u64 {
     10
 }
+
+pub const fn default_enable_cmd() -> bool {
+    true
+}

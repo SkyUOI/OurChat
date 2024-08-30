@@ -35,11 +35,11 @@ impl FileSys {
 
 // TODO: 测试该部分
 #[db_compatibility]
-async fn clean_files(db_conn: &mut DatabaseConnection) -> anyhow::Result<()> {
+pub async fn clean_files(db_conn: &mut DatabaseConnection) -> anyhow::Result<()> {
     use entities::files;
     // 先查询文件
     let del_time =
-        chrono::Utc::now() - chrono::Duration::days(*share_state::FILE_SAVE_DAYS.lock() as i64);
+        chrono::Utc::now() - chrono::Duration::days(share_state::get_file_save_days() as i64);
     let cond = files::Column::Date.lt(del_time.timestamp());
     let files = files::Entity::find()
         .filter(cond.clone())
@@ -65,7 +65,7 @@ async fn clean_files(db_conn: &mut DatabaseConnection) -> anyhow::Result<()> {
 #[tracing::instrument]
 pub async fn auto_clean_files(mut connection: DatabaseConnection) {
     loop {
-        let days = *share_state::AUTO_CLEAN_DURATION.lock();
+        let days = share_state::get_auto_clean_duration();
         sleep_until(Instant::now() + Duration::from_days(days)).await;
         match clean_files(&mut connection).await {
             Ok(_) => {}
