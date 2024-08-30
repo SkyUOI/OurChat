@@ -109,7 +109,7 @@ class SessionSettingUI(BasicUI, Ui_SessionSetting):
         self.dialog.close()
 
     def newSessionResponse(self, data: dict) -> None:
-        if data["status_code"] == RUN_NORMALLY:
+        if data["status"] == RUN_NORMALLY:
             self.ourchat.unListen(NEW_SESSION_RESPONSE_MSG, self.newSessionResponse)
             session_id = data["session_id"]
             self.ourchat.getSession(session_id)
@@ -120,7 +120,7 @@ class SessionSettingUI(BasicUI, Ui_SessionSetting):
                 self.ourchat.language["create_session_success"],
             )
             self.dialog.close()
-        elif data["status_code"] == SERVER_ERROR:
+        elif data["status"] == SERVER_ERROR:
             logger.warning("create session failed: server error")
             QMessageBox.warning(
                 self.widget,
@@ -129,7 +129,7 @@ class SessionSettingUI(BasicUI, Ui_SessionSetting):
                     self.ourchat.language["server_error"]
                 ),
             )
-        elif data["status_code"] == SERVER_UNDER_MAINTENANCE:
+        elif data["status"] == SERVER_UNDER_MAINTENANCE:
             logger.warning("create session failed: server under maintenance")
             QMessageBox.warning(
                 self.widget,
@@ -138,7 +138,7 @@ class SessionSettingUI(BasicUI, Ui_SessionSetting):
                     self.ourchat.language["maintenance"]
                 ),
             )
-        elif data["status_code"] == ACCOUNT_LIMIT:
+        elif data["status"] == ACCOUNT_LIMIT:
             logger.warning("create session failed: reach sessions limit")
             QMessageBox.warning(
                 self.widget,
@@ -147,7 +147,7 @@ class SessionSettingUI(BasicUI, Ui_SessionSetting):
                     self.ourchat.language["reach_sessions_limit"]
                 ),
             )
-        elif data["status_code"] == UNKNOWN_ERROR:
+        elif data["status"] == UNKNOWN_ERROR:
             logger.warning("create session failed: unknown error")
             QMessageBox.warning(
                 self.widget,

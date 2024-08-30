@@ -232,7 +232,7 @@ class SessionUI(BasicUI, Ui_Session):
         dialog.show()
 
     def newSessionResponse(self, data: dict) -> None:
-        if data["status_code"] == RUN_NORMALLY:
+        if data["status"] == RUN_NORMALLY:
             self.updateSessionList()
 
     def newline(self):

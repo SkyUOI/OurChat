@@ -87,7 +87,7 @@ class OurChatAccount:
             self.sendInfoRequest()
 
     def getUpdateTimeResponse(self, data: dict) -> None:
-        if data["status_code"] == RUN_NORMALLY:
+        if data["status"] == RUN_NORMALLY:
             if data["data"]["ocid"] != self.ocid:
                 return
             self.ourchat.unListen(ACCOUNT_INFO_RESPONSE_MSG, self.getUpdateTimeResponse)
@@ -100,7 +100,7 @@ class OurChatAccount:
                 self.sendInfoRequest()
             else:
                 self.finishGetInfo()
-        elif data["status_code"] == SERVER_ERROR:
+        elif data["status"] == SERVER_ERROR:
             logger.warning("get account info failed: server error")
             QMessageBox.warning(
                 None,
@@ -109,7 +109,7 @@ class OurChatAccount:
                     self.ourchat.language["server_error"]
                 ),
             )
-        elif data["status_code"] == SERVER_UNDER_MAINTENANCE:
+        elif data["status"] == SERVER_UNDER_MAINTENANCE:
             logger.warning("get account info failed: server under maintenance")
             QMessageBox.warning(
                 None,
@@ -118,7 +118,7 @@ class OurChatAccount:
                     self.ourchat.language["maintenance"]
                 ),
             )
-        elif data["status_code"] == REQUEST_INFO_NOT_FOUND:
+        elif data["status"] == REQUEST_INFO_NOT_FOUND:
             logger.warning("get account info failed: account not found")
             QMessageBox.warning(
                 None,
@@ -127,7 +127,7 @@ class OurChatAccount:
                     self.ourchat.language["account_not_found"]
                 ),
             )
-        elif data["status_code"] == UNKNOWN_ERROR:
+        elif data["status"] == UNKNOWN_ERROR:
             logger.warning("get account info failed: unknown error")
             QMessageBox.warning(
                 None,
@@ -138,7 +138,7 @@ class OurChatAccount:
             )
 
     def getInfoResponse(self, data: dict) -> None:
-        if data["status_code"] == RUN_NORMALLY:
+        if data["status"] == RUN_NORMALLY:
             if data["data"]["ocid"] != self.ocid:
                 return
             self.ourchat.unListen(ACCOUNT_INFO_RESPONSE_MSG, self.getInfoResponse)
@@ -151,7 +151,7 @@ class OurChatAccount:
                 self.data["friends"] = None
             self.ourchat.cache.setAccount(self.ocid, self.data)
             self.finishGetInfo()
-        elif data["status_code"] == SERVER_ERROR:
+        elif data["status"] == SERVER_ERROR:
             logger.warning("get account info failed: server error")
             QMessageBox.warning(
                 None,
@@ -160,7 +160,7 @@ class OurChatAccount:
                     self.ourchat.language["server_error"]
                 ),
             )
-        elif data["status_code"] == SERVER_UNDER_MAINTENANCE:
+        elif data["status"] == SERVER_UNDER_MAINTENANCE:
             logger.warning("get account info failed: server under maintenance")
             QMessageBox.warning(
                 None,
@@ -169,7 +169,7 @@ class OurChatAccount:
                     self.ourchat.language["maintenance"]
                 ),
             )
-        elif data["status_code"] == REQUEST_INFO_NOT_FOUND:
+        elif data["status"] == REQUEST_INFO_NOT_FOUND:
             logger.warning("get account info failed: account not found")
             QMessageBox.warning(
                 None,
@@ -178,7 +178,7 @@ class OurChatAccount:
                     self.ourchat.language["account_not_found"]
                 ),
             )
-        elif data["status_code"] == UNKNOWN_ERROR:
+        elif data["status"] == UNKNOWN_ERROR:
             logger.warning("get account info failed: unknown error")
             QMessageBox.warning(
                 None,
@@ -200,6 +200,8 @@ class OurChatAccount:
 
     def finishGetInfo(self) -> None:
         if self.me:
+            self.sessions = []
+            self.friends = []
             for session_id in self.data["sessions"]:
                 self.ourchat.getSession(session_id)
                 self.sessions.append(session_id)

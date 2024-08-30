@@ -117,9 +117,9 @@ def account_info(conn: Connection, sample: dict, data: dict) -> dict:
                 sample["data"][key] = account_info.friends
                 if conn.ocid != account_info.ocid:
                     sample["data"][key] = None
-        sample["status_code"] = 0
+        sample["status"] = 0
     else:
-        sample["status_code"] = 3
+        sample["status"] = 3
     return sample
 
 
@@ -131,14 +131,14 @@ def login(conn: Connection, sample: dict, data: dict) -> dict:
         ocid = data["account"]
         account = Account.get_or_none(Account.ocid == ocid)
     if account is None:
-        sample["status_code"] = 5
+        sample["status"] = 5
     else:
         if data["password"] == account.password:
             conn.ocid = account.ocid
             sample["ocid"] = account.ocid
-            sample["status_code"] = 0
+            sample["status"] = 0
         else:
-            sample["status_code"] = 5
+            sample["status"] = 5
 
     return sample
 
@@ -146,7 +146,7 @@ def login(conn: Connection, sample: dict, data: dict) -> dict:
 def session_info(conn: Connection, sample: dict, data: dict) -> dict:
     session = Session.get_or_none(Session.session_id == data["session_id"])
     if session is None:
-        sample["status_code"] = 3
+        sample["status"] = 3
     else:
         for key in data["request_values"]:
             if key == "session_id":
@@ -165,14 +165,14 @@ def session_info(conn: Connection, sample: dict, data: dict) -> dict:
                 sample["data"][key] = session.members
             elif key == "owner":
                 sample["data"][key] = session.owner
-        sample["status_code"] = 0
+        sample["status"] = 0
     return sample
 
 
 def register(conn: Connection, sample: dict, data: dict) -> dict:
     account = Account.get_or_none(Account.email == data["email"])
     if account is not None:
-        sample["status_code"] = 4
+        sample["status"] = 4
     else:
         max_ocid = Account.select(fn.Max(Account.ocid)).scalar()
         if max_ocid is None:
@@ -195,7 +195,7 @@ def register(conn: Connection, sample: dict, data: dict) -> dict:
         )
         conn.ocid = ocid
         sample["ocid"] = ocid
-        sample["status_code"] = 0
+        sample["status"] = 0
 
     return sample
 
@@ -263,7 +263,7 @@ async def new_session(conn: Connection, sample: dict, data: dict) -> dict:
         owner=conn.ocid,
     )
 
-    sample["status_code"] = 0
+    sample["status"] = 0
     sample["session_id"] = session_id
 
     for address in connections:
@@ -281,7 +281,7 @@ def unregister(conn: Connection, sample: dict, data: dict) -> dict:
     if account is None:
         return sample
     account.delete_instance()
-    sample["status_code"] = 0
+    sample["status"] = 0
     return sample
 
 
@@ -309,7 +309,7 @@ def set_account(conn: Connection, sample: dict, data: dict) -> dict:
         avatar_hash=avatar_hash,
         public_update_time=public_update_time,
     ).where(Account.ocid == data["ocid"]).execute()
-    sample["status_code"] = 0
+    sample["status"] = 0
     return sample
 
 

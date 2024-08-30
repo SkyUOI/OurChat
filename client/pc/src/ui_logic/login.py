@@ -126,9 +126,9 @@ class LoginUI(BasicUI, Ui_Login):
 
     def serverStatusResponse(self, result: dict) -> None:
         self.ourchat.unListen(SERVER_STATUS_MSG, self.serverStatusResponse)
-        if result["status_code"] == RUN_NORMALLY:
+        if result["status"] == RUN_NORMALLY:
             self.join()
-        elif result["status_code"] == SERVER_UNDER_MAINTENANCE:
+        elif result["status"] == SERVER_UNDER_MAINTENANCE:
             logger.warning("server is under maintenance")
             QMessageBox.warning(
                 self.widget,
@@ -138,7 +138,7 @@ class LoginUI(BasicUI, Ui_Login):
             self.ourchat.conn.close()
             self.join_btn.setEnabled(True)
             return
-        elif result["status_code"] == UNKNOWN_ERROR:
+        elif result["status"] == UNKNOWN_ERROR:
             logger.warning("unknown error")
             QMessageBox.warning(
                 self.widget,
@@ -151,7 +151,7 @@ class LoginUI(BasicUI, Ui_Login):
 
     def verifyResponse(self, result: dict) -> None:
         self.ourchat.unListen(VERIFY_STATUS_MSG, self.verifyResponse)
-        if result["status_code"] == RUN_NORMALLY:
+        if result["status"] == RUN_NORMALLY:
             self.ourchat.listen(REGISTER_RESPONSE_MSG, self.registerResponse)
             sha256 = hashlib.sha256()
             sha256.update(self.register_password_editor.text().encode("ascii"))
@@ -165,7 +165,7 @@ class LoginUI(BasicUI, Ui_Login):
                     "password": sha256.hexdigest(),
                 },
             )
-        elif result["status_code"] == SERVER_ERROR:
+        elif result["status"] == SERVER_ERROR:
             logger.warning("verify failed: server error")
             QMessageBox.warning(
                 self.widget,
@@ -176,7 +176,7 @@ class LoginUI(BasicUI, Ui_Login):
             )
             self.join_btn.setEnabled(True)
 
-        elif result["status_code"] == SERVER_UNDER_MAINTENANCE:
+        elif result["status"] == SERVER_UNDER_MAINTENANCE:
             logger.warning("verify failed: server under maintenance")
             QMessageBox.warning(
                 self.widget,
@@ -187,7 +187,7 @@ class LoginUI(BasicUI, Ui_Login):
             )
             self.join_btn.setEnabled(True)
 
-        elif result["status_code"] == TIMEOUT:
+        elif result["status"] == TIMEOUT:
             logger.warning("verify failed: timeout")
             QMessageBox.warning(
                 self.widget,
@@ -198,7 +198,7 @@ class LoginUI(BasicUI, Ui_Login):
             )
             self.join_btn.setEnabled(True)
 
-        elif result["status_code"] == UNKNOWN_ERROR:
+        elif result["status"] == UNKNOWN_ERROR:
             logger.warning("verify failed: unknown error")
             QMessageBox.warning(
                 self.widget,
@@ -211,7 +211,7 @@ class LoginUI(BasicUI, Ui_Login):
 
     def registerResponse(self, result: dict) -> None:
         self.ourchat.unListen(REGISTER_RESPONSE_MSG, self.registerResponse)
-        if result["status_code"] == RUN_NORMALLY:
+        if result["status"] == RUN_NORMALLY:
             logger.info("register success")
             QMessageBox.information(
                 self.widget,
@@ -223,7 +223,7 @@ class LoginUI(BasicUI, Ui_Login):
             self.uisystem.mainwindow.show()
             self.uisystem.ui_logic.show()
             self.widget.close()
-        elif result["status_code"] == SERVER_ERROR:
+        elif result["status"] == SERVER_ERROR:
             logger.warning("register failed: server error")
             QMessageBox.warning(
                 self.widget,
@@ -234,7 +234,7 @@ class LoginUI(BasicUI, Ui_Login):
             )
             self.join_btn.setEnabled(True)
 
-        elif result["status_code"] == SERVER_UNDER_MAINTENANCE:
+        elif result["status"] == SERVER_UNDER_MAINTENANCE:
             logger.warning("register failed: server under maintenance")
             QMessageBox.warning(
                 self.widget,
@@ -245,7 +245,7 @@ class LoginUI(BasicUI, Ui_Login):
             )
             self.join_btn.setEnabled(True)
 
-        elif result["status_code"] == NEW_INFO_EXIST:
+        elif result["status"] == NEW_INFO_EXIST:
             logger.warning("register failed: email exist")
             QMessageBox.warning(
                 self.widget,
@@ -256,7 +256,7 @@ class LoginUI(BasicUI, Ui_Login):
             )
             self.join_btn.setEnabled(True)
 
-        elif result["status_code"] == ARGUMENT_ERROR:
+        elif result["status"] == ARGUMENT_ERROR:
             logger.warning("register failed: pending verification")
             QMessageBox.warning(
                 self.widget,
@@ -267,7 +267,7 @@ class LoginUI(BasicUI, Ui_Login):
             )
             self.join_btn.setEnabled(True)
 
-        elif result["status_code"] == UNKNOWN_ERROR:
+        elif result["status"] == UNKNOWN_ERROR:
             logger.warning("register failed: unknown error")
             QMessageBox.warning(
                 self.widget,
@@ -280,14 +280,14 @@ class LoginUI(BasicUI, Ui_Login):
 
     def loginResponse(self, result: dict) -> None:
         self.ourchat.unListen(LOGIN_RESPONSE_MSG, self.loginResponse)
-        if result["status_code"] == RUN_NORMALLY:
+        if result["status"] == RUN_NORMALLY:
             logger.info("login success")
             account = self.ourchat.getAccount(result["ocid"], True)
             self.ourchat.setAccount(account)
             self.uisystem.ui_logic.show()
             self.uisystem.mainwindow.show()
             self.widget.close()
-        elif result["status_code"] == SERVER_ERROR:
+        elif result["status"] == SERVER_ERROR:
             logger.warning("login failed: server error")
             QMessageBox.warning(
                 self.widget,
@@ -298,7 +298,7 @@ class LoginUI(BasicUI, Ui_Login):
             )
             self.join_btn.setEnabled(True)
 
-        elif result["status_code"] == SERVER_UNDER_MAINTENANCE:
+        elif result["status"] == SERVER_UNDER_MAINTENANCE:
             logger.warning("login failed: server under maintenance")
             QMessageBox.warning(
                 self.widget,
@@ -309,7 +309,7 @@ class LoginUI(BasicUI, Ui_Login):
             )
             self.join_btn.setEnabled(True)
 
-        elif result["status_code"] == ARGUMENT_ERROR:
+        elif result["status"] == ARGUMENT_ERROR:
             logger.warning("login failed: wrong account or password")
             QMessageBox.warning(
                 self.widget,
@@ -320,7 +320,7 @@ class LoginUI(BasicUI, Ui_Login):
             )
             self.join_btn.setEnabled(True)
 
-        elif result["status_code"] == UNKNOWN_ERROR:
+        elif result["status"] == UNKNOWN_ERROR:
             logger.warning("login failed: unknown error")
             QMessageBox.warning(
                 self.widget,

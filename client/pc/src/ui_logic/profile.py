@@ -132,9 +132,9 @@ class ProfileUI(BasicUI, Ui_Profile):
         self.ok_btn.setEnabled(True)
 
     def setAccountInfoResponse(self, data: dict) -> None:
-        if data["status_code"] == RUN_NORMALLY:
+        if data["status"] == RUN_NORMALLY:
             self.dialog.close()
-        elif data["status_code"] == SERVER_ERROR:
+        elif data["status"] == SERVER_ERROR:
             logger.warning("set account info failed: server error")
             QMessageBox.warning(
                 self.dialog,
@@ -143,7 +143,7 @@ class ProfileUI(BasicUI, Ui_Profile):
                     self.ourchat.language["server_error"]
                 ),
             )
-        elif data["status_code"] == SERVER_UNDER_MAINTENANCE:
+        elif data["status"] == SERVER_UNDER_MAINTENANCE:
             logger.warning("set account info failed: server under maintenance")
             QMessageBox.warning(
                 self.dialog,
@@ -152,7 +152,7 @@ class ProfileUI(BasicUI, Ui_Profile):
                     self.ourchat.language["maintenance"]
                 ),
             )
-        elif data["status_code"] == UNKNOWN_ERROR:
+        elif data["status"] == UNKNOWN_ERROR:
             logger.warning("set account info failed: unknown error")
             QMessageBox.warning(
                 self.dialog,

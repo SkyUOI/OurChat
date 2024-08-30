@@ -85,7 +85,7 @@ class OurChatSession:
             self.sendInfoRequest()
 
     def getUpdateTimeResponse(self, data: dict) -> None:
-        if data["status_code"] == RUN_NORMALLY:
+        if data["status"] == RUN_NORMALLY:
             if data["data"]["session_id"] != self.session_id:
                 return
             self.ourchat.unListen(SESSION_INFO_RESPONSE_MSG, self.getUpdateTimeResponse)
@@ -94,7 +94,7 @@ class OurChatSession:
                 self.sendInfoRequest()
             else:
                 self.finishGetInfo()
-        elif data["status_code"] == SERVER_ERROR:
+        elif data["status"] == SERVER_ERROR:
             logger.warning("get session info failed: server error")
             QMessageBox.warning(
                 None,
@@ -103,7 +103,7 @@ class OurChatSession:
                     self.ourchat.language["server_error"]
                 ),
             )
-        elif data["status_code"] == SERVER_UNDER_MAINTENANCE:
+        elif data["status"] == SERVER_UNDER_MAINTENANCE:
             logger.warning("get session info failed: server under maintenance")
             QMessageBox.warning(
                 None,
@@ -112,7 +112,7 @@ class OurChatSession:
                     self.ourchat.language["maintenance"]
                 ),
             )
-        elif data["status_code"] == REQUEST_INFO_NOT_FOUND:
+        elif data["status"] == REQUEST_INFO_NOT_FOUND:
             logger.warning("get session info failed: session not found")
             QMessageBox.warning(
                 None,
@@ -121,7 +121,7 @@ class OurChatSession:
                     self.ourchat.language["session_not_found"]
                 ),
             )
-        elif data["status_code"] == UNKNOWN_ERROR:
+        elif data["status"] == UNKNOWN_ERROR:
             logger.warning("get session info failed: unknown error")
             QMessageBox.warning(
                 None,
@@ -132,14 +132,14 @@ class OurChatSession:
             )
 
     def getInfoResponse(self, data: dict) -> None:
-        if data["status_code"] == RUN_NORMALLY:
+        if data["status"] == RUN_NORMALLY:
             if data["data"]["session_id"] != self.session_id:
                 return
             self.ourchat.unListen(SESSION_INFO_RESPONSE_MSG, self.getInfoResponse)
             self.data = data["data"]
             self.ourchat.cache.setSession(self.session_id, self.data)
             self.finishGetInfo()
-        elif data["status_code"] == SERVER_ERROR:
+        elif data["status"] == SERVER_ERROR:
             logger.warning("get session info failed: server error")
             QMessageBox.warning(
                 None,
@@ -148,7 +148,7 @@ class OurChatSession:
                     self.ourchat.language["server_error"]
                 ),
             )
-        elif data["status_code"] == SERVER_UNDER_MAINTENANCE:
+        elif data["status"] == SERVER_UNDER_MAINTENANCE:
             logger.warning("get session info failed: server under maintenance")
             QMessageBox.warning(
                 None,
@@ -157,7 +157,7 @@ class OurChatSession:
                     self.ourchat.language["maintenance"]
                 ),
             )
-        elif data["status_code"] == REQUEST_INFO_NOT_FOUND:
+        elif data["status"] == REQUEST_INFO_NOT_FOUND:
             logger.warning("get session info failed: session not found")
             QMessageBox.warning(
                 None,
@@ -166,7 +166,7 @@ class OurChatSession:
                     self.ourchat.language["session_not_found"]
                 ),
             )
-        elif data["status_code"] == UNKNOWN_ERROR:
+        elif data["status"] == UNKNOWN_ERROR:
             logger.warning("get session info failed: unknown error")
             QMessageBox.warning(
                 None,
