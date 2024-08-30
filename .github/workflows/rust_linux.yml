@@ -22,7 +22,7 @@ jobs:
           sudo apt update
           sudo apt install valgrind -y
       - name: Build
-        run: cargo check --all
+        run: cargo build --all
       - name: Build Release
         run: cargo check --all --release
       - name: Sqlite Test

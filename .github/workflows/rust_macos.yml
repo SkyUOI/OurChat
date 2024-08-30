@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - name: Build
-        run: cargo check --all
+        run: cargo build --all
       - name: Build Release
         run: cargo check --all --release
       - name: Sqlite Test
