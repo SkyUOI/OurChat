@@ -3,9 +3,10 @@
 use crate::{share_state, ShutdownRev};
 use derive::db_compatibility;
 use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
-use std::time::Duration;
+use std::{fs::exists, time::Duration};
 use tokio::{
-    fs::remove_file,
+    fs::{remove_file, File},
+    io::AsyncWriteExt,
     select,
     time::{sleep_until, Instant},
 };
@@ -21,9 +22,16 @@ impl FileSys {
         }
     }
 
+    fn init() {
+        if exists("files_storage").is_ok() {
+            std::fs::create_dir("files_storage").unwrap();
+        }
+    }
+
     pub fn start(&mut self, mut shutodnw_receiver: ShutdownRev) {
         let db_conn = self.db_conn.take().unwrap();
         let db_conn_clone = db_conn.clone();
+        Self::init();
         tokio::spawn(async move {
             select! {
                 _ = auto_clean_files(db_conn_clone) => {}
@@ -80,17 +88,20 @@ pub async fn auto_clean_files(mut connection: DatabaseConnection) {
 pub enum AddFileError {
     #[error("Database error")]
     DbError(#[from] sea_orm::DbErr),
+    #[error("Internal IO error")]
+    InternalIOError(#[from] std::io::Error),
 }
 
 #[db_compatibility]
 pub async fn add_file(
     key: &str,
-    path: &str,
     auto_clean: bool,
-    db_conn: &mut DatabaseConnection,
+    content: &mut bytes::Bytes,
+    db_conn: &DatabaseConnection,
 ) -> Result<(), AddFileError> {
     use entities::files;
     let timestamp = chrono::Utc::now().timestamp();
+    let path = format!("{}/{}", "files_storage", key);
     let file = files::ActiveModel {
         key: sea_orm::Set(key.to_string()),
         path: sea_orm::Set(path.to_string()),
@@ -98,5 +109,7 @@ pub async fn add_file(
         auto_clean: sea_orm::Set(auto_clean.into()),
     };
     file.insert(db_conn).await?;
+    let mut f = File::create(&path).await?;
+    f.write_all_buf(content).await?;
     Ok(())
 }

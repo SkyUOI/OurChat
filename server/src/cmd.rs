@@ -2,12 +2,11 @@
 
 use crate::{
     db::file_storage,
-    share_state::{self, get_maintaining},
+    share_state::{self},
     ShutdownRev,
 };
 use colored::Colorize;
 use sea_orm::DatabaseConnection;
-use static_keys::static_branch_unlikely;
 use std::{cell::RefCell, collections::BTreeMap, io::Write, rc::Rc, str::FromStr};
 use tokio::io::{self, AsyncBufReadExt, BufReader};
 

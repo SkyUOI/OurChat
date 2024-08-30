@@ -1,4 +1,4 @@
-use crate::ShutdownRev;
+use crate::{db::file_storage, ShutdownRev};
 use actix_web::{
     get, post,
     web::{self, Data, Query},
@@ -77,7 +77,9 @@ async fn upload(
     req: HttpRequest,
     url: web::Path<String>,
     manager: web::Data<UploadManager>,
+    auto_clean: web::Query<bool>,
     mut payload: web::Payload,
+    db_conn: web::Data<DatabaseConnection>,
 ) -> impl Responder {
     let url = url.into_inner();
     let key = match req.headers().get(KEY).and_then(|key| key.to_str().ok()) {
@@ -110,7 +112,7 @@ async fn upload(
         body.extend_from_slice(&chunk);
     }
     // 计算hash，并验证文件是否符合要求
-    let data = body.freeze();
+    let mut data = body.freeze();
     let mut hasher = Sha256::new();
     hasher.update(&data);
     let result = hasher.finalize();
@@ -118,6 +120,17 @@ async fn upload(
     if hash != record.hash {
         return HttpResponse::BadRequest();
     }
+    match file_storage::add_file(
+        key,
+        auto_clean.into_inner(),
+        &mut data,
+        &db_conn.into_inner(),
+    )
+    .await
+    {
+        Ok(_) => HttpResponse::Ok(),
+        Err(_) => HttpResponse::InternalServerError(),
+    };
     HttpResponse::Ok()
 }
 
@@ -126,25 +139,28 @@ async fn download(url: web::Path<String>, key: Query<File>) -> impl Responder {
     HttpResponse::Ok().content_type("file").body("body")
 }
 
-pub struct HttpServer {
-    db: DatabaseConnection,
-}
+pub struct HttpServer {}
 
 impl HttpServer {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new() -> Self {
+        Self {}
     }
 
     pub async fn start(
         &mut self,
         ip: &str,
         http_port: u16,
+        db_conn: DatabaseConnection,
         mut shutdown_receiver: ShutdownRev,
     ) -> anyhow::Result<(JoinHandle<anyhow::Result<()>>, mpsc::Sender<Record>)> {
         let shared_state = Data::new(UploadManager::new());
+        let shared_db_conn = Data::new(db_conn);
         let data_clone = shared_state.clone();
         let http_server = actix_web::HttpServer::new(move || {
-            App::new().app_data(data_clone.clone()).service(upload)
+            App::new()
+                .app_data(data_clone.clone())
+                .app_data(shared_db_conn.clone())
+                .service(upload)
         })
         .bind((ip, http_port))?
         .run();

@@ -24,7 +24,7 @@ impl Connection {
     ) -> anyhow::Result<(impl Future<Output = anyhow::Result<()>>, (String, String))> {
         let url_name = generate_url_name(&json.hash);
         let key = generate_random_string(KEY_LEN);
-        let resp = UploadResponse::new(url_name.clone(), key.clone());
+        let resp = UploadResponse::new(url_name.clone(), key.clone(), json.hash.clone());
         let send = async move {
             net_sender
                 .send(Message::Text(serde_json::to_string(&resp).unwrap()))

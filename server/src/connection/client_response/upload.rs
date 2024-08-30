@@ -8,14 +8,16 @@ pub struct UploadResponse {
     pub code: consts::MessageType,
     url: String,
     key: String,
+    hash: String,
 }
 
 impl UploadResponse {
-    pub fn new(url: String, key: String) -> Self {
+    pub fn new(url: String, key: String, hash: String) -> Self {
         Self {
             code: consts::MessageType::UploadRes,
             url,
             key,
+            hash,
         }
     }
 }
