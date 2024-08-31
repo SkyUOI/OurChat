@@ -89,6 +89,7 @@ impl Server {
             name: sea_orm::ActiveValue::Set(request.name),
             email: sea_orm::ActiveValue::Set(request.email),
             time: sea_orm::ActiveValue::Set(chrono::Utc::now().timestamp().try_into().unwrap()),
+            resource_used: sea_orm::ActiveValue::Set(0),
         };
         match user.insert(db_connection).await {
             Ok(res) => {

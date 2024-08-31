@@ -19,6 +19,7 @@ impl MigrationTrait for Migration {
                 .col(char_len(User::Name, 15))
                 .col(char_len_uniq(User::Email, 120))
                 .col(big_unsigned(User::Time))
+                .col(integer(User::ResourceUsed))
                 .primary_key(Index::create().col(User::Id)),
         )
         .await?;
@@ -104,7 +105,7 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(DeriveIden)]
-enum User {
+pub enum User {
     Table,
     Id,
     Ocid,
@@ -112,6 +113,7 @@ enum User {
     Name,
     Email,
     Time,
+    ResourceUsed,
 }
 
 #[derive(DeriveIden)]

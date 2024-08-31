@@ -1,6 +1,6 @@
 use sea_orm_migration::{prelude::*, schema::*};
 
-use crate::basic;
+use crate::{basic, m20220101_000001_create_table::User};
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -17,6 +17,12 @@ impl MigrationTrait for Migration {
                 .col(big_unsigned(Files::Date))
                 .col(boolean(Files::AutoClean))
                 .col(string(Files::Path))
+                .col(big_unsigned(Files::UserId))
+                .foreign_key(
+                    ForeignKey::create()
+                        .from(Files::Table, Files::UserId)
+                        .to(User::Table, User::Id),
+                )
                 .primary_key(Index::create().col(Files::Key)),
         )
         .await?;
@@ -37,4 +43,5 @@ enum Files {
     Date,
     AutoClean,
     Path,
+    UserId,
 }

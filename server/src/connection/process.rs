@@ -6,10 +6,7 @@ use super::{
     client_response::{get_status::GetStatusResponse, NewSessionResponse, UnregisterResponse},
     Connection, DBRequest,
 };
-use crate::{
-    consts::ID,
-    requests::{new_session::NewSession, upload::Upload},
-};
+use crate::{consts::ID, requests::new_session::NewSession};
 use tokio::sync::{mpsc, oneshot};
 use tokio_tungstenite::tungstenite::protocol::Message;
 

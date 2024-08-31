@@ -14,9 +14,19 @@ pub struct Model {
     #[sea_orm(unique)]
     pub email: String,
     pub time: i64,
+    pub resource_used: i32,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {}
+pub enum Relation {
+    #[sea_orm(has_many = "super::files::Entity")]
+    Files,
+}
+
+impl Related<super::files::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Files.def()
+    }
+}
 
 impl ActiveModelBehavior for ActiveModel {}

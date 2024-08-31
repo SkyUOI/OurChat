@@ -1,4 +1,4 @@
-use crate::{db::file_storage, ShutdownRev};
+use crate::{consts::ID, db::file_storage, ShutdownRev};
 use actix_web::{
     get, post,
     web::{self, Data, Query},
@@ -18,28 +18,33 @@ struct File {
 
 #[derive(Debug)]
 pub struct Record {
-    name: String,
+    url_name: String,
     key: String,
     hash: String,
+    auto_clean: bool,
+    user_id: ID,
 }
 
 impl Record {
-    pub fn new(name: impl Into<String>, key: impl Into<String>, hash: impl Into<String>) -> Self {
+    pub fn new(
+        name: impl Into<String>,
+        key: impl Into<String>,
+        hash: impl Into<String>,
+        auto_clean: bool,
+        user_id: ID,
+    ) -> Self {
         Self {
-            name: name.into(),
+            url_name: name.into(),
             key: key.into(),
             hash: hash.into(),
+            auto_clean,
+            user_id,
         }
     }
 }
 
-struct TempUrl {
-    hash: String,
-    key: String,
-}
-
 struct UploadManager {
-    records: DashMap<String, TempUrl>,
+    records: DashMap<String, Record>,
 }
 
 impl UploadManager {
@@ -54,18 +59,12 @@ impl UploadManager {
         mut request_receiver: mpsc::Receiver<Record>,
     ) -> anyhow::Result<()> {
         while let Some(record) = request_receiver.recv().await {
-            data.records.insert(
-                record.name,
-                TempUrl {
-                    hash: record.hash,
-                    key: record.key,
-                },
-            );
+            data.records.insert(record.url_name.clone(), record);
         }
         Ok(())
     }
 
-    fn get_records(&self, name: &str) -> Option<dashmap::mapref::one::Ref<'_, String, TempUrl>> {
+    fn get_records(&self, name: &str) -> Option<dashmap::mapref::one::Ref<'_, String, Record>> {
         self.records.get(name)
     }
 }
@@ -77,7 +76,6 @@ async fn upload(
     req: HttpRequest,
     url: web::Path<String>,
     manager: web::Data<UploadManager>,
-    auto_clean: web::Query<bool>,
     mut payload: web::Payload,
     db_conn: web::Data<DatabaseConnection>,
 ) -> impl Responder {
@@ -122,8 +120,9 @@ async fn upload(
     }
     match file_storage::add_file(
         key,
-        auto_clean.into_inner(),
+        record.auto_clean,
         &mut data,
+        record.user_id,
         &db_conn.into_inner(),
     )
     .await

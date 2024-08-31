@@ -1,6 +1,6 @@
 //! 管理文件储存
 
-use crate::{share_state, ShutdownRev};
+use crate::{consts::ID, share_state, ShutdownRev};
 use derive::db_compatibility;
 use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use std::{fs::exists, time::Duration};
@@ -97,6 +97,7 @@ pub async fn add_file(
     key: &str,
     auto_clean: bool,
     content: &mut bytes::Bytes,
+    user_id: ID,
     db_conn: &DatabaseConnection,
 ) -> Result<(), AddFileError> {
     use entities::files;
@@ -107,6 +108,7 @@ pub async fn add_file(
         path: sea_orm::Set(path.to_string()),
         date: sea_orm::Set(timestamp.try_into().unwrap()),
         auto_clean: sea_orm::Set(auto_clean.into()),
+        user_id: sea_orm::Set(user_id.try_into().unwrap()),
     };
     file.insert(db_conn).await?;
     let mut f = File::create(&path).await?;
