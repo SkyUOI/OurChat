@@ -24,3 +24,8 @@ ourchat.run()
 ourchat.close()
 ourchat.clearLog()
 logger.info("-" * 30 + "Over" + "-" * 30)
+
+# 删除runThread()的func参数
+# 删除image_hash 如: avatar_hash
+# 修复download到达5次后仍然继续尝试download的bug
+# 上传功能

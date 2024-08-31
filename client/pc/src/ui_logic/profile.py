@@ -52,7 +52,6 @@ class ProfileUI(BasicUI, Ui_Profile):
             return
         self.avatar_label.setImage(account.avatar_data)
         self.avatar_url = account.data["avatar"]
-        self.avatar_hash = account.data["avatar_hash"]
 
     def fillText(self) -> None:
         self.label_2.setText(self.ourchat.language["nickname"])
@@ -66,7 +65,6 @@ class ProfileUI(BasicUI, Ui_Profile):
         if account.have_got_avatar:
             self.avatar_label.setImage(account.avatar_data)
             self.avatar_url = account.data["avatar"]
-            self.avatar_hash = account.data["avatar_hash"]
 
     def bind(self) -> None:
         self.ok_btn.clicked.connect(self.ok)
@@ -111,9 +109,6 @@ class ProfileUI(BasicUI, Ui_Profile):
                 return
             self.ok_btn.setEnabled(False)
             self.avatar_url = url[0]
-            self.ourchat.runThread(
-                self.ourchat.download, self.downloadAvatarResponse, url[0]
-            )
 
     def downloadAvatarResponse(self, avatar_data: Union[bytes, None]) -> None:
         if avatar_data is None:

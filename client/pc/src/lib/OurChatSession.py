@@ -1,7 +1,7 @@
-import hashlib
 from logging import getLogger
 
 from lib.const import (
+    DOWNLOAD_RESPONSE,
     REQUEST_INFO_NOT_FOUND,
     RUN_NORMALLY,
     SERVER_ERROR,
@@ -26,7 +26,6 @@ class OurChatSession:
             "session_id",
             "name",
             "avatar",
-            "avatar_hash",
             "time",
             "update_time",
             "members",
@@ -36,31 +35,41 @@ class OurChatSession:
         self.have_got_info = False
         self.ourchat.runThread(self.getInfo)
 
-    def getAvatar(self, depth: int = 0) -> None:
-        if depth >= 5:
-            return
+    def getAvatar(self) -> None:
         logger.info("get session avatar")
         logger.debug(f"get session avatar: {self.session_id}")
-        if self.data["avatar"] is None:
-            logger.info("avatar field is None,use default avatar")
-            self.avatar_data = "resources/images/logo.png"
-            return
-        avatar_data = self.ourchat.cache.getImage(self.data["avatar_hash"])
+        avatar_data = self.ourchat.cache.getImage(self.data["avatar"])
         if avatar_data is None:
+            if self.data["avatar"] is None:
+                logger.info("avatar is none,use default avatar")
+                self.finishGetAvatar("resources/images/logo.png")
+                return
+
             logger.info("avatar cache not found,started to download")
-            avatar_data = self.ourchat.download(self.data["avatar"])
-            if avatar_data is None:
-                self.ourchat.runInMainThread(
-                    QMessageBox.warning(
-                        None,
-                        self.ourchat.language["warning"],
-                        self.ourchat.language["avatar_download_failed"],
-                    )
-                )
+            self.ourchat.listen(DOWNLOAD_RESPONSE, self.downloadAvatarResponse)
+            self.ourchat.download(self.data["avatar"])
+        else:
+            self.finishGetAvatar(avatar_data)
+
+    def downloadAvatarResponse(self, data: dict):
+        if data["url"] != self.data["avatar"]:
+            return
+        self.ourchat.unListen(DOWNLOAD_RESPONSE, self.downloadAvatarResponse)
+        if data["status"] == RUN_NORMALLY:
             logger.info("avatar download complete")
-            sha256 = hashlib.sha256()
-            sha256.update(avatar_data)
-            self.ourchat.cache.setImage(sha256.hexdigest(), avatar_data)
+            self.ourchat.cache.setImage(self.data["avatar"], data["data"])
+            self.finishGetAvatar(data["data"])
+        elif data["status"] == REQUEST_INFO_NOT_FOUND:
+            self.ourchat.runInMainThread(
+                lambda: QMessageBox.warning(
+                    None,
+                    self.ourchat.language["warning"],
+                    self.ourchat.language["avatar_download_failed"],
+                )
+            )
+            return
+
+    def finishGetAvatar(self, avatar_data: bytes):
         self.avatar_data = avatar_data
         self.have_got_avatar = True
         self.ourchat.triggerEvent(

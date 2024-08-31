@@ -172,9 +172,6 @@ class SessionSettingUI(BasicUI, Ui_SessionSetting):
                 return
             self.ok_btn.setEnabled(False)
             self.avatar_url = url[0]
-            self.ourchat.runThread(
-                self.ourchat.download, self.downloadAvatarResponse, url[0]
-            )
 
     def downloadAvatarResponse(self, avatar_data: Union[bytes, None]) -> None:
         if avatar_data is None:

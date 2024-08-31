@@ -5,11 +5,19 @@ import time
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, wait
 from logging import getLogger
-from typing import Any, List, Union
+from typing import Any, List
+import hashlib
 
 import rmodule
 from lib.chattingSystem import ChattingSystem
 from lib.connection import Connection
+from lib.const import (
+    DOWNLOAD_RESPONSE,
+    REQUEST_INFO_NOT_FOUND,
+    RUN_NORMALLY,
+    UPLOAD_MSG,
+    UPLOAD_RESPONSE_MSG,
+)
 from lib.OurChatAccount import OurChatAccount
 from lib.OurChatCache import OurChatCache
 from lib.OurChatConfig import OurChatConfig
@@ -25,7 +33,7 @@ class OurChat:
     def __init__(self) -> None:
         logger.info("OurChat init")
         self.listen_event = {}
-        self.tasks = {}
+        self.tasks = []
         self.event_queue = []
         self.runQueue = []
         self.version_details = {}
@@ -33,6 +41,7 @@ class OurChat:
         self.account = None
         self.accounts_cache = {}
         self.sessions_cache = {}
+        self.upload_queue = {}
 
         self.config = OurChatConfig()
         self.language = OurChatLanguage()
@@ -51,36 +60,27 @@ class OurChat:
         self.uisystem.run()
         self.uisystem.exec()
 
-    def runThread(self, task, func: Any | None = None, *args) -> None:
+    def runThread(self, task, *args) -> None:
         logger.info(f"OurChat RunThread {task.__name__}")
         logger.debug(f"OurChat RunThread {task.__name__} args:{args}")
         future = self.thread_pool.submit(task, *args)
-        self.tasks[future] = func
+        self.tasks.append(future)
 
     def tick(self) -> None:
         # threads
         remove_ = []
-        tasks = list(self.tasks.keys())
-        for future in tasks:
+        for future in self.tasks:
             if future.done():
-                logger.info(
-                    f"A task had done. result: {str(future.result())[:100]+'...' if len(str(future.result()))>100 else str(future.result())[100:]}"
-                )
-                func = self.tasks[future]
-                if func is not None:
-                    logger.info(
-                        f"call function: {func.__name__}({str(future.result())[:100]+'...' if len(str(future.result()))>100 else str(future.result())[100:]})"
-                    )
-                    func(future.result())
+                logger.info(f"A task had done. ({future.__qualname__})")
                 remove_.append(future)
         for r in remove_:
-            self.tasks.pop(r)
+            self.tasks.remove(r)
 
         # event
         for i in range(len(self.event_queue)):
             data = self.event_queue[-1]
             logger.info("deal with event")
-            logger.debug(f"deal with event(data:{data})")
+            logger.debug(f"deal with event (data:{data})")
             self.event_queue.pop(-1)
             if data["code"] not in self.listen_event:
                 continue
@@ -104,11 +104,12 @@ class OurChat:
         wait(self.tasks)
         self.thread_pool.shutdown()
         self.listen_event = {}
-        self.tasks = {}
+        self.tasks = []
         self.event_queue = []
         self.version_details = {}
         self.accounts_cache = {}
         self.sessions_cache = {}
+        self.upload_queue = {}
         self.chatting_system.close()
         self.config.write()
         logger.info("OurChat has been closed")
@@ -202,20 +203,50 @@ class OurChat:
             self.sessions_cache[session_id] = session
         return self.sessions_cache[session_id]
 
-    def download(self, url: str, depth: int = 0) -> Union[bytes, None]:
+    def download(self, url: str, depth: int = 0) -> None:
         if depth == 0:
             logger.info(f"begin to download (URL: {url})")
         if depth >= 5:
             logger.warning(f"download failed (URL: {url})")
-            return None
+            self.triggerEvent(
+                {
+                    "code": DOWNLOAD_RESPONSE,
+                    "status": REQUEST_INFO_NOT_FOUND,
+                    "url": url,
+                }
+            )
+            return
         try:
             logger.info(f"download (URL: {url})(retry: {depth})")
             response = urllib.request.urlopen(url)
             data = response.read()
             logger.info(f"download success (URL: {url})")
-            return data
+            self.triggerEvent(
+                {
+                    "code": DOWNLOAD_RESPONSE,
+                    "status": RUN_NORMALLY,
+                    "data": data,
+                    "url": url,
+                }
+            )
         except Exception as e:
             logger.warning(f"download failed({str(e)})")
             logger.info(f"retry after 3s (URL: {url})")
             time.sleep(3)
-            return self.download(url, depth + 1)
+            self.download(url, depth + 1)
+
+    def upload(self, data: bytes, auto_clean=False) -> None:
+        sha256 = hashlib.sha256()
+        sha256.update(data)
+        logger.info(f"upload file (hash: {sha256.hexdigest()})")
+        self.upload_queue[sha256.hexdigest()] = data
+        self.listen(UPLOAD_RESPONSE_MSG, self.uploadResponse)
+        self.conn.send({"code": UPLOAD_MSG, "hash": sha256, "auto_clean": auto_clean})
+
+    def uploadResponse(self, data: dict) -> None:
+        if data["status"] == RUN_NORMALLY:
+            file_data = self.upload_queue[data["hash"]]
+            self.upload_queue.pop(data["hash"])
+            url = data["url"]
+            key = data["key"]
+            print(url)
