@@ -35,7 +35,13 @@ macro_rules! impl_newtype {
 
 #[macro_export]
 macro_rules! impl_newtype_int {
-    ($name:ident, $type:ty) => {
-        $crate::impl_newtype!($name, $type, #[derive(Clone, Debug, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]);
+    ($name:ident, $type:ty, $($derive:tt)*) => {
+        $crate::impl_newtype!($name, $type, #[derive(Clone, Debug, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default, $($derive)*)]);
+
+        impl std::fmt::Display for $name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "{}", self.0)
+            }
+        }
     };
 }

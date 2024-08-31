@@ -14,7 +14,7 @@ pub mod utils;
 
 use anyhow::bail;
 use clap::Parser;
-use consts::{DEFAULT_HTTP_PORT, DEFAULT_PORT};
+use consts::{FileSize, DEFAULT_HTTP_PORT, DEFAULT_PORT};
 use db::{file_storage, DbType};
 use rand::Rng;
 use sea_orm::DatabaseConnection;
@@ -88,8 +88,8 @@ struct Cfg {
     enable_cmd: bool,
     #[serde(default)]
     cmd_network_port: u16,
-    #[serde(default)]
-    user_files_limit: u32,
+    #[serde(default = "consts::default_user_files_store_limit")]
+    user_files_limit: FileSize,
 }
 
 impl Cfg {
@@ -265,9 +265,10 @@ pub async fn lib_main() -> anyhow::Result<()> {
     unsafe {
         share_state::set_maintaining(parser.maintaining);
     }
-    // 设置自动清理天数
+    // 设置共享状态
     share_state::set_auto_clean_duration(cfg.auto_clean_duration);
     share_state::set_file_save_days(cfg.file_save_days);
+    share_state::set_user_files_store_limit(cfg.user_files_limit.into());
     // 处理数据库
     let db_type = match parser.db_type {
         None => cfg.db_type,

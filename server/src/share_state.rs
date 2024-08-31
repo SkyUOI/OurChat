@@ -1,9 +1,11 @@
-use crate::consts;
+use crate::consts::{self, FileSize};
 use parking_lot::Mutex;
 use static_keys::{define_static_key_false, static_branch_unlikely};
 
 static AUTO_CLEAN_DURATION: Mutex<u64> = Mutex::new(consts::default_clear_interval());
 static FILE_SAVE_DAYS: Mutex<u64> = Mutex::new(consts::default_file_save_days());
+static USER_FILES_STORE_LIMIT: Mutex<FileSize> =
+    Mutex::new(consts::default_user_files_store_limit());
 
 #[inline]
 pub fn get_auto_clean_duration() -> u64 {
@@ -44,4 +46,15 @@ pub unsafe fn set_maintaining(maintaining: bool) {
         }
         tracing::info!("set maintaining: {}", maintaining);
     }
+}
+
+#[inline]
+pub fn get_user_files_store_limit() -> FileSize {
+    *USER_FILES_STORE_LIMIT.lock()
+}
+
+#[inline]
+pub fn set_user_files_store_limit(limit: FileSize) {
+    *USER_FILES_STORE_LIMIT.lock() = limit;
+    tracing::info!("set user_files_store_limit: {}", limit);
 }

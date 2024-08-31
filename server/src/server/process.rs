@@ -1,8 +1,8 @@
 use super::Server;
 use crate::{
     connection::client_response::{self, LoginResponse, NewSessionResponse, RegisterResponse},
-    consts::{self, ID},
-    requests, utils,
+    consts::{self, Bt, ID},
+    requests, share_state, utils,
 };
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter,
@@ -143,7 +143,6 @@ impl Server {
         resp: oneshot::Sender<requests::Status>,
         db_connection: &DatabaseConnection,
     ) -> anyhow::Result<()> {
-        // check if the limit has been reached
         use entities::user;
         let user_info = match user::Entity::find_by_id(id).one(db_connection).await? {
             Some(user) => user,
@@ -152,6 +151,13 @@ impl Server {
                 return Ok(());
             }
         };
+        // first check if the limit has been reached
+        let limit = share_state::get_user_files_store_limit();
+        let bytes_num: Bt = limit.into();
+        let used = Bt(user_info.resource_used.try_into()?);
+        if used >= bytes_num {
+            // reach the limit,delete some files to preserve the limit
+        }
         let updated_res_lim = user_info.resource_used + 1;
         let mut user_info: user::ActiveModel = user_info.into();
         user_info.resource_used = ActiveValue::Set(updated_res_lim);
