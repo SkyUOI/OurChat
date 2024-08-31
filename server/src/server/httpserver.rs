@@ -138,6 +138,11 @@ async fn download(url: web::Path<String>, key: Query<File>) -> impl Responder {
     HttpResponse::Ok().content_type("file").body("body")
 }
 
+#[get("/status")]
+async fn status() -> impl Responder {
+    HttpResponse::Ok()
+}
+
 pub struct HttpServer {}
 
 impl HttpServer {
