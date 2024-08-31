@@ -1,5 +1,6 @@
-dbcfg = "database.json"
-rediscfg = "redis_connect.json"
+dbcfg = "database.toml"
+rediscfg = "redis_connect.toml"
 port = 7777
 db_type = "mysql"
 http_port = 7778
+auto_clean_duration = 1

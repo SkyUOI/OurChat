@@ -86,7 +86,7 @@ pub fn get_db_url(path: &Path, basepath: &Path) -> anyhow::Result<String> {
     let json = std::fs::read_to_string(path)?;
     match db_type {
         DbType::Mysql => {
-            let cfg: MysqlDbCfg = serde_json::from_str(&json)?;
+            let cfg: MysqlDbCfg = toml::from_str(&json)?;
             let path = format!(
                 "mysql://{}:{}@{}:{}/{}",
                 cfg.user, cfg.passwd, cfg.host, cfg.port, cfg.db
@@ -94,7 +94,7 @@ pub fn get_db_url(path: &Path, basepath: &Path) -> anyhow::Result<String> {
             Ok(path)
         }
         DbType::Sqlite => {
-            let mut cfg: SqliteDbCfg = serde_json::from_str(&json)?;
+            let mut cfg: SqliteDbCfg = toml::from_str(&json)?;
             cfg.convert_to_abs_path(basepath)?;
             Ok(format!("sqlite://{}", cfg.path.display()))
         }
@@ -148,7 +148,7 @@ struct RedisCfg {
 /// 根据配置文件生成连接redis的url
 pub fn get_redis_url(path: &Path) -> anyhow::Result<String> {
     let json = std::fs::read_to_string(path)?;
-    let cfg: RedisCfg = serde_json::from_str(&json)?;
+    let cfg: RedisCfg = toml::from_str(&json)?;
     let path = format!(
         "redis://{}:{}@{}:{}/",
         cfg.user, cfg.passwd, cfg.host, cfg.port

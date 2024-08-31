@@ -20,7 +20,6 @@ use rand::Rng;
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 use server::httpserver;
-use static_keys::define_static_key_false;
 use std::{
     fs,
     io::Write,

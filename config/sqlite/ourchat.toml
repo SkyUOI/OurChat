@@ -1,5 +1,5 @@
-dbcfg = "database.json"
-rediscfg = "redis_connect.json"
+dbcfg = "database.toml"
+rediscfg = "redis_connect.toml"
 port = 7777
 db_type = "sqlite"
 http_port = 7778
