@@ -249,4 +249,5 @@ class OurChat:
             self.upload_queue.pop(data["hash"])
             url = data["url"]
             key = data["key"]
-            print(url)
+            # request = urllib.request.Request(url=path, data=params, headers=headers, method='POST')
+            # urllib.request.urlopen(request).read()
