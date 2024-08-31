@@ -23,7 +23,7 @@ impl FileSys {
     }
 
     fn init() {
-        if exists("files_storage").is_ok() {
+        if exists("files_storage").is_err() {
             std::fs::create_dir("files_storage").unwrap();
         }
     }
