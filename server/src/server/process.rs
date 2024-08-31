@@ -21,7 +21,7 @@ impl Server {
         use entities::prelude::*;
         use entities::user::Column;
         use requests::Status;
-        // 判断帐号类型
+        // 判断账号类型
         let user = match request.login_type {
             requests::LoginType::Email => {
                 User::find()
@@ -44,11 +44,11 @@ impl Server {
                             requests::LoginType::Email => resp
                                 .send(Ok((
                                     LoginResponse::success_email(user.ocid),
-                                    user.id.try_into()?,
+                                    user.id.into(),
                                 )))
                                 .unwrap(),
                             requests::LoginType::Ocid => resp
-                                .send(Ok((LoginResponse::success_ocid(), user.id.try_into()?)))
+                                .send(Ok((LoginResponse::success_ocid(), user.id.into())))
                                 .unwrap(),
                         }
                     } else {
@@ -77,26 +77,26 @@ impl Server {
     ) -> anyhow::Result<()> {
         use entities::user::ActiveModel as UserModel;
         // 生成雪花id
-        let id = utils::GENERATOR.generate()?.into_i64() as ID;
+        let id = ID(utils::GENERATOR.generate()?.into_i64().try_into()?);
         // 随机生成生成ocid
         let ocid = utils::generate_ocid(consts::OCID_LEN);
         let user = UserModel {
-            id: sea_orm::ActiveValue::Set(id.try_into()?),
-            ocid: sea_orm::ActiveValue::Set(ocid),
-            passwd: sea_orm::ActiveValue::Set(request.password),
-            name: sea_orm::ActiveValue::Set(request.name),
-            email: sea_orm::ActiveValue::Set(request.email),
-            time: sea_orm::ActiveValue::Set(chrono::Utc::now().timestamp().try_into()?),
-            resource_used: sea_orm::ActiveValue::Set(0),
+            id: ActiveValue::Set(id.into()),
+            ocid: ActiveValue::Set(ocid),
+            passwd: ActiveValue::Set(request.password),
+            name: ActiveValue::Set(request.name),
+            email: ActiveValue::Set(request.email),
+            time: ActiveValue::Set(chrono::Utc::now().timestamp().try_into()?),
+            resource_used: ActiveValue::Set(0),
         };
         match user.insert(db_connection).await {
             Ok(res) => {
                 // 生成正确的响应
                 let response = RegisterResponse::success(res.ocid);
-                resp.send(Ok((response, res.id.try_into()?))).unwrap();
+                resp.send(Ok((response, res.id.into()))).unwrap();
             }
             Err(e) => {
-                if let sea_orm::DbErr::RecordNotInserted = e {
+                if let DbErr::RecordNotInserted = e {
                     resp.send(Err(requests::Status::Dup)).unwrap();
                 } else {
                     tracing::error!("Database error:{e}");
@@ -115,7 +115,7 @@ impl Server {
     ) -> anyhow::Result<()> {
         use entities::user::ActiveModel as UserModel;
         let user = UserModel {
-            id: ActiveValue::Set(id.try_into()?),
+            id: ActiveValue::Set(id.into()),
             ..Default::default()
         };
         match user.delete(db_connection).await {
@@ -143,6 +143,19 @@ impl Server {
         resp: oneshot::Sender<requests::Status>,
         db_connection: &DatabaseConnection,
     ) -> anyhow::Result<()> {
+        // check if the limit has been reached
+        use entities::user;
+        let user_info = match user::Entity::find_by_id(id).one(db_connection).await? {
+            Some(user) => user,
+            None => {
+                resp.send(requests::Status::ServerError)?;
+                return Ok(());
+            }
+        };
+        let updated_res_lim = user_info.resource_used + 1;
+        let mut user_info: user::ActiveModel = user_info.into();
+        user_info.resource_used = ActiveValue::Set(updated_res_lim);
+        user_info.update(db_connection).await?;
         Ok(())
     }
 }

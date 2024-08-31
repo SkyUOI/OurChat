@@ -44,7 +44,7 @@ impl Connection {
         };
         db_sender.send(new_session).await?;
         let ret = channel.1.await?;
-        let resp = ret.unwrap_or_else(|status| NewSessionResponse::failed(status));
+        let resp = ret.unwrap_or_else(NewSessionResponse::failed);
         net_sender
             .send(Message::Text(serde_json::to_string(&resp).unwrap()))
             .await?;

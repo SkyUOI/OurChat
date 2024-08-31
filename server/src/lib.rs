@@ -23,7 +23,7 @@ use server::httpserver;
 use std::{
     fs,
     io::Write,
-    path::{self, Path, PathBuf},
+    path::{Path, PathBuf},
     str::FromStr,
     sync::LazyLock,
 };
@@ -88,6 +88,8 @@ struct Cfg {
     enable_cmd: bool,
     #[serde(default)]
     cmd_network_port: u16,
+    #[serde(default)]
+    user_files_limit: u32,
 }
 
 impl Cfg {
@@ -254,10 +256,10 @@ pub async fn lib_main() -> anyhow::Result<()> {
     cfg.convert_to_abs_path(cfg_path)?;
     // 配置端口
     let port = match parser.port {
-        None => cfg.port.unwrap_or_else(|| DEFAULT_PORT),
+        None => cfg.port.unwrap_or(DEFAULT_PORT),
         Some(port) => port,
     };
-    let http_port = cfg.http_port.unwrap_or_else(|| DEFAULT_HTTP_PORT);
+    let http_port = cfg.http_port.unwrap_or(DEFAULT_HTTP_PORT);
     let ip = parser.ip;
     // 启动维护模式
     unsafe {

@@ -108,7 +108,7 @@ pub async fn add_file(
         path: sea_orm::Set(path.to_string()),
         date: sea_orm::Set(timestamp.try_into().unwrap()),
         auto_clean: sea_orm::Set(auto_clean.into()),
-        user_id: sea_orm::Set(user_id.try_into().unwrap()),
+        user_id: sea_orm::Set(user_id.into()),
     };
     file.insert(db_conn).await?;
     let mut f = File::create(&path).await?;
