@@ -1,4 +1,4 @@
-//! 处理到客户端的连接
+//! Process the connection to server
 
 mod basic;
 pub mod client_response;
@@ -19,7 +19,6 @@ use futures_util::{
     SinkExt, StreamExt,
 };
 use serde_json::Value;
-use static_keys::static_branch_unlikely;
 use tokio::{
     net::TcpStream,
     select,
@@ -28,6 +27,7 @@ use tokio::{
 use tokio_tungstenite::tungstenite::protocol::Message;
 use tokio_tungstenite::WebSocketStream;
 
+/// Request that will be sent to database process loop and get the process response
 pub enum DBRequest {
     Login {
         request: requests::Login,
@@ -45,11 +45,16 @@ pub enum DBRequest {
         id: ID,
         resp: oneshot::Sender<Result<NewSessionResponse, requests::Status>>,
     },
+    UpLoad {
+        id: ID,
+        resp: oneshot::Sender<requests::Status>,
+    },
 }
 
+/// websocket
 pub type WS = WebSocketStream<TcpStream>;
 
-/// 一个到客户端的连接
+/// Connection to a client
 pub struct Connection {
     socket: Option<WebSocketStream<TcpStream>>,
     shutdown_sender: broadcast::Sender<()>,
@@ -94,14 +99,14 @@ impl Connection {
         request_sender.send(request).await?;
         match channel.1.await? {
             Ok(ok_resp) => Ok((
-                serde_json::to_string(&ok_resp.0).unwrap(),
+                serde_json::to_string(&ok_resp.0)?,
                 VerifyRes {
                     status: VerifyStatus::Success,
                     id: ok_resp.1,
                 },
             )),
             Err(e) => Ok((
-                serde_json::to_string(&LoginResponse::failed(e)).unwrap(),
+                serde_json::to_string(&LoginResponse::failed(e))?,
                 VerifyRes {
                     status: VerifyStatus::Fail,
                     id: ID::default(),
@@ -123,14 +128,14 @@ impl Connection {
         request_sender.send(request).await?;
         match channel.1.await? {
             Ok(ok_resp) => Ok((
-                serde_json::to_string(&ok_resp.0).unwrap(),
+                serde_json::to_string(&ok_resp.0)?,
                 VerifyRes {
                     status: VerifyStatus::Success,
                     id: ok_resp.1,
                 },
             )),
             Err(e) => Ok((
-                serde_json::to_string(&RegisterResponse::failed(e)).unwrap(),
+                serde_json::to_string(&RegisterResponse::failed(e))?,
                 VerifyRes {
                     status: VerifyStatus::Fail,
                     id: ID::default(),
@@ -148,7 +153,7 @@ impl Connection {
         loop {
             let msg = match ws.next().await {
                 None => {
-                    anyhow::bail!("Failed to receive message when logining");
+                    bail!("Failed to receive message when logining");
                 }
                 Some(res) => match res {
                     Ok(msg) => msg,
@@ -195,14 +200,14 @@ impl Connection {
                             )));
                         }
                     } else {
-                        anyhow::bail!("Failed to login,code is not a number or missing");
+                        bail!("Failed to login,code is not a number or missing");
                     }
                 }
                 Message::Close(_) => {
                     return Ok(None);
                 }
                 _ => {
-                    anyhow::bail!("Failed to login,not a text message");
+                    bail!("Failed to login,not a text message");
                 }
             }
         }
@@ -212,7 +217,7 @@ impl Connection {
         mut incoming: SplitStream<WS>,
         id: ID,
         net_sender: mpsc::Sender<Message>,
-        request_sender: mpsc::Sender<DBRequest>,
+        db_sender: mpsc::Sender<DBRequest>,
         http_file_sender: mpsc::Sender<Record>,
         mut shutdown_receiver: broadcast::Receiver<()>,
     ) -> anyhow::Result<()> {
@@ -261,8 +266,7 @@ impl Connection {
                                     };
                                     match code {
                                         MessageType::Unregister => {
-                                            Self::unregister(id, &request_sender, &net_sender)
-                                                .await?;
+                                            Self::unregister(id, &db_sender, &net_sender).await?;
                                             continue 'con_loop;
                                         }
                                         MessageType::NewSession => {
@@ -274,13 +278,8 @@ impl Connection {
                                                     }
                                                     Ok(data) => data,
                                                 };
-                                            Self::new_session(
-                                                id,
-                                                &request_sender,
-                                                &net_sender,
-                                                json,
-                                            )
-                                            .await?;
+                                            Self::new_session(id, &db_sender, &net_sender, json)
+                                                .await?;
                                             continue 'con_loop;
                                         }
                                         MessageType::GetStatus => {
@@ -300,7 +299,8 @@ impl Connection {
                                             let hash = json.hash.clone();
                                             let auto_clean = json.auto_clean;
                                             let (send, (url_name, key)) =
-                                                Self::upload(&net_sender, &mut json).await?;
+                                                Self::upload(&db_sender, &net_sender, &mut json)
+                                                    .await?;
                                             let record =
                                                 Record::new(url_name, key, hash, auto_clean, id);
                                             http_file_sender.send(record).await?;
@@ -353,7 +353,7 @@ impl Connection {
         let work = async {
             while let Some(msg) = receiver.recv().await {
                 tracing::debug!("send msg:{}", msg);
-                outgoing.send(msg).await.unwrap();
+                outgoing.send(msg).await?;
                 tracing::debug!("send successful");
             }
             outgoing.close().await?;

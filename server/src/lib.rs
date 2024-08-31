@@ -100,7 +100,7 @@ impl Cfg {
 }
 
 static MACHINE_ID: LazyLock<u64> = LazyLock::new(|| {
-    let state = path::Path::new("machine_id").exists();
+    let state = Path::new("machine_id").exists();
     if state {
         return u64::from_be_bytes(fs::read("machine_id").unwrap().try_into().unwrap());
     }
@@ -118,7 +118,7 @@ fn logger_init(test_mode: bool) -> WorkerGuard {
         .with_filter(EnvFilter::from_default_env());
     let (file_layer, guard) = if test_mode {
         // 是测试模式，记录到一个test.log中
-        let file = std::fs::File::create("test.log").unwrap();
+        let file = fs::File::create("test.log").unwrap();
         let (non_blocking, guard) = tracing_appender::non_blocking(file);
         (
             fmt::layer()
@@ -147,7 +147,7 @@ fn logger_init(test_mode: bool) -> WorkerGuard {
 }
 
 fn clear() -> anyhow::Result<()> {
-    let dirpath = std::path::Path::new("log");
+    let dirpath = Path::new("log");
     if !dirpath.exists() {
         tracing::warn!("try clear log but not found");
         return Ok(());
@@ -211,7 +211,7 @@ async fn exit_signal(shutdown_sender: ShutdownSdr) -> anyhow::Result<()> {
 
 async fn start_server(
     addr: (impl Into<String>, u16),
-    db: sea_orm::DatabaseConnection,
+    db: DatabaseConnection,
     redis: redis::Client,
     test_mode: bool,
     http_sender: mpsc::Sender<httpserver::Record>,
@@ -248,22 +248,16 @@ pub async fn lib_main() -> anyhow::Result<()> {
     };
     // 读取配置文件
     let cfg = fs::read_to_string(&cfg_path)?;
-    let cfg_path = path::Path::new(&cfg_path).parent().unwrap();
-    let mut cfg: Cfg = toml::from_str(&cfg).unwrap();
+    let cfg_path = Path::new(&cfg_path).parent().unwrap();
+    let mut cfg: Cfg = toml::from_str(&cfg)?;
     // 将相对路径转换
     cfg.convert_to_abs_path(cfg_path)?;
     // 配置端口
     let port = match parser.port {
-        None => match cfg.port {
-            Some(port) => port,
-            None => DEFAULT_PORT,
-        },
+        None => cfg.port.unwrap_or_else(|| DEFAULT_PORT),
         Some(port) => port,
     };
-    let http_port = match cfg.http_port {
-        None => DEFAULT_HTTP_PORT,
-        Some(http_port) => http_port,
-    };
+    let http_port = cfg.http_port.unwrap_or_else(|| DEFAULT_HTTP_PORT);
     let ip = parser.ip;
     // 启动维护模式
     unsafe {
@@ -288,7 +282,7 @@ pub async fn lib_main() -> anyhow::Result<()> {
     // 用于通知关闭的channel
     let (shutdown_sender, _) = broadcast::channel(32);
     // 构建http服务端
-    let (handle, record_sender) = server::httpserver::HttpServer::new()
+    let (handle, record_sender) = httpserver::HttpServer::new()
         .start(&ip, http_port, db.clone(), shutdown_sender.subscribe())
         .await?;
     // 构建websocket服务端

@@ -10,7 +10,7 @@ pub struct ErrorMsgResponse {
 impl ErrorMsgResponse {
     pub fn new(details: String) -> Self {
         Self {
-            code: consts::MessageType::ErrorMsg,
+            code: MessageType::ErrorMsg,
             details,
         }
     }

@@ -128,6 +128,7 @@ fn help_process(insts: &InstManager, argvs: Vec<String>) -> Result<(), String> {
         for inst in insts.get_map().borrow().values() {
             println!("{}: {}", inst.name_interbal, inst.short_help);
         }
+        println!("\nRefer to \"https://ourchat.readthedocs.io/en/latest/docs/run/server_cmd.html\" for more information");
     } else {
         // 针对给定的参数输出帮助信息
         for name in argvs {
@@ -262,13 +263,13 @@ pub async fn cmd_process_loop(
     let insts = InstManager::new();
     loop {
         print!(">>> ");
-        std::io::stdout().flush().unwrap();
+        std::io::stdout().flush()?;
         let command = match console_reader.next_line().await {
             Ok(d) => match d {
                 Some(data) => data,
                 None => {
                     tracing::info!("Without stdin");
-                    shutdown_receiver.recv().await.unwrap();
+                    shutdown_receiver.recv().await?;
                     String::default()
                 }
             },
@@ -278,6 +279,7 @@ pub async fn cmd_process_loop(
             }
         };
         let command = command.trim();
+        tracing::debug!("cmd: {}", command);
         let mut command = command.split_whitespace();
         let command_name = match command.next().to_owned() {
             Some(name) => name,

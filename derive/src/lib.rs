@@ -6,7 +6,7 @@ use syn::{parse2, parse_macro_input, Block, Ident, Item, Stmt, UseTree};
 fn db_replace(stmts: Vec<Stmt>, path: syn::Ident) -> Vec<Stmt> {
     let mut output = vec![];
     stmts.into_iter().for_each(|stmt| {
-        if let syn::Stmt::Item(Item::Use(use_item)) = &stmt {
+        if let Stmt::Item(Item::Use(use_item)) = &stmt {
             if let UseTree::Path(ref item_use) = use_item.tree {
                 if item_use.ident == "entities" {
                     let tree = &item_use.tree;

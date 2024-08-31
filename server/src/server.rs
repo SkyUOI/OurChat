@@ -108,18 +108,24 @@ impl Server {
         db_connection: &sea_orm::DatabaseConnection,
     ) {
         while let Some(request) = receiver.recv().await {
-            match request {
+            match match request {
                 DBRequest::Login { resp, request } => {
                     Self::login(request, resp, db_connection).await
                 }
                 DBRequest::Register { resp, request } => {
-                    Self::register(request, resp, db_connection).await;
+                    Self::register(request, resp, db_connection).await
                 }
                 DBRequest::Unregister { id, resp } => {
-                    Self::unregister(id, resp, db_connection).await;
+                    Self::unregister(id, resp, db_connection).await
                 }
                 DBRequest::NewSession { id, resp } => {
-                    Self::new_session(id, resp, db_connection).await;
+                    Self::new_session(id, resp, db_connection).await
+                }
+                DBRequest::UpLoad { id, resp } => Self::up_load(id, resp, db_connection).await,
+            } {
+                Ok(_) => {}
+                Err(e) => {
+                    tracing::error!("Database error:{e}");
                 }
             }
         }

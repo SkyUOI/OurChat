@@ -13,7 +13,7 @@ use tokio_tungstenite::tungstenite::protocol::Message;
 impl Connection {
     pub async fn unregister(
         id: ID,
-        request_sender: &mpsc::Sender<DBRequest>,
+        db_sender: &mpsc::Sender<DBRequest>,
         net_sender: &mpsc::Sender<Message>,
     ) -> anyhow::Result<()> {
         let channel = oneshot::channel();
@@ -21,7 +21,7 @@ impl Connection {
             id,
             resp: channel.0,
         };
-        request_sender.send(unregister).await?;
+        db_sender.send(unregister).await?;
         let ret = channel.1.await?;
         let resp = UnregisterResponse::new(ret);
         net_sender
@@ -33,7 +33,7 @@ impl Connection {
 
     pub async fn new_session(
         id: ID,
-        request_sender: &mpsc::Sender<DBRequest>,
+        db_sender: &mpsc::Sender<DBRequest>,
         net_sender: &mpsc::Sender<Message>,
         json: NewSession,
     ) -> anyhow::Result<()> {
@@ -42,12 +42,9 @@ impl Connection {
             id,
             resp: channel.0,
         };
-        request_sender.send(new_session).await?;
+        db_sender.send(new_session).await?;
         let ret = channel.1.await?;
-        let resp = match ret {
-            Ok(resp) => resp,
-            Err(status) => NewSessionResponse::failed(status),
-        };
+        let resp = ret.unwrap_or_else(|status| NewSessionResponse::failed(status));
         net_sender
             .send(Message::Text(serde_json::to_string(&resp).unwrap()))
             .await?;

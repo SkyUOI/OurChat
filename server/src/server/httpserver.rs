@@ -55,7 +55,7 @@ impl UploadManager {
     }
 
     async fn add_record(
-        data: web::Data<UploadManager>,
+        data: Data<UploadManager>,
         mut request_receiver: mpsc::Receiver<Record>,
     ) -> anyhow::Result<()> {
         while let Some(record) = request_receiver.recv().await {

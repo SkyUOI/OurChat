@@ -16,7 +16,7 @@ fn get_version_msg_details() -> &'static str {
 /// A Python module implemented in Rust.
 #[pymodule]
 fn rmodule(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add("version", get_version_msg()).unwrap();
-    m.add("version_details", get_version_msg_details()).unwrap();
+    m.add("version", get_version_msg())?;
+    m.add("version_details", get_version_msg_details())?;
     Ok(())
 }
