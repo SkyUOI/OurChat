@@ -3,16 +3,23 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "chat")]
+#[sea_orm(table_name = "session")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
-    pub group_id: i64,
-    pub user_id: i64,
-    pub name: String,
+    pub session_id: u64,
     pub group_name: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {}
+pub enum Relation {
+    #[sea_orm(has_one = "super::session_relation::Entity")]
+    SessionRelation,
+}
+
+impl Related<super::session_relation::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::SessionRelation.def()
+    }
+}
 
 impl ActiveModelBehavior for ActiveModel {}

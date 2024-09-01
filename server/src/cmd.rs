@@ -1,4 +1,5 @@
 //! 命令行控制系统
+//! TODO:add command for set friends limit
 
 use crate::{
     db::file_storage,

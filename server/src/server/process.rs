@@ -88,6 +88,8 @@ impl Server {
             email: ActiveValue::Set(request.email),
             time: ActiveValue::Set(chrono::Utc::now().timestamp().try_into()?),
             resource_used: ActiveValue::Set(0),
+            friends_num: ActiveValue::Set(0),
+            friend_limit: ActiveValue::Set(share_state::get_friends_number_limit().try_into()?),
         };
         match user.insert(db_connection).await {
             Ok(res) => {

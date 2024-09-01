@@ -90,6 +90,8 @@ struct Cfg {
     cmd_network_port: u16,
     #[serde(default = "consts::default_user_files_store_limit")]
     user_files_limit: FileSize,
+    #[serde(default = "consts::default_friends_number_limit")]
+    friends_number_limit: u32,
 }
 
 impl Cfg {
@@ -269,6 +271,7 @@ pub async fn lib_main() -> anyhow::Result<()> {
     share_state::set_auto_clean_duration(cfg.auto_clean_duration);
     share_state::set_file_save_days(cfg.file_save_days);
     share_state::set_user_files_store_limit(cfg.user_files_limit);
+    share_state::set_friends_number_limit(cfg.friends_number_limit);
     // 处理数据库
     let db_type = match parser.db_type {
         None => cfg.db_type,

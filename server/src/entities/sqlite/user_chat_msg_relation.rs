@@ -3,27 +3,31 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "user_chat_msg")]
+#[sea_orm(table_name = "user_chat_msg_relation")]
 pub struct Model {
+    pub user_id: i64,
     #[sea_orm(primary_key, auto_increment = false)]
-    pub chat_msg_id: u64,
-    pub msg_type: u32,
-    pub msg_data: String,
-    pub sender_id: u64,
+    pub chat_msg_id: i64,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(
         belongs_to = "super::user::Entity",
-        from = "Column::SenderId",
+        from = "Column::UserId",
         to = "super::user::Column::Id",
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
     User,
-    #[sea_orm(has_one = "super::user_chat_msg_relation::Entity")]
-    UserChatMsgRelation,
+    #[sea_orm(
+        belongs_to = "super::user_chat_msg::Entity",
+        from = "Column::ChatMsgId",
+        to = "super::user_chat_msg::Column::ChatMsgId",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    UserChatMsg,
 }
 
 impl Related<super::user::Entity> for Entity {
@@ -32,9 +36,9 @@ impl Related<super::user::Entity> for Entity {
     }
 }
 
-impl Related<super::user_chat_msg_relation::Entity> for Entity {
+impl Related<super::user_chat_msg::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::UserChatMsgRelation.def()
+        Relation::UserChatMsg.def()
     }
 }
 

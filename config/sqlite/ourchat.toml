@@ -5,3 +5,4 @@ db_type = "sqlite"
 http_port = 7778
 auto_clean_duration = 1
 user_files_limit = "100MB"
+friends_number_limit = 5000

@@ -15,17 +15,43 @@ pub struct Model {
     pub email: String,
     pub time: u64,
     pub resource_used: i32,
+    pub friend_limit: i32,
+    pub friends_num: i32,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(has_many = "super::files::Entity")]
     Files,
+    #[sea_orm(has_many = "super::session_relation::Entity")]
+    SessionRelation,
+    #[sea_orm(has_many = "super::user_chat_msg::Entity")]
+    UserChatMsg,
+    #[sea_orm(has_many = "super::user_chat_msg_relation::Entity")]
+    UserChatMsgRelation,
 }
 
 impl Related<super::files::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Files.def()
+    }
+}
+
+impl Related<super::session_relation::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::SessionRelation.def()
+    }
+}
+
+impl Related<super::user_chat_msg::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::UserChatMsg.def()
+    }
+}
+
+impl Related<super::user_chat_msg_relation::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::UserChatMsgRelation.def()
     }
 }
 

@@ -3,11 +3,11 @@
 pub mod prelude;
 
 pub mod authority;
-pub mod chat;
-pub mod chat_group;
 pub mod files;
 pub mod friend;
 pub mod server_manager;
+pub mod session;
+pub mod session_relation;
 pub mod user;
-pub mod user_chat_id;
 pub mod user_chat_msg;
+pub mod user_chat_msg_relation;

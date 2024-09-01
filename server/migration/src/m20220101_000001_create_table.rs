@@ -20,6 +20,8 @@ impl MigrationTrait for Migration {
                 .col(char_len_uniq(User::Email, 120))
                 .col(big_unsigned(User::Time))
                 .col(integer(User::ResourceUsed))
+                .col(integer(User::FriendLimit))
+                .col(integer(User::FriendsNum))
                 .primary_key(Index::create().col(User::Id)),
         )
         .await?;
@@ -47,6 +49,16 @@ impl MigrationTrait for Migration {
         basic::create_table(
             manager,
             Table::create()
+                .table(Session::Table)
+                .if_not_exists()
+                .col(big_unsigned(Session::SessionId))
+                .col(char_len(Session::GroupName, 30))
+                .primary_key(Index::create().col(Session::SessionId)),
+        )
+        .await?;
+        basic::create_table(
+            manager,
+            Table::create()
                 .table(SessionRelation::Table)
                 .if_not_exists()
                 .col(big_unsigned(SessionRelation::SessionId))
@@ -69,36 +81,6 @@ impl MigrationTrait for Migration {
         basic::create_table(
             manager,
             Table::create()
-                .table(Session::Table)
-                .if_not_exists()
-                .col(big_unsigned(Session::SessionId))
-                .col(char_len(Session::GroupName, 30))
-                .primary_key(Index::create().col(Session::SessionId)),
-        )
-        .await?;
-        basic::create_table(
-            manager,
-            Table::create()
-                .table(UserChatMsgRelation::Table)
-                .if_not_exists()
-                .col(big_unsigned(UserChatMsgRelation::UserId))
-                .col(unsigned(UserChatMsgRelation::ChatMsgId))
-                .foreign_key(
-                    ForeignKey::create()
-                        .from(UserChatMsgRelation::Table, UserChatMsgRelation::UserId)
-                        .to(User::Table, User::Id),
-                )
-                .foreign_key(
-                    ForeignKey::create()
-                        .from(UserChatMsgRelation::Table, UserChatMsgRelation::ChatMsgId)
-                        .to(UserChatMsg::Table, UserChatMsg::ChatMsgId),
-                )
-                .primary_key(Index::create().col(UserChatMsgRelation::ChatMsgId)),
-        )
-        .await?;
-        basic::create_table(
-            manager,
-            Table::create()
                 .table(UserChatMsg::Table)
                 .if_not_exists()
                 .col(big_unsigned(UserChatMsg::ChatMsgId))
@@ -111,6 +93,26 @@ impl MigrationTrait for Migration {
                         .to(User::Table, User::Id),
                 )
                 .primary_key(Index::create().col(UserChatMsg::ChatMsgId)),
+        )
+        .await?;
+        basic::create_table(
+            manager,
+            Table::create()
+                .table(UserChatMsgRelation::Table)
+                .if_not_exists()
+                .col(big_unsigned(UserChatMsgRelation::UserId))
+                .col(big_unsigned(UserChatMsgRelation::ChatMsgId))
+                .foreign_key(
+                    ForeignKey::create()
+                        .from(UserChatMsgRelation::Table, UserChatMsgRelation::UserId)
+                        .to(User::Table, User::Id),
+                )
+                .foreign_key(
+                    ForeignKey::create()
+                        .from(UserChatMsgRelation::Table, UserChatMsgRelation::ChatMsgId)
+                        .to(UserChatMsg::Table, UserChatMsg::ChatMsgId),
+                )
+                .primary_key(Index::create().col(UserChatMsgRelation::ChatMsgId)),
         )
         .await?;
         Ok(())
@@ -149,6 +151,8 @@ pub enum User {
     Email,
     Time,
     ResourceUsed,
+    FriendLimit,
+    FriendsNum,
 }
 
 #[derive(DeriveIden)]

@@ -3,38 +3,44 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "user_chat_msg")]
+#[sea_orm(table_name = "session_relation")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
-    pub chat_msg_id: u64,
-    pub msg_type: u32,
-    pub msg_data: String,
-    pub sender_id: u64,
+    pub session_id: u64,
+    pub user_id: u64,
+    pub nick_name: String,
+    pub group_name: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(
+        belongs_to = "super::session::Entity",
+        from = "Column::SessionId",
+        to = "super::session::Column::SessionId",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    Session,
+    #[sea_orm(
         belongs_to = "super::user::Entity",
-        from = "Column::SenderId",
+        from = "Column::UserId",
         to = "super::user::Column::Id",
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
     User,
-    #[sea_orm(has_one = "super::user_chat_msg_relation::Entity")]
-    UserChatMsgRelation,
+}
+
+impl Related<super::session::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Session.def()
+    }
 }
 
 impl Related<super::user::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::User.def()
-    }
-}
-
-impl Related<super::user_chat_msg_relation::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::UserChatMsgRelation.def()
     }
 }
 

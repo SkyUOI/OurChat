@@ -6,6 +6,7 @@ static AUTO_CLEAN_DURATION: Mutex<u64> = Mutex::new(consts::default_clear_interv
 static FILE_SAVE_DAYS: Mutex<u64> = Mutex::new(consts::default_file_save_days());
 static USER_FILES_STORE_LIMIT: Mutex<FileSize> =
     Mutex::new(consts::default_user_files_store_limit());
+static FRIENDS_NUMBER_LIMIT: Mutex<u32> = Mutex::new(consts::default_friends_number_limit());
 
 #[inline]
 pub fn get_auto_clean_duration() -> u64 {
@@ -57,4 +58,14 @@ pub fn get_user_files_store_limit() -> FileSize {
 pub fn set_user_files_store_limit(limit: FileSize) {
     *USER_FILES_STORE_LIMIT.lock() = limit;
     tracing::info!("set user_files_store_limit: {}", limit);
+}
+
+#[inline]
+pub fn set_friends_number_limit(limit: u32) {
+    *FRIENDS_NUMBER_LIMIT.lock() = limit;
+}
+
+#[inline]
+pub fn get_friends_number_limit() -> u32 {
+    *FRIENDS_NUMBER_LIMIT.lock()
 }
