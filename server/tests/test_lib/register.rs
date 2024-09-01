@@ -5,7 +5,6 @@ use server::{
     consts::MessageType,
     requests::{self, Register},
 };
-use std::thread;
 use tokio_tungstenite::tungstenite::Message;
 
 /// 在这里测试注册顺便初始化服务器，注册需要在所有测试前运行，所以只能在这里测试

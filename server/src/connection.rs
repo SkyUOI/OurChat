@@ -298,11 +298,10 @@ impl Connection {
                                             // 先生成url再回复
                                             let hash = json.hash.clone();
                                             let auto_clean = json.auto_clean;
-                                            let (send, (url_name, key)) =
+                                            let (send, key) =
                                                 Self::upload(&db_sender, &net_sender, &mut json)
                                                     .await?;
-                                            let record =
-                                                Record::new(url_name, key, hash, auto_clean, id);
+                                            let record = Record::new(key, hash, auto_clean, id);
                                             http_file_sender.send(record).await?;
                                             send.await?;
                                             continue 'con_loop;

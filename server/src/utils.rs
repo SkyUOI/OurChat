@@ -44,3 +44,26 @@ pub static WS_BIND_ADDR: LazyLock<String> =
 pub fn gen_ws_bind_addr(ip: &str, port: u16) -> String {
     format!("ws://{}:{}", ip, port)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_generate_random_string() {
+        let s = generate_random_string(10);
+        assert_eq!(s.len(), 10);
+    }
+
+    #[test]
+    fn test_generate_ocid() {
+        let s = generate_ocid(10);
+        assert_eq!(s.len(), 10);
+    }
+
+    #[test]
+    fn test_gen_ws_bind_addr() {
+        let s = gen_ws_bind_addr("127.0.0.1", 8080);
+        assert_eq!(s, "ws://127.0.0.1:8080");
+    }
+}

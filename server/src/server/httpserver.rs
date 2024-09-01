@@ -1,7 +1,7 @@
 use crate::{consts::ID, db::file_storage, ShutdownRev};
 use actix_web::{
     get, post,
-    web::{self, Data, Query},
+    web::{self, Data},
     App, HttpRequest, HttpResponse, Responder,
 };
 use dashmap::DashMap;
@@ -19,7 +19,6 @@ struct File {
 #[derive(Debug)]
 pub struct Record {
     url_name: String,
-    key: String,
     hash: String,
     auto_clean: bool,
     user_id: ID,
@@ -28,14 +27,12 @@ pub struct Record {
 impl Record {
     pub fn new(
         name: impl Into<String>,
-        key: impl Into<String>,
         hash: impl Into<String>,
         auto_clean: bool,
         user_id: ID,
     ) -> Self {
         Self {
             url_name: name.into(),
-            key: key.into(),
             hash: hash.into(),
             auto_clean,
             user_id,
@@ -71,15 +68,13 @@ impl UploadManager {
 
 const KEY: &str = "Key";
 
-#[post("/upload/{url}")]
+#[post("/upload")]
 async fn upload(
     req: HttpRequest,
-    url: web::Path<String>,
     manager: web::Data<UploadManager>,
     mut payload: web::Payload,
     db_conn: web::Data<DatabaseConnection>,
 ) -> impl Responder {
-    let url = url.into_inner();
     let key = match req.headers().get(KEY).and_then(|key| key.to_str().ok()) {
         None => {
             return HttpResponse::BadRequest();
@@ -89,16 +84,12 @@ async fn upload(
 
     let mut body = bytes::BytesMut::new();
     // 获取临时url记录
-    let record = match manager.get_records(&url) {
+    let record = match manager.get_records(key) {
         None => {
             return HttpResponse::NotFound();
         }
         Some(data) => data,
     };
-    // 验证key
-    if record.key != key {
-        return HttpResponse::Unauthorized();
-    }
     // 读取文件
     while let Some(chunk) = payload.next().await {
         let chunk = match chunk {
@@ -133,9 +124,15 @@ async fn upload(
     HttpResponse::Ok()
 }
 
-#[get("/download/{url}")]
-async fn download(url: web::Path<String>, key: Query<File>) -> impl Responder {
-    HttpResponse::Ok().content_type("file").body("body")
+#[get("/download")]
+async fn download(req: HttpRequest) -> impl Responder {
+    let key = match req.headers().get(KEY).and_then(|key| key.to_str().ok()) {
+        None => {
+            return HttpResponse::BadRequest();
+        }
+        Some(key) => key,
+    };
+    HttpResponse::Ok()
 }
 
 #[get("/status")]

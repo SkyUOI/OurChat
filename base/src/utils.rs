@@ -45,3 +45,31 @@ macro_rules! impl_newtype_int {
         }
     };
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_impl_newtype() {
+        impl_newtype!(T1, String, #[derive(Eq, PartialEq)]);
+        let a = T1("hello".to_string());
+        assert_eq!(*a, "hello");
+    }
+
+    #[test]
+    fn test_impl_newtype_int() {
+        impl_newtype_int!(T1, i32,);
+        let a = T1(1);
+        assert_eq!(*a, 1);
+        println!("{}{}", a, *a + 1);
+    }
+
+    #[test]
+    fn test_resolve_relative_path() {
+        let base_path = Path::new("/home/limuy");
+        let relative_path = Path::new("a/b/c");
+        let path = resolve_relative_path(base_path, relative_path).unwrap();
+        assert_eq!(path, Path::new("/home/limuy/a/b/c"));
+    }
+}

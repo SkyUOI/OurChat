@@ -268,7 +268,7 @@ pub async fn lib_main() -> anyhow::Result<()> {
     // 设置共享状态
     share_state::set_auto_clean_duration(cfg.auto_clean_duration);
     share_state::set_file_save_days(cfg.file_save_days);
-    share_state::set_user_files_store_limit(cfg.user_files_limit.into());
+    share_state::set_user_files_store_limit(cfg.user_files_limit);
     // 处理数据库
     let db_type = match parser.db_type {
         None => cfg.db_type,
