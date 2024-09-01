@@ -31,29 +31,69 @@ impl MigrationTrait for Migration {
                 .col(big_unsigned(Friend::UserId))
                 .col(big_unsigned(Friend::FriendId))
                 .col(char_len(Friend::Name, 15))
+                .foreign_key(
+                    ForeignKey::create()
+                        .from(Friend::Table, Friend::FriendId)
+                        .to(User::Table, User::Id),
+                )
+                .foreign_key(
+                    ForeignKey::create()
+                        .from(Friend::Table, Friend::UserId)
+                        .to(User::Table, User::Id),
+                )
                 .primary_key(Index::create().col(Friend::UserId)),
         )
         .await?;
         basic::create_table(
             manager,
             Table::create()
-                .table(Chat::Table)
+                .table(SessionRelation::Table)
                 .if_not_exists()
-                .col(big_unsigned(Chat::GroupId))
-                .col(big_unsigned(Chat::UserId))
-                .col(char_len(Chat::Name, 15))
-                .col(char_len(Chat::GroupName, 30))
-                .primary_key(Index::create().col(Chat::GroupId)),
+                .col(big_unsigned(SessionRelation::SessionId))
+                .col(big_unsigned(SessionRelation::UserId))
+                .col(char_len(SessionRelation::NickName, 15))
+                .col(char_len(SessionRelation::GroupName, 30))
+                .foreign_key(
+                    ForeignKey::create()
+                        .from(SessionRelation::Table, SessionRelation::UserId)
+                        .to(User::Table, User::Id),
+                )
+                .foreign_key(
+                    ForeignKey::create()
+                        .from(SessionRelation::Table, SessionRelation::SessionId)
+                        .to(Session::Table, Session::SessionId),
+                )
+                .primary_key(Index::create().col(SessionRelation::SessionId)),
         )
         .await?;
         basic::create_table(
             manager,
             Table::create()
-                .table(ChatGroup::Table)
+                .table(Session::Table)
                 .if_not_exists()
-                .col(big_unsigned(ChatGroup::GroupId))
-                .col(char_len(ChatGroup::GroupName, 30))
-                .primary_key(Index::create().col(ChatGroup::GroupId)),
+                .col(big_unsigned(Session::SessionId))
+                .col(char_len(Session::GroupName, 30))
+                .primary_key(Index::create().col(Session::SessionId)),
+        )
+        .await?;
+        basic::create_table(
+            manager,
+            Table::create()
+                .table(UserChatMsgRelation::Table)
+                .if_not_exists()
+                .col(big_unsigned(UserChatMsgRelation::UserId))
+                .col(unsigned(UserChatMsgRelation::ChatMsgId))
+                .foreign_key(
+                    ForeignKey::create()
+                        .from(UserChatMsgRelation::Table, UserChatMsgRelation::UserId)
+                        .to(User::Table, User::Id),
+                )
+                .foreign_key(
+                    ForeignKey::create()
+                        .from(UserChatMsgRelation::Table, UserChatMsgRelation::ChatMsgId)
+                        .to(UserChatMsg::Table, UserChatMsg::ChatMsgId),
+                )
+                .primary_key(Index::create().col(UserChatMsgRelation::ChatMsgId)),
         )
         .await?;
         basic::create_table(
@@ -61,21 +101,16 @@ impl MigrationTrait for Migration {
             Table::create()
                 .table(UserChatMsg::Table)
                 .if_not_exists()
-                .col(big_unsigned(UserChatMsg::UserId))
-                .col(unsigned(UserChatMsg::ChatMsgId))
+                .col(big_unsigned(UserChatMsg::ChatMsgId))
+                .col(unsigned(UserChatMsg::MsgType))
+                .col(string_len(UserChatMsg::MsgData, 8000))
+                .col(big_unsigned(UserChatMsg::SenderId))
+                .foreign_key(
+                    ForeignKey::create()
+                        .from(UserChatMsg::Table, UserChatMsg::SenderId)
+                        .to(User::Table, User::Id),
+                )
                 .primary_key(Index::create().col(UserChatMsg::ChatMsgId)),
-        )
-        .await?;
-        basic::create_table(
-            manager,
-            Table::create()
-                .table(UserChatId::Table)
-                .if_not_exists()
-                .col(big_unsigned(UserChatId::ChatMsgId))
-                .col(unsigned(UserChatId::MsgType))
-                .col(string_len(UserChatId::MsgData, 8000))
-                .col(big_unsigned(UserChatId::SenderId))
-                .primary_key(Index::create().col(UserChatId::ChatMsgId)),
         )
         .await?;
         Ok(())
@@ -89,16 +124,16 @@ impl MigrationTrait for Migration {
             .drop_table(Table::drop().table(Friend::Table).to_owned())
             .await?;
         manager
-            .drop_table(Table::drop().table(Chat::Table).to_owned())
+            .drop_table(Table::drop().table(SessionRelation::Table).to_owned())
             .await?;
         manager
-            .drop_table(Table::drop().table(ChatGroup::Table).to_owned())
+            .drop_table(Table::drop().table(Session::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(UserChatMsgRelation::Table).to_owned())
             .await?;
         manager
             .drop_table(Table::drop().table(UserChatMsg::Table).to_owned())
-            .await?;
-        manager
-            .drop_table(Table::drop().table(UserChatId::Table).to_owned())
             .await?;
         Ok(())
     }
@@ -126,30 +161,31 @@ enum Friend {
 }
 
 #[derive(DeriveIden)]
-enum Chat {
+enum SessionRelation {
     Table,
-    GroupId,
+    SessionId,
     UserId,
-    Name,
+    NickName,
     GroupName,
 }
 
 #[derive(DeriveIden)]
-enum ChatGroup {
+enum Session {
     Table,
-    GroupId,
+    #[allow(clippy::enum_variant_names)]
+    SessionId,
     GroupName,
 }
 
 #[derive(DeriveIden)]
-enum UserChatMsg {
+enum UserChatMsgRelation {
     Table,
     UserId,
     ChatMsgId,
 }
 
 #[derive(DeriveIden)]
-enum UserChatId {
+enum UserChatMsg {
     Table,
     ChatMsgId,
     MsgType,
