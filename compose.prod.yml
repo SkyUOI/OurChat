@@ -23,7 +23,7 @@ services:
       MYSQL_ROOT_PASSWORD: 123456
       MYSQL_DATABASE: OurChat
     volumes:
-      - "./mysql-data:/var/lib/mysql"
+      - "./data/mysql-data:/var/lib/mysql"
     ports:
       - "3306:3306"
     networks:
@@ -33,7 +33,7 @@ services:
     ports:
       - "6379:6379"
     volumes:
-      - ./redis-data:/opt/redis/data
+      - ./data/redis-data:/opt/redis/data
       - ./config/redis.conf:/usr/local/etc/redis/redis.conf
     environment:
       - REDIS_PASSWORD=123456
