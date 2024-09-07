@@ -77,16 +77,14 @@ impl Server {
                 match ret {
                     Ok((socket, addr)) => {
                         tracing::info!("Connected to a socket");
-                        tokio::spawn(async move {
-                            Server::handle_connection(
-                                socket,
-                                addr,
-                                http_sender,
-                                shutdown_handle,
-                                task_sender,
-                            )
-                            .await
-                        });
+                        Server::handle_connection(
+                            socket,
+                            addr,
+                            http_sender,
+                            shutdown_handle,
+                            task_sender,
+                        )
+                        .await;
                     }
                     Err(e) => {
                         tracing::warn!("Failed to accept a socket: {}", e);

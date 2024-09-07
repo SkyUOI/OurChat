@@ -2,14 +2,26 @@
 //! TODO:add command for set friends limit
 
 use crate::{
+    connection::WS,
     db::file_storage,
     share_state::{self},
     ShutdownRev,
 };
 use colored::Colorize;
 use sea_orm::DatabaseConnection;
-use std::{cell::RefCell, collections::BTreeMap, io::Write, rc::Rc, str::FromStr};
-use tokio::io::{self, AsyncBufReadExt, BufReader};
+use std::{
+    alloc::{alloc, dealloc, Layout},
+    cell::RefCell,
+    collections::BTreeMap,
+    io::Write,
+    rc::Rc,
+    str::FromStr,
+};
+use tokio::{
+    io::{self, AsyncBufReadExt, BufReader},
+    net::{TcpListener, TcpSocket, TcpStream},
+    sync::mpsc,
+};
 
 type CheckFunc = fn(&InstManager, Vec<String>) -> Result<(), String>;
 
@@ -256,29 +268,14 @@ fn get_process(_: &InstManager, argvs: Vec<String>) -> Result<(), String> {
     Ok(())
 }
 
+pub type CommandTransmitData = String;
+
 pub async fn cmd_process_loop(
-    mut shutdown_receiver: ShutdownRev,
     mut db_conn: DatabaseConnection,
+    mut command_rev: mpsc::Receiver<CommandTransmitData>,
 ) -> anyhow::Result<()> {
-    let mut console_reader = BufReader::new(io::stdin()).lines();
     let insts = InstManager::new();
-    loop {
-        print!(">>> ");
-        std::io::stdout().flush()?;
-        let command = match console_reader.next_line().await {
-            Ok(d) => match d {
-                Some(data) => data,
-                None => {
-                    tracing::info!("Without stdin");
-                    shutdown_receiver.recv().await?;
-                    String::default()
-                }
-            },
-            Err(e) => {
-                tracing::error!("stdin {}", e);
-                break;
-            }
-        };
+    while let Some(command) = command_rev.recv().await {
         let command = command.trim();
         tracing::debug!("cmd: {}", command);
         let mut command = command.split_whitespace();
@@ -320,4 +317,64 @@ pub async fn cmd_process_loop(
         };
     }
     Ok(())
+}
+
+pub async fn setup_stdin(
+    mut shutdown_receiver: ShutdownRev,
+    commend_sdr: mpsc::Sender<CommandTransmitData>,
+) -> anyhow::Result<()> {
+    let mut console_reader = BufReader::new(io::stdin()).lines();
+    loop {
+        print!(">>> ");
+        std::io::stdout().flush()?;
+        let command = match console_reader.next_line().await {
+            Ok(d) => match d {
+                Some(data) => data,
+                None => {
+                    tracing::info!("Without stdin");
+                    shutdown_receiver.recv().await?;
+                    String::default()
+                }
+            },
+            Err(e) => {
+                tracing::error!("stdin {}", e);
+                break;
+            }
+        };
+        commend_sdr.send(command).await?;
+    }
+    Ok(())
+}
+
+struct CmdConnection {
+    socket: WS,
+}
+
+impl CmdConnection {
+    fn new(socket: WS) -> Self {
+        Self { socket }
+    }
+}
+
+async fn handle_connection(socket: TcpStream) -> anyhow::Result<()> {
+    Ok(())
+}
+
+pub async fn setup_network(
+    cmd_port: u16,
+    command_sdr: mpsc::Sender<CommandTransmitData>,
+) -> anyhow::Result<()> {
+    let tcplistener = TcpListener::bind(format!("127.0.0.1:{}", cmd_port)).await?;
+    loop {
+        let connected_socket = match tcplistener.accept().await {
+            Err(e) => {
+                tracing::error!("error when accepting socket in cmd {}", e);
+                continue;
+            }
+            Ok(data) => data,
+        };
+        if let Err(e) = handle_connection(connected_socket.0).await {
+            tracing::error!("error in socket handle:{}", e);
+        };
+    }
 }

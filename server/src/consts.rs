@@ -89,6 +89,10 @@ pub const fn default_friends_number_limit() -> u32 {
     5000
 }
 
+pub const fn default_enable_cmd_stdin() -> bool {
+    true
+}
+
 macro impl_to_bytes {
     ($($name:ident, ($($opers:tt)*)),*) => {
         $(

@@ -143,13 +143,13 @@ CMakeLists.txt
 
 # Mysql
 
-mysql-data/**
-!mysql-data/.gitkeep
+data/mysql-data/**
+!data/mysql-data/.gitkeep
 
 # Redis
 
-redis-data/**
-!redis-data/.gitkeep
+data/redis-data/**
+!data/redis-data/.gitkeep
 
 machine_id
 log/

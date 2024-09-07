@@ -14,6 +14,7 @@ pub mod utils;
 
 use anyhow::bail;
 use clap::Parser;
+use cmd::CommandTransmitData;
 use consts::{FileSize, DEFAULT_HTTP_PORT, DEFAULT_PORT};
 use db::{file_storage, DbType};
 use rand::Rng;
@@ -28,6 +29,7 @@ use std::{
     sync::LazyLock,
 };
 use tokio::{
+    net::TcpListener,
     select,
     sync::{broadcast, mpsc},
 };
@@ -86,8 +88,10 @@ struct Cfg {
     file_save_days: u64,
     #[serde(default = "consts::default_enable_cmd")]
     enable_cmd: bool,
+    #[serde(default = "consts::default_enable_cmd_stdin")]
+    enable_cmd_stdin: bool,
     #[serde(default)]
-    cmd_network_port: u16,
+    cmd_network_port: Option<u16>,
     #[serde(default = "consts::default_user_files_store_limit")]
     user_files_limit: FileSize,
     #[serde(default = "consts::default_friends_number_limit")]
@@ -162,6 +166,7 @@ fn clear() -> anyhow::Result<()> {
 }
 
 async fn cmd_start(
+    command_rev: mpsc::Receiver<CommandTransmitData>,
     shutdown_sender: ShutdownSdr,
     db_conn: DatabaseConnection,
     test_mode: bool,
@@ -170,7 +175,7 @@ async fn cmd_start(
     if !test_mode {
         let mut shutdown_receiver2 = shutdown_sender.subscribe();
         select! {
-            _ = cmd::cmd_process_loop(shutdown_receiver1, db_conn) => {
+            _ = cmd::cmd_process_loop(db_conn, command_rev) => {
                 shutdown_sender.send(())?;
                 tracing::info!("Exit because command loop has exited");
             },
@@ -228,6 +233,21 @@ async fn start_server(
             .accept_sockets(shutdown_sender, shutdown_receiver)
             .await
     });
+    Ok(())
+}
+
+/// 启动网络cmd
+async fn setup_network_cmd(
+    cmd_port: u16,
+    command_sdr: mpsc::Sender<CommandTransmitData>,
+    mut shutdown_rev: ShutdownRev,
+) -> anyhow::Result<()> {
+    select! {
+        err = cmd::setup_network(cmd_port, command_sdr) => {
+            err?
+        }
+        _ = shutdown_rev.recv() => {}
+    }
     Ok(())
 }
 
@@ -304,9 +324,42 @@ pub async fn lib_main() -> anyhow::Result<()> {
     .await?;
     // 启动数据库文件系统
     file_storage::FileSys::new(db.clone()).start(shutdown_sender.subscribe());
-
+    // 启动关闭信号监听
     exit_signal(shutdown_sender.clone()).await?;
-    cmd_start(shutdown_sender, db, parser.test_mode).await?;
+    // 启动控制台
+    if cfg.enable_cmd {
+        let (command_sdr, command_rev) = mpsc::channel(50);
+        match cfg.cmd_network_port {
+            None => {
+                // 不启动network cmd
+            }
+            Some(port) => {
+                let command_sdr = command_sdr.clone();
+                let shutdown_rev = shutdown_sender.subscribe();
+                tokio::spawn(async move {
+                    match setup_network_cmd(port, command_sdr, shutdown_rev).await {
+                        Ok(_) => {}
+                        Err(e) => {
+                            tracing::error!("network cmd error:{}", e);
+                        }
+                    }
+                });
+            }
+        }
+        // 启动控制台源
+        if cfg.enable_cmd_stdin {
+            let shutdown_sender = shutdown_sender.clone();
+            tokio::spawn(async move {
+                match cmd::setup_stdin(shutdown_sender.subscribe(), command_sdr).await {
+                    Ok(_) => {}
+                    Err(e) => {
+                        tracing::error!("cmd error:{}", e);
+                    }
+                }
+            });
+        }
+        cmd_start(command_rev, shutdown_sender.clone(), db, parser.test_mode).await?;
+    }
     handle.await??;
     tracing::info!("Server exited");
     Ok(())

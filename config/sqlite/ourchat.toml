@@ -1,8 +1,22 @@
+# Assign the config file of database,relative to this config file
 dbcfg = "database.toml"
+# Assign the config file of redis database,relative to this config file
 rediscfg = "redis_connect.toml"
+# Ourchat Listening Port
 port = 7777
+# Set the database type
 db_type = "sqlite"
+# The http server listening port
 http_port = 7778
+# the duration of cleaning the files which are out-of-date
 auto_clean_duration = 1
+# the total file size limit of single user
 user_files_limit = "100MB"
+# the friends number limit of single user
 friends_number_limit = 5000
+# whether enabling the terminal
+enable_cmd = true
+# whether enabling the stdin source of the terminal
+enable_cmd_stdin = true
+# Assign the network terminal listening port,note,it will enable the network terminal mode by default
+cmd_network_port = 7779
