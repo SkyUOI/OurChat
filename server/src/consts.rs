@@ -4,7 +4,7 @@ use base::impl_newtype_int;
 use num_enum::TryFromPrimitive;
 use serde::{Deserialize, Serialize, Serializer};
 use serde_repr::{Deserialize_repr, Serialize_repr};
-use std::{fmt::Display, str::FromStr};
+use std::{fmt::Display, io::IsTerminal, str::FromStr, sync::LazyLock};
 
 use crate::db::DbType;
 
@@ -262,3 +262,5 @@ mod tests {
         assert_eq!(v, test_data);
     }
 }
+
+pub static STDIN_AVAILABLE: LazyLock<bool> = LazyLock::new(|| std::io::stdin().is_terminal());

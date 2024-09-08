@@ -15,7 +15,7 @@ pub mod utils;
 use anyhow::bail;
 use clap::Parser;
 use cmd::CommandTransmitData;
-use consts::{FileSize, DEFAULT_HTTP_PORT, DEFAULT_PORT};
+use consts::{FileSize, DEFAULT_HTTP_PORT, DEFAULT_PORT, STDIN_AVAILABLE};
 use db::{file_storage, DbType};
 use rand::Rng;
 use sea_orm::DatabaseConnection;
@@ -328,6 +328,7 @@ pub async fn lib_main() -> anyhow::Result<()> {
     exit_signal(shutdown_sender.clone()).await?;
     // 启动控制台
     if cfg.enable_cmd {
+        let mut is_enable = false;
         let (command_sdr, command_rev) = mpsc::channel(50);
         match cfg.cmd_network_port {
             None => {
@@ -344,21 +345,30 @@ pub async fn lib_main() -> anyhow::Result<()> {
                         }
                     }
                 });
+                is_enable = true;
             }
         }
         // 启动控制台源
         if cfg.enable_cmd_stdin {
-            let shutdown_sender = shutdown_sender.clone();
-            tokio::spawn(async move {
-                match cmd::setup_stdin(shutdown_sender.subscribe(), command_sdr).await {
-                    Ok(_) => {}
-                    Err(e) => {
-                        tracing::error!("cmd error:{}", e);
+            if *STDIN_AVAILABLE {
+                let shutdown_sender = shutdown_sender.clone();
+                tokio::spawn(async move {
+                    match cmd::setup_stdin(shutdown_sender.subscribe(), command_sdr).await {
+                        Ok(_) => {}
+                        Err(e) => {
+                            tracing::error!("cmd error:{}", e);
+                        }
                     }
-                }
-            });
+                });
+                is_enable = true;
+            }
         }
         cmd_start(command_rev, shutdown_sender.clone(), db, parser.test_mode).await?;
+        if !is_enable {
+            // 控制台并未正常启动
+            tracing::warn!("cmd is not enabled");
+            shutdown_sender.subscribe().recv().await?;
+        }
     }
     handle.await??;
     tracing::info!("Server exited");

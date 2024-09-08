@@ -9,21 +9,15 @@ use crate::{
 };
 use colored::Colorize;
 use sea_orm::DatabaseConnection;
-use std::{
-    alloc::{alloc, dealloc, Layout},
-    cell::RefCell,
-    collections::BTreeMap,
-    io::Write,
-    rc::Rc,
-    str::FromStr,
-};
+use std::{cell::RefCell, collections::BTreeMap, io::Write, rc::Rc, str::FromStr};
 use tokio::{
     io::{self, AsyncBufReadExt, BufReader},
-    net::{TcpListener, TcpSocket, TcpStream},
-    sync::mpsc,
+    net::{TcpListener, TcpStream},
+    select,
+    sync::{mpsc, oneshot},
 };
 
-type CheckFunc = fn(&InstManager, Vec<String>) -> Result<(), String>;
+type CheckFunc = fn(&InstManager, Vec<String>) -> Result<Option<String>, String>;
 
 /// 储存一个指令的信息
 struct Inst {
@@ -119,45 +113,50 @@ FileSaveDays(How long the files will be kept): Number of day".to_string(),
     }
 }
 
-fn exit_process(_: &InstManager, argvs: Vec<String>) -> Result<(), String> {
+fn exit_process(_: &InstManager, argvs: Vec<String>) -> Result<Option<String>, String> {
     if argvs.is_empty() {
         tracing::info!("Exiting now...");
-        return Ok(());
+        return Ok(None);
     }
     Err("exit accept 0 args".to_string())
 }
 
-fn cleanfs_process(_: &InstManager, argvs: Vec<String>) -> Result<(), String> {
+fn cleanfs_process(_: &InstManager, argvs: Vec<String>) -> Result<Option<String>, String> {
     if !argvs.is_empty() {
         return Err("cleanfs accept 0 args".to_string());
     }
-    Ok(())
+    Ok(None)
 }
 
-fn help_process(insts: &InstManager, argvs: Vec<String>) -> Result<(), String> {
+fn help_process(insts: &InstManager, argvs: Vec<String>) -> Result<Option<String>, String> {
+    let mut ret = String::new();
     if argvs.is_empty() {
         // 输出宽泛信息
-        println!("There are commands supported by console:\n");
+        ret.push_str("There are commands supported by console:\n\n");
         for inst in insts.get_map().borrow().values() {
-            println!("{}: {}", inst.name_interbal, inst.short_help);
+            ret.push_str(&format!("{}: {}\n", inst.name_interbal, inst.short_help));
         }
-        println!("\nRefer to \"https://ourchat.readthedocs.io/en/latest/docs/run/server_cmd.html\" for more information");
+        ret.push_str(&format!("\nRefer to \"https://ourchat.readthedocs.io/en/latest/docs/run/server_cmd.html\" for more information\n"));
     } else {
         // 针对给定的参数输出帮助信息
         for name in argvs {
             match InstName::from_str(&name) {
                 Ok(inst) => {
                     if let Some(inst) = insts.get_inst(&inst) {
-                        println!("{}: {}", inst.name_interbal, inst.details_help);
+                        ret.push_str(&format!("{}: {}\n", inst.name_interbal, inst.details_help));
                     }
                 }
                 Err(_) => {
-                    println!("{}{}", "ERROR:{}: Unknown command".red(), name.red());
+                    ret.push_str(&format!(
+                        "{}{}\n",
+                        "ERROR:{}: Unknown command".red(),
+                        name.red()
+                    ));
                 }
             }
         }
     }
-    Ok(())
+    Ok(Some(ret))
 }
 
 /// 服务器状态
@@ -186,7 +185,7 @@ fn gen_error_msg_template(help_msg: &str) -> String {
     )
 }
 
-fn set_process(_: &InstManager, argvs: Vec<String>) -> Result<(), String> {
+fn set_process(_: &InstManager, argvs: Vec<String>) -> Result<Option<String>, String> {
     if argvs.len() != 2 {
         return Err("status accept 2 args".to_string());
     }
@@ -197,6 +196,7 @@ fn set_process(_: &InstManager, argvs: Vec<String>) -> Result<(), String> {
             return Err(gen_error_msg_template("help set"));
         }
     };
+    let mut ret = String::new();
     match var {
         Variable::Status => {
             let status = match ServerStatus::from_str(&argvs[1]) {
@@ -209,17 +209,17 @@ fn set_process(_: &InstManager, argvs: Vec<String>) -> Result<(), String> {
                 ServerStatus::Maintaining => {
                     if !share_state::get_maintaining() {
                         unsafe { share_state::set_maintaining(true) };
-                        println!("Set server status to Maintaining");
+                        ret.push_str("Set server status to Maintaining");
                     } else {
-                        println!("Server status is already Maintaining");
+                        ret.push_str("Server status is already Maintaining");
                     }
                 }
                 ServerStatus::Normal => {
                     if share_state::get_maintaining() {
                         unsafe { share_state::set_maintaining(false) }
-                        println!("Set server status to Normal");
+                        ret.push_str("Set server status to Normal");
                     } else {
-                        println!("Server status is already Normal");
+                        ret.push_str("Server status is already Normal");
                     }
                 }
             }
@@ -237,11 +237,10 @@ fn set_process(_: &InstManager, argvs: Vec<String>) -> Result<(), String> {
             }
         }),
     }
-
-    Ok(())
+    Ok(Some(ret))
 }
 
-fn get_process(_: &InstManager, argvs: Vec<String>) -> Result<(), String> {
+fn get_process(_: &InstManager, argvs: Vec<String>) -> Result<Option<String>, String> {
     if argvs.len() != 1 {
         return Err("getstatus accept 1 args".to_string());
     }
@@ -252,30 +251,35 @@ fn get_process(_: &InstManager, argvs: Vec<String>) -> Result<(), String> {
             return Err(gen_error_msg_template("help get"));
         }
     };
+    let mut ret = String::new();
     match var {
         Variable::Status => {
             if share_state::get_maintaining() {
-                println!("Server status is Maintaining");
+                ret.push_str("Server status is Maintaining");
             } else {
-                println!("Server status is Normal");
+                ret.push_str("Server status is Normal");
             }
         }
-        Variable::AutoCleanCycle => {
-            println!("AutoCleanCycle: {}", share_state::get_auto_clean_duration())
-        }
-        Variable::FileSaveDays => println!("FileSaveDays: {}", share_state::get_file_save_days()),
+        Variable::AutoCleanCycle => ret.push_str(&format!(
+            "AutoCleanCycle: {}",
+            share_state::get_auto_clean_duration()
+        )),
+        Variable::FileSaveDays => ret.push_str(&format!(
+            "FileSaveDays: {}",
+            share_state::get_file_save_days()
+        )),
     }
-    Ok(())
+    Ok(Some(ret))
 }
 
-pub type CommandTransmitData = String;
+pub type CommandTransmitData = (String, oneshot::Sender<Option<String>>);
 
 pub async fn cmd_process_loop(
     mut db_conn: DatabaseConnection,
     mut command_rev: mpsc::Receiver<CommandTransmitData>,
 ) -> anyhow::Result<()> {
     let insts = InstManager::new();
-    while let Some(command) = command_rev.recv().await {
+    while let Some((command, ret)) = command_rev.recv().await {
         let command = command.trim();
         tracing::debug!("cmd: {}", command);
         let mut command = command.split_whitespace();
@@ -288,7 +292,8 @@ pub async fn cmd_process_loop(
                 let command_list = command.map(|d| d.to_owned()).collect();
                 if let Some(inst) = insts.get_inst(&inst_enum) {
                     match (inst.command_process)(&insts, command_list) {
-                        Ok(_) => {
+                        Ok(output) => {
+                            ret.send(output).unwrap();
                             // 指令运行成功，运行接下来的操作
                             match inst_enum {
                                 InstName::Exit => {
@@ -306,13 +311,18 @@ pub async fn cmd_process_loop(
                             }
                         }
                         Err(e) => {
-                            println!("{}: {}", command_name, e);
+                            ret.send(Some(format!("{}: {}", command_name, e))).unwrap();
                         }
                     }
                 }
             }
             Err(_e) => {
-                println!("{}{}", command_name.red(), ": Unknown command".red());
+                ret.send(Some(format!(
+                    "{}{}",
+                    command_name.red(),
+                    ": Unknown command".red()
+                )))
+                .unwrap();
             }
         };
     }
@@ -327,21 +337,42 @@ pub async fn setup_stdin(
     loop {
         print!(">>> ");
         std::io::stdout().flush()?;
-        let command = match console_reader.next_line().await {
-            Ok(d) => match d {
-                Some(data) => data,
-                None => {
-                    tracing::info!("Without stdin");
-                    shutdown_receiver.recv().await?;
-                    String::default()
-                }
-            },
+        let command;
+        select! {
+            command_inner = async {match console_reader.next_line().await {
+            Ok(d) => d,
             Err(e) => {
                 tracing::error!("stdin {}", e);
-                break;
+                None
+            }
+        }} => {
+            command = command_inner
+        }
+            _ = shutdown_receiver.recv() => {
+                return Ok(());
             }
         };
-        commend_sdr.send(command).await?;
+        let command = match command {
+            None => {
+                break;
+            }
+            Some(d) => d,
+        };
+        if command.trim().is_empty() {
+            continue;
+        }
+        let (ret_sdr, ret_rev) = oneshot::channel();
+        commend_sdr.send((command, ret_sdr)).await?;
+        match ret_rev.await {
+            Err(e) => {
+                tracing::error!("stdin {}", e);
+            }
+            Ok(output) => {
+                if let Some(output) = output {
+                    println!("{output}");
+                }
+            }
+        }
     }
     Ok(())
 }

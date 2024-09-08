@@ -77,14 +77,13 @@ impl Server {
                 match ret {
                     Ok((socket, addr)) => {
                         tracing::info!("Connected to a socket");
-                        Server::handle_connection(
+                        tokio::spawn(Server::handle_connection(
                             socket,
                             addr,
                             http_sender,
                             shutdown_handle,
                             task_sender,
-                        )
-                        .await;
+                        ));
                     }
                     Err(e) => {
                         tracing::warn!("Failed to accept a socket: {}", e);
@@ -143,18 +142,16 @@ impl Server {
                 return;
             }
         };
-        tokio::spawn(async move {
-            let mut connection =
-                connection::Connection::new(ws_stream, http_sender, shutdown_sender, task_sender);
-            match connection.work().await {
-                Ok(_) => {
-                    tracing::info!("Connection closed: {}", addr);
-                }
-                Err(e) => {
-                    tracing::error!("Connection error: {}", e);
-                }
+        let mut connection =
+            connection::Connection::new(ws_stream, http_sender, shutdown_sender, task_sender);
+        match connection.work().await {
+            Ok(_) => {
+                tracing::info!("Connection closed: {}", addr);
             }
-        });
+            Err(e) => {
+                tracing::error!("Connection error: {}", e);
+            }
+        }
     }
 
     pub async fn delete(mut self) -> anyhow::Result<()> {
