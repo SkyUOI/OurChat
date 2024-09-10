@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 import json
 import os
 import random
@@ -6,10 +7,44 @@ import sys
 import time
 from threading import Thread
 
+import flask
+from flask import make_response, request
 from peewee import IntegerField, Model, SqliteDatabase, TextField, fn
 from websockets.server import serve
 
+app = flask.Flask(__name__)
+
 db = SqliteDatabase("database.db")
+
+upload_queue = {}
+
+
+@app.route("/upload", methods=["POST"])
+def upload():
+    global upload_queue
+    key = request.headers["Key"]
+    if key not in upload_queue:
+        return make_response("<h1>404</h1>", 404)
+    hash = upload_queue[key]
+    data = request.get_data()
+    update_hash = hashlib.sha256()
+    update_hash.update(data)
+    print(hash, update_hash.hexdigest())
+    if hash == update_hash.hexdigest():
+        with open(f"./files/{key}", "wb") as f:
+            f.write(data)
+        upload_queue.pop(key)
+        return make_response("<h1>200</h1>", 200)
+    return make_response("<h1>400</h1>", 400)
+
+
+@app.route("/download", methods=["POST"])
+def download():
+    key = request.headers["Key"]
+    if key in os.listdir("files"):
+        with open(f"./files/{key}", "rb") as f:
+            return f.read()
+    return make_response(None, 404)
 
 
 class Account(Model):
@@ -313,6 +348,16 @@ def set_account(conn: Connection, sample: dict, data: dict) -> dict:
     return sample
 
 
+def upload_msg(conn: Connection, sample: dict, data: dict) -> dict:
+    global upload_queue
+    key = "".join([str(random.randint(0, 9)) for _ in range(15)])
+    upload_queue[key] = data["hash"]
+    sample["key"] = key
+    sample["status"] = 0
+    sample["hash"] = data["hash"]
+    return sample
+
+
 auto_reply = {
     0: ("user_msg.json", user_msg, True),
     1: ("session_info.json", session_info, False),
@@ -324,6 +369,7 @@ auto_reply = {
     14: ("verify_status.json", normal, False),
     16: ("unregister.json", unregister, False),
     19: ("set_account.json", set_account, False),
+    21: ("upload.json", upload_msg, False),
 }
 
 
@@ -340,6 +386,10 @@ def start_serve(ip, port):
     asyncio.run(server_forever(ip, port))
 
 
+def start_http(ip, port):
+    app.run(host=ip, port=port)
+
+
 async def main():
     ip = "localhost"
     port = 7777
@@ -352,30 +402,34 @@ async def main():
     Account.create_table(safe=True)
     Session.create_table(safe=True)
 
-    Thread(target=start_serve, daemon=True, args=(ip, port)).start()
+    if "files" not in os.listdir():
+        os.mkdir("files")
 
-    while True:
-        print("=" * 40)
-        for i in range(len(messages)):
-            print(f"{i+1}. {messages[i]}")
-        print("=" * 40)
-        user_input = input(
-            "input {address}<<<{msgid}/{json} to send message\ninput blank to exit\n"
-        )
-        if user_input == "":
-            break
-        address, data = user_input.split("<<<")
-        send_data = None
-        try:
-            index = int(data)
-            with open(f"message_samples/{messages[index-1]}") as f:
-                send_data = json.loads(f.read())
-        except ValueError:
-            send_data = json.loads(data)
-        if address not in connections:
-            print("[ERROR] address not found")
-            continue
-        await connections[address].send(send_data)
+    Thread(target=start_serve, daemon=True, args=(ip, port)).start()
+    start_http(ip, port + 1)
+
+    # while True:
+    #     print("=" * 40)
+    #     for i in range(len(messages)):
+    #         print(f"{i+1}. {messages[i]}")
+    #     print("=" * 40)
+    #     user_input = input(
+    #         "input {address}<<<{msgid}/{json} to send message\ninput blank to exit\n"
+    #     )
+    #     if user_input == "":
+    #         break
+    #     address, data = user_input.split("<<<")
+    #     send_data = None
+    #     try:
+    #         index = int(data)
+    #         with open(f"message_samples/{messages[index-1]}") as f:
+    #             send_data = json.loads(f.read())
+    #     except ValueError:
+    #         send_data = json.loads(data)
+    #     if address not in connections:
+    #         print("[ERROR] address not found")
+    #         continue
+    #     await connections[address].send(send_data)
 
     print("CLOSING...")
     keys = list(connections.keys())

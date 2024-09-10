@@ -223,4 +223,4 @@ class OurChatAccount:
             self.friends = None
         self.have_got_info = True
         self.ourchat.triggerEvent({"code": ACCOUNT_FINISH_GET_INFO, "ocid": self.ocid})
-        self.getAvatar()
+        # self.getAvatar()

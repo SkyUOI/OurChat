@@ -1,4 +1,5 @@
 import datetime
+import hashlib
 import os
 import sys
 import time
@@ -6,16 +7,18 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor, wait
 from logging import getLogger
 from typing import Any, List
-import hashlib
+from urllib.error import HTTPError
 
 import rmodule
 from lib.chattingSystem import ChattingSystem
 from lib.connection import Connection
 from lib.const import (
     DOWNLOAD_RESPONSE,
+    HTTP_OK,
     REQUEST_INFO_NOT_FOUND,
     RUN_NORMALLY,
     UPLOAD_MSG,
+    UPLOAD_RESPONSE,
     UPLOAD_RESPONSE_MSG,
 )
 from lib.OurChatAccount import OurChatAccount
@@ -64,6 +67,7 @@ class OurChat:
         logger.info(f"OurChat RunThread {task.__name__}")
         logger.debug(f"OurChat RunThread {task.__name__} args:{args}")
         future = self.thread_pool.submit(task, *args)
+        future.task_name = task.__name__
         self.tasks.append(future)
 
     def tick(self) -> None:
@@ -71,7 +75,7 @@ class OurChat:
         remove_ = []
         for future in self.tasks:
             if future.done():
-                logger.info(f"A task had done. ({future.__qualname__})")
+                logger.info(f"A task had done. ({future.task_name})")
                 remove_.append(future)
         for r in remove_:
             self.tasks.remove(r)
@@ -203,7 +207,7 @@ class OurChat:
             self.sessions_cache[session_id] = session
         return self.sessions_cache[session_id]
 
-    def download(self, url: str, depth: int = 0) -> None:
+    def download(self, url: str, key: str, depth: int = 0) -> None:
         if depth == 0:
             logger.info(f"begin to download (URL: {url})")
         if depth >= 5:
@@ -218,7 +222,7 @@ class OurChat:
             return
         try:
             logger.info(f"download (URL: {url})(retry: {depth})")
-            response = urllib.request.urlopen(url)
+            response = urllib.request.Request(url, headers={"Key": key})
             data = response.read()
             logger.info(f"download success (URL: {url})")
             self.triggerEvent(
@@ -233,7 +237,7 @@ class OurChat:
             logger.warning(f"download failed({str(e)})")
             logger.info(f"retry after 3s (URL: {url})")
             time.sleep(3)
-            self.download(url, depth + 1)
+            self.download(url, key, depth + 1)
 
     def upload(self, data: bytes, auto_clean=False) -> None:
         sha256 = hashlib.sha256()
@@ -241,13 +245,39 @@ class OurChat:
         logger.info(f"upload file (hash: {sha256.hexdigest()})")
         self.upload_queue[sha256.hexdigest()] = data
         self.listen(UPLOAD_RESPONSE_MSG, self.uploadResponse)
-        self.conn.send({"code": UPLOAD_MSG, "hash": sha256, "auto_clean": auto_clean})
+        self.conn.send(
+            {"code": UPLOAD_MSG, "hash": sha256.hexdigest(), "auto_clean": auto_clean}
+        )
 
     def uploadResponse(self, data: dict) -> None:
+        self.unListen(UPLOAD_RESPONSE_MSG, self.uploadResponse)
         if data["status"] == RUN_NORMALLY:
             file_data = self.upload_queue[data["hash"]]
             self.upload_queue.pop(data["hash"])
-            url = data["url"]
             key = data["key"]
-            # request = urllib.request.Request(url=path, data=params, headers=headers, method='POST')
-            # urllib.request.urlopen(request).read()
+            request = urllib.request.Request(
+                url=f"http://{self.config['server']['ip']}:{self.config['server']['port']+1}/upload",
+                data=file_data,
+                headers={"Key": key},
+                method="POST",
+            )
+            try:
+                response = urllib.request.urlopen(request)
+                if response.code == HTTP_OK:
+                    logger.info(f"get upload response: success (hash: {data['hash']})")
+                    self.triggerEvent(
+                        {
+                            "code": UPLOAD_RESPONSE,
+                            "status": HTTP_OK,
+                            "hash": data["hash"],
+                            "key": key,
+                        }
+                    )
+            except HTTPError as he:
+                code = he.code
+                logger.warning(
+                    f"get upload response code: {code} (hash: {data['hash']})"
+                )
+                self.triggerEvent(
+                    {"code": UPLOAD_RESPONSE, "status": code, "hash": data["hash"]}
+                )

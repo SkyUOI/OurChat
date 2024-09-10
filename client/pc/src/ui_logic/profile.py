@@ -1,20 +1,21 @@
-import hashlib
-import re
+from io import BytesIO
 from logging import getLogger
-from typing import Union
 
 from lib.const import (
     ACCOUNT_FINISH_GET_AVATAR,
     ACCOUNT_FINISH_GET_INFO,
+    HTTP_OK,
     RUN_NORMALLY,
     SERVER_ERROR,
     SERVER_UNDER_MAINTENANCE,
     SET_ACCOUNT_INFO_MSG,
     SET_ACCOUNT_INFO_RESPONSE_MSG,
     UNKNOWN_ERROR,
+    UPLOAD_RESPONSE,
 )
 from lib.OurChatUI import ImageLabel
-from PyQt6.QtWidgets import QInputDialog, QMessageBox
+from PIL import Image
+from PyQt6.QtWidgets import QFileDialog, QMessageBox
 from ui.profile import Ui_Profile
 from ui_logic.basicUI import BasicUI
 
@@ -25,6 +26,7 @@ class ProfileUI(BasicUI, Ui_Profile):
     def __init__(self, ourchat, dialog) -> None:
         self.ourchat = ourchat
         self.dialog = dialog
+        self.avatar_path = None
 
     def setupUi(self) -> None:
         super().setupUi(self.dialog)
@@ -51,7 +53,6 @@ class ProfileUI(BasicUI, Ui_Profile):
         if account != self.ourchat.account:
             return
         self.avatar_label.setImage(account.avatar_data)
-        self.avatar_url = account.data["avatar"]
 
     def fillText(self) -> None:
         self.label_2.setText(self.ourchat.language["nickname"])
@@ -59,12 +60,12 @@ class ProfileUI(BasicUI, Ui_Profile):
         self.cancel_btn.setText(self.ourchat.language["cancel"])
         self.set_avatar_btn.setText(self.ourchat.language["set"])
         self.dialog.setWindowTitle(f"OurChat - {self.ourchat.language['profile']}")
+        self.avatar_label.setImage("resource/images/logo.png")
         account = self.ourchat.account
         if account.have_got_info:
             self.nickname_editor.setText(account.data["nickname"])
         if account.have_got_avatar:
             self.avatar_label.setImage(account.avatar_data)
-            self.avatar_url = account.data["avatar"]
 
     def bind(self) -> None:
         self.ok_btn.clicked.connect(self.ok)
@@ -72,12 +73,37 @@ class ProfileUI(BasicUI, Ui_Profile):
         self.set_avatar_btn.clicked.connect(self.setAvatar)
 
     def ok(self) -> None:
-        data = {}
+        if self.avatar_path is not None:
+            img = Image.open(self.avatar_path)
+            bytes_io = BytesIO()
+            img.resize((256, 256)).save(bytes_io, format="PNG")
+            avatar = bytes_io.getvalue()
+            self.ourchat.listen(UPLOAD_RESPONSE, self.uploadResponse)
+            self.ourchat.upload(avatar)
+        else:
+            self.updateInfo()
+
+    def uploadResponse(self, data):
+        self.ourchat.unListen(UPLOAD_RESPONSE, self.uploadResponse)
+        if data["status"] == HTTP_OK:
+            self.updateInfo(
+                {
+                    "avatar": f"http://{self.ourchat.config['server']['ip']}:{self.ourchat.config['server']['port']+1}",
+                    "avatar_key": data["key"],
+                }
+            )
+        else:
+            logger.warning(f"upload avatar failed: CODE {data['status']}")
+            QMessageBox.warning(
+                self.dialog,
+                self.ourchat.language["warning"],
+                self.ourchat.language["upload_failed"].format(data["status"]),
+            )
+        return
+
+    def updateInfo(self, data: dict = {}) -> None:
         if self.nickname_editor.text() != self.ourchat.account.data["nickname"]:
             data["nickname"] = self.nickname_editor.text()
-        if self.avatar_hash != self.ourchat.account.data["avatar_hash"]:
-            data["avatar"] = self.avatar_url
-            data["avatar_hash"] = self.avatar_hash
         if data == {}:
             QMessageBox.warning(
                 self.dialog,
@@ -85,46 +111,23 @@ class ProfileUI(BasicUI, Ui_Profile):
                 self.ourchat.language["account_profile_no_change"],
             )
             return
-        self.ourchat.conn.send(
+        self.ourchat.runThread(
+            self.ourchat.conn.send,
             {
                 "code": SET_ACCOUNT_INFO_MSG,
                 "ocid": self.ourchat.account.ocid,
                 "data": data,
-            }
+            },
         )
         self.ourchat.runThread(self.ourchat.account.getInfo)
 
     def setAvatar(self) -> None:
-        url = QInputDialog.getText(self.dialog, "set avatar", "avatar url: ")
-        if url[1]:
-            result = re.match(
-                "^(https?:\/\/)?([\w-]+(?:\.[\w-]+)+)(:\d+)?(\/\S*)?$", url[0]
-            )
-            if result is None:
-                QMessageBox.warning(
-                    self.dialog,
-                    self.ourchat.language["warning"],
-                    self.ourchat.language["invalid_url"],
-                )
-                return
-            self.ok_btn.setEnabled(False)
-            self.avatar_url = url[0]
-
-    def downloadAvatarResponse(self, avatar_data: Union[bytes, None]) -> None:
-        if avatar_data is None:
-            self.ok_btn.setEnabled(True)
-            QMessageBox.warning(
-                self.dialog,
-                self.ourchat.language["warning"],
-                self.ourchat.language["avatar_download_failed"],
-            )
+        avatar_path = QFileDialog.getOpenFileName(
+            self.dialog, filter="Image Files (*.png *.jpg *.jpeg *.gif)"
+        )[0]
+        if avatar_path == "":
             return
-        hash = hashlib.sha256()
-        hash.update(avatar_data)
-        self.ourchat.cache.setImage(hash.hexdigest(), avatar_data)
-        self.avatar_hash = hash.hexdigest()
-        self.avatar_label.setImage(avatar_data)
-        self.ok_btn.setEnabled(True)
+        self.avatar_path = avatar_path
 
     def setAccountInfoResponse(self, data: dict) -> None:
         if data["status"] == RUN_NORMALLY:
