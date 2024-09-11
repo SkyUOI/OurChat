@@ -220,10 +220,10 @@ class OurChat:
                 }
             )
             return
+        request = urllib.request.Request(url, headers={"Key": key}, method="POST")
         try:
             logger.info(f"download (URL: {url})(retry: {depth})")
-            response = urllib.request.Request(url, headers={"Key": key})
-            data = response.read()
+            data = urllib.request.urlopen(request).read()
             logger.info(f"download success (URL: {url})")
             self.triggerEvent(
                 {

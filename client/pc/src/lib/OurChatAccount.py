@@ -30,6 +30,7 @@ class OurChatAccount:
             "nickname",
             "status",
             "avatar",
+            "avatar_key",
             "time",
             "public_update_time",
             "update_time",
@@ -50,7 +51,7 @@ class OurChatAccount:
         if avatar_data is None:
             logger.info("avatar cache not found,started to download")
             self.ourchat.listen(DOWNLOAD_RESPONSE, self.downloadAvatarResponse)
-            self.ourchat.download(self.data["avatar"])
+            self.ourchat.download(self.data["avatar"], self.data["avatar_key"])
         else:
             self.finishGetAvatar(avatar_data)
 
@@ -223,4 +224,4 @@ class OurChatAccount:
             self.friends = None
         self.have_got_info = True
         self.ourchat.triggerEvent({"code": ACCOUNT_FINISH_GET_INFO, "ocid": self.ocid})
-        # self.getAvatar()
+        self.getAvatar()

@@ -29,7 +29,7 @@ class SessionSettingUI(BasicUI, Ui_SessionSetting):
         self.session_id = session_id
         self.account_widgets = {}
         self.avatar_url = None
-        self.avatar_hash = None
+        self.avatar_key = None
 
     def setupUi(self) -> None:
         super().setupUi(self.dialog)
@@ -100,9 +100,7 @@ class SessionSettingUI(BasicUI, Ui_SessionSetting):
         }
         if self.avatar_url is not None:
             data["avatar"] = self.avatar_url
-            data["avatar_hash"] = hashlib.md5(
-                self.avatar_url.encode("utf-8")
-            ).hexdigest()
+            data["avatar_key"] = self.avatar_key
         if self.session_name_editor.text() != "":
             data["name"] = self.session_name_editor.text()
         self.ourchat.conn.send(data)
@@ -176,7 +174,7 @@ class SessionSettingUI(BasicUI, Ui_SessionSetting):
     def downloadAvatarResponse(self, avatar_data: Union[bytes, None]) -> None:
         if avatar_data is None:
             self.avatar_url = None
-            self.avatar_hash = None
+            self.avatar_key = None
             self.avatar_label.setImage("resources/images/logo.png")
             self.ok_btn.setEnabled(True)
             QMessageBox.warning(
@@ -188,6 +186,5 @@ class SessionSettingUI(BasicUI, Ui_SessionSetting):
         hash = hashlib.sha256()
         hash.update(avatar_data)
         self.ourchat.cache.setImage(hash.hexdigest(), avatar_data)
-        self.avatar_hash = hash.hexdigest()
         self.avatar_label.setImage(avatar_data)
         self.ok_btn.setEnabled(True)

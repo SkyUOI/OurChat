@@ -74,12 +74,8 @@ class ProfileUI(BasicUI, Ui_Profile):
 
     def ok(self) -> None:
         if self.avatar_path is not None:
-            img = Image.open(self.avatar_path)
-            bytes_io = BytesIO()
-            img.resize((256, 256)).save(bytes_io, format="PNG")
-            avatar = bytes_io.getvalue()
             self.ourchat.listen(UPLOAD_RESPONSE, self.uploadResponse)
-            self.ourchat.upload(avatar)
+            self.ourchat.upload(self.avatar_data)
         else:
             self.updateInfo()
 
@@ -88,7 +84,7 @@ class ProfileUI(BasicUI, Ui_Profile):
         if data["status"] == HTTP_OK:
             self.updateInfo(
                 {
-                    "avatar": f"http://{self.ourchat.config['server']['ip']}:{self.ourchat.config['server']['port']+1}",
+                    "avatar": f"http://{self.ourchat.config['server']['ip']}:{self.ourchat.config['server']['port']+1}/download",
                     "avatar_key": data["key"],
                 }
             )
@@ -128,6 +124,11 @@ class ProfileUI(BasicUI, Ui_Profile):
         if avatar_path == "":
             return
         self.avatar_path = avatar_path
+        img = Image.open(self.avatar_path)
+        bytes_io = BytesIO()
+        img.resize((256, 256)).save(bytes_io, format="PNG")
+        self.avatar_data = bytes_io.getvalue()
+        self.avatar_label.setImage(bytes_io.getvalue())
 
     def setAccountInfoResponse(self, data: dict) -> None:
         if data["status"] == RUN_NORMALLY:

@@ -20,6 +20,7 @@ class AccountCache(Model):
     nickname = TextField(null=False)
     status = IntegerField(null=False)
     avatar = TextField(null=False)
+    avatar_key = TextField(null=False)
     time = IntegerField(null=False)
     public_update_time = IntegerField(null=False)
     update_time = IntegerField(null=False)
@@ -32,6 +33,7 @@ class SessionCache(Model):
     session_id = TextField(null=False, primary_key=True)
     name = TextField(null=True)
     avatar = TextField(null=True)
+    avatar_key = TextField(null=True)
     time = IntegerField(null=False)
     update_time = IntegerField(null=False)
     members = TextField(null=False)
@@ -70,6 +72,7 @@ class OurChatCache:
             "nickname": account_info.nickname,
             "status": account_info.status,
             "avatar": account_info.avatar,
+            "avatar_key": account_info.avatar_key,
             "time": account_info.time,
             "public_update_time": account_info.public_update_time,
             "update_time": account_info.update_time,
@@ -83,6 +86,7 @@ class OurChatCache:
             "session_id": session_id,
             "name": session_info.name,
             "avatar": session_info.avatar,
+            "avatar_key": session_info.avatar_key,
             "time": session_info.time,
             "update_time": session_info.update_time,
             "members": json.loads(session_info.members),
@@ -104,6 +108,7 @@ class OurChatCache:
                 nickname=data["nickname"],
                 status=data["status"],
                 avatar=data["avatar"],
+                avatar_key=data["avatar_key"],
                 time=data["time"],
                 public_update_time=data["public_update_time"],
                 update_time=data["update_time"],
@@ -125,6 +130,7 @@ class OurChatCache:
                 session_id=session_id,
                 name=data["name"],
                 avatar=data["avatar"],
+                avatar_key=data["avatar_key"],
                 time=data["time"],
                 update_time=data["update_time"],
                 members=json.dumps(data["members"]),

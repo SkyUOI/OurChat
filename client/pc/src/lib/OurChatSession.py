@@ -26,6 +26,7 @@ class OurChatSession:
             "session_id",
             "name",
             "avatar",
+            "avatar_key",
             "time",
             "update_time",
             "members",

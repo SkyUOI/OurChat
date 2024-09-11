@@ -41,6 +41,7 @@ def upload():
 @app.route("/download", methods=["POST"])
 def download():
     key = request.headers["Key"]
+    print(key, os.listdir("files"))
     if key in os.listdir("files"):
         with open(f"./files/{key}", "rb") as f:
             return f.read()
@@ -54,7 +55,7 @@ class Account(Model):
     nickname = TextField(null=False)
     status = IntegerField(null=False)
     avatar = TextField(null=False)
-    avatar_hash = TextField(null=False)
+    avatar_key = TextField(null=False)
     time = IntegerField(null=False)
     public_update_time = IntegerField(null=False)
     update_time = IntegerField(null=False)
@@ -70,7 +71,7 @@ class Session(Model):
     session_id = TextField(null=False, primary_key=True)
     name = TextField(null=True)
     avatar = TextField(null=True)
-    avatar_hash = TextField(null=True)
+    avatar_key = TextField(null=True)
     time = IntegerField(null=False)
     update_time = IntegerField(null=False)
     members = TextField(null=False)
@@ -136,8 +137,8 @@ def account_info(conn: Connection, sample: dict, data: dict) -> dict:
                 sample["data"][key] = account_info.status
             elif key == "avatar":
                 sample["data"][key] = account_info.avatar
-            elif key == "avatar_hash":
-                sample["data"][key] = account_info.avatar_hash
+            elif key == "avatar_key":
+                sample["data"][key] = account_info.avatar_key
             elif key == "time":
                 sample["data"][key] = account_info.time
             elif key == "public_update_time":
@@ -190,8 +191,8 @@ def session_info(conn: Connection, sample: dict, data: dict) -> dict:
                 sample["data"][key] = session.name
             elif key == "avatar":
                 sample["data"][key] = session.avatar
-            elif key == "avatar_hash":
-                sample["data"][key] = session.avatar_hash
+            elif key == "avatar_key":
+                sample["data"][key] = session.avatar_key
             elif key == "time":
                 sample["data"][key] = session.time
             elif key == "update_time":
@@ -220,8 +221,8 @@ def register(conn: Connection, sample: dict, data: dict) -> dict:
             password=data["password"],
             nickname="OurChat User",
             status=0,
-            avatar="http://img.senlinjun.top/imgs/2024/08/c57c426151947784.png",
-            avatar_hash="6856e25c44cce62e5577c23506bcfea8fdd440ad63594ef82a5d9e36951e240a",
+            avatar="",
+            avatar_key="",
             time=time.time(),
             public_update_time=time.time(),
             update_time=time.time(),
@@ -261,13 +262,13 @@ async def user_msg(conn: Connection, sample: dict, data: dict) -> dict:
 
 async def new_session(conn: Connection, sample: dict, data: dict) -> dict:
     avatar = None
-    avatar_hash = None
+    avatar_key = None
     name = None
 
     if "avatar" in data:
         avatar = data["avatar"]
-    if "avatar_hash" in data:
-        avatar_hash = data["avatar_hash"]
+    if "avatar_key" in data:
+        avatar_key = data["avatar_key"]
     if "name" in data:
         name = data["name"]
 
@@ -291,7 +292,7 @@ async def new_session(conn: Connection, sample: dict, data: dict) -> dict:
         session_id=session_id,
         name=name,
         avatar=avatar,
-        avatar_hash=avatar_hash,
+        avatar_key=avatar_key,
         time=time.time(),
         update_time=time.time(),
         members=json.dumps(data["members"]),
@@ -325,7 +326,7 @@ def set_account(conn: Connection, sample: dict, data: dict) -> dict:
     nickname = account.nickname
     status = account.status
     avatar = account.avatar
-    avatar_hash = account.avatar_hash
+    avatar_key = account.avatar_key
     public_update_time = account.public_update_time
     for key in data["data"]:
         if key == "nickname":
@@ -334,14 +335,14 @@ def set_account(conn: Connection, sample: dict, data: dict) -> dict:
             status = data["data"][key]
         elif key == "avatar":
             avatar = data["data"][key]
-        elif key == "avatar_hash":
-            avatar_hash = data["data"][key]
+        elif key == "avatar_key":
+            avatar_key = data["data"][key]
     public_update_time = time.time()
     Account.update(
         nickname=nickname,
         status=status,
         avatar=avatar,
-        avatar_hash=avatar_hash,
+        avatar_key=avatar_key,
         public_update_time=public_update_time,
     ).where(Account.ocid == data["ocid"]).execute()
     sample["status"] = 0
