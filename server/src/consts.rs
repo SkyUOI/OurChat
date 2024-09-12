@@ -30,13 +30,18 @@ pub enum MessageType {
 }
 
 /// 默认ip
-pub const DEFAULT_IP: &str = "127.0.0.1";
+pub const DEFAULT_IP: &str = "0.0.0.0";
+
+pub fn default_ip() -> String {
+    String::from(DEFAULT_IP)
+}
+
 /// 默认端口
 pub const DEFAULT_PORT: u16 = 7777;
 /// http服务器默认端口
 pub const DEFAULT_HTTP_PORT: u16 = 7778;
 /// 默认采用的数据库类型
-pub const DB_TYPE: DbType = DbType::Mysql;
+pub const DB_TYPE: DbType = DbType::MySql;
 
 /// 时间戳类型(与chrono不一致)
 pub type TimeStamp = u64;

@@ -29,7 +29,6 @@ use std::{
     sync::LazyLock,
 };
 use tokio::{
-    net::TcpListener,
     select,
     sync::{broadcast, mpsc},
 };
@@ -74,6 +73,8 @@ struct ArgsParser {
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Cfg {
+    #[serde(default = "consts::default_ip")]
+    ip: String,
     rediscfg: PathBuf,
     dbcfg: PathBuf,
     #[serde(default)]
@@ -175,7 +176,7 @@ async fn cmd_start(
     if !test_mode {
         let mut shutdown_receiver2 = shutdown_sender.subscribe();
         select! {
-            _ = cmd::cmd_process_loop(db_conn, command_rev) => {
+            _ = cmd::cmd_process_loop(db_conn, command_rev, shutdown_receiver1) => {
                 shutdown_sender.send(())?;
                 tracing::info!("Exit because command loop has exited");
             },
@@ -233,21 +234,6 @@ async fn start_server(
             .accept_sockets(shutdown_sender, shutdown_receiver)
             .await
     });
-    Ok(())
-}
-
-/// 启动网络cmd
-async fn setup_network_cmd(
-    cmd_port: u16,
-    command_sdr: mpsc::Sender<CommandTransmitData>,
-    mut shutdown_rev: ShutdownRev,
-) -> anyhow::Result<()> {
-    select! {
-        err = cmd::setup_network(cmd_port, command_sdr) => {
-            err?
-        }
-        _ = shutdown_rev.recv() => {}
-    }
     Ok(())
 }
 
@@ -338,7 +324,7 @@ pub async fn lib_main() -> anyhow::Result<()> {
                 let command_sdr = command_sdr.clone();
                 let shutdown_rev = shutdown_sender.subscribe();
                 tokio::spawn(async move {
-                    match setup_network_cmd(port, command_sdr, shutdown_rev).await {
+                    match cmd::setup_network(port, command_sdr, shutdown_rev).await {
                         Ok(_) => {}
                         Err(e) => {
                             tracing::error!("network cmd error:{}", e);
@@ -353,7 +339,7 @@ pub async fn lib_main() -> anyhow::Result<()> {
             if *STDIN_AVAILABLE {
                 let shutdown_sender = shutdown_sender.clone();
                 tokio::spawn(async move {
-                    match cmd::setup_stdin(shutdown_sender.subscribe(), command_sdr).await {
+                    match cmd::setup_stdin(command_sdr, shutdown_sender.subscribe()).await {
                         Ok(_) => {}
                         Err(e) => {
                             tracing::error!("cmd error:{}", e);

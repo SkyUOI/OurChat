@@ -5,7 +5,7 @@ pub mod client_response;
 mod process;
 
 use crate::{
-    consts::{MessageType, ID},
+    consts::{Bt, MessageType, ID},
     requests::{self, new_session::NewSession, upload::Upload},
     server::httpserver::Record,
     share_state,
@@ -47,6 +47,7 @@ pub enum DBRequest {
     },
     UpLoad {
         id: ID,
+        sz: Bt,
         resp: oneshot::Sender<requests::Status>,
     },
 }
@@ -298,9 +299,13 @@ impl Connection {
                                             // 先生成url再回复
                                             let hash = json.hash.clone();
                                             let auto_clean = json.auto_clean;
-                                            let (send, key) =
-                                                Self::upload(&db_sender, &net_sender, &mut json)
-                                                    .await?;
+                                            let (send, key) = Self::upload(
+                                                id,
+                                                &db_sender,
+                                                &net_sender,
+                                                &mut json,
+                                            )
+                                            .await?;
                                             let record = Record::new(key, hash, auto_clean, id);
                                             http_file_sender.send(record).await?;
                                             send.await?;

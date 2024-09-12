@@ -277,103 +277,114 @@ pub type CommandTransmitData = (String, oneshot::Sender<Option<String>>);
 pub async fn cmd_process_loop(
     mut db_conn: DatabaseConnection,
     mut command_rev: mpsc::Receiver<CommandTransmitData>,
+    mut shutdown_rev: ShutdownRev,
 ) -> anyhow::Result<()> {
+    tracing::info!("cmd process started");
     let insts = InstManager::new();
-    while let Some((command, ret)) = command_rev.recv().await {
-        let command = command.trim();
-        tracing::debug!("cmd: {}", command);
-        let mut command = command.split_whitespace();
-        let command_name = match command.next().to_owned() {
-            Some(name) => name,
-            None => continue,
-        };
-        match InstName::from_str(command_name) {
-            Ok(inst_enum) => {
-                let command_list = command.map(|d| d.to_owned()).collect();
-                if let Some(inst) = insts.get_inst(&inst_enum) {
-                    match (inst.command_process)(&insts, command_list) {
-                        Ok(output) => {
-                            ret.send(output).unwrap();
-                            // 指令运行成功，运行接下来的操作
-                            match inst_enum {
-                                InstName::Exit => {
-                                    return Ok(());
-                                }
-                                InstName::CleanFS => {
-                                    match file_storage::clean_files(&mut db_conn).await {
-                                        Ok(_) => {}
-                                        Err(e) => {
-                                            tracing::error!("CleanFS: {}", e);
+    let logic = async {
+        while let Some((command, ret)) = command_rev.recv().await {
+            let command = command.trim();
+            tracing::debug!("cmd: {}", command);
+            let mut command = command.split_whitespace();
+            let command_name = match command.next().to_owned() {
+                Some(name) => name,
+                None => continue,
+            };
+            match InstName::from_str(command_name) {
+                Ok(inst_enum) => {
+                    let command_list = command.map(|d| d.to_owned()).collect();
+                    if let Some(inst) = insts.get_inst(&inst_enum) {
+                        match (inst.command_process)(&insts, command_list) {
+                            Ok(output) => {
+                                ret.send(output).unwrap();
+                                // 指令运行成功，运行接下来的操作
+                                match inst_enum {
+                                    InstName::Exit => {
+                                        return Ok(());
+                                    }
+                                    InstName::CleanFS => {
+                                        match file_storage::clean_files(&mut db_conn).await {
+                                            Ok(_) => {}
+                                            Err(e) => {
+                                                tracing::error!("CleanFS: {}", e);
+                                            }
                                         }
                                     }
+                                    _ => {}
                                 }
-                                _ => {}
                             }
-                        }
-                        Err(e) => {
-                            ret.send(Some(format!("{}: {}", command_name, e))).unwrap();
+                            Err(e) => {
+                                ret.send(Some(format!("{}: {}", command_name, e))).unwrap();
+                            }
                         }
                     }
                 }
-            }
-            Err(_e) => {
-                ret.send(Some(format!(
-                    "{}{}",
-                    command_name.red(),
-                    ": Unknown command".red()
-                )))
-                .unwrap();
-            }
-        };
-    }
-    Ok(())
+                Err(_e) => {
+                    ret.send(Some(format!(
+                        "{}{}",
+                        command_name.red(),
+                        ": Unknown command".red()
+                    )))
+                    .unwrap();
+                }
+            };
+        }
+        anyhow::Ok(())
+    };
+    let ret = select! {
+        ret=logic =>{ret},
+        _=shutdown_rev.recv()=>{Ok(())}
+    };
+    tracing::info!("cmd process loop exited");
+    ret
 }
 
 pub async fn setup_stdin(
-    mut shutdown_receiver: ShutdownRev,
     commend_sdr: mpsc::Sender<CommandTransmitData>,
+    mut shutdown_rev: ShutdownRev,
 ) -> anyhow::Result<()> {
     let mut console_reader = BufReader::new(io::stdin()).lines();
-    loop {
-        print!(">>> ");
-        std::io::stdout().flush()?;
-        let command;
-        select! {
-            command_inner = async {match console_reader.next_line().await {
-            Ok(d) => d,
-            Err(e) => {
-                tracing::error!("stdin {}", e);
-                None
+    let logic = async {
+        loop {
+            print!(">>> ");
+            std::io::stdout().flush()?;
+            let command;
+            command = match console_reader.next_line().await {
+                Ok(d) => d,
+                Err(e) => {
+                    tracing::error!("stdin {}", e);
+                    None
+                }
+            };
+            let command = match command {
+                None => {
+                    break;
+                }
+                Some(d) => d,
+            };
+            if command.trim().is_empty() {
+                continue;
             }
-        }} => {
-            command = command_inner
-        }
-            _ = shutdown_receiver.recv() => {
-                return Ok(());
-            }
-        };
-        let command = match command {
-            None => {
-                break;
-            }
-            Some(d) => d,
-        };
-        if command.trim().is_empty() {
-            continue;
-        }
-        let (ret_sdr, ret_rev) = oneshot::channel();
-        commend_sdr.send((command, ret_sdr)).await?;
-        match ret_rev.await {
-            Err(e) => {
-                tracing::error!("stdin {}", e);
-            }
-            Ok(output) => {
-                if let Some(output) = output {
-                    println!("{output}");
+            let (ret_sdr, ret_rev) = oneshot::channel();
+            commend_sdr.send((command, ret_sdr)).await?;
+            match ret_rev.await {
+                Err(e) => {
+                    tracing::error!("stdin {}", e);
+                }
+                Ok(output) => {
+                    if let Some(output) = output {
+                        println!("{output}");
+                    }
                 }
             }
         }
+        anyhow::Ok(())
+    };
+    select! {
+        _=logic=>{},
+        _=shutdown_rev.recv()=>{}
     }
+    tracing::info!("stdin cmd source exited");
     Ok(())
 }
 
@@ -391,21 +402,31 @@ async fn handle_connection(socket: TcpStream) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// setup network cmd
 pub async fn setup_network(
     cmd_port: u16,
     command_sdr: mpsc::Sender<CommandTransmitData>,
+    mut shutdown_rec: ShutdownRev,
 ) -> anyhow::Result<()> {
-    let tcplistener = TcpListener::bind(format!("127.0.0.1:{}", cmd_port)).await?;
-    loop {
-        let connected_socket = match tcplistener.accept().await {
-            Err(e) => {
-                tracing::error!("error when accepting socket in cmd {}", e);
-                continue;
-            }
-            Ok(data) => data,
-        };
-        if let Err(e) = handle_connection(connected_socket.0).await {
-            tracing::error!("error in socket handle:{}", e);
-        };
-    }
+    let logic = async {
+        let tcplistener = TcpListener::bind(format!("127.0.0.1:{}", cmd_port)).await?;
+        loop {
+            let connected_socket = match tcplistener.accept().await {
+                Err(e) => {
+                    tracing::error!("error when accepting socket in cmd {}", e);
+                    continue;
+                }
+                Ok(data) => data,
+            };
+            if let Err(e) = handle_connection(connected_socket.0).await {
+                tracing::error!("error in socket handle:{}", e);
+            };
+        }
+    };
+    let ret = select! {
+        ret=logic=>{ ret},
+        _=shutdown_rec.recv()=>{ Ok(())}
+    };
+    tracing::info!("network cmd source exited");
+    ret
 }

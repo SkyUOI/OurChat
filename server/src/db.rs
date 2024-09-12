@@ -36,7 +36,7 @@ impl SqliteDbCfg {
 pub enum DbType {
     #[serde(rename = "mysql")]
     #[strum(serialize = "mysql")]
-    Mysql,
+    MySql,
     #[serde(rename = "sqlite")]
     #[strum(serialize = "sqlite")]
     Sqlite,
@@ -44,7 +44,7 @@ pub enum DbType {
 
 impl Default for DbType {
     fn default() -> Self {
-        Self::Mysql
+        Self::MySql
     }
 }
 
@@ -65,7 +65,7 @@ pub fn init_db_system(db_type: DbType) {
     } else {
         unsafe { DB_INIT.enable() }
         match db_type {
-            DbType::Mysql => unsafe { MYSQL_TYPE.enable() },
+            DbType::MySql => unsafe { MYSQL_TYPE.enable() },
             DbType::Sqlite => unsafe { SQLITE_TYPE.enable() },
         }
     }
@@ -85,7 +85,7 @@ pub fn get_db_url(path: &Path, basepath: &Path) -> anyhow::Result<String> {
     let db_type = get_db_type();
     let json = std::fs::read_to_string(path)?;
     match db_type {
-        DbType::Mysql => {
+        DbType::MySql => {
             let cfg: MysqlDbCfg = toml::from_str(&json)?;
             let path = format!(
                 "mysql://{}:{}@{}:{}/{}",
@@ -101,7 +101,7 @@ pub fn get_db_url(path: &Path, basepath: &Path) -> anyhow::Result<String> {
     }
 }
 
-pub async fn create_sqliet_db(url: &str) -> anyhow::Result<()> {
+pub async fn try_create_sqliet_db(url: &str) -> anyhow::Result<()> {
     use sqlx::{migrate::MigrateDatabase, Sqlite};
     if !Sqlite::database_exists(url).await.unwrap_or(false) {
         tracing::info!("Creating sqlite database {}", url);
@@ -119,11 +119,33 @@ pub async fn create_sqliet_db(url: &str) -> anyhow::Result<()> {
     Ok(())
 }
 
+pub async fn try_create_mysql_db(url: &str) -> anyhow::Result<()> {
+    use sqlx::{migrate::MigrateDatabase, MySql};
+    if !MySql::database_exists(url).await.unwrap_or(false) {
+        tracing::info!("Creating mysql database");
+        match MySql::create_database(url).await {
+            Ok(_) => {
+                tracing::info!("Created mysql database {}", url);
+            }
+            Err(e) => {
+                tracing::error!("Failed to create mysql database: {}", e);
+                anyhow::bail!("Failed to create mysql database: {}", e);
+            }
+        }
+    }
+    Ok(())
+}
+
 /// 根据url连接数据库
 pub async fn connect_to_db(url: &str) -> anyhow::Result<sea_orm::DatabaseConnection> {
     let db_type = get_db_type();
-    if let DbType::Sqlite = db_type {
-        create_sqliet_db(url).await?;
+    match db_type {
+        DbType::MySql => {
+            try_create_mysql_db(url).await?;
+        }
+        DbType::Sqlite => {
+            try_create_sqliet_db(url).await?;
+        }
     }
     tracing::info!("Connecting to {}", url);
     Ok(sea_orm::Database::connect(url).await?)

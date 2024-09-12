@@ -1,3 +1,5 @@
+# ip listening
+ip = "0.0.0.0"
 # Assign the config file of database,relative to this config file
 dbcfg = "database.toml"
 # Assign the config file of redis database,relative to this config file

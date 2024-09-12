@@ -137,6 +137,7 @@ async fn download(req: HttpRequest) -> impl Responder {
 
 #[get("/status")]
 async fn status() -> impl Responder {
+    tracing::debug!("access");
     HttpResponse::Ok()
 }
 
@@ -159,9 +160,12 @@ impl HttpServer {
         let data_clone = shared_state.clone();
         let http_server = actix_web::HttpServer::new(move || {
             App::new()
+                .wrap(actix_web::middleware::Logger::default())
                 .app_data(data_clone.clone())
                 .app_data(shared_db_conn.clone())
                 .service(upload)
+                .service(status)
+                .service(download)
         })
         .bind((ip, http_port))?
         .run();

@@ -66,7 +66,10 @@ def test_process() -> int:
         # 终止服务器进程
         print("Terminating the server...")
         server_process.terminate()
-        server_process.wait()
+        try:
+            server_process.wait(10)
+        except subprocess.TimeoutExpired:
+            print("shutdown timeout")
         print("Server terminated.")
     if return_code == 0:
         print("Test passed.")

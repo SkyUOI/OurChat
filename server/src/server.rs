@@ -118,7 +118,9 @@ impl Server {
                 DBRequest::NewSession { id, resp } => {
                     Self::new_session(id, resp, db_connection).await
                 }
-                DBRequest::UpLoad { id, resp } => Self::up_load(id, resp, db_connection).await,
+                DBRequest::UpLoad { id, sz, resp } => {
+                    Self::up_load(id, sz, resp, db_connection).await
+                }
             } {
                 Ok(_) => {}
                 Err(e) => {

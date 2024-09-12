@@ -142,6 +142,7 @@ impl Server {
     #[derive::db_compatibility]
     pub async fn up_load(
         id: ID,
+        sz: Bt,
         resp: oneshot::Sender<requests::Status>,
         db_connection: &DatabaseConnection,
     ) -> anyhow::Result<()> {
@@ -156,14 +157,17 @@ impl Server {
         // first check if the limit has been reached
         let limit = share_state::get_user_files_store_limit();
         let bytes_num: Bt = limit.into();
-        let used = Bt(user_info.resource_used.try_into()?);
-        if used >= bytes_num {
+        let res_used: u64 = user_info.resource_used.try_into()?;
+        let will_used = Bt(res_used + *sz);
+        if will_used >= bytes_num {
             // reach the limit,delete some files to preserve the limit
+            // TODO:clean files
         }
         let updated_res_lim = user_info.resource_used + 1;
         let mut user_info: user::ActiveModel = user_info.into();
         user_info.resource_used = ActiveValue::Set(updated_res_lim);
         user_info.update(db_connection).await?;
+        resp.send(requests::Status::Success)?;
         Ok(())
     }
 }
