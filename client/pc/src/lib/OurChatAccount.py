@@ -47,7 +47,9 @@ class OurChatAccount:
     def getAvatar(self) -> None:
         logger.info("get account avatar")
         logger.debug(f"get account avatar: {self.ocid}")
-        avatar_data = self.ourchat.cache.getImage(self.data["avatar"])
+        avatar_data = self.ourchat.cache.getImage(
+            self.data["avatar"], self.data["avatar_key"]
+        )
         if avatar_data is None:
             logger.info("avatar cache not found,started to download")
             self.ourchat.listen(DOWNLOAD_RESPONSE, self.downloadAvatarResponse)
@@ -61,7 +63,9 @@ class OurChatAccount:
         self.ourchat.unListen(DOWNLOAD_RESPONSE, self.downloadAvatarResponse)
         if data["status"] == RUN_NORMALLY:
             logger.info("avatar download complete")
-            self.ourchat.cache.setImage(self.data["avatar"], data["data"])
+            self.ourchat.cache.setImage(
+                self.data["avatar"], self.data["avatar_key"], data["data"]
+            )
             self.finishGetAvatar(data["data"])
         elif data["status"] == REQUEST_INFO_NOT_FOUND:
             self.ourchat.runInMainThread(

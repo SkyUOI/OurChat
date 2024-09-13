@@ -39,7 +39,9 @@ class OurChatSession:
     def getAvatar(self) -> None:
         logger.info("get session avatar")
         logger.debug(f"get session avatar: {self.session_id}")
-        avatar_data = self.ourchat.cache.getImage(self.data["avatar"])
+        avatar_data = self.ourchat.cache.getImage(
+            self.data["avatar"], self.data["avatar_key"]
+        )
         if avatar_data is None:
             if self.data["avatar"] is None:
                 logger.info("avatar is none,use default avatar")
@@ -58,7 +60,9 @@ class OurChatSession:
         self.ourchat.unListen(DOWNLOAD_RESPONSE, self.downloadAvatarResponse)
         if data["status"] == RUN_NORMALLY:
             logger.info("avatar download complete")
-            self.ourchat.cache.setImage(self.data["avatar"], data["data"])
+            self.ourchat.cache.setImage(
+                self.data["avatar"], self.data["avatar_key"], data["data"]
+            )
             self.finishGetAvatar(data["data"])
         elif data["status"] == REQUEST_INFO_NOT_FOUND:
             self.ourchat.runInMainThread(

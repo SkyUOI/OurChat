@@ -41,7 +41,6 @@ def upload():
 @app.route("/download", methods=["POST"])
 def download():
     key = request.headers["Key"]
-    print(key, os.listdir("files"))
     if key in os.listdir("files"):
         with open(f"./files/{key}", "rb") as f:
             return f.read()

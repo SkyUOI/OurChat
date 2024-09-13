@@ -8,7 +8,8 @@ logger = getLogger(__name__)
 
 
 class ImageCache(Model):
-    image_url = TextField(null=False, primary_key=True)
+    image_key = TextField(null=False, primary_key=True)
+    image_url = TextField(null=False)
     image_data = BlobField(null=False)
 
     class Meta:
@@ -57,8 +58,10 @@ class OurChatCache:
         for table in [AccountCache, ImageCache, SessionCache]:
             table.create_table(safe=True)
 
-    def getImage(self, image_url: str) -> Union[None, bytes]:
-        image = ImageCache.get_or_none(ImageCache.image_url == image_url)
+    def getImage(self, image_url: str, image_key: str) -> Union[None, bytes]:
+        image = ImageCache.get_or_none(
+            ImageCache.image_key == image_key & ImageCache.image_url == image_url
+        )
         if image is None:
             return None
         return image.image_data
@@ -93,12 +96,16 @@ class OurChatCache:
             "owner": json.loads(session_info.owner),
         }
 
-    def setImage(self, image_url: str, image_data: bytes) -> None:
+    def setImage(self, image_url: str, image_key: str, image_data: bytes) -> None:
         if ImageCache.get_or_none(ImageCache.image_url == image_url) is None:
-            ImageCache.create(image_url=image_url, image_data=image_data)
+            ImageCache.create(
+                image_url=image_url, image_key=image_key, image_data=image_data
+            )
         else:
-            ImageCache.update(image_url=image_url, image_data=image_data).where(
-                ImageCache.image_url == image_url
+            ImageCache.update(
+                image_url=image_url, image_key=image_key, image_data=image_data
+            ).where(
+                ImageCache.image_url == image_url and ImageCache.image_key == image_key
             ).execute()
 
     def setAccount(self, ocid: str, data: dict) -> None:
