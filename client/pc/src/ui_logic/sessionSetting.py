@@ -1,21 +1,23 @@
-import hashlib
-import re
+from io import BytesIO
 from logging import getLogger
-from typing import Union
 
 from lib.const import (
     ACCOUNT_FINISH_GET_AVATAR,
     ACCOUNT_FINISH_GET_INFO,
     ACCOUNT_LIMIT,
+    DEFAULT_IMAGE,
+    HTTP_OK,
     NEW_SESSION_MSG,
     NEW_SESSION_RESPONSE_MSG,
     RUN_NORMALLY,
     SERVER_ERROR,
     SERVER_UNDER_MAINTENANCE,
     UNKNOWN_ERROR,
+    UPLOAD_RESPONSE,
 )
 from lib.OurChatUI import AccountListItemWidget, ImageLabel
-from PyQt6.QtWidgets import QInputDialog, QListWidgetItem, QMessageBox
+from PIL import Image
+from PyQt6.QtWidgets import QFileDialog, QListWidgetItem, QMessageBox
 from ui.sessionSetting import Ui_SessionSetting
 from ui_logic.basicUI import BasicUI
 
@@ -28,8 +30,7 @@ class SessionSettingUI(BasicUI, Ui_SessionSetting):
         self.dialog = dialog
         self.session_id = session_id
         self.account_widgets = {}
-        self.avatar_url = None
-        self.avatar_hash = None
+        self.avatar_path = None
 
     def setupUi(self) -> None:
         super().setupUi(self.dialog)
@@ -48,13 +49,13 @@ class SessionSettingUI(BasicUI, Ui_SessionSetting):
         self.session_name_editor.setPlaceholderText(
             self.ourchat.language["default_session_name"]
         )
-        self.avatar_label.setImage("resources/images/logo.png")
+        self.avatar_label.setImage(DEFAULT_IMAGE)
         for friend_ocid in self.ourchat.account.friends:
             friend_account = self.ourchat.getAccount(friend_ocid)
             self.addAccount(friend_account, False)
 
     def addAccount(self, account, checked: bool = False) -> None:
-        avatar = "resources/images/logo.png"
+        avatar = DEFAULT_IMAGE
         nickname = "nickname"
         if account.have_got_info:
             nickname = account.data["nickname"]
@@ -87,6 +88,31 @@ class SessionSettingUI(BasicUI, Ui_SessionSetting):
         self.ourchat.listen(ACCOUNT_FINISH_GET_AVATAR, self.getAccountAvatarResponse)
 
     def ok(self) -> None:
+        if self.avatar_path is not None:
+            self.ourchat.listen(UPLOAD_RESPONSE, self.uploadResponse)
+            with open(self.avatar_path, "rb") as f:
+                self.ourchat.upload(f.read())
+        else:
+            self.updateInfo()
+
+    def uploadResponse(self, data):
+        self.ourchat.unListen(UPLOAD_RESPONSE, self.uploadResponse)
+        if data["status"] == HTTP_OK:
+            self.updateInfo(
+                {
+                    "avatar": f"http://{self.ourchat.config['server']['ip']}:{self.ourchat.config['server']['port']+1}/download",
+                    "avatar_key": data["key"],
+                }
+            )
+        else:
+            logger.warning(f"upload avatar failed: CODE {data['status']}")
+            QMessageBox.warning(
+                self.dialog,
+                self.ourchat.language["warning"],
+                self.ourchat.language["upload_failed"].format(data["status"]),
+            )
+
+    def updateInfo(self, data: dict = {}) -> None:
         members = [
             self.ourchat.account.ocid,
         ]
@@ -94,19 +120,12 @@ class SessionSettingUI(BasicUI, Ui_SessionSetting):
             if self.account_widgets[ocid].checkbox.isChecked():
                 members.append(ocid)
         self.ourchat.listen(NEW_SESSION_RESPONSE_MSG, self.newSessionResponse)
-        data = {
-            "code": NEW_SESSION_MSG,
-            "members": members,
-        }
-        if self.avatar_url is not None:
-            data["avatar"] = self.avatar_url
-            data["avatar_hash"] = hashlib.md5(
-                self.avatar_url.encode("utf-8")
-            ).hexdigest()
+        data["code"] = NEW_SESSION_MSG
+        data["members"] = members
+        data["owner"] = self.ourchat.account.ocid
         if self.session_name_editor.text() != "":
             data["name"] = self.session_name_editor.text()
-        self.ourchat.conn.send(data)
-        self.dialog.close()
+        self.ourchat.runThread(self.ourchat.conn.send, data)
 
     def newSessionResponse(self, data: dict) -> None:
         if data["status"] == RUN_NORMALLY:
@@ -119,6 +138,7 @@ class SessionSettingUI(BasicUI, Ui_SessionSetting):
                 self.ourchat.language["success"],
                 self.ourchat.language["create_session_success"],
             )
+            self.ourchat.account.getInfo()
             self.dialog.close()
         elif data["status"] == SERVER_ERROR:
             logger.warning("create session failed: server error")
@@ -158,39 +178,14 @@ class SessionSettingUI(BasicUI, Ui_SessionSetting):
             )
 
     def setAvatar(self) -> None:
-        url = QInputDialog.getText(self.dialog, "set avatar", "avatar url: ")
-        if url[1]:
-            result = re.match(
-                "^(https?:\/\/)?([\w-]+(?:\.[\w-]+)+)(:\d+)?(\/\S*)?$", url[0]
-            )
-            if result is None:
-                QMessageBox.warning(
-                    self.dialog,
-                    self.ourchat.language["warning"],
-                    self.ourchat.language["invalid_url"],
-                )
-                return
-            self.ok_btn.setEnabled(False)
-            self.avatar_url = url[0]
-            self.ourchat.runThread(
-                self.ourchat.download, self.downloadAvatarResponse, url[0]
-            )
-
-    def downloadAvatarResponse(self, avatar_data: Union[bytes, None]) -> None:
-        if avatar_data is None:
-            self.avatar_url = None
-            self.avatar_hash = None
-            self.avatar_label.setImage("resources/images/logo.png")
-            self.ok_btn.setEnabled(True)
-            QMessageBox.warning(
-                self.dialog,
-                self.ourchat.language["warning"],
-                self.ourchat.language["avatar_download_failed"],
-            )
+        avatar_path = QFileDialog.getOpenFileName(
+            self.dialog, filter="Image Files (*.png *.jpg *.jpeg *.gif)"
+        )[0]
+        if avatar_path == "":
             return
-        hash = hashlib.sha256()
-        hash.update(avatar_data)
-        self.ourchat.cache.setImage(hash.hexdigest(), avatar_data)
-        self.avatar_hash = hash.hexdigest()
-        self.avatar_label.setImage(avatar_data)
-        self.ok_btn.setEnabled(True)
+        self.avatar_path = avatar_path
+        img = Image.open(self.avatar_path)
+        bytes_io = BytesIO()
+        img.resize((256, 256)).save(bytes_io, format="PNG")
+        self.avatar_data = bytes_io.getvalue()
+        self.avatar_label.setImage(bytes_io.getvalue())

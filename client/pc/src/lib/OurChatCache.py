@@ -8,7 +8,8 @@ logger = getLogger(__name__)
 
 
 class ImageCache(Model):
-    image_hash = TextField(null=False, primary_key=True)
+    image_key = TextField(null=False, primary_key=True)
+    image_url = TextField(null=False)
     image_data = BlobField(null=False)
 
     class Meta:
@@ -19,8 +20,8 @@ class AccountCache(Model):
     ocid = TextField(null=False, primary_key=True)
     nickname = TextField(null=False)
     status = IntegerField(null=False)
-    avatar = TextField(null=False)
-    avatar_hash = TextField(null=False)
+    avatar = TextField(null=True)
+    avatar_key = TextField(null=True)
     time = IntegerField(null=False)
     public_update_time = IntegerField(null=False)
     update_time = IntegerField(null=False)
@@ -33,7 +34,7 @@ class SessionCache(Model):
     session_id = TextField(null=False, primary_key=True)
     name = TextField(null=True)
     avatar = TextField(null=True)
-    avatar_hash = TextField(null=True)
+    avatar_key = TextField(null=True)
     time = IntegerField(null=False)
     update_time = IntegerField(null=False)
     members = TextField(null=False)
@@ -57,8 +58,10 @@ class OurChatCache:
         for table in [AccountCache, ImageCache, SessionCache]:
             table.create_table(safe=True)
 
-    def getImage(self, image_hash: str) -> Union[None, bytes]:
-        image = ImageCache.get_or_none(ImageCache.image_hash == image_hash)
+    def getImage(self, image_url: str, image_key: str) -> Union[None, bytes]:
+        image = ImageCache.get_or_none(
+            (ImageCache.image_key == image_key) & (ImageCache.image_url == image_url)
+        )
         if image is None:
             return None
         return image.image_data
@@ -72,7 +75,7 @@ class OurChatCache:
             "nickname": account_info.nickname,
             "status": account_info.status,
             "avatar": account_info.avatar,
-            "avatar_hash": account_info.avatar_hash,
+            "avatar_key": account_info.avatar_key,
             "time": account_info.time,
             "public_update_time": account_info.public_update_time,
             "update_time": account_info.update_time,
@@ -86,19 +89,29 @@ class OurChatCache:
             "session_id": session_id,
             "name": session_info.name,
             "avatar": session_info.avatar,
-            "avatar_hash": session_info.avatar_hash,
+            "avatar_key": session_info.avatar_key,
             "time": session_info.time,
             "update_time": session_info.update_time,
             "members": json.loads(session_info.members),
-            "owner": json.loads(session_info.owner),
+            "owner": session_info.owner,
         }
 
-    def setImage(self, image_hash: str, image_data: bytes) -> None:
-        if ImageCache.get_or_none(ImageCache.image_hash == image_hash) is None:
-            ImageCache.create(image_hash=image_hash, image_data=image_data)
+    def setImage(self, image_url: str, image_key: str, image_data: bytes) -> None:
+        if (
+            ImageCache.get_or_none(
+                (ImageCache.image_key == image_key)
+                & (ImageCache.image_url == image_url)
+            )
+            is None
+        ):
+            ImageCache.create(
+                image_url=image_url, image_key=image_key, image_data=image_data
+            )
         else:
-            ImageCache.update(image_hash=image_hash, image_data=image_data).where(
-                ImageCache.image_hash == image_hash
+            ImageCache.update(
+                image_url=image_url, image_key=image_key, image_data=image_data
+            ).where(
+                ImageCache.image_url == image_url and ImageCache.image_key == image_key
             ).execute()
 
     def setAccount(self, ocid: str, data: dict) -> None:
@@ -108,7 +121,7 @@ class OurChatCache:
                 nickname=data["nickname"],
                 status=data["status"],
                 avatar=data["avatar"],
-                avatar_hash=data["avatar_hash"],
+                avatar_key=data["avatar_key"],
                 time=data["time"],
                 public_update_time=data["public_update_time"],
                 update_time=data["update_time"],
@@ -119,7 +132,6 @@ class OurChatCache:
                 nickname=data["nickname"],
                 status=data["status"],
                 avatar=data["avatar"],
-                avatar_hash=data["avatar_hash"],
                 time=data["time"],
                 public_update_time=data["public_update_time"],
                 update_time=data["update_time"],
@@ -131,22 +143,21 @@ class OurChatCache:
                 session_id=session_id,
                 name=data["name"],
                 avatar=data["avatar"],
-                avatar_hash=data["avatar_hash"],
+                avatar_key=data["avatar_key"],
                 time=data["time"],
                 update_time=data["update_time"],
                 members=json.dumps(data["members"]),
-                owner=json.dumps(data["owner"]),
+                owner=data["owner"],
             )
         else:
             SessionCache.update(
                 session_id=session_id,
                 name=data["name"],
                 avatar=data["avatar"],
-                avatar_hash=data["avatar_hash"],
                 time=data["time"],
                 update_time=data["update_time"],
                 members=json.dumps(data["members"]),
-                owner=json.dumps(data["owner"]),
+                owner=data["owner"],
             ).where(SessionCache.session_id == session_id).execute()
 
     def close(self) -> None:

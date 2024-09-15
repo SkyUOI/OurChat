@@ -1,7 +1,7 @@
 import webbrowser
 from logging import getLogger
 
-from lib.const import log_level2str, str2log_level
+from lib.const import LOGO_IMAGE, log_level2str, str2log_level
 from lib.OurChatConfig import OurChatConfig
 from lib.OurChatUI import ImageLabel
 from PyQt6.QtWidgets import QMessageBox
@@ -100,7 +100,7 @@ class SettingUI(BasicUI, Ui_Setting):
             log_saving_limit = str(log_saving_limit)
         self.log_saving_combobox.setCurrentText(log_saving_limit)
 
-        self.logo_label.setImage("resources/images/logo.png")
+        self.logo_label.setImage(LOGO_IMAGE)
         self.main_developer_text.setText(
             f'<a href="https://github.com/limuy2022" style="color:{self.uisystem.main_color}">Limuy</a><br><a href="https://github.com/senlinjun" style="color:{self.uisystem.main_color}">senlinjun</a>'
         )
@@ -170,3 +170,6 @@ class SettingUI(BasicUI, Ui_Setting):
                     "https://github.com/SkyUOI/OurChat"
                 ),
             )
+
+    def close(self):
+        pass

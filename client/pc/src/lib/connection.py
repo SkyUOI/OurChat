@@ -1,7 +1,7 @@
 import json
 from logging import getLogger
-from typing import Tuple
 
+from lib.const import CONNECT_TO_SERVER_RESPONSE, RUN_NORMALLY, SERVER_ERROR
 from websockets.exceptions import ConnectionClosedError as CloseError
 from websockets.exceptions import ConnectionClosedOK as CloseOK
 from websockets.sync import client
@@ -21,18 +21,26 @@ class Connection:
         self.ip = ip
         self.port = port
 
-    def connect(self) -> Tuple[bool, str]:
+    def connect(self) -> None:
         logger.info("try to connect to server")
         if self.conn is not None:
             self.close()
         try:
             self.conn = client.connect(f"ws://{self.ip}:{self.port}")
             logger.info("connect to server successfully")
-            return True, None
+            self.ourchat.triggerEvent(
+                {"code": CONNECT_TO_SERVER_RESPONSE, "status": RUN_NORMALLY}
+            )
         except Exception as e:
             self.conn = None
             logger.warning(f"connect to server failed: {str(e)}")
-            return False, str(e)
+            self.ourchat.triggerEvent(
+                {
+                    "code": CONNECT_TO_SERVER_RESPONSE,
+                    "status": SERVER_ERROR,
+                    "error_msg": str(e),
+                }
+            )
 
     def send(self, data: dict) -> None:
         json_str = json.dumps(data)

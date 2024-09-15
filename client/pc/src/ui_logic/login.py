@@ -1,9 +1,9 @@
 import hashlib
 from logging import getLogger
-from typing import Union
 
 from lib.const import (
     ARGUMENT_ERROR,
+    CONNECT_TO_SERVER_RESPONSE,
     GENERATE_VERIFY_MSG,
     LOGIN_MSG,
     LOGIN_RESPONSE_MSG,
@@ -73,7 +73,7 @@ class LoginUI(BasicUI, Ui_Login):
             logger.info("begin to register")
             self.ourchat.listen(VERIFY_STATUS_MSG, self.verifyResponse)
             self.ourchat.runThread(
-                self.ourchat.conn.send, None, {"code": GENERATE_VERIFY_MSG}
+                self.ourchat.conn.send, {"code": GENERATE_VERIFY_MSG}
             )
             QMessageBox.information(
                 self.widget,
@@ -91,7 +91,6 @@ class LoginUI(BasicUI, Ui_Login):
             self.ourchat.listen(LOGIN_RESPONSE_MSG, self.loginResponse)
             self.ourchat.runThread(
                 self.ourchat.conn.send,
-                None,
                 {
                     "code": LOGIN_MSG,
                     "login_type": login_type,
@@ -104,23 +103,25 @@ class LoginUI(BasicUI, Ui_Login):
         self.join_btn.setEnabled(False)
         if not self.ourchat.conn.getConnectionStatus():
             logger.info("connection is closed, begin to connect")
-            self.ourchat.runThread(self.ourchat.conn.connect, self.connectedServer)
+            self.ourchat.listen(
+                CONNECT_TO_SERVER_RESPONSE, self.connectToServerResponse
+            )
+            self.ourchat.runThread(self.ourchat.conn.connect)
         else:
             logger.info("connection is open, begin to join")
             self.join()
 
-    def connectedServer(self, result: Union[bool, str]) -> None:
-        if result[0]:
+    def connectToServerResponse(self, data: dict) -> None:
+        self.ourchat.unListen(CONNECT_TO_SERVER_RESPONSE, self.connectToServerResponse)
+        if data["status"] == RUN_NORMALLY:
             self.ourchat.runThread(self.ourchat.conn.recv)
             self.ourchat.listen(SERVER_STATUS_MSG, self.serverStatusResponse)
-            self.ourchat.runThread(
-                self.ourchat.conn.send, None, {"code": SERVER_STATUS_MSG}
-            )
-        else:
+            self.ourchat.runThread(self.ourchat.conn.send, {"code": SERVER_STATUS_MSG})
+        elif data["status"] == SERVER_ERROR:
             QMessageBox.warning(
                 self.widget,
                 self.ourchat.language["error"],
-                self.ourchat.language["connect_server_fail"].format(result[1]),
+                self.ourchat.language["connect_server_fail"].format(data["error_msg"]),
             )
             self.join_btn.setEnabled(True)
 
@@ -158,7 +159,6 @@ class LoginUI(BasicUI, Ui_Login):
             logger.info("verify successfully,send register message")
             self.ourchat.runThread(
                 self.ourchat.conn.send,
-                None,
                 {
                     "code": REGISTER_MSG,
                     "email": self.register_email_editor.text(),

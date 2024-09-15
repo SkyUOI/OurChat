@@ -1,6 +1,5 @@
 import json
 import os
-import re
 from copy import deepcopy
 from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING, getLogger
 from typing import Any, Union
@@ -18,7 +17,7 @@ class OurChatConfig:
         return {
             "server": {"ip": "127.0.0.1", "port": 7777, "reconnection_attempt": 5},
             "general": {"theme": "dark_amber", "language": "en-us"},
-            "advanced": {"log_level": INFO, "log_saving_limit": 30},
+            "advanced": {"log_level": INFO, "log_saving_limit": 7},
         }
 
     def write(self) -> None:
@@ -88,12 +87,6 @@ class OurChatConfig:
         self.checkType()
 
         default = self.defaultConfig()
-        ip = re.match(
-            "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$",
-            self["server"]["ip"],
-        )
-        if ip is None:
-            self["server"]["ip"] = default["server"]["ip"]
         if self["server"]["port"] < 1 or self["server"]["port"] > 65535:
             self["server"]["port"] = default["server"]["port"]
 
