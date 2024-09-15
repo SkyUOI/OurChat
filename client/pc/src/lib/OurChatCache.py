@@ -20,8 +20,8 @@ class AccountCache(Model):
     ocid = TextField(null=False, primary_key=True)
     nickname = TextField(null=False)
     status = IntegerField(null=False)
-    avatar = TextField(null=False)
-    avatar_key = TextField(null=False)
+    avatar = TextField(null=True)
+    avatar_key = TextField(null=True)
     time = IntegerField(null=False)
     public_update_time = IntegerField(null=False)
     update_time = IntegerField(null=False)
@@ -60,7 +60,7 @@ class OurChatCache:
 
     def getImage(self, image_url: str, image_key: str) -> Union[None, bytes]:
         image = ImageCache.get_or_none(
-            ImageCache.image_key == image_key & ImageCache.image_url == image_url
+            (ImageCache.image_key == image_key) & (ImageCache.image_url == image_url)
         )
         if image is None:
             return None
@@ -93,11 +93,17 @@ class OurChatCache:
             "time": session_info.time,
             "update_time": session_info.update_time,
             "members": json.loads(session_info.members),
-            "owner": json.loads(session_info.owner),
+            "owner": session_info.owner,
         }
 
     def setImage(self, image_url: str, image_key: str, image_data: bytes) -> None:
-        if ImageCache.get_or_none(ImageCache.image_url == image_url) is None:
+        if (
+            ImageCache.get_or_none(
+                (ImageCache.image_key == image_key)
+                & (ImageCache.image_url == image_url)
+            )
+            is None
+        ):
             ImageCache.create(
                 image_url=image_url, image_key=image_key, image_data=image_data
             )
@@ -141,7 +147,7 @@ class OurChatCache:
                 time=data["time"],
                 update_time=data["update_time"],
                 members=json.dumps(data["members"]),
-                owner=json.dumps(data["owner"]),
+                owner=data["owner"],
             )
         else:
             SessionCache.update(
@@ -151,7 +157,7 @@ class OurChatCache:
                 time=data["time"],
                 update_time=data["update_time"],
                 members=json.dumps(data["members"]),
-                owner=json.dumps(data["owner"]),
+                owner=data["owner"],
             ).where(SessionCache.session_id == session_id).execute()
 
     def close(self) -> None:

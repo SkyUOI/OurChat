@@ -4,6 +4,7 @@ from logging import getLogger
 from lib.const import (
     ACCOUNT_FINISH_GET_AVATAR,
     ACCOUNT_FINISH_GET_INFO,
+    DEFAULT_IMAGE,
     HTTP_OK,
     RUN_NORMALLY,
     SERVER_ERROR,
@@ -60,7 +61,7 @@ class ProfileUI(BasicUI, Ui_Profile):
         self.cancel_btn.setText(self.ourchat.language["cancel"])
         self.set_avatar_btn.setText(self.ourchat.language["set"])
         self.dialog.setWindowTitle(f"OurChat - {self.ourchat.language['profile']}")
-        self.avatar_label.setImage("resource/images/logo.png")
+        self.avatar_label.setImage(DEFAULT_IMAGE)
         account = self.ourchat.account
         if account.have_got_info:
             self.nickname_editor.setText(account.data["nickname"])

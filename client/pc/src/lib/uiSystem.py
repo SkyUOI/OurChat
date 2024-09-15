@@ -1,6 +1,7 @@
 import os
 from logging import getLogger
 
+from lib.const import LOGO_ICON
 from lib.OurChatUI import OurChatDialog, OurChatMainWindow, OurChatWidget
 from PyQt6.QtCore import QDir, QTimer
 from PyQt6.QtGui import QFontDatabase, QIcon
@@ -128,7 +129,7 @@ class UISystem:
     def run(self):
         self.mainwindow = OurChatMainWindow(self.ourchat)
         self.setUI(MainUI)
-        self.app.setWindowIcon(QIcon("resources/images/logo.ico"))
+        self.app.setWindowIcon(QIcon(LOGO_ICON))
         widget = self.setWidget(LoginUI, True)
         widget.show()
         self.tick_timer.start(1)

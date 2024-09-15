@@ -1,5 +1,6 @@
 import json
 from logging import getLogger
+from typing import Union
 
 from lib.const import (
     ACCOUNT_FINISH_GET_AVATAR,
@@ -47,6 +48,11 @@ class OurChatAccount:
     def getAvatar(self) -> None:
         logger.info("get account avatar")
         logger.debug(f"get account avatar: {self.ocid}")
+
+        if self.data["avatar"] is None:
+            self.finishGetAvatar(None)
+            return
+
         avatar_data = self.ourchat.cache.getImage(
             self.data["avatar"], self.data["avatar_key"]
         )
@@ -77,7 +83,7 @@ class OurChatAccount:
             )
             return
 
-    def finishGetAvatar(self, avatar_data: bytes):
+    def finishGetAvatar(self, avatar_data: Union[bytes, None]):
         self.avatar_data = avatar_data
         self.have_got_avatar = True
         self.ourchat.triggerEvent(

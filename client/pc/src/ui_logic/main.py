@@ -26,6 +26,7 @@ class MainUI(BasicUI, Ui_Main):
     def setWidget(self, ui: Any) -> None:
         if self.widget is not None:
             self.verticalLayout_2.removeWidget(self.widget)
+            self.widget_ui_logic.close()
         self.widget = QWidget(self.mainwindow)
         if ui == setting.SettingUI:
             self.widget_ui_logic = ui(self.ourchat, self.widget, True)

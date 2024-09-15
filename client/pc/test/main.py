@@ -53,8 +53,8 @@ class Account(Model):
     password = TextField(null=False)
     nickname = TextField(null=False)
     status = IntegerField(null=False)
-    avatar = TextField(null=False)
-    avatar_key = TextField(null=False)
+    avatar = TextField(null=True)
+    avatar_key = TextField(null=True)
     time = IntegerField(null=False)
     public_update_time = IntegerField(null=False)
     update_time = IntegerField(null=False)
@@ -220,8 +220,8 @@ def register(conn: Connection, sample: dict, data: dict) -> dict:
             password=data["password"],
             nickname="OurChat User",
             status=0,
-            avatar="",
-            avatar_key="",
+            avatar=None,
+            avatar_key=None,
             time=time.time(),
             public_update_time=time.time(),
             update_time=time.time(),

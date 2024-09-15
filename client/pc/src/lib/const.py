@@ -65,3 +65,8 @@ UNKNOWN_ERROR = 8
 
 # HTTP CODE
 HTTP_OK = 200
+
+# Others
+DEFAULT_IMAGE = "resources/images/default.png"
+LOGO_IMAGE = "resources/images/logo.png"
+LOGO_ICON = "resources/images/logo.ico"

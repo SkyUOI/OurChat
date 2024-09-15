@@ -1,4 +1,5 @@
 from logging import getLogger
+from typing import Union
 
 from lib.const import (
     DOWNLOAD_RESPONSE,
@@ -39,18 +40,18 @@ class OurChatSession:
     def getAvatar(self) -> None:
         logger.info("get session avatar")
         logger.debug(f"get session avatar: {self.session_id}")
+
+        if self.data["avatar"] is None:
+            self.finishGetAvatar(None)
+            return
+
         avatar_data = self.ourchat.cache.getImage(
             self.data["avatar"], self.data["avatar_key"]
         )
         if avatar_data is None:
-            if self.data["avatar"] is None:
-                logger.info("avatar is none,use default avatar")
-                self.finishGetAvatar("resources/images/logo.png")
-                return
-
             logger.info("avatar cache not found,started to download")
             self.ourchat.listen(DOWNLOAD_RESPONSE, self.downloadAvatarResponse)
-            self.ourchat.download(self.data["avatar"])
+            self.ourchat.download(self.data["avatar"], self.data["avatar_key"])
         else:
             self.finishGetAvatar(avatar_data)
 
@@ -74,7 +75,7 @@ class OurChatSession:
             )
             return
 
-    def finishGetAvatar(self, avatar_data: bytes):
+    def finishGetAvatar(self, avatar_data: Union[bytes, None]):
         self.avatar_data = avatar_data
         self.have_got_avatar = True
         self.ourchat.triggerEvent(

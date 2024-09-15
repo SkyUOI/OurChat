@@ -1,4 +1,4 @@
-from lib.const import ACCOUNT_FINISH_GET_AVATAR, ACCOUNT_FINISH_GET_INFO
+from lib.const import ACCOUNT_FINISH_GET_AVATAR, ACCOUNT_FINISH_GET_INFO, DEFAULT_IMAGE
 from lib.OurChatUI import ImageLabel, OurChatWidget
 from ui.account import Ui_Account
 from ui_logic.basicUI import BasicUI
@@ -15,7 +15,6 @@ class AccountUI(BasicUI, Ui_Account):
         super().setupUi(self.widget)
         self.avatar_label.deleteLater()
         self.avatar_label = ImageLabel(self.widget)
-        self.avatar_label.setImage("resources/images/logo.png")  # default
         self.horizontalLayout.insertWidget(1, self.avatar_label)
         self.listen()
         self.fillText()
@@ -25,7 +24,7 @@ class AccountUI(BasicUI, Ui_Account):
         self.widget.setWindowTitle(f"Ourchat - {self.ourchat.language['account']}")
         self.ocid_label.setText(self.ourchat.account.ocid)
         self.nickname_label.setText("Nickname")
-        self.avatar_label.setImage("resources/images/logo.png")
+        self.avatar_label.setImage(DEFAULT_IMAGE)
         self.logout_btn.setText(self.ourchat.language["logout"])
         self.unregister_btn.setText(self.ourchat.language["unregister"])
         self.profile_btn.setText(self.ourchat.language["profile"])
@@ -58,3 +57,7 @@ class AccountUI(BasicUI, Ui_Account):
     def listen(self):
         self.ourchat.listen(ACCOUNT_FINISH_GET_INFO, self.getAccountInfoResponse)
         self.ourchat.listen(ACCOUNT_FINISH_GET_AVATAR, self.getAccountAvatarResponse)
+
+    def close(self):
+        self.ourchat.unListen(ACCOUNT_FINISH_GET_INFO, self.getAccountInfoResponse)
+        self.ourchat.unListen(ACCOUNT_FINISH_GET_AVATAR, self.getAccountAvatarResponse)

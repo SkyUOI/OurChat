@@ -1,6 +1,7 @@
 from logging import getLogger
 from typing import Any, overload
 
+from lib.const import DEFAULT_IMAGE
 from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtGui import QCloseEvent, QKeyEvent, QPixmap, QResizeEvent
 from PyQt6.QtWidgets import (
@@ -51,11 +52,18 @@ class OurChatWidget(QWidget):
 
 
 class ImageLabel(QLabel):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.setImage(DEFAULT_IMAGE)
+
     @overload
     def setImage(self, path: str) -> None: ...
 
     @overload
     def setImage(self, data: bytes) -> None: ...
+
+    @overload
+    def setAvatar(self, data: None) -> None: ...
 
     def setImage(self, data) -> None:
         self.img = QPixmap()
@@ -63,6 +71,8 @@ class ImageLabel(QLabel):
             self.img.load(data)
         elif isinstance(data, bytes):
             self.img.loadFromData(data)
+        elif data is None:
+            self.img.load(DEFAULT_IMAGE)
         else:
             logger.info("unknown data type")
             return
@@ -220,6 +230,9 @@ class MessageListItemWidget(QWidget):
     @overload
     def setAvatar(self, data: bytes) -> None: ...
 
+    @overload
+    def setAvatar(self, data: None) -> None: ...
+
     def setAvatar(self, data) -> None:
         self.avatar.setImage(data)
 
@@ -262,6 +275,9 @@ class AccountListItemWidget(QWidget):
 
     @overload
     def setAvatar(self, path: str) -> None: ...
+
+    @overload
+    def setAvatar(self, data: None) -> None: ...
 
     def setAvatar(self, avatar):
         self.avatar_label.setImage(avatar)

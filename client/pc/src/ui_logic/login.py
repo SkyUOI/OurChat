@@ -112,6 +112,7 @@ class LoginUI(BasicUI, Ui_Login):
             self.join()
 
     def connectToServerResponse(self, data: dict) -> None:
+        self.ourchat.unListen(CONNECT_TO_SERVER_RESPONSE, self.connectToServerResponse)
         if data["status"] == RUN_NORMALLY:
             self.ourchat.runThread(self.ourchat.conn.recv)
             self.ourchat.listen(SERVER_STATUS_MSG, self.serverStatusResponse)

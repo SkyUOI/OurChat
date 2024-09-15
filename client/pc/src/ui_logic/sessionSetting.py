@@ -5,6 +5,7 @@ from lib.const import (
     ACCOUNT_FINISH_GET_AVATAR,
     ACCOUNT_FINISH_GET_INFO,
     ACCOUNT_LIMIT,
+    DEFAULT_IMAGE,
     HTTP_OK,
     NEW_SESSION_MSG,
     NEW_SESSION_RESPONSE_MSG,
@@ -48,13 +49,13 @@ class SessionSettingUI(BasicUI, Ui_SessionSetting):
         self.session_name_editor.setPlaceholderText(
             self.ourchat.language["default_session_name"]
         )
-        self.avatar_label.setImage("resources/images/logo.png")
+        self.avatar_label.setImage(DEFAULT_IMAGE)
         for friend_ocid in self.ourchat.account.friends:
             friend_account = self.ourchat.getAccount(friend_ocid)
             self.addAccount(friend_account, False)
 
     def addAccount(self, account, checked: bool = False) -> None:
-        avatar = "resources/images/logo.png"
+        avatar = DEFAULT_IMAGE
         nickname = "nickname"
         if account.have_got_info:
             nickname = account.data["nickname"]
@@ -121,7 +122,9 @@ class SessionSettingUI(BasicUI, Ui_SessionSetting):
         self.ourchat.listen(NEW_SESSION_RESPONSE_MSG, self.newSessionResponse)
         data["code"] = NEW_SESSION_MSG
         data["members"] = members
-        print(data)
+        data["owner"] = self.ourchat.account.ocid
+        if self.session_name_editor.text() != "":
+            data["name"] = self.session_name_editor.text()
         self.ourchat.runThread(self.ourchat.conn.send, data)
 
     def newSessionResponse(self, data: dict) -> None:
@@ -135,6 +138,7 @@ class SessionSettingUI(BasicUI, Ui_SessionSetting):
                 self.ourchat.language["success"],
                 self.ourchat.language["create_session_success"],
             )
+            self.ourchat.account.getInfo()
             self.dialog.close()
         elif data["status"] == SERVER_ERROR:
             logger.warning("create session failed: server error")

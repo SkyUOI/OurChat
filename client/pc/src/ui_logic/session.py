@@ -4,8 +4,7 @@ from logging import getLogger
 from lib.const import (
     ACCOUNT_FINISH_GET_AVATAR,
     ACCOUNT_FINISH_GET_INFO,
-    NEW_SESSION_RESPONSE_MSG,
-    RUN_NORMALLY,
+    DEFAULT_IMAGE,
     SESSION_FINISH_GET_AVATAR,
     SESSION_FINISH_GET_INFO,
     USER_MSG,
@@ -78,7 +77,7 @@ class SessionUI(BasicUI, Ui_Session):
 
     def addSessionItem(self, session: OurChatSession) -> None:
         recent_msg = self.ourchat.chatting_system.getRecord(session.session_id, 1)
-        avatar = "resources/images/logo.png"
+        avatar = DEFAULT_IMAGE
         name = session.session_id
         recent_msg_text = ""
 
@@ -111,7 +110,7 @@ class SessionUI(BasicUI, Ui_Session):
         widget = MessageListItemWidget(self.message_list)
         widget.ocid = message["sender"]["ocid"]
         sender_account = self.ourchat.getAccount(message["sender"]["ocid"])
-        avatar = "resources/images/logo.png"
+        avatar = DEFAULT_IMAGE
         name = message["sender"]["ocid"]
 
         account = self.ourchat.getAccount(message["sender"]["ocid"])
@@ -152,6 +151,7 @@ class SessionUI(BasicUI, Ui_Session):
         for message in self.messages:
             if message.ocid == account.ocid:
                 message.setName(account.data["nickname"])
+        self.updateSessionList()
 
     def getAccountAvatarResponse(self, data: dict) -> None:
         account = self.ourchat.getAccount(data["ocid"])
@@ -211,9 +211,8 @@ class SessionUI(BasicUI, Ui_Session):
             self.ourchat.chatting_system.readSession(current_session_widget.session_id)
         have_not_read = self.ourchat.chatting_system.getHavenotReadNumber(session_id)
         message_record = self.ourchat.chatting_system.getRecord(session_id, 1)
-        if len(message_record) == 1:
+        if len(message_record) >= 1:
             recent_msg_text = message_record[0]["msg"][0]["text"]
-        if len(message_record) == 1:
             session_widget = self.sessions[session_id]
             session_widget.setDetail(
                 f"{f'[{have_not_read}] ' if have_not_read > 0 else ''}{recent_msg_text[:10]}{'...' if len(recent_msg_text)>10 else ''}",
@@ -225,15 +224,10 @@ class SessionUI(BasicUI, Ui_Session):
         self.ourchat.listen(USER_MSG, self.messageResponse)
         self.ourchat.listen(ACCOUNT_FINISH_GET_INFO, self.getAccountInfoResponse)
         self.ourchat.listen(ACCOUNT_FINISH_GET_AVATAR, self.getAccountAvatarResponse)
-        self.ourchat.listen(NEW_SESSION_RESPONSE_MSG, self.newSessionResponse)
 
     def createSession(self):
         dialog = self.uisystem.setDialog(SessionSettingUI, True)
         dialog.show()
-
-    def newSessionResponse(self, data: dict) -> None:
-        if data["status"] == RUN_NORMALLY:
-            self.updateSessionList()
 
     def newline(self):
         self.editor.insertPlainText("\n")
@@ -254,3 +248,10 @@ class SessionUI(BasicUI, Ui_Session):
             if keyword in session.data["name"] or keyword in session_id:
                 result.append(session)
         self.addSessions(result)
+
+    def close(self):
+        self.ourchat.unListen(SESSION_FINISH_GET_INFO, self.getSessionInfoResponse)
+        self.ourchat.unListen(SESSION_FINISH_GET_AVATAR, self.getSessionAvatarResponse)
+        self.ourchat.unListen(USER_MSG, self.messageResponse)
+        self.ourchat.unListen(ACCOUNT_FINISH_GET_INFO, self.getAccountInfoResponse)
+        self.ourchat.unListen(ACCOUNT_FINISH_GET_AVATAR, self.getAccountAvatarResponse)
