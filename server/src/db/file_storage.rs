@@ -57,7 +57,7 @@ pub async fn clean_files(db_conn: &mut DatabaseConnection) -> anyhow::Result<()>
         match remove_file(i.path).await {
             Ok(_) => {}
             Err(e) => {
-                log::error!("delete file error: {}", e);
+                tracing::error!("delete file error: {}", e);
             }
         }
     }
@@ -65,7 +65,7 @@ pub async fn clean_files(db_conn: &mut DatabaseConnection) -> anyhow::Result<()>
         .filter(cond)
         .exec(db_conn)
         .await?;
-    log::info!("delete {} files", res.rows_affected);
+    tracing::info!("delete {} files", res.rows_affected);
     Ok(())
 }
 

@@ -11,7 +11,7 @@ test_command = "cargo test "
 def start_server(exec: str, args: list):
     # 启动服务器
     print("Starting the server...")
-    process = subprocess.Popen([exec] + args, env={"RUST_LOG": "debug"})
+    process = subprocess.Popen([exec] + args)
 
     print("Waiting for the server to start...")
     return process

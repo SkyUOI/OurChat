@@ -7,6 +7,7 @@ use std::{
     sync::OnceLock,
 };
 
+use config::File;
 use migration::MigratorTrait;
 use serde::{Deserialize, Serialize};
 use static_keys::{define_static_key_false, static_branch_likely, static_branch_unlikely};
@@ -83,10 +84,12 @@ pub fn get_db_type() -> DbType {
 /// 根据配置文件生成连接数据库的url
 pub fn get_db_url(path: &Path, basepath: &Path) -> anyhow::Result<String> {
     let db_type = get_db_type();
-    let json = std::fs::read_to_string(path)?;
     match db_type {
         DbType::MySql => {
-            let cfg: MysqlDbCfg = toml::from_str(&json)?;
+            let mut cfg = config::Config::builder()
+                .add_source(config::File::with_name(path.to_str().unwrap()))
+                .build()?;
+            let cfg: MysqlDbCfg = cfg.try_deserialize()?;
             let path = format!(
                 "mysql://{}:{}@{}:{}/{}",
                 cfg.user, cfg.passwd, cfg.host, cfg.port, cfg.db
@@ -94,7 +97,10 @@ pub fn get_db_url(path: &Path, basepath: &Path) -> anyhow::Result<String> {
             Ok(path)
         }
         DbType::Sqlite => {
-            let mut cfg: SqliteDbCfg = toml::from_str(&json)?;
+            let mut cfg = config::Config::builder()
+                .add_source(config::File::with_name(path.to_str().unwrap()))
+                .build()?;
+            let mut cfg: SqliteDbCfg = cfg.try_deserialize()?;
             cfg.convert_to_abs_path(basepath)?;
             Ok(format!("sqlite://{}", cfg.path.display()))
         }
@@ -169,8 +175,10 @@ struct RedisCfg {
 
 /// 根据配置文件生成连接redis的url
 pub fn get_redis_url(path: &Path) -> anyhow::Result<String> {
-    let json = std::fs::read_to_string(path)?;
-    let cfg: RedisCfg = toml::from_str(&json)?;
+    let cfg = config::Config::builder()
+        .add_source(File::with_name(path.to_str().unwrap()))
+        .build()?;
+    let cfg: RedisCfg = cfg.try_deserialize()?;
     let path = format!(
         "redis://{}:{}@{}:{}/",
         cfg.user, cfg.passwd, cfg.host, cfg.port

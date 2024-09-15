@@ -15,6 +15,7 @@ pub mod utils;
 use anyhow::bail;
 use clap::Parser;
 use cmd::CommandTransmitData;
+use config::File;
 use consts::{FileSize, DEFAULT_HTTP_PORT, DEFAULT_PORT, STDIN_AVAILABLE};
 use db::{file_storage, DbType};
 use rand::Rng;
@@ -121,10 +122,15 @@ static MACHINE_ID: LazyLock<u64> = LazyLock::new(|| {
 });
 
 fn logger_init(test_mode: bool) -> WorkerGuard {
+    let env = if test_mode {
+        || EnvFilter::try_from_default_env().unwrap_or("tracing".into())
+    } else {
+        || EnvFilter::try_from_default_env().unwrap_or("info".into())
+    };
     let formatting_layer = fmt::layer()
         .pretty()
         .with_writer(std::io::stdout)
-        .with_filter(EnvFilter::from_default_env());
+        .with_filter(env());
     let (file_layer, guard) = if test_mode {
         // 是测试模式，记录到一个test.log中
         let file = fs::File::create("test.log").unwrap();
@@ -133,7 +139,7 @@ fn logger_init(test_mode: bool) -> WorkerGuard {
             fmt::layer()
                 .with_ansi(false)
                 .with_writer(non_blocking)
-                .with_filter(EnvFilter::from_default_env()),
+                .with_filter(env()),
             guard,
         )
     } else {
@@ -144,7 +150,7 @@ fn logger_init(test_mode: bool) -> WorkerGuard {
             fmt::layer()
                 .with_ansi(false)
                 .with_writer(non_blocking)
-                .with_filter(EnvFilter::from_default_env()),
+                .with_filter(env()),
             guard,
         )
     };
@@ -238,7 +244,6 @@ async fn start_server(
 }
 
 /// 真正被调用的主函数
-#[instrument]
 pub async fn lib_main() -> anyhow::Result<()> {
     let parser = ArgsParser::parse();
 
@@ -257,10 +262,13 @@ pub async fn lib_main() -> anyhow::Result<()> {
         parser.cfg
     };
     // 读取配置文件
-    let cfg = fs::read_to_string(&cfg_path)?;
-    let cfg_path = Path::new(&cfg_path).parent().unwrap();
-    let mut cfg: Cfg = toml::from_str(&cfg)?;
+    let cfg = config::Config::builder()
+        .add_source(File::with_name(&cfg_path))
+        .build()
+        .expect("Failed to build config");
+    let mut cfg: Cfg = cfg.try_deserialize().expect("wrong config file");
     // 将相对路径转换
+    let cfg_path = Path::new(&cfg_path).parent().unwrap();
     cfg.convert_to_abs_path(cfg_path)?;
     // 配置端口
     let port = match parser.port {

@@ -409,6 +409,9 @@ impl Connection {
         Ok(())
     }
 
+    #[tracing::instrument(
+        skip(self)
+    )]
     pub async fn work(&mut self) -> anyhow::Result<()> {
         let mut socket = self.socket.take().unwrap();
         let request_sender = self.request_sender.clone();

@@ -13,13 +13,11 @@ serde = { version = "1" }
 serde_json = "1"
 serde_repr = "0"
 tokio-tungstenite = "0"
-log = "0"
 clap = { version = "4", features = ["derive"] }
 futures-util = "0"
 rand = "0"
 snowdon = "0"
 redis = { version = "0", features = ["tokio-rustls-comp"] }
-toml = "0"
 sea-orm = { version = "1", features = [
     "sqlx-mysql",
     "sqlx-sqlite",
