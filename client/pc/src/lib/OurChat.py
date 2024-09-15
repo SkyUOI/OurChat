@@ -246,7 +246,12 @@ class OurChat:
         self.upload_queue[sha256.hexdigest()] = data
         self.listen(UPLOAD_RESPONSE_MSG, self.uploadResponse)
         self.conn.send(
-            {"code": UPLOAD_MSG, "hash": sha256.hexdigest(), "auto_clean": auto_clean}
+            {
+                "code": UPLOAD_MSG,
+                "hash": sha256.hexdigest(),
+                "auto_clean": auto_clean,
+                "size": len(data),
+            }
         )
 
     def uploadResponse(self, data: dict) -> None:
