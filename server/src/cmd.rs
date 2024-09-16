@@ -4,7 +4,7 @@
 use crate::{
     connection::WS,
     db::file_storage,
-    share_state::{self},
+    shared_state::{self},
     ShutdownRev,
 };
 use colored::Colorize;
@@ -207,16 +207,16 @@ fn set_process(_: &InstManager, argvs: Vec<String>) -> Result<Option<String>, St
             };
             match status {
                 ServerStatus::Maintaining => {
-                    if !share_state::get_maintaining() {
-                        unsafe { share_state::set_maintaining(true) };
+                    if !shared_state::get_maintaining() {
+                        unsafe { shared_state::set_maintaining(true) };
                         ret.push_str("Set server status to Maintaining");
                     } else {
                         ret.push_str("Server status is already Maintaining");
                     }
                 }
                 ServerStatus::Normal => {
-                    if share_state::get_maintaining() {
-                        unsafe { share_state::set_maintaining(false) }
+                    if shared_state::get_maintaining() {
+                        unsafe { shared_state::set_maintaining(false) }
                         ret.push_str("Set server status to Normal");
                     } else {
                         ret.push_str("Server status is already Normal");
@@ -224,13 +224,13 @@ fn set_process(_: &InstManager, argvs: Vec<String>) -> Result<Option<String>, St
                 }
             }
         }
-        Variable::AutoCleanCycle => share_state::set_auto_clean_duration(match argvs[1].parse() {
+        Variable::AutoCleanCycle => shared_state::set_auto_clean_duration(match argvs[1].parse() {
             Ok(d) => d,
             Err(_) => {
                 return Err(format!("Wrong number {}", argvs[1]));
             }
         }),
-        Variable::FileSaveDays => share_state::set_file_save_days(match argvs[1].parse() {
+        Variable::FileSaveDays => shared_state::set_file_save_days(match argvs[1].parse() {
             Ok(d) => d,
             Err(_) => {
                 return Err(format!("Wrong number {}", argvs[1]));
@@ -254,7 +254,7 @@ fn get_process(_: &InstManager, argvs: Vec<String>) -> Result<Option<String>, St
     let mut ret = String::new();
     match var {
         Variable::Status => {
-            if share_state::get_maintaining() {
+            if shared_state::get_maintaining() {
                 ret.push_str("Server status is Maintaining");
             } else {
                 ret.push_str("Server status is Normal");
@@ -262,11 +262,11 @@ fn get_process(_: &InstManager, argvs: Vec<String>) -> Result<Option<String>, St
         }
         Variable::AutoCleanCycle => ret.push_str(&format!(
             "AutoCleanCycle: {}",
-            share_state::get_auto_clean_duration()
+            shared_state::get_auto_clean_duration()
         )),
         Variable::FileSaveDays => ret.push_str(&format!(
             "FileSaveDays: {}",
-            share_state::get_file_save_days()
+            shared_state::get_file_save_days()
         )),
     }
     Ok(Some(ret))

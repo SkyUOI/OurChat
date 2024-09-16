@@ -9,7 +9,7 @@ pub mod db;
 mod entities;
 pub mod requests;
 mod server;
-mod share_state;
+mod shared_state;
 pub mod utils;
 
 use anyhow::bail;
@@ -33,7 +33,6 @@ use tokio::{
     select,
     sync::{broadcast, mpsc},
 };
-use tracing::instrument;
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{
     fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer, Registry,
@@ -123,7 +122,7 @@ static MACHINE_ID: LazyLock<u64> = LazyLock::new(|| {
 
 fn logger_init(test_mode: bool) -> WorkerGuard {
     let env = if test_mode {
-        || EnvFilter::try_from_default_env().unwrap_or("tracing".into())
+        || EnvFilter::try_from_default_env().unwrap_or("trace".into())
     } else {
         || EnvFilter::try_from_default_env().unwrap_or("info".into())
     };
@@ -279,13 +278,13 @@ pub async fn lib_main() -> anyhow::Result<()> {
     let ip = parser.ip;
     // 启动维护模式
     unsafe {
-        share_state::set_maintaining(parser.maintaining);
+        shared_state::set_maintaining(parser.maintaining);
     }
     // 设置共享状态
-    share_state::set_auto_clean_duration(cfg.auto_clean_duration);
-    share_state::set_file_save_days(cfg.file_save_days);
-    share_state::set_user_files_store_limit(cfg.user_files_limit);
-    share_state::set_friends_number_limit(cfg.friends_number_limit);
+    shared_state::set_auto_clean_duration(cfg.auto_clean_duration);
+    shared_state::set_file_save_days(cfg.file_save_days);
+    shared_state::set_user_files_store_limit(cfg.user_files_limit);
+    shared_state::set_friends_number_limit(cfg.friends_number_limit);
     // 处理数据库
     let db_type = match parser.db_type {
         None => cfg.db_type,
@@ -343,19 +342,17 @@ pub async fn lib_main() -> anyhow::Result<()> {
             }
         }
         // 启动控制台源
-        if cfg.enable_cmd_stdin {
-            if *STDIN_AVAILABLE {
-                let shutdown_sender = shutdown_sender.clone();
-                tokio::spawn(async move {
-                    match cmd::setup_stdin(command_sdr, shutdown_sender.subscribe()).await {
-                        Ok(_) => {}
-                        Err(e) => {
-                            tracing::error!("cmd error:{}", e);
-                        }
+        if cfg.enable_cmd_stdin && *STDIN_AVAILABLE {
+            let shutdown_sender = shutdown_sender.clone();
+            tokio::spawn(async move {
+                match cmd::setup_stdin(command_sdr, shutdown_sender.subscribe()).await {
+                    Ok(_) => {}
+                    Err(e) => {
+                        tracing::error!("cmd error:{}", e);
                     }
-                });
-                is_enable = true;
-            }
+                }
+            });
+            is_enable = true;
         }
         cmd_start(command_rev, shutdown_sender.clone(), db, parser.test_mode).await?;
         if !is_enable {

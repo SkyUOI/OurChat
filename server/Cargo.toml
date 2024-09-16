@@ -38,7 +38,6 @@ static-keys = "0"
 sqlx = { version = "0", features = ["runtime-tokio-rustls", "sqlite"] }
 derive = { path = "../derive" }
 actix-web = { version = "4", features = ["rustls"] }
-actix-files = { version = "0" }
 dashmap = { "version" = "6" }
 sha2 = "0"
 uuid = "1"

@@ -2,7 +2,7 @@ use super::Server;
 use crate::{
     connection::client_response::{self, LoginResponse, NewSessionResponse, RegisterResponse},
     consts::{self, Bt, ID},
-    requests, share_state, utils,
+    requests, shared_state, utils,
 };
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter,
@@ -89,7 +89,7 @@ impl Server {
             time: ActiveValue::Set(chrono::Utc::now().timestamp().try_into()?),
             resource_used: ActiveValue::Set(0),
             friends_num: ActiveValue::Set(0),
-            friend_limit: ActiveValue::Set(share_state::get_friends_number_limit().try_into()?),
+            friend_limit: ActiveValue::Set(shared_state::get_friends_number_limit().try_into()?),
         };
         match user.insert(db_connection).await {
             Ok(res) => {
@@ -155,7 +155,7 @@ impl Server {
             }
         };
         // first check if the limit has been reached
-        let limit = share_state::get_user_files_store_limit();
+        let limit = shared_state::get_user_files_store_limit();
         let bytes_num: Bt = limit.into();
         let res_used: u64 = user_info.resource_used.try_into()?;
         let will_used = Bt(res_used + *sz);

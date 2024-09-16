@@ -6,6 +6,7 @@ import sys
 import basic
 
 test_command = "cargo test "
+pre_test_command = "cargo test --no-run"
 
 
 def start_server(exec: str, args: list):
@@ -46,6 +47,10 @@ def read_cfg(path) -> Config:
         return Config(json.load(f))
 
 
+def compile_test():
+    basic.msg_system(pre_test_command)
+
+
 def test_process() -> int:
     if len(sys.argv) > 1:
         cfg = sys.argv[1]
@@ -54,6 +59,7 @@ def test_process() -> int:
     cfg = read_cfg(cfg)
     if cfg.cmd_before_run != "":
         basic.msg_system(cfg.cmd_before_run)
+    compile_test()
     server_process = start_server(cfg.server_exec, cfg.server_args)
 
     return_code = 0

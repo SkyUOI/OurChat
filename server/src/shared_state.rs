@@ -8,23 +8,19 @@ static USER_FILES_STORE_LIMIT: Mutex<FileSize> =
     Mutex::new(consts::default_user_files_store_limit());
 static FRIENDS_NUMBER_LIMIT: Mutex<u32> = Mutex::new(consts::default_friends_number_limit());
 
-#[inline]
 pub fn get_auto_clean_duration() -> u64 {
     *AUTO_CLEAN_DURATION.lock()
 }
 
-#[inline]
 pub fn set_auto_clean_duration(duration: u64) {
     *AUTO_CLEAN_DURATION.lock() = duration;
     tracing::info!("set auto_clean_duration: {}", duration);
 }
 
-#[inline]
 pub fn get_file_save_days() -> u64 {
     *FILE_SAVE_DAYS.lock()
 }
 
-#[inline]
 pub fn set_file_save_days(days: u64) {
     *FILE_SAVE_DAYS.lock() = days;
     tracing::info!("set file_save_days: {}", days);
@@ -32,12 +28,12 @@ pub fn set_file_save_days(days: u64) {
 
 define_static_key_false!(MAINTAINING);
 
-#[inline]
 pub fn get_maintaining() -> bool {
     static_branch_unlikely!(MAINTAINING)
 }
 
-#[inline]
+/// # Safety
+/// should be called in multi-thread environment
 pub unsafe fn set_maintaining(maintaining: bool) {
     unsafe {
         if maintaining {
@@ -49,23 +45,19 @@ pub unsafe fn set_maintaining(maintaining: bool) {
     }
 }
 
-#[inline]
 pub fn get_user_files_store_limit() -> FileSize {
     *USER_FILES_STORE_LIMIT.lock()
 }
 
-#[inline]
 pub fn set_user_files_store_limit(limit: FileSize) {
     *USER_FILES_STORE_LIMIT.lock() = limit;
     tracing::info!("set user_files_store_limit: {}", limit);
 }
 
-#[inline]
 pub fn set_friends_number_limit(limit: u32) {
     *FRIENDS_NUMBER_LIMIT.lock() = limit;
 }
 
-#[inline]
 pub fn get_friends_number_limit() -> u32 {
     *FRIENDS_NUMBER_LIMIT.lock()
 }

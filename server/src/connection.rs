@@ -8,7 +8,7 @@ use crate::{
     consts::{Bt, MessageType, ID},
     requests::{self, new_session::NewSession, upload::Upload},
     server::httpserver::Record,
-    share_state,
+    shared_state,
 };
 use anyhow::bail;
 use client_response::{
@@ -417,7 +417,7 @@ impl Connection {
         let mut shutdown_receiver_clone = self.shutdown_sender.subscribe();
         let mut id = ID::default();
 
-        if share_state::get_maintaining() {
+        if shared_state::get_maintaining() {
             Self::maintaining(&mut socket).await?;
             return Ok(());
         }
