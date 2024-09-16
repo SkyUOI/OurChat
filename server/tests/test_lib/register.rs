@@ -26,7 +26,7 @@ pub(crate) async fn test_register() -> String {
         if i == 9 {
             panic!("Cannot connect to server");
         }
-        tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     }
     let mut stream = stream.unwrap();
     stream

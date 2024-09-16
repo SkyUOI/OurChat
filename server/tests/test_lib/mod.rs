@@ -6,7 +6,8 @@ pub mod unregister;
 
 use rand::Rng;
 use serde::{Deserialize, Serialize};
-use server::utils::WS_BIND_ADDR;
+use server::consts::DEFAULT_PORT;
+use server::utils::{gen_ws_bind_addr, WS_BIND_ADDR};
 use std::sync::{Arc, LazyLock, OnceLock};
 use tokio::net::TcpStream;
 use tokio::sync::Mutex;
@@ -52,9 +53,12 @@ async fn init_server() -> &'static (UnregisterHook, Conn) {
 
 pub type ClientWS = WebSocketStream<tokio_tungstenite::MaybeTlsStream<TcpStream>>;
 
+static WS_CLIENT_BIND_ADDR: LazyLock<String> =
+    LazyLock::new(|| gen_ws_bind_addr("127.0.0.1", DEFAULT_PORT));
+
 /// 创建到服务器的连接
 async fn create_connection() -> anyhow::Result<ClientWS> {
-    let (ws, _) = tokio_tungstenite::connect_async(WS_BIND_ADDR.to_string()).await?;
+    let (ws, _) = tokio_tungstenite::connect_async(WS_CLIENT_BIND_ADDR.clone()).await?;
     Ok(ws)
 }
 
