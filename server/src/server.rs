@@ -3,8 +3,8 @@
 pub mod httpserver;
 mod process;
 
-use crate::connection;
 use crate::connection::DBRequest;
+use crate::{connection, HttpSender};
 use std::net::SocketAddr;
 use std::process::exit;
 use tokio::net::TcpStream;
@@ -21,7 +21,7 @@ pub struct Server {
     redis: Option<redis::Client>,
     task_solver_sender: mpsc::Sender<DBRequest>,
     task_solver_receiver: Option<mpsc::Receiver<DBRequest>>,
-    http_sender: mpsc::Sender<httpserver::Record>,
+    http_sender: HttpSender,
     test_mode: bool,
 }
 
@@ -30,7 +30,7 @@ impl Server {
         addr: (impl Into<String>, u16),
         db: sea_orm::DatabaseConnection,
         redis: redis::Client,
-        http_sender: mpsc::Sender<httpserver::Record>,
+        http_sender: HttpSender,
         test_mode: bool,
     ) -> anyhow::Result<Self> {
         let ip = addr.0.into();
@@ -133,7 +133,7 @@ impl Server {
     async fn handle_connection(
         stream: TcpStream,
         addr: SocketAddr,
-        http_sender: mpsc::Sender<httpserver::Record>,
+        http_sender: HttpSender,
         shutdown_sender: broadcast::Sender<()>,
         task_sender: mpsc::Sender<DBRequest>,
     ) {

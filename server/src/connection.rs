@@ -7,8 +7,8 @@ mod process;
 use crate::{
     consts::{Bt, MessageType, ID},
     requests::{self, new_session::NewSession, upload::Upload},
-    server::httpserver::Record,
-    shared_state,
+    server::httpserver::FileRecord,
+    shared_state, HttpSender,
 };
 use anyhow::bail;
 use client_response::{
@@ -60,7 +60,7 @@ pub struct Connection {
     socket: Option<WebSocketStream<TcpStream>>,
     shutdown_sender: broadcast::Sender<()>,
     request_sender: mpsc::Sender<DBRequest>,
-    http_file_request_sender: Option<mpsc::Sender<Record>>,
+    http_sender: Option<HttpSender>,
 }
 enum VerifyStatus {
     Success,
@@ -75,13 +75,13 @@ struct VerifyRes {
 impl Connection {
     pub fn new(
         socket: WS,
-        http_file_request_sender: mpsc::Sender<Record>,
+        http_sender: HttpSender,
         shutdown_sender: broadcast::Sender<()>,
         request_sender: mpsc::Sender<DBRequest>,
     ) -> Self {
         Self {
             socket: Some(socket),
-            http_file_request_sender: Some(http_file_request_sender),
+            http_sender: Some(http_sender),
             shutdown_sender,
             request_sender,
         }
@@ -145,6 +145,15 @@ impl Connection {
         }
     }
 
+    /// Operate low level actions which are allowed all the time
+    async fn low_level_action(code: u64) -> anyhow::Result<Option<String>> {
+        if code == MessageType::GetStatus as u64 {
+            Ok(Some(serde_json::to_string(&GetStatusResponse::normal())?))
+        } else {
+            Ok(None)
+        }
+    }
+
     /// 验证客户端
     /// 注意：我们允许一些级别很低的非验证操作在此阶段运行
     async fn verify(
@@ -168,21 +177,7 @@ impl Connection {
                     let code = &json["code"];
                     if let Value::Number(code) = code {
                         let code = code.as_u64();
-                        if code == Some(MessageType::Login as u64) {
-                            let login_data: requests::Login = serde_json::from_value(json)?;
-                            let resp = Self::login_request(request_sender, login_data).await?;
-                            return Ok(Some(resp));
-                        } else if code == Some(MessageType::Register as u64) {
-                            let request_data: requests::Register = serde_json::from_value(json)?;
-                            let resp = Self::register_request(request_sender, request_data).await?;
-                            return Ok(Some(resp));
-                        } else if code == Some(MessageType::GetStatus as u64) {
-                            let resp = GetStatusResponse::normal();
-                            let resp = serde_json::to_string(&resp)?;
-                            ws.send(Message::Text(resp)).await?;
-                            continue;
-                        } else {
-                            // 验证不通过
+                        let verify_failed = || {
                             let resp = serde_json::to_string(
                                 &client_response::error_msg::ErrorMsgResponse::new(
                                     "Not login or register code".to_string(),
@@ -192,13 +187,38 @@ impl Connection {
                                 "Failed to login,code is {:?},not login or register code",
                                 code
                             );
-                            return Ok(Some((
+                            anyhow::Ok(Some((
                                 resp,
                                 VerifyRes {
                                     status: VerifyStatus::Fail,
                                     id: ID::default(),
                                 },
-                            )));
+                            )))
+                        };
+                        match code {
+                            None => {
+                                return verify_failed();
+                            }
+                            Some(code) => {
+                                if let Some(resp) = Self::low_level_action(code).await? {
+                                    ws.send(Message::Text(resp)).await?;
+                                    continue;
+                                }
+                                if code == MessageType::Login as u64 {
+                                    let login_data: requests::Login = serde_json::from_value(json)?;
+                                    let resp =
+                                        Self::login_request(request_sender, login_data).await?;
+                                    return Ok(Some(resp));
+                                } else if code == MessageType::Register as u64 {
+                                    let request_data: requests::Register =
+                                        serde_json::from_value(json)?;
+                                    let resp = Self::register_request(request_sender, request_data)
+                                        .await?;
+                                    return Ok(Some(resp));
+                                } else {
+                                    return verify_failed();
+                                }
+                            }
                         }
                     } else {
                         bail!("Failed to login,code is not a number or missing");
@@ -219,7 +239,7 @@ impl Connection {
         id: ID,
         net_sender: mpsc::Sender<Message>,
         db_sender: mpsc::Sender<DBRequest>,
-        http_file_sender: mpsc::Sender<Record>,
+        http_file_sender: mpsc::Sender<FileRecord>,
         mut shutdown_receiver: broadcast::Receiver<()>,
     ) -> anyhow::Result<()> {
         let work = async {
@@ -306,7 +326,7 @@ impl Connection {
                                                 &mut json,
                                             )
                                             .await?;
-                                            let record = Record::new(key, hash, auto_clean, id);
+                                            let record = FileRecord::new(key, hash, auto_clean, id);
                                             http_file_sender.send(record).await?;
                                             send.await?;
                                             continue 'con_loop;
@@ -463,13 +483,13 @@ impl Connection {
             receiver,
             self.shutdown_sender.subscribe(),
         ));
-        let http_file_sender = self.http_file_request_sender.take().unwrap();
+        let http_sender = self.http_sender.take().unwrap();
         Self::read_loop(
             incoming,
             id,
             sender,
             request_sender,
-            http_file_sender,
+            http_sender.file_record,
             shutdown_receiver,
         )
         .await?;

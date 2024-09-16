@@ -224,12 +224,18 @@ async fn exit_signal(shutdown_sender: ShutdownSdr) -> anyhow::Result<()> {
     Ok(())
 }
 
+#[derive(Clone)]
+pub struct HttpSender {
+    file_record: mpsc::Sender<httpserver::FileRecord>,
+    verify_record: mpsc::Sender<httpserver::VerifyRecord>,
+}
+
 async fn start_server(
     addr: (impl Into<String>, u16),
     db: DatabaseConnection,
     redis: redis::Client,
     test_mode: bool,
-    http_sender: mpsc::Sender<httpserver::Record>,
+    http_sender: HttpSender,
     shutdown_sender: ShutdownSdr,
     shutdown_receiver: broadcast::Receiver<()>,
 ) -> anyhow::Result<()> {
