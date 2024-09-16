@@ -1,6 +1,6 @@
 use std::sync::LazyLock;
 
-use actix_web::{get, post, web, HttpResponse, Responder};
+use actix_web::{get, web, HttpResponse, Responder};
 use dashmap::DashSet;
 use serde::{Deserialize, Serialize};
 use tokio::{sync::mpsc, time::Instant};

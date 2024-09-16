@@ -136,7 +136,7 @@ fn help_process(insts: &InstManager, argvs: Vec<String>) -> Result<Option<String
         for inst in insts.get_map().borrow().values() {
             ret.push_str(&format!("{}: {}\n", inst.name_interbal, inst.short_help));
         }
-        ret.push_str(&format!("\nRefer to \"https://ourchat.readthedocs.io/en/latest/docs/run/server_cmd.html\" for more information\n"));
+        ret.push_str(&"\nRefer to \"https://ourchat.readthedocs.io/en/latest/docs/run/server_cmd.html\" for more information\n".to_string());
     } else {
         // 针对给定的参数输出帮助信息
         for name in argvs {
@@ -349,13 +349,10 @@ pub async fn setup_stdin(
             print!(">>> ");
             std::io::stdout().flush()?;
             let command;
-            command = match console_reader.next_line().await {
-                Ok(d) => d,
-                Err(e) => {
-                    tracing::error!("stdin {}", e);
-                    None
-                }
-            };
+            command = console_reader.next_line().await.unwrap_or_else(|e| {
+                tracing::error!("stdin {}", e);
+                None
+            });
             let command = match command {
                 None => {
                     break;

@@ -149,7 +149,7 @@ impl Connection {
     /// Operate low level actions which are allowed all the time
     async fn low_level_action(
         code: MessageType,
-        json: &serde_json::Value,
+        json: &Value,
         http_sender: &mut HttpSender,
     ) -> anyhow::Result<Option<String>> {
         match code {
@@ -214,10 +214,8 @@ impl Connection {
                                 },
                             )))
                         };
-                        match code {
-                            None => {
-                                return verify_failed();
-                            }
+                        return match code {
+                            None => verify_failed(),
                             Some(code) => {
                                 let code = match MessageType::try_from(code as i32) {
                                     Ok(c) => c,
@@ -237,7 +235,7 @@ impl Connection {
                                             serde_json::from_value(json)?;
                                         let resp =
                                             Self::login_request(request_sender, login_data).await?;
-                                        return Ok(Some(resp));
+                                        Ok(Some(resp))
                                     }
                                     MessageType::Register => {
                                         let request_data: requests::Register =
@@ -245,14 +243,12 @@ impl Connection {
                                         let resp =
                                             Self::register_request(request_sender, request_data)
                                                 .await?;
-                                        return Ok(Some(resp));
+                                        Ok(Some(resp))
                                     }
-                                    _ => {
-                                        return verify_failed();
-                                    }
+                                    _ => verify_failed(),
                                 }
                             }
-                        }
+                        };
                     } else {
                         bail!("Failed to login,code is not a number or missing");
                     }

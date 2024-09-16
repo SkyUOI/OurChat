@@ -7,7 +7,7 @@ pub mod unregister;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use server::consts::DEFAULT_PORT;
-use server::utils::{gen_ws_bind_addr, WS_BIND_ADDR};
+use server::utils::gen_ws_bind_addr;
 use std::sync::{Arc, LazyLock, OnceLock};
 use tokio::net::TcpStream;
 use tokio::sync::Mutex;

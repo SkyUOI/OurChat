@@ -70,9 +70,9 @@ impl UploadManager {
 #[post("/upload")]
 pub async fn upload(
     req: HttpRequest,
-    manager: web::Data<UploadManager>,
+    manager: Data<UploadManager>,
     mut payload: web::Payload,
-    db_conn: web::Data<DatabaseConnection>,
+    db_conn: Data<DatabaseConnection>,
 ) -> impl Responder {
     let key = match req.headers().get(KEY).and_then(|key| key.to_str().ok()) {
         None => {
