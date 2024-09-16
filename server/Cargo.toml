@@ -26,7 +26,6 @@ sea-orm = { version = "1", features = [
 ] }
 thiserror = "1"
 chrono = "0"
-num_enum = "0"
 base = { path = "../base" }
 tracing = { version = "0" }
 tracing-appender = "0"
@@ -48,6 +47,7 @@ lettre = "0"
 collection_literals = "1"
 colored = "2"
 strum = { version = "0", features = ["derive"] }
+num_enum = "0"
 
 [dev-dependencies]
 assert_cmd = "2"

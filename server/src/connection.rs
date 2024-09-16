@@ -7,12 +7,13 @@ mod process;
 use crate::{
     consts::{Bt, MessageType, ID},
     requests::{self, new_session::NewSession, upload::Upload},
-    server::httpserver::FileRecord,
+    server::httpserver::{FileRecord, VerifyRecord},
     shared_state, HttpSender,
 };
 use anyhow::bail;
 use client_response::{
-    get_status::GetStatusResponse, LoginResponse, NewSessionResponse, RegisterResponse,
+    get_status::GetStatusResponse, verify::VerifyResponse, LoginResponse, NewSessionResponse,
+    RegisterResponse,
 };
 use futures_util::{
     stream::{SplitSink, SplitStream},
@@ -146,19 +147,37 @@ impl Connection {
     }
 
     /// Operate low level actions which are allowed all the time
-    async fn low_level_action(code: u64) -> anyhow::Result<Option<String>> {
-        if code == MessageType::GetStatus as u64 {
-            Ok(Some(serde_json::to_string(&GetStatusResponse::normal())?))
-        } else {
-            Ok(None)
+    async fn low_level_action(
+        code: MessageType,
+        json: &serde_json::Value,
+        http_sender: &mut HttpSender,
+    ) -> anyhow::Result<Option<String>> {
+        match code {
+            MessageType::GetStatus => {
+                Ok(Some(serde_json::to_string(&GetStatusResponse::normal())?))
+            }
+            MessageType::Verify => {
+                let json: requests::Verify = serde_json::from_value(json.clone())?;
+                http_sender
+                    .verify_record
+                    .send(VerifyRecord::new(
+                        json.email,
+                        process::verify::generate_token(),
+                    ))
+                    .await?;
+                Ok(Some(serde_json::to_string(&VerifyResponse::success())?))
+            }
+            _ => Ok(None),
         }
     }
 
-    /// 验证客户端
-    /// 注意：我们允许一些级别很低的非验证操作在此阶段运行
+    /// Verify Client
+    /// # Note
+    /// We allow some low level actions to be executed
     async fn verify(
         ws: &mut WS,
         request_sender: &mpsc::Sender<DBRequest>,
+        http_sender: &mut HttpSender,
     ) -> anyhow::Result<Option<(String, VerifyRes)>> {
         loop {
             let msg = match ws.next().await {
@@ -200,23 +219,37 @@ impl Connection {
                                 return verify_failed();
                             }
                             Some(code) => {
-                                if let Some(resp) = Self::low_level_action(code).await? {
+                                let code = match MessageType::try_from(code as i32) {
+                                    Ok(c) => c,
+                                    Err(_) => {
+                                        return verify_failed();
+                                    }
+                                };
+                                if let Some(resp) =
+                                    Self::low_level_action(code, &json, http_sender).await?
+                                {
                                     ws.send(Message::Text(resp)).await?;
                                     continue;
                                 }
-                                if code == MessageType::Login as u64 {
-                                    let login_data: requests::Login = serde_json::from_value(json)?;
-                                    let resp =
-                                        Self::login_request(request_sender, login_data).await?;
-                                    return Ok(Some(resp));
-                                } else if code == MessageType::Register as u64 {
-                                    let request_data: requests::Register =
-                                        serde_json::from_value(json)?;
-                                    let resp = Self::register_request(request_sender, request_data)
-                                        .await?;
-                                    return Ok(Some(resp));
-                                } else {
-                                    return verify_failed();
+                                match code {
+                                    MessageType::Login => {
+                                        let login_data: requests::Login =
+                                            serde_json::from_value(json)?;
+                                        let resp =
+                                            Self::login_request(request_sender, login_data).await?;
+                                        return Ok(Some(resp));
+                                    }
+                                    MessageType::Register => {
+                                        let request_data: requests::Register =
+                                            serde_json::from_value(json)?;
+                                        let resp =
+                                            Self::register_request(request_sender, request_data)
+                                                .await?;
+                                        return Ok(Some(resp));
+                                    }
+                                    _ => {
+                                        return verify_failed();
+                                    }
                                 }
                             }
                         }
@@ -436,6 +469,7 @@ impl Connection {
         let mut shutdown_receiver = self.shutdown_sender.subscribe();
         let mut shutdown_receiver_clone = self.shutdown_sender.subscribe();
         let mut id = ID::default();
+        let mut http_sender = self.http_sender.take().unwrap();
 
         if shared_state::get_maintaining() {
             Self::maintaining(&mut socket).await?;
@@ -443,7 +477,8 @@ impl Connection {
         }
         let verify_loop = async {
             loop {
-                let ret = Connection::verify(&mut socket, &request_sender).await?;
+                let ret =
+                    Connection::verify(&mut socket, &request_sender, &mut http_sender).await?;
                 match ret {
                     None => {
                         return anyhow::Ok(());
@@ -483,7 +518,6 @@ impl Connection {
             receiver,
             self.shutdown_sender.subscribe(),
         ));
-        let http_sender = self.http_sender.take().unwrap();
         Self::read_loop(
             incoming,
             id,

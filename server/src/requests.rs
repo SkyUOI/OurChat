@@ -13,6 +13,7 @@ pub use register::Register;
 use serde_repr::{Deserialize_repr, Serialize_repr};
 use thiserror::Error;
 pub use unregister::Unregister;
+pub use verify::Verify;
 
 #[derive(Debug, Serialize_repr, Deserialize_repr, Error, PartialEq, Eq)]
 #[repr(u32)]

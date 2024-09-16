@@ -28,6 +28,13 @@ async fn verify_token() -> impl Responder {
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct VerifyRecord {
     token: String,
+    email: String,
+}
+
+impl VerifyRecord {
+    pub fn new(email: String, token: String) -> Self {
+        Self { token, email }
+    }
 }
 
 pub struct VerifyManager {

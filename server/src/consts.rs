@@ -12,7 +12,7 @@ use crate::db::DbType;
 pub const OCID_LEN: usize = 10;
 
 /// 往返的消息类型
-#[derive(Debug, Serialize_repr, Deserialize_repr, TryFromPrimitive, PartialEq, Eq)]
+#[derive(Debug, Serialize_repr, Deserialize_repr, TryFromPrimitive, PartialEq, Eq, Copy, Clone)]
 #[repr(i32)]
 pub enum MessageType {
     Login = 6,

@@ -1,6 +1,7 @@
 //! define functions process the requests from clients directly
 
 mod upload;
+pub mod verify;
 
 use super::{
     client_response::{get_status::GetStatusResponse, NewSessionResponse, UnregisterResponse},
