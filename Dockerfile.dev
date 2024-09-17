@@ -1,7 +1,0 @@
-FROM rust:latest
-
-WORKDIR /app
-
-RUN apt update && apt install python3-dev -y
-
-RUN rustup component add rust-analyzer && rustup component add rustfmt && rustup component add clippy
