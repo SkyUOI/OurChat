@@ -4,7 +4,6 @@ members = [
     "server/migration",
     "derive",
     "server/server_manager",
-    "client/pc/src/rmodule",
     "base",
 ]
 resolver = "2"
