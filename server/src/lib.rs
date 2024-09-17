@@ -27,11 +27,11 @@ use std::{
     io::Write,
     path::{Path, PathBuf},
     str::FromStr,
-    sync::LazyLock,
+    sync::{LazyLock, OnceLock},
 };
 use tokio::{
     select,
-    sync::{broadcast, mpsc},
+    sync::{broadcast, mpsc, oneshot},
 };
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{
@@ -71,7 +71,7 @@ struct ArgsParser {
     maintaining: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 struct Cfg {
     #[serde(default = "consts::default_ip")]
     ip: String,
@@ -97,6 +97,12 @@ struct Cfg {
     user_files_limit: FileSize,
     #[serde(default = "consts::default_friends_number_limit")]
     friends_number_limit: u32,
+    #[serde(default)]
+    email_address: Option<String>,
+    #[serde(default)]
+    smtp_address: Option<String>,
+    #[serde(default)]
+    smtp_password: Option<String>,
 }
 
 impl Cfg {
@@ -227,7 +233,10 @@ async fn exit_signal(shutdown_sender: ShutdownSdr) -> anyhow::Result<()> {
 #[derive(Clone)]
 pub struct HttpSender {
     file_record: mpsc::Sender<httpserver::FileRecord>,
-    verify_record: mpsc::Sender<httpserver::VerifyRecord>,
+    verify_record: mpsc::Sender<(
+        httpserver::VerifyRecord,
+        oneshot::Sender<anyhow::Result<()>>,
+    )>,
 }
 
 async fn start_server(
@@ -247,6 +256,16 @@ async fn start_server(
     });
     Ok(())
 }
+
+fn global_cfg(cfg_data: Option<Cfg>) -> &'static Cfg {
+    static CFG: OnceLock<Cfg> = OnceLock::new();
+    CFG.get_or_init(|| cfg_data.unwrap())
+}
+
+static EMAIL_AVAILABLE: LazyLock<bool> = LazyLock::new(|| {
+    let cfg = global_cfg(None);
+    cfg.email_address.is_some() && cfg.smtp_password.is_some() && cfg.smtp_address.is_some()
+});
 
 /// 真正被调用的主函数
 pub async fn lib_main() -> anyhow::Result<()> {
@@ -280,7 +299,9 @@ pub async fn lib_main() -> anyhow::Result<()> {
         None => cfg.port.unwrap_or(DEFAULT_PORT),
         Some(port) => port,
     };
+    cfg.port = Some(port);
     let http_port = cfg.http_port.unwrap_or(DEFAULT_HTTP_PORT);
+    cfg.http_port = Some(http_port);
     let ip = parser.ip;
     // 启动维护模式
     unsafe {
@@ -291,6 +312,8 @@ pub async fn lib_main() -> anyhow::Result<()> {
     shared_state::set_file_save_days(cfg.file_save_days);
     shared_state::set_user_files_store_limit(cfg.user_files_limit);
     shared_state::set_friends_number_limit(cfg.friends_number_limit);
+    // set email
+    global_cfg(Some(cfg.clone()));
     // 处理数据库
     let db_type = match parser.db_type {
         None => cfg.db_type,

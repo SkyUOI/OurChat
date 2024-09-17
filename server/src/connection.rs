@@ -8,7 +8,7 @@ use crate::{
     consts::{Bt, MessageType, ID},
     requests::{self, new_session::NewSession, upload::Upload},
     server::httpserver::{FileRecord, VerifyRecord},
-    shared_state, HttpSender,
+    shared_state, HttpSender, EMAIL_AVAILABLE,
 };
 use anyhow::bail;
 use client_response::{
@@ -143,15 +143,30 @@ impl Connection {
                 Ok(Some(serde_json::to_string(&GetStatusResponse::normal())?))
             }
             MessageType::Verify => {
+                if !*EMAIL_AVAILABLE {
+                    return Ok(Some(serde_json::to_string(
+                        &VerifyResponse::email_cannot_be_sent(),
+                    )?));
+                }
                 let json: requests::Verify = serde_json::from_value(json.clone())?;
+                let (resp_sender, resp_receiver) = oneshot::channel();
                 http_sender
                     .verify_record
-                    .send(VerifyRecord::new(
-                        json.email,
-                        process::verify::generate_token(),
+                    .send((
+                        VerifyRecord::new(json.email, process::verify::generate_token()),
+                        resp_sender,
                     ))
                     .await?;
-                Ok(Some(serde_json::to_string(&VerifyResponse::success())?))
+                match resp_receiver.await {
+                    Ok(Ok(_)) => Ok(Some(serde_json::to_string(&VerifyResponse::success())?)),
+                    Ok(Err(e)) => {
+                        tracing::error!("Failed to verify email: {}", e);
+                        Ok(Some(serde_json::to_string(
+                            &VerifyResponse::email_cannot_be_sent(),
+                        )?))
+                    }
+                    Err(e) => Err(e)?,
+                }
             }
             _ => Ok(None),
         }
@@ -263,7 +278,7 @@ impl Connection {
         id: ID,
         net_sender: mpsc::Sender<Message>,
         db_sender: mpsc::Sender<DBRequest>,
-        http_file_sender: mpsc::Sender<FileRecord>,
+        mut http_sender: HttpSender,
         mut shutdown_receiver: broadcast::Receiver<()>,
     ) -> anyhow::Result<()> {
         let net_send_closure = |data| async {
@@ -313,6 +328,13 @@ impl Connection {
                                             continue 'con_loop;
                                         }
                                     };
+                                    if let Some(oper_success) =
+                                        Self::low_level_action(code, &json, &mut http_sender)
+                                            .await?
+                                    {
+                                        net_sender.send(Message::Text(oper_success)).await?;
+                                        continue;
+                                    }
                                     match code {
                                         MessageType::Unregister => {
                                             Self::unregister(id, &db_sender, &net_sender).await?;
@@ -329,10 +351,6 @@ impl Connection {
                                                 };
                                             Self::new_session(id, &db_sender, &net_sender, json)
                                                 .await?;
-                                            continue 'con_loop;
-                                        }
-                                        MessageType::GetStatus => {
-                                            Self::get_status(&net_sender).await?;
                                             continue 'con_loop;
                                         }
                                         MessageType::Upload => {
@@ -355,7 +373,7 @@ impl Connection {
                                             )
                                             .await?;
                                             let record = FileRecord::new(key, hash, auto_clean, id);
-                                            http_file_sender.send(record).await?;
+                                            http_sender.file_record.send(record).await?;
                                             send.await?;
                                             continue 'con_loop;
                                         }
@@ -504,7 +522,7 @@ impl Connection {
             id,
             msg_sender,
             request_sender,
-            http_sender.file_record,
+            http_sender,
             shutdown_receiver,
         )
         .await?;

@@ -65,6 +65,10 @@ impl UploadManager {
     fn get_records(&self, name: &str) -> Option<dashmap::mapref::one::Ref<'_, String, FileRecord>> {
         self.records.get(name)
     }
+
+    fn remove_record(&self, name: &str) {
+        self.records.remove(name);
+    }
 }
 
 #[post("/upload")]
@@ -120,5 +124,6 @@ pub async fn upload(
         Ok(_) => HttpResponse::Ok(),
         Err(_) => HttpResponse::InternalServerError(),
     };
+    manager.remove_record(key);
     HttpResponse::Ok()
 }

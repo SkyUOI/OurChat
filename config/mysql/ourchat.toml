@@ -22,3 +22,11 @@ enable_cmd = true
 enable_cmd_stdin = true
 # Assign the network terminal listening port,note,it will enable the network terminal mode by default
 cmd_network_port = 7779
+
+# If any fields below is not specified, the email will be disabled
+# email address displaying in sent email
+# email_address = "default@ourchat.org"
+# smtp server address
+# smtp_address = "smtp.ourchat.org"
+# smtp server password
+# smtp_password = "password"

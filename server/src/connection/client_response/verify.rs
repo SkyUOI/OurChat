@@ -16,4 +16,11 @@ impl VerifyResponse {
             status: requests::Status::Success,
         }
     }
+
+    pub fn email_cannot_be_sent() -> Self {
+        Self {
+            code: consts::MessageType::VerifyRes,
+            status: requests::Status::UnknownInstruction,
+        }
+    }
 }

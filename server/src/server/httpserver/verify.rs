@@ -1,9 +1,15 @@
 use std::sync::LazyLock;
 
 use actix_web::{get, web, HttpResponse, Responder};
-use dashmap::DashSet;
+use dashmap::DashMap;
+use lettre::{transport::smtp::authentication::Credentials, SmtpTransport, Transport};
 use serde::{Deserialize, Serialize};
-use tokio::{sync::mpsc, time::Instant};
+use tokio::{
+    sync::{mpsc, oneshot},
+    time::Instant,
+};
+
+use crate::{global_cfg, EMAIL_AVAILABLE};
 
 #[derive(Serialize, Deserialize)]
 struct VerifyForm {
@@ -20,9 +26,36 @@ impl EmailSender {
     }
 }
 
+pub static MAILER: LazyLock<Option<SmtpTransport>> = LazyLock::new(|| {
+    if !*EMAIL_AVAILABLE {
+        return None;
+    }
+    let cfg = global_cfg(None);
+    let creds = Credentials::new(
+        cfg.email_address.clone().unwrap(),
+        cfg.smtp_password.clone().unwrap(),
+    );
+    Some(
+        SmtpTransport::relay(&cfg.smtp_address.clone().unwrap())
+            .unwrap()
+            .credentials(creds)
+            .build(),
+    )
+});
+
 #[get("/verify/{token}")]
-async fn verify_token() -> impl Responder {
-    HttpResponse::Ok()
+async fn verify_token(
+    manager: web::Data<VerifyManager>,
+    token: web::Path<String>,
+) -> impl Responder {
+    // check if token is valid
+    match manager.get_records(&token.into_inner()) {
+        None => HttpResponse::BadRequest(),
+        Some(token) => {
+            manager.remove_record(&token.record.token);
+            HttpResponse::Ok()
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -37,25 +70,83 @@ impl VerifyRecord {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, Hash)]
+struct Token {
+    record: VerifyRecord,
+    time: Instant,
+}
+
 pub struct VerifyManager {
     // TODO:add timeout
-    records: DashSet<(VerifyRecord, Instant)>,
+    records: DashMap<String, Token>,
 }
+
+pub type VerifyRequest = (VerifyRecord, oneshot::Sender<anyhow::Result<()>>);
 
 impl VerifyManager {
     pub fn new() -> Self {
         Self {
-            records: DashSet::new(),
+            records: DashMap::new(),
         }
     }
 
     pub async fn add_record(
         manager: web::Data<VerifyManager>,
-        mut request_receiver: mpsc::Receiver<VerifyRecord>,
+        mut request_receiver: mpsc::Receiver<VerifyRequest>,
     ) {
-        while let Some(data) = request_receiver.recv().await {
-            manager.records.insert((data, Instant::now()));
+        let cfg = global_cfg(None);
+        while let Some((data, resp_sender)) = request_receiver.recv().await {
+            if *EMAIL_AVAILABLE {
+                let email = match lettre::Message::builder()
+                    .from(
+                        format!("OurChat <{}>", cfg.email_address.as_ref().unwrap())
+                            .parse()
+                            .unwrap(),
+                    )
+                    .to(format!("User <{}>", data.email).parse().unwrap())
+                    .subject("OurChat Verification")
+                    .body(format!(
+                        "please click \"{}:{}/verify/{}\" to verify your email",
+                        cfg.ip,
+                        cfg.http_port.unwrap(),
+                        data.token
+                    )) {
+                    Err(e) => {
+                        resp_sender.send(Err(anyhow::anyhow!(e))).unwrap();
+                        continue;
+                    }
+                    Ok(email) => email,
+                };
+                match MAILER.as_ref().unwrap().send(&email) {
+                    Err(e) => {
+                        resp_sender.send(Err(anyhow::anyhow!(e))).unwrap();
+                        continue;
+                    }
+                    Ok(_) => {}
+                };
+            }
+            manager.records.insert(
+                data.token.clone(),
+                Token {
+                    record: data,
+                    time: Instant::now(),
+                },
+            );
+            match resp_sender.send(Ok(())) {
+                Err(e) => {
+                    tracing::error!("send response error,{:?}", e);
+                }
+                Ok(_) => {}
+            };
         }
+    }
+
+    fn get_records(&self, name: &str) -> Option<dashmap::mapref::one::Ref<'_, String, Token>> {
+        self.records.get(name)
+    }
+
+    fn remove_record(&self, name: &str) {
+        self.records.remove(name);
     }
 }
 
@@ -68,6 +159,8 @@ pub fn config(cfg: &mut web::ServiceConfig) {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     #[tokio::test]
     async fn test_email_send() {}
 }

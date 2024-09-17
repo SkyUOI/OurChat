@@ -3,14 +3,12 @@ mod status;
 mod upload;
 mod verify;
 
-use crate::{consts::ID, HttpSender, ShutdownRev};
+use crate::{HttpSender, ShutdownRev};
 use actix_web::{
     web::{self, Data},
     App,
 };
-use dashmap::DashMap;
 use sea_orm::DatabaseConnection;
-use serde::{Deserialize, Serialize};
 use tokio::{select, sync::mpsc, task::JoinHandle};
 pub use upload::FileRecord;
 pub use verify::VerifyRecord;

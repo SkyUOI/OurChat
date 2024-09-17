@@ -4,7 +4,7 @@ mod upload;
 pub mod verify;
 
 use super::{
-    client_response::{get_status::GetStatusResponse, NewSessionResponse, UnregisterResponse},
+    client_response::{NewSessionResponse, UnregisterResponse},
     Connection, DBRequest,
 };
 use crate::{consts::ID, requests::new_session::NewSession};
@@ -49,13 +49,6 @@ impl Connection {
         net_sender
             .send(Message::Text(serde_json::to_string(&resp).unwrap()))
             .await?;
-        Ok(())
-    }
-
-    pub async fn get_status(net_sender: &mpsc::Sender<Message>) -> anyhow::Result<()> {
-        let resp = GetStatusResponse::normal();
-        let resp = serde_json::to_string(&resp)?;
-        net_sender.send(Message::Text(resp)).await?;
         Ok(())
     }
 }
