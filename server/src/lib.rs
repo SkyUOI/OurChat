@@ -1,7 +1,6 @@
 #![feature(asm_goto)]
 #![feature(decl_macro)]
 #![feature(duration_constructors)]
-#![feature(async_closure)]
 
 mod cmd;
 pub mod connection;

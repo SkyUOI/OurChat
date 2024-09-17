@@ -1,13 +1,19 @@
 use super::{client_response, Connection};
+use tokio::pin;
 use tokio_tungstenite::tungstenite::protocol::Message;
 
 impl Connection {
-    pub async fn send_error_msg(
-        sender: impl async Fn(Message) -> anyhow::Result<()>,
+    pub async fn send_error_msg<T>(
+        sender: impl Fn(Message) -> T,
         msg: impl Into<String>,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<()>
+    where
+        T: Future<Output = anyhow::Result<()>>,
+    {
         let error_resp = client_response::error_msg::ErrorMsgResponse::new(msg.into());
-        sender(Message::Text(serde_json::to_string(&error_resp)?)).await?;
+        let future = sender(Message::Text(serde_json::to_string(&error_resp)?));
+        pin!(future);
+        (&mut future).await?;
         Ok(())
     }
 }

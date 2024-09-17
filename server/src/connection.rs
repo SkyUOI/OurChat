@@ -67,13 +67,8 @@ pub struct Connection {
     http_sender: Option<HttpSender>,
 }
 enum VerifyStatus {
-    Success,
+    Success(ID),
     Fail,
-}
-
-struct VerifyRes {
-    status: VerifyStatus,
-    id: ID,
 }
 
 impl Connection {
@@ -95,7 +90,7 @@ impl Connection {
     async fn login_request(
         request_sender: &mpsc::Sender<DBRequest>,
         login_data: requests::Login,
-    ) -> anyhow::Result<(String, VerifyRes)> {
+    ) -> anyhow::Result<(String, VerifyStatus)> {
         let channel = oneshot::channel();
         let request = DBRequest::Login {
             request: login_data,
@@ -105,17 +100,11 @@ impl Connection {
         match channel.1.await? {
             Ok(ok_resp) => Ok((
                 serde_json::to_string(&ok_resp.0)?,
-                VerifyRes {
-                    status: VerifyStatus::Success,
-                    id: ok_resp.1,
-                },
+                VerifyStatus::Success(ok_resp.1),
             )),
             Err(e) => Ok((
                 serde_json::to_string(&LoginResponse::failed(e))?,
-                VerifyRes {
-                    status: VerifyStatus::Fail,
-                    id: ID::default(),
-                },
+                VerifyStatus::Fail,
             )),
         }
     }
@@ -124,7 +113,7 @@ impl Connection {
     async fn register_request(
         request_sender: &mpsc::Sender<DBRequest>,
         register_data: requests::Register,
-    ) -> anyhow::Result<(String, VerifyRes)> {
+    ) -> anyhow::Result<(String, VerifyStatus)> {
         let channel = oneshot::channel();
         let request = DBRequest::Register {
             request: register_data,
@@ -134,17 +123,11 @@ impl Connection {
         match channel.1.await? {
             Ok(ok_resp) => Ok((
                 serde_json::to_string(&ok_resp.0)?,
-                VerifyRes {
-                    status: VerifyStatus::Success,
-                    id: ok_resp.1,
-                },
+                VerifyStatus::Success(ok_resp.1),
             )),
             Err(e) => Ok((
                 serde_json::to_string(&RegisterResponse::failed(e))?,
-                VerifyRes {
-                    status: VerifyStatus::Fail,
-                    id: ID::default(),
-                },
+                VerifyStatus::Fail,
             )),
         }
     }
@@ -179,10 +162,10 @@ impl Connection {
     /// We allow some low level actions to be executed
     async fn verify(
         incoming: &mut InComing,
-        outgoing: &mut OutGoing,
+        outgoing: mpsc::Sender<Message>,
         request_sender: &mpsc::Sender<DBRequest>,
         http_sender: &mut HttpSender,
-    ) -> anyhow::Result<Option<(String, VerifyRes)>> {
+    ) -> anyhow::Result<Option<VerifyStatus>> {
         loop {
             let msg = match incoming.next().await {
                 None => {
@@ -200,31 +183,32 @@ impl Connection {
                     let code = &json["code"];
                     if let Value::Number(code) = code {
                         let code = code.as_u64();
-                        let verify_failed = || {
-                            let resp = serde_json::to_string(
-                                &client_response::error_msg::ErrorMsgResponse::new(
-                                    "Not login or register code".to_string(),
-                                ),
-                            )?;
+                        let verify_failed = || async {
+                            Self::send_error_msg(
+                                |msg| async {
+                                    outgoing.send(msg).await?;
+                                    anyhow::Ok(())
+                                },
+                                "Not login or register code",
+                            )
+                            .await?;
                             tracing::info!(
                                 "Failed to login,code is {:?},not login or register code",
                                 code
                             );
-                            anyhow::Ok(Some((
-                                resp,
-                                VerifyRes {
-                                    status: VerifyStatus::Fail,
-                                    id: ID::default(),
-                                },
-                            )))
+                            anyhow::Ok(VerifyStatus::Fail)
                         };
-                        return match code {
-                            None => verify_failed(),
+                        let (resp_content, status) = match code {
+                            None => {
+                                verify_failed().await?;
+                                continue;
+                            }
                             Some(code) => {
                                 let code = match MessageType::try_from(code as i32) {
                                     Ok(c) => c,
                                     Err(_) => {
-                                        return verify_failed();
+                                        verify_failed().await?;
+                                        continue;
                                     }
                                 };
                                 if let Some(resp) =
@@ -237,22 +221,29 @@ impl Connection {
                                     MessageType::Login => {
                                         let login_data: requests::Login =
                                             serde_json::from_value(json)?;
-                                        let resp =
-                                            Self::login_request(request_sender, login_data).await?;
-                                        Ok(Some(resp))
+                                        Self::login_request(request_sender, login_data).await?
                                     }
                                     MessageType::Register => {
                                         let request_data: requests::Register =
                                             serde_json::from_value(json)?;
-                                        let resp =
-                                            Self::register_request(request_sender, request_data)
-                                                .await?;
-                                        Ok(Some(resp))
+                                        Self::register_request(request_sender, request_data).await?
                                     }
-                                    _ => verify_failed(),
+                                    _ => {
+                                        verify_failed().await?;
+                                        continue;
+                                    }
                                 }
                             }
                         };
+                        outgoing.send(Message::Text(resp_content)).await?;
+                        match status {
+                            VerifyStatus::Success(_) => {
+                                return Ok(Some(status));
+                            }
+                            _ => {
+                                continue;
+                            }
+                        }
                     } else {
                         bail!("Failed to login,code is not a number or missing");
                     }
@@ -471,66 +462,47 @@ impl Connection {
         let mut socket = self.socket.take().unwrap();
         let request_sender = self.request_sender.clone();
         let mut shutdown_receiver = self.shutdown_sender.subscribe();
-        let mut shutdown_receiver_clone = self.shutdown_sender.subscribe();
-        let mut id = ID::default();
+        let id;
         let mut http_sender = self.http_sender.take().unwrap();
         // start maintaining loop
         if shared_state::get_maintaining() {
             Self::maintaining(&mut socket).await?;
             return Ok(());
         }
-        let (mut outgoing, mut incoming) = socket.split();
-        let verify_loop = async {
-            loop {
-                let ret = Connection::verify(
-                    &mut incoming,
-                    &mut outgoing,
-                    &request_sender,
-                    &mut http_sender,
-                )
-                .await?;
-                match ret {
-                    None => {
-                        return anyhow::Ok(());
-                    }
-                    Some(ret) => {
-                        select! {
-                            err = outgoing.send(Message::Text(ret.0)) => {
-                                err?
-                            },
-                            _ = shutdown_receiver.recv() => {
-                                return anyhow::Ok(())
-                            },
-                        }
-                        if let VerifyStatus::Success = ret.1.status {
-                            // 验证通过，跳出循环
-                            id = ret.1.id;
-                            break;
-                        }
-                    }
-                }
-            }
-            Ok(())
-        };
-        // 循环验证直到验证通过
-        select! {
-            ret = verify_loop => {
-                ret?
-            },
-            _ = shutdown_receiver_clone.recv() => {
-                return Ok(());
-            },
-        }
-        let (sender, receiver) = mpsc::channel(32);
+        let (outgoing, mut incoming) = socket.split();
+        let (msg_sender, msg_receiver) = mpsc::channel(32);
         tokio::spawn(Self::write_loop(
             outgoing,
-            receiver,
+            msg_receiver,
             self.shutdown_sender.subscribe(),
         ));
+        select! {
+            ret = Connection::verify(
+                &mut incoming,
+                msg_sender.clone(),
+                &request_sender,
+                &mut http_sender,
+            ) => {
+                id = match ret? {
+                    Some(ret) => {
+                        match ret {
+                            VerifyStatus::Success(id) => id,
+                            VerifyStatus::Fail => {
+                                return Ok(())
+                            }
+                        }
+                    }
+                    None => return Ok(())
+                };
+            }
+            _ = shutdown_receiver.recv() => {
+                    return Ok(());
+            }
+        }
         Self::read_loop(
             incoming,
             id,
-            sender,
+            msg_sender,
             request_sender,
             http_sender.file_record,
             shutdown_receiver,
