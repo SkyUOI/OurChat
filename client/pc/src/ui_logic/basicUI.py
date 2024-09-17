@@ -1,9 +1,0 @@
-from PyQt6.QtGui import QKeyEvent
-
-
-class BasicUI:
-    def bind(self): ...
-
-    def fillText(self): ...
-
-    def keyPressEvent(self, event: QKeyEvent): ...

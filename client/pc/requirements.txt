@@ -1,7 +1,0 @@
-PyQt6
-qt_material
-websockets
-maturin
-nuitka
-peewee
-pillow
