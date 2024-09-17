@@ -1,9 +1,5 @@
 [workspace]
 members = [
-    "server",
-    "server/migration",
-    "derive",
-    "server/server_manager",
     "client/pc/src/rmodule",
     "base",
 ]

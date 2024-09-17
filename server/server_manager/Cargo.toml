@@ -1,9 +1,0 @@
-cargo-features = ["edition2024"]
-[package]
-name = "server_manager"
-version.workspace = true
-edition.workspace = true
-
-[dependencies]
-tokio = { version = "1", features = ["full"] }
-anyhow = "1"

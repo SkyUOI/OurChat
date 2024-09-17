@@ -1,0 +1,7 @@
+PyQt6
+qt_material
+websockets
+maturin
+pyqt6-tools
+nuitka
+peewee
