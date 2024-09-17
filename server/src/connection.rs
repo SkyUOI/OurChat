@@ -28,6 +28,9 @@ use tokio::{
 use tokio_tungstenite::tungstenite::protocol::Message;
 use tokio_tungstenite::WebSocketStream;
 
+type InComing = SplitStream<WS>;
+type OutGoing = SplitSink<WS, Message>;
+
 /// Request that will be sent to database process loop and get the process response
 pub enum DBRequest {
     Login {
@@ -175,12 +178,13 @@ impl Connection {
     /// # Note
     /// We allow some low level actions to be executed
     async fn verify(
-        ws: &mut WS,
+        incoming: &mut InComing,
+        outgoing: &mut OutGoing,
         request_sender: &mpsc::Sender<DBRequest>,
         http_sender: &mut HttpSender,
     ) -> anyhow::Result<Option<(String, VerifyRes)>> {
         loop {
-            let msg = match ws.next().await {
+            let msg = match incoming.next().await {
                 None => {
                     bail!("Failed to receive message when logining");
                 }
@@ -226,7 +230,7 @@ impl Connection {
                                 if let Some(resp) =
                                     Self::low_level_action(code, &json, http_sender).await?
                                 {
-                                    ws.send(Message::Text(resp)).await?;
+                                    outgoing.send(Message::Text(resp)).await?;
                                     continue;
                                 }
                                 match code {
@@ -264,13 +268,17 @@ impl Connection {
     }
 
     pub async fn read_loop(
-        mut incoming: SplitStream<WS>,
+        mut incoming: InComing,
         id: ID,
         net_sender: mpsc::Sender<Message>,
         db_sender: mpsc::Sender<DBRequest>,
         http_file_sender: mpsc::Sender<FileRecord>,
         mut shutdown_receiver: broadcast::Receiver<()>,
     ) -> anyhow::Result<()> {
+        let net_send_closure = |data| async {
+            net_sender.send(data).await?;
+            Ok(())
+        };
         let work = async {
             'con_loop: loop {
                 let msg = incoming.next().await;
@@ -297,7 +305,7 @@ impl Connection {
                             match code {
                                 None => {
                                     Self::send_error_msg(
-                                        &net_sender,
+                                        net_send_closure,
                                         "code is not a unsigned number",
                                     )
                                     .await?;
@@ -307,7 +315,7 @@ impl Connection {
                                         Ok(num) => num,
                                         Err(_) => {
                                             Self::send_error_msg(
-                                                &net_sender,
+                                                net_send_closure,
                                                 format!("Not a valid code {}", num),
                                             )
                                             .await?;
@@ -362,7 +370,7 @@ impl Connection {
                                         }
                                         _ => {
                                             Self::send_error_msg(
-                                                &net_sender,
+                                                net_send_closure,
                                                 format!("Not a valid code {}", num),
                                             )
                                             .await?;
@@ -371,7 +379,7 @@ impl Connection {
                                 }
                             }
                         } else {
-                            Self::send_error_msg(&net_sender, "Without code").await?
+                            Self::send_error_msg(net_send_closure, "Without code").await?
                         }
                     }
                     Message::Binary(_) => todo!(),
@@ -399,7 +407,7 @@ impl Connection {
     }
 
     pub async fn write_loop(
-        mut outgoing: SplitSink<WS, Message>,
+        mut outgoing: OutGoing,
         mut receiver: mpsc::Receiver<Message>,
         mut shutdown_receiver: broadcast::Receiver<()>,
     ) -> anyhow::Result<()> {
@@ -466,22 +474,28 @@ impl Connection {
         let mut shutdown_receiver_clone = self.shutdown_sender.subscribe();
         let mut id = ID::default();
         let mut http_sender = self.http_sender.take().unwrap();
-
+        // start maintaining loop
         if shared_state::get_maintaining() {
             Self::maintaining(&mut socket).await?;
             return Ok(());
         }
+        let (mut outgoing, mut incoming) = socket.split();
         let verify_loop = async {
             loop {
-                let ret =
-                    Connection::verify(&mut socket, &request_sender, &mut http_sender).await?;
+                let ret = Connection::verify(
+                    &mut incoming,
+                    &mut outgoing,
+                    &request_sender,
+                    &mut http_sender,
+                )
+                .await?;
                 match ret {
                     None => {
                         return anyhow::Ok(());
                     }
                     Some(ret) => {
                         select! {
-                            err = socket.send(Message::Text(ret.0)) => {
+                            err = outgoing.send(Message::Text(ret.0)) => {
                                 err?
                             },
                             _ = shutdown_receiver.recv() => {
@@ -507,7 +521,6 @@ impl Connection {
                 return Ok(());
             },
         }
-        let (outgoing, incoming) = socket.split();
         let (sender, receiver) = mpsc::channel(32);
         tokio::spawn(Self::write_loop(
             outgoing,

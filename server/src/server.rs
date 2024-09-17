@@ -13,7 +13,6 @@ use tokio::{
     select,
     sync::{broadcast, mpsc},
 };
-
 pub struct Server {
     addr: (String, u16),
     tcplistener: TcpListener,
@@ -77,7 +76,7 @@ impl Server {
                 match ret {
                     Ok((socket, addr)) => {
                         tracing::info!("Connected to a socket");
-                        tokio::spawn(Server::handle_connection(
+                        tokio::spawn(Self::handle_connection(
                             socket,
                             addr,
                             http_sender,
