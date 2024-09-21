@@ -52,8 +52,8 @@ impl Default for DbType {
 pub static DB_TYPE: OnceLock<DbType> = OnceLock::new();
 
 define_static_key_false!(DB_INIT);
-pub static mut MYSQL_TYPE: static_keys::StaticFalseKey = static_keys::new_static_false_key();
-pub static mut SQLITE_TYPE: static_keys::StaticFalseKey = static_keys::new_static_false_key();
+pub static MYSQL_TYPE: static_keys::StaticFalseKey = static_keys::new_static_false_key();
+pub static SQLITE_TYPE: static_keys::StaticFalseKey = static_keys::new_static_false_key();
 
 /// 初始化数据库层
 pub fn init_db_system(db_type: DbType) {
@@ -108,7 +108,7 @@ pub fn get_db_url(path: &Path, basepath: &Path) -> anyhow::Result<String> {
 }
 
 pub async fn try_create_sqliet_db(url: &str) -> anyhow::Result<()> {
-    use sqlx::{migrate::MigrateDatabase, Sqlite};
+    use sqlx::{Sqlite, migrate::MigrateDatabase};
     if !Sqlite::database_exists(url).await.unwrap_or(false) {
         tracing::info!("Creating sqlite database {}", url);
         match Sqlite::create_database(url).await {
@@ -126,7 +126,7 @@ pub async fn try_create_sqliet_db(url: &str) -> anyhow::Result<()> {
 }
 
 pub async fn try_create_mysql_db(url: &str) -> anyhow::Result<()> {
-    use sqlx::{migrate::MigrateDatabase, MySql};
+    use sqlx::{MySql, migrate::MigrateDatabase};
     if !MySql::database_exists(url).await.unwrap_or(false) {
         tracing::info!("Creating mysql database");
         match MySql::create_database(url).await {

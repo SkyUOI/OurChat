@@ -5,19 +5,20 @@ pub mod client_response;
 mod process;
 
 use crate::{
-    consts::{Bt, MessageType, ID},
+    EMAIL_AVAILABLE, HttpSender,
+    consts::{Bt, ID, MessageType},
     requests::{self, new_session::NewSession, upload::Upload},
     server::httpserver::{FileRecord, VerifyRecord},
-    shared_state, HttpSender, EMAIL_AVAILABLE,
+    shared_state,
 };
 use anyhow::bail;
 use client_response::{
-    get_status::GetStatusResponse, verify::VerifyResponse, LoginResponse, NewSessionResponse,
-    RegisterResponse,
+    LoginResponse, NewSessionResponse, RegisterResponse, get_status::GetStatusResponse,
+    verify::VerifyResponse,
 };
 use futures_util::{
-    stream::{SplitSink, SplitStream},
     SinkExt, StreamExt,
+    stream::{SplitSink, SplitStream},
 };
 use serde_json::Value;
 use tokio::{
@@ -25,8 +26,8 @@ use tokio::{
     select,
     sync::{broadcast, mpsc, oneshot},
 };
-use tokio_tungstenite::tungstenite::protocol::Message;
 use tokio_tungstenite::WebSocketStream;
+use tokio_tungstenite::tungstenite::protocol::Message;
 
 type InComing = SplitStream<WS>;
 type OutGoing = SplitSink<WS, Message>;

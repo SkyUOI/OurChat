@@ -26,7 +26,7 @@ sea-orm = { version = "1", features = [
 ] }
 thiserror = "1"
 chrono = "0"
-base = { path = "../base" }
+base = { path = "base" }
 tracing = { version = "0" }
 tracing-appender = "0"
 tracing-subscriber = { version = "0", features = ["tracing-log", "env-filter"] }
@@ -35,19 +35,24 @@ mimalloc = "0"
 parking_lot = "0"
 static-keys = "0"
 sqlx = { version = "0", features = ["runtime-tokio-rustls", "sqlite"] }
-derive = { path = "../derive" }
+derive = { path = "derive" }
 actix-web = { version = "4", features = ["rustls"] }
 dashmap = { "version" = "6" }
 sha2 = "0"
 uuid = "1"
 config = "0"
-lettre = "0"
+validator = "0"
 
 # Useful crates
 collection_literals = "1"
 colored = "2"
 strum = { version = "0", features = ["derive"] }
 num_enum = "0"
+
+[dependencies.lettre]
+version = "0"
+default-features = false
+features = ["tokio1", "tokio1-rustls-tls", "smtp-transport", "builder"]
 
 [dev-dependencies]
 assert_cmd = "2"

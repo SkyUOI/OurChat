@@ -1,4 +1,4 @@
-use super::{client_response, Connection};
+use super::{Connection, client_response};
 use tokio::pin;
 use tokio_tungstenite::tungstenite::protocol::Message;
 

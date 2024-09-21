@@ -16,8 +16,8 @@ use anyhow::bail;
 use clap::Parser;
 use cmd::CommandTransmitData;
 use config::File;
-use consts::{FileSize, DEFAULT_HTTP_PORT, DEFAULT_PORT, STDIN_AVAILABLE};
-use db::{file_storage, DbType};
+use consts::{DEFAULT_HTTP_PORT, DEFAULT_PORT, FileSize, STDIN_AVAILABLE};
+use db::{DbType, file_storage};
 use rand::Rng;
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
@@ -35,7 +35,7 @@ use tokio::{
 };
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{
-    fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer, Registry,
+    EnvFilter, Layer, Registry, fmt, layer::SubscriberExt, util::SubscriberInitExt,
 };
 
 #[global_allocator]

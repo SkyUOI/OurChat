@@ -4,7 +4,7 @@ pub mod httpserver;
 mod process;
 
 use crate::connection::DBRequest;
-use crate::{connection, HttpSender};
+use crate::{HttpSender, connection};
 use std::net::SocketAddr;
 use std::process::exit;
 use tokio::net::TcpStream;

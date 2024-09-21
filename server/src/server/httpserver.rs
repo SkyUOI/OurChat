@@ -5,8 +5,8 @@ mod verify;
 
 use crate::{HttpSender, ShutdownRev};
 use actix_web::{
-    web::{self, Data},
     App,
+    web::{self, Data},
 };
 use sea_orm::DatabaseConnection;
 use tokio::{select, sync::mpsc, task::JoinHandle};
@@ -68,13 +68,10 @@ impl HttpServer {
             verify::MANAGER.clone(),
             verify_receiver,
         ));
-        Ok((
-            http_server_handle,
-            HttpSender {
-                file_record: file_sender,
-                verify_record: verify_sender,
-            },
-        ))
+        Ok((http_server_handle, HttpSender {
+            file_record: file_sender,
+            verify_record: verify_sender,
+        }))
     }
 
     pub async fn db_loop() -> anyhow::Result<()> {

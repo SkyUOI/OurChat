@@ -1,4 +1,4 @@
-use super::{create_connection, TEST_USER};
+use super::{TEST_USER, create_connection};
 use futures_util::{SinkExt, StreamExt};
 use server::{
     connection::client_response,

@@ -1,5 +1,5 @@
 use crate::server::httpserver::KEY;
-use actix_web::{get, HttpRequest, HttpResponse, Responder};
+use actix_web::{HttpRequest, HttpResponse, Responder, get};
 
 #[get("/download")]
 pub async fn download(req: HttpRequest) -> impl Responder {

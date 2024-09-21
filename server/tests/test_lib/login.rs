@@ -1,4 +1,4 @@
-use super::{create_connection, ClientWS, TEST_USER};
+use super::{ClientWS, TEST_USER, create_connection};
 use futures_util::{SinkExt, StreamExt};
 use server::{
     connection::client_response::{self, ErrorMsgResponse},

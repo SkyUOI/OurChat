@@ -4,8 +4,8 @@ mod upload;
 pub mod verify;
 
 use super::{
-    client_response::{NewSessionResponse, UnregisterResponse},
     Connection, DBRequest,
+    client_response::{NewSessionResponse, UnregisterResponse},
 };
 use crate::{consts::ID, requests::new_session::NewSession};
 use tokio::sync::{mpsc, oneshot};

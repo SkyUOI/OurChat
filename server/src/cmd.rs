@@ -2,10 +2,10 @@
 //! TODO:add command for set friends limit
 
 use crate::{
+    ShutdownRev,
     connection::WS,
     db::file_storage,
     shared_state::{self},
-    ShutdownRev,
 };
 use colored::Colorize;
 use sea_orm::DatabaseConnection;

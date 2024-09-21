@@ -1,14 +1,14 @@
 //! 管理文件储存
 
-use crate::{consts::ID, shared_state, ShutdownRev};
+use crate::{ShutdownRev, consts::ID, shared_state};
 use derive::db_compatibility;
 use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use std::{fs::exists, time::Duration};
 use tokio::{
-    fs::{remove_file, File},
+    fs::{File, remove_file},
     io::AsyncWriteExt,
     select,
-    time::{sleep_until, Instant},
+    time::{Instant, sleep_until},
 };
 
 pub struct FileSys {

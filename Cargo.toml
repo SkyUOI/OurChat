@@ -2,9 +2,10 @@
 members = [
     "server",
     "server/migration",
-    "derive",
+    "server/derive",
     "server/server_manager",
-    "base",
+    "server/server_manager_gui",
+    "server/base",
 ]
 resolver = "2"
 

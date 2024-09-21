@@ -1,5 +1,5 @@
 //! Some utils functions
-use crate::{consts, MACHINE_ID};
+use crate::{MACHINE_ID, consts};
 use rand::Rng;
 use snowdon::{ClassicLayout, Epoch, Generator, MachineId, Snowflake};
 use std::sync::LazyLock;

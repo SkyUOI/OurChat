@@ -1,5 +1,5 @@
 use crate::{
-    connection::{client_response::UploadResponse, Connection, DBRequest},
+    connection::{Connection, DBRequest, client_response::UploadResponse},
     consts::{Bt, ID},
     requests::upload::Upload,
     utils::generate_random_string,
