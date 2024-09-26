@@ -132,9 +132,9 @@ impl Server {
 
     #[derive::db_compatibility]
     pub async fn new_session(
-        id: ID,
-        resp: oneshot::Sender<Result<NewSessionResponse, requests::Status>>,
-        db_connection: &DatabaseConnection,
+        _id: ID,
+        _resp: oneshot::Sender<Result<NewSessionResponse, requests::Status>>,
+        _db_connection: &DatabaseConnection,
     ) -> anyhow::Result<()> {
         Ok(())
     }

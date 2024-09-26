@@ -4,9 +4,9 @@ pub mod httpserver;
 mod process;
 
 use crate::connection::DBRequest;
-use crate::{HttpSender, connection};
+use crate::{HttpSender, SharedData, connection};
 use std::net::SocketAddr;
-use std::process::exit;
+use std::sync::Arc;
 use tokio::net::TcpStream;
 use tokio::{
     net::TcpListener,
@@ -14,43 +14,35 @@ use tokio::{
     sync::{broadcast, mpsc},
 };
 pub struct Server {
-    addr: (String, u16),
     tcplistener: TcpListener,
     db: Option<sea_orm::DatabaseConnection>,
-    redis: Option<redis::Client>,
+    _redis: Option<redis::Client>,
     task_solver_sender: mpsc::Sender<DBRequest>,
     task_solver_receiver: Option<mpsc::Receiver<DBRequest>>,
     http_sender: HttpSender,
-    test_mode: bool,
+    _test_mode: bool,
+    shared_data: Arc<SharedData>,
 }
 
 impl Server {
     pub async fn new(
-        addr: (impl Into<String>, u16),
+        tcplistener: TcpListener,
         db: sea_orm::DatabaseConnection,
         redis: redis::Client,
         http_sender: HttpSender,
         test_mode: bool,
+        shared_data: Arc<SharedData>,
     ) -> anyhow::Result<Self> {
-        let ip = addr.0.into();
-        let bind_addr = format!("{}:{}", &ip, addr.1);
-        let tcplistener = match TcpListener::bind(&bind_addr).await {
-            Ok(listener) => listener,
-            Err(e) => {
-                tracing::error!("Failed to bind {}:{}", bind_addr, e);
-                exit(1)
-            }
-        };
         let (task_solver_sender, task_solver_receiver) = mpsc::channel(32);
         let ret = Self {
-            addr: (ip, addr.1),
             tcplistener,
             db: Some(db),
-            redis: Some(redis),
+            _redis: Some(redis),
             task_solver_sender,
             task_solver_receiver: Some(task_solver_receiver),
-            test_mode,
+            _test_mode: test_mode,
             http_sender,
+            shared_data,
         };
         Ok(ret)
     }
@@ -82,6 +74,7 @@ impl Server {
                             http_sender,
                             shutdown_handle,
                             task_sender,
+                            self.shared_data.clone(),
                         ));
                     }
                     Err(e) => {
@@ -135,6 +128,7 @@ impl Server {
         http_sender: HttpSender,
         shutdown_sender: broadcast::Sender<()>,
         task_sender: mpsc::Sender<DBRequest>,
+        shared_data: Arc<SharedData>,
     ) {
         let ws_stream = match tokio_tungstenite::accept_async(stream).await {
             Ok(data) => data,
@@ -143,8 +137,13 @@ impl Server {
                 return;
             }
         };
-        let mut connection =
-            connection::Connection::new(ws_stream, http_sender, shutdown_sender, task_sender);
+        let mut connection = connection::Connection::new(
+            ws_stream,
+            http_sender,
+            shutdown_sender,
+            task_sender,
+            shared_data,
+        );
         match connection.work().await {
             Ok(_) => {
                 tracing::info!("Connection closed: {}", addr);

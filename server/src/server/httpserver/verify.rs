@@ -1,47 +1,27 @@
 use actix_web::{HttpResponse, Responder, get, web};
 use dashmap::DashMap;
-use lettre::{AsyncSmtpTransport, AsyncTransport, transport::smtp::authentication::Credentials};
+use lettre::AsyncTransport;
 use serde::{Deserialize, Serialize};
-use std::sync::LazyLock;
+use std::sync::{Arc, LazyLock};
 use tokio::{
     sync::{mpsc, oneshot},
     time::Instant,
 };
-
-use crate::{EMAIL_AVAILABLE, global_cfg};
 
 #[derive(Serialize, Deserialize)]
 struct VerifyForm {
     email: String,
 }
 
-struct EmailSender {}
+struct _EmailSender {}
 
 #[cfg(test)]
 #[mockall::automock]
-impl EmailSender {
-    fn new(addr: String) -> Self {
-        EmailSender {}
+impl _EmailSender {
+    fn _new(_addr: String) -> Self {
+        _EmailSender {}
     }
 }
-
-pub static MAILER: LazyLock<Option<AsyncSmtpTransport<lettre::Tokio1Executor>>> =
-    LazyLock::new(|| {
-        if !*EMAIL_AVAILABLE {
-            return None;
-        }
-        let cfg = global_cfg(None);
-        let creds = Credentials::new(
-            cfg.email_address.clone().unwrap(),
-            cfg.smtp_password.clone().unwrap(),
-        );
-        Some(
-            AsyncSmtpTransport::<lettre::Tokio1Executor>::relay(&cfg.smtp_address.clone().unwrap())
-                .unwrap()
-                .credentials(creds)
-                .build(),
-        )
-    });
 
 #[get("/verify/{token}")]
 async fn verify_token(
@@ -92,24 +72,25 @@ impl VerifyManager {
 
     pub async fn add_record(
         manager: web::Data<VerifyManager>,
+        shared_data: Arc<crate::SharedData>,
         mut request_receiver: mpsc::Receiver<VerifyRequest>,
     ) {
-        let cfg = global_cfg(None);
         while let Some((data, resp_sender)) = request_receiver.recv().await {
-            if *EMAIL_AVAILABLE {
+            if shared_data.shared_state.email_available {
                 let email = match lettre::Message::builder()
                     .from(
-                        format!("OurChat <{}>", cfg.email_address.as_ref().unwrap())
-                            .parse()
-                            .unwrap(),
+                        format!(
+                            "OurChat <{}>",
+                            shared_data.cfg.email_address.as_ref().unwrap()
+                        )
+                        .parse()
+                        .unwrap(),
                     )
                     .to(format!("User <{}>", data.email).parse().unwrap())
                     .subject("OurChat Verification")
                     .body(format!(
                         "please click \"{}:{}/verify/{}\" to verify your email",
-                        cfg.ip,
-                        cfg.http_port.unwrap(),
-                        data.token
+                        shared_data.cfg.ip, shared_data.cfg.http_port, data.token
                     )) {
                     Err(e) => {
                         resp_sender.send(Err(anyhow::anyhow!(e))).unwrap();
@@ -117,7 +98,14 @@ impl VerifyManager {
                     }
                     Ok(email) => email,
                 };
-                match MAILER.as_ref().unwrap().send(email).await {
+                match shared_data
+                    .shared_state
+                    .email_client
+                    .as_ref()
+                    .unwrap()
+                    .send(email)
+                    .await
+                {
                     Err(e) => {
                         resp_sender.send(Err(anyhow::anyhow!(e))).unwrap();
                         continue;
@@ -156,8 +144,6 @@ pub fn config(cfg: &mut web::ServiceConfig) {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[tokio::test]
     async fn test_email_send() {}
 }

@@ -7,7 +7,7 @@ use dashmap::DashMap;
 use futures_util::StreamExt;
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
+use sha3::{Digest, Sha3_256 as Sha256};
 use tokio::sync::mpsc;
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -10,7 +10,6 @@ use std::{
 use config::File;
 use migration::MigratorTrait;
 use serde::{Deserialize, Serialize};
-use static_keys::{define_static_key_false, static_branch_likely, static_branch_unlikely};
 
 #[derive(Debug, Deserialize, Serialize)]
 struct MysqlDbCfg {
@@ -33,7 +32,7 @@ impl SqliteDbCfg {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, strum::EnumString)]
+#[derive(Debug, Deserialize, Serialize, Clone, strum::EnumString, Copy)]
 pub enum DbType {
     #[serde(rename = "mysql")]
     #[strum(serialize = "mysql")]
@@ -51,33 +50,29 @@ impl Default for DbType {
 
 pub static DB_TYPE: OnceLock<DbType> = OnceLock::new();
 
-define_static_key_false!(DB_INIT);
 pub static MYSQL_TYPE: static_keys::StaticFalseKey = static_keys::new_static_false_key();
 pub static SQLITE_TYPE: static_keys::StaticFalseKey = static_keys::new_static_false_key();
 
 /// 初始化数据库层
 pub fn init_db_system(db_type: DbType) {
     tracing::info!("Init db system");
-    DB_TYPE.get_or_init(|| db_type.clone());
-    tracing::info!("db type: {:?}", DB_TYPE.get().unwrap());
-    if static_branch_unlikely!(DB_INIT) {
-        tracing::error!("Init db system twice");
-        panic!("Init db system twice");
-    } else {
-        unsafe { DB_INIT.enable() }
+    DB_TYPE.get_or_init(|| {
+        tracing::info!("db type: {:?}", db_type);
         match db_type {
             DbType::MySql => unsafe { MYSQL_TYPE.enable() },
             DbType::Sqlite => unsafe { SQLITE_TYPE.enable() },
-        }
-    }
+        };
+        db_type.clone()
+    });
 }
 
 pub fn get_db_type() -> DbType {
-    if static_branch_likely!(DB_INIT) {
-        DB_TYPE.get().unwrap().clone()
-    } else {
-        tracing::error!("Db system has not been inited");
-        panic!("Db system has not been inited");
+    match DB_TYPE.get() {
+        Some(db_type) => db_type.clone(),
+        None => {
+            tracing::error!("Db system has not been inited");
+            panic!("Db system has not been inited");
+        }
     }
 }
 
@@ -86,7 +81,7 @@ pub fn get_db_url(path: &Path, basepath: &Path) -> anyhow::Result<String> {
     let db_type = get_db_type();
     match db_type {
         DbType::MySql => {
-            let mut cfg = config::Config::builder()
+            let cfg = config::Config::builder()
                 .add_source(config::File::with_name(path.to_str().unwrap()))
                 .build()?;
             let cfg: MysqlDbCfg = cfg.try_deserialize()?;
@@ -97,7 +92,7 @@ pub fn get_db_url(path: &Path, basepath: &Path) -> anyhow::Result<String> {
             Ok(path)
         }
         DbType::Sqlite => {
-            let mut cfg = config::Config::builder()
+            let cfg = config::Config::builder()
                 .add_source(config::File::with_name(path.to_str().unwrap()))
                 .build()?;
             let mut cfg: SqliteDbCfg = cfg.try_deserialize()?;

@@ -38,10 +38,11 @@ sqlx = { version = "0", features = ["runtime-tokio-rustls", "sqlite"] }
 derive = { path = "derive" }
 actix-web = { version = "4", features = ["rustls"] }
 dashmap = { "version" = "6" }
-sha2 = "0"
+sha3 = "0"
 uuid = "1"
 config = "0"
 validator = "0"
+argon2 = { version = "0", features = ["std"] }
 
 # Useful crates
 collection_literals = "1"
@@ -58,3 +59,4 @@ features = ["tokio1", "tokio1-rustls-tls", "smtp-transport", "builder"]
 assert_cmd = "2"
 reqwest = "0"
 mockall = "0"
+fake = { version = "2" }

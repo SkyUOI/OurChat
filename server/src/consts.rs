@@ -100,6 +100,14 @@ pub const fn default_enable_cmd_stdin() -> bool {
     true
 }
 
+pub const fn default_port() -> u16 {
+    DEFAULT_PORT
+}
+
+pub const fn default_http_port() -> u16 {
+    DEFAULT_HTTP_PORT
+}
+
 macro impl_to_bytes {
     ($($name:ident, ($($opers:tt)*)),*) => {
         $(
