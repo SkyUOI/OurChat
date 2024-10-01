@@ -1,0 +1,50 @@
+import 'package:flutter/material.dart';
+
+void main() {
+  runApp(const MainApp());
+}
+
+class MainApp extends StatefulWidget {
+  const MainApp({super.key});
+
+  @override
+  State<MainApp> createState() => _MainAppState();
+}
+
+class _MainAppState extends State<MainApp> {
+  var currentIndex = 0;
+  @override
+  Widget build(BuildContext context) {
+    var page = const Placeholder();
+    return MaterialApp(
+      home: Scaffold(
+        body: Column(
+          children: [
+            SafeArea(
+              child: BottomNavigationBar(
+                items: const [
+                  BottomNavigationBarItem(
+                      icon: Icon(Icons.login), label: "Login"),
+                  BottomNavigationBarItem(
+                      icon: Icon(Icons.person_add), label: "Register"),
+                  BottomNavigationBarItem(
+                      icon: Icon(Icons.settings), label: "Setting")
+                ],
+                currentIndex: currentIndex,
+                onTap: (index){
+                  setState(() {
+                    currentIndex = index;
+                  });
+                },
+              ),
+            ),
+            Expanded(child: page)
+          ],
+        ),
+      ),
+      theme: ThemeData(
+          useMaterial3: true,
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue)),
+    );
+  }
+}
