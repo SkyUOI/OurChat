@@ -26,7 +26,9 @@ jobs:
       - name: Build Release
         run: cargo check --all --release
       - name: Sqlite Test
-        run: "script/action_test_server.py sqlite"
+        run: |
+          python3 script/action_test_server.py sqlite
+          rm -rf target
       - name: Test
         uses: SkyUOI/github-action-docker-compose-test-run@main
         with:
