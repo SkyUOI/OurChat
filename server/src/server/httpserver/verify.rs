@@ -75,22 +75,20 @@ impl VerifyManager {
         shared_data: Arc<crate::SharedData>,
         mut request_receiver: mpsc::Receiver<VerifyRequest>,
     ) {
+        let cfg = &shared_data.cfg.main_cfg;
         while let Some((data, resp_sender)) = request_receiver.recv().await {
             if shared_data.shared_state.email_available {
                 let email = match lettre::Message::builder()
                     .from(
-                        format!(
-                            "OurChat <{}>",
-                            shared_data.cfg.email_address.as_ref().unwrap()
-                        )
-                        .parse()
-                        .unwrap(),
+                        format!("OurChat <{}>", cfg.email_address.as_ref().unwrap())
+                            .parse()
+                            .unwrap(),
                     )
                     .to(format!("User <{}>", data.email).parse().unwrap())
                     .subject("OurChat Verification")
                     .body(format!(
                         "please click \"{}:{}/verify/{}\" to verify your email",
-                        shared_data.cfg.ip, shared_data.cfg.http_port, data.token
+                        cfg.ip, cfg.http_port, data.token
                     )) {
                     Err(e) => {
                         resp_sender.send(Err(anyhow::anyhow!(e))).unwrap();

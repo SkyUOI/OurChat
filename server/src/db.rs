@@ -12,21 +12,21 @@ use migration::MigratorTrait;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
-struct MysqlDbCfg {
-    host: String,
-    user: String,
-    db: String,
-    port: usize,
-    passwd: String,
+pub struct MysqlDbCfg {
+    pub host: String,
+    pub user: String,
+    pub db: String,
+    pub port: usize,
+    pub passwd: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-struct SqliteDbCfg {
-    path: PathBuf,
+pub struct SqliteDbCfg {
+    pub path: PathBuf,
 }
 
 impl SqliteDbCfg {
-    fn convert_to_abs_path(&mut self, basepath: &Path) -> anyhow::Result<()> {
+    pub fn convert_to_abs_path(&mut self, basepath: &Path) -> anyhow::Result<()> {
         self.path = base::resolve_relative_path(basepath, &self.path)?;
         Ok(())
     }
@@ -40,6 +40,11 @@ pub enum DbType {
     #[serde(rename = "sqlite")]
     #[strum(serialize = "sqlite")]
     Sqlite,
+}
+
+pub enum DbCfg {
+    Mysql(MysqlDbCfg),
+    Sqlite(SqliteDbCfg),
 }
 
 impl Default for DbType {
@@ -77,14 +82,17 @@ pub fn get_db_type() -> DbType {
 }
 
 /// 根据配置文件生成连接数据库的url
-pub fn get_db_url(path: &Path, basepath: &Path) -> anyhow::Result<String> {
+pub fn get_db_url(cfg: &DbCfg) -> anyhow::Result<String> {
     let db_type = get_db_type();
     match db_type {
         DbType::MySql => {
-            let cfg = config::Config::builder()
-                .add_source(config::File::with_name(path.to_str().unwrap()))
-                .build()?;
-            let cfg: MysqlDbCfg = cfg.try_deserialize()?;
+            let cfg = match cfg {
+                DbCfg::Mysql(cfg) => cfg,
+                DbCfg::Sqlite(_) => {
+                    tracing::error!("sqlite database config for mysql database");
+                    anyhow::bail!("sqlite database config for mysql database");
+                }
+            };
             let path = format!(
                 "mysql://{}:{}@{}:{}/{}",
                 cfg.user, cfg.passwd, cfg.host, cfg.port, cfg.db
@@ -92,11 +100,13 @@ pub fn get_db_url(path: &Path, basepath: &Path) -> anyhow::Result<String> {
             Ok(path)
         }
         DbType::Sqlite => {
-            let cfg = config::Config::builder()
-                .add_source(config::File::with_name(path.to_str().unwrap()))
-                .build()?;
-            let mut cfg: SqliteDbCfg = cfg.try_deserialize()?;
-            cfg.convert_to_abs_path(basepath)?;
+            let cfg = match cfg {
+                DbCfg::Sqlite(cfg) => cfg,
+                DbCfg::Mysql(_) => {
+                    tracing::error!("mysql database config for sqlite database");
+                    anyhow::bail!("mysql database config for sqlite database")
+                }
+            };
             Ok(format!("sqlite://{}", cfg.path.display()))
         }
     }
@@ -129,15 +139,17 @@ pub async fn try_create_mysql_db(url: &str) -> anyhow::Result<()> {
                 tracing::info!("Created mysql database {}", url);
             }
             Err(e) => {
-                tracing::error!("Failed to create mysql database: {}", e);
-                anyhow::bail!("Failed to create mysql database: {}", e);
+                tracing::error!(
+                    "Failed to create mysql database: {}.Maybe the database already exists",
+                    e
+                );
             }
         }
     }
     Ok(())
 }
 
-/// 根据url连接数据库
+/// connect to database according to url
 pub async fn connect_to_db(url: &str) -> anyhow::Result<sea_orm::DatabaseConnection> {
     let db_type = get_db_type();
     match db_type {

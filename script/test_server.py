@@ -1,14 +1,13 @@
 import os
 import sys
 
-import basic
 
 test_command = "cargo test "
 
 
 def run_tests():
     print("Running tests...")
-    test_process = basic.msg_system(test_command)
+    test_process = os.system(test_command)
     if test_process != 0:
         raise Exception("Tests failed.")
 
