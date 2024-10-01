@@ -14,7 +14,7 @@ def run_tests():
 
 def test_process() -> int:
     return_code = 0
-    # 运行测试
+    # Run tests
     os.putenv("OURCHAT_CONFIG_FILE", os.path.abspath("config/sqlite/ourchat.toml"))
     run_tests()
     os.putenv("OURCHAT_CONFIG_FILE", os.path.abspath("config/mysql/ourchat.toml"))

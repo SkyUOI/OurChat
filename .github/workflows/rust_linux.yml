@@ -22,19 +22,15 @@ jobs:
           sudo apt update
           sudo apt install valgrind -y
       - name: Build
-        run: cargo build --all
+        run: cargo check --all
       - name: Build Release
         run: cargo check --all --release
-      - name: Sqlite Test
-        run: |
-          python3 script/test_server.py
-          sudo rm -rf target/
-      - name: Mysql Test
+      - name: Test
         uses: SkyUOI/github-action-docker-compose-test-run@main
         with:
           file: compose.yml
           service: OurChatServer
-          command: "script/action_test_server.py script/server_test_mysql.json"
+          command: "script/action_test_server.py"
           registry: "ghcr.io"
           docker-compose-version: "2.29.1"
           entrypoint: "python3"
