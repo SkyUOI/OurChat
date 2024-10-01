@@ -1,5 +1,5 @@
 use crate::consts::{self, FileSize};
-use parking_lot::Mutex;
+use parking_lot::{Mutex, RwLock};
 use static_keys::{define_static_key_false, static_branch_unlikely};
 
 static AUTO_CLEAN_DURATION: Mutex<u64> = Mutex::new(consts::default_clear_interval());
@@ -27,14 +27,15 @@ pub fn set_file_save_days(days: u64) {
 }
 
 define_static_key_false!(MAINTAINING);
+static MAINTAINING_PROTECTION: RwLock<bool> = RwLock::new(false);
 
 pub fn get_maintaining() -> bool {
+    let _lock = MAINTAINING_PROTECTION.read();
     static_branch_unlikely!(MAINTAINING)
 }
 
-/// # Safety
-/// should be called in multi-thread environment
-pub unsafe fn set_maintaining(maintaining: bool) {
+pub fn set_maintaining(maintaining: bool) {
+    let _lock = MAINTAINING_PROTECTION.write();
     unsafe {
         if maintaining {
             MAINTAINING.enable();

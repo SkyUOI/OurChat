@@ -8,8 +8,9 @@ use crate::{
     shared_state::{self},
 };
 use colored::Colorize;
+use parking_lot::Mutex;
 use sea_orm::DatabaseConnection;
-use std::{cell::RefCell, collections::BTreeMap, io::Write, rc::Rc, str::FromStr};
+use std::{collections::BTreeMap, io::Write, str::FromStr, sync::Arc};
 use tokio::{
     io::{self, AsyncBufReadExt, BufReader},
     net::{TcpListener, TcpStream},
@@ -21,7 +22,7 @@ type CheckFunc = fn(&InstManager, Vec<String>) -> Result<Option<String>, String>
 
 /// 储存一个指令的信息
 struct Inst {
-    name: InstName,
+    _name: InstName,
     name_interbal: &'static str,
     short_help: String,
     details_help: String,
@@ -44,28 +45,28 @@ enum InstName {
 
 struct InstManager {
     // 使用Map，因为需要稳定的输出
-    insts: Rc<RefCell<BTreeMap<InstName, Rc<Inst>>>>,
+    insts: Arc<Mutex<BTreeMap<InstName, Arc<Inst>>>>,
 }
 
 impl InstManager {
     fn new() -> Self {
-        let insts = Rc::new(RefCell::new(collection_literals::collection! {
-            InstName::Exit => Rc::new(Inst {
-                name: InstName::Exit,
+        let insts = Arc::new(Mutex::new(collection_literals::collection! {
+            InstName::Exit => Arc::new(Inst {
+                _name: InstName::Exit,
                 name_interbal: "exit",
                 short_help: "Exit the server".to_string(),
                 details_help: "Exit the server.Usage: exit".to_string(),
                 command_process: exit_process,
             }),
-            InstName::Help => Rc::new(Inst {
-                name: InstName::Help,
+            InstName::Help => Arc::new(Inst {
+                _name: InstName::Help,
                 name_interbal: "help",
                 short_help: "Display the Help information".to_string(),
                 details_help: "Displap the help information Help.Usage: help command1 command2".to_string(),
                 command_process: help_process,
             }),
-            InstName::Set => Rc::new(Inst {
-                name: InstName::Set,
+            InstName::Set => Arc::new(Inst {
+                _name: InstName::Set,
                 name_interbal: "set",
                 short_help: "Set variable of the server".to_string(),
                 details_help: r#"Set variable of the server.
@@ -78,8 +79,8 @@ AutoCleanCycle(How long will be cleaned): Number of days
 FileSaveDays(How long the files will be kept): Number of days"#.to_string(),
                 command_process: set_process,
             }),
-            InstName::Get => Rc::new(Inst {
-                name: InstName::Get,
+            InstName::Get => Arc::new(Inst {
+                _name: InstName::Get,
                 name_interbal: "get",
                 short_help: "Get variable of the server".to_string(),
                 details_help: "Get variable of the server.
@@ -92,8 +93,8 @@ AutoCleanCycle(How long will be cleaned): Number of days
 FileSaveDays(How long the files will be kept): Number of day".to_string(),
                 command_process: get_process,
             }),
-            InstName::CleanFS => Rc::new(Inst {
-                name: InstName::CleanFS,
+            InstName::CleanFS => Arc::new(Inst {
+                _name: InstName::CleanFS,
                 name_interbal: "cleanfs",
                 short_help: "Clean the file system".to_string(),
                 details_help: "Clean the file system. Usage: cleanfs".to_string(),
@@ -104,11 +105,11 @@ FileSaveDays(How long the files will be kept): Number of day".to_string(),
         Self { insts }
     }
 
-    fn get_inst(&self, name: &InstName) -> Option<Rc<Inst>> {
-        self.insts.borrow().get(name).cloned()
+    fn get_inst(&self, name: &InstName) -> Option<Arc<Inst>> {
+        self.insts.lock().get(name).cloned()
     }
 
-    fn get_map(&self) -> Rc<RefCell<BTreeMap<InstName, Rc<Inst>>>> {
+    fn get_map(&self) -> Arc<Mutex<BTreeMap<InstName, Arc<Inst>>>> {
         self.insts.clone()
     }
 }
@@ -133,7 +134,7 @@ fn help_process(insts: &InstManager, argvs: Vec<String>) -> Result<Option<String
     if argvs.is_empty() {
         // 输出宽泛信息
         ret.push_str("There are commands supported by console:\n\n");
-        for inst in insts.get_map().borrow().values() {
+        for inst in insts.get_map().lock().values() {
             ret.push_str(&format!("{}: {}\n", inst.name_interbal, inst.short_help));
         }
         ret.push_str(&"\nRefer to \"https://ourchat.readthedocs.io/en/latest/docs/run/server_cmd.html\" for more information\n".to_string());
@@ -208,7 +209,7 @@ fn set_process(_: &InstManager, argvs: Vec<String>) -> Result<Option<String>, St
             match status {
                 ServerStatus::Maintaining => {
                     if !shared_state::get_maintaining() {
-                        unsafe { shared_state::set_maintaining(true) };
+                        shared_state::set_maintaining(true);
                         ret.push_str("Set server status to Maintaining");
                     } else {
                         ret.push_str("Server status is already Maintaining");
@@ -216,7 +217,7 @@ fn set_process(_: &InstManager, argvs: Vec<String>) -> Result<Option<String>, St
                 }
                 ServerStatus::Normal => {
                     if shared_state::get_maintaining() {
-                        unsafe { shared_state::set_maintaining(false) }
+                        shared_state::set_maintaining(false);
                         ret.push_str("Set server status to Normal");
                     } else {
                         ret.push_str("Server status is already Normal");
@@ -385,24 +386,24 @@ pub async fn setup_stdin(
     Ok(())
 }
 
-struct CmdConnection {
+struct _CmdConnection {
     socket: WS,
 }
 
-impl CmdConnection {
-    fn new(socket: WS) -> Self {
+impl _CmdConnection {
+    fn _new(socket: WS) -> Self {
         Self { socket }
     }
 }
 
-async fn handle_connection(socket: TcpStream) -> anyhow::Result<()> {
+async fn handle_connection(_socket: TcpStream) -> anyhow::Result<()> {
     Ok(())
 }
 
 /// setup network cmd
 pub async fn setup_network(
     cmd_port: u16,
-    command_sdr: mpsc::Sender<CommandTransmitData>,
+    _command_sdr: mpsc::Sender<CommandTransmitData>,
     mut shutdown_rec: ShutdownRev,
 ) -> anyhow::Result<()> {
     let logic = async {

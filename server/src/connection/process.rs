@@ -36,7 +36,7 @@ impl Connection {
         id: ID,
         db_sender: &mpsc::Sender<DBRequest>,
         net_sender: &mpsc::Sender<Message>,
-        json: NewSession,
+        _json: NewSession,
     ) -> anyhow::Result<()> {
         let channel = oneshot::channel();
         let new_session = DBRequest::NewSession {

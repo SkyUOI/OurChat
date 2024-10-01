@@ -16,7 +16,7 @@ impl MigrationTrait for Migration {
                 .col(big_unsigned(User::Id))
                 .col(char_len_uniq(User::Ocid, 10))
                 .col(char_len(User::Passwd, 64))
-                .col(char_len(User::Name, 15))
+                .col(char_len(User::Name, 200))
                 .col(char_len_uniq(User::Email, 120))
                 .col(big_unsigned(User::Time))
                 .col(integer(User::ResourceUsed))
@@ -32,7 +32,7 @@ impl MigrationTrait for Migration {
                 .if_not_exists()
                 .col(big_unsigned(Friend::UserId))
                 .col(big_unsigned(Friend::FriendId))
-                .col(char_len(Friend::Name, 15))
+                .col(char_len(Friend::Name, 200))
                 .foreign_key(
                     ForeignKey::create()
                         .from(Friend::Table, Friend::FriendId)
@@ -52,7 +52,7 @@ impl MigrationTrait for Migration {
                 .table(Session::Table)
                 .if_not_exists()
                 .col(big_unsigned(Session::SessionId))
-                .col(char_len(Session::GroupName, 30))
+                .col(char_len(Session::GroupName, 200))
                 .primary_key(Index::create().col(Session::SessionId)),
         )
         .await?;
@@ -63,8 +63,8 @@ impl MigrationTrait for Migration {
                 .if_not_exists()
                 .col(big_unsigned(SessionRelation::SessionId))
                 .col(big_unsigned(SessionRelation::UserId))
-                .col(char_len(SessionRelation::NickName, 15))
-                .col(char_len(SessionRelation::GroupName, 30))
+                .col(char_len(SessionRelation::NickName, 200))
+                .col(char_len(SessionRelation::GroupName, 200))
                 .foreign_key(
                     ForeignKey::create()
                         .from(SessionRelation::Table, SessionRelation::UserId)

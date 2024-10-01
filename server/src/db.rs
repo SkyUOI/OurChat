@@ -10,30 +10,29 @@ use std::{
 use config::File;
 use migration::MigratorTrait;
 use serde::{Deserialize, Serialize};
-use static_keys::{define_static_key_false, static_branch_likely, static_branch_unlikely};
 
 #[derive(Debug, Deserialize, Serialize)]
-struct MysqlDbCfg {
-    host: String,
-    user: String,
-    db: String,
-    port: usize,
-    passwd: String,
+pub struct MysqlDbCfg {
+    pub host: String,
+    pub user: String,
+    pub db: String,
+    pub port: usize,
+    pub passwd: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-struct SqliteDbCfg {
-    path: PathBuf,
+pub struct SqliteDbCfg {
+    pub path: PathBuf,
 }
 
 impl SqliteDbCfg {
-    fn convert_to_abs_path(&mut self, basepath: &Path) -> anyhow::Result<()> {
+    pub fn convert_to_abs_path(&mut self, basepath: &Path) -> anyhow::Result<()> {
         self.path = base::resolve_relative_path(basepath, &self.path)?;
         Ok(())
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, strum::EnumString)]
+#[derive(Debug, Deserialize, Serialize, Clone, strum::EnumString, Copy)]
 pub enum DbType {
     #[serde(rename = "mysql")]
     #[strum(serialize = "mysql")]
@@ -41,6 +40,11 @@ pub enum DbType {
     #[serde(rename = "sqlite")]
     #[strum(serialize = "sqlite")]
     Sqlite,
+}
+
+pub enum DbCfg {
+    Mysql(MysqlDbCfg),
+    Sqlite(SqliteDbCfg),
 }
 
 impl Default for DbType {
@@ -51,45 +55,44 @@ impl Default for DbType {
 
 pub static DB_TYPE: OnceLock<DbType> = OnceLock::new();
 
-define_static_key_false!(DB_INIT);
 pub static MYSQL_TYPE: static_keys::StaticFalseKey = static_keys::new_static_false_key();
 pub static SQLITE_TYPE: static_keys::StaticFalseKey = static_keys::new_static_false_key();
 
 /// 初始化数据库层
 pub fn init_db_system(db_type: DbType) {
     tracing::info!("Init db system");
-    DB_TYPE.get_or_init(|| db_type.clone());
-    tracing::info!("db type: {:?}", DB_TYPE.get().unwrap());
-    if static_branch_unlikely!(DB_INIT) {
-        tracing::error!("Init db system twice");
-        panic!("Init db system twice");
-    } else {
-        unsafe { DB_INIT.enable() }
+    DB_TYPE.get_or_init(|| {
+        tracing::info!("db type: {:?}", db_type);
         match db_type {
             DbType::MySql => unsafe { MYSQL_TYPE.enable() },
             DbType::Sqlite => unsafe { SQLITE_TYPE.enable() },
+        };
+        db_type.clone()
+    });
+}
+
+pub fn get_db_type() -> DbType {
+    match DB_TYPE.get() {
+        Some(db_type) => db_type.clone(),
+        None => {
+            tracing::error!("Db system has not been inited");
+            panic!("Db system has not been inited");
         }
     }
 }
 
-pub fn get_db_type() -> DbType {
-    if static_branch_likely!(DB_INIT) {
-        DB_TYPE.get().unwrap().clone()
-    } else {
-        tracing::error!("Db system has not been inited");
-        panic!("Db system has not been inited");
-    }
-}
-
 /// 根据配置文件生成连接数据库的url
-pub fn get_db_url(path: &Path, basepath: &Path) -> anyhow::Result<String> {
+pub fn get_db_url(cfg: &DbCfg) -> anyhow::Result<String> {
     let db_type = get_db_type();
     match db_type {
         DbType::MySql => {
-            let mut cfg = config::Config::builder()
-                .add_source(config::File::with_name(path.to_str().unwrap()))
-                .build()?;
-            let cfg: MysqlDbCfg = cfg.try_deserialize()?;
+            let cfg = match cfg {
+                DbCfg::Mysql(cfg) => cfg,
+                DbCfg::Sqlite(_) => {
+                    tracing::error!("sqlite database config for mysql database");
+                    anyhow::bail!("sqlite database config for mysql database");
+                }
+            };
             let path = format!(
                 "mysql://{}:{}@{}:{}/{}",
                 cfg.user, cfg.passwd, cfg.host, cfg.port, cfg.db
@@ -97,11 +100,13 @@ pub fn get_db_url(path: &Path, basepath: &Path) -> anyhow::Result<String> {
             Ok(path)
         }
         DbType::Sqlite => {
-            let mut cfg = config::Config::builder()
-                .add_source(config::File::with_name(path.to_str().unwrap()))
-                .build()?;
-            let mut cfg: SqliteDbCfg = cfg.try_deserialize()?;
-            cfg.convert_to_abs_path(basepath)?;
+            let cfg = match cfg {
+                DbCfg::Sqlite(cfg) => cfg,
+                DbCfg::Mysql(_) => {
+                    tracing::error!("mysql database config for sqlite database");
+                    anyhow::bail!("mysql database config for sqlite database")
+                }
+            };
             Ok(format!("sqlite://{}", cfg.path.display()))
         }
     }
@@ -134,15 +139,17 @@ pub async fn try_create_mysql_db(url: &str) -> anyhow::Result<()> {
                 tracing::info!("Created mysql database {}", url);
             }
             Err(e) => {
-                tracing::error!("Failed to create mysql database: {}", e);
-                anyhow::bail!("Failed to create mysql database: {}", e);
+                tracing::error!(
+                    "Failed to create mysql database: {}.Maybe the database already exists",
+                    e
+                );
             }
         }
     }
     Ok(())
 }
 
-/// 根据url连接数据库
+/// connect to database according to url
 pub async fn connect_to_db(url: &str) -> anyhow::Result<sea_orm::DatabaseConnection> {
     let db_type = get_db_type();
     match db_type {

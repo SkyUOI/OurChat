@@ -4,8 +4,10 @@ mod basic;
 pub mod client_response;
 mod process;
 
+use std::sync::Arc;
+
 use crate::{
-    EMAIL_AVAILABLE, HttpSender,
+    HttpSender,
     consts::{Bt, ID, MessageType},
     requests::{self, new_session::NewSession, upload::Upload},
     server::httpserver::{FileRecord, VerifyRecord},
@@ -66,6 +68,7 @@ pub struct Connection {
     shutdown_sender: broadcast::Sender<()>,
     request_sender: mpsc::Sender<DBRequest>,
     http_sender: Option<HttpSender>,
+    shared_data: Arc<crate::SharedData>,
 }
 enum VerifyStatus {
     Success(ID),
@@ -78,12 +81,14 @@ impl Connection {
         http_sender: HttpSender,
         shutdown_sender: broadcast::Sender<()>,
         request_sender: mpsc::Sender<DBRequest>,
+        shared_data: Arc<crate::SharedData>,
     ) -> Self {
         Self {
             socket: Some(socket),
             http_sender: Some(http_sender),
             shutdown_sender,
             request_sender,
+            shared_data,
         }
     }
 
@@ -138,13 +143,14 @@ impl Connection {
         code: MessageType,
         json: &Value,
         http_sender: &mut HttpSender,
+        shared_data: &Arc<crate::SharedData>,
     ) -> anyhow::Result<Option<String>> {
         match code {
             MessageType::GetStatus => {
                 Ok(Some(serde_json::to_string(&GetStatusResponse::normal())?))
             }
             MessageType::Verify => {
-                if !*EMAIL_AVAILABLE {
+                if !shared_data.shared_state.email_available {
                     return Ok(Some(serde_json::to_string(
                         &VerifyResponse::email_cannot_be_sent(),
                     )?));
@@ -181,6 +187,7 @@ impl Connection {
         outgoing: mpsc::Sender<Message>,
         request_sender: &mpsc::Sender<DBRequest>,
         http_sender: &mut HttpSender,
+        shared_data: Arc<crate::SharedData>,
     ) -> anyhow::Result<Option<VerifyStatus>> {
         loop {
             let msg = match incoming.next().await {
@@ -228,7 +235,8 @@ impl Connection {
                                     }
                                 };
                                 if let Some(resp) =
-                                    Self::low_level_action(code, &json, http_sender).await?
+                                    Self::low_level_action(code, &json, http_sender, &shared_data)
+                                        .await?
                                 {
                                     outgoing.send(Message::Text(resp)).await?;
                                     continue;
@@ -281,6 +289,7 @@ impl Connection {
         db_sender: mpsc::Sender<DBRequest>,
         mut http_sender: HttpSender,
         mut shutdown_receiver: broadcast::Receiver<()>,
+        shared_data: Arc<crate::SharedData>,
     ) -> anyhow::Result<()> {
         let net_send_closure = |data| async {
             net_sender.send(data).await?;
@@ -329,9 +338,13 @@ impl Connection {
                                             continue 'con_loop;
                                         }
                                     };
-                                    if let Some(oper_success) =
-                                        Self::low_level_action(code, &json, &mut http_sender)
-                                            .await?
+                                    if let Some(oper_success) = Self::low_level_action(
+                                        code,
+                                        &json,
+                                        &mut http_sender,
+                                        &shared_data,
+                                    )
+                                    .await?
                                     {
                                         net_sender.send(Message::Text(oper_success)).await?;
                                         continue;
@@ -501,6 +514,7 @@ impl Connection {
                 msg_sender.clone(),
                 &request_sender,
                 &mut http_sender,
+                self.shared_data.clone(),
             ) => {
                 id = match ret? {
                     Some(ret) => {
@@ -525,6 +539,7 @@ impl Connection {
             request_sender,
             http_sender,
             shutdown_receiver,
+            self.shared_data.clone(),
         )
         .await?;
         Ok(())

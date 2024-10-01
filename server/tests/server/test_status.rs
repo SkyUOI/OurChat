@@ -1,23 +1,22 @@
-mod test_lib;
-
+use crate::helper;
 use futures_util::{SinkExt, StreamExt};
 use server::{
     connection::client_response::get_status::GetStatusResponse, requests::get_status::GetStatus,
 };
 use tokio_tungstenite::tungstenite::Message;
 
+#[tokio::test]
 async fn test_status() {
-    let conn = test_lib::get_connection().await;
+    let mut app = helper::TestApp::new_logined().await.unwrap();
     let req = GetStatus::new();
-    let mut lock = conn.lock().await;
-    lock.send(Message::Text(serde_json::to_string(&req).unwrap()))
+    app.connection
+        .send(Message::Text(serde_json::to_string(&req).unwrap()))
         .await
         .unwrap();
-    let ret = lock.next().await.unwrap().unwrap();
+    let ret = app.connection.next().await.unwrap().unwrap();
     assert_eq!(
         ret,
         Message::Text(serde_json::to_string(&GetStatusResponse::normal()).unwrap())
     );
+    app.async_drop().await;
 }
-
-register_test!(test_status);
