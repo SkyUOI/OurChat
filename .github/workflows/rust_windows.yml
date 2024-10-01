@@ -22,5 +22,5 @@ jobs:
         run: cargo check --all --release
       - name: Sqlite Test
         run: |
-          python3 script/test_server.py
+          python3 script/test_server.py sqlite
           Remove-Item -Path "target" -Recurse -Force

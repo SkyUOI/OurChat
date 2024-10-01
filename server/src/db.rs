@@ -139,7 +139,7 @@ pub async fn try_create_mysql_db(url: &str) -> anyhow::Result<()> {
                 tracing::info!("Created mysql database {}", url);
             }
             Err(e) => {
-                tracing::error!(
+                tracing::warn!(
                     "Failed to create mysql database: {}.Maybe the database already exists",
                     e
                 );
