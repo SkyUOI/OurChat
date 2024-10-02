@@ -104,6 +104,7 @@ pub struct TestApp {
     pub db_url: String,
 
     server_config: server::Cfg,
+    has_dropped: bool,
 }
 
 trait TestAppTrait {
@@ -160,6 +161,7 @@ impl TestApp {
             handle,
             db_url,
             server_config,
+            has_dropped: false,
         };
         println!("register user: {:?}", obj.user);
         obj.register().await;
@@ -271,19 +273,22 @@ impl TestApp {
     pub async fn async_drop(&mut self) {
         self.unregister().await;
         self.close_connection().await;
+        self.handle.abort();
         match self.server_config.main_cfg.db_type {
             DbType::Sqlite => {
                 sqlx::Sqlite::drop_database(&self.db_url).await.unwrap();
+                let mut path = PathBuf::from(&self.db_url.strip_prefix("sqlite://").unwrap());
                 // remove shm and wal file
-                // path.set_extension("db-shm");
-                // remove_file(&path).await.unwrap();
-                // path.set_extension("db-wal");
-                // remove_file(&path).await.unwrap();
+                path.set_extension("db-shm");
+                remove_file(&path).await.ok();
+                path.set_extension("db-wal");
+                remove_file(&path).await.ok();
             }
             DbType::MySql => {
                 sqlx::MySql::drop_database(&self.db_url).await.unwrap();
             }
         }
+        self.has_dropped = true;
     }
 
     pub async fn close_connection(&mut self) {
@@ -293,6 +298,8 @@ impl TestApp {
 
 impl Drop for TestApp {
     fn drop(&mut self) {
-        self.handle.abort();
+        if !self.has_dropped {
+            panic!("async_drop is not called to drop this app");
+        }
     }
 }
