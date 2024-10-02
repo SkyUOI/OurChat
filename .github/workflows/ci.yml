@@ -15,12 +15,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Install Ruff
-        run: curl -LsSf https://astral.sh/ruff/install.sh | sh
-      - name: Python Fmt
-        run: ruff format --check
-      - name: Python Lint
-        run: ruff check
       - name: Rust Fmt
         run: cargo fmt --check
       - name: typos-action

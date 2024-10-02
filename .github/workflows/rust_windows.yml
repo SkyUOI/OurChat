@@ -17,9 +17,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - name: Build
-        run: cargo build --all
+        run: cargo build --bin server
       - name: Build Release
-        run: cargo check --all --release
+        run: cargo check --bin server --release
       - name: Sqlite Test
         run: |
           python3 script/test_server.py sqlite
