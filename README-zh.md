@@ -1,13 +1,15 @@
 # OurChat
 
+[![codecov](https://codecov.io/github/SkyUOI/OurChat/graph/badge.svg?token=U6BWN74URE)](https://codecov.io/github/SkyUOI/OurChat)
+
 <!-- markdownlint-disable MD033 -->
 <div style="text-align: center;">
     <img src="./resource/logo.png" alt="OurChat_logo" />
 </div>
 <!-- markdownlint-enable MD033 -->
 
-| 平台      | 状态                                                                                                     |
-|:--------|:-------------------------------------------------------------------------------------------------------|
+| 平台    | 状态                                                                                                   |
+| :------ | :----------------------------------------------------------------------------------------------------- |
 | Linux   | ![Linux Test](https://img.shields.io/github/actions/workflow/status/skyuoi/ourchat/rust_linux.yml)     |
 | Windows | ![Windows Test](https://img.shields.io/github/actions/workflow/status/skyuoi/ourchat/rust_windows.yml) |
 | Macos   | ![Macos Test](https://img.shields.io/github/actions/workflow/status/skyuoi/ourchat/rust_macos.yml)     |
