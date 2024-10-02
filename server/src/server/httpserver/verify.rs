@@ -8,28 +8,24 @@ use tokio::{
     time::Instant,
 };
 
+use crate::component::EmailSender;
+
 #[derive(Serialize, Deserialize)]
 struct VerifyForm {
     email: String,
 }
-
-struct _EmailSender {}
-
-#[cfg(test)]
-#[mockall::automock]
-impl _EmailSender {
-    fn _new(_addr: String) -> Self {
-        _EmailSender {}
-    }
+#[derive(Debug, Deserialize)]
+struct Param {
+    token: String,
 }
 
-#[get("/verify/{token}")]
+#[get("/verify/confirm")]
 async fn verify_token(
     manager: web::Data<VerifyManager>,
-    token: web::Path<String>,
+    param: web::Query<Param>,
 ) -> impl Responder {
     // check if token is valid
-    match manager.get_records(&token.into_inner()) {
+    match manager.get_records(&param.token) {
         None => HttpResponse::BadRequest(),
         Some(token) => {
             manager.remove_record(&token.record.token);
@@ -72,39 +68,24 @@ impl VerifyManager {
 
     pub async fn add_record(
         manager: web::Data<VerifyManager>,
-        shared_data: Arc<crate::SharedData>,
+        shared_data: Arc<crate::SharedData<impl EmailSender>>,
         mut request_receiver: mpsc::Receiver<VerifyRequest>,
     ) {
         let cfg = &shared_data.cfg.main_cfg;
         while let Some((data, resp_sender)) = request_receiver.recv().await {
-            if shared_data.shared_state.email_available {
-                let email = match lettre::Message::builder()
-                    .from(
-                        format!("OurChat <{}>", cfg.email_address.as_ref().unwrap())
-                            .parse()
-                            .unwrap(),
+            if let Some(ref email_client) = shared_data.email_client {
+                if let Err(e) = email_client
+                    .send(
+                        format!("User <{}>", data.email).parse().unwrap(),
+                        "OurChat Verification",
+                        format!(
+                            "please click \"{}:{}/verify/{}\" to verify your email",
+                            cfg.ip, cfg.http_port, data.token
+                        ),
                     )
-                    .to(format!("User <{}>", data.email).parse().unwrap())
-                    .subject("OurChat Verification")
-                    .body(format!(
-                        "please click \"{}:{}/verify/{}\" to verify your email",
-                        cfg.ip, cfg.http_port, data.token
-                    )) {
-                    Err(e) => {
-                        resp_sender.send(Err(anyhow::anyhow!(e))).unwrap();
-                        continue;
-                    }
-                    Ok(email) => email,
-                };
-                if let Err(e) = shared_data
-                    .shared_state
-                    .email_client
-                    .as_ref()
-                    .unwrap()
-                    .send(email)
                     .await
                 {
-                    resp_sender.send(Err(anyhow::anyhow!(e))).unwrap();
+                    resp_sender.send(Err(e)).unwrap();
                     continue;
                 };
             }

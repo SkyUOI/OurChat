@@ -8,6 +8,7 @@ use std::sync::Arc;
 
 use crate::{
     HttpSender,
+    component::EmailSender,
     consts::{Bt, ID, MessageType},
     requests::{self, new_session::NewSession, upload::Upload},
     server::httpserver::{FileRecord, VerifyRecord},
@@ -63,25 +64,25 @@ pub enum DBRequest {
 pub type WS = WebSocketStream<TcpStream>;
 
 /// Connection to a client
-pub struct Connection {
+pub struct Connection<T: EmailSender + 'static> {
     socket: Option<WebSocketStream<TcpStream>>,
     shutdown_sender: broadcast::Sender<()>,
     request_sender: mpsc::Sender<DBRequest>,
     http_sender: Option<HttpSender>,
-    shared_data: Arc<crate::SharedData>,
+    shared_data: Arc<crate::SharedData<T>>,
 }
 enum VerifyStatus {
     Success(ID),
     Fail,
 }
 
-impl Connection {
+impl<T: EmailSender + 'static> Connection<T> {
     pub fn new(
         socket: WS,
         http_sender: HttpSender,
         shutdown_sender: broadcast::Sender<()>,
         request_sender: mpsc::Sender<DBRequest>,
-        shared_data: Arc<crate::SharedData>,
+        shared_data: Arc<crate::SharedData<T>>,
     ) -> Self {
         Self {
             socket: Some(socket),
@@ -143,14 +144,14 @@ impl Connection {
         code: MessageType,
         json: &Value,
         http_sender: &mut HttpSender,
-        shared_data: &Arc<crate::SharedData>,
+        shared_data: &Arc<crate::SharedData<impl EmailSender>>,
     ) -> anyhow::Result<Option<String>> {
         match code {
             MessageType::GetStatus => {
                 Ok(Some(serde_json::to_string(&GetStatusResponse::normal())?))
             }
             MessageType::Verify => {
-                if !shared_data.shared_state.email_available {
+                if shared_data.email_client.is_none() {
                     return Ok(Some(serde_json::to_string(
                         &VerifyResponse::email_cannot_be_sent(),
                     )?));
@@ -187,7 +188,7 @@ impl Connection {
         outgoing: mpsc::Sender<Message>,
         request_sender: &mpsc::Sender<DBRequest>,
         http_sender: &mut HttpSender,
-        shared_data: Arc<crate::SharedData>,
+        shared_data: Arc<crate::SharedData<T>>,
     ) -> anyhow::Result<Option<VerifyStatus>> {
         loop {
             let msg = match incoming.next().await {
@@ -289,7 +290,7 @@ impl Connection {
         db_sender: mpsc::Sender<DBRequest>,
         mut http_sender: HttpSender,
         mut shutdown_receiver: broadcast::Receiver<()>,
-        shared_data: Arc<crate::SharedData>,
+        shared_data: Arc<crate::SharedData<T>>,
     ) -> anyhow::Result<()> {
         let net_send_closure = |data| async {
             net_sender.send(data).await?;

@@ -7,7 +7,7 @@ use tokio_tungstenite::tungstenite::Message;
 
 #[tokio::test]
 async fn test_status() {
-    let mut app = helper::TestApp::new_logined().await.unwrap();
+    let mut app = helper::TestApp::new_logined(None).await.unwrap();
     let req = GetStatus::new();
     app.connection
         .send(Message::Text(serde_json::to_string(&req).unwrap()))

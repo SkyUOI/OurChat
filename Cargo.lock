@@ -4207,6 +4207,7 @@ dependencies = [
  "anyhow",
  "argon2",
  "assert_cmd",
+ "async-trait",
  "base",
  "bytes",
  "chrono",

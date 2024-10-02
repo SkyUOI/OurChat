@@ -15,7 +15,7 @@ async fn failed_login(conn: &mut ClientWS) {
 
 #[tokio::test]
 async fn test_email_login() {
-    let mut app = helper::TestApp::new().await.unwrap();
+    let mut app = helper::TestApp::new(None).await.unwrap();
     failed_login(&mut app.connection).await;
     app.email_login().await;
     app.async_drop().await;
@@ -23,7 +23,7 @@ async fn test_email_login() {
 
 #[tokio::test]
 async fn test_ocid_login() {
-    let mut app = helper::TestApp::new().await.unwrap();
+    let mut app = helper::TestApp::new(None).await.unwrap();
     failed_login(&mut app.connection).await;
     app.ocid_login().await;
     app.async_drop().await;

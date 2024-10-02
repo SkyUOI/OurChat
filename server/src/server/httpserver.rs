@@ -5,7 +5,7 @@ mod verify;
 
 use std::sync::Arc;
 
-use crate::{HttpSender, ShutdownRev};
+use crate::{HttpSender, ShutdownRev, component::EmailSender};
 use actix_web::{
     App,
     web::{self, Data},
@@ -28,7 +28,7 @@ impl HttpServer {
         &mut self,
         listener: std::net::TcpListener,
         db_conn: DatabaseConnection,
-        shared_data: Arc<crate::SharedData>,
+        shared_data: Arc<crate::SharedData<impl EmailSender>>,
         mut shutdown_receiver: ShutdownRev,
     ) -> anyhow::Result<(JoinHandle<anyhow::Result<()>>, HttpSender)> {
         let upload_manager = Data::new(upload::UploadManager::new());

@@ -1,5 +1,6 @@
 use super::Server;
 use crate::{
+    component::EmailSender,
     connection::client_response::{self, LoginResponse, NewSessionResponse, RegisterResponse},
     consts::{self, Bt, ID},
     requests, shared_state, utils,
@@ -12,7 +13,7 @@ use sea_orm::{
 use snowdon::ClassicLayoutSnowflakeExtension;
 use tokio::sync::oneshot;
 
-impl Server {
+impl<T: EmailSender> Server<T> {
     #[derive::db_compatibility]
     pub async fn login(
         request: requests::Login,

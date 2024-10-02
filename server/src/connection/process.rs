@@ -7,11 +7,11 @@ use super::{
     Connection, DBRequest,
     client_response::{NewSessionResponse, UnregisterResponse},
 };
-use crate::{consts::ID, requests::new_session::NewSession};
+use crate::{component::EmailSender, consts::ID, requests::new_session::NewSession};
 use tokio::sync::{mpsc, oneshot};
 use tokio_tungstenite::tungstenite::protocol::Message;
 
-impl Connection {
+impl<T: EmailSender> Connection<T> {
     pub async fn unregister(
         id: ID,
         db_sender: &mpsc::Sender<DBRequest>,
