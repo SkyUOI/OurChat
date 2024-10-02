@@ -2,7 +2,7 @@ import os
 import sys
 
 
-test_command = "cargo test "
+test_command = "cargo test --bin server"
 
 
 def run_tests():
