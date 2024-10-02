@@ -1,10 +1,10 @@
 //! Helper functions for tests
 
-use fake::Fake;
 use fake::faker::internet::raw::FreeEmail;
 use fake::faker::name::en;
 use fake::faker::name::raw::Name;
 use fake::locales::EN;
+use fake::Fake;
 use futures_util::{SinkExt, StreamExt};
 use parking_lot::Mutex;
 use rand::Rng;
@@ -14,7 +14,7 @@ use server::consts::MessageType;
 use server::db::{DbCfg, DbCfgTrait, DbType};
 use server::requests::{self, Login, LoginType, Register, Unregister};
 use server::utils::gen_ws_bind_addr;
-use server::{Application, ArgsParser, ParserCfg};
+use server::{Application, ArgsParser, ParserCfg, ShutdownSdr};
 use sqlx::migrate::MigrateDatabase;
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -23,8 +23,8 @@ use std::time::Duration;
 use tokio::fs::remove_file;
 use tokio::net::TcpStream;
 use tokio::task::JoinHandle;
-use tokio_tungstenite::WebSocketStream;
 use tokio_tungstenite::tungstenite::Message;
+use tokio_tungstenite::WebSocketStream;
 
 pub type ClientWS = WebSocketStream<tokio_tungstenite::MaybeTlsStream<TcpStream>>;
 
@@ -105,6 +105,7 @@ pub struct TestApp {
 
     server_config: server::Cfg,
     has_dropped: bool,
+    server_drop_handle: ShutdownSdr,
 }
 
 trait TestAppTrait {
@@ -147,6 +148,8 @@ impl TestApp {
         let mut application = Application::build(args, server_config.clone()).await?;
         let port = application.get_port();
         let http_port = application.get_http_port();
+        let abort_handle = application.get_abort_handle();
+
         let handle = tokio::spawn(async move {
             application.run_forever().await.unwrap();
         });
@@ -162,6 +165,7 @@ impl TestApp {
             db_url,
             server_config,
             has_dropped: false,
+            server_drop_handle: abort_handle,
         };
         println!("register user: {:?}", obj.user);
         obj.register().await;
@@ -271,14 +275,24 @@ impl TestApp {
     }
 
     pub async fn async_drop(&mut self) {
+        tracing::info!("async_drop called");
         self.unregister().await;
+        tracing::info!("unregister done");
         self.close_connection().await;
-        self.handle.abort();
+        tracing::info!("connection closed");
+        self.server_drop_handle.send(()).unwrap();
+        tracing::info!("shutdown message sent");
+        loop {
+            if self.handle.is_finished() {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+        tracing::info!("app shutdowned");
         match self.server_config.main_cfg.db_type {
             DbType::Sqlite => {
                 sqlx::Sqlite::drop_database(&self.db_url).await.unwrap();
                 let mut path = PathBuf::from(&self.db_url.strip_prefix("sqlite://").unwrap());
-                // remove shm and wal file
                 path.set_extension("db-shm");
                 remove_file(&path).await.ok();
                 path.set_extension("db-wal");
@@ -288,6 +302,7 @@ impl TestApp {
                 sqlx::MySql::drop_database(&self.db_url).await.unwrap();
             }
         }
+        tracing::info!("db deleted");
         self.has_dropped = true;
     }
 

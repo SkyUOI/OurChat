@@ -17,8 +17,8 @@ use clap::Parser;
 use cmd::CommandTransmitData;
 use config::File;
 use consts::{FileSize, STDIN_AVAILABLE};
-use db::{DbCfg, DbType, MysqlDbCfg, SqliteDbCfg, file_storage};
-use lettre::{AsyncSmtpTransport, transport::smtp::authentication::Credentials};
+use db::{file_storage, DbCfg, DbType, MysqlDbCfg, SqliteDbCfg};
+use lettre::{transport::smtp::authentication::Credentials, AsyncSmtpTransport};
 use parking_lot::Once;
 use rand::Rng;
 use sea_orm::DatabaseConnection;
@@ -38,14 +38,14 @@ use tokio::{
 };
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{
-    EnvFilter, Layer, Registry, fmt, layer::SubscriberExt, util::SubscriberInitExt,
+    fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer, Registry,
 };
 
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
-type ShutdownRev = broadcast::Receiver<()>;
-type ShutdownSdr = broadcast::Sender<()>;
+pub type ShutdownRev = broadcast::Receiver<()>;
+pub type ShutdownSdr = broadcast::Sender<()>;
 
 #[derive(Debug, Parser, Default)]
 #[command(author = "SkyUOI", version = base::build::VERSION, about = "The Server of OurChat")]
@@ -315,6 +315,8 @@ pub struct Application {
     shared: Arc<SharedData>,
     server_listener: Option<TcpListener>,
     http_listener: Option<std::net::TcpListener>,
+    /// for shutdowning server fully,you shouldn't use handle.abort() to do this
+    abort_sender: ShutdownSdr,
 }
 
 struct SharedState {
@@ -415,6 +417,7 @@ impl Application {
             Some(enable_cmd) => enable_cmd,
         };
         main_cfg.enable_cmd = enable_cmd;
+        let (abort_sender, _) = broadcast::channel(20);
 
         Ok(Self {
             shared: Arc::new(SharedData {
@@ -426,6 +429,7 @@ impl Application {
             }),
             server_listener: Some(server_listener),
             http_listener: Some(http_listener),
+            abort_sender,
         })
     }
 
@@ -435,6 +439,10 @@ impl Application {
 
     pub fn get_http_port(&self) -> u16 {
         self.shared.cfg.main_cfg.http_port
+    }
+
+    pub fn get_abort_handle(&self) -> ShutdownSdr {
+        self.abort_sender.clone()
     }
 
     pub async fn run_forever(&mut self) -> anyhow::Result<()> {
@@ -448,7 +456,7 @@ impl Application {
 
         // start maintain mode
         shared_state::set_maintaining(cfg.cmd_args.maintaining);
-        // 设置共享状态
+        // Set up shared state
         shared_state::set_auto_clean_duration(cfg.auto_clean_duration);
         shared_state::set_file_save_days(cfg.file_save_days);
         shared_state::set_user_files_store_limit(cfg.user_files_limit);
@@ -459,15 +467,13 @@ impl Application {
         db::init_db(&db).await?;
         let redis = db::connect_to_redis(&db::get_redis_url(&cfg.rediscfg)?).await?;
 
-        // 用于通知关闭的channel
-        let (shutdown_sender, _) = broadcast::channel(32);
         // Build http server
         let (handle, record_sender) = httpserver::HttpServer::new()
             .start(
                 self.http_listener.take().unwrap(),
                 db.clone(),
                 self.shared.clone(),
-                shutdown_sender.subscribe(),
+                self.abort_sender.subscribe(),
             )
             .await?;
 
@@ -477,14 +483,14 @@ impl Application {
             redis,
             record_sender,
             self.shared.clone(),
-            shutdown_sender.clone(),
-            shutdown_sender.subscribe(),
+            self.abort_sender.clone(),
+            self.abort_sender.subscribe(),
         )
         .await?;
         // 启动数据库文件系统
-        file_storage::FileSys::new(db.clone()).start(shutdown_sender.subscribe());
+        file_storage::FileSys::new(db.clone()).start(self.abort_sender.subscribe());
         // 启动关闭信号监听
-        exit_signal(shutdown_sender.clone()).await?;
+        exit_signal(self.abort_sender.clone()).await?;
         // 启动控制台
         if cfg.enable_cmd {
             let mut is_enable = false;
@@ -495,7 +501,7 @@ impl Application {
                 }
                 Some(port) => {
                     let command_sdr = command_sdr.clone();
-                    let shutdown_rev = shutdown_sender.subscribe();
+                    let shutdown_rev = self.abort_sender.subscribe();
                     tokio::spawn(async move {
                         match cmd::setup_network(port, command_sdr, shutdown_rev).await {
                             Ok(_) => {}
@@ -509,7 +515,7 @@ impl Application {
             }
             // 启动控制台源
             if cfg.enable_cmd_stdin && *STDIN_AVAILABLE {
-                let shutdown_sender = shutdown_sender.clone();
+                let shutdown_sender = self.abort_sender.clone();
                 tokio::spawn(async move {
                     match cmd::setup_stdin(command_sdr, shutdown_sender.subscribe()).await {
                         Ok(_) => {}
@@ -522,18 +528,19 @@ impl Application {
             }
             cmd_start(
                 command_rev,
-                shutdown_sender.clone(),
-                db,
+                self.abort_sender.clone(),
+                db.clone(),
                 cfg.cmd_args.test_mode,
             )
             .await?;
             if !is_enable {
                 // 控制台并未正常启动
                 tracing::warn!("cmd is not enabled");
-                shutdown_sender.subscribe().recv().await?;
+                self.abort_sender.subscribe().recv().await?;
             }
         }
         handle.await??;
+        db.close().await?;
         tracing::info!("Server exited");
         Ok(())
     }
