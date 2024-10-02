@@ -2,10 +2,14 @@ import os
 import sys
 
 
-test_command = "cargo test --bin server"
+default_test_command = "cargo test"
 
 
 def run_tests():
+    if len(sys.argv) > 2:
+        test_command = sys.argv[2]
+    else:
+        test_command = default_test_command
     print("Running tests...")
     test_process = os.system(test_command)
     if test_process != 0:

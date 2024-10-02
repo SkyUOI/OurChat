@@ -23,11 +23,11 @@ jobs:
           sudo apt install valgrind -y
       - name: Build
         run: cargo build --all
-      - name: Build Release
-        run: cargo check --all --release
       - name: Sqlite Test
+        run: python3 script/action_test_server.py sqlite
+      - name: Build Release
         run: |
-          python3 script/action_test_server.py sqlite
+          cargo check --all --release
           rm -rf target
       - name: Test
         uses: SkyUOI/github-action-docker-compose-test-run@main

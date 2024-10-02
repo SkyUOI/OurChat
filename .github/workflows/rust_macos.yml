@@ -18,9 +18,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Build
         run: cargo build --all
-      - name: Build Release
-        run: cargo check --all --release
       - name: Sqlite Test
+        run: python3 script/test_server.py sqlite
+      - name: Build Release
         run: |
-          python3 script/test_server.py sqlite
-          sudo rm -rf target/
+          cargo check --all --release

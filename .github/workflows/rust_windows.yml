@@ -18,9 +18,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Build
         run: cargo build --bin server
-      - name: Build Release
-        run: cargo check --bin server --release
       - name: Sqlite Test
         run: |
-          python3 script/test_server.py sqlite
-          Remove-Item -Path "target" -Recurse -Force
+          python3 script/test_server.py sqlite "cargo test --test server"
+      - name: Build Release
+        run: cargo check --bin server --release
