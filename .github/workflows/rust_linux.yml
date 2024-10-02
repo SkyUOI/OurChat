@@ -26,17 +26,17 @@ jobs:
       - name: Build
         run: cargo build --all
       - name: Sqlite Test
-        run: python3 script/action_test_server.py sqlite "cargo tarpaulin -o xml"
+        run: python3 script/action_test_server.py sqlite "cargo tarpaulin -o lcov"
       - name: Coverage
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: tarpaulin-report.xml
+          path: lcov.info
       - name: Display Coverage
         uses: codecov/codecov-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          file: tarpaulin-report.xml
+          file: lcov.info
 
       - name: Build Release
         run: |
