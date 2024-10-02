@@ -1,10 +1,10 @@
 //! Helper functions for tests
 
+use fake::Fake;
 use fake::faker::internet::raw::FreeEmail;
 use fake::faker::name::en;
 use fake::faker::name::raw::Name;
 use fake::locales::EN;
-use fake::Fake;
 use futures_util::{SinkExt, StreamExt};
 use parking_lot::Mutex;
 use rand::Rng;
@@ -23,8 +23,8 @@ use std::time::Duration;
 use tokio::fs::remove_file;
 use tokio::net::TcpStream;
 use tokio::task::JoinHandle;
-use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::WebSocketStream;
+use tokio_tungstenite::tungstenite::Message;
 
 pub type ClientWS = WebSocketStream<tokio_tungstenite::MaybeTlsStream<TcpStream>>;
 

@@ -17,8 +17,8 @@ use clap::Parser;
 use cmd::CommandTransmitData;
 use config::File;
 use consts::{FileSize, STDIN_AVAILABLE};
-use db::{file_storage, DbCfg, DbType, MysqlDbCfg, SqliteDbCfg};
-use lettre::{transport::smtp::authentication::Credentials, AsyncSmtpTransport};
+use db::{DbCfg, DbType, MysqlDbCfg, SqliteDbCfg, file_storage};
+use lettre::{AsyncSmtpTransport, transport::smtp::authentication::Credentials};
 use parking_lot::Once;
 use rand::Rng;
 use sea_orm::DatabaseConnection;
@@ -38,7 +38,7 @@ use tokio::{
 };
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{
-    fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer, Registry,
+    EnvFilter, Layer, Registry, fmt, layer::SubscriberExt, util::SubscriberInitExt,
 };
 
 #[global_allocator]
