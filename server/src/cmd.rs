@@ -23,7 +23,7 @@ type CheckFunc = fn(&InstManager, Vec<String>) -> Result<Option<String>, String>
 /// 储存一个指令的信息
 struct Inst {
     _name: InstName,
-    name_interbal: &'static str,
+    name_internal: &'static str,
     short_help: String,
     details_help: String,
     pub command_process: CheckFunc,
@@ -53,21 +53,21 @@ impl InstManager {
         let insts = Arc::new(Mutex::new(collection_literals::collection! {
             InstName::Exit => Arc::new(Inst {
                 _name: InstName::Exit,
-                name_interbal: "exit",
+                name_internal: "exit",
                 short_help: "Exit the server".to_string(),
                 details_help: "Exit the server.Usage: exit".to_string(),
                 command_process: exit_process,
             }),
             InstName::Help => Arc::new(Inst {
                 _name: InstName::Help,
-                name_interbal: "help",
+                name_internal: "help",
                 short_help: "Display the Help information".to_string(),
-                details_help: "Displap the help information Help.Usage: help command1 command2".to_string(),
+                details_help: "Display the help information Help.Usage: help command1 command2".to_string(),
                 command_process: help_process,
             }),
             InstName::Set => Arc::new(Inst {
                 _name: InstName::Set,
-                name_interbal: "set",
+                name_internal: "set",
                 short_help: "Set variable of the server".to_string(),
                 details_help: r#"Set variable of the server.
 Usage: set varname value
@@ -81,7 +81,7 @@ FileSaveDays(How long the files will be kept): Number of days"#.to_string(),
             }),
             InstName::Get => Arc::new(Inst {
                 _name: InstName::Get,
-                name_interbal: "get",
+                name_internal: "get",
                 short_help: "Get variable of the server".to_string(),
                 details_help: "Get variable of the server.
 Usage: get varname
@@ -95,7 +95,7 @@ FileSaveDays(How long the files will be kept): Number of day".to_string(),
             }),
             InstName::CleanFS => Arc::new(Inst {
                 _name: InstName::CleanFS,
-                name_interbal: "cleanfs",
+                name_internal: "cleanfs",
                 short_help: "Clean the file system".to_string(),
                 details_help: "Clean the file system. Usage: cleanfs".to_string(),
                 command_process: cleanfs_process,
@@ -135,16 +135,16 @@ fn help_process(insts: &InstManager, argvs: Vec<String>) -> Result<Option<String
         // 输出宽泛信息
         ret.push_str("There are commands supported by console:\n\n");
         for inst in insts.get_map().lock().values() {
-            ret.push_str(&format!("{}: {}\n", inst.name_interbal, inst.short_help));
+            ret.push_str(&format!("{}: {}\n", inst.name_internal, inst.short_help));
         }
-        ret.push_str(&"\nRefer to \"https://ourchat.readthedocs.io/en/latest/docs/run/server_cmd.html\" for more information\n".to_string());
+        ret.push_str("\nRefer to \"https://ourchat.readthedocs.io/en/latest/docs/run/server_cmd.html\" for more information\n");
     } else {
         // 针对给定的参数输出帮助信息
         for name in argvs {
             match InstName::from_str(&name) {
                 Ok(inst) => {
                     if let Some(inst) = insts.get_inst(&inst) {
-                        ret.push_str(&format!("{}: {}\n", inst.name_interbal, inst.details_help));
+                        ret.push_str(&format!("{}: {}\n", inst.name_internal, inst.details_help));
                     }
                 }
                 Err(_) => {
@@ -349,8 +349,8 @@ pub async fn setup_stdin(
         loop {
             print!(">>> ");
             std::io::stdout().flush()?;
-            let command;
-            command = console_reader.next_line().await.unwrap_or_else(|e| {
+
+            let command = console_reader.next_line().await.unwrap_or_else(|e| {
                 tracing::error!("stdin {}", e);
                 None
             });

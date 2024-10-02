@@ -76,9 +76,9 @@ impl Server {
         db_connection: &DatabaseConnection,
     ) -> anyhow::Result<()> {
         use entities::user::ActiveModel as UserModel;
-        // 生成雪花id
+        // Generate snowflake id
         let id = ID(utils::GENERATOR.generate()?.into_i64().try_into()?);
-        // 随机生成生成ocid
+        // Generate ocid by random
         let ocid = utils::generate_ocid(consts::OCID_LEN);
         let user = UserModel {
             id: ActiveValue::Set(id.into()),
@@ -93,7 +93,7 @@ impl Server {
         };
         match user.insert(db_connection).await {
             Ok(res) => {
-                // 生成正确的响应
+                // Happy Path
                 let response = RegisterResponse::success(res.ocid);
                 resp.send(Ok((response, res.id.into()))).unwrap();
             }

@@ -96,7 +96,7 @@ impl VerifyManager {
                     }
                     Ok(email) => email,
                 };
-                match shared_data
+                if let Err(e) = shared_data
                     .shared_state
                     .email_client
                     .as_ref()
@@ -104,22 +104,16 @@ impl VerifyManager {
                     .send(email)
                     .await
                 {
-                    Err(e) => {
-                        resp_sender.send(Err(anyhow::anyhow!(e))).unwrap();
-                        continue;
-                    }
-                    Ok(_) => {}
+                    resp_sender.send(Err(anyhow::anyhow!(e))).unwrap();
+                    continue;
                 };
             }
             manager.records.insert(data.token.clone(), Token {
                 record: data,
                 time: Instant::now(),
             });
-            match resp_sender.send(Ok(())) {
-                Err(e) => {
-                    tracing::error!("send response error,{:?}", e);
-                }
-                Ok(_) => {}
+            if let Err(e) = resp_sender.send(Ok(())) {
+                tracing::error!("send response error,{:?}", e);
             };
         }
     }

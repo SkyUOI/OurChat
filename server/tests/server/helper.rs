@@ -7,7 +7,7 @@ use fake::faker::name::raw::Name;
 use fake::locales::EN;
 use futures_util::{SinkExt, StreamExt};
 use parking_lot::Mutex;
-use rand::Rng;
+use rand::{Rng, random};
 use serde::{Deserialize, Serialize};
 use server::connection::client_response::{self, UnregisterResponse};
 use server::consts::MessageType;
@@ -126,12 +126,12 @@ impl TestAppTrait for ArgsParser {
 impl TestApp {
     pub async fn new() -> anyhow::Result<Self> {
         let args = server::ArgsParser::test();
-        let server_config = server::get_configuration(args.shared_cfg.config.as_ref()).unwrap();
+        let server_config = server::get_configuration(args.shared_cfg.config.as_ref())?;
         let mut server_config = server::Cfg::new(server_config)?;
         // if db type is sqlite,should crate different database for each test
         let mut db_file = None;
         if let DbCfg::Sqlite(cfg) = &mut server_config.db_cfg {
-            cfg.path = PathBuf::from(format!("{}.db", rand::thread_rng().r#gen::<u64>()));
+            cfg.path = PathBuf::from(format!("{}.db", random::<u64>()));
             db_file = Some(cfg.path.clone());
         }
         let mut application = Application::build(args, server_config).await?;

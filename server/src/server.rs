@@ -20,7 +20,6 @@ pub struct Server {
     task_solver_sender: mpsc::Sender<DBRequest>,
     task_solver_receiver: Option<mpsc::Receiver<DBRequest>>,
     http_sender: HttpSender,
-    _test_mode: bool,
     shared_data: Arc<SharedData>,
 }
 
@@ -30,7 +29,6 @@ impl Server {
         db: sea_orm::DatabaseConnection,
         redis: redis::Client,
         http_sender: HttpSender,
-        test_mode: bool,
         shared_data: Arc<SharedData>,
     ) -> anyhow::Result<Self> {
         let (task_solver_sender, task_solver_receiver) = mpsc::channel(32);
@@ -40,7 +38,6 @@ impl Server {
             _redis: Some(redis),
             task_solver_sender,
             task_solver_receiver: Some(task_solver_receiver),
-            _test_mode: test_mode,
             http_sender,
             shared_data,
         };
@@ -149,7 +146,7 @@ impl Server {
                 tracing::info!("Connection closed: {}", addr);
             }
             Err(e) => {
-                tracing::error!("Connection error: {}", e);
+                tracing::error!("Connection error: {}", crate::utils::error_chain(e));
             }
         }
     }

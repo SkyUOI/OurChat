@@ -167,7 +167,7 @@ impl Connection {
                 match resp_receiver.await {
                     Ok(Ok(_)) => Ok(Some(serde_json::to_string(&VerifyResponse::success())?)),
                     Ok(Err(e)) => {
-                        tracing::error!("Failed to verify email: {}", e);
+                        tracing::info!("Failed to verify email: {}", e);
                         Ok(Some(serde_json::to_string(
                             &VerifyResponse::email_cannot_be_sent(),
                         )?))
@@ -307,10 +307,7 @@ impl Connection {
                         tracing::debug!("recv msg:{}", msg);
                         msg
                     }
-                    Err(e) => {
-                        tracing::error!("recv error:{}", e);
-                        Err(e)?
-                    }
+                    Err(e) => Err(e)?,
                 };
                 match msg {
                     Message::Text(msg) => {
@@ -462,7 +459,7 @@ impl Connection {
                             let code = code.as_u64();
                             if let Some(code) = code {
                                 if code == MessageType::GetStatus as u64 {
-                                    let resp = GetStatusResponse::mataining();
+                                    let resp = GetStatusResponse::maintaining();
                                     socket
                                         .send(Message::Text(serde_json::to_string(&resp).unwrap()))
                                         .await?;

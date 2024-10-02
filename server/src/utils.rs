@@ -45,6 +45,14 @@ pub fn gen_ws_bind_addr(ip: &str, port: u16) -> String {
     format!("ws://{}:{}", ip, port)
 }
 
+pub fn error_chain(e: anyhow::Error) -> String {
+    let mut msg = String::new();
+    for i in e.chain() {
+        msg = format!("{msg}\nCaused by {}", i.to_string().as_str());
+    }
+    msg
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

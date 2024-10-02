@@ -83,3 +83,9 @@ impl HttpServer {
         Ok(())
     }
 }
+
+impl Default for HttpServer {
+    fn default() -> Self {
+        Self::new()
+    }
+}

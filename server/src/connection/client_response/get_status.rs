@@ -17,7 +17,7 @@ impl GetStatusResponse {
         }
     }
 
-    pub fn mataining() -> Self {
+    pub fn maintaining() -> Self {
         Self {
             code: consts::MessageType::GetStatus,
             status: requests::Status::Maintaining,

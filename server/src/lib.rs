@@ -289,14 +289,12 @@ async fn start_server(
     listener: TcpListener,
     db: DatabaseConnection,
     redis: redis::Client,
-    test_mode: bool,
     http_sender: HttpSender,
     shared_data: Arc<SharedData>,
     shutdown_sender: ShutdownSdr,
     shutdown_receiver: broadcast::Receiver<()>,
 ) -> anyhow::Result<()> {
-    let mut server =
-        server::Server::new(listener, db, redis, http_sender, test_mode, shared_data).await?;
+    let mut server = server::Server::new(listener, db, redis, http_sender, shared_data).await?;
     tokio::spawn(async move {
         server
             .accept_sockets(shutdown_sender, shutdown_receiver)
@@ -405,7 +403,7 @@ impl Application {
             && main_cfg.smtp_password.is_some()
             && main_cfg.smtp_address.is_some();
         let email_client = if email_available {
-            Some(build_email_client(&main_cfg))
+            Some(build_email_client(main_cfg))
         } else {
             None
         };
@@ -476,7 +474,6 @@ impl Application {
             self.server_listener.take().unwrap(),
             db.clone(),
             redis,
-            cfg.cmd_args.test_mode,
             record_sender,
             self.shared.clone(),
             shutdown_sender.clone(),

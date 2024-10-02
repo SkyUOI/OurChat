@@ -15,9 +15,7 @@ impl LB {
 #[async_trait::async_trait]
 impl ProxyHttp for LB {
     type CTX = ();
-    fn new_ctx(&self) -> Self::CTX {
-        ()
-    }
+    fn new_ctx(&self) -> Self::CTX {}
 
     async fn upstream_peer(&self, _session: &mut Session, _ctx: &mut ()) -> Result<Box<HttpPeer>> {
         let upstream = self.lb.select(b"", 256).unwrap();
@@ -104,14 +102,14 @@ pub struct PingOpt {
     pub pingora_conf: Option<String>,
 }
 
-impl Into<Opt> for PingOpt {
-    fn into(self) -> Opt {
+impl From<PingOpt> for Opt {
+    fn from(val: PingOpt) -> Self {
         Opt {
-            upgrade: self.upgrade,
-            daemon: self.daemon,
-            nocapture: self.nocapture,
-            test: self.test,
-            conf: self.pingora_conf,
+            upgrade: val.upgrade,
+            daemon: val.daemon,
+            nocapture: val.nocapture,
+            test: val.test,
+            conf: val.pingora_conf,
         }
     }
 }

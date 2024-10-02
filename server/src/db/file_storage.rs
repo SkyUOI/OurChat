@@ -28,14 +28,14 @@ impl FileSys {
         }
     }
 
-    pub fn start(&mut self, mut shutodnw_receiver: ShutdownRev) {
+    pub fn start(&mut self, mut shutdown_receiver: ShutdownRev) {
         let db_conn = self.db_conn.take().unwrap();
         let db_conn_clone = db_conn.clone();
         Self::init();
         tokio::spawn(async move {
             select! {
                 _ = auto_clean_files(db_conn_clone) => {}
-                _ = shutodnw_receiver.recv() => {}
+                _ = shutdown_receiver.recv() => {}
             }
         });
     }

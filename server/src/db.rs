@@ -68,13 +68,13 @@ pub fn init_db_system(db_type: DbType) {
             DbType::MySql => unsafe { MYSQL_TYPE.enable() },
             DbType::Sqlite => unsafe { SQLITE_TYPE.enable() },
         };
-        db_type.clone()
+        db_type
     });
 }
 
 pub fn get_db_type() -> DbType {
     match DB_TYPE.get() {
-        Some(db_type) => db_type.clone(),
+        Some(db_type) => *db_type,
         None => {
             tracing::error!("Db system has not been inited");
             panic!("Db system has not been inited");
@@ -113,7 +113,7 @@ pub fn get_db_url(cfg: &DbCfg) -> anyhow::Result<String> {
     }
 }
 
-pub async fn try_create_sqliet_db(url: &str) -> anyhow::Result<()> {
+pub async fn try_create_sqlite_db(url: &str) -> anyhow::Result<()> {
     use sqlx::{Sqlite, migrate::MigrateDatabase};
     if !Sqlite::database_exists(url).await.unwrap_or(false) {
         tracing::info!("Creating sqlite database {}", url);
@@ -158,7 +158,7 @@ pub async fn connect_to_db(url: &str) -> anyhow::Result<sea_orm::DatabaseConnect
             try_create_mysql_db(url).await?;
         }
         DbType::Sqlite => {
-            try_create_sqliet_db(url).await?;
+            try_create_sqlite_db(url).await?;
         }
     }
     tracing::info!("Connecting to {}", url);

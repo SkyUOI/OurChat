@@ -241,6 +241,8 @@ pub const fn default_user_files_store_limit() -> FileSize {
     FileSize::MB(MBt(100))
 }
 
+pub static STDIN_AVAILABLE: LazyLock<bool> = LazyLock::new(|| std::io::stdin().is_terminal());
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -277,5 +279,3 @@ mod tests {
         assert_eq!(v, test_data);
     }
 }
-
-pub static STDIN_AVAILABLE: LazyLock<bool> = LazyLock::new(|| std::io::stdin().is_terminal());
