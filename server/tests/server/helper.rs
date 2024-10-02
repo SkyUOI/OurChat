@@ -1,6 +1,5 @@
 //! Helper functions for tests
 
-use dashmap::DashMap;
 use fake::Fake;
 use fake::faker::internet::raw::FreeEmail;
 use fake::faker::name::en;
@@ -10,7 +9,7 @@ use futures_util::{SinkExt, StreamExt};
 use parking_lot::Mutex;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
-use server::component::{EmailClient, MockEmailSender, TestReceived};
+use server::component::MockEmailSender;
 use server::connection::client_response::{self, UnregisterResponse};
 use server::consts::MessageType;
 use server::db::{DbCfg, DbCfgTrait, DbType};
@@ -186,6 +185,10 @@ impl TestApp {
     pub async fn send(&mut self, msg: Message) -> anyhow::Result<()> {
         self.connection.send(msg).await?;
         Ok(())
+    }
+
+    pub async fn get(&mut self) -> anyhow::Result<Message> {
+        Ok(self.connection.next().await.unwrap().unwrap())
     }
 
     async fn establish_connection_internal(port: u16) -> anyhow::Result<ClientWS> {

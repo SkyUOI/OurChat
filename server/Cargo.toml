@@ -61,3 +61,4 @@ features = ["tokio1", "tokio1-rustls-tls", "smtp-transport", "builder"]
 assert_cmd = "2"
 reqwest = "0"
 fake = { version = "2" }
+linkify = "0"

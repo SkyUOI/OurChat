@@ -1,6 +1,5 @@
 use actix_web::{HttpResponse, Responder, get, web};
 use dashmap::DashMap;
-use lettre::AsyncTransport;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, LazyLock};
 use tokio::{

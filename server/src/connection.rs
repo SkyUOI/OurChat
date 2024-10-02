@@ -60,7 +60,7 @@ pub enum DBRequest {
     },
 }
 
-/// websocket
+/// server-side websocket
 pub type WS = WebSocketStream<TcpStream>;
 
 /// Connection to a client
@@ -76,7 +76,7 @@ enum VerifyStatus {
     Fail,
 }
 
-impl<T: EmailSender + 'static> Connection<T> {
+impl<T: EmailSender> Connection<T> {
     pub fn new(
         socket: WS,
         http_sender: HttpSender,
@@ -93,7 +93,7 @@ impl<T: EmailSender + 'static> Connection<T> {
         }
     }
 
-    /// 登录请求
+    /// Login Request
     async fn login_request(
         request_sender: &mpsc::Sender<DBRequest>,
         login_data: requests::Login,
@@ -116,7 +116,7 @@ impl<T: EmailSender + 'static> Connection<T> {
         }
     }
 
-    /// 注册请求
+    /// Register Request
     async fn register_request(
         request_sender: &mpsc::Sender<DBRequest>,
         register_data: requests::Register,

@@ -7,7 +7,6 @@ pub struct EmailClient {
 }
 
 type InternalEmailClient = AsyncSmtpTransport<lettre::Tokio1Executor>;
-pub type TestReceived = dashmap::DashMap<String, Vec<lettre::Message>>;
 
 impl EmailClient {
     pub fn new(client: InternalEmailClient, email_address: &str) -> anyhow::Result<Self> {
