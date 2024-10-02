@@ -19,6 +19,7 @@ use config::File;
 use consts::{FileSize, STDIN_AVAILABLE};
 use db::{DbCfg, DbType, MysqlDbCfg, SqliteDbCfg, file_storage};
 use lettre::{AsyncSmtpTransport, transport::smtp::authentication::Credentials};
+use parking_lot::Once;
 use rand::Rng;
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
@@ -28,7 +29,7 @@ use std::{
     io::Write,
     path::{Path, PathBuf},
     str::FromStr,
-    sync::{Arc, LazyLock, Once, OnceLock},
+    sync::{Arc, LazyLock, OnceLock},
 };
 use tokio::{
     net::TcpListener,

@@ -9,6 +9,7 @@ use std::{
 
 use config::File;
 use migration::MigratorTrait;
+use parking_lot::Once;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -164,11 +165,22 @@ pub async fn connect_to_db(url: &str) -> anyhow::Result<sea_orm::DatabaseConnect
     Ok(sea_orm::Database::connect(url).await?)
 }
 
-/// 初始化数据库并运行迁移
+/// Init Database and Running Migrations
 pub async fn init_db(db: &sea_orm::DatabaseConnection) -> anyhow::Result<()> {
-    migration::Migrator::up(db, None).await?;
-    tracing::info!("Ran all migrations of databases");
-    tracing::info!("Initialized database");
+    static INIT: Once = Once::new();
+    let db_type = get_db_type();
+    let mut flag = match db_type {
+        DbType::MySql => false,
+        DbType::Sqlite => true,
+    };
+    INIT.call_once(|| {
+        flag = true;
+    });
+    if flag {
+        migration::Migrator::up(db, None).await?;
+        tracing::info!("Ran all migrations of databases");
+        tracing::info!("Initialized database");
+    }
     Ok(())
 }
 
