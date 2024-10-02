@@ -21,3 +21,7 @@ jobs:
         uses: crate-ci/typos@master
         with:
           files: .
+      - name: Flutter Check
+        uses: NIOMIND-srl-sb/flutter-analyze-action@v1.0.20
+        with:
+          token: ${{ secrets.ACTION_TOKEN }}
