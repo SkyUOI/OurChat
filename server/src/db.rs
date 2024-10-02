@@ -9,10 +9,10 @@ use std::{
 
 use config::File;
 use migration::MigratorTrait;
-use parking_lot::Once;
+use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct MysqlDbCfg {
     pub host: String,
     pub user: String,
@@ -21,7 +21,20 @@ pub struct MysqlDbCfg {
     pub passwd: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+pub trait DbCfgTrait {
+    fn url(&self) -> String;
+}
+
+impl DbCfgTrait for MysqlDbCfg {
+    fn url(&self) -> String {
+        format!(
+            "mysql://{}:{}@{}:{}/{}",
+            self.user, self.passwd, self.host, self.port, self.db
+        )
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct SqliteDbCfg {
     pub path: PathBuf,
 }
@@ -30,6 +43,12 @@ impl SqliteDbCfg {
     pub fn convert_to_abs_path(&mut self, basepath: &Path) -> anyhow::Result<()> {
         self.path = base::resolve_relative_path(basepath, &self.path)?;
         Ok(())
+    }
+}
+
+impl DbCfgTrait for SqliteDbCfg {
+    fn url(&self) -> String {
+        format!("sqlite://{}", self.path.display())
     }
 }
 
@@ -43,6 +62,7 @@ pub enum DbType {
     Sqlite,
 }
 
+#[derive(Debug, Clone)]
 pub enum DbCfg {
     Mysql(MysqlDbCfg),
     Sqlite(SqliteDbCfg),
@@ -94,11 +114,7 @@ pub fn get_db_url(cfg: &DbCfg) -> anyhow::Result<String> {
                     anyhow::bail!("sqlite database config for mysql database");
                 }
             };
-            let path = format!(
-                "mysql://{}:{}@{}:{}/{}",
-                cfg.user, cfg.passwd, cfg.host, cfg.port, cfg.db
-            );
-            Ok(path)
+            Ok(cfg.url())
         }
         DbType::Sqlite => {
             let cfg = match cfg {
@@ -108,18 +124,20 @@ pub fn get_db_url(cfg: &DbCfg) -> anyhow::Result<String> {
                     anyhow::bail!("mysql database config for sqlite database")
                 }
             };
-            Ok(format!("sqlite://{}", cfg.path.display()))
+            Ok(cfg.url())
         }
     }
 }
 
-pub async fn try_create_sqlite_db(url: &str) -> anyhow::Result<()> {
+pub async fn try_create_sqlite_db(url: &str) -> anyhow::Result<DatabaseConnection> {
     use sqlx::{Sqlite, migrate::MigrateDatabase};
+    let mut should_run_migrations = false;
     if !Sqlite::database_exists(url).await.unwrap_or(false) {
         tracing::info!("Creating sqlite database {}", url);
         match Sqlite::create_database(url).await {
             Ok(_) => {
                 tracing::info!("Created sqlite database {}", url);
+                should_run_migrations = true;
             }
             Err(e) => {
                 tracing::error!("Failed to create sqlite database: {}", e);
@@ -127,17 +145,23 @@ pub async fn try_create_sqlite_db(url: &str) -> anyhow::Result<()> {
             }
         }
     }
-
-    Ok(())
+    let db = sea_orm::Database::connect(url).await?;
+    if should_run_migrations {
+        migration::Migrator::up(&db, None).await?;
+        tracing::info!("Ran all migrations of databases");
+    }
+    Ok(db)
 }
 
-pub async fn try_create_mysql_db(url: &str) -> anyhow::Result<()> {
+pub async fn try_create_mysql_db(url: &str) -> anyhow::Result<DatabaseConnection> {
     use sqlx::{MySql, migrate::MigrateDatabase};
+    let mut should_run_migrations = false;
     if !MySql::database_exists(url).await.unwrap_or(false) {
         tracing::info!("Creating mysql database");
         match MySql::create_database(url).await {
             Ok(_) => {
                 tracing::info!("Created mysql database {}", url);
+                should_run_migrations = true;
             }
             Err(e) => {
                 tracing::warn!(
@@ -147,40 +171,27 @@ pub async fn try_create_mysql_db(url: &str) -> anyhow::Result<()> {
             }
         }
     }
-    Ok(())
+    let db = sea_orm::Database::connect(url).await?;
+    if should_run_migrations {
+        migration::Migrator::up(&db, None).await?;
+        tracing::info!("Ran all migrations of databases");
+    }
+    Ok(db)
 }
 
 /// connect to database according to url
 pub async fn connect_to_db(url: &str) -> anyhow::Result<sea_orm::DatabaseConnection> {
     let db_type = get_db_type();
-    match db_type {
-        DbType::MySql => {
-            try_create_mysql_db(url).await?;
-        }
-        DbType::Sqlite => {
-            try_create_sqlite_db(url).await?;
-        }
-    }
     tracing::info!("Connecting to {}", url);
-    Ok(sea_orm::Database::connect(url).await?)
+    Ok(match db_type {
+        DbType::MySql => try_create_mysql_db(url).await?,
+        DbType::Sqlite => try_create_sqlite_db(url).await?,
+    })
 }
 
-/// Init Database and Running Migrations
-pub async fn init_db(db: &sea_orm::DatabaseConnection) -> anyhow::Result<()> {
-    static INIT: Once = Once::new();
-    let db_type = get_db_type();
-    let mut flag = match db_type {
-        DbType::MySql => false,
-        DbType::Sqlite => true,
-    };
-    INIT.call_once(|| {
-        flag = true;
-    });
-    if flag {
-        migration::Migrator::up(db, None).await?;
-        tracing::info!("Ran all migrations of databases");
-        tracing::info!("Initialized database");
-    }
+/// Init Database
+pub async fn init_db(_db: &sea_orm::DatabaseConnection) -> anyhow::Result<()> {
+    tracing::info!("Initialized database");
     Ok(())
 }
 

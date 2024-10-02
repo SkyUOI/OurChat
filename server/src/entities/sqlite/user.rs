@@ -9,6 +9,7 @@ pub struct Model {
     pub id: i64,
     #[sea_orm(unique)]
     pub ocid: String,
+    #[sea_orm(column_type = "Text")]
     pub passwd: String,
     pub name: String,
     #[sea_orm(unique)]

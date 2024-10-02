@@ -3,6 +3,7 @@ use crate::{MACHINE_ID, consts};
 use rand::Rng;
 use snowdon::{ClassicLayout, Epoch, Generator, MachineId, Snowflake};
 use std::sync::LazyLock;
+use tokio::task::JoinHandle;
 
 pub struct SnowflakeParams;
 
@@ -51,6 +52,15 @@ pub fn error_chain(e: anyhow::Error) -> String {
         msg = format!("{msg}\nCaused by {}", i.to_string().as_str());
     }
     msg
+}
+
+pub fn spawn_blocking_with_tracing<F, R>(f: F) -> JoinHandle<R>
+where
+    F: FnOnce() -> R + Send + 'static,
+    R: Send + 'static,
+{
+    let current_span = tracing::Span::current();
+    actix_web::rt::task::spawn_blocking(move || current_span.in_scope(f))
 }
 
 #[cfg(test)]

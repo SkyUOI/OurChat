@@ -15,7 +15,7 @@ impl MigrationTrait for Migration {
                 .if_not_exists()
                 .col(big_unsigned(User::Id))
                 .col(char_len_uniq(User::Ocid, 10))
-                .col(char_len(User::Passwd, 64))
+                .col(text(User::Passwd))
                 .col(char_len(User::Name, 200))
                 .col(char_len_uniq(User::Email, 120))
                 .col(big_unsigned(User::Time))

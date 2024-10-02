@@ -4,6 +4,8 @@ use crate::{
     consts::{self, Bt, ID},
     requests, shared_state, utils,
 };
+use anyhow::Context;
+use argon2::{Params, PasswordHash, PasswordHasher, PasswordVerifier, password_hash::SaltString};
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter,
 };
@@ -21,7 +23,7 @@ impl Server {
         use entities::prelude::*;
         use entities::user::Column;
         use requests::Status;
-        // 判断账号类型
+        // Judge login type
         let user = match request.login_type {
             requests::LoginType::Email => {
                 User::find()
@@ -39,7 +41,13 @@ impl Server {
         match user {
             Ok(data) => match data {
                 Some(user) => {
-                    if user.passwd == request.password {
+                    let passwd = user.passwd;
+                    if utils::spawn_blocking_with_tracing(move || {
+                        verify_password_hash(&request.password, &passwd)
+                    })
+                    .await
+                    .is_ok()
+                    {
                         match request.login_type {
                             requests::LoginType::Email => resp
                                 .send(Ok((
@@ -80,10 +88,13 @@ impl Server {
         let id = ID(utils::GENERATOR.generate()?.into_i64().try_into()?);
         // Generate ocid by random
         let ocid = utils::generate_ocid(consts::OCID_LEN);
+        let passwd = request.password;
+        let passwd =
+            utils::spawn_blocking_with_tracing(move || compute_password_hash(&passwd)).await?;
         let user = UserModel {
             id: ActiveValue::Set(id.into()),
             ocid: ActiveValue::Set(ocid),
-            passwd: ActiveValue::Set(request.password),
+            passwd: ActiveValue::Set(passwd),
             name: ActiveValue::Set(request.name),
             email: ActiveValue::Set(request.email),
             time: ActiveValue::Set(chrono::Utc::now().timestamp().try_into()?),
@@ -170,4 +181,26 @@ impl Server {
         resp.send(requests::Status::Success)?;
         Ok(())
     }
+}
+
+fn compute_password_hash(password: &str) -> String {
+    // TODO:move factors to config
+    let salt = SaltString::generate(&mut rand::thread_rng());
+    let password_hash = argon2::Argon2::new(
+        argon2::Algorithm::Argon2id,
+        argon2::Version::V0x13,
+        Params::new(15000, 2, 1, None).unwrap(),
+    )
+    .hash_password(password.as_bytes(), &salt)
+    .unwrap()
+    .to_string();
+    password_hash
+}
+
+fn verify_password_hash(password: &str, password_hash: &str) -> anyhow::Result<()> {
+    let expected = PasswordHash::new(password_hash).context("Not PHC string")?;
+    argon2::Argon2::default()
+        .verify_password(password.as_bytes(), &expected)
+        .context("wrong password")?;
+    Ok(())
 }

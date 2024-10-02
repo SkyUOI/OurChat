@@ -166,6 +166,6 @@ client/pc/test/database.db
 client/pc/test/files
 
 # Server SQLite db
-ourchat.db
-ourchat.db-shm
-ourchat.db-wal
+*.db
+*.db-shm
+*.db-wal

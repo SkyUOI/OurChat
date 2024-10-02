@@ -64,7 +64,7 @@ pub struct ArgsParser {
     pub enable_cmd: Option<bool>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct MainCfg {
     #[serde(default = "consts::default_ip")]
     pub ip: String,
@@ -100,6 +100,7 @@ pub struct MainCfg {
     pub cmd_args: ParserCfg,
 }
 
+#[derive(Debug, Clone)]
 pub struct Cfg {
     pub main_cfg: MainCfg,
     pub db_cfg: DbCfg,

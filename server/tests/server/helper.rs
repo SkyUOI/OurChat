@@ -7,11 +7,11 @@ use fake::faker::name::raw::Name;
 use fake::locales::EN;
 use futures_util::{SinkExt, StreamExt};
 use parking_lot::Mutex;
-use rand::{Rng, random};
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use server::connection::client_response::{self, UnregisterResponse};
 use server::consts::MessageType;
-use server::db::DbCfg;
+use server::db::{DbCfg, DbCfgTrait, DbType};
 use server::requests::{self, Login, LoginType, Register, Unregister};
 use server::utils::gen_ws_bind_addr;
 use server::{Application, ArgsParser, ParserCfg};
@@ -101,7 +101,9 @@ pub struct TestApp {
     pub connection: ClientWS,
     pub user: TestUser,
     pub handle: JoinHandle<()>,
-    pub db_file: Option<PathBuf>,
+    pub db_url: String,
+
+    server_config: server::Cfg,
 }
 
 trait TestAppTrait {
@@ -128,13 +130,20 @@ impl TestApp {
         let args = server::ArgsParser::test();
         let server_config = server::get_configuration(args.shared_cfg.config.as_ref())?;
         let mut server_config = server::Cfg::new(server_config)?;
-        // if db type is sqlite,should crate different database for each test
-        let mut db_file = None;
-        if let DbCfg::Sqlite(cfg) = &mut server_config.db_cfg {
-            cfg.path = PathBuf::from(format!("{}.db", random::<u64>()));
-            db_file = Some(cfg.path.clone());
+        // should create different database for each test
+        let db_url;
+        let db = uuid::Uuid::new_v4().to_string();
+        match &mut server_config.db_cfg {
+            DbCfg::Mysql(cfg) => {
+                cfg.db = db;
+                db_url = cfg.url();
+            }
+            DbCfg::Sqlite(cfg) => {
+                cfg.path = PathBuf::from(format!(".{}.db", db));
+                db_url = cfg.url();
+            }
         }
-        let mut application = Application::build(args, server_config).await?;
+        let mut application = Application::build(args, server_config.clone()).await?;
         let port = application.get_port();
         let http_port = application.get_http_port();
         let handle = tokio::spawn(async move {
@@ -149,7 +158,8 @@ impl TestApp {
             connection,
             user: TestUser::random(),
             handle,
-            db_file,
+            db_url,
+            server_config,
         };
         println!("register user: {:?}", obj.user);
         obj.register().await;
@@ -261,15 +271,18 @@ impl TestApp {
     pub async fn async_drop(&mut self) {
         self.unregister().await;
         self.close_connection().await;
-        if let Some(path) = &mut self.db_file {
-            sqlx::Sqlite::drop_database(path.to_str().unwrap())
-                .await
-                .unwrap();
-            // remove shm and wal file
-            path.set_extension("db-shm");
-            remove_file(&path).await.unwrap();
-            path.set_extension("db-wal");
-            remove_file(&path).await.unwrap();
+        match self.server_config.main_cfg.db_type {
+            DbType::Sqlite => {
+                sqlx::Sqlite::drop_database(&self.db_url).await.unwrap();
+                // remove shm and wal file
+                // path.set_extension("db-shm");
+                // remove_file(&path).await.unwrap();
+                // path.set_extension("db-wal");
+                // remove_file(&path).await.unwrap();
+            }
+            DbType::MySql => {
+                sqlx::MySql::drop_database(&self.db_url).await.unwrap();
+            }
         }
     }
 
