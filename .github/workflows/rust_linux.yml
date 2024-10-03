@@ -25,8 +25,13 @@ jobs:
         run: cargo install cargo-tarpaulin
       - name: Build
         run: cargo build --all
+      - name: Start Redis
+        run: docker run --name win-redis -e REDIS_PORT=6379 -e REDIS_PASSWORD=123456 -p 6379:6379 -d redis
       - name: Sqlite Test
         run: python3 script/action_test_server.py sqlite "cargo tarpaulin -o lcov"
+      - name: Stop Redis
+        run: docker stop win-redis
+
       - name: Coverage
         uses: actions/upload-artifact@v4
         with:
