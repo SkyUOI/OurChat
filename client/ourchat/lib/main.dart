@@ -64,13 +64,13 @@ class MainApp extends StatelessWidget {
         appState.init();
         return appState;
       },
-      child: const Controler(),
+      child: const Controller(),
     );
   }
 }
 
-class Controler extends StatelessWidget {
-  const Controler({
+class Controller extends StatelessWidget {
+  const Controller({
     super.key,
   });
 
