@@ -1,4 +1,4 @@
-//! 实体定义
+//! Entities definition of different database types
 
 pub mod mysql;
 pub mod sqlite;

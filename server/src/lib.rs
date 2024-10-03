@@ -316,7 +316,7 @@ pub struct HttpSender {
 async fn start_server(
     listener: TcpListener,
     db: DatabaseConnection,
-    redis: redis::Client,
+    redis: deadpool_redis::Pool,
     http_sender: HttpSender,
     shared_data: Arc<SharedData<impl EmailSender>>,
     shutdown_sender: ShutdownSdr,
@@ -472,6 +472,7 @@ impl<T: EmailSender> Application<T> {
                 self.http_listener.take().unwrap(),
                 db.clone(),
                 self.shared.clone(),
+                redis.clone(),
                 self.abort_sender.subscribe(),
             )
             .await?;
@@ -479,7 +480,7 @@ impl<T: EmailSender> Application<T> {
         start_server(
             self.server_listener.take().unwrap(),
             db.clone(),
-            redis,
+            redis.clone(),
             record_sender,
             self.shared.clone(),
             self.abort_sender.clone(),
@@ -540,6 +541,7 @@ impl<T: EmailSender> Application<T> {
         }
         handle.await??;
         db.close().await?;
+        redis.close();
         tracing::info!("Server exited");
         Ok(())
     }

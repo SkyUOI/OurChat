@@ -17,7 +17,7 @@ use tokio::{
 pub struct Server<T: EmailSender> {
     tcplistener: TcpListener,
     db: Option<sea_orm::DatabaseConnection>,
-    _redis: Option<redis::Client>,
+    _redis: Option<deadpool_redis::Pool>,
     task_solver_sender: mpsc::Sender<DBRequest>,
     task_solver_receiver: Option<mpsc::Receiver<DBRequest>>,
     http_sender: HttpSender,
@@ -28,7 +28,7 @@ impl<T: EmailSender> Server<T> {
     pub async fn new(
         tcplistener: TcpListener,
         db: sea_orm::DatabaseConnection,
-        redis: redis::Client,
+        redis: deadpool_redis::Pool,
         http_sender: HttpSender,
         shared_data: Arc<SharedData<T>>,
     ) -> anyhow::Result<Self> {

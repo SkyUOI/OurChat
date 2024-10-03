@@ -3,24 +3,24 @@ use parking_lot::Mutex;
 use server::{
     component::MockEmailSender, connection::client_response, consts::MessageType, requests,
 };
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 use tokio_tungstenite::tungstenite::Message;
 
 #[tokio::test]
-async fn test_verify() {
+async fn test_verify_success() {
     let mut mock_smtp = MockEmailSender::new();
     let email_body = Arc::new(Mutex::new(String::new()));
-
     let mock_body = email_body.clone();
     mock_smtp
-        .expect_send::<String>()
+        .expect_send::<&str>()
         .times(1)
         .returning(move |_to, _title, body| {
             *mock_body.lock() = body;
             anyhow::Ok(())
         });
     let mut app = helper::TestApp::new(Some(mock_smtp)).await.unwrap();
-    let req = requests::Verify::new("email".to_string());
+    claims::assert_some!(app.app_shared.email_client.as_ref());
+    let req = requests::Verify::new(app.user.email.clone());
     app.send(Message::Text(serde_json::to_string(&req).unwrap()))
         .await
         .unwrap();
@@ -49,10 +49,17 @@ async fn test_verify() {
     let link = links.first().unwrap().as_str().to_owned();
     drop(email_body);
     // check link
-    reqwest::get(link)
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(1))
+        .build()
+        .unwrap();
+    client
+        .get(link)
+        .send()
         .await
         .unwrap()
         .error_for_status()
         .unwrap();
+    app.email_login().await;
     app.async_drop().await;
 }

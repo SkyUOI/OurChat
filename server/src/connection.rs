@@ -168,7 +168,7 @@ impl<T: EmailSender> Connection<T> {
                 match resp_receiver.await {
                     Ok(Ok(_)) => Ok(Some(serde_json::to_string(&VerifyResponse::success())?)),
                     Ok(Err(e)) => {
-                        tracing::info!("Failed to verify email: {}", e);
+                        tracing::error!("Failed to verify email: {}", e);
                         Ok(Some(serde_json::to_string(
                             &VerifyResponse::email_cannot_be_sent(),
                         )?))
