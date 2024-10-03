@@ -8,11 +8,7 @@ use crate::{DbPool, HttpSender, SharedData, connection};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::net::TcpStream;
-use tokio::{
-    net::TcpListener,
-    select,
-    sync::{broadcast, mpsc},
-};
+use tokio::{net::TcpListener, select, sync::broadcast};
 pub struct Server<T: EmailSender> {
     tcplistener: TcpListener,
     db: Option<DbPool>,

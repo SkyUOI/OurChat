@@ -9,18 +9,17 @@ use std::sync::Arc;
 use crate::{
     DbPool, HttpSender,
     component::EmailSender,
-    consts::{Bt, ID, MessageType},
+    consts::{ID, MessageType},
     requests::{self, new_session::NewSession, upload::Upload},
     server::{
-        self, Server,
+        self,
         httpserver::{FileRecord, VerifyRecord, verify::verify_client},
     },
     shared_state,
 };
 use anyhow::bail;
 use client_response::{
-    LoginResponse, NewSessionResponse, RegisterResponse, get_status::GetStatusResponse,
-    verify::VerifyResponse,
+    LoginResponse, RegisterResponse, get_status::GetStatusResponse, verify::VerifyResponse,
 };
 use futures_util::{
     SinkExt, StreamExt,
@@ -31,7 +30,7 @@ use serde_json::Value;
 use tokio::{
     net::TcpStream,
     select,
-    sync::{broadcast, mpsc, oneshot},
+    sync::{broadcast, mpsc},
 };
 use tokio_tungstenite::WebSocketStream;
 use tokio_tungstenite::tungstenite::protocol::Message;
@@ -253,7 +252,7 @@ impl<T: EmailSender> Connection<T> {
         mut incoming: InComing,
         id: ID,
         net_sender: mpsc::Sender<Message>,
-        mut http_sender: HttpSender,
+        http_sender: HttpSender,
         mut shutdown_receiver: broadcast::Receiver<()>,
         shared_data: Arc<crate::SharedData<T>>,
         dbpool: DbPool,

@@ -33,7 +33,7 @@ impl<T: EmailSender> Connection<T> {
         _json: NewSession,
         db_conn: &DatabaseConnection,
     ) -> anyhow::Result<()> {
-        let resp = server::process::new_session(id, &db_conn)
+        let resp = server::process::new_session(id, db_conn)
             .await?
             .unwrap_or_else(NewSessionResponse::failed);
         net_sender

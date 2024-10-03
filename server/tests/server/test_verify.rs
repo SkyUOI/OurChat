@@ -1,11 +1,11 @@
 use crate::helper;
-use claims::assert_err;
 use core::panic;
 use parking_lot::Mutex;
 use server::{
     component::MockEmailSender, connection::client_response, consts::MessageType, requests,
 };
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
+use std::time::Duration;
 use tokio_tungstenite::tungstenite::Message;
 
 #[tokio::test]
@@ -35,7 +35,7 @@ async fn test_verify_success() {
         if body {
             break;
         }
-        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        tokio::time::sleep(Duration::from_millis(100)).await;
     }
 
     assert_eq!(ret.code, MessageType::VerifyRes);
@@ -89,7 +89,7 @@ async fn test_verify_error() {
         if body {
             break;
         }
-        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        tokio::time::sleep(Duration::from_millis(100)).await;
     }
 
     assert_eq!(ret.code, MessageType::VerifyRes);

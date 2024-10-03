@@ -180,7 +180,7 @@ pub async fn try_create_mysql_db(url: &str) -> anyhow::Result<DatabaseConnection
 }
 
 /// connect to database according to url
-pub async fn connect_to_db(url: &str) -> anyhow::Result<sea_orm::DatabaseConnection> {
+pub async fn connect_to_db(url: &str) -> anyhow::Result<DatabaseConnection> {
     let db_type = get_db_type();
     tracing::info!("Connecting to {}", url);
     Ok(match db_type {
@@ -190,7 +190,7 @@ pub async fn connect_to_db(url: &str) -> anyhow::Result<sea_orm::DatabaseConnect
 }
 
 /// Init Database
-pub async fn init_db(_db: &sea_orm::DatabaseConnection) -> anyhow::Result<()> {
+pub async fn init_db(_db: &DatabaseConnection) -> anyhow::Result<()> {
     tracing::info!("Initialized database");
     Ok(())
 }

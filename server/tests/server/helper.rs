@@ -132,7 +132,7 @@ impl TestAppTrait for ArgsParser {
 
 impl TestApp {
     pub async fn new(email_client: Option<MockEmailSender>) -> anyhow::Result<Self> {
-        let args = server::ArgsParser::test();
+        let args = ArgsParser::test();
         let server_config = server::get_configuration(args.shared_cfg.config.as_ref())?;
         let mut server_config = server::Cfg::new(server_config)?;
         // should create different database for each test

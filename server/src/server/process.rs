@@ -1,6 +1,4 @@
-use super::Server;
 use crate::{
-    component::EmailSender,
     connection::client_response::{self, LoginResponse, NewSessionResponse, RegisterResponse},
     consts::{self, Bt, ID},
     requests, shared_state, utils,
@@ -11,7 +9,6 @@ use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter,
 };
 use snowdon::ClassicLayoutSnowflakeExtension;
-use tokio::sync::oneshot;
 
 #[derive::db_compatibility]
 pub async fn login(
@@ -48,28 +45,26 @@ pub async fn login(
                 .is_ok()
                 {
                     match request.login_type {
-                        requests::LoginType::Email => {
-                            return Ok(Ok((
-                                LoginResponse::success_email(user.ocid),
-                                user.id.into(),
-                            )));
-                        }
+                        requests::LoginType::Email => Ok(Ok((
+                            LoginResponse::success_email(user.ocid),
+                            user.id.into(),
+                        ))),
                         requests::LoginType::Ocid => {
-                            return Ok(Ok((LoginResponse::success_ocid(), user.id.into())));
+                            Ok(Ok((LoginResponse::success_ocid(), user.id.into())))
                         }
                     }
                 } else {
-                    return Ok(Err(Status!(WrongPassword)));
+                    Ok(Err(Status!(WrongPassword)))
                 }
             }
-            None => return Ok(Err(Status!(WrongPassword))),
+            None => Ok(Err(Status!(WrongPassword))),
         },
         Err(e) => {
             if let DbErr::RecordNotFound(_) = e {
-                return Ok(Err(Status!(WrongPassword)));
+                Ok(Err(Status!(WrongPassword)))
             } else {
                 tracing::error!("database error:{}", e);
-                return Ok(Err(Status::ServerError));
+                Ok(Err(Status::ServerError))
             }
         }
     }
@@ -102,14 +97,14 @@ pub async fn register(
         Ok(res) => {
             // Happy Path
             let response = RegisterResponse::success(res.ocid);
-            return Ok(Ok((response, res.id.into())));
+            Ok(Ok((response, res.id.into())))
         }
         Err(e) => {
             if let DbErr::RecordNotInserted = e {
-                return Ok(Err(requests::Status::Dup));
+                Ok(Err(requests::Status::Dup))
             } else {
                 tracing::error!("Database error:{e}");
-                return Ok(Err(requests::Status::ServerError));
+                Ok(Err(requests::Status::ServerError))
             }
         }
     }
@@ -126,10 +121,10 @@ pub async fn unregister(
         ..Default::default()
     };
     match user.delete(db_connection).await {
-        Ok(_) => return Ok(requests::Status::Success),
+        Ok(_) => Ok(requests::Status::Success),
         Err(e) => {
             tracing::error!("Database error:{e}");
-            return Ok(requests::Status::ServerError);
+            Ok(requests::Status::ServerError)
         }
     }
 }

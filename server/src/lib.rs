@@ -110,7 +110,7 @@ impl MainCfg {
 
     pub fn build_email_client(&self) -> anyhow::Result<EmailClient> {
         if !self.email_available() {
-            anyhow::bail!("email is not available");
+            bail!("email is not available");
         }
         let creds = Credentials::new(
             self.email_address.clone().unwrap(),
@@ -344,7 +344,7 @@ pub struct Application<T: EmailSender> {
 
 #[derive(Debug, Clone)]
 pub struct DbPool {
-    db_pool: sea_orm::DatabaseConnection,
+    db_pool: DatabaseConnection,
     redis_pool: deadpool_redis::Pool,
 }
 
@@ -413,7 +413,7 @@ impl<T: EmailSender> Application<T> {
         };
         let addr = format!("{}:{}", &main_cfg.ip, port);
         let server_listener = TcpListener::bind(&addr).await?;
-        main_cfg.port = server_listener.local_addr().unwrap().port();
+        main_cfg.port = server_listener.local_addr()?.port();
 
         // http port
         let http_port = match parser.http_port {
@@ -425,7 +425,7 @@ impl<T: EmailSender> Application<T> {
             std::net::TcpListener::bind(format!("{}:{}", &ip, http_port))
         })
         .await??;
-        main_cfg.http_port = http_listener.local_addr().unwrap().port();
+        main_cfg.http_port = http_listener.local_addr()?.port();
 
         // database type
         let db_type = match parser.db_type {

@@ -21,7 +21,7 @@ impl EmailClient {
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait EmailSender: Send + Sync + 'static {
-    async fn send<T: Into<String> + std::marker::Send + 'static>(
+    async fn send<T: Into<String> + Send + 'static>(
         &self,
         to: Mailbox,
         subject: T,
@@ -33,7 +33,7 @@ pub trait EmailSender: Send + Sync + 'static {
 
 #[async_trait::async_trait]
 impl EmailSender for EmailClient {
-    async fn send<T: Into<String> + std::marker::Send + 'static>(
+    async fn send<T: Into<String> + Send + 'static>(
         &self,
         to: Mailbox,
         subject: T,

@@ -30,9 +30,7 @@ impl ProxyHttp for LB {
         upstream_request: &mut RequestHeader,
         _ctx: &mut Self::CTX,
     ) -> Result<()> {
-        upstream_request
-            .insert_header("Host", "one.one.one.one")
-            .unwrap();
+        upstream_request.insert_header("Host", "one.one.one.one")?;
         Ok(())
     }
 }
