@@ -315,14 +315,13 @@ pub struct HttpSender {
 /// build websocket server
 async fn start_server(
     listener: TcpListener,
-    db: DatabaseConnection,
-    redis: deadpool_redis::Pool,
+    db: DbPool,
     http_sender: HttpSender,
     shared_data: Arc<SharedData<impl EmailSender>>,
     shutdown_sender: ShutdownSdr,
     shutdown_receiver: broadcast::Receiver<()>,
 ) -> anyhow::Result<()> {
-    let mut server = server::Server::new(listener, db, redis, http_sender, shared_data).await?;
+    let mut server = server::Server::new(listener, db, http_sender, shared_data).await?;
     tokio::spawn(async move {
         server
             .accept_sockets(shutdown_sender, shutdown_receiver)
@@ -340,10 +339,25 @@ fn global_init() {
 
 pub struct Application<T: EmailSender> {
     pub shared: Arc<SharedData<T>>,
+    pub pool: DbPool,
     server_listener: Option<TcpListener>,
     http_listener: Option<std::net::TcpListener>,
     /// for shutdowning server fully,you shouldn't use handle.abort() to do this
     abort_sender: ShutdownSdr,
+}
+
+#[derive(Debug, Clone)]
+pub struct DbPool {
+    db_pool: sea_orm::DatabaseConnection,
+    redis_pool: deadpool_redis::Pool,
+}
+
+impl DbPool {
+    async fn close(&mut self) -> anyhow::Result<()> {
+        self.db_pool.clone().close().await?;
+        self.redis_pool.close();
+        Ok(())
+    }
 }
 
 pub struct SharedData<T: EmailSender> {
@@ -380,7 +394,18 @@ impl<T: EmailSender> Application<T> {
         mut cfg: Cfg,
         email_client: Option<T>,
     ) -> anyhow::Result<Self> {
+        global_init();
         let main_cfg = &mut cfg.main_cfg;
+
+        logger_init(main_cfg.cmd_args.test_mode);
+        // start maintain mode
+        shared_state::set_maintaining(main_cfg.cmd_args.maintaining);
+        // Set up shared state
+        shared_state::set_auto_clean_duration(main_cfg.auto_clean_duration);
+        shared_state::set_file_save_days(main_cfg.file_save_days);
+        shared_state::set_user_files_store_limit(main_cfg.user_files_limit);
+        shared_state::set_friends_number_limit(main_cfg.friends_number_limit);
+
         if let Some(new_ip) = parser.ip {
             main_cfg.ip = new_ip;
         }
@@ -423,9 +448,19 @@ impl<T: EmailSender> Application<T> {
         };
         main_cfg.enable_cmd = enable_cmd;
         let (abort_sender, _) = broadcast::channel(20);
+        // connect to database
+        db::init_db_system(main_cfg.db_type);
+        let db = db::connect_to_db(&db::get_db_url(&cfg.db_cfg)?).await?;
+        db::init_db(&db).await?;
+        // connect to redis
+        let redis = db::connect_to_redis(&db::get_redis_url(&main_cfg.rediscfg)?).await?;
 
         Ok(Self {
             shared: Arc::new(SharedData { email_client, cfg }),
+            pool: DbPool {
+                redis_pool: redis,
+                db_pool: db,
+            },
             server_listener: Some(server_listener),
             http_listener: Some(http_listener),
             abort_sender,
@@ -446,41 +481,24 @@ impl<T: EmailSender> Application<T> {
 
     pub async fn run_forever(&mut self) -> anyhow::Result<()> {
         let cfg = &self.shared.cfg.main_cfg;
-        global_init();
 
-        logger_init(cfg.cmd_args.test_mode);
         if cfg.cmd_args.clear {
             clear()?;
         }
-
-        // start maintain mode
-        shared_state::set_maintaining(cfg.cmd_args.maintaining);
-        // Set up shared state
-        shared_state::set_auto_clean_duration(cfg.auto_clean_duration);
-        shared_state::set_file_save_days(cfg.file_save_days);
-        shared_state::set_user_files_store_limit(cfg.user_files_limit);
-        shared_state::set_friends_number_limit(cfg.friends_number_limit);
-
-        db::init_db_system(cfg.db_type);
-        let db = db::connect_to_db(&db::get_db_url(&self.shared.cfg.db_cfg)?).await?;
-        db::init_db(&db).await?;
-        let redis = db::connect_to_redis(&db::get_redis_url(&cfg.rediscfg)?).await?;
 
         // Build http server
         let (handle, record_sender) = httpserver::HttpServer::new()
             .start(
                 self.http_listener.take().unwrap(),
-                db.clone(),
+                self.pool.clone(),
                 self.shared.clone(),
-                redis.clone(),
                 self.abort_sender.subscribe(),
             )
             .await?;
 
         start_server(
             self.server_listener.take().unwrap(),
-            db.clone(),
-            redis.clone(),
+            self.pool.clone(),
             record_sender,
             self.shared.clone(),
             self.abort_sender.clone(),
@@ -488,7 +506,7 @@ impl<T: EmailSender> Application<T> {
         )
         .await?;
         // 启动数据库文件系统
-        file_storage::FileSys::new(db.clone()).start(self.abort_sender.subscribe());
+        file_storage::FileSys::new(self.pool.db_pool.clone()).start(self.abort_sender.subscribe());
         // 启动关闭信号监听
         exit_signal(self.abort_sender.clone()).await?;
         // 启动控制台
@@ -529,7 +547,7 @@ impl<T: EmailSender> Application<T> {
             cmd_start(
                 command_rev,
                 self.abort_sender.clone(),
-                db.clone(),
+                self.pool.db_pool.clone(),
                 cfg.cmd_args.test_mode,
             )
             .await?;
@@ -540,8 +558,7 @@ impl<T: EmailSender> Application<T> {
             }
         }
         handle.await??;
-        db.close().await?;
-        redis.close();
+        self.pool.close().await?;
         tracing::info!("Server exited");
         Ok(())
     }

@@ -5,7 +5,7 @@ mod process;
 
 use crate::component::EmailSender;
 use crate::connection::DBRequest;
-use crate::{HttpSender, SharedData, connection};
+use crate::{DbPool, HttpSender, SharedData, connection};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::net::TcpStream;
@@ -16,8 +16,7 @@ use tokio::{
 };
 pub struct Server<T: EmailSender> {
     tcplistener: TcpListener,
-    db: Option<sea_orm::DatabaseConnection>,
-    _redis: Option<deadpool_redis::Pool>,
+    db: Option<DbPool>,
     task_solver_sender: mpsc::Sender<DBRequest>,
     task_solver_receiver: Option<mpsc::Receiver<DBRequest>>,
     http_sender: HttpSender,
@@ -27,8 +26,7 @@ pub struct Server<T: EmailSender> {
 impl<T: EmailSender> Server<T> {
     pub async fn new(
         tcplistener: TcpListener,
-        db: sea_orm::DatabaseConnection,
-        redis: deadpool_redis::Pool,
+        db: DbPool,
         http_sender: HttpSender,
         shared_data: Arc<SharedData<T>>,
     ) -> anyhow::Result<Self> {
@@ -36,7 +34,6 @@ impl<T: EmailSender> Server<T> {
         let ret = Self {
             tcplistener,
             db: Some(db),
-            _redis: Some(redis),
             task_solver_sender,
             task_solver_receiver: Some(task_solver_receiver),
             http_sender,
@@ -53,7 +50,7 @@ impl<T: EmailSender> Server<T> {
         let db_coon = self.db.take().unwrap();
         let mut task_solver_receiver = self.task_solver_receiver.take().unwrap();
         tokio::spawn(async move {
-            Self::process_db_request(&mut task_solver_receiver, &db_coon).await;
+            Self::process_db_request(&mut task_solver_receiver, &db_coon.db_pool).await;
             (task_solver_receiver, db_coon)
         });
         let shutdown_sender_clone = shutdown_sender.clone();
@@ -150,12 +147,5 @@ impl<T: EmailSender> Server<T> {
                 tracing::error!("Connection error: {}", crate::utils::error_chain(e));
             }
         }
-    }
-
-    pub async fn delete(mut self) -> anyhow::Result<()> {
-        if let Some(db) = self.db.take() {
-            db.close().await?;
-        }
-        Ok(())
     }
 }

@@ -5,7 +5,7 @@ mod verify;
 
 use std::sync::Arc;
 
-use crate::{HttpSender, ShutdownRev, component::EmailSender};
+use crate::{DbPool, HttpSender, ShutdownRev, component::EmailSender};
 use actix_web::{
     App,
     web::{self, Data},
@@ -27,16 +27,14 @@ impl HttpServer {
     pub async fn start(
         &mut self,
         listener: std::net::TcpListener,
-        db_conn: DatabaseConnection,
+        db_conn: DbPool,
         shared_data: Arc<crate::SharedData<impl EmailSender>>,
-        redis: deadpool_redis::Pool,
         mut shutdown_receiver: ShutdownRev,
     ) -> anyhow::Result<(JoinHandle<anyhow::Result<()>>, HttpSender)> {
         let upload_manager = Data::new(upload::UploadManager::new());
-        let shared_db_conn = Data::new(db_conn);
+        let db_conn_clone = db_conn.clone();
         let data_clone = upload_manager.clone();
         let shared_state_moved = shared_data.clone();
-        let redis_cloned = redis.clone();
         let http_server = actix_web::HttpServer::new(move || {
             let v1 = web::scope("/v1")
                 .service(upload::upload)
@@ -46,9 +44,8 @@ impl HttpServer {
             App::new()
                 .wrap(actix_web::middleware::Logger::default())
                 .app_data(data_clone.clone())
-                .app_data(shared_db_conn.clone())
+                .app_data(db_conn.clone())
                 .app_data(shared_state_moved.clone())
-                .app_data(redis.clone())
                 .service(v1)
         })
         .listen(listener)?
@@ -72,7 +69,7 @@ impl HttpServer {
         ));
         let (verify_sender, verify_receiver) = mpsc::channel(100);
         tokio::spawn(verify::add_record(
-            redis_cloned,
+            db_conn_clone,
             shared_data,
             verify_receiver,
         ));

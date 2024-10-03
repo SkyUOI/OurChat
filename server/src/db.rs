@@ -216,7 +216,7 @@ pub fn get_redis_url(path: &Path) -> anyhow::Result<String> {
     Ok(path)
 }
 
-/// 根据url连接redis
+/// connect to redis database according to url
 pub async fn connect_to_redis(url: &str) -> anyhow::Result<deadpool_redis::Pool> {
     let cfg = deadpool_redis::Config::from_url(url);
     let pool = cfg.create_pool(Some(deadpool_redis::Runtime::Tokio1))?;

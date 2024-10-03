@@ -1,4 +1,4 @@
-use crate::component::EmailSender;
+use crate::{DbPool, component::EmailSender};
 use actix_web::{HttpRequest, HttpResponse, Responder, get, web};
 use anyhow::Context;
 use redis::AsyncCommands;
@@ -20,12 +20,12 @@ async fn verify_token(
     req: HttpRequest,
     param: web::Query<Param>,
 ) -> Result<impl Responder, actix_web::Error> {
-    let conn = match req.app_data::<deadpool_redis::Pool>() {
+    let conn = match req.app_data::<DbPool>() {
         None => {
             tracing::error!("No redis connection");
             return Ok(HttpResponse::InternalServerError());
         }
-        Some(conn) => conn,
+        Some(conn) => &conn.redis_pool,
     };
     // check if token is valid
     let ret = if match check_token(&param.token, conn).await {
@@ -57,7 +57,7 @@ impl VerifyRecord {
 pub type VerifyRequest = (VerifyRecord, oneshot::Sender<anyhow::Result<()>>);
 
 pub async fn add_record(
-    redis: deadpool_redis::Pool,
+    db: DbPool,
     shared_data: Arc<crate::SharedData<impl EmailSender>>,
     mut request_receiver: mpsc::Receiver<VerifyRequest>,
 ) {
@@ -91,7 +91,7 @@ pub async fn add_record(
                     continue;
                 };
         }
-        if let Err(e) = add_token(&data.token, &redis).await {
+        if let Err(e) = add_token(&data.token, &db.redis_pool).await {
             tracing::error!("add token error,{:?}", e);
             continue;
         }
@@ -101,13 +101,10 @@ pub async fn add_record(
     }
 }
 
-async fn wrap_check_token(token: &str, conn: &deadpool_redis::Pool) -> anyhow::Result<()> {
-    let mut conn = conn.get().await?;
-    let _: () = conn.del(token).await?;
-    Ok(())
-}
 async fn check_token(token: &str, conn: &deadpool_redis::Pool) -> anyhow::Result<bool> {
-    let ret = wrap_check_token(token, conn).await.is_ok();
+    let mut conn = conn.get().await?;
+    let ret: bool = conn.exists(token).await?;
+    let _: () = conn.del(token).await?;
     Ok(ret)
 }
 
@@ -121,10 +118,4 @@ async fn add_token(token: &str, conn: &deadpool_redis::Pool) -> anyhow::Result<(
 
 pub fn config(cfg: &mut web::ServiceConfig) {
     cfg.service(verify_token);
-}
-
-#[cfg(test)]
-mod tests {
-    #[tokio::test]
-    async fn test_email_send() {}
 }

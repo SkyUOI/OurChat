@@ -104,6 +104,7 @@ pub struct TestApp {
     pub handle: JoinHandle<()>,
     pub db_url: String,
     pub app_shared: Arc<SharedData<MockEmailSender>>,
+    pub http_client: reqwest::Client,
 
     server_config: server::Cfg,
     has_dropped: bool,
@@ -170,6 +171,9 @@ impl TestApp {
             has_dropped: false,
             server_drop_handle: abort_handle,
             app_shared: shared,
+            http_client: reqwest::Client::builder()
+                .timeout(Duration::from_secs(2))
+                .build()?,
         };
         println!("register user: {:?}", obj.user);
         obj.register().await;
@@ -321,6 +325,16 @@ impl TestApp {
 
     pub async fn close_connection(&mut self) {
         self.connection.close(None).await.unwrap();
+    }
+
+    pub async fn verify(&mut self, token: &str) -> Result<reqwest::Response, reqwest::Error> {
+        self.http_client
+            .get(format!(
+                "http://127.0.0.1:{}/v1/verify/confirm?token={}",
+                self.http_port, token
+            ))
+            .send()
+            .await
     }
 }
 

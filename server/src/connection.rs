@@ -165,6 +165,7 @@ impl<T: EmailSender> Connection<T> {
                         resp_sender,
                     ))
                     .await?;
+                // this message's meaning is the email has been sent
                 match resp_receiver.await {
                     Ok(Ok(_)) => Ok(Some(serde_json::to_string(&VerifyResponse::success())?)),
                     Ok(Err(e)) => {
@@ -203,7 +204,7 @@ impl<T: EmailSender> Connection<T> {
             match msg {
                 Message::Text(text) => {
                     let json: Value = serde_json::from_str(&text)?;
-                    // 获取消息类型
+                    // Get message type
                     let code = &json["code"];
                     if let Value::Number(code) = code {
                         let code = code.as_u64();
