@@ -1,12 +1,14 @@
 use crate::{
     component::EmailSender,
-    connection::{Connection, DBRequest, client_response::UploadResponse},
+    connection::{Connection, client_response::UploadResponse},
     consts::{Bt, ID},
     requests::upload::Upload,
+    server,
     utils::generate_random_string,
 };
 use anyhow::bail;
-use tokio::sync::{mpsc, oneshot};
+use sea_orm::DatabaseConnection;
+use tokio::sync::mpsc;
 use tokio_tungstenite::tungstenite::protocol::Message;
 
 const PREFIX_LEN: usize = 20;
@@ -22,18 +24,11 @@ fn generate_key_name(hash: &str) -> String {
 impl<T: EmailSender> Connection<T> {
     pub async fn upload(
         id: ID,
-        db_sender: &mpsc::Sender<DBRequest>,
         net_sender: &mpsc::Sender<Message>,
         json: &mut Upload,
+        db_conn: &DatabaseConnection,
     ) -> anyhow::Result<(impl Future<Output = anyhow::Result<()>>, String)> {
-        let (ret_sdr, ret_rev) = oneshot::channel();
-        let db_req = DBRequest::UpLoad {
-            id,
-            sz: Bt(json.size),
-            resp: ret_sdr,
-        };
-        db_sender.send(db_req).await?;
-        let ret = ret_rev.await?;
+        let ret = server::process::up_load(id, Bt(json.size), db_conn).await?;
         match ret {
             crate::requests::Status::Success => {
                 let key = generate_key_name(&json.hash);

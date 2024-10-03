@@ -11,7 +11,10 @@ use crate::{
     component::EmailSender,
     consts::{Bt, ID, MessageType},
     requests::{self, new_session::NewSession, upload::Upload},
-    server::httpserver::{FileRecord, VerifyRecord, verify::verify_client},
+    server::{
+        self, Server,
+        httpserver::{FileRecord, VerifyRecord, verify::verify_client},
+    },
     shared_state,
 };
 use anyhow::bail;
@@ -23,6 +26,7 @@ use futures_util::{
     SinkExt, StreamExt,
     stream::{SplitSink, SplitStream},
 };
+use sea_orm::DatabaseConnection;
 use serde_json::Value;
 use tokio::{
     net::TcpStream,
@@ -35,31 +39,6 @@ use tokio_tungstenite::tungstenite::protocol::Message;
 type InComing = SplitStream<WS>;
 type OutGoing = SplitSink<WS, Message>;
 
-/// Request that will be sent to database process loop and get the process response
-pub enum DBRequest {
-    Login {
-        request: requests::Login,
-        resp: oneshot::Sender<Result<(LoginResponse, ID), requests::Status>>,
-    },
-    Register {
-        request: requests::Register,
-        resp: oneshot::Sender<Result<(RegisterResponse, ID), requests::Status>>,
-    },
-    Unregister {
-        id: ID,
-        resp: oneshot::Sender<requests::Status>,
-    },
-    NewSession {
-        id: ID,
-        resp: oneshot::Sender<Result<NewSessionResponse, requests::Status>>,
-    },
-    UpLoad {
-        id: ID,
-        sz: Bt,
-        resp: oneshot::Sender<requests::Status>,
-    },
-}
-
 /// server-side websocket
 pub type WS = WebSocketStream<TcpStream>;
 
@@ -67,7 +46,6 @@ pub type WS = WebSocketStream<TcpStream>;
 pub struct Connection<T: EmailSender + 'static> {
     socket: Option<WebSocketStream<TcpStream>>,
     shutdown_sender: broadcast::Sender<()>,
-    request_sender: mpsc::Sender<DBRequest>,
     http_sender: Option<HttpSender>,
     shared_data: Arc<crate::SharedData<T>>,
     dbpool: Option<DbPool>,
@@ -82,7 +60,6 @@ impl<T: EmailSender> Connection<T> {
         socket: WS,
         http_sender: HttpSender,
         shutdown_sender: broadcast::Sender<()>,
-        request_sender: mpsc::Sender<DBRequest>,
         shared_data: Arc<crate::SharedData<T>>,
         dbpool: DbPool,
     ) -> Self {
@@ -90,7 +67,6 @@ impl<T: EmailSender> Connection<T> {
             socket: Some(socket),
             http_sender: Some(http_sender),
             shutdown_sender,
-            request_sender,
             shared_data,
             dbpool: Some(dbpool),
         }
@@ -98,16 +74,10 @@ impl<T: EmailSender> Connection<T> {
 
     /// Login Request
     async fn login_request(
-        request_sender: &mpsc::Sender<DBRequest>,
         login_data: requests::Login,
+        db_conn: &DatabaseConnection,
     ) -> anyhow::Result<(String, VerifyStatus)> {
-        let channel = oneshot::channel();
-        let request = DBRequest::Login {
-            request: login_data,
-            resp: channel.0,
-        };
-        request_sender.send(request).await?;
-        match channel.1.await? {
+        match server::process::login(login_data, db_conn).await? {
             Ok(ok_resp) => Ok((
                 serde_json::to_string(&ok_resp.0)?,
                 VerifyStatus::Success(ok_resp.1),
@@ -121,16 +91,10 @@ impl<T: EmailSender> Connection<T> {
 
     /// Register Request
     async fn register_request(
-        request_sender: &mpsc::Sender<DBRequest>,
         register_data: requests::Register,
+        db_conn: &DatabaseConnection,
     ) -> anyhow::Result<(String, VerifyStatus)> {
-        let channel = oneshot::channel();
-        let request = DBRequest::Register {
-            request: register_data,
-            resp: channel.0,
-        };
-        request_sender.send(request).await?;
-        match channel.1.await? {
+        match server::process::register(register_data, db_conn).await? {
             Ok(ok_resp) => Ok((
                 serde_json::to_string(&ok_resp.0)?,
                 VerifyStatus::Success(ok_resp.1),
@@ -188,8 +152,6 @@ impl<T: EmailSender> Connection<T> {
     async fn verify(
         incoming: &mut InComing,
         outgoing: mpsc::Sender<Message>,
-        request_sender: &mpsc::Sender<DBRequest>,
-        http_sender: &mut HttpSender,
         shared_data: Arc<crate::SharedData<T>>,
         dbpool: &DbPool,
     ) -> anyhow::Result<Option<VerifyStatus>> {
@@ -239,7 +201,7 @@ impl<T: EmailSender> Connection<T> {
                                     }
                                 };
                                 if let Some(resp) =
-                                    Self::low_level_action(code, &json, &shared_data, &dbpool)
+                                    Self::low_level_action(code, &json, &shared_data, dbpool)
                                         .await?
                                 {
                                     outgoing.send(Message::Text(resp)).await?;
@@ -249,12 +211,13 @@ impl<T: EmailSender> Connection<T> {
                                     MessageType::Login => {
                                         let login_data: requests::Login =
                                             serde_json::from_value(json)?;
-                                        Self::login_request(request_sender, login_data).await?
+                                        Self::login_request(login_data, &dbpool.db_pool).await?
                                     }
                                     MessageType::Register => {
                                         let request_data: requests::Register =
                                             serde_json::from_value(json)?;
-                                        Self::register_request(request_sender, request_data).await?
+                                        Self::register_request(request_data, &dbpool.db_pool)
+                                            .await?
                                     }
                                     _ => {
                                         verify_failed().await?;
@@ -290,7 +253,6 @@ impl<T: EmailSender> Connection<T> {
         mut incoming: InComing,
         id: ID,
         net_sender: mpsc::Sender<Message>,
-        db_sender: mpsc::Sender<DBRequest>,
         mut http_sender: HttpSender,
         mut shutdown_receiver: broadcast::Receiver<()>,
         shared_data: Arc<crate::SharedData<T>>,
@@ -349,7 +311,8 @@ impl<T: EmailSender> Connection<T> {
                                     }
                                     match code {
                                         MessageType::Unregister => {
-                                            Self::unregister(id, &db_sender, &net_sender).await?;
+                                            Self::unregister(id, &net_sender, &dbpool.db_pool)
+                                                .await?;
                                             continue 'con_loop;
                                         }
                                         MessageType::NewSession => {
@@ -361,8 +324,13 @@ impl<T: EmailSender> Connection<T> {
                                                     }
                                                     Ok(data) => data,
                                                 };
-                                            Self::new_session(id, &db_sender, &net_sender, json)
-                                                .await?;
+                                            Self::new_session(
+                                                id,
+                                                &net_sender,
+                                                json,
+                                                &dbpool.db_pool,
+                                            )
+                                            .await?;
                                             continue 'con_loop;
                                         }
                                         MessageType::Upload => {
@@ -379,9 +347,9 @@ impl<T: EmailSender> Connection<T> {
                                             let auto_clean = json.auto_clean;
                                             let (send, key) = Self::upload(
                                                 id,
-                                                &db_sender,
                                                 &net_sender,
                                                 &mut json,
+                                                &dbpool.db_pool,
                                             )
                                             .await?;
                                             let record = FileRecord::new(key, hash, auto_clean, id);
@@ -490,10 +458,9 @@ impl<T: EmailSender> Connection<T> {
     #[tracing::instrument(skip(self))]
     pub async fn work(&mut self) -> anyhow::Result<()> {
         let mut socket = self.socket.take().unwrap();
-        let request_sender = self.request_sender.clone();
         let mut shutdown_receiver = self.shutdown_sender.subscribe();
         let id;
-        let mut http_sender = self.http_sender.take().unwrap();
+        let http_sender = self.http_sender.take().unwrap();
         let dbpool = self.dbpool.take().unwrap();
         // start maintaining loop
         if shared_state::get_maintaining() {
@@ -511,8 +478,6 @@ impl<T: EmailSender> Connection<T> {
             ret = Connection::verify(
                 &mut incoming,
                 msg_sender.clone(),
-                &request_sender,
-                &mut http_sender,
                 self.shared_data.clone(),
                 &dbpool
             ) => {
@@ -536,7 +501,6 @@ impl<T: EmailSender> Connection<T> {
             incoming,
             id,
             msg_sender,
-            request_sender,
             http_sender,
             shutdown_receiver,
             self.shared_data.clone(),

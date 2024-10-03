@@ -37,7 +37,7 @@ use std::{
 use tokio::{
     net::TcpListener,
     select,
-    sync::{broadcast, mpsc, oneshot},
+    sync::{broadcast, mpsc},
 };
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{

@@ -13,175 +13,162 @@ use sea_orm::{
 use snowdon::ClassicLayoutSnowflakeExtension;
 use tokio::sync::oneshot;
 
-impl<T: EmailSender> Server<T> {
-    #[derive::db_compatibility]
-    pub async fn login(
-        request: requests::Login,
-        resp: oneshot::Sender<Result<(LoginResponse, ID), requests::Status>>,
-        db_connection: &DatabaseConnection,
-    ) -> anyhow::Result<()> {
-        use client_response::login::Status;
-        use entities::prelude::*;
-        use entities::user::Column;
-        use requests::Status;
-        // Judge login type
-        let user = match request.login_type {
-            requests::LoginType::Email => {
-                User::find()
-                    .filter(Column::Email.eq(request.account))
-                    .one(db_connection)
-                    .await
-            }
-            requests::LoginType::Ocid => {
-                User::find()
-                    .filter(Column::Ocid.eq(request.account))
-                    .one(db_connection)
-                    .await
-            }
-        };
-        match user {
-            Ok(data) => match data {
-                Some(user) => {
-                    let passwd = user.passwd;
-                    if utils::spawn_blocking_with_tracing(move || {
-                        verify_password_hash(&request.password, &passwd)
-                    })
-                    .await
-                    .is_ok()
-                    {
-                        match request.login_type {
-                            requests::LoginType::Email => resp
-                                .send(Ok((
-                                    LoginResponse::success_email(user.ocid),
-                                    user.id.into(),
-                                )))
-                                .unwrap(),
-                            requests::LoginType::Ocid => resp
-                                .send(Ok((LoginResponse::success_ocid(), user.id.into())))
-                                .unwrap(),
+#[derive::db_compatibility]
+pub async fn login(
+    request: requests::Login,
+    db_connection: &DatabaseConnection,
+) -> anyhow::Result<Result<(LoginResponse, ID), requests::Status>> {
+    use client_response::login::Status;
+    use entities::prelude::*;
+    use entities::user::Column;
+    use requests::Status;
+    // Judge login type
+    let user = match request.login_type {
+        requests::LoginType::Email => {
+            User::find()
+                .filter(Column::Email.eq(request.account))
+                .one(db_connection)
+                .await
+        }
+        requests::LoginType::Ocid => {
+            User::find()
+                .filter(Column::Ocid.eq(request.account))
+                .one(db_connection)
+                .await
+        }
+    };
+    match user {
+        Ok(data) => match data {
+            Some(user) => {
+                let passwd = user.passwd;
+                if utils::spawn_blocking_with_tracing(move || {
+                    verify_password_hash(&request.password, &passwd)
+                })
+                .await
+                .is_ok()
+                {
+                    match request.login_type {
+                        requests::LoginType::Email => {
+                            return Ok(Ok((
+                                LoginResponse::success_email(user.ocid),
+                                user.id.into(),
+                            )));
                         }
-                    } else {
-                        resp.send(Err(Status!(WrongPassword))).unwrap();
+                        requests::LoginType::Ocid => {
+                            return Ok(Ok((LoginResponse::success_ocid(), user.id.into())));
+                        }
                     }
-                }
-                None => resp.send(Err(Status!(WrongPassword))).unwrap(),
-            },
-            Err(e) => {
-                if let DbErr::RecordNotFound(_) = e {
-                    resp.send(Err(Status!(WrongPassword))).unwrap();
                 } else {
-                    tracing::error!("database error:{}", e);
-                    resp.send(Err(Status::ServerError)).unwrap();
+                    return Ok(Err(Status!(WrongPassword)));
                 }
+            }
+            None => return Ok(Err(Status!(WrongPassword))),
+        },
+        Err(e) => {
+            if let DbErr::RecordNotFound(_) = e {
+                return Ok(Err(Status!(WrongPassword)));
+            } else {
+                tracing::error!("database error:{}", e);
+                return Ok(Err(Status::ServerError));
             }
         }
-        Ok(())
     }
+}
 
-    #[derive::db_compatibility]
-    pub async fn register(
-        request: requests::Register,
-        resp: oneshot::Sender<Result<(RegisterResponse, ID), requests::Status>>,
-        db_connection: &DatabaseConnection,
-    ) -> anyhow::Result<()> {
-        use entities::user::ActiveModel as UserModel;
-        // Generate snowflake id
-        let id = ID(utils::GENERATOR.generate()?.into_i64().try_into()?);
-        // Generate ocid by random
-        let ocid = utils::generate_ocid(consts::OCID_LEN);
-        let passwd = request.password;
-        let passwd =
-            utils::spawn_blocking_with_tracing(move || compute_password_hash(&passwd)).await?;
-        let user = UserModel {
-            id: ActiveValue::Set(id.into()),
-            ocid: ActiveValue::Set(ocid),
-            passwd: ActiveValue::Set(passwd),
-            name: ActiveValue::Set(request.name),
-            email: ActiveValue::Set(request.email),
-            time: ActiveValue::Set(chrono::Utc::now().timestamp().try_into()?),
-            resource_used: ActiveValue::Set(0),
-            friends_num: ActiveValue::Set(0),
-            friend_limit: ActiveValue::Set(shared_state::get_friends_number_limit().try_into()?),
-        };
-        match user.insert(db_connection).await {
-            Ok(res) => {
-                // Happy Path
-                let response = RegisterResponse::success(res.ocid);
-                resp.send(Ok((response, res.id.into()))).unwrap();
-            }
-            Err(e) => {
-                if let DbErr::RecordNotInserted = e {
-                    resp.send(Err(requests::Status::Dup)).unwrap();
-                } else {
-                    tracing::error!("Database error:{e}");
-                    resp.send(Err(requests::Status::ServerError)).unwrap();
-                }
-            }
+#[derive::db_compatibility]
+pub async fn register(
+    request: requests::Register,
+    db_connection: &DatabaseConnection,
+) -> anyhow::Result<Result<(RegisterResponse, ID), requests::Status>> {
+    use entities::user::ActiveModel as UserModel;
+    // Generate snowflake id
+    let id = ID(utils::GENERATOR.generate()?.into_i64().try_into()?);
+    // Generate ocid by random
+    let ocid = utils::generate_ocid(consts::OCID_LEN);
+    let passwd = request.password;
+    let passwd = utils::spawn_blocking_with_tracing(move || compute_password_hash(&passwd)).await?;
+    let user = UserModel {
+        id: ActiveValue::Set(id.into()),
+        ocid: ActiveValue::Set(ocid),
+        passwd: ActiveValue::Set(passwd),
+        name: ActiveValue::Set(request.name),
+        email: ActiveValue::Set(request.email),
+        time: ActiveValue::Set(chrono::Utc::now().timestamp().try_into()?),
+        resource_used: ActiveValue::Set(0),
+        friends_num: ActiveValue::Set(0),
+        friend_limit: ActiveValue::Set(shared_state::get_friends_number_limit().try_into()?),
+    };
+    match user.insert(db_connection).await {
+        Ok(res) => {
+            // Happy Path
+            let response = RegisterResponse::success(res.ocid);
+            return Ok(Ok((response, res.id.into())));
         }
-        Ok(())
-    }
-
-    #[derive::db_compatibility]
-    pub async fn unregister(
-        id: ID,
-        resp: oneshot::Sender<requests::Status>,
-        db_connection: &DatabaseConnection,
-    ) -> anyhow::Result<()> {
-        use entities::user::ActiveModel as UserModel;
-        let user = UserModel {
-            id: ActiveValue::Set(id.into()),
-            ..Default::default()
-        };
-        match user.delete(db_connection).await {
-            Ok(_) => resp.send(requests::Status::Success)?,
-            Err(e) => {
+        Err(e) => {
+            if let DbErr::RecordNotInserted = e {
+                return Ok(Err(requests::Status::Dup));
+            } else {
                 tracing::error!("Database error:{e}");
-                resp.send(requests::Status::ServerError)?;
+                return Ok(Err(requests::Status::ServerError));
             }
         }
-        Ok(())
     }
+}
 
-    #[derive::db_compatibility]
-    pub async fn new_session(
-        _id: ID,
-        _resp: oneshot::Sender<Result<NewSessionResponse, requests::Status>>,
-        _db_connection: &DatabaseConnection,
-    ) -> anyhow::Result<()> {
-        Ok(())
-    }
-
-    #[derive::db_compatibility]
-    pub async fn up_load(
-        id: ID,
-        sz: Bt,
-        resp: oneshot::Sender<requests::Status>,
-        db_connection: &DatabaseConnection,
-    ) -> anyhow::Result<()> {
-        use entities::user;
-        let user_info = match user::Entity::find_by_id(id).one(db_connection).await? {
-            Some(user) => user,
-            None => {
-                resp.send(requests::Status::ServerError)?;
-                return Ok(());
-            }
-        };
-        // first check if the limit has been reached
-        let limit = shared_state::get_user_files_store_limit();
-        let bytes_num: Bt = limit.into();
-        let res_used: u64 = user_info.resource_used.try_into()?;
-        let will_used = Bt(res_used + *sz);
-        if will_used >= bytes_num {
-            // reach the limit,delete some files to preserve the limit
-            // TODO:clean files
+#[derive::db_compatibility]
+pub async fn unregister(
+    id: ID,
+    db_connection: &DatabaseConnection,
+) -> anyhow::Result<requests::Status> {
+    use entities::user::ActiveModel as UserModel;
+    let user = UserModel {
+        id: ActiveValue::Set(id.into()),
+        ..Default::default()
+    };
+    match user.delete(db_connection).await {
+        Ok(_) => return Ok(requests::Status::Success),
+        Err(e) => {
+            tracing::error!("Database error:{e}");
+            return Ok(requests::Status::ServerError);
         }
-        let updated_res_lim = user_info.resource_used + 1;
-        let mut user_info: user::ActiveModel = user_info.into();
-        user_info.resource_used = ActiveValue::Set(updated_res_lim);
-        user_info.update(db_connection).await?;
-        resp.send(requests::Status::Success)?;
-        Ok(())
     }
+}
+
+#[derive::db_compatibility]
+pub async fn new_session(
+    _id: ID,
+    _db_connection: &DatabaseConnection,
+) -> anyhow::Result<Result<NewSessionResponse, requests::Status>> {
+    todo!()
+}
+
+#[derive::db_compatibility]
+pub async fn up_load(
+    id: ID,
+    sz: Bt,
+    db_connection: &DatabaseConnection,
+) -> anyhow::Result<requests::Status> {
+    use entities::user;
+    let user_info = match user::Entity::find_by_id(id).one(db_connection).await? {
+        Some(user) => user,
+        None => {
+            return Ok(requests::Status::ServerError);
+        }
+    };
+    // first check if the limit has been reached
+    let limit = shared_state::get_user_files_store_limit();
+    let bytes_num: Bt = limit.into();
+    let res_used: u64 = user_info.resource_used.try_into()?;
+    let will_used = Bt(res_used + *sz);
+    if will_used >= bytes_num {
+        // reach the limit,delete some files to preserve the limit
+        // TODO:clean files
+    }
+    let updated_res_lim = user_info.resource_used + 1;
+    let mut user_info: user::ActiveModel = user_info.into();
+    user_info.resource_used = ActiveValue::Set(updated_res_lim);
+    user_info.update(db_connection).await?;
+    Ok(requests::Status::Success)
 }
 
 fn compute_password_hash(password: &str) -> String {
