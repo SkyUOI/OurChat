@@ -9,16 +9,17 @@ use futures_util::{SinkExt, StreamExt};
 use parking_lot::Mutex;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
+use server::component::MockEmailSender;
 use server::connection::client_response::{self, UnregisterResponse};
 use server::consts::MessageType;
 use server::db::{DbCfg, DbCfgTrait, DbType};
 use server::requests::{self, Login, LoginType, Register, Unregister};
 use server::utils::gen_ws_bind_addr;
-use server::{Application, ArgsParser, ParserCfg, ShutdownSdr};
+use server::{Application, ArgsParser, ParserCfg, SharedData, ShutdownSdr};
 use sqlx::migrate::MigrateDatabase;
 use std::collections::HashSet;
 use std::path::PathBuf;
-use std::sync::LazyLock;
+use std::sync::{Arc, LazyLock};
 use std::time::Duration;
 use tokio::fs::remove_file;
 use tokio::net::TcpStream;
@@ -102,6 +103,7 @@ pub struct TestApp {
     pub user: TestUser,
     pub handle: JoinHandle<()>,
     pub db_url: String,
+    pub app_shared: Arc<SharedData<MockEmailSender>>,
 
     server_config: server::Cfg,
     has_dropped: bool,
@@ -128,7 +130,7 @@ impl TestAppTrait for ArgsParser {
 }
 
 impl TestApp {
-    pub async fn new() -> anyhow::Result<Self> {
+    pub async fn new(email_client: Option<MockEmailSender>) -> anyhow::Result<Self> {
         let args = server::ArgsParser::test();
         let server_config = server::get_configuration(args.shared_cfg.config.as_ref())?;
         let mut server_config = server::Cfg::new(server_config)?;
@@ -145,10 +147,11 @@ impl TestApp {
                 db_url = cfg.url();
             }
         }
-        let mut application = Application::build(args, server_config.clone()).await?;
+        let mut application = Application::build(args, server_config.clone(), email_client).await?;
         let port = application.get_port();
         let http_port = application.get_http_port();
         let abort_handle = application.get_abort_handle();
+        let shared = application.shared.clone();
 
         let handle = tokio::spawn(async move {
             application.run_forever().await.unwrap();
@@ -166,16 +169,26 @@ impl TestApp {
             server_config,
             has_dropped: false,
             server_drop_handle: abort_handle,
+            app_shared: shared,
         };
         println!("register user: {:?}", obj.user);
         obj.register().await;
         Ok(obj)
     }
 
-    pub async fn new_logined() -> anyhow::Result<Self> {
-        let mut obj = Self::new().await?;
+    pub async fn new_logined(email_client: Option<MockEmailSender>) -> anyhow::Result<Self> {
+        let mut obj = Self::new(email_client).await?;
         obj.email_login().await;
         Ok(obj)
+    }
+
+    pub async fn send(&mut self, msg: Message) -> anyhow::Result<()> {
+        self.connection.send(msg).await?;
+        Ok(())
+    }
+
+    pub async fn get(&mut self) -> anyhow::Result<Message> {
+        Ok(self.connection.next().await.unwrap().unwrap())
     }
 
     async fn establish_connection_internal(port: u16) -> anyhow::Result<ClientWS> {

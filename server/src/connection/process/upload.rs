@@ -1,4 +1,5 @@
 use crate::{
+    component::EmailSender,
     connection::{Connection, DBRequest, client_response::UploadResponse},
     consts::{Bt, ID},
     requests::upload::Upload,
@@ -18,7 +19,7 @@ fn generate_key_name(hash: &str) -> String {
     format!("{}{}", prefix, hash)
 }
 
-impl Connection {
+impl<T: EmailSender> Connection<T> {
     pub async fn upload(
         id: ID,
         db_sender: &mpsc::Sender<DBRequest>,

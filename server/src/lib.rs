@@ -3,6 +3,7 @@
 #![feature(duration_constructors)]
 
 mod cmd;
+pub mod component;
 pub mod connection;
 pub mod consts;
 pub mod db;
@@ -12,9 +13,11 @@ mod server;
 mod shared_state;
 pub mod utils;
 
+use crate::component::EmailClient;
 use anyhow::bail;
 use clap::Parser;
 use cmd::CommandTransmitData;
+use component::EmailSender;
 use config::File;
 use consts::{FileSize, STDIN_AVAILABLE};
 use db::{DbCfg, DbType, MysqlDbCfg, SqliteDbCfg, file_storage};
@@ -60,7 +63,7 @@ pub struct ArgsParser {
     pub db_type: Option<String>,
     #[command(flatten)]
     pub shared_cfg: ParserCfg,
-    #[arg(long, help = "if enable cmd")]
+    #[arg(long, help = "whether to enable cmd")]
     pub enable_cmd: Option<bool>,
 }
 
@@ -98,6 +101,30 @@ pub struct MainCfg {
     pub smtp_password: Option<String>,
     #[serde(skip)]
     pub cmd_args: ParserCfg,
+}
+
+impl MainCfg {
+    pub fn email_available(&self) -> bool {
+        self.email_address.is_some() && self.smtp_address.is_some() && self.smtp_password.is_some()
+    }
+
+    pub fn build_email_client(&self) -> anyhow::Result<EmailClient> {
+        if !self.email_available() {
+            anyhow::bail!("email is not available");
+        }
+        let creds = Credentials::new(
+            self.email_address.clone().unwrap(),
+            self.smtp_password.clone().unwrap(),
+        );
+        EmailClient::new(
+            AsyncSmtpTransport::<lettre::Tokio1Executor>::relay(
+                &self.smtp_address.clone().unwrap(),
+            )?
+            .credentials(creds)
+            .build(),
+            self.email_address.as_ref().unwrap(),
+        )
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -289,9 +316,9 @@ pub struct HttpSender {
 async fn start_server(
     listener: TcpListener,
     db: DatabaseConnection,
-    redis: redis::Client,
+    redis: deadpool_redis::Pool,
     http_sender: HttpSender,
-    shared_data: Arc<SharedData>,
+    shared_data: Arc<SharedData<impl EmailSender>>,
     shutdown_sender: ShutdownSdr,
     shutdown_receiver: broadcast::Receiver<()>,
 ) -> anyhow::Result<()> {
@@ -311,35 +338,17 @@ fn global_init() {
     })
 }
 
-pub struct Application {
-    shared: Arc<SharedData>,
+pub struct Application<T: EmailSender> {
+    pub shared: Arc<SharedData<T>>,
     server_listener: Option<TcpListener>,
     http_listener: Option<std::net::TcpListener>,
     /// for shutdowning server fully,you shouldn't use handle.abort() to do this
     abort_sender: ShutdownSdr,
 }
 
-struct SharedState {
-    email_available: bool,
-    email_client: Option<EmailClient>,
-}
-
-pub struct SharedData {
-    shared_state: SharedState,
-    cfg: Cfg,
-}
-
-type EmailClient = AsyncSmtpTransport<lettre::Tokio1Executor>;
-
-fn build_email_client(cfg: &MainCfg) -> EmailClient {
-    let creds = Credentials::new(
-        cfg.email_address.clone().unwrap(),
-        cfg.smtp_password.clone().unwrap(),
-    );
-    AsyncSmtpTransport::<lettre::Tokio1Executor>::relay(&cfg.smtp_address.clone().unwrap())
-        .unwrap()
-        .credentials(creds)
-        .build()
+pub struct SharedData<T: EmailSender> {
+    pub email_client: Option<T>,
+    pub cfg: Cfg,
 }
 
 pub fn get_configuration(config_path: Option<impl Into<PathBuf>>) -> anyhow::Result<MainCfg> {
@@ -365,8 +374,12 @@ pub fn get_configuration(config_path: Option<impl Into<PathBuf>>) -> anyhow::Res
     Ok(cfg)
 }
 
-impl Application {
-    pub async fn build(parser: ArgsParser, mut cfg: Cfg) -> anyhow::Result<Self> {
+impl<T: EmailSender> Application<T> {
+    pub async fn build(
+        parser: ArgsParser,
+        mut cfg: Cfg,
+        email_client: Option<T>,
+    ) -> anyhow::Result<Self> {
         let main_cfg = &mut cfg.main_cfg;
         if let Some(new_ip) = parser.ip {
             main_cfg.ip = new_ip;
@@ -402,14 +415,6 @@ impl Application {
             },
         };
         main_cfg.db_type = db_type;
-        let email_available = main_cfg.email_address.is_some()
-            && main_cfg.smtp_password.is_some()
-            && main_cfg.smtp_address.is_some();
-        let email_client = if email_available {
-            Some(build_email_client(main_cfg))
-        } else {
-            None
-        };
 
         // enable cmd
         let enable_cmd = match parser.enable_cmd {
@@ -420,13 +425,7 @@ impl Application {
         let (abort_sender, _) = broadcast::channel(20);
 
         Ok(Self {
-            shared: Arc::new(SharedData {
-                shared_state: SharedState {
-                    email_available,
-                    email_client,
-                },
-                cfg,
-            }),
+            shared: Arc::new(SharedData { email_client, cfg }),
             server_listener: Some(server_listener),
             http_listener: Some(http_listener),
             abort_sender,
@@ -473,6 +472,7 @@ impl Application {
                 self.http_listener.take().unwrap(),
                 db.clone(),
                 self.shared.clone(),
+                redis.clone(),
                 self.abort_sender.subscribe(),
             )
             .await?;
@@ -480,7 +480,7 @@ impl Application {
         start_server(
             self.server_listener.take().unwrap(),
             db.clone(),
-            redis,
+            redis.clone(),
             record_sender,
             self.shared.clone(),
             self.abort_sender.clone(),
@@ -541,6 +541,7 @@ impl Application {
         }
         handle.await??;
         db.close().await?;
+        redis.close();
         tracing::info!("Server exited");
         Ok(())
     }

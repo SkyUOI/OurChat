@@ -3,6 +3,7 @@
 pub mod httpserver;
 mod process;
 
+use crate::component::EmailSender;
 use crate::connection::DBRequest;
 use crate::{HttpSender, SharedData, connection};
 use std::net::SocketAddr;
@@ -13,23 +14,23 @@ use tokio::{
     select,
     sync::{broadcast, mpsc},
 };
-pub struct Server {
+pub struct Server<T: EmailSender> {
     tcplistener: TcpListener,
     db: Option<sea_orm::DatabaseConnection>,
-    _redis: Option<redis::Client>,
+    _redis: Option<deadpool_redis::Pool>,
     task_solver_sender: mpsc::Sender<DBRequest>,
     task_solver_receiver: Option<mpsc::Receiver<DBRequest>>,
     http_sender: HttpSender,
-    shared_data: Arc<SharedData>,
+    shared_data: Arc<SharedData<T>>,
 }
 
-impl Server {
+impl<T: EmailSender> Server<T> {
     pub async fn new(
         tcplistener: TcpListener,
         db: sea_orm::DatabaseConnection,
-        redis: redis::Client,
+        redis: deadpool_redis::Pool,
         http_sender: HttpSender,
-        shared_data: Arc<SharedData>,
+        shared_data: Arc<SharedData<T>>,
     ) -> anyhow::Result<Self> {
         let (task_solver_sender, task_solver_receiver) = mpsc::channel(32);
         let ret = Self {
@@ -125,7 +126,7 @@ impl Server {
         http_sender: HttpSender,
         shutdown_sender: broadcast::Sender<()>,
         task_sender: mpsc::Sender<DBRequest>,
-        shared_data: Arc<SharedData>,
+        shared_data: Arc<SharedData<T>>,
     ) {
         let ws_stream = match tokio_tungstenite::accept_async(stream).await {
             Ok(data) => data,
