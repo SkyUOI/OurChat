@@ -21,7 +21,9 @@ jobs:
         uses: crate-ci/typos@master
         with:
           files: .
+      - name: Flutter Init
+        run: cd client/OurChat && flutter pub get
       - name: Flutter Check
-        uses: NIOMIND-srl-sb/flutter-analyze-action@v1.0.20
-        with:
-          token: ${{ secrets.ACTION_TOKEN }}
+        run: cd client/OurChat && flutter analyze
+      - name: FLutter Fmt
+        run: cd client/OurChat && flutter format --set-exit-if-changed .
