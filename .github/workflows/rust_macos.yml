@@ -19,7 +19,7 @@ jobs:
       - name: Build
         run: cargo build --all
       - name: Start Redis
-        run: docker run --name win-redis -e REDIS_PORT=6379 -e REDIS_PASSWORD=123456 -p 6379:6379 -d redis
+        run: docker run --name win-redis -e REDIS_PORT=6379 -p 6379:6379 -d redis
       - name: Sqlite Test
         run: python3 script/test_server.py sqlite
       - name: Build Release
