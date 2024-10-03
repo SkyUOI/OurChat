@@ -357,6 +357,12 @@ def upload_msg(conn: Connection, sample: dict, data: dict) -> dict:
     sample["hash"] = data["hash"]
     return sample
 
+async def verifyStatus(conn: Connection, sample: dict, data: dict) -> dict:
+    await conn.send({
+        "code": 23,
+        "status": 0
+    })
+    return sample
 
 auto_reply = {
     0: ("user_msg.json", user_msg, True),
@@ -366,7 +372,7 @@ auto_reply = {
     8: ("new_session.json", new_session, True),
     10: ("account_info.json", account_info, False),
     12: ("server_status.json", normal, False),
-    14: ("verify_status.json", normal, False),
+    14: ("verify_status.json", verifyStatus, True),
     16: ("unregister.json", unregister, False),
     19: ("set_account.json", set_account, False),
     21: ("upload.json", upload_msg, False),
