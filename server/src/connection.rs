@@ -30,7 +30,7 @@ use serde_json::Value;
 use tokio::{
     net::TcpStream,
     select,
-    sync::{broadcast, mpsc},
+    sync::{Notify, broadcast, futures::Notified, mpsc},
 };
 use tokio_tungstenite::WebSocketStream;
 use tokio_tungstenite::tungstenite::protocol::Message;
@@ -52,6 +52,20 @@ pub struct Connection<T: EmailSender + 'static> {
 enum VerifyStatus {
     Success(ID),
     Fail,
+}
+
+fn get_code(s: &str) -> anyhow::Result<Option<(MessageType, Value)>> {
+    let json: Value = serde_json::from_str(s)?;
+    let code = &json["code"];
+    if let Value::Number(code) = code {
+        let code = code.as_u64();
+        if let Some(code) = code {
+            if let Ok(msg) = MessageType::try_from(code as i32) {
+                return Ok(Some((msg, json)));
+            }
+        }
+    }
+    Ok(None)
 }
 
 impl<T: EmailSender> Connection<T> {
@@ -106,42 +120,110 @@ impl<T: EmailSender> Connection<T> {
     }
 
     /// Operate low level actions which are allowed all the time
-    async fn low_level_action(
+    async fn low_level_action<R>(
         code: MessageType,
+        net_sender: impl Fn(Message) -> R,
+    ) -> anyhow::Result<bool>
+    where
+        R: Future<Output = anyhow::Result<()>>,
+    {
+        match code {
+            MessageType::GetStatus => {
+                net_sender(Message::Text(serde_json::to_string(
+                    &GetStatusResponse::normal(),
+                )?))
+                .await?;
+                return Ok(true);
+            }
+            _ => (),
+        }
+        Ok(false)
+    }
+
+    /// Send a Email to verify the user
+    async fn email_verify<R>(
         json: &Value,
         shared_data: &Arc<crate::SharedData<impl EmailSender>>,
         dbpool: &DbPool,
-    ) -> anyhow::Result<Option<String>> {
-        match code {
-            MessageType::GetStatus => {
-                Ok(Some(serde_json::to_string(&GetStatusResponse::normal())?))
+        net_sender: impl Fn(Message) -> R,
+    ) -> anyhow::Result<Arc<Notify>>
+    where
+        R: Future<Output = anyhow::Result<()>>,
+    {
+        if shared_data.email_client.is_none() {
+            net_sender(Message::Text(serde_json::to_string(
+                &VerifyResponse::email_cannot_be_sent(),
+            )?))
+            .await?;
+        }
+        let json: requests::Verify = serde_json::from_value(json.clone())?;
+        let verify_success = Arc::new(Notify::new());
+        // this message's meaning is the email has been sent
+        match verify_client(
+            dbpool,
+            shared_data.clone(),
+            VerifyRecord::new(json.email, process::verify::generate_token()),
+            verify_success.clone(),
+        )
+        .await
+        {
+            Ok(_) => {
+                net_sender(Message::Text(serde_json::to_string(
+                    &VerifyResponse::success(),
+                )?))
+                .await?
             }
-            MessageType::Verify => {
-                if shared_data.email_client.is_none() {
-                    return Ok(Some(serde_json::to_string(
-                        &VerifyResponse::email_cannot_be_sent(),
-                    )?));
+            Err(e) => {
+                tracing::error!("Failed to verify email: {}", e);
+                net_sender(Message::Text(serde_json::to_string(
+                    &VerifyResponse::email_cannot_be_sent(),
+                )?))
+                .await?
+            }
+        };
+        Ok(verify_success)
+    }
+
+    /// Setup when verifying,only allow low level operations to be executed
+    async fn verify_notifying<R>(
+        net_receiver: &mut InComing,
+        net_sender: impl Fn(Message) -> R + Clone,
+    ) where
+        R: Future<Output = anyhow::Result<()>>,
+    {
+        loop {
+            let msg = match net_receiver.next().await {
+                Some(Ok(msg)) => msg,
+                _ => break,
+            };
+            let (code, _json) = match msg {
+                Message::Text(text) => match get_code(&text) {
+                    Ok(Some((code, json))) => (code, json),
+                    _ => continue,
+                },
+                _ => {
+                    continue;
                 }
-                let json: requests::Verify = serde_json::from_value(json.clone())?;
-                // let (resp_sender, resp_receiver) = oneshot::channel();
-                // this message's meaning is the email has been sent
-                match verify_client(
-                    dbpool,
-                    shared_data.clone(),
-                    VerifyRecord::new(json.email, process::verify::generate_token()),
-                )
-                .await
-                {
-                    Ok(_) => Ok(Some(serde_json::to_string(&VerifyResponse::success())?)),
-                    Err(e) => {
-                        tracing::error!("Failed to verify email: {}", e);
-                        Ok(Some(serde_json::to_string(
-                            &VerifyResponse::email_cannot_be_sent(),
-                        )?))
+            };
+            match Self::low_level_action(code, net_sender.clone()).await {
+                Ok(executed) => {
+                    if !executed {
+                        if let Err(e) = net_sender(Message::Text(
+                            serde_json::to_string(&client_response::ErrorMsgResponse::new(
+                                "Email has not been confirmed now".to_owned(),
+                            ))
+                            .unwrap(),
+                        ))
+                        .await
+                        {
+                            tracing::error!("Failed to send error msg: {}", e);
+                        }
                     }
                 }
+                Err(e) => {
+                    tracing::error!("Failed to execute low level action: {}", e);
+                }
             }
-            _ => Ok(None),
         }
     }
 
@@ -154,6 +236,7 @@ impl<T: EmailSender> Connection<T> {
         shared_data: Arc<crate::SharedData<T>>,
         dbpool: &DbPool,
     ) -> anyhow::Result<Option<VerifyStatus>> {
+        // Try to fetch previous verification
         loop {
             let msg = match incoming.next().await {
                 None => {
@@ -166,76 +249,87 @@ impl<T: EmailSender> Connection<T> {
             };
             match msg {
                 Message::Text(text) => {
-                    let json: Value = serde_json::from_str(&text)?;
+                    let verify_failed = || async {
+                        Self::send_error_msg(
+                            |msg| async {
+                                outgoing.send(msg).await?;
+                                anyhow::Ok(())
+                            },
+                            "Not login or register code",
+                        )
+                        .await?;
+                        tracing::info!(
+                            "Failed to login,msg is {:?},not login or register code",
+                            text
+                        );
+                        anyhow::Ok(VerifyStatus::Fail)
+                    };
                     // Get message type
-                    let code = &json["code"];
-                    if let Value::Number(code) = code {
-                        let code = code.as_u64();
-                        let verify_failed = || async {
-                            Self::send_error_msg(
-                                |msg| async {
+                    let (code, json) = match get_code(&text) {
+                        Ok(Some((code, json))) => (code, json),
+                        _ => {
+                            verify_failed().await?;
+                            continue;
+                        }
+                    };
+
+                    let (resp_content, status) = {
+                        if Self::low_level_action(code, |t| async {
+                            outgoing.send(t).await?;
+                            Ok(())
+                        })
+                        .await?
+                        {
+                            continue;
+                        }
+                        match code {
+                            MessageType::Login => {
+                                let login_data: requests::Login = serde_json::from_value(json)?;
+                                Self::login_request(login_data, &dbpool.db_pool).await?
+                            }
+                            MessageType::Register => {
+                                let request_data: requests::Register =
+                                    serde_json::from_value(json)?;
+                                Self::register_request(request_data, &dbpool.db_pool).await?
+                            }
+                            MessageType::Verify => {
+                                tracing::info!("Start to verify email");
+                                match Self::email_verify(&json, &shared_data, dbpool, |msg| async {
                                     outgoing.send(msg).await?;
                                     anyhow::Ok(())
-                                },
-                                "Not login or register code",
-                            )
-                            .await?;
-                            tracing::info!(
-                                "Failed to login,code is {:?},not login or register code",
-                                code
-                            );
-                            anyhow::Ok(VerifyStatus::Fail)
-                        };
-                        let (resp_content, status) = match code {
-                            None => {
+                                })
+                                .await
+                                {
+                                    Ok(notifier) => {
+                                        select! {
+                                            _ = Self::verify_notifying(incoming, |msg| async {
+                                                outgoing.send(msg).await?;
+                                                anyhow::Ok(())
+                                            }) => {}
+                                            _ = notifier.notified() => {}
+                                        }
+                                    }
+                                    Err(e) => {
+                                        tracing::error!("Failed to verify email: {}", e);
+                                    }
+                                }
+                                tracing::info!("End to verify email");
+                                continue;
+                            }
+                            _ => {
                                 verify_failed().await?;
                                 continue;
                             }
-                            Some(code) => {
-                                let code = match MessageType::try_from(code as i32) {
-                                    Ok(c) => c,
-                                    Err(_) => {
-                                        verify_failed().await?;
-                                        continue;
-                                    }
-                                };
-                                if let Some(resp) =
-                                    Self::low_level_action(code, &json, &shared_data, dbpool)
-                                        .await?
-                                {
-                                    outgoing.send(Message::Text(resp)).await?;
-                                    continue;
-                                }
-                                match code {
-                                    MessageType::Login => {
-                                        let login_data: requests::Login =
-                                            serde_json::from_value(json)?;
-                                        Self::login_request(login_data, &dbpool.db_pool).await?
-                                    }
-                                    MessageType::Register => {
-                                        let request_data: requests::Register =
-                                            serde_json::from_value(json)?;
-                                        Self::register_request(request_data, &dbpool.db_pool)
-                                            .await?
-                                    }
-                                    _ => {
-                                        verify_failed().await?;
-                                        continue;
-                                    }
-                                }
-                            }
-                        };
-                        outgoing.send(Message::Text(resp_content)).await?;
-                        match status {
-                            VerifyStatus::Success(_) => {
-                                return Ok(Some(status));
-                            }
-                            _ => {
-                                continue;
-                            }
                         }
-                    } else {
-                        bail!("Failed to login,code is not a number or missing");
+                    };
+                    outgoing.send(Message::Text(resp_content)).await?;
+                    match status {
+                        VerifyStatus::Success(_) => {
+                            return Ok(Some(status));
+                        }
+                        _ => {
+                            continue;
+                        }
                     }
                 }
                 Message::Close(_) => {
@@ -277,97 +371,64 @@ impl<T: EmailSender> Connection<T> {
                 };
                 match msg {
                     Message::Text(msg) => {
-                        let json: Value = serde_json::from_str(&msg)?;
-                        let code = &json["code"];
-                        if let Value::Number(code) = code {
-                            let code = code.as_u64();
-                            match code {
-                                None => {
-                                    Self::send_error_msg(
-                                        net_send_closure,
-                                        "code is not a unsigned number",
-                                    )
+                        let (code, json) = match get_code(&msg) {
+                            Ok(Some((code, json))) => (code, json),
+                            _ => {
+                                Self::send_error_msg(net_send_closure, "codei is not correct")
                                     .await?;
-                                }
-                                Some(num) => {
-                                    let code = match MessageType::try_from(num as i32) {
-                                        Ok(num) => num,
-                                        Err(_) => {
-                                            Self::send_error_msg(
-                                                net_send_closure,
-                                                format!("Not a valid code {}", num),
-                                            )
-                                            .await?;
-                                            continue 'con_loop;
-                                        }
-                                    };
-                                    if let Some(oper_success) =
-                                        Self::low_level_action(code, &json, &shared_data, &dbpool)
-                                            .await?
-                                    {
-                                        net_sender.send(Message::Text(oper_success)).await?;
-                                        continue;
-                                    }
-                                    match code {
-                                        MessageType::Unregister => {
-                                            Self::unregister(id, &net_sender, &dbpool.db_pool)
-                                                .await?;
-                                            continue 'con_loop;
-                                        }
-                                        MessageType::NewSession => {
-                                            let json: NewSession =
-                                                match serde_json::from_value(json) {
-                                                    Err(_) => {
-                                                        tracing::warn!("Wrong json structure");
-                                                        continue 'con_loop;
-                                                    }
-                                                    Ok(data) => data,
-                                                };
-                                            Self::new_session(
-                                                id,
-                                                &net_sender,
-                                                json,
-                                                &dbpool.db_pool,
-                                            )
-                                            .await?;
-                                            continue 'con_loop;
-                                        }
-                                        MessageType::Upload => {
-                                            let mut json: Upload =
-                                                match serde_json::from_value(json) {
-                                                    Err(_) => {
-                                                        tracing::warn!("Wrong json structure");
-                                                        continue 'con_loop;
-                                                    }
-                                                    Ok(json) => json,
-                                                };
-                                            // 先生成url再回复
-                                            let hash = json.hash.clone();
-                                            let auto_clean = json.auto_clean;
-                                            let (send, key) = Self::upload(
-                                                id,
-                                                &net_sender,
-                                                &mut json,
-                                                &dbpool.db_pool,
-                                            )
-                                            .await?;
-                                            let record = FileRecord::new(key, hash, auto_clean, id);
-                                            http_sender.file_record.send(record).await?;
-                                            send.await?;
-                                            continue 'con_loop;
-                                        }
-                                        _ => {
-                                            Self::send_error_msg(
-                                                net_send_closure,
-                                                format!("Not a valid code {}", num),
-                                            )
-                                            .await?;
-                                        }
-                                    }
-                                }
+                                continue 'con_loop;
                             }
-                        } else {
-                            Self::send_error_msg(net_send_closure, "Without code").await?
+                        };
+                        if Self::low_level_action(code, |t| async {
+                            net_sender.send(t).await?;
+                            Ok(())
+                        })
+                        .await?
+                        {
+                            continue;
+                        }
+                        match code {
+                            MessageType::Unregister => {
+                                Self::unregister(id, &net_sender, &dbpool.db_pool).await?;
+                                continue 'con_loop;
+                            }
+                            MessageType::NewSession => {
+                                let json: NewSession = match serde_json::from_value(json) {
+                                    Err(_) => {
+                                        tracing::warn!("Wrong json structure");
+                                        continue 'con_loop;
+                                    }
+                                    Ok(data) => data,
+                                };
+                                Self::new_session(id, &net_sender, json, &dbpool.db_pool).await?;
+                                continue 'con_loop;
+                            }
+                            MessageType::Upload => {
+                                let mut json: Upload = match serde_json::from_value(json) {
+                                    Err(_) => {
+                                        tracing::warn!("Wrong json structure");
+                                        continue 'con_loop;
+                                    }
+                                    Ok(json) => json,
+                                };
+                                // 先生成url再回复
+                                let hash = json.hash.clone();
+                                let auto_clean = json.auto_clean;
+                                let (send, key) =
+                                    Self::upload(id, &net_sender, &mut json, &dbpool.db_pool)
+                                        .await?;
+                                let record = FileRecord::new(key, hash, auto_clean, id);
+                                http_sender.file_record.send(record).await?;
+                                send.await?;
+                                continue 'con_loop;
+                            }
+                            _ => {
+                                Self::send_error_msg(
+                                    net_send_closure,
+                                    format!("Not a supported code {:?}", code),
+                                )
+                                .await?;
+                            }
                         }
                     }
                     Message::Binary(_) => todo!(),

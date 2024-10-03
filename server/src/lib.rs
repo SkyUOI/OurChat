@@ -20,6 +20,7 @@ use cmd::CommandTransmitData;
 use component::EmailSender;
 use config::File;
 use consts::{FileSize, STDIN_AVAILABLE};
+use dashmap::DashMap;
 use db::{DbCfg, DbType, MysqlDbCfg, SqliteDbCfg, file_storage};
 use lettre::{AsyncSmtpTransport, transport::smtp::authentication::Credentials};
 use parking_lot::Once;
@@ -41,7 +42,10 @@ use tokio::{
 };
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{
-    EnvFilter, Layer, Registry, fmt, layer::SubscriberExt, util::SubscriberInitExt,
+    EnvFilter, Layer, Registry,
+    fmt::{self, MakeWriter},
+    layer::SubscriberExt,
+    util::SubscriberInitExt,
 };
 
 #[global_allocator]
@@ -211,31 +215,27 @@ static MACHINE_ID: LazyLock<u64> = LazyLock::new(|| {
 
 /// # Warning
 /// This function should be called only once.The second one will be ignored
-fn logger_init(test_mode: bool) {
-    static INIT: OnceLock<WorkerGuard> = OnceLock::new();
+fn logger_init<Sink>(test_mode: bool, source: Sink)
+where
+    Sink: for<'a> MakeWriter<'a> + Send + Sync + 'static,
+{
+    static INIT: OnceLock<Option<WorkerGuard>> = OnceLock::new();
     INIT.get_or_init(|| {
         let env = if test_mode {
             || EnvFilter::try_from_default_env().unwrap_or("trace".into())
         } else {
             || EnvFilter::try_from_default_env().unwrap_or("info".into())
         };
-        let formatting_layer = fmt::layer()
-            .pretty()
-            .with_writer(std::io::stdout)
-            .with_filter(env());
-        let registry = Registry::default().with(formatting_layer);
+        let formatting_layer = fmt::layer().pretty().with_writer(source);
 
         let file_appender = tracing_appender::rolling::daily("log/", "ourchat");
         let (non_blocking, file_guard) = tracing_appender::non_blocking(file_appender);
-        registry
-            .with(
-                fmt::layer()
-                    .with_ansi(false)
-                    .with_writer(non_blocking)
-                    .with_filter(env()),
-            )
+        Registry::default()
+            .with(env())
+            .with(formatting_layer)
+            .with(fmt::layer().with_ansi(false).with_writer(non_blocking))
             .init();
-        file_guard
+        Some(file_guard)
     });
 }
 
@@ -359,6 +359,7 @@ impl DbPool {
 pub struct SharedData<T: EmailSender> {
     pub email_client: Option<T>,
     pub cfg: Cfg,
+    pub verify_record: DashMap<String, Arc<tokio::sync::Notify>>,
 }
 
 pub fn get_configuration(config_path: Option<impl Into<PathBuf>>) -> anyhow::Result<MainCfg> {
@@ -393,7 +394,11 @@ impl<T: EmailSender> Application<T> {
         global_init();
         let main_cfg = &mut cfg.main_cfg;
 
-        logger_init(main_cfg.cmd_args.test_mode);
+        if main_cfg.cmd_args.test_mode {
+            logger_init(main_cfg.cmd_args.test_mode, std::io::sink);
+        } else {
+            logger_init(main_cfg.cmd_args.test_mode, std::io::stdout);
+        }
         // start maintain mode
         shared_state::set_maintaining(main_cfg.cmd_args.maintaining);
         // Set up shared state
@@ -452,7 +457,11 @@ impl<T: EmailSender> Application<T> {
         let redis = db::connect_to_redis(&db::get_redis_url(&main_cfg.rediscfg)?).await?;
 
         Ok(Self {
-            shared: Arc::new(SharedData { email_client, cfg }),
+            shared: Arc::new(SharedData {
+                email_client,
+                cfg,
+                verify_record: DashMap::new(),
+            }),
             pool: DbPool {
                 redis_pool: redis,
                 db_pool: db,

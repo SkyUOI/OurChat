@@ -29,6 +29,7 @@ pub enum MessageType {
     UploadRes = 22,
     Verify = 14,
     VerifyRes = 23,
+    VerifyStatusRes = 15,
 }
 
 /// 默认ip

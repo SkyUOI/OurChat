@@ -16,3 +16,4 @@ pub use register::RegisterResponse;
 pub use unregister::UnregisterResponse;
 pub use upload::UploadResponse;
 pub use verify::VerifyResponse;
+pub use verify::VerifyStatusResponse;

@@ -5,6 +5,7 @@ use fake::faker::internet::raw::FreeEmail;
 use fake::faker::name::en;
 use fake::faker::name::raw::Name;
 use fake::locales::EN;
+use futures_util::stream::FusedStream;
 use futures_util::{SinkExt, StreamExt};
 use parking_lot::Mutex;
 use rand::Rng;
@@ -182,7 +183,7 @@ impl TestApp {
 
     pub async fn new_logined(email_client: Option<MockEmailSender>) -> anyhow::Result<Self> {
         let mut obj = Self::new(email_client).await?;
-        obj.email_login().await;
+        obj.email_login().await?;
         Ok(obj)
     }
 
@@ -256,8 +257,7 @@ impl TestApp {
         assert_eq!(json.status, requests::Status::Success);
     }
 
-    pub async fn ocid_login(&mut self) {
-        self.establish_connection().await.unwrap();
+    pub async fn ocid_login(&mut self) -> anyhow::Result<()> {
         let login_req = Login::new(
             self.user.ocid.clone(),
             self.user.password.clone(),
@@ -270,11 +270,13 @@ impl TestApp {
         let ret = self.connection.next().await.unwrap().unwrap();
         let json: client_response::LoginResponse =
             serde_json::from_str(ret.to_text().unwrap()).unwrap();
-        assert_eq!(json.code, MessageType::LoginRes);
+        if json.code != MessageType::LoginRes {
+            anyhow::bail!("Failed to login,code is not login response");
+        }
+        Ok(())
     }
 
-    pub async fn email_login(&mut self) {
-        self.establish_connection().await.unwrap();
+    pub async fn email_login(&mut self) -> anyhow::Result<()> {
         let login_req = Login::new(
             self.user.email.clone(),
             self.user.password.clone(),
@@ -285,10 +287,18 @@ impl TestApp {
             .await
             .unwrap();
         let ret = self.connection.next().await.unwrap().unwrap();
-        let json: client_response::LoginResponse =
-            serde_json::from_str(ret.to_text().unwrap()).unwrap();
-        assert_eq!(json.code, MessageType::LoginRes);
-        assert_eq!(json.ocid.unwrap(), self.user.ocid);
+        let json: client_response::LoginResponse = serde_json::from_str(ret.to_text().unwrap())?;
+        if json.code != MessageType::LoginRes {
+            anyhow::bail!("Failed to login,code is not login response");
+        }
+        if let Some(ocid) = json.ocid.clone() {
+            if ocid != self.user.ocid {
+                anyhow::bail!("Failed to login,ocid is not correct");
+            }
+        } else {
+            anyhow::bail!("Failed to login,ocid is not found");
+        }
+        Ok(())
     }
 
     pub async fn async_drop(&mut self) {

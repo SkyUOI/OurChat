@@ -24,3 +24,18 @@ impl VerifyResponse {
         }
     }
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct VerifyStatusResponse {
+    pub code: consts::MessageType,
+    pub status: requests::Status,
+}
+
+impl VerifyStatusResponse {
+    pub fn success() -> Self {
+        Self {
+            code: consts::MessageType::VerifyStatusRes,
+            status: requests::Status::Success,
+        }
+    }
+}

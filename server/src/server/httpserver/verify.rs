@@ -1,10 +1,13 @@
-use crate::{DbPool, component::EmailSender};
+use crate::{
+    DbPool,
+    component::{EmailClient, EmailSender, MockEmailSender},
+};
 use actix_web::{HttpRequest, HttpResponse, Responder, get, web};
 use anyhow::Context;
 use redis::AsyncCommands;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use tokio::sync::oneshot;
+use tokio::sync::{Notify, oneshot};
 
 #[derive(Serialize, Deserialize)]
 struct VerifyForm {
@@ -35,6 +38,24 @@ async fn verify_token(
             return Ok(HttpResponse::InternalServerError());
         }
     } {
+        match req.app_data::<Arc<crate::SharedData<EmailClient>>>() {
+            Some(data) => {
+                if let Some(d) = data.verify_record.remove(&param.token) {
+                    d.1.notify_waiters();
+                }
+            }
+            None => match req.app_data::<Arc<crate::SharedData<MockEmailSender>>>() {
+                None => {
+                    tracing::error!("No shared data");
+                    return Ok(HttpResponse::InternalServerError());
+                }
+                Some(data) => {
+                    if let Some(d) = data.verify_record.remove(&param.token) {
+                        d.1.notify_waiters();
+                    }
+                }
+            },
+        }
         HttpResponse::Ok()
     } else {
         HttpResponse::BadRequest()
@@ -60,6 +81,7 @@ pub async fn verify_client(
     db: &DbPool,
     shared_data: Arc<crate::SharedData<impl EmailSender>>,
     data: VerifyRecord,
+    notify: Arc<Notify>,
 ) -> anyhow::Result<()> {
     let cfg = &shared_data.cfg.main_cfg;
     if let Some(ref email_client) = shared_data.email_client {
@@ -87,12 +109,17 @@ pub async fn verify_client(
         };
     }
     add_token(&data.token, &db.redis_pool).await?;
+    shared_data.verify_record.insert(data.token, notify);
     Ok(())
+}
+
+fn mapped_to_redis(key: &str) -> String {
+    format!("verify:{}", key)
 }
 
 async fn check_token(token: &str, conn: &deadpool_redis::Pool) -> anyhow::Result<bool> {
     let mut conn = conn.get().await?;
-    let ret: bool = conn.exists(token).await?;
+    let ret: bool = conn.exists(mapped_to_redis(token)).await?;
     let _: () = conn.del(token).await?;
     Ok(ret)
 }
@@ -100,7 +127,11 @@ async fn check_token(token: &str, conn: &deadpool_redis::Pool) -> anyhow::Result
 async fn add_token(token: &str, conn: &deadpool_redis::Pool) -> anyhow::Result<()> {
     let mut conn = conn.get().await?;
     let _: () = conn
-        .set_ex(token, 1, std::time::Duration::from_mins(5).as_secs())
+        .set_ex(
+            mapped_to_redis(token),
+            1,
+            std::time::Duration::from_mins(5).as_secs(),
+        )
         .await?;
     Ok(())
 }
