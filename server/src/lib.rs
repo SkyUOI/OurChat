@@ -306,10 +306,6 @@ async fn exit_signal(shutdown_sender: ShutdownSdr) -> anyhow::Result<()> {
 #[derive(Clone)]
 pub struct HttpSender {
     file_record: mpsc::Sender<httpserver::FileRecord>,
-    verify_record: mpsc::Sender<(
-        httpserver::VerifyRecord,
-        oneshot::Sender<anyhow::Result<()>>,
-    )>,
 }
 
 /// build websocket server

@@ -47,11 +47,11 @@ impl<T: EmailSender> Server<T> {
         shutdown_sender: broadcast::Sender<()>,
         mut shutdown_receiver: broadcast::Receiver<()>,
     ) -> anyhow::Result<()> {
-        let db_coon = self.db.take().unwrap();
+        let db_conn = self.db.take().unwrap();
         let mut task_solver_receiver = self.task_solver_receiver.take().unwrap();
+        let db_conn_db_process = db_conn.clone();
         tokio::spawn(async move {
-            Self::process_db_request(&mut task_solver_receiver, &db_coon.db_pool).await;
-            (task_solver_receiver, db_coon)
+            Self::process_db_request(&mut task_solver_receiver, &db_conn_db_process.db_pool).await;
         });
         let shutdown_sender_clone = shutdown_sender.clone();
         let async_loop = async move {
@@ -60,6 +60,7 @@ impl<T: EmailSender> Server<T> {
                 let ret = self.tcplistener.accept().await;
                 let shutdown_handle = shutdown_sender_clone.clone();
                 let http_sender = self.http_sender.clone();
+                let db_conn = db_conn.clone();
                 match ret {
                     Ok((socket, addr)) => {
                         tracing::info!("Connected to a socket");
@@ -70,6 +71,7 @@ impl<T: EmailSender> Server<T> {
                             shutdown_handle,
                             task_sender,
                             self.shared_data.clone(),
+                            db_conn,
                         ));
                     }
                     Err(e) => {
@@ -124,6 +126,7 @@ impl<T: EmailSender> Server<T> {
         shutdown_sender: broadcast::Sender<()>,
         task_sender: mpsc::Sender<DBRequest>,
         shared_data: Arc<SharedData<T>>,
+        dbpool: DbPool,
     ) {
         let ws_stream = match tokio_tungstenite::accept_async(stream).await {
             Ok(data) => data,
@@ -138,6 +141,7 @@ impl<T: EmailSender> Server<T> {
             shutdown_sender,
             task_sender,
             shared_data,
+            dbpool,
         );
         match connection.work().await {
             Ok(_) => {

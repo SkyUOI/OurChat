@@ -1,7 +1,7 @@
 mod download;
 mod status;
 mod upload;
-mod verify;
+pub mod verify;
 
 use std::sync::Arc;
 
@@ -10,7 +10,6 @@ use actix_web::{
     App,
     web::{self, Data},
 };
-use sea_orm::DatabaseConnection;
 use tokio::{select, sync::mpsc, task::JoinHandle};
 pub use upload::FileRecord;
 pub use verify::VerifyRecord;
@@ -32,7 +31,6 @@ impl HttpServer {
         mut shutdown_receiver: ShutdownRev,
     ) -> anyhow::Result<(JoinHandle<anyhow::Result<()>>, HttpSender)> {
         let upload_manager = Data::new(upload::UploadManager::new());
-        let db_conn_clone = db_conn.clone();
         let data_clone = upload_manager.clone();
         let shared_state_moved = shared_data.clone();
         let http_server = actix_web::HttpServer::new(move || {
@@ -67,15 +65,8 @@ impl HttpServer {
             upload_manager,
             file_receiver,
         ));
-        let (verify_sender, verify_receiver) = mpsc::channel(100);
-        tokio::spawn(verify::add_record(
-            db_conn_clone,
-            shared_data,
-            verify_receiver,
-        ));
         Ok((http_server_handle, HttpSender {
             file_record: file_sender,
-            verify_record: verify_sender,
         }))
     }
 

@@ -7,11 +7,11 @@ mod process;
 use std::sync::Arc;
 
 use crate::{
-    HttpSender,
+    DbPool, HttpSender,
     component::EmailSender,
     consts::{Bt, ID, MessageType},
     requests::{self, new_session::NewSession, upload::Upload},
-    server::httpserver::{FileRecord, VerifyRecord},
+    server::httpserver::{FileRecord, VerifyRecord, verify::verify_client},
     shared_state,
 };
 use anyhow::bail;
@@ -70,6 +70,7 @@ pub struct Connection<T: EmailSender + 'static> {
     request_sender: mpsc::Sender<DBRequest>,
     http_sender: Option<HttpSender>,
     shared_data: Arc<crate::SharedData<T>>,
+    dbpool: Option<DbPool>,
 }
 enum VerifyStatus {
     Success(ID),
@@ -83,6 +84,7 @@ impl<T: EmailSender> Connection<T> {
         shutdown_sender: broadcast::Sender<()>,
         request_sender: mpsc::Sender<DBRequest>,
         shared_data: Arc<crate::SharedData<T>>,
+        dbpool: DbPool,
     ) -> Self {
         Self {
             socket: Some(socket),
@@ -90,6 +92,7 @@ impl<T: EmailSender> Connection<T> {
             shutdown_sender,
             request_sender,
             shared_data,
+            dbpool: Some(dbpool),
         }
     }
 
@@ -143,8 +146,8 @@ impl<T: EmailSender> Connection<T> {
     async fn low_level_action(
         code: MessageType,
         json: &Value,
-        http_sender: &mut HttpSender,
         shared_data: &Arc<crate::SharedData<impl EmailSender>>,
+        dbpool: &DbPool,
     ) -> anyhow::Result<Option<String>> {
         match code {
             MessageType::GetStatus => {
@@ -157,24 +160,22 @@ impl<T: EmailSender> Connection<T> {
                     )?));
                 }
                 let json: requests::Verify = serde_json::from_value(json.clone())?;
-                let (resp_sender, resp_receiver) = oneshot::channel();
-                http_sender
-                    .verify_record
-                    .send((
-                        VerifyRecord::new(json.email, process::verify::generate_token()),
-                        resp_sender,
-                    ))
-                    .await?;
+                // let (resp_sender, resp_receiver) = oneshot::channel();
                 // this message's meaning is the email has been sent
-                match resp_receiver.await {
-                    Ok(Ok(_)) => Ok(Some(serde_json::to_string(&VerifyResponse::success())?)),
-                    Ok(Err(e)) => {
+                match verify_client(
+                    dbpool,
+                    shared_data.clone(),
+                    VerifyRecord::new(json.email, process::verify::generate_token()),
+                )
+                .await
+                {
+                    Ok(_) => Ok(Some(serde_json::to_string(&VerifyResponse::success())?)),
+                    Err(e) => {
                         tracing::error!("Failed to verify email: {}", e);
                         Ok(Some(serde_json::to_string(
                             &VerifyResponse::email_cannot_be_sent(),
                         )?))
                     }
-                    Err(e) => Err(e)?,
                 }
             }
             _ => Ok(None),
@@ -190,6 +191,7 @@ impl<T: EmailSender> Connection<T> {
         request_sender: &mpsc::Sender<DBRequest>,
         http_sender: &mut HttpSender,
         shared_data: Arc<crate::SharedData<T>>,
+        dbpool: &DbPool,
     ) -> anyhow::Result<Option<VerifyStatus>> {
         loop {
             let msg = match incoming.next().await {
@@ -237,7 +239,7 @@ impl<T: EmailSender> Connection<T> {
                                     }
                                 };
                                 if let Some(resp) =
-                                    Self::low_level_action(code, &json, http_sender, &shared_data)
+                                    Self::low_level_action(code, &json, &shared_data, &dbpool)
                                         .await?
                                 {
                                     outgoing.send(Message::Text(resp)).await?;
@@ -292,6 +294,7 @@ impl<T: EmailSender> Connection<T> {
         mut http_sender: HttpSender,
         mut shutdown_receiver: broadcast::Receiver<()>,
         shared_data: Arc<crate::SharedData<T>>,
+        dbpool: DbPool,
     ) -> anyhow::Result<()> {
         let net_send_closure = |data| async {
             net_sender.send(data).await?;
@@ -337,13 +340,9 @@ impl<T: EmailSender> Connection<T> {
                                             continue 'con_loop;
                                         }
                                     };
-                                    if let Some(oper_success) = Self::low_level_action(
-                                        code,
-                                        &json,
-                                        &mut http_sender,
-                                        &shared_data,
-                                    )
-                                    .await?
+                                    if let Some(oper_success) =
+                                        Self::low_level_action(code, &json, &shared_data, &dbpool)
+                                            .await?
                                     {
                                         net_sender.send(Message::Text(oper_success)).await?;
                                         continue;
@@ -495,6 +494,7 @@ impl<T: EmailSender> Connection<T> {
         let mut shutdown_receiver = self.shutdown_sender.subscribe();
         let id;
         let mut http_sender = self.http_sender.take().unwrap();
+        let dbpool = self.dbpool.take().unwrap();
         // start maintaining loop
         if shared_state::get_maintaining() {
             Self::maintaining(&mut socket).await?;
@@ -514,6 +514,7 @@ impl<T: EmailSender> Connection<T> {
                 &request_sender,
                 &mut http_sender,
                 self.shared_data.clone(),
+                &dbpool
             ) => {
                 id = match ret? {
                     Some(ret) => {
@@ -539,6 +540,7 @@ impl<T: EmailSender> Connection<T> {
             http_sender,
             shutdown_receiver,
             self.shared_data.clone(),
+            dbpool,
         )
         .await?;
         Ok(())

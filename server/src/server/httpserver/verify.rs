@@ -4,7 +4,7 @@ use anyhow::Context;
 use redis::AsyncCommands;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::oneshot;
 
 #[derive(Serialize, Deserialize)]
 struct VerifyForm {
@@ -56,49 +56,38 @@ impl VerifyRecord {
 
 pub type VerifyRequest = (VerifyRecord, oneshot::Sender<anyhow::Result<()>>);
 
-pub async fn add_record(
-    db: DbPool,
+pub async fn verify_client(
+    db: &DbPool,
     shared_data: Arc<crate::SharedData<impl EmailSender>>,
-    mut request_receiver: mpsc::Receiver<VerifyRequest>,
-) {
+    data: VerifyRecord,
+) -> anyhow::Result<()> {
     let cfg = &shared_data.cfg.main_cfg;
-    while let Some((data, resp_sender)) = request_receiver.recv().await {
-        if let Some(ref email_client) = shared_data.email_client {
-            let user_mailbox = format!("User <{}>", data.email);
-            let user_mailbox = match user_mailbox
-                .parse()
-                .with_context(|| format!("email {} parse failed", user_mailbox))
-            {
-                Ok(mailbox) => mailbox,
-                Err(e) => {
-                    resp_sender.send(Err(e)).unwrap();
-                    continue;
-                }
-            };
+    if let Some(ref email_client) = shared_data.email_client {
+        let user_mailbox = format!("User <{}>", data.email);
+        let user_mailbox = match user_mailbox
+            .parse()
+            .with_context(|| format!("email {} parse failed", user_mailbox))
+        {
+            Ok(mailbox) => mailbox,
+            Err(e) => Err(e)?,
+        };
 
-            if let Err(e) = email_client
-                    .send(
-                        user_mailbox,
-                        "OurChat Verification",
-                        format!(
-                            "please click \"http://{}:{}/v1/verify/confirm?token={}\" to verify your email",
-                            cfg.ip, cfg.http_port, data.token
-                        ),
-                    )
-                    .await
-                {
-                    resp_sender.send(Err(e)).unwrap();
-                    continue;
-                };
-        }
-        if let Err(e) = add_token(&data.token, &db.redis_pool).await {
-            tracing::error!("add token error,{:?}", e);
-            continue;
-        }
-        if let Err(e) = resp_sender.send(Ok(())) {
-            tracing::error!("send response error,{:?}", e);
+        if let Err(e) = email_client
+            .send(
+                user_mailbox,
+                "OurChat Verification",
+                format!(
+                    "please click \"http://{}:{}/v1/verify/confirm?token={}\" to verify your email",
+                    cfg.ip, cfg.http_port, data.token
+                ),
+            )
+            .await
+        {
+            Err(e)?
         };
     }
+    add_token(&data.token, &db.redis_pool).await?;
+    Ok(())
 }
 
 async fn check_token(token: &str, conn: &deadpool_redis::Pool) -> anyhow::Result<bool> {
