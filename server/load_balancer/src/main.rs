@@ -94,8 +94,6 @@ pub struct PingOpt {
     pub test: bool,
 
     /// The path to the configuration file.
-    ///
-    /// See [`ServerConf`] for more details of the configuration file.
     #[clap(short, long, help = "The path to the configuration file.", long_help = None)]
     pub pingora_conf: Option<String>,
 }

@@ -1,5 +1,5 @@
 use crate::{
-    DbPool,
+    DbPool, SharedData,
     component::{EmailClient, EmailSender, MockEmailSender},
 };
 use actix_web::{HttpRequest, HttpResponse, Responder, get, web};
@@ -7,7 +7,7 @@ use anyhow::Context;
 use redis::AsyncCommands;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use tokio::sync::{Notify, oneshot};
+use tokio::sync::Notify;
 
 #[derive(Serialize, Deserialize)]
 struct VerifyForm {
@@ -75,8 +75,6 @@ impl VerifyRecord {
     }
 }
 
-pub type VerifyRequest = (VerifyRecord, oneshot::Sender<anyhow::Result<()>>);
-
 pub async fn verify_client(
     db: &DbPool,
     shared_data: Arc<crate::SharedData<impl EmailSender>>,
@@ -122,6 +120,32 @@ async fn check_token(token: &str, conn: &deadpool_redis::Pool) -> anyhow::Result
     let ret: bool = conn.exists(mapped_to_redis(token)).await?;
     let _: () = conn.del(token).await?;
     Ok(ret)
+}
+
+async fn clean_useless_notifier<T: EmailSender>(
+    map: &Arc<SharedData<T>>,
+    conn: &deadpool_redis::Pool,
+) -> anyhow::Result<()> {
+    let mut conn = conn.get().await?;
+    for i in &map.verify_record {
+        let ret: bool = conn.exists(mapped_to_redis(i.key())).await?;
+        if !ret {
+            map.verify_record.remove(i.key());
+        }
+    }
+    Ok(())
+}
+
+pub async fn regularly_clean_notifier<T: EmailSender>(
+    map: Arc<SharedData<T>>,
+    conn: deadpool_redis::Pool,
+) {
+    loop {
+        tokio::time::sleep(std::time::Duration::from_secs(60)).await;
+        if let Err(e) = clean_useless_notifier(&map, &conn).await {
+            tracing::error!("unable to clean notifier:{e}");
+        }
+    }
 }
 
 async fn add_token(token: &str, conn: &deadpool_redis::Pool) -> anyhow::Result<()> {
