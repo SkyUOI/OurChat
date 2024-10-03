@@ -36,7 +36,6 @@ services:
     volumes:
       - ./data/redis-data:/opt/redis/data
       - ./config/redis.conf:/usr/local/etc/redis/redis.conf
-    environment:
     networks:
       - net
 
