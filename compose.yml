@@ -37,7 +37,6 @@ services:
       - ./data/redis-data:/opt/redis/data
       - ./config/redis.conf:/usr/local/etc/redis/redis.conf
     environment:
-      - REDIS_PASSWORD=123456
     networks:
       - net
 

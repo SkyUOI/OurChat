@@ -18,6 +18,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Build
         run: cargo build --bin server
+      - name: Set up Docker
+        uses: crazy-max/ghaction-setup-docker@v3
       - name: Start Redis
         run: docker run --name win-redis -e REDIS_PORT=6379 -p 6379:6379 -d redis
       - name: Sqlite Test
