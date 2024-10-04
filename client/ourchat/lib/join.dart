@@ -16,7 +16,7 @@ class _JoinState extends State<Join> {
   var currentIndex = 0;
   @override
   Widget build(BuildContext context) {
-    var ourchatAppState = context.watch<OurChatAppState>();
+    var ourchatAppState = context.watch<OurchatAppState>();
     final Widget page;
     if (currentIndex == 0) {
       page = const Login();
@@ -71,7 +71,7 @@ class JoinState extends ChangeNotifier {
   var showPassword = false;
   var errorText = "";
   var page = 0; // 0: login, 1: register
-  OurChatAppState? ourchatAppState;
+  OurchatAppState? ourchatAppState;
 
   void setPassword(var value) {
     showPassword = value;
@@ -209,7 +209,7 @@ class Login extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var ourchatAppState = context.watch<OurChatAppState>();
+    var ourchatAppState = context.watch<OurchatAppState>();
     var joinState = context.watch<JoinState>();
     joinState.page = 0;
     return Scaffold(
@@ -261,8 +261,7 @@ class Login extends StatelessWidget {
                     if (ourchatAppState.connection!.closed) {
                       ourchatAppState.listen(
                           serverStatusMsgCode, joinState.connectResponse);
-                      ourchatAppState.connection!
-                          .connectToServer("ws://127.0.0.1:7777");
+                      ourchatAppState.connection!.connectToServer();
                     } else {
                       joinState.login();
                     }
@@ -286,7 +285,7 @@ class Register extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var joinState = context.watch<JoinState>();
-    var ourchatAppState = context.watch<OurChatAppState>();
+    var ourchatAppState = context.watch<OurchatAppState>();
     joinState.page = 1;
     return Scaffold(
         body: Padding(
@@ -344,8 +343,7 @@ class Register extends StatelessWidget {
                     if (ourchatAppState.connection!.closed) {
                       ourchatAppState.listen(
                           serverStatusMsgCode, joinState.connectResponse);
-                      ourchatAppState.connection!
-                          .connectToServer("ws://127.0.0.1:7777");
+                      ourchatAppState.connection!.connectToServer();
                     } else {
                       joinState.register();
                     }

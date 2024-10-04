@@ -2,16 +2,21 @@ import 'dart:convert';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'const.dart';
 
-class Connection {
+class OurchatConnection {
   WebSocketChannel? channel;
   Function? responseFunc;
   bool closed = true;
+  String uri = "ws://localhost:7777";
 
-  Connection(var responseFunction) {
+  OurchatConnection(var responseFunction) {
     responseFunc = responseFunction;
   }
 
-  void connectToServer(var uri) {
+  void setAddress(String ip, int port) {
+    uri = "ws://$ip:$port";
+  }
+
+  void connectToServer() {
     if (!closed) {
       close();
     }

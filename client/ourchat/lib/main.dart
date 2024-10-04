@@ -1,27 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:ourchat/const.dart';
 import 'package:provider/provider.dart';
+import 'package:localstorage/localstorage.dart';
 import 'join.dart';
 import 'connection.dart';
 import 'home.dart';
+import 'config.dart';
 
-void main() {
+void main() async {
+  await initLocalStorage();
   runApp(const MainApp());
 }
 
-class OurChatAppState extends ChangeNotifier {
-  Connection? connection;
-  var listenQueue = [
+class OurchatAppState extends ChangeNotifier {
+  OurchatConnection? connection;
+  List listenQueue = [
     // {"code":0,"func":func}
   ];
-  var where = joinUi;
+  int where = joinUi;
   /*
     0: login
     1: home
   */
+  OurchatConfig? config;
 
   void init() {
-    connection = Connection(dealWithMessage);
+    config = OurchatConfig();
+    config!.loadConfig();
+    connection = OurchatConnection(dealWithMessage);
+    connection!
+        .setAddress(config!.data!["server_ip"], config!.data!["ws_port"]);
   }
 
   void dealWithMessage(var messageData) {
@@ -60,7 +68,7 @@ class MainApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (context) {
-        var appState = OurChatAppState();
+        var appState = OurchatAppState();
         appState.init();
         return appState;
       },
@@ -76,7 +84,7 @@ class Controller extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var appState = context.watch<OurChatAppState>();
+    var appState = context.watch<OurchatAppState>();
     Widget page;
     if (appState.where == joinUi) {
       page = const Join();
