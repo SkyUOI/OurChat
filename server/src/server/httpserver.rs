@@ -1,5 +1,6 @@
 mod download;
 mod status;
+mod timestamp;
 mod upload;
 pub mod verify;
 
@@ -39,6 +40,7 @@ impl HttpServer {
                 .service(upload::upload)
                 .service(status::status)
                 .service(download::download)
+                .service(timestamp::timestamp)
                 .configure(verify::config);
             App::new()
                 .wrap(actix_web::middleware::Logger::default())

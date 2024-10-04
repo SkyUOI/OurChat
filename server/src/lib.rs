@@ -1,8 +1,6 @@
 #![feature(asm_goto)]
 #![feature(decl_macro)]
 #![feature(duration_constructors)]
-#![feature(type_alias_impl_trait)]
-#![feature(impl_trait_in_fn_trait_return)]
 
 pub mod client;
 mod cmd;

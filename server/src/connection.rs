@@ -8,12 +8,11 @@ use std::sync::Arc;
 use crate::{
     DbPool, HttpSender,
     client::{
-        requests::{self, new_session::NewSession, upload::Upload},
+        requests::{self, AcceptSession, new_session::NewSession, upload::Upload},
         response,
     },
     component::EmailSender,
     consts::{ID, MessageType},
-    db,
     server::httpserver::{FileRecord, VerifyRecord, verify::verify_client},
     shared_state,
 };
@@ -22,10 +21,7 @@ use futures_util::{
     SinkExt, StreamExt,
     stream::{SplitSink, SplitStream},
 };
-use response::{
-    LoginResponse, RegisterResponse, get_status::GetStatusResponse, verify::VerifyResponse,
-};
-use sea_orm::DatabaseConnection;
+use response::{get_status::GetStatusResponse, verify::VerifyResponse};
 use serde_json::Value;
 use tokio::{
     net::TcpStream,
@@ -98,42 +94,6 @@ impl<T: EmailSender> Connection<T> {
             shutdown_sender,
             shared_data,
             dbpool: Some(dbpool),
-        }
-    }
-
-    /// Login Request
-    async fn login_request(
-        net_sender: impl NetSender,
-        login_data: requests::Login,
-        db_conn: &DatabaseConnection,
-    ) -> anyhow::Result<VerifyStatus> {
-        match db::process::login(login_data, db_conn).await? {
-            Ok(ok_resp) => {
-                net_sender.send(ok_resp.0.into()).await?;
-                Ok(VerifyStatus::Success(ok_resp.1))
-            }
-            Err(e) => {
-                net_sender.send(LoginResponse::failed(e).into()).await?;
-                Ok(VerifyStatus::Fail)
-            }
-        }
-    }
-
-    /// Register Request
-    async fn register_request(
-        net_sender: impl NetSender,
-        register_data: requests::Register,
-        db_conn: &DatabaseConnection,
-    ) -> anyhow::Result<VerifyStatus> {
-        match db::process::register(register_data, db_conn).await? {
-            Ok(ok_resp) => {
-                net_sender.send(ok_resp.0.into()).await?;
-                Ok(VerifyStatus::Success(ok_resp.1))
-            }
-            Err(e) => {
-                net_sender.send(RegisterResponse::failed(e).into()).await?;
-                Ok(VerifyStatus::Fail)
-            }
         }
     }
 
@@ -252,7 +212,7 @@ impl<T: EmailSender> Connection<T> {
             match msg {
                 Message::Text(text) => {
                     let verify_failed = || async {
-                        Self::send_error_msg(net_send_closure, "Not login or register code")
+                        basic::send_error_msg(net_send_closure, "Not login or register code")
                             .await?;
                         tracing::info!(
                             "Failed to login,msg is {:?},not login or register code",
@@ -281,18 +241,18 @@ impl<T: EmailSender> Connection<T> {
                         match code {
                             MessageType::Login => {
                                 let login_data: requests::Login = serde_json::from_value(json)?;
-                                Self::login_request(net_send_closure, login_data, &dbpool.db_pool)
-                                    .await?
+                                process::login::login_request(
+                                    net_send_closure,
+                                    login_data,
+                                    &dbpool.db_pool,
+                                )
+                                .await?
                             }
                             MessageType::Register => {
                                 let request_data: requests::Register =
                                     serde_json::from_value(json)?;
-                                Self::register_request(
-                                    net_send_closure,
-                                    request_data,
-                                    &dbpool.db_pool,
-                                )
-                                .await?
+                                process::register(net_send_closure, request_data, &dbpool.db_pool)
+                                    .await?
                             }
                             MessageType::Verify => {
                                 tracing::info!("Start to verify email");
@@ -378,7 +338,7 @@ impl<T: EmailSender> Connection<T> {
                         let (code, json) = match get_code(&msg) {
                             Ok(Some((code, json))) => (code, json),
                             _ => {
-                                Self::send_error_msg(net_send_closure, "codei is not correct")
+                                basic::send_error_msg(net_send_closure, "codei is not correct")
                                     .await?;
                                 continue 'con_loop;
                             }
@@ -393,7 +353,7 @@ impl<T: EmailSender> Connection<T> {
                         }
                         match code {
                             MessageType::Unregister => {
-                                Self::unregister(id, &net_sender, &dbpool.db_pool).await?;
+                                process::unregister(id, &net_sender, &dbpool.db_pool).await?;
                                 continue 'con_loop;
                             }
                             MessageType::NewSession => {
@@ -404,7 +364,7 @@ impl<T: EmailSender> Connection<T> {
                                     }
                                     Ok(data) => data,
                                 };
-                                Self::new_session(id, &net_sender, json, &dbpool.db_pool).await?;
+                                process::new_session(id, net_send_closure, json, &dbpool).await?;
                                 continue 'con_loop;
                             }
                             MessageType::Upload => {
@@ -419,15 +379,27 @@ impl<T: EmailSender> Connection<T> {
                                 let hash = json.hash.clone();
                                 let auto_clean = json.auto_clean;
                                 let (send, key) =
-                                    Self::upload(id, &net_sender, &mut json, &dbpool.db_pool)
+                                    process::upload(id, &net_sender, &mut json, &dbpool.db_pool)
                                         .await?;
                                 let record = FileRecord::new(key, hash, auto_clean, id);
                                 http_sender.file_record.send(record).await?;
                                 send.await?;
                                 continue 'con_loop;
                             }
+                            MessageType::AcceptSession => {
+                                let json: AcceptSession = match serde_json::from_value(json) {
+                                    Err(_) => {
+                                        tracing::warn!("Wrong json structure");
+                                        continue 'con_loop;
+                                    }
+                                    Ok(data) => data,
+                                };
+                                process::accept_session(id, net_send_closure, json, &dbpool)
+                                    .await?;
+                                continue 'con_loop;
+                            }
                             _ => {
-                                Self::send_error_msg(
+                                basic::send_error_msg(
                                     net_send_closure,
                                     format!("Not a supported code {:?}", code),
                                 )
@@ -435,17 +407,16 @@ impl<T: EmailSender> Connection<T> {
                             }
                         }
                     }
-                    Message::Binary(_) => todo!(),
                     Message::Ping(_) => {
                         net_sender.send(Message::Pong(vec![])).await?;
                     }
                     Message::Pong(_) => {
                         tracing::info!("recv pong");
                     }
-                    Message::Frame(_) => todo!(),
                     Message::Close(_) => {
                         break 'con_loop;
                     }
+                    _ => {}
                 }
             }
             tracing::debug!("connection closed");

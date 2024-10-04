@@ -32,6 +32,8 @@ pub enum MessageType {
     VerifyRes = 23,
     VerifyStatusRes = 15,
     InviteSession = 24,
+    AcceptSession = 25,
+    AcceptSessionRes = 26,
 }
 
 /// default ip
@@ -52,6 +54,7 @@ pub const DB_TYPE: DbType = DbType::MySql;
 pub type TimeStamp = u64;
 // define ID type to fit many types of databases
 impl_newtype_int!(ID, u64, serde::Serialize, serde::Deserialize);
+pub type SessionID = u64;
 
 impl From<u64> for ID {
     fn from(value: u64) -> Self {

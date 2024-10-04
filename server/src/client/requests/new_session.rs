@@ -7,7 +7,8 @@ pub struct NewSession {
     pub members: Vec<OCID>,
     #[serde(default)]
     pub name: String,
-    // avatar
+    // TODO:avatar
+    pub message: String,
 }
 
 impl NewSession {
@@ -16,14 +17,16 @@ impl NewSession {
             code: MessageType::NewSession,
             members,
             name: String::default(),
+            message: String::default(),
         }
     }
 
-    pub fn new(members: Vec<OCID>, name: String) -> Self {
+    pub fn new(members: Vec<OCID>, name: String, message: String) -> Self {
         Self {
             code: MessageType::NewSession,
             members,
             name,
+            message,
         }
     }
 }

@@ -8,7 +8,7 @@ pub struct InviteSession {
     pub expire_timestamp: TimeStamp,
     pub session_id: String,
     pub inviter_id: String,
-    pub voice_message: String,
+    pub message: String,
 }
 
 impl InviteSession {
@@ -16,14 +16,14 @@ impl InviteSession {
         expire_timestamp: TimeStamp,
         session_id: String,
         inviter_id: String,
-        voice_message: String,
+        message: String,
     ) -> Self {
         Self {
             code: MessageType::InviteSession,
             expire_timestamp,
             session_id,
             inviter_id,
-            voice_message,
+            message,
         }
     }
 }
