@@ -41,6 +41,22 @@ type OutGoing = SplitSink<WS, Message>;
 /// server-side websocket
 pub type WS = WebSocketStream<TcpStream>;
 
+pub trait NetSender {
+    type Fut: Future<Output = anyhow::Result<()>>;
+    fn send(&self, msg: Message) -> Self::Fut;
+}
+
+impl<F, Fut> NetSender for F
+where
+    F: Fn(Message) -> Fut,
+    Fut: Future<Output = anyhow::Result<()>>,
+{
+    type Fut = Fut;
+    fn send(&self, msg: Message) -> Self::Fut {
+        (self)(msg)
+    }
+}
+
 /// Connection to a client
 pub struct Connection<T: EmailSender + 'static> {
     socket: Option<WebSocketStream<TcpStream>>,
@@ -86,49 +102,49 @@ impl<T: EmailSender> Connection<T> {
     }
 
     /// Login Request
-    async fn login_request<R: Future<Output = anyhow::Result<()>>>(
-        net_sender: impl Fn(Message) -> R,
+    async fn login_request(
+        net_sender: impl NetSender,
         login_data: requests::Login,
         db_conn: &DatabaseConnection,
     ) -> anyhow::Result<VerifyStatus> {
         match db::process::login(login_data, db_conn).await? {
             Ok(ok_resp) => {
-                net_sender(ok_resp.0.into());
+                net_sender.send(ok_resp.0.into()).await?;
                 Ok(VerifyStatus::Success(ok_resp.1))
             }
             Err(e) => {
-                net_sender(LoginResponse::failed(e).into());
+                net_sender.send(LoginResponse::failed(e).into()).await?;
                 Ok(VerifyStatus::Fail)
             }
         }
     }
 
     /// Register Request
-    async fn register_request<R: Future<Output = anyhow::Result<()>>>(
-        net_sender: impl Fn(Message) -> R,
+    async fn register_request(
+        net_sender: impl NetSender,
         register_data: requests::Register,
         db_conn: &DatabaseConnection,
     ) -> anyhow::Result<VerifyStatus> {
         match db::process::register(register_data, db_conn).await? {
             Ok(ok_resp) => {
-                net_sender(ok_resp.0.into());
+                net_sender.send(ok_resp.0.into()).await?;
                 Ok(VerifyStatus::Success(ok_resp.1))
             }
             Err(e) => {
-                net_sender(RegisterResponse::failed(e).into());
+                net_sender.send(RegisterResponse::failed(e).into()).await?;
                 Ok(VerifyStatus::Fail)
             }
         }
     }
 
     /// Operate low level actions which are allowed all the time
-    async fn low_level_action<R: Future<Output = anyhow::Result<()>>>(
+    async fn low_level_action(
         code: MessageType,
-        net_sender: impl Fn(Message) -> R,
+        net_sender: impl NetSender,
     ) -> anyhow::Result<bool> {
         match code {
             MessageType::GetStatus => {
-                net_sender(GetStatusResponse::normal().into()).await?;
+                net_sender.send(GetStatusResponse::normal().into()).await?;
                 return Ok(true);
             }
             _ => (),
@@ -137,17 +153,16 @@ impl<T: EmailSender> Connection<T> {
     }
 
     /// Send a Email to verify the user
-    async fn email_verify<R>(
+    async fn email_verify(
         json: &Value,
         shared_data: &Arc<crate::SharedData<impl EmailSender>>,
         dbpool: &DbPool,
-        net_sender: impl Fn(Message) -> R,
-    ) -> anyhow::Result<Arc<Notify>>
-    where
-        R: Future<Output = anyhow::Result<()>>,
-    {
+        net_sender: impl NetSender,
+    ) -> anyhow::Result<Arc<Notify>> {
         if shared_data.email_client.is_none() {
-            net_sender(VerifyResponse::email_cannot_be_sent().into()).await?;
+            net_sender
+                .send(VerifyResponse::email_cannot_be_sent().into())
+                .await?;
         }
         let json: requests::Verify = serde_json::from_value(json.clone())?;
         let verify_success = Arc::new(Notify::new());
@@ -160,22 +175,19 @@ impl<T: EmailSender> Connection<T> {
         )
         .await
         {
-            Ok(_) => net_sender(VerifyResponse::success().into()).await?,
+            Ok(_) => net_sender.send(VerifyResponse::success().into()).await?,
             Err(e) => {
                 tracing::error!("Failed to verify email: {}", e);
-                net_sender(VerifyResponse::email_cannot_be_sent().into()).await?
+                net_sender
+                    .send(VerifyResponse::email_cannot_be_sent().into())
+                    .await?
             }
         };
         Ok(verify_success)
     }
 
     /// Setup when verifying,only allow low level operations to be executed
-    async fn verify_notifying<R>(
-        net_receiver: &mut InComing,
-        net_sender: impl Fn(Message) -> R + Clone,
-    ) where
-        R: Future<Output = anyhow::Result<()>>,
-    {
+    async fn verify_notifying(net_receiver: &mut InComing, net_sender: impl NetSender + Clone) {
         loop {
             let msg = match net_receiver.next().await {
                 Some(Ok(msg)) => msg,
@@ -193,13 +205,14 @@ impl<T: EmailSender> Connection<T> {
             match Self::low_level_action(code, net_sender.clone()).await {
                 Ok(executed) => {
                     if !executed {
-                        if let Err(e) = net_sender(
-                            response::ErrorMsgResponse::new(
-                                "Email has not been confirmed now".to_owned(),
+                        if let Err(e) = net_sender
+                            .send(
+                                response::ErrorMsgResponse::new(
+                                    "Email has not been confirmed now".to_owned(),
+                                )
+                                .into(),
                             )
-                            .into(),
-                        )
-                        .await
+                            .await
                         {
                             tracing::error!("Failed to send error msg: {}", e);
                         }
