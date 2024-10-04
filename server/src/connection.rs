@@ -14,10 +14,7 @@ use crate::{
     component::EmailSender,
     consts::{ID, MessageType},
     db,
-    server::{
-        self,
-        httpserver::{FileRecord, VerifyRecord, verify::verify_client},
-    },
+    server::httpserver::{FileRecord, VerifyRecord, verify::verify_client},
     shared_state,
 };
 use anyhow::bail;
@@ -33,7 +30,7 @@ use serde_json::Value;
 use tokio::{
     net::TcpStream,
     select,
-    sync::{Notify, broadcast, futures::Notified, mpsc},
+    sync::{Notify, broadcast, mpsc},
 };
 use tokio_tungstenite::WebSocketStream;
 use tokio_tungstenite::tungstenite::protocol::Message;
@@ -89,53 +86,49 @@ impl<T: EmailSender> Connection<T> {
     }
 
     /// Login Request
-    async fn login_request(
+    async fn login_request<R: Future<Output = anyhow::Result<()>>>(
+        net_sender: impl Fn(Message) -> R,
         login_data: requests::Login,
         db_conn: &DatabaseConnection,
-    ) -> anyhow::Result<(String, VerifyStatus)> {
+    ) -> anyhow::Result<VerifyStatus> {
         match db::process::login(login_data, db_conn).await? {
-            Ok(ok_resp) => Ok((
-                serde_json::to_string(&ok_resp.0)?,
-                VerifyStatus::Success(ok_resp.1),
-            )),
-            Err(e) => Ok((
-                serde_json::to_string(&LoginResponse::failed(e))?,
-                VerifyStatus::Fail,
-            )),
+            Ok(ok_resp) => {
+                net_sender(ok_resp.0.into());
+                Ok(VerifyStatus::Success(ok_resp.1))
+            }
+            Err(e) => {
+                net_sender(LoginResponse::failed(e).into());
+                Ok(VerifyStatus::Fail)
+            }
         }
     }
 
     /// Register Request
-    async fn register_request(
+    async fn register_request<R: Future<Output = anyhow::Result<()>>>(
+        net_sender: impl Fn(Message) -> R,
         register_data: requests::Register,
         db_conn: &DatabaseConnection,
-    ) -> anyhow::Result<(String, VerifyStatus)> {
+    ) -> anyhow::Result<VerifyStatus> {
         match db::process::register(register_data, db_conn).await? {
-            Ok(ok_resp) => Ok((
-                serde_json::to_string(&ok_resp.0)?,
-                VerifyStatus::Success(ok_resp.1),
-            )),
-            Err(e) => Ok((
-                serde_json::to_string(&RegisterResponse::failed(e))?,
-                VerifyStatus::Fail,
-            )),
+            Ok(ok_resp) => {
+                net_sender(ok_resp.0.into());
+                Ok(VerifyStatus::Success(ok_resp.1))
+            }
+            Err(e) => {
+                net_sender(RegisterResponse::failed(e).into());
+                Ok(VerifyStatus::Fail)
+            }
         }
     }
 
     /// Operate low level actions which are allowed all the time
-    async fn low_level_action<R>(
+    async fn low_level_action<R: Future<Output = anyhow::Result<()>>>(
         code: MessageType,
         net_sender: impl Fn(Message) -> R,
-    ) -> anyhow::Result<bool>
-    where
-        R: Future<Output = anyhow::Result<()>>,
-    {
+    ) -> anyhow::Result<bool> {
         match code {
             MessageType::GetStatus => {
-                net_sender(Message::Text(serde_json::to_string(
-                    &GetStatusResponse::normal(),
-                )?))
-                .await?;
+                net_sender(GetStatusResponse::normal().into()).await?;
                 return Ok(true);
             }
             _ => (),
@@ -154,10 +147,7 @@ impl<T: EmailSender> Connection<T> {
         R: Future<Output = anyhow::Result<()>>,
     {
         if shared_data.email_client.is_none() {
-            net_sender(Message::Text(serde_json::to_string(
-                &VerifyResponse::email_cannot_be_sent(),
-            )?))
-            .await?;
+            net_sender(VerifyResponse::email_cannot_be_sent().into()).await?;
         }
         let json: requests::Verify = serde_json::from_value(json.clone())?;
         let verify_success = Arc::new(Notify::new());
@@ -170,18 +160,10 @@ impl<T: EmailSender> Connection<T> {
         )
         .await
         {
-            Ok(_) => {
-                net_sender(Message::Text(serde_json::to_string(
-                    &VerifyResponse::success(),
-                )?))
-                .await?
-            }
+            Ok(_) => net_sender(VerifyResponse::success().into()).await?,
             Err(e) => {
                 tracing::error!("Failed to verify email: {}", e);
-                net_sender(Message::Text(serde_json::to_string(
-                    &VerifyResponse::email_cannot_be_sent(),
-                )?))
-                .await?
+                net_sender(VerifyResponse::email_cannot_be_sent().into()).await?
             }
         };
         Ok(verify_success)
@@ -211,12 +193,12 @@ impl<T: EmailSender> Connection<T> {
             match Self::low_level_action(code, net_sender.clone()).await {
                 Ok(executed) => {
                     if !executed {
-                        if let Err(e) = net_sender(Message::Text(
-                            serde_json::to_string(&response::ErrorMsgResponse::new(
+                        if let Err(e) = net_sender(
+                            response::ErrorMsgResponse::new(
                                 "Email has not been confirmed now".to_owned(),
-                            ))
-                            .unwrap(),
-                        ))
+                            )
+                            .into(),
+                        )
                         .await
                         {
                             tracing::error!("Failed to send error msg: {}", e);
@@ -239,6 +221,10 @@ impl<T: EmailSender> Connection<T> {
         shared_data: Arc<crate::SharedData<T>>,
         dbpool: &DbPool,
     ) -> anyhow::Result<Option<VerifyStatus>> {
+        let net_send_closure = |t| async {
+            outgoing.send(t).await?;
+            Ok(())
+        };
         // Try to fetch previous verification
         loop {
             let msg = match incoming.next().await {
@@ -253,14 +239,8 @@ impl<T: EmailSender> Connection<T> {
             match msg {
                 Message::Text(text) => {
                     let verify_failed = || async {
-                        Self::send_error_msg(
-                            |msg| async {
-                                outgoing.send(msg).await?;
-                                anyhow::Ok(())
-                            },
-                            "Not login or register code",
-                        )
-                        .await?;
+                        Self::send_error_msg(net_send_closure, "Not login or register code")
+                            .await?;
                         tracing::info!(
                             "Failed to login,msg is {:?},not login or register code",
                             text
@@ -276,7 +256,7 @@ impl<T: EmailSender> Connection<T> {
                         }
                     };
 
-                    let (resp_content, status) = {
+                    let status = {
                         if Self::low_level_action(code, |t| async {
                             outgoing.send(t).await?;
                             Ok(())
@@ -288,12 +268,18 @@ impl<T: EmailSender> Connection<T> {
                         match code {
                             MessageType::Login => {
                                 let login_data: requests::Login = serde_json::from_value(json)?;
-                                Self::login_request(login_data, &dbpool.db_pool).await?
+                                Self::login_request(net_send_closure, login_data, &dbpool.db_pool)
+                                    .await?
                             }
                             MessageType::Register => {
                                 let request_data: requests::Register =
                                     serde_json::from_value(json)?;
-                                Self::register_request(request_data, &dbpool.db_pool).await?
+                                Self::register_request(
+                                    net_send_closure,
+                                    request_data,
+                                    &dbpool.db_pool,
+                                )
+                                .await?
                             }
                             MessageType::Verify => {
                                 tracing::info!("Start to verify email");
@@ -318,9 +304,7 @@ impl<T: EmailSender> Connection<T> {
                                 }
                                 // send a email to client to show the verify status
                                 let resp = VerifyResponse::success();
-                                outgoing
-                                    .send(Message::Text(serde_json::to_string(&resp).unwrap()))
-                                    .await?;
+                                outgoing.send(resp.into()).await?;
                                 tracing::info!("End to verify email");
                                 continue;
                             }
@@ -330,7 +314,6 @@ impl<T: EmailSender> Connection<T> {
                             }
                         }
                     };
-                    outgoing.send(Message::Text(resp_content)).await?;
                     match status {
                         VerifyStatus::Success(_) => {
                             return Ok(Some(status));
@@ -497,9 +480,7 @@ impl<T: EmailSender> Connection<T> {
                             if let Some(code) = code {
                                 if code == MessageType::GetStatus as u64 {
                                     let resp = GetStatusResponse::maintaining();
-                                    socket
-                                        .send(Message::Text(serde_json::to_string(&resp).unwrap()))
-                                        .await?;
+                                    socket.send(resp.into()).await?;
                                     tracing::debug!("Send maintaining msg");
                                 }
                             } else {

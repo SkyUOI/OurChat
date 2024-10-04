@@ -1,5 +1,6 @@
 use crate::{client::requests::Status, consts::MessageType};
 use serde::{Deserialize, Serialize};
+use tokio_tungstenite::tungstenite::Message;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LoginResponse {
@@ -36,5 +37,11 @@ impl LoginResponse {
             ocid: None,
             status,
         }
+    }
+}
+
+impl From<LoginResponse> for Message {
+    fn from(value: LoginResponse) -> Self {
+        Message::Text(serde_json::to_string(&value).unwrap())
     }
 }

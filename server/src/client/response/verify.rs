@@ -2,6 +2,7 @@
 
 use crate::{client::requests, consts};
 use serde::{Deserialize, Serialize};
+use tokio_tungstenite::tungstenite::Message;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct VerifyResponse {
@@ -37,5 +38,11 @@ impl VerifyStatusResponse {
             code: consts::MessageType::VerifyStatusRes,
             status: requests::Status::Success,
         }
+    }
+}
+
+impl From<VerifyResponse> for Message {
+    fn from(value: VerifyResponse) -> Self {
+        Message::Text(serde_json::to_string(&value).unwrap())
     }
 }

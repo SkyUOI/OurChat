@@ -34,9 +34,7 @@ impl<T: EmailSender> Connection<T> {
                 let key = generate_key_name(&json.hash);
                 let resp = UploadResponse::success(key.clone(), json.hash.clone());
                 let send = async move {
-                    net_sender
-                        .send(Message::Text(serde_json::to_string(&resp).unwrap()))
-                        .await?;
+                    net_sender.send(resp.into()).await?;
                     Ok(())
                 };
                 Ok((send, key))

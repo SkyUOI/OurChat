@@ -3,6 +3,7 @@
 use crate::client::requests::Status;
 use crate::consts::{self, ID};
 use serde::{Deserialize, Serialize};
+use tokio_tungstenite::tungstenite::Message;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NewSessionResponse {
@@ -26,5 +27,11 @@ impl NewSessionResponse {
             status,
             session_id: None,
         }
+    }
+}
+
+impl From<NewSessionResponse> for Message {
+    fn from(value: NewSessionResponse) -> Self {
+        Message::Text(serde_json::to_string(&value).unwrap())
     }
 }

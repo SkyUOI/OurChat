@@ -1,5 +1,6 @@
 use crate::consts::MessageType;
 use serde::{Deserialize, Serialize};
+use tokio_tungstenite::tungstenite::Message;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ErrorMsgResponse {
@@ -13,5 +14,11 @@ impl ErrorMsgResponse {
             code: MessageType::ErrorMsg,
             details,
         }
+    }
+}
+
+impl From<ErrorMsgResponse> for Message {
+    fn from(value: ErrorMsgResponse) -> Self {
+        Message::Text(serde_json::to_string(&value).unwrap())
     }
 }

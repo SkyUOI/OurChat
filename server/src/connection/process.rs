@@ -11,7 +11,7 @@ use crate::{
     },
     component::EmailSender,
     consts::ID,
-    db, server,
+    db,
 };
 use sea_orm::DatabaseConnection;
 use tokio::sync::mpsc;
@@ -25,9 +25,7 @@ impl<T: EmailSender> Connection<T> {
     ) -> anyhow::Result<()> {
         let ret = db::process::unregister(id, db_conn).await?;
         let resp = UnregisterResponse::new(ret);
-        net_sender
-            .send(Message::Text(serde_json::to_string(&resp).unwrap()))
-            .await?;
+        net_sender.send(resp.into()).await?;
         net_sender.send(Message::Close(None)).await?;
         Ok(())
     }
@@ -41,9 +39,7 @@ impl<T: EmailSender> Connection<T> {
         let resp = db::process::new_session(id, db_conn)
             .await?
             .unwrap_or_else(NewSessionResponse::failed);
-        net_sender
-            .send(Message::Text(serde_json::to_string(&resp).unwrap()))
-            .await?;
+        net_sender.send(resp.into()).await?;
         Ok(())
     }
 }

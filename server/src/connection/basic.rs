@@ -12,7 +12,7 @@ impl<R: EmailSender> Connection<R> {
         T: Future<Output = anyhow::Result<()>>,
     {
         let error_resp = response::error_msg::ErrorMsgResponse::new(msg.into());
-        let future = sender(Message::Text(serde_json::to_string(&error_resp)?));
+        let future = sender(error_resp.into());
         pin!(future);
         (&mut future).await?;
         Ok(())
