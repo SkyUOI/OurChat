@@ -1,10 +1,10 @@
 use crate::helper::{self, ClientWS};
 use claims::assert_ok;
 use futures_util::{SinkExt, StreamExt};
-use server::connection::client_response::ErrorMsgResponse;
+use server::client::response::ErrorMsgResponse;
 use tokio_tungstenite::tungstenite::Message;
 
-/// 登录失败
+/// Login failed
 async fn failed_login(conn: &mut ClientWS) {
     let wrong_msg = r#"{"code":65536}"#;
     conn.send(Message::Text(wrong_msg.to_string()))

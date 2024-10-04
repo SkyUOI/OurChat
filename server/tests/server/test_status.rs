@@ -1,8 +1,6 @@
 use crate::helper;
 use futures_util::{SinkExt, StreamExt};
-use server::{
-    connection::client_response::get_status::GetStatusResponse, requests::get_status::GetStatus,
-};
+use server::client::{requests::get_status::GetStatus, response::get_status::GetStatusResponse};
 use tokio_tungstenite::tungstenite::Message;
 
 #[tokio::test]

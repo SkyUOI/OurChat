@@ -1,6 +1,6 @@
 //! Verification Response
 
-use crate::{consts, requests};
+use crate::{client::requests, consts};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]

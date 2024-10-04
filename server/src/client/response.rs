@@ -1,7 +1,8 @@
-//! 返回给客户端的结果
+//! Response to client from server
 
 pub mod error_msg;
 pub mod get_status;
+pub mod invite_session;
 pub mod login;
 pub mod new_session;
 pub mod register;

@@ -1,4 +1,4 @@
-//! 保存各种请求的结构体
+//! Requests from client to server
 
 pub mod get_status;
 pub mod login;
@@ -6,9 +6,11 @@ pub mod new_session;
 pub mod register;
 pub mod unregister;
 pub mod upload;
+pub mod user_msg;
 pub mod verify;
 
 pub use login::{Login, LoginType};
+pub use new_session::NewSession;
 pub use register::Register;
 use serde_repr::{Deserialize_repr, Serialize_repr};
 use thiserror::Error;

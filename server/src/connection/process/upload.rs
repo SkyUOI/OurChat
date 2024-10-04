@@ -1,9 +1,9 @@
 use crate::{
+    client::requests::upload::Upload,
     component::EmailSender,
-    connection::{Connection, client_response::UploadResponse},
+    connection::{Connection, response::UploadResponse},
     consts::{Bt, ID},
-    requests::upload::Upload,
-    server,
+    db,
     utils::generate_random_string,
 };
 use anyhow::bail;
@@ -13,9 +13,9 @@ use tokio_tungstenite::tungstenite::protocol::Message;
 
 const PREFIX_LEN: usize = 20;
 
-/// 生成独一无二的url名字
+/// Generate a unique key name which refers to the file
 /// # Details
-/// 先生成20位的随机字符串，再加上图片sha256哈希值
+/// Generate a 20-character random string, and then add the file's sha256 hash value
 fn generate_key_name(hash: &str) -> String {
     let prefix: String = generate_random_string(PREFIX_LEN);
     format!("{}{}", prefix, hash)
@@ -28,9 +28,9 @@ impl<T: EmailSender> Connection<T> {
         json: &mut Upload,
         db_conn: &DatabaseConnection,
     ) -> anyhow::Result<(impl Future<Output = anyhow::Result<()>>, String)> {
-        let ret = server::process::up_load(id, Bt(json.size), db_conn).await?;
+        let ret = db::process::up_load(id, Bt(json.size), db_conn).await?;
         match ret {
-            crate::requests::Status::Success => {
+            crate::client::requests::Status::Success => {
                 let key = generate_key_name(&json.hash);
                 let resp = UploadResponse::success(key.clone(), json.hash.clone());
                 let send = async move {

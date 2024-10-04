@@ -1,4 +1,4 @@
-use crate::{consts::MessageType, requests::Status};
+use crate::{client::requests::Status, consts::MessageType};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -10,7 +10,7 @@ pub struct LoginResponse {
 }
 
 pub macro Status(WrongPassword) {
-    $crate::requests::Status::ArgumentError
+    $crate::client::requests::Status::ArgumentError
 }
 
 impl LoginResponse {

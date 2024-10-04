@@ -10,11 +10,11 @@ use futures_util::{SinkExt, StreamExt};
 use parking_lot::Mutex;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
+use server::client::requests::{self, Login, LoginType, Register, Unregister};
+use server::client::response::{self, UnregisterResponse};
 use server::component::MockEmailSender;
-use server::connection::client_response::{self, UnregisterResponse};
 use server::consts::MessageType;
 use server::db::{DbCfg, DbCfgTrait, DbType};
-use server::requests::{self, Login, LoginType, Register, Unregister};
 use server::utils::gen_ws_bind_addr;
 use server::{Application, ArgsParser, ParserCfg, SharedData, ShutdownSdr};
 use sqlx::migrate::MigrateDatabase;
@@ -225,23 +225,24 @@ impl TestApp {
         Ok(())
     }
 
-    pub async fn register(&mut self) {
-        let request = Register::new(
-            self.user.name.clone(),
-            self.user.password.clone(),
-            self.user.email.clone(),
-        );
-        self.connection
-            .send(Message::Text(serde_json::to_string(&request).unwrap()))
+    pub async fn register_internal(user: &mut TestUser, conn: &mut ClientWS) -> anyhow::Result<()> {
+        let request = Register::new(user.name.clone(), user.password.clone(), user.email.clone());
+        conn.send(Message::Text(serde_json::to_string(&request).unwrap()))
             .await
             .unwrap();
-        let ret = self.connection.next().await.unwrap().unwrap();
-        self.connection.close(None).await.unwrap();
-        let json: client_response::RegisterResponse =
-            serde_json::from_str(&ret.to_string()).unwrap();
+        let ret = conn.next().await.unwrap().unwrap();
+        conn.close(None).await.unwrap();
+        let json: response::RegisterResponse = serde_json::from_str(&ret.to_string()).unwrap();
         assert_eq!(json.status, requests::Status::Success);
         assert_eq!(json.code, MessageType::RegisterRes);
-        self.user.ocid = json.ocid.unwrap();
+        user.ocid = json.ocid.unwrap();
+        Ok(())
+    }
+
+    pub async fn register(&mut self) {
+        Self::register_internal(&mut self.user, &mut self.connection)
+            .await
+            .unwrap();
         self.establish_connection().await.unwrap();
     }
 
@@ -268,8 +269,7 @@ impl TestApp {
             .await
             .unwrap();
         let ret = self.connection.next().await.unwrap().unwrap();
-        let json: client_response::LoginResponse =
-            serde_json::from_str(ret.to_text().unwrap()).unwrap();
+        let json: response::LoginResponse = serde_json::from_str(ret.to_text().unwrap()).unwrap();
         if json.code != MessageType::LoginRes {
             anyhow::bail!("Failed to login,code is not login response");
         }
@@ -287,7 +287,7 @@ impl TestApp {
             .await
             .unwrap();
         let ret = self.connection.next().await.unwrap().unwrap();
-        let json: client_response::LoginResponse = serde_json::from_str(ret.to_text().unwrap())?;
+        let json: response::LoginResponse = serde_json::from_str(ret.to_text().unwrap())?;
         if json.code != MessageType::LoginRes {
             anyhow::bail!("Failed to login,code is not login response");
         }
@@ -345,6 +345,18 @@ impl TestApp {
             ))
             .send()
             .await
+    }
+
+    pub async fn new_user(&mut self) -> anyhow::Result<(TestUser, ClientWS)> {
+        let mut user = TestUser::random();
+        let mut conn = Self::establish_connection_internal(self.port).await?;
+        Self::register_internal(&mut user, &mut conn).await?;
+        conn.close(None).await?;
+        Ok((user, conn))
+    }
+
+    pub async fn accept_session(&mut self) -> anyhow::Result<()> {
+        Ok(())
     }
 }
 

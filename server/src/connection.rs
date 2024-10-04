@@ -1,16 +1,19 @@
 //! Process the connection to server
 
 mod basic;
-pub mod client_response;
 mod process;
 
 use std::sync::Arc;
 
 use crate::{
     DbPool, HttpSender,
+    client::{
+        requests::{self, new_session::NewSession, upload::Upload},
+        response,
+    },
     component::EmailSender,
     consts::{ID, MessageType},
-    requests::{self, new_session::NewSession, upload::Upload},
+    db,
     server::{
         self,
         httpserver::{FileRecord, VerifyRecord, verify::verify_client},
@@ -18,12 +21,12 @@ use crate::{
     shared_state,
 };
 use anyhow::bail;
-use client_response::{
-    LoginResponse, RegisterResponse, get_status::GetStatusResponse, verify::VerifyResponse,
-};
 use futures_util::{
     SinkExt, StreamExt,
     stream::{SplitSink, SplitStream},
+};
+use response::{
+    LoginResponse, RegisterResponse, get_status::GetStatusResponse, verify::VerifyResponse,
 };
 use sea_orm::DatabaseConnection;
 use serde_json::Value;
@@ -90,7 +93,7 @@ impl<T: EmailSender> Connection<T> {
         login_data: requests::Login,
         db_conn: &DatabaseConnection,
     ) -> anyhow::Result<(String, VerifyStatus)> {
-        match server::process::login(login_data, db_conn).await? {
+        match db::process::login(login_data, db_conn).await? {
             Ok(ok_resp) => Ok((
                 serde_json::to_string(&ok_resp.0)?,
                 VerifyStatus::Success(ok_resp.1),
@@ -107,7 +110,7 @@ impl<T: EmailSender> Connection<T> {
         register_data: requests::Register,
         db_conn: &DatabaseConnection,
     ) -> anyhow::Result<(String, VerifyStatus)> {
-        match server::process::register(register_data, db_conn).await? {
+        match db::process::register(register_data, db_conn).await? {
             Ok(ok_resp) => Ok((
                 serde_json::to_string(&ok_resp.0)?,
                 VerifyStatus::Success(ok_resp.1),
@@ -209,7 +212,7 @@ impl<T: EmailSender> Connection<T> {
                 Ok(executed) => {
                     if !executed {
                         if let Err(e) = net_sender(Message::Text(
-                            serde_json::to_string(&client_response::ErrorMsgResponse::new(
+                            serde_json::to_string(&response::ErrorMsgResponse::new(
                                 "Email has not been confirmed now".to_owned(),
                             ))
                             .unwrap(),
@@ -313,6 +316,11 @@ impl<T: EmailSender> Connection<T> {
                                         tracing::error!("Failed to verify email: {}", e);
                                     }
                                 }
+                                // send a email to client to show the verify status
+                                let resp = VerifyResponse::success();
+                                outgoing
+                                    .send(Message::Text(serde_json::to_string(&resp).unwrap()))
+                                    .await?;
                                 tracing::info!("End to verify email");
                                 continue;
                             }
@@ -411,7 +419,7 @@ impl<T: EmailSender> Connection<T> {
                                     }
                                     Ok(json) => json,
                                 };
-                                // 先生成url再回复
+                                // Generate url first and then reply
                                 let hash = json.hash.clone();
                                 let auto_clean = json.auto_clean;
                                 let (send, key) =

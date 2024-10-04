@@ -1,4 +1,4 @@
-use crate::{consts::MessageType, requests::Status};
+use crate::{client::requests::Status, consts::MessageType};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]

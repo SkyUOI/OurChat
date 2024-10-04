@@ -2,9 +2,7 @@ use crate::helper;
 use claims::{assert_err, assert_ok};
 use core::panic;
 use parking_lot::Mutex;
-use server::{
-    component::MockEmailSender, connection::client_response, consts::MessageType, requests,
-};
+use server::{client::requests, client::response, component::MockEmailSender, consts::MessageType};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio_tungstenite::tungstenite::Message;
@@ -28,7 +26,7 @@ async fn test_verify() {
         .await
         .unwrap();
     // Send successfully
-    let ret: client_response::VerifyResponse =
+    let ret: response::VerifyResponse =
         serde_json::from_str(&app.get().await.unwrap().to_string()).unwrap();
     // check email
     for _ in 0..10 {
@@ -65,6 +63,12 @@ async fn test_verify() {
         .unwrap()
         .error_for_status()
         .unwrap();
+    // get status
+    let status =
+        serde_json::from_str::<response::VerifyResponse>(&app.get().await.unwrap().to_string())
+            .unwrap();
+    assert_eq!(status.code, MessageType::VerifyRes);
+    assert_eq!(status.status, requests::Status::Success);
     assert_ok!(app.email_login().await);
     app.async_drop().await;
 }

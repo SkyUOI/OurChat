@@ -1,4 +1,4 @@
-//! 命令行控制系统
+//! Command line control system
 //! TODO:add command for set friends limit
 
 use crate::{
@@ -20,7 +20,7 @@ use tokio::{
 
 type CheckFunc = fn(&InstManager, Vec<String>) -> Result<Option<String>, String>;
 
-/// 储存一个指令的信息
+/// Store the information of a command
 struct Inst {
     _name: InstName,
     name_internal: &'static str,
@@ -44,7 +44,7 @@ enum InstName {
 }
 
 struct InstManager {
-    // 使用Map，因为需要稳定的输出
+    // Use Map, because we need a stable output
     insts: Arc<Mutex<BTreeMap<InstName, Arc<Inst>>>>,
 }
 
@@ -132,14 +132,14 @@ fn cleanfs_process(_: &InstManager, argvs: Vec<String>) -> Result<Option<String>
 fn help_process(insts: &InstManager, argvs: Vec<String>) -> Result<Option<String>, String> {
     let mut ret = String::new();
     if argvs.is_empty() {
-        // 输出宽泛信息
+        // Output general information
         ret.push_str("There are commands supported by console:\n\n");
         for inst in insts.get_map().lock().values() {
             ret.push_str(&format!("{}: {}\n", inst.name_internal, inst.short_help));
         }
         ret.push_str("\nRefer to \"https://ourchat.readthedocs.io/en/latest/docs/run/server_cmd.html\" for more information\n");
     } else {
-        // 针对给定的参数输出帮助信息
+        // Output help information for the given parameters
         for name in argvs {
             match InstName::from_str(&name) {
                 Ok(inst) => {
@@ -160,7 +160,7 @@ fn help_process(insts: &InstManager, argvs: Vec<String>) -> Result<Option<String
     Ok(Some(ret))
 }
 
-/// 服务器状态
+/// Server status
 #[derive(strum::EnumString)]
 enum ServerStatus {
     #[strum(ascii_case_insensitive, serialize = "m")]
@@ -298,7 +298,7 @@ pub async fn cmd_process_loop(
                         match (inst.command_process)(&insts, command_list) {
                             Ok(output) => {
                                 ret.send(output).unwrap();
-                                // 指令运行成功，运行接下来的操作
+                                // If the instruction runs successfully, run the next operation
                                 match inst_enum {
                                     InstName::Exit => {
                                         return Ok(());

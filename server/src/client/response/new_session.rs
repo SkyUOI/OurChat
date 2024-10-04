@@ -1,7 +1,7 @@
 //! new session response
 
+use crate::client::requests::Status;
 use crate::consts::{self, ID};
-use crate::requests::Status;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]

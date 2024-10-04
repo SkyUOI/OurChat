@@ -1,7 +1,6 @@
 //! Ourchat Server
 
 pub mod httpserver;
-pub mod process;
 
 use crate::component::EmailSender;
 use crate::{DbPool, HttpSender, SharedData, connection};

@@ -1,7 +1,10 @@
 use crate::{
-    connection::client_response::{self, LoginResponse, NewSessionResponse, RegisterResponse},
+    client::{
+        requests,
+        response::{self, LoginResponse, NewSessionResponse, RegisterResponse},
+    },
     consts::{self, Bt, ID},
-    requests, shared_state, utils,
+    shared_state, utils,
 };
 use anyhow::Context;
 use argon2::{Params, PasswordHash, PasswordHasher, PasswordVerifier, password_hash::SaltString};
@@ -15,10 +18,10 @@ pub async fn login(
     request: requests::Login,
     db_connection: &DatabaseConnection,
 ) -> anyhow::Result<Result<(LoginResponse, ID), requests::Status>> {
-    use client_response::login::Status;
     use entities::prelude::*;
     use entities::user::Column;
     use requests::Status;
+    use response::login::Status;
     // Judge login type
     let user = match request.login_type {
         requests::LoginType::Email => {

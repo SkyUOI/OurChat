@@ -1,4 +1,4 @@
-//! 常量
+//! Define constants
 
 use base::impl_newtype_int;
 use num_enum::TryFromPrimitive;
@@ -8,13 +8,14 @@ use std::{fmt::Display, io::IsTerminal, str::FromStr, sync::LazyLock};
 
 use crate::db::DbType;
 
-/// OCID 长度
+/// OCID Length
 pub const OCID_LEN: usize = 10;
 
-/// 往返的消息类型
+/// Message type for round trip
 #[derive(Debug, Serialize_repr, Deserialize_repr, TryFromPrimitive, PartialEq, Eq, Copy, Clone)]
 #[repr(i32)]
 pub enum MessageType {
+    UserMsg = 0,
     Login = 6,
     LoginRes = 7,
     Register = 4,
@@ -30,23 +31,24 @@ pub enum MessageType {
     Verify = 14,
     VerifyRes = 23,
     VerifyStatusRes = 15,
+    InviteSession = 24,
 }
 
-/// 默认ip
+/// default ip
 pub const DEFAULT_IP: &str = "0.0.0.0";
 
 pub fn default_ip() -> String {
     String::from(DEFAULT_IP)
 }
 
-/// 默认端口
+/// default port
 pub const DEFAULT_PORT: u16 = 7777;
-/// http服务器默认端口
+/// http server default port
 pub const DEFAULT_HTTP_PORT: u16 = 7778;
-/// 默认采用的数据库类型
+/// default database type
 pub const DB_TYPE: DbType = DbType::MySql;
 
-/// 时间戳类型(与chrono不一致)
+/// timestamp type (not consistent with chrono)
 pub type TimeStamp = u64;
 // define ID type to fit many types of databases
 impl_newtype_int!(ID, u64, serde::Serialize, serde::Deserialize);

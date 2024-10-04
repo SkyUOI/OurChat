@@ -1,6 +1,7 @@
 //! Database
 
 pub mod file_storage;
+pub mod process;
 
 use std::{
     path::{Path, PathBuf},
@@ -79,7 +80,7 @@ pub static DB_TYPE: OnceLock<DbType> = OnceLock::new();
 pub static MYSQL_TYPE: static_keys::StaticFalseKey = static_keys::new_static_false_key();
 pub static SQLITE_TYPE: static_keys::StaticFalseKey = static_keys::new_static_false_key();
 
-/// 初始化数据库层
+/// Initialize the database layer
 pub fn init_db_system(db_type: DbType) {
     tracing::info!("Init db system");
     DB_TYPE.get_or_init(|| {
@@ -102,7 +103,7 @@ pub fn get_db_type() -> DbType {
     }
 }
 
-/// 根据配置文件生成连接数据库的url
+/// Generate the url for connecting to the database according to the configuration file
 pub fn get_db_url(cfg: &DbCfg) -> anyhow::Result<String> {
     let db_type = get_db_type();
     match db_type {
@@ -203,7 +204,7 @@ struct RedisCfg {
     user: String,
 }
 
-/// 根据配置文件生成连接redis的url
+/// Generate the url for connecting to redis according to the configuration file
 pub fn get_redis_url(path: &Path) -> anyhow::Result<String> {
     let cfg = config::Config::builder()
         .add_source(File::with_name(path.to_str().unwrap()))

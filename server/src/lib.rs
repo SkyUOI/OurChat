@@ -2,13 +2,13 @@
 #![feature(decl_macro)]
 #![feature(duration_constructors)]
 
+pub mod client;
 mod cmd;
 pub mod component;
 pub mod connection;
 pub mod consts;
 pub mod db;
 mod entities;
-pub mod requests;
 mod server;
 mod shared_state;
 pub mod utils;
@@ -510,17 +510,17 @@ impl<T: EmailSender> Application<T> {
             self.abort_sender.subscribe(),
         )
         .await?;
-        // 启动数据库文件系统
+        // Start the database file system
         file_storage::FileSys::new(self.pool.db_pool.clone()).start(self.abort_sender.subscribe());
-        // 启动关闭信号监听
+        // Start the shutdown signal listener
         exit_signal(self.abort_sender.clone()).await?;
-        // 启动控制台
+        // Start the cmd
         if cfg.enable_cmd {
             let mut is_enable = false;
             let (command_sdr, command_rev) = mpsc::channel(50);
             match cfg.cmd_network_port {
                 None => {
-                    // 不启动network cmd
+                    // not start network cmd
                 }
                 Some(port) => {
                     let command_sdr = command_sdr.clone();
@@ -536,7 +536,7 @@ impl<T: EmailSender> Application<T> {
                     is_enable = true;
                 }
             }
-            // 启动控制台源
+            // Start the cmd from stdin
             if cfg.enable_cmd_stdin && *STDIN_AVAILABLE {
                 let shutdown_sender = self.abort_sender.clone();
                 tokio::spawn(async move {
@@ -557,7 +557,7 @@ impl<T: EmailSender> Application<T> {
             )
             .await?;
             if !is_enable {
-                // 控制台并未正常启动
+                // Cmd is not enabled normally
                 tracing::warn!("cmd is not enabled");
                 self.abort_sender.subscribe().recv().await?;
             }

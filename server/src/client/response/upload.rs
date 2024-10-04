@@ -1,6 +1,6 @@
 //! Upload Files
 
-use crate::{consts, requests::Status};
+use crate::{client::requests::Status, consts};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
