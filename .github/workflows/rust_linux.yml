@@ -23,8 +23,10 @@ jobs:
           python3 ./script/init_valgrind_rust.py
           sudo apt update
           sudo apt install valgrind -y
+      - name: cargo binstall
+        run: curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
       - name: Tarpaulin
-        run: cargo install cargo-tarpaulin
+        run: cargo binstall cargo-tarpaulin --no-confirm
       - name: Build
         run: cargo build --all
       - name: Start Redis

@@ -19,7 +19,7 @@ use clap::Parser;
 use cmd::CommandTransmitData;
 use component::EmailSender;
 use config::File;
-use consts::{FileSize, STDIN_AVAILABLE};
+use consts::{FileSize, ID, STDIN_AVAILABLE};
 use dashmap::DashMap;
 use db::{DbCfg, DbType, MysqlDbCfg, SqliteDbCfg, file_storage};
 use lettre::{AsyncSmtpTransport, transport::smtp::authentication::Credentials};
@@ -40,6 +40,7 @@ use tokio::{
     select,
     sync::{broadcast, mpsc},
 };
+use tokio_tungstenite::tungstenite::Message;
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{
     EnvFilter, Registry,
@@ -360,6 +361,7 @@ pub struct SharedData<T: EmailSender> {
     pub email_client: Option<T>,
     pub cfg: Cfg,
     pub verify_record: DashMap<String, Arc<tokio::sync::Notify>>,
+    pub connected_clients: DashMap<ID, mpsc::Sender<Message>>,
 }
 
 pub fn get_configuration(config_path: Option<impl Into<PathBuf>>) -> anyhow::Result<MainCfg> {
@@ -461,6 +463,7 @@ impl<T: EmailSender> Application<T> {
                 email_client,
                 cfg,
                 verify_record: DashMap::new(),
+                connected_clients: DashMap::new(),
             }),
             pool: DbPool {
                 redis_pool: redis,

@@ -50,11 +50,10 @@ pub const DEFAULT_HTTP_PORT: u16 = 7778;
 /// default database type
 pub const DB_TYPE: DbType = DbType::MySql;
 
-/// timestamp type (not consistent with chrono)
-pub type TimeStamp = u64;
+pub type TimeStamp = chrono::DateTime<chrono::Utc>;
 // define ID type to fit many types of databases
 impl_newtype_int!(ID, u64, serde::Serialize, serde::Deserialize);
-pub type SessionID = u64;
+pub type SessionID = ID;
 
 impl From<u64> for ID {
     fn from(value: u64) -> Self {

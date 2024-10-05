@@ -1,8 +1,0 @@
-cargo-features = ["edition2024"]
-[package]
-name = "server_manager_gui"
-version.workspace = true
-edition.workspace = true
-rust-version.workspace = true
-
-[dependencies]

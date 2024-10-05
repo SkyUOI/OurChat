@@ -14,7 +14,7 @@ pub struct Model {
     pub name: String,
     #[sea_orm(unique)]
     pub email: String,
-    pub time: u64,
+    pub time: DateTimeUtc,
     pub resource_used: i32,
     pub friend_limit: i32,
     pub friends_num: i32,
@@ -24,6 +24,8 @@ pub struct Model {
 pub enum Relation {
     #[sea_orm(has_many = "super::files::Entity")]
     Files,
+    #[sea_orm(has_many = "super::operations::Entity")]
+    Operations,
     #[sea_orm(has_many = "super::session_relation::Entity")]
     SessionRelation,
     #[sea_orm(has_many = "super::user_chat_msg::Entity")]
@@ -35,6 +37,12 @@ pub enum Relation {
 impl Related<super::files::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Files.def()
+    }
+}
+
+impl Related<super::operations::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Operations.def()
     }
 }
 

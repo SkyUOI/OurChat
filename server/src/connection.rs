@@ -21,6 +21,8 @@ use futures_util::{
     SinkExt, StreamExt,
     stream::{SplitSink, SplitStream},
 };
+use process::new_session::mapped_to_operations;
+use redis::AsyncCommands;
 use response::{get_status::GetStatusResponse, verify::VerifyResponse};
 use serde_json::Value;
 use tokio::{
@@ -319,20 +321,41 @@ impl<T: EmailSender> Connection<T> {
             net_sender.send(data).await?;
             Ok(())
         };
+        let mut redis_conn = dbpool.redis_pool.get().await?;
+        // try to get a operation from redis
+        let key = mapped_to_operations(id);
+        let mut finish_redis = false;
+
         let work = async {
             'con_loop: loop {
-                let msg = incoming.next().await;
-                if msg.is_none() {
-                    break;
-                }
-                let msg = msg.unwrap();
-                let msg = match msg {
-                    Ok(msg) => {
-                        tracing::debug!("recv msg:{}", msg);
-                        msg
+                let msg = if !finish_redis {
+                    let msg: Option<String> = redis_conn.lpop(&key, None).await?;
+                    match msg {
+                        Some(msg) => {
+                            tracing::debug!("recv msg:{}", msg);
+                            Message::Text(msg)
+                        }
+                        None => {
+                            finish_redis = true;
+                            continue;
+                        }
                     }
-                    Err(e) => Err(e)?,
+                } else {
+                    let msg = incoming.next().await;
+                    if msg.is_none() {
+                        break;
+                    }
+                    let msg = msg.unwrap();
+
+                    match msg {
+                        Ok(msg) => {
+                            tracing::debug!("recv msg:{}", msg);
+                            msg
+                        }
+                        Err(e) => Err(e)?,
+                    }
                 };
+
                 match msg {
                     Message::Text(msg) => {
                         let (code, json) = match get_code(&msg) {
@@ -364,7 +387,14 @@ impl<T: EmailSender> Connection<T> {
                                     }
                                     Ok(data) => data,
                                 };
-                                process::new_session(id, net_send_closure, json, &dbpool).await?;
+                                process::new_session(
+                                    id,
+                                    net_send_closure,
+                                    json,
+                                    &dbpool,
+                                    &shared_data,
+                                )
+                                .await?;
                                 continue 'con_loop;
                             }
                             MessageType::Upload => {
@@ -530,6 +560,7 @@ impl<T: EmailSender> Connection<T> {
                     return Ok(());
             }
         }
+        let _guard = ConnectionGuard::new(id, msg_sender.clone(), self.shared_data.clone());
         Self::read_loop(
             incoming,
             id,
@@ -541,5 +572,27 @@ impl<T: EmailSender> Connection<T> {
         )
         .await?;
         Ok(())
+    }
+}
+
+struct ConnectionGuard<T: EmailSender> {
+    id: ID,
+    shared_data: Arc<crate::SharedData<T>>,
+}
+
+impl<T: EmailSender> ConnectionGuard<T> {
+    pub fn new(
+        id: ID,
+        msg_sender: mpsc::Sender<Message>,
+        shared_data: Arc<crate::SharedData<T>>,
+    ) -> Self {
+        shared_data.connected_clients.insert(id, msg_sender.clone());
+        Self { id, shared_data }
+    }
+}
+
+impl<T: EmailSender> Drop for ConnectionGuard<T> {
+    fn drop(&mut self) {
+        self.shared_data.connected_clients.remove(&self.id);
     }
 }

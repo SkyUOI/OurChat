@@ -4,7 +4,6 @@ members = [
     "server/migration",
     "server/derive",
     "server/server_manager",
-    "server/server_manager_gui",
     "server/base",
     "server/load_balancer",
 ]

@@ -18,7 +18,7 @@ impl MigrationTrait for Migration {
                 .col(text(User::Passwd))
                 .col(char_len(User::Name, 200))
                 .col(char_len_uniq(User::Email, 120))
-                .col(big_unsigned(User::Time))
+                .col(timestamp(User::Time))
                 .col(integer(User::ResourceUsed))
                 .col(integer(User::FriendLimit))
                 .col(integer(User::FriendsNum))
@@ -53,6 +53,7 @@ impl MigrationTrait for Migration {
                 .if_not_exists()
                 .col(big_unsigned(Session::SessionId))
                 .col(char_len(Session::GroupName, 200))
+                .col(integer(Session::Size))
                 .primary_key(Index::create().col(Session::SessionId)),
         )
         .await?;
@@ -120,13 +121,10 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(User::Table).to_owned())
+            .drop_table(Table::drop().table(SessionRelation::Table).to_owned())
             .await?;
         manager
             .drop_table(Table::drop().table(Friend::Table).to_owned())
-            .await?;
-        manager
-            .drop_table(Table::drop().table(SessionRelation::Table).to_owned())
             .await?;
         manager
             .drop_table(Table::drop().table(Session::Table).to_owned())
@@ -136,6 +134,9 @@ impl MigrationTrait for Migration {
             .await?;
         manager
             .drop_table(Table::drop().table(UserChatMsg::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(User::Table).to_owned())
             .await?;
         Ok(())
     }
@@ -179,6 +180,7 @@ enum Session {
     #[allow(clippy::enum_variant_names)]
     SessionId,
     GroupName,
+    Size,
 }
 
 #[derive(DeriveIden)]

@@ -26,7 +26,7 @@ async fn add_new_user(
         passwd: ActiveValue::Set(passwd),
         name: ActiveValue::Set(request.name),
         email: ActiveValue::Set(request.email),
-        time: ActiveValue::Set(chrono::Utc::now().timestamp().try_into()?),
+        time: ActiveValue::Set(chrono::Utc::now()),
         resource_used: ActiveValue::Set(0),
         friends_num: ActiveValue::Set(0),
         friend_limit: ActiveValue::Set(shared_state::get_friends_number_limit().try_into()?),

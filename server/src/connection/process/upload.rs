@@ -2,7 +2,7 @@ use crate::{
     client::requests::{self, upload::Upload},
     connection::response::UploadResponse,
     consts::{Bt, ID},
-    db, shared_state,
+    shared_state,
     utils::generate_random_string,
 };
 use anyhow::bail;
