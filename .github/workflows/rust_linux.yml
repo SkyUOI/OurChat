@@ -24,8 +24,6 @@ jobs:
       - name: Build
         run: cargo build --all
       - name: Start Redis
-        run: docker run --name win-redis -e REDIS_PORT=6379 -p 6379:6379 -d redis
-      - name: Start Redis
         uses: supercharge/redis-github-action@1.7.0
         with:
           redis-version: latest
