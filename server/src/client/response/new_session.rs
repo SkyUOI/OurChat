@@ -1,8 +1,9 @@
 //! new session response
 
+use crate::client::requests::Status;
 use crate::consts::{self, ID};
-use crate::requests::Status;
 use serde::{Deserialize, Serialize};
+use tokio_tungstenite::tungstenite::Message;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NewSessionResponse {
@@ -14,7 +15,7 @@ pub struct NewSessionResponse {
 impl NewSessionResponse {
     pub fn success(session_id: ID) -> Self {
         Self {
-            code: consts::MessageType::NewSessionResponse,
+            code: consts::MessageType::NewSessionRes,
             status: Status::Success,
             session_id: Some(session_id),
         }
@@ -22,9 +23,15 @@ impl NewSessionResponse {
 
     pub fn failed(status: Status) -> Self {
         Self {
-            code: consts::MessageType::NewSessionResponse,
+            code: consts::MessageType::NewSessionRes,
             status,
             session_id: None,
         }
+    }
+}
+
+impl From<NewSessionResponse> for Message {
+    fn from(value: NewSessionResponse) -> Self {
+        Message::Text(serde_json::to_string(&value).unwrap())
     }
 }

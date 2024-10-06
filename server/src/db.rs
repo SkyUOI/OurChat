@@ -1,5 +1,6 @@
 //! Database
 
+pub mod compatibility;
 pub mod file_storage;
 
 use std::{
@@ -7,6 +8,7 @@ use std::{
     sync::OnceLock,
 };
 
+pub use compatibility::*;
 use config::File;
 use migration::MigratorTrait;
 use sea_orm::DatabaseConnection;
@@ -79,7 +81,7 @@ pub static DB_TYPE: OnceLock<DbType> = OnceLock::new();
 pub static MYSQL_TYPE: static_keys::StaticFalseKey = static_keys::new_static_false_key();
 pub static SQLITE_TYPE: static_keys::StaticFalseKey = static_keys::new_static_false_key();
 
-/// 初始化数据库层
+/// Initialize the database layer
 pub fn init_db_system(db_type: DbType) {
     tracing::info!("Init db system");
     DB_TYPE.get_or_init(|| {
@@ -102,7 +104,7 @@ pub fn get_db_type() -> DbType {
     }
 }
 
-/// 根据配置文件生成连接数据库的url
+/// Generate the url for connecting to the database according to the configuration file
 pub fn get_db_url(cfg: &DbCfg) -> anyhow::Result<String> {
     let db_type = get_db_type();
     match db_type {
@@ -180,7 +182,7 @@ pub async fn try_create_mysql_db(url: &str) -> anyhow::Result<DatabaseConnection
 }
 
 /// connect to database according to url
-pub async fn connect_to_db(url: &str) -> anyhow::Result<sea_orm::DatabaseConnection> {
+pub async fn connect_to_db(url: &str) -> anyhow::Result<DatabaseConnection> {
     let db_type = get_db_type();
     tracing::info!("Connecting to {}", url);
     Ok(match db_type {
@@ -190,7 +192,7 @@ pub async fn connect_to_db(url: &str) -> anyhow::Result<sea_orm::DatabaseConnect
 }
 
 /// Init Database
-pub async fn init_db(_db: &sea_orm::DatabaseConnection) -> anyhow::Result<()> {
+pub async fn init_db(_db: &DatabaseConnection) -> anyhow::Result<()> {
     tracing::info!("Initialized database");
     Ok(())
 }
@@ -203,7 +205,7 @@ struct RedisCfg {
     user: String,
 }
 
-/// 根据配置文件生成连接redis的url
+/// Generate the url for connecting to redis according to the configuration file
 pub fn get_redis_url(path: &Path) -> anyhow::Result<String> {
     let cfg = config::Config::builder()
         .add_source(File::with_name(path.to_str().unwrap()))

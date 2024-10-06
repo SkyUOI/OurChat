@@ -5,15 +5,16 @@ use fake::faker::internet::raw::FreeEmail;
 use fake::faker::name::en;
 use fake::faker::name::raw::Name;
 use fake::locales::EN;
+use futures_util::stream::FusedStream;
 use futures_util::{SinkExt, StreamExt};
 use parking_lot::Mutex;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
+use server::client::requests::{self, Login, LoginType, Register, Unregister};
+use server::client::response::{self, UnregisterResponse};
 use server::component::MockEmailSender;
-use server::connection::client_response::{self, UnregisterResponse};
 use server::consts::MessageType;
 use server::db::{DbCfg, DbCfgTrait, DbType};
-use server::requests::{self, Login, LoginType, Register, Unregister};
 use server::utils::gen_ws_bind_addr;
 use server::{Application, ArgsParser, ParserCfg, SharedData, ShutdownSdr};
 use sqlx::migrate::MigrateDatabase;
@@ -132,7 +133,7 @@ impl TestAppTrait for ArgsParser {
 
 impl TestApp {
     pub async fn new(email_client: Option<MockEmailSender>) -> anyhow::Result<Self> {
-        let args = server::ArgsParser::test();
+        let args = ArgsParser::test();
         let server_config = server::get_configuration(args.shared_cfg.config.as_ref())?;
         let mut server_config = server::Cfg::new(server_config)?;
         // should create different database for each test
@@ -182,7 +183,7 @@ impl TestApp {
 
     pub async fn new_logined(email_client: Option<MockEmailSender>) -> anyhow::Result<Self> {
         let mut obj = Self::new(email_client).await?;
-        obj.email_login().await;
+        obj.email_login().await?;
         Ok(obj)
     }
 
@@ -224,23 +225,23 @@ impl TestApp {
         Ok(())
     }
 
-    pub async fn register(&mut self) {
-        let request = Register::new(
-            self.user.name.clone(),
-            self.user.password.clone(),
-            self.user.email.clone(),
-        );
-        self.connection
-            .send(Message::Text(serde_json::to_string(&request).unwrap()))
+    pub async fn register_internal(user: &mut TestUser, conn: &mut ClientWS) -> anyhow::Result<()> {
+        let request = Register::new(user.name.clone(), user.password.clone(), user.email.clone());
+        conn.send(Message::Text(serde_json::to_string(&request).unwrap()))
             .await
             .unwrap();
-        let ret = self.connection.next().await.unwrap().unwrap();
-        self.connection.close(None).await.unwrap();
-        let json: client_response::RegisterResponse =
-            serde_json::from_str(&ret.to_string()).unwrap();
+        let ret = conn.next().await.unwrap().unwrap();
+        let json: response::RegisterResponse = serde_json::from_str(&ret.to_string()).unwrap();
         assert_eq!(json.status, requests::Status::Success);
         assert_eq!(json.code, MessageType::RegisterRes);
-        self.user.ocid = json.ocid.unwrap();
+        user.ocid = json.ocid.unwrap();
+        Ok(())
+    }
+
+    pub async fn register(&mut self) {
+        Self::register_internal(&mut self.user, &mut self.connection)
+            .await
+            .unwrap();
         self.establish_connection().await.unwrap();
     }
 
@@ -256,8 +257,7 @@ impl TestApp {
         assert_eq!(json.status, requests::Status::Success);
     }
 
-    pub async fn ocid_login(&mut self) {
-        self.establish_connection().await.unwrap();
+    pub async fn ocid_login(&mut self) -> anyhow::Result<()> {
         let login_req = Login::new(
             self.user.ocid.clone(),
             self.user.password.clone(),
@@ -268,13 +268,14 @@ impl TestApp {
             .await
             .unwrap();
         let ret = self.connection.next().await.unwrap().unwrap();
-        let json: client_response::LoginResponse =
-            serde_json::from_str(ret.to_text().unwrap()).unwrap();
-        assert_eq!(json.code, MessageType::LoginRes);
+        let json: response::LoginResponse = serde_json::from_str(ret.to_text().unwrap()).unwrap();
+        if json.code != MessageType::LoginRes {
+            anyhow::bail!("Failed to login,code is not login response");
+        }
+        Ok(())
     }
 
-    pub async fn email_login(&mut self) {
-        self.establish_connection().await.unwrap();
+    pub async fn email_login(&mut self) -> anyhow::Result<()> {
         let login_req = Login::new(
             self.user.email.clone(),
             self.user.password.clone(),
@@ -285,10 +286,18 @@ impl TestApp {
             .await
             .unwrap();
         let ret = self.connection.next().await.unwrap().unwrap();
-        let json: client_response::LoginResponse =
-            serde_json::from_str(ret.to_text().unwrap()).unwrap();
-        assert_eq!(json.code, MessageType::LoginRes);
-        assert_eq!(json.ocid.unwrap(), self.user.ocid);
+        let json: response::LoginResponse = serde_json::from_str(ret.to_text().unwrap())?;
+        if json.code != MessageType::LoginRes {
+            anyhow::bail!("Failed to login,code is not login response");
+        }
+        if let Some(ocid) = json.ocid.clone() {
+            if ocid != self.user.ocid {
+                anyhow::bail!("Failed to login,ocid is not correct");
+            }
+        } else {
+            anyhow::bail!("Failed to login,ocid is not found");
+        }
+        Ok(())
     }
 
     pub async fn async_drop(&mut self) {
@@ -335,6 +344,17 @@ impl TestApp {
             ))
             .send()
             .await
+    }
+
+    pub async fn new_user(&mut self) -> anyhow::Result<(TestUser, ClientWS)> {
+        let mut user = TestUser::random();
+        let mut conn = Self::establish_connection_internal(self.port).await?;
+        Self::register_internal(&mut user, &mut conn).await?;
+        Ok((user, conn))
+    }
+
+    pub async fn accept_session(&mut self) -> anyhow::Result<()> {
+        Ok(())
     }
 }
 

@@ -1,7 +1,8 @@
 //! Upload Files
 
-use crate::{consts, requests::Status};
+use crate::{client::requests::Status, consts};
 use serde::{Deserialize, Serialize};
+use tokio_tungstenite::tungstenite::Message;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UploadResponse {
@@ -28,5 +29,11 @@ impl UploadResponse {
             hash: None,
             status: Status::AccountLimitation,
         }
+    }
+}
+
+impl From<UploadResponse> for Message {
+    fn from(value: UploadResponse) -> Self {
+        Message::Text(serde_json::to_string(&value).unwrap())
     }
 }

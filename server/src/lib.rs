@@ -2,13 +2,13 @@
 #![feature(decl_macro)]
 #![feature(duration_constructors)]
 
+pub mod client;
 mod cmd;
 pub mod component;
 pub mod connection;
 pub mod consts;
 pub mod db;
 mod entities;
-pub mod requests;
 mod server;
 mod shared_state;
 pub mod utils;
@@ -19,7 +19,8 @@ use clap::Parser;
 use cmd::CommandTransmitData;
 use component::EmailSender;
 use config::File;
-use consts::{FileSize, STDIN_AVAILABLE};
+use consts::{FileSize, ID, STDIN_AVAILABLE};
+use dashmap::DashMap;
 use db::{DbCfg, DbType, MysqlDbCfg, SqliteDbCfg, file_storage};
 use lettre::{AsyncSmtpTransport, transport::smtp::authentication::Credentials};
 use parking_lot::Once;
@@ -39,9 +40,13 @@ use tokio::{
     select,
     sync::{broadcast, mpsc},
 };
+use tokio_tungstenite::tungstenite::Message;
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{
-    EnvFilter, Layer, Registry, fmt, layer::SubscriberExt, util::SubscriberInitExt,
+    EnvFilter, Registry,
+    fmt::{self, MakeWriter},
+    layer::SubscriberExt,
+    util::SubscriberInitExt,
 };
 
 #[global_allocator]
@@ -110,7 +115,7 @@ impl MainCfg {
 
     pub fn build_email_client(&self) -> anyhow::Result<EmailClient> {
         if !self.email_available() {
-            anyhow::bail!("email is not available");
+            bail!("email is not available");
         }
         let creds = Credentials::new(
             self.email_address.clone().unwrap(),
@@ -211,31 +216,27 @@ static MACHINE_ID: LazyLock<u64> = LazyLock::new(|| {
 
 /// # Warning
 /// This function should be called only once.The second one will be ignored
-fn logger_init(test_mode: bool) {
-    static INIT: OnceLock<WorkerGuard> = OnceLock::new();
+fn logger_init<Sink>(test_mode: bool, source: Sink)
+where
+    Sink: for<'a> MakeWriter<'a> + Send + Sync + 'static,
+{
+    static INIT: OnceLock<Option<WorkerGuard>> = OnceLock::new();
     INIT.get_or_init(|| {
         let env = if test_mode {
             || EnvFilter::try_from_default_env().unwrap_or("trace".into())
         } else {
             || EnvFilter::try_from_default_env().unwrap_or("info".into())
         };
-        let formatting_layer = fmt::layer()
-            .pretty()
-            .with_writer(std::io::stdout)
-            .with_filter(env());
-        let registry = Registry::default().with(formatting_layer);
+        let formatting_layer = fmt::layer().pretty().with_writer(source);
 
         let file_appender = tracing_appender::rolling::daily("log/", "ourchat");
         let (non_blocking, file_guard) = tracing_appender::non_blocking(file_appender);
-        registry
-            .with(
-                fmt::layer()
-                    .with_ansi(false)
-                    .with_writer(non_blocking)
-                    .with_filter(env()),
-            )
+        Registry::default()
+            .with(env())
+            .with(formatting_layer)
+            .with(fmt::layer().with_ansi(false).with_writer(non_blocking))
             .init();
-        file_guard
+        Some(file_guard)
     });
 }
 
@@ -344,7 +345,7 @@ pub struct Application<T: EmailSender> {
 
 #[derive(Debug, Clone)]
 pub struct DbPool {
-    db_pool: sea_orm::DatabaseConnection,
+    db_pool: DatabaseConnection,
     redis_pool: deadpool_redis::Pool,
 }
 
@@ -359,6 +360,8 @@ impl DbPool {
 pub struct SharedData<T: EmailSender> {
     pub email_client: Option<T>,
     pub cfg: Cfg,
+    pub verify_record: DashMap<String, Arc<tokio::sync::Notify>>,
+    pub connected_clients: DashMap<ID, mpsc::Sender<Message>>,
 }
 
 pub fn get_configuration(config_path: Option<impl Into<PathBuf>>) -> anyhow::Result<MainCfg> {
@@ -393,7 +396,11 @@ impl<T: EmailSender> Application<T> {
         global_init();
         let main_cfg = &mut cfg.main_cfg;
 
-        logger_init(main_cfg.cmd_args.test_mode);
+        if main_cfg.cmd_args.test_mode {
+            logger_init(main_cfg.cmd_args.test_mode, std::io::sink);
+        } else {
+            logger_init(main_cfg.cmd_args.test_mode, std::io::stdout);
+        }
         // start maintain mode
         shared_state::set_maintaining(main_cfg.cmd_args.maintaining);
         // Set up shared state
@@ -413,7 +420,7 @@ impl<T: EmailSender> Application<T> {
         };
         let addr = format!("{}:{}", &main_cfg.ip, port);
         let server_listener = TcpListener::bind(&addr).await?;
-        main_cfg.port = server_listener.local_addr().unwrap().port();
+        main_cfg.port = server_listener.local_addr()?.port();
 
         // http port
         let http_port = match parser.http_port {
@@ -425,7 +432,7 @@ impl<T: EmailSender> Application<T> {
             std::net::TcpListener::bind(format!("{}:{}", &ip, http_port))
         })
         .await??;
-        main_cfg.http_port = http_listener.local_addr().unwrap().port();
+        main_cfg.http_port = http_listener.local_addr()?.port();
 
         // database type
         let db_type = match parser.db_type {
@@ -452,7 +459,12 @@ impl<T: EmailSender> Application<T> {
         let redis = db::connect_to_redis(&db::get_redis_url(&main_cfg.rediscfg)?).await?;
 
         Ok(Self {
-            shared: Arc::new(SharedData { email_client, cfg }),
+            shared: Arc::new(SharedData {
+                email_client,
+                cfg,
+                verify_record: DashMap::new(),
+                connected_clients: DashMap::new(),
+            }),
             pool: DbPool {
                 redis_pool: redis,
                 db_pool: db,
@@ -501,17 +513,17 @@ impl<T: EmailSender> Application<T> {
             self.abort_sender.subscribe(),
         )
         .await?;
-        // 启动数据库文件系统
+        // Start the database file system
         file_storage::FileSys::new(self.pool.db_pool.clone()).start(self.abort_sender.subscribe());
-        // 启动关闭信号监听
+        // Start the shutdown signal listener
         exit_signal(self.abort_sender.clone()).await?;
-        // 启动控制台
+        // Start the cmd
         if cfg.enable_cmd {
             let mut is_enable = false;
             let (command_sdr, command_rev) = mpsc::channel(50);
             match cfg.cmd_network_port {
                 None => {
-                    // 不启动network cmd
+                    // not start network cmd
                 }
                 Some(port) => {
                     let command_sdr = command_sdr.clone();
@@ -527,7 +539,7 @@ impl<T: EmailSender> Application<T> {
                     is_enable = true;
                 }
             }
-            // 启动控制台源
+            // Start the cmd from stdin
             if cfg.enable_cmd_stdin && *STDIN_AVAILABLE {
                 let shutdown_sender = self.abort_sender.clone();
                 tokio::spawn(async move {
@@ -548,7 +560,7 @@ impl<T: EmailSender> Application<T> {
             )
             .await?;
             if !is_enable {
-                // 控制台并未正常启动
+                // Cmd is not enabled normally
                 tracing::warn!("cmd is not enabled");
                 self.abort_sender.subscribe().recv().await?;
             }

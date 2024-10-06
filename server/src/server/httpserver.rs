@@ -1,5 +1,6 @@
 mod download;
 mod status;
+mod timestamp;
 mod upload;
 pub mod verify;
 
@@ -33,16 +34,18 @@ impl HttpServer {
         let upload_manager = Data::new(upload::UploadManager::new());
         let data_clone = upload_manager.clone();
         let shared_state_moved = shared_data.clone();
+        let db_conn_clone = db_conn.clone();
         let http_server = actix_web::HttpServer::new(move || {
             let v1 = web::scope("/v1")
                 .service(upload::upload)
                 .service(status::status)
                 .service(download::download)
+                .service(timestamp::timestamp)
                 .configure(verify::config);
             App::new()
                 .wrap(actix_web::middleware::Logger::default())
                 .app_data(data_clone.clone())
-                .app_data(db_conn.clone())
+                .app_data(db_conn_clone.clone())
                 .app_data(shared_state_moved.clone())
                 .service(v1)
         })
@@ -64,6 +67,10 @@ impl HttpServer {
         tokio::spawn(upload::UploadManager::add_record(
             upload_manager,
             file_receiver,
+        ));
+        tokio::spawn(verify::regularly_clean_notifier(
+            shared_data.clone(),
+            db_conn.redis_pool.clone(),
         ));
         Ok((http_server_handle, HttpSender {
             file_record: file_sender,

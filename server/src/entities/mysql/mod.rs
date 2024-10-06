@@ -5,6 +5,7 @@ pub mod prelude;
 pub mod authority;
 pub mod files;
 pub mod friend;
+pub mod operations;
 pub mod server_manager;
 pub mod session;
 pub mod session_relation;

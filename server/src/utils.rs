@@ -22,10 +22,10 @@ impl MachineId for SnowflakeParams {
 pub type MySnowflake = Snowflake<ClassicLayout<SnowflakeParams>, SnowflakeParams>;
 pub type MySnowflakeGenerator = Generator<ClassicLayout<SnowflakeParams>, SnowflakeParams>;
 
-/// 一个Snowflake的生成器
+/// A Generator of Snowflake
 pub static GENERATOR: LazyLock<MySnowflakeGenerator> = LazyLock::new(MySnowflakeGenerator::default);
 
-/// 生成一个随机的ocid
+/// Generate ocid by random
 pub fn generate_ocid(bits: usize) -> String {
     generate_random_string(bits)
 }
@@ -38,8 +38,8 @@ pub fn generate_random_string(len: usize) -> String {
         .collect()
 }
 
-/// 获取ws绑定地址
-pub static WS_BIND_ADDR: LazyLock<String> =
+/// default ws binging address
+pub static DEFAULT_WS_BIND_ADDR: LazyLock<String> =
     LazyLock::new(|| gen_ws_bind_addr(consts::DEFAULT_IP, consts::DEFAULT_PORT));
 
 pub fn gen_ws_bind_addr(ip: &str, port: u16) -> String {

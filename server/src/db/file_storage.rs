@@ -1,4 +1,4 @@
-//! 管理文件储存
+//! Manage the file storage
 
 use crate::{ShutdownRev, consts::ID, shared_state};
 use derive::db_compatibility;
@@ -41,11 +41,10 @@ impl FileSys {
     }
 }
 
-// TODO: 测试该部分
 #[db_compatibility]
 pub async fn clean_files(db_conn: &mut DatabaseConnection) -> anyhow::Result<()> {
     use entities::files;
-    // 先查询文件
+    // Query the file first
     let del_time =
         chrono::Utc::now() - chrono::Duration::days(shared_state::get_file_save_days() as i64);
     let cond = files::Column::Date.lt(del_time.timestamp());
@@ -69,7 +68,7 @@ pub async fn clean_files(db_conn: &mut DatabaseConnection) -> anyhow::Result<()>
     Ok(())
 }
 
-/// 自动清理
+/// auto clean files which is out-of-dated
 #[tracing::instrument]
 pub async fn auto_clean_files(mut connection: DatabaseConnection) {
     loop {

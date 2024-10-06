@@ -1,19 +1,24 @@
-//! 保存各种请求的结构体
+//! Requests from client to server
 
+pub mod accept_session;
 pub mod get_status;
 pub mod login;
 pub mod new_session;
 pub mod register;
 pub mod unregister;
 pub mod upload;
+pub mod user_msg;
 pub mod verify;
 
+pub use accept_session::AcceptSession;
 pub use login::{Login, LoginType};
+pub use new_session::NewSession;
 pub use register::Register;
-use serde_repr::{Deserialize_repr, Serialize_repr};
-use thiserror::Error;
 pub use unregister::Unregister;
 pub use verify::Verify;
+
+use serde_repr::{Deserialize_repr, Serialize_repr};
+use thiserror::Error;
 
 #[derive(Debug, Serialize_repr, Deserialize_repr, Error, PartialEq, Eq)]
 #[repr(u32)]
