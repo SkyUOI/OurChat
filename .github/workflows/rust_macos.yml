@@ -24,7 +24,6 @@ jobs:
         uses: supercharge/redis-github-action@1.7.0
         with:
           redis-version: latest
-          redis-remove-container: true
       - name: Sqlite Test
         run: python3 script/test_server.py sqlite
       - name: Build Release
