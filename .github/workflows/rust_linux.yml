@@ -10,7 +10,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  sqlite:
     runs-on: ubuntu-latest
 
     steps:
@@ -25,13 +25,15 @@ jobs:
         run: cargo build --all
       - name: Start Redis
         run: docker run --name win-redis -e REDIS_PORT=6379 -p 6379:6379 -d redis
+      - name: Start Redis
+        uses: supercharge/redis-github-action@1.7.0
+        with:
+          redis-version: latest
+          redis-remove-container: true
       - name: Sqlite Test
         run: |
           python3 script/test_server.py sqlite "cargo test -- --test-threads 2"
           python3 script/test_server.py sqlite "cargo tarpaulin --bins -o lcov"
-      - name: Stop Redis
-        run: docker stop win-redis
-
       - name: Coverage
         uses: actions/upload-artifact@v4
         with:
@@ -47,6 +49,11 @@ jobs:
         run: |
           cargo check --all --release
           rm -rf target
+
+  mysql:
+    runs-on: ubuntu-latest
+
+    steps:
       - name: Test
         uses: SkyUOI/github-action-docker-compose-test-run@main
         with:
