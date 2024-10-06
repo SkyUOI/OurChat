@@ -16,14 +16,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@nightly
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.6
       - name: Build
         run: cargo build --all
+      - name: Setup Docker on macOS
+        uses: douglascamata/setup-docker-macos-action@v1-alpha
       - name: Start Redis
-        uses: supercharge/redis-github-action@1.7.0
-        with:
-          redis-version: latest
+        run: docker run --name win-redis -e REDIS_PORT=6379 -p 6379:6379 -d redis
       - name: Sqlite Test
         run: python3 script/test_server.py sqlite
       - name: Build Release

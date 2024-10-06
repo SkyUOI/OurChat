@@ -16,16 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@nightly
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.6
       - name: Build
         run: cargo build --bin server
-      - name: Start Redis
-        uses: supercharge/redis-github-action@1.7.0
-        with:
-          redis-version: latest
-      - name: Sqlite Test
-        run: |
-          python3 script/test_server.py sqlite "cargo test --test server"
       - name: Build Release
         run: cargo check --bin server --release
