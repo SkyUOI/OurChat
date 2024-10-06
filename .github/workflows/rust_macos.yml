@@ -18,12 +18,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@nightly
       - name: Build
         run: cargo build --all
-      - name: Setup Docker on macOS
-        uses: douglascamata/setup-docker-macos-action@v1-alpha
-      - name: Start Redis
-        run: docker run --name win-redis -e REDIS_PORT=6379 -p 6379:6379 -d redis
-      - name: Sqlite Test
-        run: python3 script/test_server.py sqlite
       - name: Build Release
         run: |
           cargo check --all --release
