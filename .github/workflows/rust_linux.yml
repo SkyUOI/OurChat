@@ -32,7 +32,9 @@ jobs:
       - name: Start Redis
         run: docker run --name win-redis -e REDIS_PORT=6379 -p 6379:6379 -d redis
       - name: Sqlite Test
-        run: python3 script/action_test_server.py sqlite "cargo tarpaulin -o lcov"
+        run: |
+          python3 script/action_test_server.py sqlite
+          python3 script/action_test_server.py sqlite "cargo tarpaulin -o lcov"
       - name: Stop Redis
         run: docker stop win-redis
 
