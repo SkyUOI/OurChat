@@ -231,7 +231,6 @@ impl TestApp {
             .await
             .unwrap();
         let ret = conn.next().await.unwrap().unwrap();
-        conn.close(None).await.unwrap();
         let json: response::RegisterResponse = serde_json::from_str(&ret.to_string()).unwrap();
         assert_eq!(json.status, requests::Status::Success);
         assert_eq!(json.code, MessageType::RegisterRes);
@@ -351,7 +350,6 @@ impl TestApp {
         let mut user = TestUser::random();
         let mut conn = Self::establish_connection_internal(self.port).await?;
         Self::register_internal(&mut user, &mut conn).await?;
-        conn.close(None).await?;
         Ok((user, conn))
     }
 

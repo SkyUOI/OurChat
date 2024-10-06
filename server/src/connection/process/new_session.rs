@@ -90,6 +90,9 @@ pub async fn new_session(
     let mut people_num = 1;
     for i in &json.members {
         let member_id = get_id(i, db_conn).await?;
+        if member_id == id {
+            continue;
+        }
         let verify = whether_to_verify(id, member_id, db_conn).await?;
         if verify {
             send_verification_request(

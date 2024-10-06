@@ -24,7 +24,7 @@ pub enum MessageType {
     UnregisterRes = 17,
     ErrorMsg = 18,
     NewSession = 8,
-    NewSessionResponse = 9,
+    NewSessionRes = 9,
     GetStatus = 12,
     Upload = 21,
     UploadRes = 22,

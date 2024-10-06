@@ -13,10 +13,13 @@ use crate::{
     },
     component::EmailSender,
     consts::{ID, MessageType},
+    db::BooleanLike,
+    entities::mysql::operations,
     server::httpserver::{FileRecord, VerifyRecord, verify::verify_client},
     shared_state,
 };
 use anyhow::bail;
+use clap::Id;
 use futures_util::{
     SinkExt, StreamExt,
     stream::{SplitSink, SplitStream},
@@ -24,6 +27,7 @@ use futures_util::{
 use process::new_session::mapped_to_operations;
 use redis::AsyncCommands;
 use response::{get_status::GetStatusResponse, verify::VerifyResponse};
+use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use serde_json::Value;
 use tokio::{
     net::TcpStream,
@@ -80,6 +84,29 @@ fn get_code(s: &str) -> anyhow::Result<Option<(MessageType, Value)>> {
         }
     }
     Ok(None)
+}
+
+#[derive::db_compatibility]
+async fn get_requests(id: ID, db_conn: &DatabaseConnection) -> anyhow::Result<Vec<String>> {
+    use entities::operations;
+    use entities::prelude::*;
+    let id: u64 = id.into();
+    let stored_requests = Operations::find()
+        .filter(operations::Column::Id.eq(id))
+        .all(db_conn)
+        .await?;
+    let mut ret = Vec::new();
+    for i in stored_requests {
+        if i.once.is_true() {
+            Operations::delete_by_id(i.oper_id).exec(db_conn).await?;
+        }
+        if i.expires_at < chrono::Utc::now() {
+            Operations::delete_by_id(i.oper_id).exec(db_conn).await?;
+            continue;
+        }
+        ret.push(i.operation);
+    }
+    Ok(ret)
 }
 
 impl<T: EmailSender> Connection<T> {
@@ -321,25 +348,12 @@ impl<T: EmailSender> Connection<T> {
             net_sender.send(data).await?;
             Ok(())
         };
-        let mut redis_conn = dbpool.redis_pool.get().await?;
-        // try to get a operation from redis
-        let key = mapped_to_operations(id);
-        let mut finish_redis = false;
+        let mut requests = get_requests(id, &dbpool.db_pool).await?.into_iter();
 
         let work = async {
             'con_loop: loop {
-                let msg = if !finish_redis {
-                    let msg: Option<String> = redis_conn.lpop(&key, None).await?;
-                    match msg {
-                        Some(msg) => {
-                            tracing::debug!("recv msg:{}", msg);
-                            Message::Text(msg)
-                        }
-                        None => {
-                            finish_redis = true;
-                            continue;
-                        }
-                    }
+                let msg = if let Some(request) = requests.next() {
+                    Message::Text(request)
                 } else {
                     let msg = incoming.next().await;
                     if msg.is_none() {

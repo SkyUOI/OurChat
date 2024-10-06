@@ -1,5 +1,6 @@
 //! Database
 
+pub mod compatibility;
 pub mod file_storage;
 
 use std::{
@@ -7,6 +8,7 @@ use std::{
     sync::OnceLock,
 };
 
+pub use compatibility::*;
 use config::File;
 use migration::MigratorTrait;
 use sea_orm::DatabaseConnection;

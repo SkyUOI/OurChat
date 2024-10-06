@@ -15,7 +15,7 @@ pub struct NewSessionResponse {
 impl NewSessionResponse {
     pub fn success(session_id: ID) -> Self {
         Self {
-            code: consts::MessageType::NewSessionResponse,
+            code: consts::MessageType::NewSessionRes,
             status: Status::Success,
             session_id: Some(session_id),
         }
@@ -23,7 +23,7 @@ impl NewSessionResponse {
 
     pub fn failed(status: Status) -> Self {
         Self {
-            code: consts::MessageType::NewSessionResponse,
+            code: consts::MessageType::NewSessionRes,
             status,
             session_id: None,
         }
