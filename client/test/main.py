@@ -357,12 +357,11 @@ def upload_msg(conn: Connection, sample: dict, data: dict) -> dict:
     sample["hash"] = data["hash"]
     return sample
 
+
 async def verifyStatus(conn: Connection, sample: dict, data: dict) -> dict:
-    await conn.send({
-        "code": 23,
-        "status": 0
-    })
+    await conn.send({"code": 23, "status": 0})
     return sample
+
 
 auto_reply = {
     0: ("user_msg.json", user_msg, True),
