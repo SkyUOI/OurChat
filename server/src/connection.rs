@@ -14,18 +14,15 @@ use crate::{
     component::EmailSender,
     consts::{ID, MessageType},
     db::BooleanLike,
-    entities::mysql::operations,
+    entities::mysql::user,
     server::httpserver::{FileRecord, VerifyRecord, verify::verify_client},
     shared_state,
 };
 use anyhow::bail;
-use clap::Id;
 use futures_util::{
     SinkExt, StreamExt,
     stream::{SplitSink, SplitStream},
 };
-use process::new_session::mapped_to_operations;
-use redis::AsyncCommands;
 use response::{get_status::GetStatusResponse, verify::VerifyResponse};
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use serde_json::Value;
@@ -42,6 +39,11 @@ type OutGoing = SplitSink<WS, Message>;
 
 /// server-side websocket
 pub type WS = WebSocketStream<TcpStream>;
+
+struct UserInfo {
+    id: ID,
+    ocid: String,
+}
 
 pub trait NetSender {
     type Fut: Future<Output = anyhow::Result<()>>;
@@ -68,7 +70,7 @@ pub struct Connection<T: EmailSender + 'static> {
     dbpool: Option<DbPool>,
 }
 enum VerifyStatus {
-    Success(ID),
+    Success(UserInfo),
     Fail,
 }
 
@@ -335,9 +337,9 @@ impl<T: EmailSender> Connection<T> {
         }
     }
 
-    pub async fn read_loop(
+    async fn read_loop(
         mut incoming: InComing,
-        id: ID,
+        user_info: UserInfo,
         net_sender: mpsc::Sender<Message>,
         http_sender: HttpSender,
         mut shutdown_receiver: broadcast::Receiver<()>,
@@ -348,7 +350,9 @@ impl<T: EmailSender> Connection<T> {
             net_sender.send(data).await?;
             Ok(())
         };
-        let mut requests = get_requests(id, &dbpool.db_pool).await?.into_iter();
+        let mut requests = get_requests(user_info.id, &dbpool.db_pool)
+            .await?
+            .into_iter();
 
         let work = async {
             'con_loop: loop {
@@ -390,7 +394,8 @@ impl<T: EmailSender> Connection<T> {
                         }
                         match code {
                             MessageType::Unregister => {
-                                process::unregister(id, &net_sender, &dbpool.db_pool).await?;
+                                process::unregister(user_info.id, &net_sender, &dbpool.db_pool)
+                                    .await?;
                                 continue 'con_loop;
                             }
                             MessageType::NewSession => {
@@ -402,7 +407,7 @@ impl<T: EmailSender> Connection<T> {
                                     Ok(data) => data,
                                 };
                                 process::new_session(
-                                    id,
+                                    &user_info,
                                     net_send_closure,
                                     json,
                                     &dbpool,
@@ -422,10 +427,14 @@ impl<T: EmailSender> Connection<T> {
                                 // Generate url first and then reply
                                 let hash = json.hash.clone();
                                 let auto_clean = json.auto_clean;
-                                let (send, key) =
-                                    process::upload(id, &net_sender, &mut json, &dbpool.db_pool)
-                                        .await?;
-                                let record = FileRecord::new(key, hash, auto_clean, id);
+                                let (send, key) = process::upload(
+                                    user_info.id,
+                                    &net_sender,
+                                    &mut json,
+                                    &dbpool.db_pool,
+                                )
+                                .await?;
+                                let record = FileRecord::new(key, hash, auto_clean, user_info.id);
                                 http_sender.file_record.send(record).await?;
                                 send.await?;
                                 continue 'con_loop;
@@ -438,8 +447,13 @@ impl<T: EmailSender> Connection<T> {
                                     }
                                     Ok(data) => data,
                                 };
-                                process::accept_session(id, net_send_closure, json, &dbpool)
-                                    .await?;
+                                process::accept_session(
+                                    user_info.id,
+                                    net_send_closure,
+                                    json,
+                                    &dbpool,
+                                )
+                                .await?;
                                 continue 'con_loop;
                             }
                             _ => {
@@ -574,7 +588,7 @@ impl<T: EmailSender> Connection<T> {
                     return Ok(());
             }
         }
-        let _guard = ConnectionGuard::new(id, msg_sender.clone(), self.shared_data.clone());
+        let _guard = ConnectionGuard::new(id.id, msg_sender.clone(), self.shared_data.clone());
         Self::read_loop(
             incoming,
             id,
@@ -589,6 +603,7 @@ impl<T: EmailSender> Connection<T> {
     }
 }
 
+/// Used to do some cleanup
 struct ConnectionGuard<T: EmailSender> {
     id: ID,
     shared_data: Arc<crate::SharedData<T>>,

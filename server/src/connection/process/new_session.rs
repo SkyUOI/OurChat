@@ -5,7 +5,7 @@ use crate::{
         response::{InviteSession, NewSessionResponse},
     },
     component::EmailSender,
-    connection::NetSender,
+    connection::{NetSender, UserInfo},
     consts::{ID, OCID, SessionID, TimeStamp},
     utils,
 };
@@ -78,7 +78,7 @@ pub async fn whether_to_verify(sender: ID, invitee: ID, db_conn: &DbPool) -> any
 }
 
 pub async fn new_session(
-    id: ID,
+    user_info: &UserInfo,
     net_sender: impl NetSender + Clone,
     json: NewSession,
     db_conn: &DbPool,
@@ -90,13 +90,13 @@ pub async fn new_session(
     let mut people_num = 1;
     for i in &json.members {
         let member_id = get_id(i, db_conn).await?;
-        if member_id == id {
+        if member_id == user_info.id {
             continue;
         }
-        let verify = whether_to_verify(id, member_id, db_conn).await?;
+        let verify = whether_to_verify(user_info.id, member_id, db_conn).await?;
         if verify {
             send_verification_request(
-                id,
+                user_info.ocid.clone(),
                 member_id,
                 session_id,
                 json.message.clone(),
@@ -123,12 +123,8 @@ pub async fn new_session(
     Ok(())
 }
 
-pub fn mapped_to_operations(id: ID) -> String {
-    format!("id-oper:{}", id)
-}
-
 pub async fn send_verification_request(
-    sender: ID,
+    sender: OCID,
     invitee: ID,
     session_id: SessionID,
     message: String,
@@ -138,10 +134,7 @@ pub async fn send_verification_request(
     let expiresat = chrono::Utc::now() + Duration::from_days(3);
     let request = InviteSession::new(
         //TODO: Move this to config
-        expiresat,
-        session_id.to_string(),
-        sender.to_string(),
-        message,
+        expiresat, session_id, sender, message,
     );
     // try to find connected client
     match shared_data.connected_clients.get(&invitee) {

@@ -17,15 +17,17 @@ async fn failed_login(conn: &mut ClientWS) {
 #[tokio::test]
 async fn test_email_login() {
     let mut app = helper::TestApp::new(None).await.unwrap();
-    failed_login(&mut app.connection).await;
-    assert_ok!(app.email_login().await);
+    let user = app.new_user().await.unwrap();
+    failed_login(user.lock().await.get_conn()).await;
+    assert_ok!(user.lock().await.email_login().await);
     app.async_drop().await;
 }
 
 #[tokio::test]
 async fn test_ocid_login() {
     let mut app = helper::TestApp::new(None).await.unwrap();
-    failed_login(&mut app.connection).await;
-    assert_ok!(app.ocid_login().await);
+    let user = app.new_user().await.unwrap();
+    failed_login(user.lock().await.get_conn()).await;
+    assert_ok!(user.lock().await.ocid_login().await);
     app.async_drop().await;
 }

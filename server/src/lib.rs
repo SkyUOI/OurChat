@@ -275,7 +275,7 @@ async fn cmd_start(
     Ok(())
 }
 
-async fn exit_signal(shutdown_sender: ShutdownSdr) -> anyhow::Result<()> {
+fn exit_signal(shutdown_sender: ShutdownSdr) -> anyhow::Result<()> {
     let shutdown_sender_clone = shutdown_sender.clone();
     #[cfg(not(windows))]
     tokio::spawn(async move {
@@ -488,7 +488,9 @@ impl<T: EmailSender> Application<T> {
     }
 
     pub async fn run_forever(&mut self) -> anyhow::Result<()> {
+        tracing::info!("Starting server");
         let cfg = &self.shared.cfg.main_cfg;
+        let mut abort = self.abort_sender.subscribe();
 
         if cfg.cmd_args.clear {
             clear()?;
@@ -516,7 +518,7 @@ impl<T: EmailSender> Application<T> {
         // Start the database file system
         file_storage::FileSys::new(self.pool.db_pool.clone()).start(self.abort_sender.subscribe());
         // Start the shutdown signal listener
-        exit_signal(self.abort_sender.clone()).await?;
+        exit_signal(self.abort_sender.clone())?;
         // Start the cmd
         if cfg.enable_cmd {
             let mut is_enable = false;
@@ -565,6 +567,8 @@ impl<T: EmailSender> Application<T> {
                 self.abort_sender.subscribe().recv().await?;
             }
         }
+        tracing::info!("Server started");
+        abort.recv().await?;
         handle.await??;
         self.pool.close().await?;
         tracing::info!("Server exited");

@@ -1,15 +1,14 @@
 //! Helper functions for tests
 
+use anyhow::Context;
 use fake::Fake;
 use fake::faker::internet::raw::FreeEmail;
 use fake::faker::name::en;
 use fake::faker::name::raw::Name;
 use fake::locales::EN;
-use futures_util::stream::FusedStream;
 use futures_util::{SinkExt, StreamExt};
 use parking_lot::Mutex;
 use rand::Rng;
-use serde::{Deserialize, Serialize};
 use server::client::requests::{self, Login, LoginType, Register, Unregister};
 use server::client::response::{self, UnregisterResponse};
 use server::component::MockEmailSender;
@@ -20,7 +19,9 @@ use server::{Application, ArgsParser, ParserCfg, SharedData, ShutdownSdr};
 use sqlx::migrate::MigrateDatabase;
 use std::collections::HashSet;
 use std::path::PathBuf;
+use std::rc::Rc;
 use std::sync::{Arc, LazyLock};
+use std::thread;
 use std::time::Duration;
 use tokio::fs::remove_file;
 use tokio::net::TcpStream;
@@ -30,12 +31,16 @@ use tokio_tungstenite::tungstenite::Message;
 
 pub type ClientWS = WebSocketStream<tokio_tungstenite::MaybeTlsStream<TcpStream>>;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct TestUser {
     pub name: String,
     pub password: String,
     pub email: String,
     pub ocid: String,
+    pub connection: Option<ClientWS>,
+    pub port: u16,
+
+    has_dropped: bool,
 }
 
 struct FakeManager {
@@ -80,10 +85,10 @@ static FAKE_MANAGER: LazyLock<Mutex<FakeManager>> =
     LazyLock::new(|| Mutex::new(FakeManager::new()));
 
 impl TestUser {
-    pub fn random() -> Self {
+    pub async fn random(app: &TestApp) -> Self {
         let name = FAKE_MANAGER.lock().generate_unique_name();
         let email = FAKE_MANAGER.lock().generate_unique_email();
-        Self {
+        let mut ret = Self {
             name,
             password: rand::thread_rng()
                 .sample_iter(&rand::distributions::Alphanumeric)
@@ -91,21 +96,159 @@ impl TestUser {
                 .map(char::from)
                 .collect(),
             email,
+            connection: None,
+            port: app.port,
+            has_dropped: false,
             // reserved
             ocid: String::default(),
+        };
+        ret.register().await;
+        ret
+    }
+
+    pub async fn send(&mut self, msg: Message) -> anyhow::Result<()> {
+        self.get_conn().send(msg).await?;
+        Ok(())
+    }
+
+    pub async fn get(&mut self) -> anyhow::Result<Message> {
+        Ok(self.get_conn().next().await.unwrap().unwrap())
+    }
+
+    pub fn get_conn(&mut self) -> &mut ClientWS {
+        self.connection.as_mut().unwrap()
+    }
+
+    async fn establish_connection(&mut self) -> anyhow::Result<()> {
+        if let Some(conn) = &mut self.connection {
+            conn.close(None).await.ok();
+        }
+        let conn = establish_connection_internal(self.port).await?;
+        self.connection = Some(conn);
+        Ok(())
+    }
+
+    pub async fn register(&mut self) {
+        self.establish_connection().await.unwrap();
+        Self::register_internal(self).await.unwrap();
+    }
+
+    pub async fn unregister(&mut self) -> anyhow::Result<()> {
+        let req = Unregister::new();
+        self.get_conn()
+            .send(Message::text(serde_json::to_string(&req).unwrap()))
+            .await
+            .unwrap();
+        let ret = self.get_conn().next().await.unwrap()?;
+        let json: UnregisterResponse = serde_json::from_str(ret.to_text()?)?;
+        assert_eq!(json.code, MessageType::UnregisterRes);
+        assert_eq!(json.status, requests::Status::Success);
+        Ok(())
+    }
+
+    pub async fn ocid_login(&mut self) -> anyhow::Result<()> {
+        let login_req = Login::new(self.ocid.clone(), self.password.clone(), LoginType::Ocid);
+        self.get_conn()
+            .send(Message::Text(serde_json::to_string(&login_req).unwrap()))
+            .await
+            .unwrap();
+        let ret = self.get_conn().next().await.unwrap().unwrap();
+        let json: response::LoginResponse = serde_json::from_str(ret.to_text().unwrap()).unwrap();
+        if json.code != MessageType::LoginRes {
+            anyhow::bail!("Failed to login,code is not login response");
+        }
+        Ok(())
+    }
+
+    pub async fn email_login(&mut self) -> anyhow::Result<()> {
+        let login_req = Login::new(self.email.clone(), self.password.clone(), LoginType::Email);
+        self.get_conn()
+            .send(Message::Text(serde_json::to_string(&login_req).unwrap()))
+            .await
+            .unwrap();
+        let ret = self.get_conn().next().await.unwrap().unwrap();
+        let json: response::LoginResponse =
+            serde_json::from_str(ret.to_text().unwrap()).with_context(|| ret)?;
+        if json.code != MessageType::LoginRes {
+            anyhow::bail!("Failed to login,code is not login response");
+        }
+        if let Some(ocid) = json.ocid.clone() {
+            if ocid != self.ocid {
+                anyhow::bail!("Failed to login,ocid is not correct");
+            }
+        } else {
+            anyhow::bail!("Failed to login,ocid is not found");
+        }
+        Ok(())
+    }
+
+    pub async fn register_internal(user: &mut TestUser) -> anyhow::Result<()> {
+        let request = Register::new(user.name.clone(), user.password.clone(), user.email.clone());
+        let conn = user.get_conn();
+        conn.send(Message::Text(serde_json::to_string(&request).unwrap()))
+            .await
+            .unwrap();
+        let ret = conn.next().await.unwrap().unwrap();
+        let json: response::RegisterResponse = serde_json::from_str(&ret.to_string()).unwrap();
+        assert_eq!(json.status, requests::Status::Success);
+        assert_eq!(json.code, MessageType::RegisterRes);
+        user.ocid = json.ocid.unwrap();
+        Ok(())
+    }
+
+    pub async fn close_connection(&mut self) {
+        if let Some(conn) = &mut self.connection {
+            conn.close(None).await.unwrap();
         }
     }
+
+    async fn async_drop(&mut self) {
+        claims::assert_ok!(self.unregister().await);
+        tracing::info!("unregister done");
+        self.close_connection().await;
+        tracing::info!("connection closed");
+        self.has_dropped = true;
+    }
+}
+
+impl Drop for TestUser {
+    fn drop(&mut self) {
+        if !self.has_dropped && !thread::panicking() {
+            panic!("async_drop is not called to drop this user");
+        }
+    }
+}
+
+async fn establish_connection_internal(port: u16) -> anyhow::Result<ClientWS> {
+    let mut connection = None;
+    // server maybe not ready
+    let ip = gen_ws_bind_addr("127.0.0.1", port);
+    for _ in 0..10 {
+        match tokio_tungstenite::connect_async(&ip).await {
+            Ok((conn, _)) => {
+                connection = Some(conn);
+                break;
+            }
+            Err(e) => {
+                println!("{} ", e);
+            }
+        };
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+    if connection.is_none() {
+        anyhow::bail!(format!("Failed to connect to server {}", ip));
+    }
+    Ok(connection.unwrap())
 }
 
 pub struct TestApp {
     pub port: u16,
     pub http_port: u16,
-    pub connection: ClientWS,
-    pub user: TestUser,
     pub handle: JoinHandle<()>,
     pub db_url: String,
     pub app_shared: Arc<SharedData<MockEmailSender>>,
     pub http_client: reqwest::Client,
+    owned_users: Vec<Rc<tokio::sync::Mutex<TestUser>>>,
 
     server_config: server::Cfg,
     has_dropped: bool,
@@ -159,153 +302,28 @@ impl TestApp {
             application.run_forever().await.unwrap();
         });
 
-        let connection = Self::establish_connection_internal(port).await?;
-
-        let mut obj = TestApp {
+        let obj = TestApp {
             port,
             http_port,
-            connection,
-            user: TestUser::random(),
             handle,
             db_url,
             server_config,
             has_dropped: false,
             server_drop_handle: abort_handle,
             app_shared: shared,
+            owned_users: vec![],
             http_client: reqwest::Client::builder()
                 .timeout(Duration::from_secs(2))
                 .build()?,
         };
-        println!("register user: {:?}", obj.user);
-        obj.register().await;
         Ok(obj)
-    }
-
-    pub async fn new_logined(email_client: Option<MockEmailSender>) -> anyhow::Result<Self> {
-        let mut obj = Self::new(email_client).await?;
-        obj.email_login().await?;
-        Ok(obj)
-    }
-
-    pub async fn send(&mut self, msg: Message) -> anyhow::Result<()> {
-        self.connection.send(msg).await?;
-        Ok(())
-    }
-
-    pub async fn get(&mut self) -> anyhow::Result<Message> {
-        Ok(self.connection.next().await.unwrap().unwrap())
-    }
-
-    async fn establish_connection_internal(port: u16) -> anyhow::Result<ClientWS> {
-        let mut connection = None;
-        // server maybe not ready
-        let ip = gen_ws_bind_addr("127.0.0.1", port);
-        for _ in 0..10 {
-            match tokio_tungstenite::connect_async(&ip).await {
-                Ok((conn, _)) => {
-                    connection = Some(conn);
-                    break;
-                }
-                Err(e) => {
-                    println!("{} ", e);
-                }
-            };
-            tokio::time::sleep(Duration::from_millis(100)).await;
-        }
-        if connection.is_none() {
-            anyhow::bail!(format!("Failed to connect to server {}", ip));
-        }
-        Ok(connection.unwrap())
-    }
-
-    async fn establish_connection(&mut self) -> anyhow::Result<()> {
-        self.connection.close(None).await.ok();
-        let conn = Self::establish_connection_internal(self.port).await?;
-        self.connection = conn;
-        Ok(())
-    }
-
-    pub async fn register_internal(user: &mut TestUser, conn: &mut ClientWS) -> anyhow::Result<()> {
-        let request = Register::new(user.name.clone(), user.password.clone(), user.email.clone());
-        conn.send(Message::Text(serde_json::to_string(&request).unwrap()))
-            .await
-            .unwrap();
-        let ret = conn.next().await.unwrap().unwrap();
-        let json: response::RegisterResponse = serde_json::from_str(&ret.to_string()).unwrap();
-        assert_eq!(json.status, requests::Status::Success);
-        assert_eq!(json.code, MessageType::RegisterRes);
-        user.ocid = json.ocid.unwrap();
-        Ok(())
-    }
-
-    pub async fn register(&mut self) {
-        Self::register_internal(&mut self.user, &mut self.connection)
-            .await
-            .unwrap();
-        self.establish_connection().await.unwrap();
-    }
-
-    pub async fn unregister(&mut self) {
-        let req = Unregister::new();
-        self.connection
-            .send(Message::text(serde_json::to_string(&req).unwrap()))
-            .await
-            .unwrap();
-        let ret = self.connection.next().await.unwrap().unwrap();
-        let json: UnregisterResponse = serde_json::from_str(ret.to_text().unwrap()).unwrap();
-        assert_eq!(json.code, MessageType::UnregisterRes);
-        assert_eq!(json.status, requests::Status::Success);
-    }
-
-    pub async fn ocid_login(&mut self) -> anyhow::Result<()> {
-        let login_req = Login::new(
-            self.user.ocid.clone(),
-            self.user.password.clone(),
-            LoginType::Ocid,
-        );
-        self.connection
-            .send(Message::Text(serde_json::to_string(&login_req).unwrap()))
-            .await
-            .unwrap();
-        let ret = self.connection.next().await.unwrap().unwrap();
-        let json: response::LoginResponse = serde_json::from_str(ret.to_text().unwrap()).unwrap();
-        if json.code != MessageType::LoginRes {
-            anyhow::bail!("Failed to login,code is not login response");
-        }
-        Ok(())
-    }
-
-    pub async fn email_login(&mut self) -> anyhow::Result<()> {
-        let login_req = Login::new(
-            self.user.email.clone(),
-            self.user.password.clone(),
-            LoginType::Email,
-        );
-        self.connection
-            .send(Message::Text(serde_json::to_string(&login_req).unwrap()))
-            .await
-            .unwrap();
-        let ret = self.connection.next().await.unwrap().unwrap();
-        let json: response::LoginResponse = serde_json::from_str(ret.to_text().unwrap())?;
-        if json.code != MessageType::LoginRes {
-            anyhow::bail!("Failed to login,code is not login response");
-        }
-        if let Some(ocid) = json.ocid.clone() {
-            if ocid != self.user.ocid {
-                anyhow::bail!("Failed to login,ocid is not correct");
-            }
-        } else {
-            anyhow::bail!("Failed to login,ocid is not found");
-        }
-        Ok(())
     }
 
     pub async fn async_drop(&mut self) {
         tracing::info!("async_drop called");
-        self.unregister().await;
-        tracing::info!("unregister done");
-        self.close_connection().await;
-        tracing::info!("connection closed");
+        for i in &self.owned_users {
+            i.lock().await.async_drop().await;
+        }
         self.server_drop_handle.send(()).unwrap();
         tracing::info!("shutdown message sent");
         loop {
@@ -332,10 +350,6 @@ impl TestApp {
         self.has_dropped = true;
     }
 
-    pub async fn close_connection(&mut self) {
-        self.connection.close(None).await.unwrap();
-    }
-
     pub async fn verify(&mut self, token: &str) -> Result<reqwest::Response, reqwest::Error> {
         self.http_client
             .get(format!(
@@ -346,11 +360,18 @@ impl TestApp {
             .await
     }
 
-    pub async fn new_user(&mut self) -> anyhow::Result<(TestUser, ClientWS)> {
-        let mut user = TestUser::random();
-        let mut conn = Self::establish_connection_internal(self.port).await?;
-        Self::register_internal(&mut user, &mut conn).await?;
-        Ok((user, conn))
+    pub async fn new_user(&mut self) -> anyhow::Result<Rc<tokio::sync::Mutex<TestUser>>> {
+        let user = Rc::new(tokio::sync::Mutex::new(TestUser::random(self).await));
+        user.lock().await.close_connection().await;
+        user.lock().await.establish_connection().await?;
+        self.owned_users.push(user.clone());
+        Ok(user)
+    }
+
+    pub async fn new_user_logined(&mut self) -> anyhow::Result<Rc<tokio::sync::Mutex<TestUser>>> {
+        let user = Rc::new(tokio::sync::Mutex::new(TestUser::random(self).await));
+        self.owned_users.push(user.clone());
+        Ok(user)
     }
 
     pub async fn accept_session(&mut self) -> anyhow::Result<()> {
@@ -360,7 +381,7 @@ impl TestApp {
 
 impl Drop for TestApp {
     fn drop(&mut self) {
-        if !self.has_dropped {
+        if !self.has_dropped && !thread::panicking() {
             panic!("async_drop is not called to drop this app");
         }
     }

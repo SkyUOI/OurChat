@@ -20,14 +20,17 @@ async fn test_verify() {
             anyhow::Ok(())
         });
     let mut app = helper::TestApp::new(Some(mock_smtp)).await.unwrap();
+    let user = app.new_user().await.unwrap();
     claims::assert_some!(app.app_shared.email_client.as_ref());
-    let req = requests::Verify::new(app.user.email.clone());
-    app.send(Message::Text(serde_json::to_string(&req).unwrap()))
+    let req = requests::Verify::new(user.lock().await.email.clone());
+    user.lock()
+        .await
+        .send(Message::Text(serde_json::to_string(&req).unwrap()))
         .await
         .unwrap();
     // Send successfully
     let ret: response::VerifyResponse =
-        serde_json::from_str(&app.get().await.unwrap().to_string()).unwrap();
+        serde_json::from_str(&user.lock().await.get().await.unwrap().to_string()).unwrap();
     // check email
     for _ in 0..10 {
         let body = email_body.lock().is_empty();
@@ -42,18 +45,19 @@ async fn test_verify() {
     // check wrong link
     let res = app.verify("wrong token").await.unwrap();
     assert_eq!(res.status(), reqwest::StatusCode::BAD_REQUEST);
-    assert_err!(app.email_login().await);
+    assert_err!(user.lock().await.email_login().await);
 
     // check email in mock server
     let link_finder = linkify::LinkFinder::new();
-    let email_body = email_body.lock();
-    let links: Vec<_> = link_finder
-        .links(&email_body)
-        .filter(|x| *x.kind() == linkify::LinkKind::Url)
-        .collect();
-    assert_eq!(links.len(), 1);
-    let link = links.first().unwrap().as_str().to_owned();
-    drop(email_body);
+    let link = {
+        let email_body = email_body.lock();
+        let links: Vec<_> = link_finder
+            .links(&email_body)
+            .filter(|x| *x.kind() == linkify::LinkKind::Url)
+            .collect();
+        assert_eq!(links.len(), 1);
+        links.first().unwrap().as_str().to_owned()
+    };
 
     // check link
     app.http_client
@@ -64,11 +68,12 @@ async fn test_verify() {
         .error_for_status()
         .unwrap();
     // get status
-    let status =
-        serde_json::from_str::<response::VerifyResponse>(&app.get().await.unwrap().to_string())
-            .unwrap();
+    let status = serde_json::from_str::<response::VerifyResponse>(
+        &user.lock().await.get().await.unwrap().to_string(),
+    )
+    .unwrap();
     assert_eq!(status.code, MessageType::VerifyRes);
     assert_eq!(status.status, requests::Status::Success);
-    assert_ok!(app.email_login().await);
+    assert_ok!(user.lock().await.email_login().await);
     app.async_drop().await;
 }

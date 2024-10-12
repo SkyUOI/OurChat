@@ -1,4 +1,4 @@
-use crate::consts::{MessageType, TimeStamp};
+use crate::consts::{ID, MessageType, SessionID, TimeStamp};
 use serde::{Deserialize, Serialize};
 use tokio_tungstenite::tungstenite::Message;
 
@@ -6,7 +6,7 @@ use tokio_tungstenite::tungstenite::Message;
 pub struct InviteSession {
     pub code: MessageType,
     pub expire_timestamp: TimeStamp,
-    pub session_id: String,
+    pub session_id: SessionID,
     pub inviter_id: String,
     pub message: String,
 }
@@ -14,7 +14,7 @@ pub struct InviteSession {
 impl InviteSession {
     pub fn new(
         expire_timestamp: TimeStamp,
-        session_id: String,
+        session_id: SessionID,
         inviter_id: String,
         message: String,
     ) -> Self {

@@ -3,7 +3,7 @@ use crate::{
         requests,
         response::{self, LoginResponse},
     },
-    connection::{NetSender, VerifyStatus},
+    connection::{NetSender, UserInfo, VerifyStatus},
     consts::ID,
     utils,
 };
@@ -15,7 +15,7 @@ use sea_orm::{ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter};
 pub async fn login(
     request: requests::Login,
     db_connection: &DatabaseConnection,
-) -> anyhow::Result<Result<(LoginResponse, ID), requests::Status>> {
+) -> anyhow::Result<Result<(LoginResponse, UserInfo), requests::Status>> {
     use entities::prelude::*;
     use entities::user::Column;
     use requests::Status;
@@ -47,11 +47,17 @@ pub async fn login(
                 {
                     match request.login_type {
                         requests::LoginType::Email => Ok(Ok((
-                            LoginResponse::success_email(user.ocid),
-                            user.id.into(),
+                            LoginResponse::success_email(user.ocid.clone()),
+                            UserInfo {
+                                ocid: user.ocid,
+                                id: user.id.into(),
+                            },
                         ))),
                         requests::LoginType::Ocid => {
-                            Ok(Ok((LoginResponse::success_ocid(), user.id.into())))
+                            Ok(Ok((LoginResponse::success_ocid(), UserInfo {
+                                ocid: user.ocid,
+                                id: user.id.into(),
+                            })))
                         }
                     }
                 } else {

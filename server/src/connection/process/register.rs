@@ -1,6 +1,6 @@
 use crate::{
     client::{requests, response::RegisterResponse},
-    connection::{NetSender, VerifyStatus},
+    connection::{NetSender, UserInfo, VerifyStatus},
     consts::{self, ID},
     shared_state, utils,
 };
@@ -12,7 +12,7 @@ use snowdon::ClassicLayoutSnowflakeExtension;
 async fn add_new_user(
     request: requests::Register,
     db_connection: &DatabaseConnection,
-) -> anyhow::Result<Result<(RegisterResponse, ID), requests::Status>> {
+) -> anyhow::Result<Result<(RegisterResponse, UserInfo), requests::Status>> {
     use entities::user::ActiveModel as UserModel;
     // Generate snowflake id
     let id = ID(utils::GENERATOR.generate()?.into_i64().try_into()?);
@@ -34,8 +34,11 @@ async fn add_new_user(
     match user.insert(db_connection).await {
         Ok(res) => {
             // Happy Path
-            let response = RegisterResponse::success(res.ocid);
-            Ok(Ok((response, res.id.into())))
+            let response = RegisterResponse::success(res.ocid.clone());
+            Ok(Ok((response, UserInfo {
+                ocid: res.ocid,
+                id: res.id.into(),
+            })))
         }
         Err(e) => {
             if let DbErr::RecordNotInserted = e {
