@@ -14,7 +14,6 @@ use crate::{
     component::EmailSender,
     consts::{ID, MessageType},
     db::BooleanLike,
-    entities::mysql::user,
     server::httpserver::{FileRecord, VerifyRecord, verify::verify_client},
     shared_state,
 };
@@ -350,28 +349,18 @@ impl<T: EmailSender> Connection<T> {
             net_sender.send(data).await?;
             Ok(())
         };
-        let mut requests = get_requests(user_info.id, &dbpool.db_pool)
-            .await?
-            .into_iter();
 
         let work = async {
             'con_loop: loop {
-                let msg = if let Some(request) = requests.next() {
-                    Message::Text(request)
-                } else {
-                    let msg = incoming.next().await;
-                    if msg.is_none() {
-                        break;
-                    }
-                    let msg = msg.unwrap();
-
-                    match msg {
+                let msg = match incoming.next().await {
+                    None => break,
+                    Some(res) => match res {
                         Ok(msg) => {
-                            tracing::debug!("recv msg:{}", msg);
+                            tracing::trace!("recv msg:{}", msg);
                             msg
                         }
                         Err(e) => Err(e)?,
-                    }
+                    },
                 };
 
                 match msg {
@@ -550,7 +539,7 @@ impl<T: EmailSender> Connection<T> {
     pub async fn work(&mut self) -> anyhow::Result<()> {
         let mut socket = self.socket.take().unwrap();
         let mut shutdown_receiver = self.shutdown_sender.subscribe();
-        let id;
+        let user_info;
         let http_sender = self.http_sender.take().unwrap();
         let dbpool = self.dbpool.take().unwrap();
         // start maintaining loop
@@ -572,7 +561,7 @@ impl<T: EmailSender> Connection<T> {
                 self.shared_data.clone(),
                 &dbpool
             ) => {
-                id = match ret? {
+                user_info = match ret? {
                     Some(ret) => {
                         match ret {
                             VerifyStatus::Success(id) => id,
@@ -588,10 +577,15 @@ impl<T: EmailSender> Connection<T> {
                     return Ok(());
             }
         }
-        let _guard = ConnectionGuard::new(id.id, msg_sender.clone(), self.shared_data.clone());
+        let requests = get_requests(user_info.id, &dbpool.db_pool).await?;
+        for i in requests {
+            msg_sender.send(Message::Text(i)).await?;
+        }
+        let _guard =
+            ConnectionGuard::new(user_info.id, msg_sender.clone(), self.shared_data.clone());
         Self::read_loop(
             incoming,
-            id,
+            user_info,
             msg_sender,
             http_sender,
             shutdown_receiver,
