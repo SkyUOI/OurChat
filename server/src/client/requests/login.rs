@@ -10,14 +10,14 @@ pub enum LoginType {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Login {
+pub struct LoginRequest {
     pub code: MessageType,
     pub account: String,
     pub login_type: LoginType,
     pub password: String,
 }
 
-impl Login {
+impl LoginRequest {
     pub fn new(account: String, password: String, login_type: LoginType) -> Self {
         Self {
             code: MessageType::Login,

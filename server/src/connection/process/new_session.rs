@@ -1,7 +1,7 @@
 use crate::{
     DbPool, SharedData,
     client::{
-        requests::{self, AcceptSession, NewSession},
+        requests::{self, AcceptSessionRequest, NewSessionRequest},
         response::{InviteSession, NewSessionResponse},
     },
     component::EmailSender,
@@ -80,7 +80,7 @@ pub async fn whether_to_verify(sender: ID, invitee: ID, db_conn: &DbPool) -> any
 pub async fn new_session(
     user_info: &UserInfo,
     net_sender: impl NetSender + Clone,
-    json: NewSession,
+    json: NewSessionRequest,
     db_conn: &DbPool,
     shared_data: &Arc<SharedData<impl EmailSender>>,
 ) -> anyhow::Result<()> {
@@ -178,8 +178,9 @@ async fn save_invitation_to_db(
 pub async fn accept_session(
     id: ID,
     net_sender: impl NetSender,
-    json: AcceptSession,
+    json: AcceptSessionRequest,
     db_conn: &DbPool,
 ) -> anyhow::Result<()> {
+    // check if the time is expired
     Ok(())
 }

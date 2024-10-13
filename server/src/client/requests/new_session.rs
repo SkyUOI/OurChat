@@ -2,7 +2,7 @@ use crate::consts::{MessageType, OCID};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct NewSession {
+pub struct NewSessionRequest {
     pub code: MessageType,
     pub members: Vec<OCID>,
     #[serde(default)]
@@ -11,7 +11,7 @@ pub struct NewSession {
     pub message: String,
 }
 
-impl NewSession {
+impl NewSessionRequest {
     pub fn new_easiest(members: Vec<OCID>) -> Self {
         Self {
             code: MessageType::NewSession,

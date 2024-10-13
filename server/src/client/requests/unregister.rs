@@ -2,11 +2,11 @@ use crate::consts::MessageType;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Unregister {
+pub struct UnregisterRequest {
     pub code: MessageType,
 }
 
-impl Unregister {
+impl UnregisterRequest {
     pub fn new() -> Self {
         Self {
             code: MessageType::Unregister,
@@ -14,7 +14,7 @@ impl Unregister {
     }
 }
 
-impl Default for Unregister {
+impl Default for UnregisterRequest {
     fn default() -> Self {
         Self::new()
     }

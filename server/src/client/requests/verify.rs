@@ -2,12 +2,12 @@ use crate::consts::MessageType;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Verify {
+pub struct VerifyRequest {
     pub code: MessageType,
     pub email: String,
 }
 
-impl Verify {
+impl VerifyRequest {
     pub fn new(email: String) -> Self {
         Self {
             code: MessageType::Verify,

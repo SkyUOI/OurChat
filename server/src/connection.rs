@@ -8,7 +8,7 @@ use std::sync::Arc;
 use crate::{
     DbPool, HttpSender,
     client::{
-        requests::{self, AcceptSession, new_session::NewSession, upload::Upload},
+        requests::{self, AcceptSessionRequest, new_session::NewSessionRequest, upload::Upload},
         response,
     },
     component::EmailSender,
@@ -154,7 +154,7 @@ impl<T: EmailSender> Connection<T> {
                 .send(VerifyResponse::email_cannot_be_sent().into())
                 .await?;
         }
-        let json: requests::Verify = serde_json::from_value(json.clone())?;
+        let json: requests::VerifyRequest = serde_json::from_value(json.clone())?;
         let verify_success = Arc::new(Notify::new());
         // this message's meaning is the email has been sent
         match verify_client(
@@ -270,7 +270,8 @@ impl<T: EmailSender> Connection<T> {
                         }
                         match code {
                             MessageType::Login => {
-                                let login_data: requests::Login = serde_json::from_value(json)?;
+                                let login_data: requests::LoginRequest =
+                                    serde_json::from_value(json)?;
                                 process::login::login_request(
                                     net_send_closure,
                                     login_data,
@@ -279,7 +280,7 @@ impl<T: EmailSender> Connection<T> {
                                 .await?
                             }
                             MessageType::Register => {
-                                let request_data: requests::Register =
+                                let request_data: requests::RegisterRequest =
                                     serde_json::from_value(json)?;
                                 process::register(net_send_closure, request_data, &dbpool.db_pool)
                                     .await?
@@ -388,7 +389,7 @@ impl<T: EmailSender> Connection<T> {
                                 continue 'con_loop;
                             }
                             MessageType::NewSession => {
-                                let json: NewSession = match serde_json::from_value(json) {
+                                let json: NewSessionRequest = match serde_json::from_value(json) {
                                     Err(_) => {
                                         tracing::warn!("Wrong json structure");
                                         continue 'con_loop;
@@ -429,7 +430,8 @@ impl<T: EmailSender> Connection<T> {
                                 continue 'con_loop;
                             }
                             MessageType::AcceptSession => {
-                                let json: AcceptSession = match serde_json::from_value(json) {
+                                let json: AcceptSessionRequest = match serde_json::from_value(json)
+                                {
                                     Err(_) => {
                                         tracing::warn!("Wrong json structure");
                                         continue 'con_loop;

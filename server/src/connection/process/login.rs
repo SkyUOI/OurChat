@@ -13,7 +13,7 @@ use sea_orm::{ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter};
 
 #[derive::db_compatibility]
 pub async fn login(
-    request: requests::Login,
+    request: requests::LoginRequest,
     db_connection: &DatabaseConnection,
 ) -> anyhow::Result<Result<(LoginResponse, UserInfo), requests::Status>> {
     use entities::prelude::*;
@@ -80,7 +80,7 @@ pub async fn login(
 /// Login Request
 pub async fn login_request(
     net_sender: impl NetSender,
-    login_data: requests::Login,
+    login_data: requests::LoginRequest,
     db_conn: &DatabaseConnection,
 ) -> anyhow::Result<VerifyStatus> {
     match login(login_data, db_conn).await? {

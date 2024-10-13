@@ -9,7 +9,7 @@ use fake::locales::EN;
 use futures_util::{SinkExt, StreamExt};
 use parking_lot::Mutex;
 use rand::Rng;
-use server::client::requests::{self, Login, LoginType, Register, Unregister};
+use server::client::requests::{self, LoginRequest, LoginType, RegisterRequest, UnregisterRequest};
 use server::client::response::{self, UnregisterResponse};
 use server::component::MockEmailSender;
 use server::consts::MessageType;
@@ -134,7 +134,7 @@ impl TestUser {
     }
 
     pub async fn unregister(&mut self) -> anyhow::Result<()> {
-        let req = Unregister::new();
+        let req = UnregisterRequest::new();
         self.get_conn()
             .send(Message::text(serde_json::to_string(&req).unwrap()))
             .await
@@ -147,7 +147,8 @@ impl TestUser {
     }
 
     pub async fn ocid_login(&mut self) -> anyhow::Result<()> {
-        let login_req = Login::new(self.ocid.clone(), self.password.clone(), LoginType::Ocid);
+        let login_req =
+            LoginRequest::new(self.ocid.clone(), self.password.clone(), LoginType::Ocid);
         self.get_conn()
             .send(Message::Text(serde_json::to_string(&login_req).unwrap()))
             .await
@@ -161,7 +162,8 @@ impl TestUser {
     }
 
     pub async fn email_login(&mut self) -> anyhow::Result<()> {
-        let login_req = Login::new(self.email.clone(), self.password.clone(), LoginType::Email);
+        let login_req =
+            LoginRequest::new(self.email.clone(), self.password.clone(), LoginType::Email);
         self.get_conn()
             .send(Message::Text(serde_json::to_string(&login_req).unwrap()))
             .await
@@ -183,7 +185,8 @@ impl TestUser {
     }
 
     pub async fn register_internal(user: &mut TestUser) -> anyhow::Result<()> {
-        let request = Register::new(user.name.clone(), user.password.clone(), user.email.clone());
+        let request =
+            RegisterRequest::new(user.name.clone(), user.password.clone(), user.email.clone());
         let conn = user.get_conn();
         conn.send(Message::Text(serde_json::to_string(&request).unwrap()))
             .await

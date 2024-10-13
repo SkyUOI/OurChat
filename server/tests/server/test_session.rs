@@ -15,7 +15,7 @@ async fn test_session() {
     let user2 = app.new_user_logined().await.unwrap();
     let user3 = app.new_user().await.unwrap();
     // try to create a session in two users
-    let req = requests::NewSession::new_easiest(vec![
+    let req = requests::NewSessionRequest::new_easiest(vec![
         user2.lock().await.ocid.clone(),
         user3.lock().await.ocid.clone(),
     ]);

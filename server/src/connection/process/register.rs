@@ -10,7 +10,7 @@ use snowdon::ClassicLayoutSnowflakeExtension;
 
 #[derive::db_compatibility]
 async fn add_new_user(
-    request: requests::Register,
+    request: requests::RegisterRequest,
     db_connection: &DatabaseConnection,
 ) -> anyhow::Result<Result<(RegisterResponse, UserInfo), requests::Status>> {
     use entities::user::ActiveModel as UserModel;
@@ -68,7 +68,7 @@ fn compute_password_hash(password: &str) -> String {
 /// Register Request
 pub async fn register(
     net_sender: impl NetSender,
-    register_data: requests::Register,
+    register_data: requests::RegisterRequest,
     db_conn: &DatabaseConnection,
 ) -> anyhow::Result<VerifyStatus> {
     match add_new_user(register_data, db_conn).await? {

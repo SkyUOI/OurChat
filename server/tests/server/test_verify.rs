@@ -22,7 +22,7 @@ async fn test_verify() {
     let mut app = helper::TestApp::new(Some(mock_smtp)).await.unwrap();
     let user = app.new_user().await.unwrap();
     claims::assert_some!(app.app_shared.email_client.as_ref());
-    let req = requests::Verify::new(user.lock().await.email.clone());
+    let req = requests::VerifyRequest::new(user.lock().await.email.clone());
     user.lock()
         .await
         .send(Message::Text(serde_json::to_string(&req).unwrap()))
