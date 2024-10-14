@@ -1,0 +1,23 @@
+{
+    "@@locale": "zh",
+    "@@author": "SkyUoi",
+    "login": "登录",
+    "register": "注册",
+    "setting": "设置",
+    "serverError": "服务器错误",
+    "serverUnderMaintenance": "服务器正在维护中",
+    "unknownError": "未知错误",
+    "accountPasswordCantBeEmpty": "账号/密码不能为空",
+    "wrongAccountOrPassword": "账号或密码错误",
+    "plzCheckYourEmail": "请检查您的邮箱",
+    "emailAddressUnreachable": "邮箱地址不可达",
+    "requestRefused": "请求被拒绝",
+    "verifyTimeout": "验证超时",
+    "emailExists": "邮箱已存在",
+    "verifyNotCompleted": "验证未完成",
+    "email": "邮箱",
+    "ocid": "OCID",
+    "password": "密码",
+    "showPassword": "显示密码",
+    "nickname": "昵称"
+}

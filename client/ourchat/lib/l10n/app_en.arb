@@ -1,0 +1,80 @@
+{
+    "@@author": "SkyUoi",
+    "@@locale": "en",
+    "login": "Login",
+    "@login": {
+        "description": "Login"
+    },
+    "register": "Register",
+    "@register": {
+        "description": "Register"
+    },
+    "setting": "Setting",
+    "@setting": {
+        "description": "Setting"
+    },
+    "serverError": "Server error",
+    "@serverError": {
+        "description": "Server error"
+    },
+    "serverUnderMaintenance": "Server is under maintenance",
+    "@serverUnderMaintenance": {
+        "description": "Server is under maintenance"
+    },
+    "unknownError": "Unknown error",
+    "@unknownError": {
+        "description": "Unknown error"
+    },
+    "accountPasswordCantBeEmpty": "Account/password cannot be empty",
+    "@accountPasswordCantBeEmpty": {
+        "description": "Account/password cannot be empty"
+    },
+    "wrongAccountOrPassword": "Wrong account or password",
+    "@wrongAccountOrPassword": {
+        "description": "Wrong account or password"
+    },
+    "plzCheckYourEmail": "Please check your email",
+    "@plzCheckYourEmail": {
+        "description": "Please check your email"
+    },
+    "emailAddressUnreachable": "Email address is unreachable",
+    "@emailAddressUnreachable": {
+        "description": "Email address is unreachable"
+    },
+    "requestRefused": "Request refused",
+    "@requestRefused": {
+        "description": "Request refused"
+    },
+    "verifyTimeout": "Verify timeout",
+    "@verifyTimeout": {
+        "description": "Verify timeout"
+    },
+    "emailExists": "Email already exists",
+    "@emailExists": {
+        "description": "Email already exists"
+    },
+    "verifyNotCompleted": "Verify not completed",
+    "@verifyNotCompleted": {
+        "description": "Verify not completed"
+    },
+    "email": "Email",
+    "@email": {
+        "description": "Email"
+    },
+    "ocid": "OCID",
+    "@ocid": {
+        "description": "uid of Ourchat"
+    },
+    "password": "Password",
+    "@password": {
+        "description": "Password"
+    },
+    "showPassword": "Show password",
+    "@showPassword": {
+        "description": "Show password"
+    },
+    "nickname": "Nickname",
+    "@nickname": {
+        "description": "Nickname"
+    }
+}

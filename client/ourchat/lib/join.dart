@@ -5,6 +5,8 @@ import 'dart:convert';
 import 'main.dart';
 import 'const.dart';
 
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+
 class Join extends StatefulWidget {
   const Join({super.key});
 
@@ -37,13 +39,16 @@ class _JoinState extends State<Join> {
             SafeArea(
               child: BottomNavigationBar(
                 elevation: 0.0,
-                items: const [
+                items: [
                   BottomNavigationBarItem(
-                      icon: Icon(Icons.login), label: "Login"),
+                      icon: const Icon(Icons.login),
+                      label: AppLocalizations.of(context)!.login),
                   BottomNavigationBarItem(
-                      icon: Icon(Icons.person_add), label: "Register"),
+                      icon: const Icon(Icons.person_add),
+                      label: AppLocalizations.of(context)!.register),
                   BottomNavigationBarItem(
-                      icon: Icon(Icons.settings), label: "Setting")
+                      icon: const Icon(Icons.settings),
+                      label: AppLocalizations.of(context)!.setting)
                 ],
                 currentIndex: currentIndex,
                 onTap: (index) {
@@ -71,7 +76,16 @@ class JoinState extends ChangeNotifier {
   var showPassword = false;
   var errorText = "";
   var page = 0; // 0: login, 1: register
+  BuildContext? context;
   OurchatAppState? ourchatAppState;
+
+  void setContext(BuildContext value) {
+    context = value;
+  }
+
+  void setPage(var value) {
+    page = value;
+  }
 
   void setPassword(var value) {
     showPassword = value;
@@ -87,18 +101,18 @@ class JoinState extends ChangeNotifier {
         register();
       }
     } else if (data["status"] == serverErrorStatusCode) {
-      errorText = "Server Error";
+      errorText = AppLocalizations.of(context!)!.serverError;
     } else if (data["status"] == underMaintenanceStatusCode) {
-      errorText = "Server is under Maintenance";
+      errorText = AppLocalizations.of(context!)!.serverUnderMaintenance;
     } else {
-      errorText = "Unknown Error";
+      errorText = AppLocalizations.of(context!)!.unknownError;
     }
     notifyListeners();
   }
 
   bool checkTextField() {
     if (account.isEmpty || password.isEmpty) {
-      errorText = "account/password can't be empty";
+      errorText = AppLocalizations.of(context!)!.accountPasswordCantBeEmpty;
       notifyListeners();
       return false;
     }
@@ -122,13 +136,13 @@ class JoinState extends ChangeNotifier {
     if (data["status"] == operationSuccessfulStatusCode) {
       ourchatAppState!.toSomewhere(homeUi);
     } else if (data["status"] == serverErrorStatusCode) {
-      errorText = "Server Error";
+      errorText = AppLocalizations.of(context!)!.serverError;
     } else if (data["status"] == underMaintenanceStatusCode) {
-      errorText = "Server is under Maintenance";
+      errorText = AppLocalizations.of(context!)!.serverUnderMaintenance;
     } else if (data["status"] == parameterErrorStatusCode) {
-      errorText = "wrong account/password";
+      errorText = AppLocalizations.of(context!)!.wrongAccountOrPassword;
     } else {
-      errorText = "Unknown Error";
+      errorText = AppLocalizations.of(context!)!.unknownError;
     }
     notifyListeners();
   }
@@ -145,15 +159,15 @@ class JoinState extends ChangeNotifier {
     ourchatAppState!.unlisten(initVerifyResponseMsgCode, initVerifyResponse);
     if (data["status"] == operationSuccessfulStatusCode) {
       ourchatAppState!.unlisten(verifyResponseMsgCode, verifyResponse);
-      errorText = "Please check your email";
+      errorText = AppLocalizations.of(context!)!.plzCheckYourEmail;
     } else if (data["status"] == serverErrorStatusCode) {
-      errorText = "Server Error";
+      errorText = AppLocalizations.of(context!)!.serverError;
     } else if (data["status"] == requestInfoDoesNotExistStatusCode) {
-      errorText = "Email address is unreachable";
+      errorText = AppLocalizations.of(context!)!.emailAddressUnreachable;
     } else if (data["status"] == accountRestrictionStatusCode) {
-      errorText = "Request refused";
+      errorText = AppLocalizations.of(context!)!.requestRefused;
     } else {
-      errorText = "Unknown Error";
+      errorText = AppLocalizations.of(context!)!.unknownError;
     }
     notifyListeners();
   }
@@ -163,13 +177,13 @@ class JoinState extends ChangeNotifier {
     if (data["status"] == operationSuccessfulStatusCode) {
       register();
     } else if (data["status"] == serverErrorStatusCode) {
-      errorText = "Server Error";
+      errorText = AppLocalizations.of(context!)!.serverError;
     } else if (data["status"] == underMaintenanceStatusCode) {
-      errorText = "Server is under Maintenance";
+      errorText = AppLocalizations.of(context!)!.serverUnderMaintenance;
     } else if (data["status"] == timeoutStatusCode) {
-      errorText = "Verification timeout";
+      errorText = AppLocalizations.of(context!)!.verifyTimeout;
     } else {
-      errorText = "Unknown Error";
+      errorText = AppLocalizations.of(context!)!.unknownError;
     }
     notifyListeners();
   }
@@ -188,15 +202,15 @@ class JoinState extends ChangeNotifier {
     if (data["status"] == operationSuccessfulStatusCode) {
       ourchatAppState!.toSomewhere(homeUi);
     } else if (data["status"] == serverErrorStatusCode) {
-      errorText = "Server Error";
+      errorText = AppLocalizations.of(context!)!.serverError;
     } else if (data["status"] == underMaintenanceStatusCode) {
-      errorText = "Server is under Maintenance";
+      errorText = AppLocalizations.of(context!)!.serverUnderMaintenance;
     } else if (data["status"] == newInfoAlreadyExistsStatusCode) {
-      errorText = "Email already exists";
+      errorText = AppLocalizations.of(context!)!.emailExists;
     } else if (data["status"] == parameterErrorStatusCode) {
-      errorText = "Verification not completed";
+      errorText = AppLocalizations.of(context!)!.verifyNotCompleted;
     } else {
-      errorText = "Unknown Error";
+      errorText = AppLocalizations.of(context!)!.unknownError;
     }
     notifyListeners();
   }
@@ -211,7 +225,8 @@ class Login extends StatelessWidget {
   Widget build(BuildContext context) {
     var ourchatAppState = context.watch<OurchatAppState>();
     var joinState = context.watch<JoinState>();
-    joinState.page = 0;
+    joinState.setPage(0);
+    joinState.setContext(context);
     return Scaffold(
         body: Padding(
       padding: const EdgeInsets.only(left: 20.0, right: 20.0),
@@ -219,15 +234,17 @@ class Login extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           TextField(
-            decoration: const InputDecoration(labelText: "Email/OCID"),
+            decoration: InputDecoration(
+                labelText:
+                    "${AppLocalizations.of(context)!.email}/${AppLocalizations.of(context)!.ocid}"),
             controller: TextEditingController(text: joinState.account),
             onChanged: (value) {
               joinState.account = value;
             },
           ),
           TextField(
-            decoration: const InputDecoration(
-              labelText: "Password",
+            decoration: InputDecoration(
+              labelText: AppLocalizations.of(context)!.password,
             ),
             controller: TextEditingController(text: joinState.password),
             onChanged: (value) {
@@ -239,7 +256,7 @@ class Login extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               GestureDetector(
-                child: const Text("Show Password"),
+                child: Text(AppLocalizations.of(context)!.showPassword),
                 onTap: () {
                   joinState.setPassword(!joinState.showPassword);
                 },
@@ -266,7 +283,7 @@ class Login extends StatelessWidget {
                       joinState.login();
                     }
                   },
-                  child: const Text("Login"))),
+                  child: Text(AppLocalizations.of(context)!.login))),
           Text(
             joinState.errorText,
             style: const TextStyle(color: Colors.red),
@@ -286,7 +303,8 @@ class Register extends StatelessWidget {
   Widget build(BuildContext context) {
     var joinState = context.watch<JoinState>();
     var ourchatAppState = context.watch<OurchatAppState>();
-    joinState.page = 1;
+    joinState.setContext(context);
+    joinState.setPage(1);
     return Scaffold(
         body: Padding(
       padding: const EdgeInsets.only(left: 20.0, right: 20.0),
@@ -294,22 +312,24 @@ class Register extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           TextField(
-            decoration: const InputDecoration(labelText: "Email"),
+            decoration:
+                InputDecoration(labelText: AppLocalizations.of(context)!.email),
             controller: TextEditingController(text: joinState.account),
             onChanged: (value) {
               joinState.account = value;
             },
           ),
           TextField(
-            decoration: const InputDecoration(labelText: "Nickname"),
+            decoration: InputDecoration(
+                labelText: AppLocalizations.of(context)!.nickname),
             controller: TextEditingController(text: joinState.nickname),
             onChanged: (value) {
               joinState.nickname = value;
             },
           ),
           TextField(
-            decoration: const InputDecoration(
-              labelText: "Password",
+            decoration: InputDecoration(
+              labelText: AppLocalizations.of(context)!.password,
             ),
             controller: TextEditingController(text: joinState.password),
             onChanged: (value) {
@@ -321,7 +341,7 @@ class Register extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               GestureDetector(
-                child: const Text("Show Password"),
+                child: Text(AppLocalizations.of(context)!.showPassword),
                 onTap: () {
                   joinState.setPassword(!joinState.showPassword);
                 },
@@ -348,7 +368,7 @@ class Register extends StatelessWidget {
                       joinState.register();
                     }
                   },
-                  child: const Text("Register"))),
+                  child: Text(AppLocalizations.of(context)!.register))),
           Text(
             joinState.errorText,
             style: const TextStyle(color: Colors.red),
