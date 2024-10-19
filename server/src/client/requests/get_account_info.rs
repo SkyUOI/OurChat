@@ -1,7 +1,8 @@
 use crate::consts::{MessageType, OCID};
 use serde::{Deserialize, Serialize};
+use std::{collections::HashSet, sync::LazyLock};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "lowercase")]
 pub enum RequestValues {
     Ocid,
@@ -15,6 +16,15 @@ pub enum RequestValues {
     Sessions,
     Friends,
 }
+
+pub static OWNER_PRIVILEGE: LazyLock<HashSet<RequestValues>> = LazyLock::new(|| {
+    collection_literals::collection! {
+        RequestValues::Sessions,
+        RequestValues::Friends,
+        RequestValues::UpdateTime,
+        RequestValues::Email,
+    }
+});
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GetAccountInfoRequest {

@@ -26,6 +26,7 @@ use futures_util::{
     SinkExt, StreamExt,
     stream::{SplitSink, SplitStream},
 };
+use process::get_account_info;
 use response::{get_status::GetStatusResponse, verify::VerifyResponse};
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use serde::de::DeserializeOwned;
@@ -152,6 +153,7 @@ impl<T: EmailSender> Connection<T> {
     /// # Return
     /// if the action is not be executed, it will turn the json back to optimize the performance,otherwise it will consume the json and return None
     async fn low_level_action(
+        user_info: Option<&UserInfo>,
         code: MessageType,
         json: Value,
         dbpool: &DbPool,
@@ -168,6 +170,7 @@ impl<T: EmailSender> Connection<T> {
                     Some(json) => json,
                     None => return Ok(None),
                 };
+                get_account_info(user_info, net_sender, json, dbpool).await?;
             }
             _ => {
                 return Ok(Some(json));
@@ -214,6 +217,7 @@ impl<T: EmailSender> Connection<T> {
 
     /// Setup when verifying,only allow low level operations to be executed
     async fn verify_notifying(
+        user_info: Option<&UserInfo>,
         net_receiver: &mut InComing,
         net_sender: impl NetSender + Clone,
         dbpool: &DbPool,
@@ -232,7 +236,7 @@ impl<T: EmailSender> Connection<T> {
                     continue;
                 }
             };
-            match Self::low_level_action(code, json, dbpool, net_sender.clone()).await {
+            match Self::low_level_action(user_info, code, json, dbpool, net_sender.clone()).await {
                 Ok(None) => {}
                 Err(e) => {
                     tracing::error!("Failed to execute low level action: {}", e);
@@ -299,15 +303,20 @@ impl<T: EmailSender> Connection<T> {
                     };
 
                     let status = {
-                        let json =
-                            match Self::low_level_action(code, json, dbpool, net_send_closure)
-                                .await?
-                            {
-                                Some(json) => json,
-                                None => {
-                                    continue;
-                                }
-                            };
+                        let json = match Self::low_level_action(
+                            None,
+                            code,
+                            json,
+                            dbpool,
+                            net_send_closure,
+                        )
+                        .await?
+                        {
+                            Some(json) => json,
+                            None => {
+                                continue;
+                            }
+                        };
                         match code {
                             MessageType::Login => {
                                 let login_data: requests::LoginRequest =
@@ -345,7 +354,7 @@ impl<T: EmailSender> Connection<T> {
                                 {
                                     Ok(notifier) => {
                                         select! {
-                                            _ = Self::verify_notifying(incoming, net_send_closure, dbpool) => {}
+                                            _ = Self::verify_notifying(None, incoming, net_send_closure, dbpool) => {}
                                             _ = notifier.notified() => {}
                                         }
                                     }
@@ -421,13 +430,18 @@ impl<T: EmailSender> Connection<T> {
                                 continue 'con_loop;
                             }
                         };
-                        let json =
-                            match Self::low_level_action(code, json, &dbpool, net_send_closure)
-                                .await?
-                            {
-                                Some(json) => json,
-                                None => continue,
-                            };
+                        let json = match Self::low_level_action(
+                            Some(&user_info),
+                            code,
+                            json,
+                            &dbpool,
+                            net_send_closure,
+                        )
+                        .await?
+                        {
+                            Some(json) => json,
+                            None => continue,
+                        };
                         match code {
                             MessageType::Unregister => {
                                 process::unregister(user_info.id, &net_sender, &dbpool.db_pool)

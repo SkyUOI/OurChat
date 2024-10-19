@@ -25,7 +25,7 @@ sea-orm = { version = "1", features = [
     "macros",
 ] }
 thiserror = "1"
-chrono = "0"
+chrono = { version = "0", features = ["serde"] }
 base = { path = "base" }
 tracing = { version = "0" }
 tracing-appender = "0"
