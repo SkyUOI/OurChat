@@ -2,7 +2,6 @@
 
 use crate::{client::requests::Status, consts::MessageType};
 use serde::{Deserialize, Serialize};
-use tokio_tungstenite::tungstenite::Message;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AcceptSessionResponse {

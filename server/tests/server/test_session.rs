@@ -6,7 +6,6 @@ use server::{
     },
     consts::MessageType,
 };
-use tokio_tungstenite::tungstenite::Message;
 
 #[tokio::test]
 async fn test_session() {

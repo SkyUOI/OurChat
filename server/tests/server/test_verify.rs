@@ -6,7 +6,6 @@ use server::client::MsgConvert;
 use server::{client::requests, client::response, component::MockEmailSender, consts::MessageType};
 use std::sync::Arc;
 use std::time::Duration;
-use tokio_tungstenite::tungstenite::Message;
 
 #[tokio::test]
 async fn test_verify() {

@@ -327,6 +327,7 @@ async fn start_server(
     Ok(())
 }
 
+/// global init,can be called many times,but only the first time will be effective
 fn global_init() {
     static INIT: Once = Once::new();
     INIT.call_once(|| {
@@ -344,6 +345,8 @@ pub struct Application<T: EmailSender> {
 }
 
 #[derive(Debug, Clone)]
+/// The database connection pool, redis connection pool
+/// you can clone it freely without many extra cost
 pub struct DbPool {
     db_pool: DatabaseConnection,
     redis_pool: deadpool_redis::Pool,
@@ -357,6 +360,7 @@ impl DbPool {
     }
 }
 
+/// shared data along the whole application
 pub struct SharedData<T: EmailSender> {
     pub email_client: Option<T>,
     pub cfg: Cfg,

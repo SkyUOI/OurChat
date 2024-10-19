@@ -2,7 +2,6 @@ use crate::helper;
 use server::client::{
     MsgConvert, requests::get_status::GetStatus, response::get_status::GetStatusResponse,
 };
-use tokio_tungstenite::tungstenite::Message;
 
 #[tokio::test]
 async fn test_status() {

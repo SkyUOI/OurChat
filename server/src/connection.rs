@@ -9,8 +9,11 @@ use crate::{
     DbPool, HttpSender,
     client::{
         MsgConvert,
-        requests::{self, AcceptSessionRequest, new_session::NewSessionRequest, upload::Upload},
-        response,
+        requests::{
+            self, AcceptSessionRequest, GetAccountInfoRequest, new_session::NewSessionRequest,
+            upload::Upload,
+        },
+        response::{self, ErrorMsgResponse},
     },
     component::EmailSender,
     consts::{ID, MessageType},
@@ -18,13 +21,14 @@ use crate::{
     server::httpserver::{FileRecord, VerifyRecord, verify::verify_client},
     shared_state,
 };
-use anyhow::bail;
+use anyhow::{anyhow, bail};
 use futures_util::{
     SinkExt, StreamExt,
     stream::{SplitSink, SplitStream},
 };
 use response::{get_status::GetStatusResponse, verify::VerifyResponse};
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
+use serde::de::DeserializeOwned;
 use serde_json::Value;
 use tokio::{
     net::TcpStream,
@@ -111,6 +115,22 @@ async fn get_requests(id: ID, db_conn: &DatabaseConnection) -> anyhow::Result<Ve
     Ok(ret)
 }
 
+async fn from_value<T: DeserializeOwned>(
+    json: Value,
+    net_sender: &impl NetSender,
+) -> anyhow::Result<Option<T>> {
+    match serde_json::from_value(json) {
+        Ok(t) => Ok(Some(t)),
+        Err(e) => {
+            net_sender
+                .send(ErrorMsgResponse::new("wrong json structure".to_owned()).to_msg())
+                .await?;
+            tracing::trace!("wrong json structure: {}", e);
+            Ok(None)
+        }
+    }
+}
+
 impl<T: EmailSender> Connection<T> {
     pub fn new(
         socket: WS,
@@ -129,20 +149,31 @@ impl<T: EmailSender> Connection<T> {
     }
 
     /// Operate low level actions which are allowed all the time
+    /// # Return
+    /// if the action is not be executed, it will turn the json back to optimize the performance,otherwise it will consume the json and return None
     async fn low_level_action(
         code: MessageType,
+        json: Value,
+        dbpool: &DbPool,
         net_sender: impl NetSender,
-    ) -> anyhow::Result<bool> {
+    ) -> anyhow::Result<Option<Value>> {
         match code {
             MessageType::GetStatus => {
                 net_sender
                     .send(GetStatusResponse::normal().to_msg())
                     .await?;
-                return Ok(true);
             }
-            _ => (),
+            MessageType::GetAccountInfo => {
+                let json: GetAccountInfoRequest = match from_value(json, &net_sender).await? {
+                    Some(json) => json,
+                    None => return Ok(None),
+                };
+            }
+            _ => {
+                return Ok(Some(json));
+            }
         }
-        Ok(false)
+        Ok(None)
     }
 
     /// Send a Email to verify the user
@@ -157,7 +188,9 @@ impl<T: EmailSender> Connection<T> {
                 .send(VerifyResponse::email_cannot_be_sent().to_msg())
                 .await?;
         }
-        let json: requests::VerifyRequest = serde_json::from_value(json.clone())?;
+        let json: requests::VerifyRequest = from_value(json.clone(), &net_sender)
+            .await?
+            .ok_or(anyhow!(""))?;
         let verify_success = Arc::new(Notify::new());
         // this message's meaning is the email has been sent
         match verify_client(
@@ -180,13 +213,17 @@ impl<T: EmailSender> Connection<T> {
     }
 
     /// Setup when verifying,only allow low level operations to be executed
-    async fn verify_notifying(net_receiver: &mut InComing, net_sender: impl NetSender + Clone) {
+    async fn verify_notifying(
+        net_receiver: &mut InComing,
+        net_sender: impl NetSender + Clone,
+        dbpool: &DbPool,
+    ) {
         loop {
             let msg = match net_receiver.next().await {
                 Some(Ok(msg)) => msg,
                 _ => break,
             };
-            let (code, _json) = match msg {
+            let (code, json) = match msg {
                 Message::Text(text) => match get_code(&text) {
                     Ok(Some((code, json))) => (code, json),
                     _ => continue,
@@ -195,24 +232,23 @@ impl<T: EmailSender> Connection<T> {
                     continue;
                 }
             };
-            match Self::low_level_action(code, net_sender.clone()).await {
-                Ok(executed) => {
-                    if !executed {
-                        if let Err(e) = net_sender
-                            .send(
-                                response::ErrorMsgResponse::new(
-                                    "Email has not been confirmed now".to_owned(),
-                                )
-                                .to_msg(),
-                            )
-                            .await
-                        {
-                            tracing::error!("Failed to send error msg: {}", e);
-                        }
-                    }
-                }
+            match Self::low_level_action(code, json, dbpool, net_sender.clone()).await {
+                Ok(None) => {}
                 Err(e) => {
                     tracing::error!("Failed to execute low level action: {}", e);
+                }
+                Ok(Some(_json)) => {
+                    if let Err(e) = net_sender
+                        .send(
+                            response::ErrorMsgResponse::new(
+                                "Email has not been confirmed now".to_owned(),
+                            )
+                            .to_msg(),
+                        )
+                        .await
+                    {
+                        tracing::error!("Failed to send error msg: {}", e);
+                    }
                 }
             }
         }
@@ -263,18 +299,24 @@ impl<T: EmailSender> Connection<T> {
                     };
 
                     let status = {
-                        if Self::low_level_action(code, |t| async {
-                            outgoing.send(t).await?;
-                            Ok(())
-                        })
-                        .await?
-                        {
-                            continue;
-                        }
+                        let json =
+                            match Self::low_level_action(code, json, dbpool, net_send_closure)
+                                .await?
+                            {
+                                Some(json) => json,
+                                None => {
+                                    continue;
+                                }
+                            };
                         match code {
                             MessageType::Login => {
                                 let login_data: requests::LoginRequest =
-                                    serde_json::from_value(json)?;
+                                    match from_value(json, &net_send_closure).await? {
+                                        None => {
+                                            continue;
+                                        }
+                                        Some(data) => data,
+                                    };
                                 process::login::login_request(
                                     net_send_closure,
                                     login_data,
@@ -284,7 +326,12 @@ impl<T: EmailSender> Connection<T> {
                             }
                             MessageType::Register => {
                                 let request_data: requests::RegisterRequest =
-                                    serde_json::from_value(json)?;
+                                    match from_value(json, &net_send_closure).await? {
+                                        None => {
+                                            continue;
+                                        }
+                                        Some(data) => data,
+                                    };
                                 process::register(net_send_closure, request_data, &dbpool.db_pool)
                                     .await?
                             }
@@ -298,10 +345,7 @@ impl<T: EmailSender> Connection<T> {
                                 {
                                     Ok(notifier) => {
                                         select! {
-                                            _ = Self::verify_notifying(incoming, |msg| async {
-                                                outgoing.send(msg).await?;
-                                                anyhow::Ok(())
-                                            }) => {}
+                                            _ = Self::verify_notifying(incoming, net_send_closure, dbpool) => {}
                                             _ = notifier.notified() => {}
                                         }
                                     }
@@ -372,19 +416,18 @@ impl<T: EmailSender> Connection<T> {
                         let (code, json) = match get_code(&msg) {
                             Ok(Some((code, json))) => (code, json),
                             _ => {
-                                basic::send_error_msg(net_send_closure, "codei is not correct")
+                                basic::send_error_msg(net_send_closure, "code is not correct")
                                     .await?;
                                 continue 'con_loop;
                             }
                         };
-                        if Self::low_level_action(code, |t| async {
-                            net_sender.send(t).await?;
-                            Ok(())
-                        })
-                        .await?
-                        {
-                            continue;
-                        }
+                        let json =
+                            match Self::low_level_action(code, json, &dbpool, net_send_closure)
+                                .await?
+                            {
+                                Some(json) => json,
+                                None => continue,
+                            };
                         match code {
                             MessageType::Unregister => {
                                 process::unregister(user_info.id, &net_sender, &dbpool.db_pool)
@@ -392,13 +435,13 @@ impl<T: EmailSender> Connection<T> {
                                 continue 'con_loop;
                             }
                             MessageType::NewSession => {
-                                let json: NewSessionRequest = match serde_json::from_value(json) {
-                                    Err(_) => {
-                                        tracing::warn!("Wrong json structure");
-                                        continue 'con_loop;
-                                    }
-                                    Ok(data) => data,
-                                };
+                                let json: NewSessionRequest =
+                                    match from_value(json, &net_send_closure).await? {
+                                        None => {
+                                            continue 'con_loop;
+                                        }
+                                        Some(data) => data,
+                                    };
                                 process::new_session(
                                     &user_info,
                                     net_send_closure,
@@ -410,13 +453,13 @@ impl<T: EmailSender> Connection<T> {
                                 continue 'con_loop;
                             }
                             MessageType::Upload => {
-                                let mut json: Upload = match serde_json::from_value(json) {
-                                    Err(_) => {
-                                        tracing::warn!("Wrong json structure");
-                                        continue 'con_loop;
-                                    }
-                                    Ok(json) => json,
-                                };
+                                let mut json: Upload =
+                                    match from_value(json, &net_send_closure).await? {
+                                        None => {
+                                            continue 'con_loop;
+                                        }
+                                        Some(json) => json,
+                                    };
                                 // Generate url first and then reply
                                 let hash = json.hash.clone();
                                 let auto_clean = json.auto_clean;
@@ -433,14 +476,13 @@ impl<T: EmailSender> Connection<T> {
                                 continue 'con_loop;
                             }
                             MessageType::AcceptSession => {
-                                let json: AcceptSessionRequest = match serde_json::from_value(json)
-                                {
-                                    Err(_) => {
-                                        tracing::warn!("Wrong json structure");
-                                        continue 'con_loop;
-                                    }
-                                    Ok(data) => data,
-                                };
+                                let json: AcceptSessionRequest =
+                                    match from_value(json, &net_send_closure).await? {
+                                        None => {
+                                            continue 'con_loop;
+                                        }
+                                        Some(data) => data,
+                                    };
                                 process::accept_session(
                                     user_info.id,
                                     net_send_closure,

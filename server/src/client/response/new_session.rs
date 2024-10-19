@@ -3,7 +3,6 @@
 use crate::client::requests::Status;
 use crate::consts::{self, ID};
 use serde::{Deserialize, Serialize};
-use tokio_tungstenite::tungstenite::Message;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NewSessionResponse {

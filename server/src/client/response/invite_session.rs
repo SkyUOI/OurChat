@@ -1,6 +1,5 @@
-use crate::consts::{ID, MessageType, SessionID, TimeStamp};
+use crate::consts::{MessageType, SessionID, TimeStamp};
 use serde::{Deserialize, Serialize};
-use tokio_tungstenite::tungstenite::Message;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InviteSession {
