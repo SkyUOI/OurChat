@@ -40,9 +40,3 @@ impl VerifyStatusResponse {
         }
     }
 }
-
-impl From<VerifyResponse> for Message {
-    fn from(value: VerifyResponse) -> Self {
-        Message::Text(serde_json::to_string(&value).unwrap())
-    }
-}

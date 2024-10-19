@@ -1,6 +1,6 @@
 use crate::{
     client::{
-        requests,
+        MsgConvert, requests,
         response::{self, LoginResponse},
     },
     connection::{NetSender, UserInfo, VerifyStatus},
@@ -85,11 +85,11 @@ pub async fn login_request(
 ) -> anyhow::Result<VerifyStatus> {
     match login(login_data, db_conn).await? {
         Ok(ok_resp) => {
-            net_sender.send(ok_resp.0.into()).await?;
+            net_sender.send(ok_resp.0.to_msg()).await?;
             Ok(VerifyStatus::Success(ok_resp.1))
         }
         Err(e) => {
-            net_sender.send(LoginResponse::failed(e).into()).await?;
+            net_sender.send(LoginResponse::failed(e).to_msg()).await?;
             Ok(VerifyStatus::Fail)
         }
     }

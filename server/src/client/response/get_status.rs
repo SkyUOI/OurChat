@@ -25,9 +25,3 @@ impl GetStatusResponse {
         }
     }
 }
-
-impl From<GetStatusResponse> for Message {
-    fn from(value: GetStatusResponse) -> Self {
-        Message::Text(serde_json::to_string(&value).unwrap())
-    }
-}

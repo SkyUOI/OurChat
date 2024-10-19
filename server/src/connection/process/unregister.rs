@@ -1,5 +1,5 @@
 use crate::{
-    client::{requests, response::UnregisterResponse},
+    client::{MsgConvert, requests, response::UnregisterResponse},
     consts::ID,
 };
 use sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection};
@@ -31,7 +31,7 @@ pub async fn unregister(
 ) -> anyhow::Result<()> {
     let ret = remove_account(id, db_conn).await?;
     let resp = UnregisterResponse::new(ret);
-    net_sender.send(resp.into()).await?;
+    net_sender.send(resp.to_msg()).await?;
     net_sender.send(Message::Close(None)).await?;
     Ok(())
 }

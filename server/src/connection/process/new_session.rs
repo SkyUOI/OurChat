@@ -1,6 +1,7 @@
 use crate::{
     DbPool, SharedData,
     client::{
+        MsgConvert,
         requests::{self, AcceptSessionRequest, NewSessionRequest},
         response::{InviteSession, NewSessionResponse},
     },
@@ -111,13 +112,13 @@ pub async fn new_session(
     if people_num != 1 {
         if let Err(e) = create_session(session_id, people_num, json.name, &db_conn.db_pool).await? {
             net_sender
-                .send(NewSessionResponse::failed(e).into())
+                .send(NewSessionResponse::failed(e).to_msg())
                 .await?;
             return Ok(());
         }
     } else {
         net_sender
-            .send(NewSessionResponse::success(session_id).into())
+            .send(NewSessionResponse::success(session_id).to_msg())
             .await?;
     }
     Ok(())
@@ -139,7 +140,7 @@ pub async fn send_verification_request(
     // try to find connected client
     match shared_data.connected_clients.get(&invitee) {
         Some(client) => {
-            client.send(request.into()).await?;
+            client.send(request.to_msg()).await?;
             return Ok(());
         }
         None => {

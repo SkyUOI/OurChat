@@ -1,5 +1,5 @@
 use crate::{
-    client::{requests, response::RegisterResponse},
+    client::{MsgConvert, requests, response::RegisterResponse},
     connection::{NetSender, UserInfo, VerifyStatus},
     consts::{self, ID},
     shared_state, utils,
@@ -73,11 +73,13 @@ pub async fn register(
 ) -> anyhow::Result<VerifyStatus> {
     match add_new_user(register_data, db_conn).await? {
         Ok(ok_resp) => {
-            net_sender.send(ok_resp.0.into()).await?;
+            net_sender.send(ok_resp.0.to_msg()).await?;
             Ok(VerifyStatus::Success(ok_resp.1))
         }
         Err(e) => {
-            net_sender.send(RegisterResponse::failed(e).into()).await?;
+            net_sender
+                .send(RegisterResponse::failed(e).to_msg())
+                .await?;
             Ok(VerifyStatus::Fail)
         }
     }

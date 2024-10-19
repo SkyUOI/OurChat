@@ -1,5 +1,8 @@
 use crate::{
-    client::requests::{self, upload::Upload},
+    client::{
+        MsgConvert,
+        requests::{self, upload::Upload},
+    },
     connection::response::UploadResponse,
     consts::{Bt, ID},
     shared_state,
@@ -61,7 +64,7 @@ pub async fn upload(
             let key = generate_key_name(&json.hash);
             let resp = UploadResponse::success(key.clone(), json.hash.clone());
             let send = async move {
-                net_sender.send(resp.into()).await?;
+                net_sender.send(resp.to_msg()).await?;
                 Ok(())
             };
             Ok((send, key))

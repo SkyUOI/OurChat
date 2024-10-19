@@ -2,6 +2,7 @@ use crate::helper;
 use claims::{assert_err, assert_ok};
 use core::panic;
 use parking_lot::Mutex;
+use server::client::MsgConvert;
 use server::{client::requests, client::response, component::MockEmailSender, consts::MessageType};
 use std::sync::Arc;
 use std::time::Duration;
@@ -23,11 +24,7 @@ async fn test_verify() {
     let user = app.new_user().await.unwrap();
     claims::assert_some!(app.app_shared.email_client.as_ref());
     let req = requests::VerifyRequest::new(user.lock().await.email.clone());
-    user.lock()
-        .await
-        .send(Message::Text(serde_json::to_string(&req).unwrap()))
-        .await
-        .unwrap();
+    user.lock().await.send(req.to_msg()).await.unwrap();
     // Send successfully
     let ret: response::VerifyResponse =
         serde_json::from_str(&user.lock().await.get().await.unwrap().to_string()).unwrap();

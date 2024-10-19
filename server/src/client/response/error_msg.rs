@@ -16,9 +16,3 @@ impl ErrorMsgResponse {
         }
     }
 }
-
-impl From<ErrorMsgResponse> for Message {
-    fn from(value: ErrorMsgResponse) -> Self {
-        Message::Text(serde_json::to_string(&value).unwrap())
-    }
-}

@@ -8,6 +8,7 @@ use std::sync::Arc;
 use crate::{
     DbPool, HttpSender,
     client::{
+        MsgConvert,
         requests::{self, AcceptSessionRequest, new_session::NewSessionRequest, upload::Upload},
         response,
     },
@@ -134,7 +135,9 @@ impl<T: EmailSender> Connection<T> {
     ) -> anyhow::Result<bool> {
         match code {
             MessageType::GetStatus => {
-                net_sender.send(GetStatusResponse::normal().into()).await?;
+                net_sender
+                    .send(GetStatusResponse::normal().to_msg())
+                    .await?;
                 return Ok(true);
             }
             _ => (),
@@ -151,7 +154,7 @@ impl<T: EmailSender> Connection<T> {
     ) -> anyhow::Result<Arc<Notify>> {
         if shared_data.email_client.is_none() {
             net_sender
-                .send(VerifyResponse::email_cannot_be_sent().into())
+                .send(VerifyResponse::email_cannot_be_sent().to_msg())
                 .await?;
         }
         let json: requests::VerifyRequest = serde_json::from_value(json.clone())?;
@@ -165,11 +168,11 @@ impl<T: EmailSender> Connection<T> {
         )
         .await
         {
-            Ok(_) => net_sender.send(VerifyResponse::success().into()).await?,
+            Ok(_) => net_sender.send(VerifyResponse::success().to_msg()).await?,
             Err(e) => {
                 tracing::error!("Failed to verify email: {}", e);
                 net_sender
-                    .send(VerifyResponse::email_cannot_be_sent().into())
+                    .send(VerifyResponse::email_cannot_be_sent().to_msg())
                     .await?
             }
         };
@@ -200,7 +203,7 @@ impl<T: EmailSender> Connection<T> {
                                 response::ErrorMsgResponse::new(
                                     "Email has not been confirmed now".to_owned(),
                                 )
-                                .into(),
+                                .to_msg(),
                             )
                             .await
                         {
@@ -308,7 +311,7 @@ impl<T: EmailSender> Connection<T> {
                                 }
                                 // send a email to client to show the verify status
                                 let resp = VerifyResponse::success();
-                                outgoing.send(resp.into()).await?;
+                                outgoing.send(resp.to_msg()).await?;
                                 tracing::info!("End to verify email");
                                 continue;
                             }
@@ -513,7 +516,7 @@ impl<T: EmailSender> Connection<T> {
                             if let Some(code) = code {
                                 if code == MessageType::GetStatus as u64 {
                                     let resp = GetStatusResponse::maintaining();
-                                    socket.send(resp.into()).await?;
+                                    socket.send(resp.to_msg()).await?;
                                     tracing::debug!("Send maintaining msg");
                                 }
                             } else {

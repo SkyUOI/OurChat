@@ -9,6 +9,7 @@ use fake::locales::EN;
 use futures_util::{SinkExt, StreamExt};
 use parking_lot::Mutex;
 use rand::Rng;
+use server::client::MsgConvert;
 use server::client::requests::{self, LoginRequest, LoginType, RegisterRequest, UnregisterRequest};
 use server::client::response::{self, UnregisterResponse};
 use server::component::MockEmailSender;
@@ -149,10 +150,7 @@ impl TestUser {
     pub async fn ocid_login(&mut self) -> anyhow::Result<()> {
         let login_req =
             LoginRequest::new(self.ocid.clone(), self.password.clone(), LoginType::Ocid);
-        self.get_conn()
-            .send(Message::Text(serde_json::to_string(&login_req).unwrap()))
-            .await
-            .unwrap();
+        self.get_conn().send(login_req.to_msg()).await.unwrap();
         let ret = self.get_conn().next().await.unwrap().unwrap();
         let json: response::LoginResponse = serde_json::from_str(ret.to_text().unwrap()).unwrap();
         if json.code != MessageType::LoginRes {
@@ -164,10 +162,7 @@ impl TestUser {
     pub async fn email_login(&mut self) -> anyhow::Result<()> {
         let login_req =
             LoginRequest::new(self.email.clone(), self.password.clone(), LoginType::Email);
-        self.get_conn()
-            .send(Message::Text(serde_json::to_string(&login_req).unwrap()))
-            .await
-            .unwrap();
+        self.get_conn().send(login_req.to_msg()).await.unwrap();
         let ret = self.get_conn().next().await.unwrap().unwrap();
         let json: response::LoginResponse =
             serde_json::from_str(ret.to_text().unwrap()).with_context(|| ret)?;
@@ -188,9 +183,7 @@ impl TestUser {
         let request =
             RegisterRequest::new(user.name.clone(), user.password.clone(), user.email.clone());
         let conn = user.get_conn();
-        conn.send(Message::Text(serde_json::to_string(&request).unwrap()))
-            .await
-            .unwrap();
+        conn.send(request.to_msg()).await.unwrap();
         let ret = conn.next().await.unwrap().unwrap();
         let json: response::RegisterResponse = serde_json::from_str(&ret.to_string()).unwrap();
         assert_eq!(json.status, requests::Status::Success);

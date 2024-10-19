@@ -27,9 +27,3 @@ impl InviteSession {
         }
     }
 }
-
-impl From<InviteSession> for Message {
-    fn from(value: InviteSession) -> Self {
-        Message::Text(serde_json::to_string(&value).unwrap())
-    }
-}

@@ -29,9 +29,3 @@ impl NewSessionResponse {
         }
     }
 }
-
-impl From<NewSessionResponse> for Message {
-    fn from(value: NewSessionResponse) -> Self {
-        Message::Text(serde_json::to_string(&value).unwrap())
-    }
-}

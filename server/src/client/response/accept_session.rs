@@ -25,9 +25,3 @@ impl AcceptSessionResponse {
         }
     }
 }
-
-impl From<AcceptSessionResponse> for Message {
-    fn from(value: AcceptSessionResponse) -> Self {
-        Message::Text(serde_json::to_string(&value).unwrap())
-    }
-}

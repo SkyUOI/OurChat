@@ -1,7 +1,7 @@
 use crate::helper;
 use server::{
     client::{
-        requests,
+        MsgConvert, requests,
         response::{InviteSession, NewSessionResponse},
     },
     consts::MessageType,
@@ -19,12 +19,7 @@ async fn test_session() {
         user2.lock().await.ocid.clone(),
         user3.lock().await.ocid.clone(),
     ]);
-    user1
-        .lock()
-        .await
-        .send(Message::Text(serde_json::to_string(&req).unwrap()))
-        .await
-        .unwrap();
+    user1.lock().await.send(req.to_msg()).await.unwrap();
     // get new session response
     let resp = user1.lock().await.get().await.unwrap();
     let json: NewSessionResponse = serde_json::from_str(resp.to_text().unwrap()).unwrap();

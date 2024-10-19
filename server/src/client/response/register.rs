@@ -27,9 +27,3 @@ impl RegisterResponse {
         }
     }
 }
-
-impl From<RegisterResponse> for Message {
-    fn from(value: RegisterResponse) -> Self {
-        Message::Text(serde_json::to_string(&value).unwrap())
-    }
-}
