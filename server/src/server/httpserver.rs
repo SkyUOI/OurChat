@@ -1,4 +1,5 @@
 mod download;
+mod easter_egg;
 mod status;
 mod timestamp;
 mod upload;
@@ -48,6 +49,7 @@ impl HttpServer {
                 .app_data(db_conn_clone.clone())
                 .app_data(shared_state_moved.clone())
                 .service(v1)
+                .service(easter_egg::easter_egg)
         })
         .listen(listener)?
         .run();
