@@ -4,6 +4,7 @@ mod test_login_register;
 mod test_session;
 mod test_status;
 mod test_upload;
+mod test_user_info;
 mod test_verify;
 
 use libc_print::libc_println;

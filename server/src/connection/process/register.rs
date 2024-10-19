@@ -30,6 +30,7 @@ async fn add_new_user(
         resource_used: ActiveValue::Set(0),
         friends_num: ActiveValue::Set(0),
         friend_limit: ActiveValue::Set(shared_state::get_friends_number_limit().try_into()?),
+        ..Default::default()
     };
     match user.insert(db_connection).await {
         Ok(res) => {

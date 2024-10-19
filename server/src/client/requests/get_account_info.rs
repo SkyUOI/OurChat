@@ -1,21 +1,7 @@
+use crate::client::basic::RequestValues;
 use crate::consts::{MessageType, OCID};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, sync::LazyLock};
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
-#[serde(rename_all = "lowercase")]
-pub enum RequestValues {
-    Ocid,
-    Email,
-    Nickname,
-    Status,
-    AvatarKey,
-    Time,
-    PublicUpdateTime,
-    UpdateTime,
-    Sessions,
-    Friends,
-}
 
 pub static OWNER_PRIVILEGE: LazyLock<HashSet<RequestValues>> = LazyLock::new(|| {
     collection_literals::collection! {

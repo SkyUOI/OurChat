@@ -1,3 +1,4 @@
+use crate::consts;
 use lettre::message::Mailbox;
 use lettre::{AsyncSmtpTransport, AsyncTransport};
 
@@ -10,7 +11,7 @@ type InternalEmailClient = AsyncSmtpTransport<lettre::Tokio1Executor>;
 
 impl EmailClient {
     pub fn new(client: InternalEmailClient, email_address: &str) -> anyhow::Result<Self> {
-        let mailbox = format!("OurChat <{}>", email_address).parse()?;
+        let mailbox = format!("{} <{}>", consts::APP_NAME, email_address).parse()?;
         Ok(EmailClient {
             client,
             from: mailbox,

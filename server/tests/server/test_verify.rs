@@ -13,7 +13,7 @@ async fn test_verify() {
     let email_body = Arc::new(Mutex::new(String::new()));
     let mock_body = email_body.clone();
     mock_smtp
-        .expect_send::<&str>()
+        .expect_send::<String>()
         .times(1)
         .returning(move |_to, _title, body| {
             *mock_body.lock() = body;

@@ -18,6 +18,8 @@ pub struct Model {
     pub resource_used: i32,
     pub friend_limit: i32,
     pub friends_num: i32,
+    pub public_update_time: DateTimeUtc,
+    pub update_time: DateTimeUtc,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

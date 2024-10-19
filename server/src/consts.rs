@@ -53,6 +53,7 @@ pub const DEFAULT_PORT: u16 = 7777;
 pub const DEFAULT_HTTP_PORT: u16 = 7778;
 /// default database type
 pub const DB_TYPE: DbType = DbType::MySql;
+pub const APP_NAME: &str = "OurChat";
 
 pub type TimeStamp = chrono::DateTime<chrono::Utc>;
 // define ID type to fit many types of databases

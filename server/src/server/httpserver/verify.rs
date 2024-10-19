@@ -1,6 +1,7 @@
 use crate::{
     DbPool, SharedData,
     component::{EmailClient, EmailSender, MockEmailSender},
+    consts,
 };
 use actix_web::{HttpRequest, HttpResponse, Responder, get, web};
 use anyhow::Context;
@@ -95,7 +96,7 @@ pub async fn verify_client(
         if let Err(e) = email_client
             .send(
                 user_mailbox,
-                "OurChat Verification",
+                format!("{} Verification", consts::APP_NAME),
                 format!(
                     "please click \"http://{}:{}/v1/verify/confirm?token={}\" to verify your email",
                     cfg.ip, cfg.http_port, data.token

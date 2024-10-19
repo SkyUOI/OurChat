@@ -1,6 +1,7 @@
 //! Database
 
 pub mod compatibility;
+pub mod data_wrapper;
 pub mod file_storage;
 
 use std::{

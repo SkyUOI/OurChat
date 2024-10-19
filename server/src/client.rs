@@ -1,5 +1,6 @@
 use tokio_tungstenite::tungstenite::Message;
 
+pub mod basic;
 pub mod requests;
 pub mod response;
 

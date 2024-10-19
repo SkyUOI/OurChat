@@ -22,6 +22,8 @@ impl MigrationTrait for Migration {
                 .col(integer(User::ResourceUsed))
                 .col(integer(User::FriendLimit))
                 .col(integer(User::FriendsNum))
+                .col(timestamp(User::PublicUpdateTime).default(Expr::current_timestamp()))
+                .col(timestamp(User::UpdateTime).default(Expr::current_timestamp()))
                 .primary_key(Index::create().col(User::Id)),
         )
         .await?;
@@ -33,6 +35,7 @@ impl MigrationTrait for Migration {
                 .col(big_unsigned(Friend::UserId))
                 .col(big_unsigned(Friend::FriendId))
                 .col(char_len(Friend::Name, 200))
+                .col(pk_uuid(Friend::RelationId))
                 .foreign_key(
                     ForeignKey::create()
                         .from(Friend::Table, Friend::FriendId)
@@ -42,8 +45,7 @@ impl MigrationTrait for Migration {
                     ForeignKey::create()
                         .from(Friend::Table, Friend::UserId)
                         .to(User::Table, User::Id),
-                )
-                .primary_key(Index::create().col(Friend::UserId)),
+                ),
         )
         .await?;
         basic::create_table(
@@ -154,11 +156,14 @@ pub enum User {
     ResourceUsed,
     FriendLimit,
     FriendsNum,
+    PublicUpdateTime,
+    UpdateTime,
 }
 
 #[derive(DeriveIden)]
 enum Friend {
     Table,
+    RelationId,
     UserId,
     #[allow(clippy::enum_variant_names)]
     FriendId,

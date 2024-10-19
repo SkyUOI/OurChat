@@ -6,12 +6,10 @@ use crate::{
         response::{InviteSession, NewSessionResponse},
     },
     component::EmailSender,
-    connection::{NetSender, UserInfo},
+    connection::{NetSender, UserInfo, basic::get_id},
     consts::{ID, OCID, SessionID, TimeStamp},
     utils,
 };
-use anyhow::bail;
-use redis::AsyncCommands;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
 };
@@ -35,38 +33,14 @@ pub async fn create_session(
     Ok(Ok(()))
 }
 
-fn mapped_to_ocid(key: &str) -> String {
-    format!("ocid:{}", key)
-}
-
-#[derive::db_compatibility]
-pub async fn get_id(ocid: &OCID, db_conn: &DbPool) -> anyhow::Result<ID> {
-    use entities::user;
-    // first query in redis
-    let mut redis_conn = db_conn.redis_pool.get().await?;
-    let id: Option<u64> = redis_conn.get(mapped_to_ocid(ocid)).await?;
-    if let Some(id) = id {
-        return Ok(id.into());
-    }
-    // query in database
-    let user = user::Entity::find()
-        .filter(user::Column::Ocid.eq(ocid.to_string()))
-        .one(&db_conn.db_pool)
-        .await?;
-    if let Some(user) = user {
-        let id = user.id;
-        let _: () = redis_conn.set(mapped_to_ocid(ocid), id).await?;
-        return Ok(id.into());
-    }
-    bail!("ocid not found")
-}
-
 #[derive::db_compatibility]
 pub async fn whether_to_verify(sender: ID, invitee: ID, db_conn: &DbPool) -> anyhow::Result<bool> {
     use entities::friend;
     use entities::prelude::*;
+    let sender: u64 = sender.into();
     let invitee: u64 = invitee.into();
-    let friend = Friend::find_by_id(sender)
+    let friend = Friend::find()
+        .filter(friend::Column::UserId.eq(sender))
         .filter(friend::Column::FriendId.eq(invitee))
         .one(&db_conn.db_pool)
         .await?;

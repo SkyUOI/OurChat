@@ -5,10 +5,11 @@ use sea_orm::entity::prelude::*;
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
 #[sea_orm(table_name = "friend")]
 pub struct Model {
-    #[sea_orm(primary_key, auto_increment = false)]
     pub user_id: u64,
     pub friend_id: u64,
     pub name: String,
+    #[sea_orm(primary_key, auto_increment = false, column_type = "Binary(16)")]
+    pub relation_id: Vec<u8>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
