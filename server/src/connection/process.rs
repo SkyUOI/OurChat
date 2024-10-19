@@ -4,6 +4,7 @@ mod get_account_info;
 pub mod login;
 pub mod new_session;
 pub mod register;
+mod set_account_info;
 pub mod unregister;
 mod upload;
 pub mod verify;
