@@ -373,6 +373,14 @@ impl TestApp {
     pub async fn accept_session(&mut self) -> anyhow::Result<()> {
         Ok(())
     }
+
+    pub async fn http_get(&mut self, name: &str) -> anyhow::Result<reqwest::Response> {
+        Ok(self
+            .http_client
+            .get(format!("http://127.0.0.1:{}/v1/{}", self.http_port, name))
+            .send()
+            .await?)
+    }
 }
 
 impl Drop for TestApp {

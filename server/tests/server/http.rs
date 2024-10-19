@@ -3,13 +3,27 @@ use crate::helper::TestApp;
 #[tokio::test]
 async fn test_status() {
     let mut app = TestApp::new(None).await.unwrap();
-    let client = reqwest::Client::new();
-    let response = client
-        .get(format!("http://127.0.0.1:{}/v1/status", app.http_port))
-        .send()
+    let response = app
+        .http_get("status")
         .await
-        .expect("failed");
-    assert!(response.status().is_success(), "{:?}", response.status());
+        .expect("failed")
+        .error_for_status()
+        .unwrap();
     assert_eq!(response.content_length(), Some(0));
+    app.async_drop().await;
+}
+
+#[tokio::test]
+async fn test_datetime() {
+    let mut app = TestApp::new(None).await.unwrap();
+    let response = app
+        .http_get("timestamp")
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap();
+    let text = response.text().await.unwrap();
+    println!("{}", text);
+    let _time = chrono::DateTime::parse_from_rfc3339(&text).unwrap();
     app.async_drop().await;
 }
