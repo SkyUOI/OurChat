@@ -7,7 +7,7 @@
     "serverError": "服务器错误",
     "serverUnderMaintenance": "服务器正在维护中",
     "unknownError": "未知错误",
-    "accountPasswordCantBeEmpty": "账号/密码不能为空",
+    "cantBeEmpty": "不能留空",
     "wrongAccountOrPassword": "账号或密码错误",
     "plzCheckYourEmail": "请检查您的邮箱",
     "emailAddressUnreachable": "邮箱地址不可达",
@@ -19,5 +19,12 @@
     "ocid": "OCID",
     "password": "密码",
     "showPassword": "显示密码",
-    "nickname": "昵称"
+    "nickname": "昵称",
+    "server_address": "服务器地址",
+    "ws_port": "Websocket端口",
+    "http_port": "Http端口",
+    "reconnection_attempt": "尝试重连次数",
+    "reconnection_interval": "重连间隔时间",
+    "language": "语言",
+    "notWithinRange": "不在范围内({min}~{max})"
 }

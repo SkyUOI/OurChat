@@ -4,6 +4,7 @@ import 'package:crypto/crypto.dart';
 import 'dart:convert';
 import 'main.dart';
 import 'const.dart';
+import 'setting.dart';
 
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
@@ -25,7 +26,7 @@ class _JoinState extends State<Join> {
     } else if (currentIndex == 1) {
       page = const Register();
     } else {
-      page = const Placeholder();
+      page = const Setting();
     }
     return ChangeNotifierProvider(
       create: (context) {
@@ -61,7 +62,12 @@ class _JoinState extends State<Join> {
             Expanded(
                 child: Align(
                     alignment: Alignment.center,
-                    child: AspectRatio(aspectRatio: 9 / 16, child: page)))
+                    child: AspectRatio(
+                        aspectRatio: 9 / 16,
+                        child: Padding(
+                            padding:
+                                const EdgeInsets.only(left: 20.0, right: 20.0),
+                            child: page))))
           ],
         ),
       ),
@@ -112,7 +118,7 @@ class JoinState extends ChangeNotifier {
 
   bool checkTextField() {
     if (account.isEmpty || password.isEmpty) {
-      errorText = AppLocalizations.of(context!)!.accountPasswordCantBeEmpty;
+      errorText = AppLocalizations.of(context!)!.cantBeEmpty;
       notifyListeners();
       return false;
     }
@@ -228,9 +234,7 @@ class Login extends StatelessWidget {
     joinState.setPage(0);
     joinState.setContext(context);
     return Scaffold(
-        body: Padding(
-      padding: const EdgeInsets.only(left: 20.0, right: 20.0),
-      child: Column(
+      body: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           TextField(
@@ -290,7 +294,7 @@ class Login extends StatelessWidget {
           ),
         ],
       ),
-    ));
+    );
   }
 }
 
@@ -306,9 +310,7 @@ class Register extends StatelessWidget {
     joinState.setContext(context);
     joinState.setPage(1);
     return Scaffold(
-        body: Padding(
-      padding: const EdgeInsets.only(left: 20.0, right: 20.0),
-      child: Column(
+      body: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           TextField(
@@ -375,6 +377,6 @@ class Register extends StatelessWidget {
           ),
         ],
       ),
-    ));
+    );
   }
 }

@@ -25,9 +25,9 @@
     "@unknownError": {
         "description": "Unknown error"
     },
-    "accountPasswordCantBeEmpty": "Account/password cannot be empty",
-    "@accountPasswordCantBeEmpty": {
-        "description": "Account/password cannot be empty"
+    "cantBeEmpty": "Cannot be empty",
+    "@cantBeEmpty": {
+        "description": "Cannot be empty"
     },
     "wrongAccountOrPassword": "Wrong account or password",
     "@wrongAccountOrPassword": {
@@ -76,5 +76,40 @@
     "nickname": "Nickname",
     "@nickname": {
         "description": "Nickname"
+    },
+    "server_address": "Server Address",
+    "@server_address": {
+        "description": "text for server address in setting"
+    },
+    "ws_port": "Websocket Port",
+    "@ws_port": {
+        "description": "text for websocket port in setting"
+    },
+    "http_port": "Http Port",
+    "@http_port": {
+        "description": "text for http port in setting"
+    },
+    "reconnection_attempt": "Reconnection Attempt",
+    "@reconnection_attempt": {
+        "description": "text for reconnection attempt in setting"
+    },
+    "reconnection_interval": "Reconnection Interval",
+    "@reconnection_interval": {
+        "description": "text for reconnection interval in setting"
+    },
+    "language": "Language",
+    "@language": {
+        "description": "text for language in setting"
+    },
+    "notWithinRange": "not Within the Range of {min} to {max}",
+    "@notWithinRange": {
+        "placeholders": {
+            "min": {
+                "type": "num"
+            },
+            "max": {
+                "type": "num"
+            }
+        }
     }
 }

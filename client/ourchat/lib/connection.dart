@@ -12,7 +12,7 @@ class OurchatConnection {
     responseFunc = responseFunction;
   }
 
-  void setAddress(String ip, int port) {
+  void setAddress(String ip, String port) {
     uri = "ws://$ip:$port";
   }
 

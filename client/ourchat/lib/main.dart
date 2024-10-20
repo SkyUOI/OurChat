@@ -30,7 +30,7 @@ class OurchatAppState extends ChangeNotifier {
     config!.loadConfig();
     connection = OurchatConnection(dealWithMessage);
     connection!
-        .setAddress(config!.data!["server_ip"], config!.data!["ws_port"]);
+        .setAddress(config!.data!["server_address"], config!.data!["ws_port"]);
   }
 
   void dealWithMessage(var messageData) {
