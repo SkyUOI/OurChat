@@ -4,7 +4,6 @@ use crate::{
         response::{self, LoginResponse},
     },
     connection::{NetSender, UserInfo, VerifyStatus},
-    consts::ID,
     utils,
 };
 use anyhow::Context;

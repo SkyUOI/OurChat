@@ -13,5 +13,6 @@ pub use get_account_info::get_account_info;
 pub use new_session::accept_session;
 pub use new_session::new_session;
 pub use register::register;
+pub use set_account_info::set_account_info;
 pub use unregister::unregister;
 pub use upload::upload;

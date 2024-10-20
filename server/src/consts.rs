@@ -30,14 +30,15 @@ pub enum MessageType {
     Unregister = 16,
     UnregisterRes = 17,
     ErrorMsg = 18,
-    SetAccount = 19,
-    SetAccountRes = 20,
+    SetAccountInfo = 19,
+    SetAccountInfoRes = 20,
     Upload = 21,
     UploadRes = 22,
     VerifyRes = 23,
     InviteSession = 24,
     AcceptSession = 25,
     AcceptSessionRes = 26,
+    SetFriendInfo = 27,
 }
 
 /// default ip

@@ -10,8 +10,8 @@ use crate::{
     client::{
         MsgConvert,
         requests::{
-            self, AcceptSessionRequest, GetAccountInfoRequest, new_session::NewSessionRequest,
-            upload::Upload,
+            self, AcceptSessionRequest, GetAccountInfoRequest, SetAccountRequest,
+            new_session::NewSessionRequest, upload::Upload,
         },
         response::{self, ErrorMsgResponse},
     },
@@ -400,7 +400,7 @@ impl<T: EmailSender> Connection<T> {
         http_sender: HttpSender,
         mut shutdown_receiver: broadcast::Receiver<()>,
         shared_data: Arc<crate::SharedData<T>>,
-        dbpool: DbPool,
+        db_pool: DbPool,
     ) -> anyhow::Result<()> {
         let net_send_closure = |data| async {
             net_sender.send(data).await?;
@@ -434,7 +434,7 @@ impl<T: EmailSender> Connection<T> {
                             Some(&user_info),
                             code,
                             json,
-                            &dbpool,
+                            &db_pool,
                             net_send_closure,
                         )
                         .await?
@@ -444,7 +444,7 @@ impl<T: EmailSender> Connection<T> {
                         };
                         match code {
                             MessageType::Unregister => {
-                                process::unregister(user_info.id, &net_sender, &dbpool.db_pool)
+                                process::unregister(user_info.id, &net_sender, &db_pool.db_pool)
                                     .await?;
                                 continue 'con_loop;
                             }
@@ -460,7 +460,7 @@ impl<T: EmailSender> Connection<T> {
                                     &user_info,
                                     net_send_closure,
                                     json,
-                                    &dbpool,
+                                    &db_pool,
                                     &shared_data,
                                 )
                                 .await?;
@@ -481,7 +481,7 @@ impl<T: EmailSender> Connection<T> {
                                     user_info.id,
                                     &net_sender,
                                     &mut json,
-                                    &dbpool.db_pool,
+                                    &db_pool.db_pool,
                                 )
                                 .await?;
                                 let record = FileRecord::new(key, hash, auto_clean, user_info.id);
@@ -501,7 +501,24 @@ impl<T: EmailSender> Connection<T> {
                                     user_info.id,
                                     net_send_closure,
                                     json,
-                                    &dbpool,
+                                    &db_pool,
+                                )
+                                .await?;
+                                continue 'con_loop;
+                            }
+                            MessageType::SetAccountInfo => {
+                                let json: SetAccountRequest =
+                                    match from_value(json, &net_send_closure).await? {
+                                        None => {
+                                            continue 'con_loop;
+                                        }
+                                        Some(data) => data,
+                                    };
+                                process::set_account_info(
+                                    &user_info,
+                                    net_send_closure,
+                                    json,
+                                    &db_pool,
                                 )
                                 .await?;
                                 continue 'con_loop;

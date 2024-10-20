@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Copy, Clone)]
 #[serde(rename_all = "lowercase")]
-pub enum RequestValues {
+pub enum GetAccountValues {
     Ocid,
     Email,
     DisplayName,
@@ -14,4 +14,12 @@ pub enum RequestValues {
     UpdateTime,
     Sessions,
     Friends,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Copy, Clone)]
+#[serde(rename_all = "lowercase")]
+pub enum SetAccountValues {
+    UserName,
+    AvatarKey,
+    Status,
 }

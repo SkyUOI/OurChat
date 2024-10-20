@@ -116,6 +116,10 @@ impl TestUser {
         Ok(self.get_conn().next().await.unwrap().unwrap())
     }
 
+    pub async fn get_text(&mut self) -> anyhow::Result<String> {
+        Ok(self.get_conn().next().await.unwrap()?.to_text()?.to_owned())
+    }
+
     pub fn get_conn(&mut self) -> &mut ClientWS {
         self.connection.as_mut().unwrap()
     }

@@ -1,14 +1,14 @@
-use crate::client::basic::RequestValues;
+use crate::client::basic::GetAccountValues;
 use crate::consts::{MessageType, OCID};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, sync::LazyLock};
 
-pub static OWNER_PRIVILEGE: LazyLock<HashSet<RequestValues>> = LazyLock::new(|| {
+pub static OWNER_PRIVILEGE: LazyLock<HashSet<GetAccountValues>> = LazyLock::new(|| {
     collection_literals::collection! {
-        RequestValues::Sessions,
-        RequestValues::Friends,
-        RequestValues::UpdateTime,
-        RequestValues::Email,
+        GetAccountValues::Sessions,
+        GetAccountValues::Friends,
+        GetAccountValues::UpdateTime,
+        GetAccountValues::Email,
     }
 });
 
@@ -16,11 +16,11 @@ pub static OWNER_PRIVILEGE: LazyLock<HashSet<RequestValues>> = LazyLock::new(|| 
 pub struct GetAccountInfoRequest {
     pub code: MessageType,
     pub ocid: OCID,
-    pub request_values: Vec<RequestValues>,
+    pub request_values: Vec<GetAccountValues>,
 }
 
 impl GetAccountInfoRequest {
-    pub fn new(ocid: OCID, request_values: Vec<RequestValues>) -> Self {
+    pub fn new(ocid: OCID, request_values: Vec<GetAccountValues>) -> Self {
         Self {
             code: MessageType::GetAccountInfo,
             ocid,
@@ -35,7 +35,7 @@ mod tests {
 
     #[test]
     fn test_get_account_info() {
-        let request = GetAccountInfoRequest::new(OCID::from("test"), vec![RequestValues::Ocid]);
+        let request = GetAccountInfoRequest::new(OCID::from("test"), vec![GetAccountValues::Ocid]);
         let json = serde_json::to_string(&request).unwrap();
         assert_eq!(
             json,

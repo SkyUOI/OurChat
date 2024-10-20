@@ -56,13 +56,13 @@ pub async fn get_account_info(
         } else {
             // can access the info,get from the database
             data_map.insert(*i, match i {
-                crate::client::basic::RequestValues::Ocid => {
+                crate::client::basic::GetAccountValues::Ocid => {
                     serde_json::Value::String(request_data.ocid.clone())
                 }
-                crate::client::basic::RequestValues::Email => {
+                crate::client::basic::GetAccountValues::Email => {
                     serde_json::Value::String(queried_user.email.clone())
                 }
-                crate::client::basic::RequestValues::DisplayName => {
+                crate::client::basic::GetAccountValues::DisplayName => {
                     // TODO:optimize the performance
                     match user_info {
                         None => serde_json::Value::Null,
@@ -75,19 +75,19 @@ pub async fn get_account_info(
                         }
                     }
                 }
-                crate::client::basic::RequestValues::Status => todo!(),
-                crate::client::basic::RequestValues::AvatarKey => todo!(),
-                crate::client::basic::RequestValues::Time => {
+                crate::client::basic::GetAccountValues::Status => todo!(),
+                crate::client::basic::GetAccountValues::AvatarKey => todo!(),
+                crate::client::basic::GetAccountValues::Time => {
                     serde_json::Value::String(queried_user.time.to_rfc3339())
                 }
-                crate::client::basic::RequestValues::PublicUpdateTime => {
+                crate::client::basic::GetAccountValues::PublicUpdateTime => {
                     serde_json::Value::String(queried_user.public_update_time.to_rfc3339())
                 }
-                crate::client::basic::RequestValues::UpdateTime => {
+                crate::client::basic::GetAccountValues::UpdateTime => {
                     serde_json::Value::String(queried_user.update_time.to_rfc3339())
                 }
-                crate::client::basic::RequestValues::Sessions => todo!(),
-                crate::client::basic::RequestValues::Friends => {
+                crate::client::basic::GetAccountValues::Sessions => todo!(),
+                crate::client::basic::GetAccountValues::Friends => {
                     // TODO:optimize the performance
                     let friends = friends().await?;
                     let mut ret = vec![];
@@ -100,7 +100,7 @@ pub async fn get_account_info(
                     }
                     serde_json::Value::Array(ret)
                 }
-                crate::client::basic::RequestValues::UserName => {
+                crate::client::basic::GetAccountValues::UserName => {
                     serde_json::Value::String(queried_user.name.clone())
                 }
             });
