@@ -30,11 +30,7 @@ jobs:
         run: |
           python3 script/test_server.py sqlite "cargo test -- --test-threads 2"
           python3 script/test_server.py sqlite "cargo tarpaulin --bins -o lcov"
-      - name: Coverage
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: lcov.info
+
       - name: Display Coverage
         uses: codecov/codecov-action@v1
         with:
