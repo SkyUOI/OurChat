@@ -7,6 +7,7 @@ pub mod login;
 pub mod new_session;
 pub mod register;
 pub mod set_account_info;
+pub mod set_friend_info;
 pub mod unregister;
 pub mod upload;
 pub mod user_msg;
@@ -18,6 +19,7 @@ pub use login::{LoginRequest, LoginType};
 pub use new_session::NewSessionRequest;
 pub use register::RegisterRequest;
 pub use set_account_info::SetAccountRequest;
+pub use set_friend_info::SetFriendInfoRequest;
 pub use unregister::UnregisterRequest;
 pub use verify::VerifyRequest;
 

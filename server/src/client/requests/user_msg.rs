@@ -10,7 +10,7 @@ pub struct UserMsg {
 impl UserMsg {
     pub fn new(time: TimeStamp) -> Self {
         Self {
-            code: MessageType::UserMsg,
+            code: MessageType::UserSendMsg,
             time,
         }
     }

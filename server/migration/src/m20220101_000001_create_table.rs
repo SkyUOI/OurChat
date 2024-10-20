@@ -35,7 +35,6 @@ impl MigrationTrait for Migration {
                 .col(big_unsigned(Friend::UserId))
                 .col(big_unsigned(Friend::FriendId))
                 .col(char_len(Friend::Name, 200))
-                .col(pk_uuid(Friend::RelationId))
                 .foreign_key(
                     ForeignKey::create()
                         .from(Friend::Table, Friend::FriendId)
@@ -45,7 +44,8 @@ impl MigrationTrait for Migration {
                     ForeignKey::create()
                         .from(Friend::Table, Friend::UserId)
                         .to(User::Table, User::Id),
-                ),
+                )
+                .primary_key(Index::create().col(Friend::UserId).col(Friend::FriendId)),
         )
         .await?;
         basic::create_table(
@@ -163,7 +163,6 @@ pub enum User {
 #[derive(DeriveIden)]
 enum Friend {
     Table,
-    RelationId,
     UserId,
     #[allow(clippy::enum_variant_names)]
     FriendId,

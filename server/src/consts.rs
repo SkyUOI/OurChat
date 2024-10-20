@@ -15,7 +15,7 @@ pub const OCID_LEN: usize = 10;
 #[derive(Debug, Serialize_repr, Deserialize_repr, TryFromPrimitive, PartialEq, Eq, Copy, Clone)]
 #[repr(i32)]
 pub enum MessageType {
-    UserMsg = 0,
+    ReturnBundledUserMsg = 0,
     Register = 4,
     RegisterRes = 5,
     Login = 6,
@@ -39,6 +39,8 @@ pub enum MessageType {
     AcceptSession = 25,
     AcceptSessionRes = 26,
     SetFriendInfo = 27,
+    GetUserMsg = 28,
+    UserSendMsg = 30,
 }
 
 /// default ip

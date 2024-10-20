@@ -7,6 +7,7 @@ use crate::{
     connection::{NetSender, UserInfo},
     consts::ID,
 };
+use anyhow::Context;
 use derive::db_compatibility;
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use std::cmp::PartialEq;
@@ -154,6 +155,12 @@ async fn get_one_friend(
         .filter(friend::Column::UserId.eq(id))
         .filter(friend::Column::FriendId.eq(friend_id))
         .one(db_conn)
-        .await?;
+        .await
+        .with_context(|| {
+            format!(
+                "Failed to get the friend of user {} and friend {}",
+                id, friend_id
+            )
+        })?;
     Ok(friend.map(|d| d.into()))
 }
