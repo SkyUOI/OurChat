@@ -23,3 +23,9 @@ pub enum SetAccountValues {
     AvatarKey,
     Status,
 }
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Copy, Clone)]
+#[serde(rename_all = "lowercase")]
+pub enum SetFriendValues {
+    DisplayName,
+}

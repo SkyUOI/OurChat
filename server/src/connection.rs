@@ -9,9 +9,10 @@ use crate::{
     DbPool, HttpSender,
     client::{
         MsgConvert,
+        basic::SetFriendValues,
         requests::{
             self, AcceptSessionRequest, GetAccountInfoRequest, SetAccountRequest,
-            new_session::NewSessionRequest, upload::Upload,
+            SetFriendInfoRequest, new_session::NewSessionRequest, upload::Upload,
         },
         response::{self, ErrorMsgResponse},
     },
@@ -518,6 +519,23 @@ impl<T: EmailSender> Connection<T> {
                                     &user_info,
                                     net_send_closure,
                                     json,
+                                    &db_pool,
+                                )
+                                .await?;
+                                continue 'con_loop;
+                            }
+                            MessageType::SetFriendInfo => {
+                                let json: SetFriendInfoRequest =
+                                    match from_value(json, &net_send_closure).await? {
+                                        None => {
+                                            continue 'con_loop;
+                                        }
+                                        Some(data) => data,
+                                    };
+                                process::set_friend_info(
+                                    &user_info,
+                                    json,
+                                    net_send_closure,
                                     &db_pool,
                                 )
                                 .await?;

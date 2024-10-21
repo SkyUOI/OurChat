@@ -17,7 +17,7 @@ pub async fn set_account_info(
     request_data: requests::SetAccountRequest,
     db_pool: &DbPool,
 ) -> anyhow::Result<()> {
-    let response = match update_account_time(user_info.id, request_data, &db_pool.db_pool).await {
+    let response = match update_account(user_info.id, request_data, &db_pool.db_pool).await {
         Ok(_) => SetAccountInfoResponse::success(),
         Err(SetError::Db(e)) => {
             tracing::error!("Database error: {}", e);
@@ -50,7 +50,7 @@ enum SetError {
 }
 
 #[db_compatibility]
-async fn update_account_time(
+async fn update_account(
     id: ID,
     request_data: requests::SetAccountRequest,
     db_conn: &DatabaseConnection,
