@@ -18,7 +18,7 @@ class OurchatAppState extends ChangeNotifier {
   List listenQueue = [
     // {"code":0,"func":func}
   ];
-  int where = joinUi;
+  int where = homeUi;
   /*
     0: login
     1: home
