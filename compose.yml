@@ -19,12 +19,12 @@ services:
     networks:
       - net
   db:
-    image: mysql:9.0.1
+    image: postgres:latest
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: 123456
+      POSTGRES_PASSWORD: 123456
     volumes:
-      - "./data/mysql-data:/var/lib/mysql"
+      - "./data/postgres-data:/var/lib/postgresql/data"
     ports:
       - "3306:3306"
     networks:

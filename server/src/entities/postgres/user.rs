@@ -6,7 +6,7 @@ use sea_orm::entity::prelude::*;
 #[sea_orm(table_name = "user")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
-    pub id: u64,
+    pub id: i64,
     #[sea_orm(unique)]
     pub ocid: String,
     #[sea_orm(column_type = "Text")]
@@ -14,12 +14,12 @@ pub struct Model {
     pub name: String,
     #[sea_orm(unique)]
     pub email: String,
-    pub time: DateTimeUtc,
+    pub time: DateTimeWithTimeZone,
     pub resource_used: i32,
     pub friend_limit: i32,
     pub friends_num: i32,
-    pub public_update_time: DateTimeUtc,
-    pub update_time: DateTimeUtc,
+    pub public_update_time: DateTimeWithTimeZone,
+    pub update_time: DateTimeWithTimeZone,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

@@ -16,7 +16,7 @@ use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct MysqlDbCfg {
+pub struct PostgresDbCfg {
     pub host: String,
     pub user: String,
     pub db: String,
@@ -24,17 +24,24 @@ pub struct MysqlDbCfg {
     pub passwd: String,
 }
 
-pub trait DbCfgTrait {
-    fn url(&self) -> String;
+impl DbCfgTrait for PostgresDbCfg {
+    fn url(&self) -> String {
+        if self.passwd.is_empty() {
+            format!(
+                "postgres://{}@{}:{}/{}",
+                self.user, self.host, self.port, self.db
+            )
+        } else {
+            format!(
+                "postgres://{}:{}@{}:{}/{}",
+                self.user, self.passwd, self.host, self.port, self.db
+            )
+        }
+    }
 }
 
-impl DbCfgTrait for MysqlDbCfg {
-    fn url(&self) -> String {
-        format!(
-            "mysql://{}:{}@{}:{}/{}",
-            self.user, self.passwd, self.host, self.port, self.db
-        )
-    }
+pub trait DbCfgTrait {
+    fn url(&self) -> String;
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -57,30 +64,30 @@ impl DbCfgTrait for SqliteDbCfg {
 
 #[derive(Debug, Deserialize, Serialize, Clone, strum::EnumString, Copy)]
 pub enum DbType {
-    #[serde(rename = "mysql")]
-    #[strum(serialize = "mysql")]
-    MySql,
     #[serde(rename = "sqlite")]
     #[strum(serialize = "sqlite")]
     Sqlite,
+    #[serde(rename = "postgres")]
+    #[strum(serialize = "postgres")]
+    Postgres,
 }
 
 #[derive(Debug, Clone)]
 pub enum DbCfg {
-    Mysql(MysqlDbCfg),
     Sqlite(SqliteDbCfg),
+    Postgres(PostgresDbCfg),
 }
 
 impl Default for DbType {
     fn default() -> Self {
-        Self::MySql
+        Self::Postgres
     }
 }
 
 pub static DB_TYPE: OnceLock<DbType> = OnceLock::new();
 
-pub static MYSQL_TYPE: static_keys::StaticFalseKey = static_keys::new_static_false_key();
 pub static SQLITE_TYPE: static_keys::StaticFalseKey = static_keys::new_static_false_key();
+pub static POSTGRES_TYPE: static_keys::StaticFalseKey = static_keys::new_static_false_key();
 
 /// Initialize the database layer
 pub fn init_db_system(db_type: DbType) {
@@ -88,8 +95,8 @@ pub fn init_db_system(db_type: DbType) {
     DB_TYPE.get_or_init(|| {
         tracing::info!("db type: {:?}", db_type);
         match db_type {
-            DbType::MySql => unsafe { MYSQL_TYPE.enable() },
             DbType::Sqlite => unsafe { SQLITE_TYPE.enable() },
+            DbType::Postgres => unsafe { POSTGRES_TYPE.enable() },
         };
         db_type
     });
@@ -109,22 +116,20 @@ pub fn get_db_type() -> DbType {
 pub fn get_db_url(cfg: &DbCfg) -> anyhow::Result<String> {
     let db_type = get_db_type();
     match db_type {
-        DbType::MySql => {
+        DbType::Sqlite => {
             let cfg = match cfg {
-                DbCfg::Mysql(cfg) => cfg,
-                DbCfg::Sqlite(_) => {
-                    tracing::error!("sqlite database config for mysql database");
-                    anyhow::bail!("sqlite database config for mysql database");
+                DbCfg::Sqlite(cfg) => cfg,
+                _ => {
+                    anyhow::bail!("{:?} database config for sqlite database", cfg)
                 }
             };
             Ok(cfg.url())
         }
-        DbType::Sqlite => {
+        DbType::Postgres => {
             let cfg = match cfg {
-                DbCfg::Sqlite(cfg) => cfg,
-                DbCfg::Mysql(_) => {
-                    tracing::error!("mysql database config for sqlite database");
-                    anyhow::bail!("mysql database config for sqlite database")
+                DbCfg::Postgres(cfg) => cfg,
+                _ => {
+                    anyhow::bail!("{:?} database config for postgres database", cfg)
                 }
             };
             Ok(cfg.url())
@@ -156,19 +161,19 @@ pub async fn try_create_sqlite_db(url: &str) -> anyhow::Result<DatabaseConnectio
     Ok(db)
 }
 
-pub async fn try_create_mysql_db(url: &str) -> anyhow::Result<DatabaseConnection> {
-    use sqlx::{MySql, migrate::MigrateDatabase};
+async fn try_create_postgres_db(url: &str) -> anyhow::Result<DatabaseConnection> {
+    use sqlx::{Postgres, migrate::MigrateDatabase};
     let mut should_run_migrations = false;
-    if !MySql::database_exists(url).await.unwrap_or(false) {
-        tracing::info!("Creating mysql database");
-        match MySql::create_database(url).await {
+    if !Postgres::database_exists(url).await.unwrap_or(false) {
+        tracing::info!("Creating postgres database");
+        match Postgres::create_database(url).await {
             Ok(_) => {
-                tracing::info!("Created mysql database {}", url);
+                tracing::info!("Created postgres database {}", url);
                 should_run_migrations = true;
             }
             Err(e) => {
                 tracing::warn!(
-                    "Failed to create mysql database: {}.Maybe the database already exists",
+                    "Failed to create postgres database: {}.Maybe the database already exists",
                     e
                 );
             }
@@ -187,8 +192,8 @@ pub async fn connect_to_db(url: &str) -> anyhow::Result<DatabaseConnection> {
     let db_type = get_db_type();
     tracing::info!("Connecting to {}", url);
     Ok(match db_type {
-        DbType::MySql => try_create_mysql_db(url).await?,
         DbType::Sqlite => try_create_sqlite_db(url).await?,
+        DbType::Postgres => try_create_postgres_db(url).await?,
     })
 }
 

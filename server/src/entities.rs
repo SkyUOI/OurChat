@@ -1,4 +1,3 @@
 //! Entities definition of different database types
-
-pub mod mysql;
+pub mod postgres;
 pub mod sqlite;

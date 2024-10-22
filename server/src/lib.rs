@@ -21,7 +21,7 @@ use component::EmailSender;
 use config::File;
 use consts::{FileSize, ID, STDIN_AVAILABLE};
 use dashmap::DashMap;
-use db::{DbCfg, DbType, MysqlDbCfg, SqliteDbCfg, file_storage};
+use db::{DbCfg, DbType, PostgresDbCfg, SqliteDbCfg, file_storage};
 use lettre::{AsyncSmtpTransport, transport::smtp::authentication::Credentials};
 use parking_lot::Once;
 use rand::Rng;
@@ -64,7 +64,7 @@ pub struct ArgsParser {
     pub http_port: Option<u16>,
     #[arg(long, help = "binding ip")]
     pub ip: Option<String>,
-    #[arg(long, help = "database type,mysql or sqlite")]
+    #[arg(long, help = "database type,postgres or sqlite")]
     pub db_type: Option<String>,
     #[command(flatten)]
     pub shared_cfg: ParserCfg,
@@ -151,12 +151,12 @@ impl Cfg {
                 )?;
                 DbCfg::Sqlite(cfg)
             }
-            DbType::MySql => {
+            DbType::Postgres => {
                 let cfg = config::Config::builder()
                     .add_source(config::File::with_name(main_cfg.dbcfg.to_str().unwrap()))
                     .build()?;
-                let cfg: MysqlDbCfg = cfg.try_deserialize()?;
-                DbCfg::Mysql(cfg)
+                let cfg: PostgresDbCfg = cfg.try_deserialize()?;
+                DbCfg::Postgres(cfg)
             }
         };
         Ok(Self {
@@ -443,7 +443,7 @@ impl<T: EmailSender> Application<T> {
             None => main_cfg.db_type,
             Some(db_type) => match DbType::from_str(&db_type) {
                 Ok(db_type) => db_type,
-                Err(_) => bail!("Unknown database type. Only support mysql and sqlite"),
+                Err(_) => bail!("Unknown database type. Only support postgres and sqlite"),
             },
         };
         main_cfg.db_type = db_type;

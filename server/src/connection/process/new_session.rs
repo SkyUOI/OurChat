@@ -109,7 +109,10 @@ pub async fn send_verification_request(
     let expiresat = chrono::Utc::now() + Duration::from_days(3);
     let request = InviteSession::new(
         //TODO: Move this to config
-        expiresat, session_id, sender, message,
+        expiresat.into(),
+        session_id,
+        sender,
+        message,
     );
     // try to find connected client
     match shared_data.connected_clients.get(&invitee) {
@@ -122,7 +125,7 @@ pub async fn send_verification_request(
             save_invitation_to_db(
                 invitee,
                 serde_json::to_string(&request).unwrap(),
-                expiresat,
+                expiresat.into(),
                 db_conn,
             )
             .await?;

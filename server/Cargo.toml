@@ -19,8 +19,8 @@ rand = "0"
 snowdon = "0"
 redis = { version = "0", features = ["tokio-rustls-comp"] }
 sea-orm = { version = "1", features = [
-    "sqlx-mysql",
     "sqlx-sqlite",
+    "sqlx-postgres",
     "runtime-tokio-rustls",
     "macros",
 ] }

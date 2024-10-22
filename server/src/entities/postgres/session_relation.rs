@@ -3,25 +3,25 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "friend")]
+#[sea_orm(table_name = "session_relation")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
-    pub user_id: u64,
-    #[sea_orm(primary_key, auto_increment = false)]
-    pub friend_id: u64,
-    pub name: String,
+    pub session_id: i64,
+    pub user_id: i64,
+    pub nick_name: String,
+    pub group_name: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(
-        belongs_to = "super::user::Entity",
-        from = "Column::FriendId",
-        to = "super::user::Column::Id",
+        belongs_to = "super::session::Entity",
+        from = "Column::SessionId",
+        to = "super::session::Column::SessionId",
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
-    User2,
+    Session,
     #[sea_orm(
         belongs_to = "super::user::Entity",
         from = "Column::UserId",
@@ -29,7 +29,19 @@ pub enum Relation {
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
-    User1,
+    User,
+}
+
+impl Related<super::session::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Session.def()
+    }
+}
+
+impl Related<super::user::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::User.def()
+    }
 }
 
 impl ActiveModelBehavior for ActiveModel {}

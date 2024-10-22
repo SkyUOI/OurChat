@@ -7,7 +7,7 @@ rediscfg = "redis_connect.toml"
 # Ourchat Listening Port
 port = 7777
 # Set the database type
-db_type = "mysql"
+db_type = "postgres"
 # The http server listening port
 http_port = 7778
 # the duration of cleaning the files which are out-of-date

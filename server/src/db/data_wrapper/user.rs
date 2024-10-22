@@ -14,8 +14,8 @@ pub struct User {
     pub id: ID,
 }
 
-impl From<entities::mysql::user::Model> for User {
-    fn from(value: entities::mysql::user::Model) -> Self {
+impl From<entities::sqlite::user::Model> for User {
+    fn from(value: entities::sqlite::user::Model) -> Self {
         Self {
             email: value.email,
             time: value.time,
@@ -28,8 +28,8 @@ impl From<entities::mysql::user::Model> for User {
     }
 }
 
-impl From<entities::sqlite::user::Model> for User {
-    fn from(value: entities::sqlite::user::Model) -> Self {
+impl From<entities::postgres::user::Model> for User {
+    fn from(value: entities::postgres::user::Model) -> Self {
         Self {
             email: value.email,
             time: value.time,

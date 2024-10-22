@@ -283,13 +283,13 @@ impl TestApp {
         let db_url;
         let db = uuid::Uuid::new_v4().to_string();
         match &mut server_config.db_cfg {
-            DbCfg::Mysql(cfg) => {
-                cfg.db = db;
-                db_url = cfg.url();
-            }
             DbCfg::Sqlite(cfg) => {
                 cfg.path = PathBuf::from(format!(".{}.db", db));
                 db_url = cfg.url();
+            }
+            DbCfg::Postgres(postgres_db_cfg) => {
+                postgres_db_cfg.db = db;
+                db_url = postgres_db_cfg.url();
             }
         }
         let mut application = Application::build(args, server_config.clone(), email_client).await?;
@@ -342,8 +342,8 @@ impl TestApp {
                 path.set_extension("db-wal");
                 remove_file(&path).await.ok();
             }
-            DbType::MySql => {
-                sqlx::MySql::drop_database(&self.db_url).await.unwrap();
+            DbType::Postgres => {
+                sqlx::Postgres::drop_database(&self.db_url).await.unwrap();
             }
         }
         tracing::info!("db deleted");

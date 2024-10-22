@@ -30,9 +30,7 @@ pub mod rfc3339 {
         D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        DateTime::parse_from_rfc3339(&s)
-            .map_err(serde::de::Error::custom)
-            .map(|d| d.to_utc())
+        DateTime::parse_from_rfc3339(&s).map_err(serde::de::Error::custom)
     }
 }
 
@@ -61,7 +59,8 @@ mod tests {
     #[test]
     fn test_invite_session() {
         let time = chrono::Utc::now();
-        let request = InviteSession::new(time, ID(0), "test".to_string(), "test".to_string());
+        let request =
+            InviteSession::new(time.into(), ID(0), "test".to_string(), "test".to_string());
         let json = serde_json::to_string(&request).unwrap();
         assert_eq!(
             json,
