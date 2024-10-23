@@ -42,7 +42,7 @@ jobs:
           cargo check --all --release
           rm -rf target
 
-  mysql:
+  postgres:
     runs-on: ubuntu-latest
 
     steps:
