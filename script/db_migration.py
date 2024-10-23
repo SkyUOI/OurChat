@@ -1,22 +1,23 @@
 """
-Run migrations for both sqlite and mysql
+Run migrations for both databases
 """
 
-from sys import argv
 import os
+from sys import argv
+
 import basic
 
 
 def main() -> int:
     sqlite_db_file = os.path.abspath("config/sqlite/ourchat.db")
+    arg = " ".join(argv[1:])
 
     os.chdir("server")
     os.putenv("DATABASE_URL", f"sqlite://{sqlite_db_file}")
-    arg = " ".join(argv[1:])
     basic.msg_system("sea migrate {}".format(arg))
-    os.putenv("DATABASE_URL", "mysql://root:123456@localhost:3306/OurChat")
-    arg = " ".join(argv[1:])
+    os.putenv("DATABASE_URL", "postgres://postgres:123456@localhost:5432/OurChat")
     basic.msg_system("sea migrate {}".format(arg))
+    return 0
 
 
 if __name__ == "__main__":

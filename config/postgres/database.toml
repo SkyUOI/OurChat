@@ -1,5 +1,5 @@
 host = "db"
-user = "root"
+user = "postgres"
 passwd = "123456"
 db = "OurChat"
-port = 3306
+port = 5432

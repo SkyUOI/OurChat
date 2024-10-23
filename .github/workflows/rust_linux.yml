@@ -52,7 +52,7 @@ jobs:
         with:
           file: compose.yml
           service: OurChatServer
-          command: "script/action_test_server.py mysql"
+          command: "script/action_test_server.py postgres"
           registry: "ghcr.io"
           docker-compose-version: "2.29.1"
           entrypoint: "python3"

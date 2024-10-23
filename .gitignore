@@ -141,10 +141,10 @@ CMakeLists.txt
 
 /target
 
-# Mysql
+# Postgres
 
-data/mysql-data/**
-!data/mysql-data/.gitkeep
+data/postgres-data/**
+!data/postgres-data/.gitkeep
 
 # Redis
 

@@ -1,7 +1,6 @@
 import os
 import sys
 
-
 default_test_command = "cargo test"
 
 
@@ -21,8 +20,8 @@ def sqlite_test():
     run_tests()
 
 
-def mysql_test():
-    os.putenv("OURCHAT_CONFIG_FILE", os.path.abspath("config/mysql/ourchat.toml"))
+def postgres_test():
+    os.putenv("OURCHAT_CONFIG_FILE", os.path.abspath("config/postgres/ourchat.toml"))
     run_tests()
 
 
@@ -32,11 +31,11 @@ def test_process() -> int:
     test_suite = sys.argv[1]
     if test_suite == "sqlite":
         sqlite_test()
-    elif test_suite == "mysql":
-        mysql_test()
+    elif test_suite == "postgres":
+        postgres_test()
     else:
         sqlite_test()
-        mysql_test()
+        postgres_test()
     return return_code
 
 

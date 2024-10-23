@@ -10,7 +10,7 @@ pub struct Model {
     pub id: i64,
     pub operation: String,
     pub once: bool,
-    pub expires_at: DateTimeUtc,
+    pub expires_at: DateTimeWithTimeZone,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

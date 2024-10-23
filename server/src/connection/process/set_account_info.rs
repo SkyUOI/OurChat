@@ -80,9 +80,9 @@ async fn update_account(
     }
     // update the modified time
     let timestamp = chrono::Utc::now();
-    user.update_time = ActiveValue::Set(timestamp);
+    user.update_time = ActiveValue::Set(timestamp.into());
     if public_updated {
-        user.public_update_time = ActiveValue::Set(timestamp);
+        user.public_update_time = ActiveValue::Set(timestamp.into());
     }
 
     user.update(db_conn).await?;

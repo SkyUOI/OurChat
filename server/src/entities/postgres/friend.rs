@@ -3,18 +3,25 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "files")]
+#[sea_orm(table_name = "friend")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
-    pub key: String,
-    pub date: u64,
-    pub auto_clean: i8,
-    pub path: String,
-    pub user_id: u64,
+    pub user_id: i64,
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub friend_id: i64,
+    pub name: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+    #[sea_orm(
+        belongs_to = "super::user::Entity",
+        from = "Column::FriendId",
+        to = "super::user::Column::Id",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    User2,
     #[sea_orm(
         belongs_to = "super::user::Entity",
         from = "Column::UserId",
@@ -22,13 +29,7 @@ pub enum Relation {
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
-    User,
-}
-
-impl Related<super::user::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::User.def()
-    }
+    User1,
 }
 
 impl ActiveModelBehavior for ActiveModel {}

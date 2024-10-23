@@ -22,10 +22,10 @@ def main():
         print("please install sea version {}".format(VERSION))
         sys.exit(1)
     msg_system(
-        "sea generate entity -u mysql://root:123456@localhost:3306/OurChat -o server/src/entities/mysql"
+        "sea generate entity -u sqlite://config/sqlite/ourchat.db -o server/src/entities/sqlite"
     )
     msg_system(
-        "sea generate entity -u sqlite://config/sqlite/ourchat.db -o server/src/entities/sqlite"
+        "sea generate entity -u postgres://postgres:123456@localhost:5432/OurChat -o server/src/entities/postgres"
     )
 
 

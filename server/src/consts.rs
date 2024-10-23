@@ -55,10 +55,11 @@ pub const DEFAULT_PORT: u16 = 7777;
 /// http server default port
 pub const DEFAULT_HTTP_PORT: u16 = 7778;
 /// default database type
-pub const DB_TYPE: DbType = DbType::MySql;
+pub const DB_TYPE: DbType = DbType::Postgres;
 pub const APP_NAME: &str = "OurChat";
 
-pub type TimeStamp = chrono::DateTime<chrono::Utc>;
+pub type TimeStamp = chrono::DateTime<chrono::FixedOffset>;
+pub type TimeStampUtc = chrono::DateTime<chrono::Utc>;
 // define ID type to fit many types of databases
 impl_newtype_int!(ID, u64, serde::Serialize, serde::Deserialize);
 pub type SessionID = ID;

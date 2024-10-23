@@ -17,8 +17,8 @@ impl From<entities::sqlite::friend::Model> for Friend {
     }
 }
 
-impl From<entities::mysql::friend::Model> for Friend {
-    fn from(value: entities::mysql::friend::Model) -> Self {
+impl From<entities::postgres::friend::Model> for Friend {
+    fn from(value: entities::postgres::friend::Model) -> Self {
         Self {
             id: value.user_id.into(),
             friend_id: value.friend_id.into(),

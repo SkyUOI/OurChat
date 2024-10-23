@@ -25,20 +25,20 @@ fn db_replace(stmts: Vec<Stmt>, path: syn::Ident) -> Vec<Stmt> {
 #[proc_macro_attribute]
 pub fn db_compatibility(_attr: TokenStream, tok: TokenStream) -> TokenStream {
     let mut funcbody = parse_macro_input!(tok as syn::ItemFn);
-    let mysql = db_replace(
-        funcbody.block.stmts.clone(),
-        Ident::new("mysql", Span::call_site()),
-    );
     let sqlite = db_replace(
         funcbody.block.stmts.clone(),
         Ident::new("sqlite", Span::call_site()),
+    );
+    let postgres = db_replace(
+        funcbody.block.stmts.clone(),
+        Ident::new("postgres", Span::call_site()),
     );
     let ret: Block = parse2(quote! {
         {
             if static_keys::static_branch_unlikely!(crate::db::SQLITE_TYPE) {
                 #(#sqlite)*
-            }else {
-                #(#mysql)*
+            } else {
+                #(#postgres)*
             }
         }
     })
