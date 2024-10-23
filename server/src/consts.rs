@@ -15,7 +15,7 @@ pub const OCID_LEN: usize = 10;
 #[derive(Debug, Serialize_repr, Deserialize_repr, TryFromPrimitive, PartialEq, Eq, Copy, Clone)]
 #[repr(i32)]
 pub enum MessageType {
-    ReturnBundledUserMsg = 0,
+    GetBundledUserMsgRes = 0,
     Register = 4,
     RegisterRes = 5,
     Login = 6,
@@ -40,7 +40,9 @@ pub enum MessageType {
     AcceptSessionRes = 26,
     SetFriendInfo = 27,
     GetUserMsg = 28,
-    UserSendMsg = 30,
+    UserSendMsg = 29,
+    UserSendMsgRes = 30,
+    ReturnOpers = 31,
 }
 
 /// default ip
@@ -58,11 +60,10 @@ pub const DEFAULT_HTTP_PORT: u16 = 7778;
 pub const DB_TYPE: DbType = DbType::Postgres;
 pub const APP_NAME: &str = "OurChat";
 
-pub type TimeStamp = chrono::DateTime<chrono::FixedOffset>;
-pub type TimeStampUtc = chrono::DateTime<chrono::Utc>;
 // define ID type to fit many types of databases
 impl_newtype_int!(ID, u64, serde::Serialize, serde::Deserialize);
 pub type SessionID = ID;
+pub type MsgID = ID;
 
 impl From<u64> for ID {
     fn from(value: u64) -> Self {

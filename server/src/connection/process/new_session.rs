@@ -7,9 +7,10 @@ use crate::{
     },
     component::EmailSender,
     connection::{NetSender, UserInfo, basic::get_id},
-    consts::{ID, OCID, SessionID, TimeStamp},
+    consts::{ID, OCID, SessionID},
     utils,
 };
+use base::time::TimeStamp;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
 };

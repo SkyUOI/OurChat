@@ -1,26 +1,31 @@
 //! Requests from client to server
 
-pub mod accept_session;
+mod accept_session;
 pub mod get_account_info;
-pub mod get_status;
-pub mod login;
+mod get_status;
+mod get_user_msg;
+mod login;
 pub mod new_session;
-pub mod register;
+mod register;
 pub mod set_account_info;
-pub mod set_friend_info;
-pub mod unregister;
+mod set_friend_info;
+mod set_session_info;
+mod unregister;
 pub mod upload;
-pub mod user_msg;
-pub mod verify;
+mod user_send_msg;
+mod verify;
 
 pub use accept_session::AcceptSessionRequest;
 pub use get_account_info::GetAccountInfoRequest;
+pub use get_status::GetStatus;
+pub use get_user_msg::GetUserMsgRequest;
 pub use login::{LoginRequest, LoginType};
 pub use new_session::NewSessionRequest;
 pub use register::RegisterRequest;
 pub use set_account_info::SetAccountRequest;
 pub use set_friend_info::SetFriendInfoRequest;
 pub use unregister::UnregisterRequest;
+pub use user_send_msg::UserSendMsgRequest;
 pub use verify::VerifyRequest;
 
 use serde_repr::{Deserialize_repr, Serialize_repr};

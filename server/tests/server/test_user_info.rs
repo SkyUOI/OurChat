@@ -1,5 +1,4 @@
 use crate::helper::TestApp;
-use derive::db_compatibility;
 use server::client::basic::{GetAccountValues, SetAccountValues, SetFriendValues};
 use server::client::requests::{SetAccountRequest, SetFriendInfoRequest};
 use server::client::response::{ErrorMsgResponse, SetAccountInfoResponse};

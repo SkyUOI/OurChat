@@ -1,7 +1,5 @@
-use crate::{
-    consts::{ID, TimeStamp},
-    entities,
-};
+use crate::{consts::ID, entities};
+use base::time::TimeStamp;
 
 #[derive(Debug)]
 pub struct User {

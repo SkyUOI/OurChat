@@ -85,6 +85,7 @@ impl FakeManager {
 static FAKE_MANAGER: LazyLock<Mutex<FakeManager>> =
     LazyLock::new(|| Mutex::new(FakeManager::new()));
 
+// Utils functions implemented
 impl TestUser {
     pub async fn random(app: &TestApp) -> Self {
         let name = FAKE_MANAGER.lock().generate_unique_name();
@@ -130,6 +131,40 @@ impl TestUser {
         }
         let conn = establish_connection_internal(self.port).await?;
         self.connection = Some(conn);
+        Ok(())
+    }
+
+    pub async fn register_internal(user: &mut TestUser) -> anyhow::Result<()> {
+        let request =
+            RegisterRequest::new(user.name.clone(), user.password.clone(), user.email.clone());
+        let conn = user.get_conn();
+        conn.send(request.to_msg()).await.unwrap();
+        let ret = conn.next().await.unwrap().unwrap();
+        let json: response::RegisterResponse = serde_json::from_str(&ret.to_string()).unwrap();
+        assert_eq!(json.status, requests::Status::Success);
+        assert_eq!(json.code, MessageType::RegisterRes);
+        user.ocid = json.ocid.unwrap();
+        Ok(())
+    }
+
+    pub async fn close_connection(&mut self) {
+        if let Some(conn) = &mut self.connection {
+            conn.close(None).await.unwrap();
+        }
+    }
+
+    async fn async_drop(&mut self) {
+        claims::assert_ok!(self.unregister().await);
+        tracing::info!("unregister done");
+        self.close_connection().await;
+        tracing::info!("connection closed");
+        self.has_dropped = true;
+    }
+}
+
+// Features implemented
+impl TestUser {
+    pub async fn accept_session(&mut self) -> anyhow::Result<()> {
         Ok(())
     }
 
@@ -181,33 +216,6 @@ impl TestUser {
             anyhow::bail!("Failed to login,ocid is not found");
         }
         Ok(())
-    }
-
-    pub async fn register_internal(user: &mut TestUser) -> anyhow::Result<()> {
-        let request =
-            RegisterRequest::new(user.name.clone(), user.password.clone(), user.email.clone());
-        let conn = user.get_conn();
-        conn.send(request.to_msg()).await.unwrap();
-        let ret = conn.next().await.unwrap().unwrap();
-        let json: response::RegisterResponse = serde_json::from_str(&ret.to_string()).unwrap();
-        assert_eq!(json.status, requests::Status::Success);
-        assert_eq!(json.code, MessageType::RegisterRes);
-        user.ocid = json.ocid.unwrap();
-        Ok(())
-    }
-
-    pub async fn close_connection(&mut self) {
-        if let Some(conn) = &mut self.connection {
-            conn.close(None).await.unwrap();
-        }
-    }
-
-    async fn async_drop(&mut self) {
-        claims::assert_ok!(self.unregister().await);
-        tracing::info!("unregister done");
-        self.close_connection().await;
-        tracing::info!("connection closed");
-        self.has_dropped = true;
     }
 }
 
@@ -343,7 +351,13 @@ impl TestApp {
                 remove_file(&path).await.ok();
             }
             DbType::Postgres => {
-                sqlx::Postgres::drop_database(&self.db_url).await.unwrap();
+                tokio::time::sleep(Duration::from_secs(1)).await;
+                match sqlx::Postgres::drop_database(&self.db_url).await {
+                    Ok(_) => {}
+                    Err(e) => {
+                        tracing::warn!("failed to drop database: {}", e);
+                    }
+                }
             }
         }
         tracing::info!("db deleted");
@@ -372,10 +386,6 @@ impl TestApp {
         let user = Rc::new(tokio::sync::Mutex::new(TestUser::random(self).await));
         self.owned_users.push(user.clone());
         Ok(user)
-    }
-
-    pub async fn accept_session(&mut self) -> anyhow::Result<()> {
-        Ok(())
     }
 
     pub async fn http_get(&mut self, name: &str) -> anyhow::Result<reqwest::Response> {

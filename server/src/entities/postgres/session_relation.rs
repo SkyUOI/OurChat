@@ -8,8 +8,7 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub session_id: i64,
     pub user_id: i64,
-    pub nick_name: String,
-    pub group_name: String,
+    pub display_name: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

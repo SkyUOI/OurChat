@@ -60,7 +60,7 @@ async fn update_friend(
         match i.0 {
             crate::client::basic::SetFriendValues::DisplayName => {
                 if let serde_json::Value::String(name) = i.1 {
-                    friend.name = ActiveValue::Set(name)
+                    friend.display_name = ActiveValue::Set(name)
                 } else {
                     tracing::error!("Type error");
                     return Err(SetError::Type);

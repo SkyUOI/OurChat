@@ -9,6 +9,7 @@ shadow-rs = "0"
 validator = "0"
 serde = { version = "1" }
 anyhow = "1"
+chrono = { version = "0", features = ["serde"] }
 
 [build-dependencies]
 shadow-rs = "0"

@@ -13,10 +13,10 @@ impl MigrationTrait for Migration {
                     .table(User::Table)
                     .if_not_exists()
                     .col(big_unsigned(User::Id))
-                    .col(char_len_uniq(User::Ocid, 10))
+                    .col(string_len_uniq(User::Ocid, 10))
                     .col(text(User::Passwd))
-                    .col(char_len(User::Name, 200))
-                    .col(char_len_uniq(User::Email, 120))
+                    .col(string_len(User::Name, 200))
+                    .col(string_len_uniq(User::Email, 120))
                     .col(timestamp_with_time_zone(User::Time))
                     .col(integer(User::ResourceUsed))
                     .col(integer(User::FriendLimit))
@@ -40,7 +40,7 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(big_unsigned(Friend::UserId))
                     .col(big_unsigned(Friend::FriendId))
-                    .col(char_len(Friend::Name, 200))
+                    .col(string_len(Friend::DisplayName, 200))
                     .foreign_key(
                         ForeignKey::create()
                             .from(Friend::Table, Friend::FriendId)
@@ -61,7 +61,7 @@ impl MigrationTrait for Migration {
                     .table(Session::Table)
                     .if_not_exists()
                     .col(big_unsigned(Session::SessionId))
-                    .col(char_len(Session::GroupName, 200))
+                    .col(string_len(Session::GroupName, 200))
                     .col(integer(Session::Size))
                     .primary_key(Index::create().col(Session::SessionId))
                     .to_owned(),
@@ -74,8 +74,7 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(big_unsigned(SessionRelation::SessionId))
                     .col(big_unsigned(SessionRelation::UserId))
-                    .col(char_len(SessionRelation::NickName, 200))
-                    .col(char_len(SessionRelation::GroupName, 200))
+                    .col(string_len(SessionRelation::DisplayName, 200))
                     .foreign_key(
                         ForeignKey::create()
                             .from(SessionRelation::Table, SessionRelation::UserId)
@@ -96,36 +95,20 @@ impl MigrationTrait for Migration {
                     .table(UserChatMsg::Table)
                     .if_not_exists()
                     .col(big_unsigned(UserChatMsg::ChatMsgId))
-                    .col(unsigned(UserChatMsg::MsgType))
                     .col(string_len(UserChatMsg::MsgData, 8000))
                     .col(big_unsigned(UserChatMsg::SenderId))
+                    .col(big_unsigned(UserChatMsg::SessionId))
                     .foreign_key(
                         ForeignKey::create()
                             .from(UserChatMsg::Table, UserChatMsg::SenderId)
                             .to(User::Table, User::Id),
                     )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .from(UserChatMsg::Table, UserChatMsg::SessionId)
+                            .to(Session::Table, Session::SessionId),
+                    )
                     .primary_key(Index::create().col(UserChatMsg::ChatMsgId))
-                    .to_owned(),
-            )
-            .await?;
-        manager
-            .create_table(
-                Table::create()
-                    .table(UserChatMsgRelation::Table)
-                    .if_not_exists()
-                    .col(big_unsigned(UserChatMsgRelation::UserId))
-                    .col(big_unsigned(UserChatMsgRelation::ChatMsgId))
-                    .foreign_key(
-                        ForeignKey::create()
-                            .from(UserChatMsgRelation::Table, UserChatMsgRelation::UserId)
-                            .to(User::Table, User::Id),
-                    )
-                    .foreign_key(
-                        ForeignKey::create()
-                            .from(UserChatMsgRelation::Table, UserChatMsgRelation::ChatMsgId)
-                            .to(UserChatMsg::Table, UserChatMsg::ChatMsgId),
-                    )
-                    .primary_key(Index::create().col(UserChatMsgRelation::ChatMsgId))
                     .to_owned(),
             )
             .await?;
@@ -140,13 +123,10 @@ impl MigrationTrait for Migration {
             .drop_table(Table::drop().table(Friend::Table).to_owned())
             .await?;
         manager
-            .drop_table(Table::drop().table(Session::Table).to_owned())
-            .await?;
-        manager
-            .drop_table(Table::drop().table(UserChatMsgRelation::Table).to_owned())
-            .await?;
-        manager
             .drop_table(Table::drop().table(UserChatMsg::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(Session::Table).to_owned())
             .await?;
         manager
             .drop_table(Table::drop().table(User::Table).to_owned())
@@ -177,7 +157,7 @@ enum Friend {
     UserId,
     #[allow(clippy::enum_variant_names)]
     FriendId,
-    Name,
+    DisplayName,
 }
 
 #[derive(DeriveIden)]
@@ -185,8 +165,7 @@ enum SessionRelation {
     Table,
     SessionId,
     UserId,
-    NickName,
-    GroupName,
+    DisplayName,
 }
 
 #[derive(DeriveIden)]
@@ -199,17 +178,10 @@ enum Session {
 }
 
 #[derive(DeriveIden)]
-enum UserChatMsgRelation {
-    Table,
-    UserId,
-    ChatMsgId,
-}
-
-#[derive(DeriveIden)]
 enum UserChatMsg {
     Table,
     ChatMsgId,
-    MsgType,
     MsgData,
     SenderId,
+    SessionId,
 }

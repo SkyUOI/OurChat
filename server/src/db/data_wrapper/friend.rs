@@ -12,7 +12,7 @@ impl From<entities::sqlite::friend::Model> for Friend {
         Self {
             id: value.user_id.into(),
             friend_id: value.friend_id.into(),
-            display_name: value.name,
+            display_name: value.display_name,
         }
     }
 }
@@ -22,7 +22,7 @@ impl From<entities::postgres::friend::Model> for Friend {
         Self {
             id: value.user_id.into(),
             friend_id: value.friend_id.into(),
-            display_name: value.name,
+            display_name: value.display_name,
         }
     }
 }

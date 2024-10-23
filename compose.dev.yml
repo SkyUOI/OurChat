@@ -7,6 +7,9 @@ services:
     init: true
     image: ourchat_develop:latest
     command: tail -f /dev/null
+    volumes:
+      - "/dev:/dev:rw"
+      - .:/app
     working_dir: /root
     environment:
       - LC_ALL=C.UTF-8

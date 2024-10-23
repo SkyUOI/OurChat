@@ -9,10 +9,10 @@ use crate::{
     DbPool, HttpSender,
     client::{
         MsgConvert,
-        basic::SetFriendValues,
         requests::{
-            self, AcceptSessionRequest, GetAccountInfoRequest, SetAccountRequest,
-            SetFriendInfoRequest, new_session::NewSessionRequest, upload::Upload,
+            self, AcceptSessionRequest, GetAccountInfoRequest, GetUserMsgRequest,
+            SetAccountRequest, SetFriendInfoRequest, UserSendMsgRequest,
+            new_session::NewSessionRequest, upload::Upload,
         },
         response::{self, ErrorMsgResponse},
     },
@@ -403,7 +403,7 @@ impl<T: EmailSender> Connection<T> {
         shared_data: Arc<crate::SharedData<T>>,
         db_pool: DbPool,
     ) -> anyhow::Result<()> {
-        let net_send_closure = |data| async {
+        let net_sender_closure = |data| async {
             net_sender.send(data).await?;
             Ok(())
         };
@@ -426,7 +426,7 @@ impl<T: EmailSender> Connection<T> {
                         let (code, json) = match get_code(&msg) {
                             Ok(Some((code, json))) => (code, json),
                             _ => {
-                                basic::send_error_msg(net_send_closure, "code is not correct")
+                                basic::send_error_msg(net_sender_closure, "code is not correct")
                                     .await?;
                                 continue 'con_loop;
                             }
@@ -436,7 +436,7 @@ impl<T: EmailSender> Connection<T> {
                             code,
                             json,
                             &db_pool,
-                            net_send_closure,
+                            net_sender_closure,
                         )
                         .await?
                         {
@@ -451,7 +451,7 @@ impl<T: EmailSender> Connection<T> {
                             }
                             MessageType::NewSession => {
                                 let json: NewSessionRequest =
-                                    match from_value(json, &net_send_closure).await? {
+                                    match from_value(json, &net_sender_closure).await? {
                                         None => {
                                             continue 'con_loop;
                                         }
@@ -459,7 +459,7 @@ impl<T: EmailSender> Connection<T> {
                                     };
                                 process::new_session(
                                     &user_info,
-                                    net_send_closure,
+                                    net_sender_closure,
                                     json,
                                     &db_pool,
                                     &shared_data,
@@ -469,7 +469,7 @@ impl<T: EmailSender> Connection<T> {
                             }
                             MessageType::Upload => {
                                 let mut json: Upload =
-                                    match from_value(json, &net_send_closure).await? {
+                                    match from_value(json, &net_sender_closure).await? {
                                         None => {
                                             continue 'con_loop;
                                         }
@@ -492,7 +492,7 @@ impl<T: EmailSender> Connection<T> {
                             }
                             MessageType::AcceptSession => {
                                 let json: AcceptSessionRequest =
-                                    match from_value(json, &net_send_closure).await? {
+                                    match from_value(json, &net_sender_closure).await? {
                                         None => {
                                             continue 'con_loop;
                                         }
@@ -500,7 +500,7 @@ impl<T: EmailSender> Connection<T> {
                                     };
                                 process::accept_session(
                                     user_info.id,
-                                    net_send_closure,
+                                    net_sender_closure,
                                     json,
                                     &db_pool,
                                 )
@@ -509,7 +509,7 @@ impl<T: EmailSender> Connection<T> {
                             }
                             MessageType::SetAccountInfo => {
                                 let json: SetAccountRequest =
-                                    match from_value(json, &net_send_closure).await? {
+                                    match from_value(json, &net_sender_closure).await? {
                                         None => {
                                             continue 'con_loop;
                                         }
@@ -517,7 +517,7 @@ impl<T: EmailSender> Connection<T> {
                                     };
                                 process::set_account_info(
                                     &user_info,
-                                    net_send_closure,
+                                    net_sender_closure,
                                     json,
                                     &db_pool,
                                 )
@@ -526,7 +526,7 @@ impl<T: EmailSender> Connection<T> {
                             }
                             MessageType::SetFriendInfo => {
                                 let json: SetFriendInfoRequest =
-                                    match from_value(json, &net_send_closure).await? {
+                                    match from_value(json, &net_sender_closure).await? {
                                         None => {
                                             continue 'con_loop;
                                         }
@@ -535,7 +535,36 @@ impl<T: EmailSender> Connection<T> {
                                 process::set_friend_info(
                                     &user_info,
                                     json,
-                                    net_send_closure,
+                                    net_sender_closure,
+                                    &db_pool,
+                                )
+                                .await?;
+                                continue 'con_loop;
+                            }
+                            MessageType::UserSendMsg => {
+                                let json: UserSendMsgRequest =
+                                    match from_value(json, &net_sender_closure).await? {
+                                        None => {
+                                            continue 'con_loop;
+                                        }
+                                        Some(data) => data,
+                                    };
+                                process::send_msg(&user_info, json, net_sender_closure, &db_pool)
+                                    .await?;
+                                continue 'con_loop;
+                            }
+                            MessageType::GetUserMsg => {
+                                let json: GetUserMsgRequest =
+                                    match from_value(json, &net_sender_closure).await? {
+                                        None => {
+                                            continue 'con_loop;
+                                        }
+                                        Some(data) => data,
+                                    };
+                                process::get_user_msg(
+                                    &user_info,
+                                    json,
+                                    net_sender_closure,
                                     &db_pool,
                                 )
                                 .await?;
@@ -543,7 +572,7 @@ impl<T: EmailSender> Connection<T> {
                             }
                             _ => {
                                 basic::send_error_msg(
-                                    net_send_closure,
+                                    net_sender_closure,
                                     format!("Not a supported code {:?}", code),
                                 )
                                 .await?;

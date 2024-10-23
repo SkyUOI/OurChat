@@ -1,13 +1,15 @@
-use crate::consts::{MessageType, TimeStamp};
+use crate::consts::MessageType;
+use base::time::TimeStamp;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct UserMsg {
+pub struct GetUserMsgRequest {
     pub code: MessageType,
+    #[serde(with = "base::time::rfc3339")]
     pub time: TimeStamp,
 }
 
-impl UserMsg {
+impl GetUserMsgRequest {
     pub fn new(time: TimeStamp) -> Self {
         Self {
             code: MessageType::UserSendMsg,

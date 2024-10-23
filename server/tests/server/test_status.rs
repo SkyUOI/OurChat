@@ -1,7 +1,5 @@
 use crate::helper;
-use server::client::{
-    MsgConvert, requests::get_status::GetStatus, response::get_status::GetStatusResponse,
-};
+use server::client::{MsgConvert, requests::GetStatus, response::get_status::GetStatusResponse};
 
 #[tokio::test]
 async fn test_status() {
