@@ -6,9 +6,9 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UploadResponse {
     pub code: consts::MessageType,
-    status: Status,
-    key: Option<String>,
-    hash: Option<String>,
+    pub status: Status,
+    pub key: Option<String>,
+    pub hash: Option<String>,
 }
 
 impl UploadResponse {

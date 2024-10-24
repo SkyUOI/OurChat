@@ -46,6 +46,14 @@ macro_rules! impl_newtype_int {
     };
 }
 
+pub fn sha3_256(data: &[u8]) -> String {
+    use sha3::{Digest, Sha3_256};
+    let mut hasher = Sha3_256::new();
+    hasher.update(data);
+    let result = hasher.finalize();
+    format!("{:x}", result)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

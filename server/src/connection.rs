@@ -12,7 +12,7 @@ use crate::{
         requests::{
             self, AcceptSessionRequest, GetAccountInfoRequest, GetUserMsgRequest,
             SetAccountRequest, SetFriendInfoRequest, UserSendMsgRequest,
-            new_session::NewSessionRequest, upload::Upload,
+            new_session::NewSessionRequest, upload::UploadRequest,
         },
         response::{self, ErrorMsgResponse},
     },
@@ -468,7 +468,7 @@ impl<T: EmailSender> Connection<T> {
                                 continue 'con_loop;
                             }
                             MessageType::Upload => {
-                                let mut json: Upload =
+                                let mut json: UploadRequest =
                                     match from_value(json, &net_sender_closure).await? {
                                         None => {
                                             continue 'con_loop;

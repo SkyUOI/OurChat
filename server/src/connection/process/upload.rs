@@ -1,7 +1,7 @@
 use crate::{
     client::{
         MsgConvert,
-        requests::{self, upload::Upload},
+        requests::{self, upload::UploadRequest},
     },
     connection::response::UploadResponse,
     consts::{Bt, ID},
@@ -55,7 +55,7 @@ pub async fn add_file_record(
 pub async fn upload(
     id: ID,
     net_sender: &mpsc::Sender<Message>,
-    json: &mut Upload,
+    json: &mut UploadRequest,
     db_conn: &DatabaseConnection,
 ) -> anyhow::Result<(impl Future<Output = anyhow::Result<()>>, String)> {
     let ret = add_file_record(id, Bt(json.size), db_conn).await?;

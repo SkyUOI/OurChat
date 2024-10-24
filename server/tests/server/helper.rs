@@ -113,7 +113,7 @@ impl TestUser {
         Ok(())
     }
 
-    pub async fn get(&mut self) -> anyhow::Result<Message> {
+    pub async fn recv(&mut self) -> anyhow::Result<Message> {
         Ok(self.get_conn().next().await.unwrap().unwrap())
     }
 
@@ -394,6 +394,10 @@ impl TestApp {
             .get(format!("http://127.0.0.1:{}/v1/{}", self.http_port, name))
             .send()
             .await?)
+    }
+
+    pub async fn post_file(&mut self) -> anyhow::Result<()> {
+        Ok(())
     }
 }
 
