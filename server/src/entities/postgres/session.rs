@@ -7,13 +7,13 @@ use sea_orm::entity::prelude::*;
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub session_id: i64,
-    pub group_name: String,
+    pub name: String,
     pub size: i32,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_one = "super::session_relation::Entity")]
+    #[sea_orm(has_many = "super::session_relation::Entity")]
     SessionRelation,
     #[sea_orm(has_many = "super::user_chat_msg::Entity")]
     UserChatMsg,

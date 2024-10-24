@@ -1,4 +1,5 @@
-use crate::{consts::ID, db::file_storage, server::httpserver::KEY};
+use crate::{consts::ID, db::file_storage};
+use actix_multipart::form::MultipartForm;
 use actix_web::{
     HttpRequest, HttpResponse, Responder, post,
     web::{self, Data},
@@ -8,7 +9,9 @@ use futures_util::StreamExt;
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Sha3_256 as Sha256};
-use tokio::sync::mpsc;
+use tokio::{io::AsyncWriteExt, sync::mpsc};
+
+use super::FileUploadForm;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct File {
@@ -73,18 +76,12 @@ impl UploadManager {
 #[post("/upload")]
 pub async fn upload(
     req: HttpRequest,
+    MultipartForm(payload): MultipartForm<FileUploadForm>,
     manager: Data<UploadManager>,
-    mut payload: web::Payload,
     db_conn: Data<DatabaseConnection>,
 ) -> impl Responder {
-    let key = match req.headers().get(KEY).and_then(|key| key.to_str().ok()) {
-        None => {
-            return HttpResponse::BadRequest();
-        }
-        Some(key) => key,
-    };
+    let key = &payload.metadata.key;
 
-    let mut body = bytes::BytesMut::new();
     // get temporyory url record
     let record = match manager.get_records(key) {
         None => {
@@ -92,37 +89,30 @@ pub async fn upload(
         }
         Some(data) => data,
     };
-    // read file
-    while let Some(chunk) = payload.next().await {
-        let chunk = match chunk {
-            Ok(data) => data,
-            Err(_) => {
-                return HttpResponse::InternalServerError();
-            }
-        };
-        body.extend_from_slice(&chunk);
-    }
-    // calculate hash and verify whether files is correct
-    let mut data = body.freeze();
-    let mut hasher = Sha256::new();
-    hasher.update(&data);
-    let result = hasher.finalize();
-    let hash = format!("{:x}", result);
-    if hash != record.hash {
-        return HttpResponse::BadRequest();
-    }
-    match file_storage::add_file(
+    // create record and file
+    let f = match file_storage::add_file(
         key,
         record.auto_clean,
-        &mut data,
         record.user_id,
         &db_conn.into_inner(),
     )
     .await
     {
-        Ok(_) => HttpResponse::Ok(),
-        Err(_) => HttpResponse::InternalServerError(),
+        Ok(f) => f,
+        Err(_) => return HttpResponse::InternalServerError(),
     };
+    // read file
+    // f.write_all(payload.)
+    // calculate hash and verify whether files is correct
+    // let mut data = body.freeze();
+    // let mut hasher = Sha256::new();
+    // hasher.update(&data);
+    // let result = hasher.finalize();
+    // let hash = format!("{:x}", result);
+    // if hash != record.hash {
+    //     return HttpResponse::BadRequest();
+    // }
+    //
     manager.remove_record(key);
     HttpResponse::Ok()
 }

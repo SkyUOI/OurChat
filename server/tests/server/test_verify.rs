@@ -26,7 +26,7 @@ async fn test_verify() {
     user.lock().await.send(req.to_msg()).await.unwrap();
     // Send successfully
     let ret: response::VerifyResponse =
-        serde_json::from_str(&user.lock().await.get().await.unwrap().to_string()).unwrap();
+        serde_json::from_str(&user.lock().await.recv().await.unwrap().to_string()).unwrap();
     // check email
     for _ in 0..10 {
         let body = email_body.lock().is_empty();
@@ -65,7 +65,7 @@ async fn test_verify() {
         .unwrap();
     // get status
     let status = serde_json::from_str::<response::VerifyResponse>(
-        &user.lock().await.get().await.unwrap().to_string(),
+        &user.lock().await.recv().await.unwrap().to_string(),
     )
     .unwrap();
     assert_eq!(status.code, MessageType::VerifyRes);

@@ -8,15 +8,28 @@ pub mod verify;
 use std::sync::Arc;
 
 use crate::{DbPool, HttpSender, ShutdownRev, component::EmailSender};
+use actix_multipart::form::MultipartForm;
 use actix_web::{
     App,
     web::{self, Data},
 };
+use serde::Deserialize;
 use tokio::{select, sync::mpsc, task::JoinHandle};
 pub use upload::FileRecord;
 pub use verify::VerifyRecord;
 
-const KEY: &str = "Key";
+// TODO:change the document
+// const KEY: &str = "Key";
+
+#[derive(MultipartForm)]
+struct FileUploadForm {
+    metadata: actix_multipart::form::json::Json<FileUploadMetadata>,
+}
+
+#[derive(Deserialize)]
+struct FileUploadMetadata {
+    key: String,
+}
 
 pub struct HttpServer {}
 

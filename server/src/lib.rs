@@ -348,8 +348,8 @@ pub struct Application<T: EmailSender> {
 /// The database connection pool, redis connection pool
 /// you can clone it freely without many extra cost
 pub struct DbPool {
-    db_pool: DatabaseConnection,
-    redis_pool: deadpool_redis::Pool,
+    pub db_pool: DatabaseConnection,
+    pub redis_pool: deadpool_redis::Pool,
 }
 
 impl DbPool {
@@ -441,7 +441,7 @@ impl<T: EmailSender> Application<T> {
         // database type
         let db_type = match parser.db_type {
             None => main_cfg.db_type,
-            Some(db_type) => match DbType::from_str(&db_type) {
+            Some(db_type) => match serde_plain::from_str::<DbType>(&db_type) {
                 Ok(db_type) => db_type,
                 Err(_) => bail!("Unknown database type. Only support postgres and sqlite"),
             },

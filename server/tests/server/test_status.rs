@@ -7,7 +7,7 @@ async fn test_status() {
     let user = app.new_user_logined().await.unwrap();
     let req = GetStatus::new();
     user.lock().await.send(req.to_msg()).await.unwrap();
-    let ret = user.lock().await.get().await.unwrap();
+    let ret = user.lock().await.recv().await.unwrap();
     assert_eq!(ret, GetStatusResponse::normal().to_msg());
     app.async_drop().await;
 }

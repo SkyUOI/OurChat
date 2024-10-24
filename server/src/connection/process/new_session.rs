@@ -14,21 +14,20 @@ use base::time::TimeStamp;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
 };
-use snowdon::ClassicLayoutSnowflakeExtension;
 use std::{sync::Arc, time::Duration};
 
 #[derive::db_compatibility]
 pub async fn create_session(
     session_id: SessionID,
-    people_num: i32,
-    group_name: String,
+    people_num: usize,
+    session_name: String,
     db_conn: &DatabaseConnection,
 ) -> anyhow::Result<Result<(), requests::Status>> {
     use entities::session;
     let session = session::ActiveModel {
         session_id: ActiveValue::Set(session_id.into()),
-        group_name: ActiveValue::Set(group_name),
-        size: ActiveValue::Set(people_num),
+        name: ActiveValue::Set(session_name),
+        size: ActiveValue::Set(people_num.try_into()?),
     };
     session.insert(db_conn).await?;
     Ok(Ok(()))
@@ -60,12 +59,14 @@ pub async fn new_session(
     db_conn: &DbPool,
     shared_data: &Arc<SharedData<impl EmailSender>>,
 ) -> anyhow::Result<()> {
-    let session_id = utils::GENERATOR.generate()?.into_i64().into();
+    let session_id = utils::generate_session_id()?;
 
     // check whether to send verification request
     let mut people_num = 1;
+    let mut peoples = vec![user_info.id];
     for i in &json.members {
         let member_id = get_id(i, db_conn).await?;
+        // ignore self
         if member_id == user_info.id {
             continue;
         }
@@ -82,20 +83,31 @@ pub async fn new_session(
             .await?;
         } else {
             people_num += 1;
+            peoples.push(member_id);
         }
     }
-    if people_num != 1 {
+    let bundle = async {
         if let Err(e) = create_session(session_id, people_num, json.name, &db_conn.db_pool).await? {
             net_sender
                 .send(NewSessionResponse::failed(e).to_msg())
                 .await?;
-            return Ok(());
         }
-    } else {
-        net_sender
-            .send(NewSessionResponse::success(session_id).to_msg())
-            .await?;
+        // add session relation
+        batch_add_to_session(&db_conn.db_pool, session_id, &peoples).await?;
+
+        anyhow::Ok(())
+    };
+    match bundle.await {
+        Ok(_) => {
+            net_sender
+                .send(NewSessionResponse::success(session_id).to_msg())
+                .await?;
+        }
+        Err(e) => {
+            tracing::error!("{e}");
+        }
     }
+
     Ok(())
 }
 
@@ -151,6 +163,34 @@ async fn save_invitation_to_db(
         ..Default::default()
     };
     oper.insert(&db_conn.db_pool).await?;
+    Ok(())
+}
+
+#[derive::db_compatibility]
+pub async fn add_to_session(
+    db_conn: &DatabaseConnection,
+    session_id: SessionID,
+    id: ID,
+) -> anyhow::Result<()> {
+    use entities::prelude::*;
+    use entities::session_relation;
+    let session_relation = session_relation::ActiveModel {
+        user_id: ActiveValue::Set(id.into()),
+        session_id: ActiveValue::Set(session_id.into()),
+        ..Default::default()
+    };
+    session_relation.insert(db_conn).await?;
+    Ok(())
+}
+
+pub async fn batch_add_to_session(
+    db_conn: &DatabaseConnection,
+    session_id: SessionID,
+    ids: &[ID],
+) -> anyhow::Result<()> {
+    for id in ids {
+        add_to_session(db_conn, session_id, *id).await?;
+    }
     Ok(())
 }
 

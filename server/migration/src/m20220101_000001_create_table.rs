@@ -61,7 +61,7 @@ impl MigrationTrait for Migration {
                     .table(Session::Table)
                     .if_not_exists()
                     .col(big_unsigned(Session::SessionId))
-                    .col(string_len(Session::GroupName, 200))
+                    .col(string_len(Session::Name, 200))
                     .col(integer(Session::Size))
                     .primary_key(Index::create().col(Session::SessionId))
                     .to_owned(),
@@ -74,7 +74,8 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(big_unsigned(SessionRelation::SessionId))
                     .col(big_unsigned(SessionRelation::UserId))
-                    .col(string_len(SessionRelation::DisplayName, 200))
+                    .col(pk_auto(SessionRelation::RelationIdx))
+                    .col(string_len(SessionRelation::DisplayName, 200).default(Expr::value("")))
                     .foreign_key(
                         ForeignKey::create()
                             .from(SessionRelation::Table, SessionRelation::UserId)
@@ -85,7 +86,6 @@ impl MigrationTrait for Migration {
                             .from(SessionRelation::Table, SessionRelation::SessionId)
                             .to(Session::Table, Session::SessionId),
                     )
-                    .primary_key(Index::create().col(SessionRelation::SessionId))
                     .to_owned(),
             )
             .await?;
@@ -163,6 +163,7 @@ enum Friend {
 #[derive(DeriveIden)]
 enum SessionRelation {
     Table,
+    RelationIdx,
     SessionId,
     UserId,
     DisplayName,
@@ -173,7 +174,7 @@ enum Session {
     Table,
     #[allow(clippy::enum_variant_names)]
     SessionId,
-    GroupName,
+    Name,
     Size,
 }
 

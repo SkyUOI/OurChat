@@ -12,7 +12,7 @@ use crate::{
         requests::{
             self, AcceptSessionRequest, GetAccountInfoRequest, GetUserMsgRequest,
             SetAccountRequest, SetFriendInfoRequest, UserSendMsgRequest,
-            new_session::NewSessionRequest, upload::Upload,
+            new_session::NewSessionRequest, upload::UploadRequest,
         },
         response::{self, ErrorMsgResponse},
     },
@@ -39,6 +39,11 @@ use tokio::{
 };
 use tokio_tungstenite::WebSocketStream;
 use tokio_tungstenite::tungstenite::protocol::Message;
+
+pub mod db {
+    pub use super::basic::get_id;
+    pub use super::process::new_session::{add_to_session, batch_add_to_session, create_session};
+}
 
 type InComing = SplitStream<WS>;
 type OutGoing = SplitSink<WS, Message>;
@@ -468,7 +473,7 @@ impl<T: EmailSender> Connection<T> {
                                 continue 'con_loop;
                             }
                             MessageType::Upload => {
-                                let mut json: Upload =
+                                let mut json: UploadRequest =
                                     match from_value(json, &net_sender_closure).await? {
                                         None => {
                                             continue 'con_loop;

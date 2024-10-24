@@ -62,13 +62,11 @@ impl DbCfgTrait for SqliteDbCfg {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, strum::EnumString, Copy)]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
 pub enum DbType {
     #[serde(rename = "sqlite")]
-    #[strum(serialize = "sqlite")]
     Sqlite,
     #[serde(rename = "postgres")]
-    #[strum(serialize = "postgres")]
     Postgres,
 }
 

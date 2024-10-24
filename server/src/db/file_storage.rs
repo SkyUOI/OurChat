@@ -95,10 +95,9 @@ pub enum AddFileError {
 pub async fn add_file(
     key: &str,
     auto_clean: bool,
-    content: &mut bytes::Bytes,
     user_id: ID,
     db_conn: &DatabaseConnection,
-) -> Result<(), AddFileError> {
+) -> Result<File, AddFileError> {
     use entities::files;
     let timestamp = chrono::Utc::now().timestamp();
     let path = format!("{}/{}", "files_storage", key);
@@ -111,6 +110,5 @@ pub async fn add_file(
     };
     file.insert(db_conn).await?;
     let mut f = File::create(&path).await?;
-    f.write_all_buf(content).await?;
-    Ok(())
+    Ok(f)
 }

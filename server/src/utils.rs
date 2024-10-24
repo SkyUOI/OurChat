@@ -1,7 +1,12 @@
 //! Some utils functions
-use crate::{MACHINE_ID, consts};
+use crate::{
+    MACHINE_ID,
+    consts::{self, SessionID},
+};
 use rand::Rng;
-use snowdon::{ClassicLayout, Epoch, Generator, MachineId, Snowflake};
+use snowdon::{
+    ClassicLayout, ClassicLayoutSnowflakeExtension, Epoch, Generator, MachineId, Snowflake,
+};
 use std::sync::LazyLock;
 use tokio::task::JoinHandle;
 
@@ -61,6 +66,10 @@ where
 {
     let current_span = tracing::Span::current();
     actix_web::rt::task::spawn_blocking(move || current_span.in_scope(f))
+}
+
+pub fn generate_session_id() -> anyhow::Result<SessionID> {
+    Ok(GENERATOR.generate()?.into_i64().into())
 }
 
 #[cfg(test)]

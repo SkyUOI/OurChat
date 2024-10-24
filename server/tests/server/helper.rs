@@ -15,8 +15,8 @@ use server::client::response::{self, UnregisterResponse};
 use server::component::MockEmailSender;
 use server::consts::MessageType;
 use server::db::{DbCfg, DbCfgTrait, DbType};
-use server::utils::gen_ws_bind_addr;
-use server::{Application, ArgsParser, ParserCfg, SharedData, ShutdownSdr};
+use server::utils::{self, gen_ws_bind_addr};
+use server::{Application, ArgsParser, DbPool, ParserCfg, SharedData, ShutdownSdr, connection};
 use sqlx::migrate::MigrateDatabase;
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -113,7 +113,7 @@ impl TestUser {
         Ok(())
     }
 
-    pub async fn get(&mut self) -> anyhow::Result<Message> {
+    pub async fn recv(&mut self) -> anyhow::Result<Message> {
         Ok(self.get_conn().next().await.unwrap().unwrap())
     }
 
@@ -255,6 +255,7 @@ pub struct TestApp {
     pub handle: JoinHandle<()>,
     pub db_url: String,
     pub app_shared: Arc<SharedData<MockEmailSender>>,
+    pub db_pool: DbPool,
     pub http_client: reqwest::Client,
     owned_users: Vec<Rc<tokio::sync::Mutex<TestUser>>>,
 
@@ -282,6 +283,8 @@ impl TestAppTrait for ArgsParser {
     }
 }
 
+pub type TestUserShared = Rc<tokio::sync::Mutex<TestUser>>;
+
 impl TestApp {
     pub async fn new(email_client: Option<MockEmailSender>) -> anyhow::Result<Self> {
         let args = ArgsParser::test();
@@ -305,6 +308,7 @@ impl TestApp {
         let http_port = application.get_http_port();
         let abort_handle = application.get_abort_handle();
         let shared = application.shared.clone();
+        let db_pool = application.pool.clone();
 
         let handle = tokio::spawn(async move {
             application.run_forever().await.unwrap();
@@ -323,6 +327,7 @@ impl TestApp {
             http_client: reqwest::Client::builder()
                 .timeout(Duration::from_secs(2))
                 .build()?,
+            db_pool,
         };
         Ok(obj)
     }
@@ -374,7 +379,7 @@ impl TestApp {
             .await
     }
 
-    pub async fn new_user(&mut self) -> anyhow::Result<Rc<tokio::sync::Mutex<TestUser>>> {
+    pub async fn new_user(&mut self) -> anyhow::Result<TestUserShared> {
         let user = Rc::new(tokio::sync::Mutex::new(TestUser::random(self).await));
         user.lock().await.close_connection().await;
         user.lock().await.establish_connection().await?;
@@ -382,7 +387,7 @@ impl TestApp {
         Ok(user)
     }
 
-    pub async fn new_user_logined(&mut self) -> anyhow::Result<Rc<tokio::sync::Mutex<TestUser>>> {
+    pub async fn new_user_logined(&mut self) -> anyhow::Result<TestUserShared> {
         let user = Rc::new(tokio::sync::Mutex::new(TestUser::random(self).await));
         self.owned_users.push(user.clone());
         Ok(user)
@@ -394,6 +399,31 @@ impl TestApp {
             .get(format!("http://127.0.0.1:{}/v1/{}", self.http_port, name))
             .send()
             .await?)
+    }
+
+    pub async fn post_file(&mut self) -> anyhow::Result<()> {
+        Ok(())
+    }
+
+    pub async fn new_session(
+        &mut self,
+        n: usize,
+        name: impl Into<String>,
+    ) -> anyhow::Result<Vec<TestUserShared>> {
+        let users = vec![self.new_user_logined().await?; n];
+        // create a group in database level
+        let session_id = utils::generate_session_id()?;
+        connection::db::create_session(session_id, n, name.into(), &self.db_pool.db_pool)
+            .await?
+            .unwrap();
+        let mut id_vec = vec![];
+        for i in &users {
+            let id = connection::db::get_id(&i.lock().await.ocid, &self.db_pool).await?;
+            id_vec.push(id);
+        }
+        server::connection::db::batch_add_to_session(&self.db_pool.db_pool, session_id, &id_vec)
+            .await?;
+        Ok(users)
     }
 }
 

@@ -1,3 +1,5 @@
+#![feature(decl_macro)]
+
 pub mod time;
 pub mod types;
 pub mod utils;

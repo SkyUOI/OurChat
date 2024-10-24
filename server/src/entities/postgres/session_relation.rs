@@ -5,9 +5,10 @@ use sea_orm::entity::prelude::*;
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
 #[sea_orm(table_name = "session_relation")]
 pub struct Model {
-    #[sea_orm(primary_key, auto_increment = false)]
     pub session_id: i64,
     pub user_id: i64,
+    #[sea_orm(primary_key)]
+    pub relation_idx: i32,
     pub display_name: String,
 }
 
