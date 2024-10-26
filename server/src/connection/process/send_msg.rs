@@ -9,7 +9,7 @@ use crate::{
     consts::{ID, MsgID},
 };
 use derive::db_compatibility;
-use sea_orm::{ActiveModelTrait, DatabaseConnection};
+use sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection};
 
 pub async fn send_msg(
     user_info: &UserInfo,
@@ -40,6 +40,9 @@ async fn insert_msg_record(
     use entities::prelude::*;
     use entities::user_chat_msg;
     let msg = user_chat_msg::ActiveModel {
+        msg_data: ActiveValue::Set(msg),
+        sender_id: ActiveValue::Set(user_id.into()),
+        session_id: ActiveValue::Set(session_id.into()),
         ..Default::default()
     };
     let msg = msg.insert(db_conn).await?;

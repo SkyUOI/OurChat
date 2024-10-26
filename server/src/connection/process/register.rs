@@ -36,7 +36,6 @@ async fn add_new_user(
         Ok(res) => {
             // Happy Path
             let response = RegisterResponse::success(res.ocid.clone());
-            tracing::error!("fuck you {:?}", res);
             Ok(Ok((response, UserInfo {
                 ocid: res.ocid,
                 id: res.id.into(),

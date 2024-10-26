@@ -94,7 +94,11 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(UserChatMsg::Table)
                     .if_not_exists()
-                    .col(big_unsigned(UserChatMsg::ChatMsgId))
+                    .col(
+                        big_integer(UserChatMsg::ChatMsgId)
+                            .auto_increment()
+                            .primary_key(),
+                    )
                     .col(string_len(UserChatMsg::MsgData, 8000))
                     .col(big_unsigned(UserChatMsg::SenderId))
                     .col(big_unsigned(UserChatMsg::SessionId))
@@ -108,7 +112,6 @@ impl MigrationTrait for Migration {
                             .from(UserChatMsg::Table, UserChatMsg::SessionId)
                             .to(Session::Table, Session::SessionId),
                     )
-                    .primary_key(Index::create().col(UserChatMsg::ChatMsgId))
                     .to_owned(),
             )
             .await?;

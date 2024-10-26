@@ -65,29 +65,24 @@ impl_newtype_int!(ID, u64, serde::Serialize, serde::Deserialize);
 pub type SessionID = ID;
 pub type MsgID = ID;
 
-impl From<u64> for ID {
-    fn from(value: u64) -> Self {
-        ID(value)
+macro impl_from($ty:ty) {
+    impl From<$ty> for ID {
+        fn from(value: $ty) -> Self {
+            ID(value.try_into().unwrap())
+        }
+    }
+
+    impl From<ID> for $ty {
+        fn from(value: ID) -> Self {
+            value.0 as $ty
+        }
     }
 }
 
-impl From<i64> for ID {
-    fn from(value: i64) -> Self {
-        ID(value.try_into().unwrap())
-    }
-}
-
-impl From<ID> for i64 {
-    fn from(value: ID) -> Self {
-        value.0 as i64
-    }
-}
-
-impl From<ID> for u64 {
-    fn from(value: ID) -> Self {
-        value.0
-    }
-}
+impl_from!(i32);
+impl_from!(i64);
+impl_from!(u32);
+impl_from!(u64);
 
 /// ocid type
 pub type OCID = String;

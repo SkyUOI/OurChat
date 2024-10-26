@@ -1,6 +1,7 @@
 //! Helper functions for tests
 
 use anyhow::Context;
+use base::time::TimeStamp;
 use fake::Fake;
 use fake::faker::internet::raw::FreeEmail;
 use fake::faker::name::en;
@@ -13,7 +14,7 @@ use server::client::MsgConvert;
 use server::client::requests::{self, LoginRequest, LoginType, RegisterRequest, UnregisterRequest};
 use server::client::response::{self, UnregisterResponse};
 use server::component::MockEmailSender;
-use server::consts::MessageType;
+use server::consts::{MessageType, SessionID};
 use server::db::{DbCfg, DbCfgTrait, DbType};
 use server::utils::{self, gen_ws_bind_addr};
 use server::{Application, ArgsParser, DbPool, ParserCfg, SharedData, ShutdownSdr, connection};
@@ -285,6 +286,16 @@ impl TestAppTrait for ArgsParser {
 
 pub type TestUserShared = Rc<tokio::sync::Mutex<TestUser>>;
 
+pub struct TestSession {
+    pub session_id: SessionID,
+}
+
+impl TestSession {
+    pub fn new(session_id: SessionID) -> Self {
+        Self { session_id }
+    }
+}
+
 impl TestApp {
     pub async fn new(email_client: Option<MockEmailSender>) -> anyhow::Result<Self> {
         let args = ArgsParser::test();
@@ -393,7 +404,7 @@ impl TestApp {
         Ok(user)
     }
 
-    pub async fn http_get(&mut self, name: &str) -> anyhow::Result<reqwest::Response> {
+    pub async fn http_get(&self, name: &str) -> anyhow::Result<reqwest::Response> {
         Ok(self
             .http_client
             .get(format!("http://127.0.0.1:{}/v1/{}", self.http_port, name))
@@ -409,7 +420,7 @@ impl TestApp {
         &mut self,
         n: usize,
         name: impl Into<String>,
-    ) -> anyhow::Result<Vec<TestUserShared>> {
+    ) -> anyhow::Result<(Vec<TestUserShared>, TestSession)> {
         let users = vec![self.new_user_logined().await?; n];
         // create a group in database level
         let session_id = utils::generate_session_id()?;
@@ -423,7 +434,21 @@ impl TestApp {
         }
         server::connection::db::batch_add_to_session(&self.db_pool.db_pool, session_id, &id_vec)
             .await?;
-        Ok(users)
+        Ok((users, TestSession::new(session_id)))
+    }
+
+    /// # Warning
+    /// Must request the server, shouldn't build a time from local by chrono, because some tests
+    /// rely on this behaviour
+    pub async fn get_timestamp(&self) -> TimeStamp {
+        let response = self
+            .http_get("timestamp")
+            .await
+            .unwrap()
+            .error_for_status()
+            .unwrap();
+        let text = response.text().await.unwrap();
+        chrono::DateTime::parse_from_rfc3339(&text).unwrap()
     }
 }
 
