@@ -17,9 +17,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@nightly
       - uses: Swatinem/rust-cache@v2
-      - uses: cargo-bins/cargo-binstall@main
-      - name: Tarpaulin
-        run: cargo binstall cargo-tarpaulin --no-confirm --force
       - name: Build
         run: cargo build --all
       - name: Start Redis
@@ -29,14 +26,6 @@ jobs:
       - name: Sqlite Test
         run: |
           python3 script/test_server.py sqlite "cargo test -- --test-threads 2"
-          python3 script/test_server.py sqlite "cargo tarpaulin --bins -o lcov"
-
-      - name: Display Coverage
-        uses: codecov/codecov-action@v1
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          file: lcov.info
-
       - name: Build Release
         run: |
           cargo check --all --release
