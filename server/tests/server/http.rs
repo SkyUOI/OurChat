@@ -16,14 +16,6 @@ async fn test_status() {
 #[tokio::test]
 async fn test_datetime() {
     let mut app = TestApp::new(None).await.unwrap();
-    let response = app
-        .http_get("timestamp")
-        .await
-        .unwrap()
-        .error_for_status()
-        .unwrap();
-    let text = response.text().await.unwrap();
-    println!("{}", text);
-    let _time = chrono::DateTime::parse_from_rfc3339(&text).unwrap();
+    let _time = app.get_timestamp().await;
     app.async_drop().await;
 }

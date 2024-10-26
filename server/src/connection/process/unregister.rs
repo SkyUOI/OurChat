@@ -32,6 +32,17 @@ async fn remove_session_record(id: ID, db_conn: &DatabaseConnection) -> anyhow::
     Ok(())
 }
 
+#[derive::db_compatibility]
+async fn remove_msgs_of_user(id: ID, db_conn: &DatabaseConnection) -> anyhow::Result<()> {
+    use entities::user_chat_msg;
+    let id: u64 = id.into();
+    user_chat_msg::Entity::delete_many()
+        .filter(user_chat_msg::Column::SenderId.eq(id))
+        .exec(db_conn)
+        .await?;
+    Ok(())
+}
+
 pub async fn unregister(
     id: ID,
     net_sender: &mpsc::Sender<Message>,
@@ -39,6 +50,7 @@ pub async fn unregister(
 ) -> anyhow::Result<()> {
     let batch = async {
         remove_session_record(id, db_conn).await?;
+        remove_msgs_of_user(id, db_conn).await?;
         remove_account(id, db_conn).await?;
         anyhow::Ok(())
     };
