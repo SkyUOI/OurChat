@@ -32,7 +32,6 @@ use std::{
     fs,
     io::Write,
     path::{Path, PathBuf},
-    str::FromStr,
     sync::{Arc, LazyLock, OnceLock},
 };
 use tokio::{

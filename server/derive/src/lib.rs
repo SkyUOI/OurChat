@@ -49,3 +49,9 @@ pub fn db_compatibility(_attr: TokenStream, tok: TokenStream) -> TokenStream {
         .push(syn::parse_quote! {#[allow(clippy::useless_conversion)]});
     quote! {#funcbody}.into()
 }
+
+#[proc_macro_attribute]
+pub fn db_entities_from(_attr: TokenStream, tok: TokenStream) -> TokenStream {
+    let mut impl_body = parse_macro_input!(tok as syn::ItemImpl);
+    todo!()
+}
