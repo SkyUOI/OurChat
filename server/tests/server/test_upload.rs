@@ -29,7 +29,6 @@ async fn test_upload() {
     let ret =
         UploadResponse::from_json(&user.lock().await.recv().await.unwrap().to_string()).unwrap();
     assert_eq!(ret.code, MessageType::UploadRes);
-    assert_eq!(ret.status, Status::Success);
     // post file
 
     app.async_drop().await;

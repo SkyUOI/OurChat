@@ -22,9 +22,8 @@ async fn test_session() {
     // get new session response
     let resp = user1.lock().await.recv().await.unwrap();
     let json: NewSessionResponse = serde_json::from_str(resp.to_text().unwrap()).unwrap();
-    assert_eq!(json.status, requests::Status::Success);
     assert_eq!(json.code, MessageType::NewSessionRes);
-    let session_id = json.session_id.unwrap();
+    let session_id = json.session_id;
     // verify user2 received the invite
     let resp = user2.lock().await.recv().await.unwrap();
     let json: InviteSession = serde_json::from_str(resp.to_text().unwrap()).unwrap();

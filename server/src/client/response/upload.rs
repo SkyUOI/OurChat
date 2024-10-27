@@ -1,32 +1,29 @@
 //! Upload Files
 
+use crate::client::response::ErrorMsgResponse;
 use crate::{client::requests::Status, consts};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UploadResponse {
     pub code: consts::MessageType,
-    pub status: Status,
-    pub key: Option<String>,
-    pub hash: Option<String>,
+    pub key: String,
+    pub hash: String,
 }
 
 impl UploadResponse {
     pub fn success(key: String, hash: String) -> Self {
         Self {
             code: consts::MessageType::UploadRes,
-            key: Some(key),
-            hash: Some(hash),
-            status: Status::Success,
+            key,
+            hash,
         }
     }
 
-    pub fn limited() -> Self {
-        Self {
-            code: consts::MessageType::UploadRes,
-            key: None,
-            hash: None,
-            status: Status::AccountLimitation,
-        }
+    pub fn limited() -> ErrorMsgResponse {
+        ErrorMsgResponse::new(
+            Status::AccountLimitation,
+            "Account Limitation Has Been Reached".to_string(),
+        )
     }
 }

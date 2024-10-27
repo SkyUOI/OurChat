@@ -4,8 +4,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RegisterResponse {
     pub code: MessageType,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub ocid: Option<String>,
+    pub ocid: String,
     pub status: Status,
 }
 
@@ -13,16 +12,8 @@ impl RegisterResponse {
     pub fn success(ocid: String) -> Self {
         Self {
             code: MessageType::RegisterRes,
-            ocid: Some(ocid),
+            ocid,
             status: Status::Success,
-        }
-    }
-
-    pub fn failed(status: Status) -> Self {
-        Self {
-            code: MessageType::RegisterRes,
-            ocid: None,
-            status,
         }
     }
 }

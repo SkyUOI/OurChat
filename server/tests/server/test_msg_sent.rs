@@ -23,7 +23,6 @@ async fn test_text_sent() {
     let resp =
         UserSendMsgResponse::from_json(a.lock().await.recv().await.unwrap().to_text().unwrap())
             .unwrap();
-    assert_eq!(resp.status, requests::Status::Success);
-    let msg_id = resp.msg_id.unwrap();
+    let msg_id = resp.msg_id;
     app.async_drop().await;
 }

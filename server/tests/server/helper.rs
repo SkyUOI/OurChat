@@ -144,7 +144,7 @@ impl TestUser {
         let json: response::RegisterResponse = serde_json::from_str(&ret.to_string()).unwrap();
         assert_eq!(json.status, requests::Status::Success);
         assert_eq!(json.code, MessageType::RegisterRes);
-        user.ocid = json.ocid.unwrap();
+        user.ocid = json.ocid;
         Ok(())
     }
 
@@ -183,7 +183,6 @@ impl TestUser {
         let ret = self.get_conn().next().await.unwrap()?;
         let json: UnregisterResponse = serde_json::from_str(ret.to_text()?)?;
         assert_eq!(json.code, MessageType::UnregisterRes);
-        assert_eq!(json.status, requests::Status::Success);
         Ok(())
     }
 

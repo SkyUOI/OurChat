@@ -8,21 +8,12 @@
 // #[derive(Debug, Serialize, Deserialize)]
 // pub struct xxxResponse {
 //     pub code: MessageType,
-//     pub status: Status,
 // }
 //
 // impl xxxResponse {
-//     pub fn success() -> Self {
+//     pub fn new() -> Self {
 //         Self {
 //             code: MessageType::AcceptSessionRes,
-//             status: Status::Success,
-//         }
-//     }
-//
-//     pub fn failed() -> Self {
-//         Self {
-//             code: MessageType::AcceptSessionRes,
-//             status: Status::AccountLimitation,
 //         }
 //     }
 // }

@@ -3,6 +3,8 @@
 use crate::{client::requests, consts};
 use serde::{Deserialize, Serialize};
 
+use super::ErrorMsgResponse;
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct VerifyResponse {
     pub code: consts::MessageType,
@@ -17,11 +19,8 @@ impl VerifyResponse {
         }
     }
 
-    pub fn email_cannot_be_sent() -> Self {
-        Self {
-            code: consts::MessageType::VerifyRes,
-            status: requests::Status::UnknownInstruction,
-        }
+    pub fn email_cannot_be_sent() -> ErrorMsgResponse {
+        ErrorMsgResponse::new(requests::Status::FeatureDisable, "Email Cannot Be Sent")
     }
 }
 

@@ -1,15 +1,19 @@
 use super::NetSender;
 use crate::{
     DbPool,
-    client::{MsgConvert, response},
+    client::{MsgConvert, requests, response},
     consts::{ID, OCID},
 };
 use anyhow::bail;
 use redis::AsyncCommands;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 
-pub async fn send_error_msg(sender: impl NetSender, msg: impl Into<String>) -> anyhow::Result<()> {
-    let error_resp = response::error_msg::ErrorMsgResponse::new(msg.into());
+pub async fn send_error_msg(
+    sender: impl NetSender,
+    status: requests::Status,
+    msg: impl Into<String>,
+) -> anyhow::Result<()> {
+    let error_resp = response::error_msg::ErrorMsgResponse::new(status, msg.into());
     sender.send(error_resp.to_msg()).await?;
     Ok(())
 }

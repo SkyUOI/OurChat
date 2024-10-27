@@ -35,18 +35,17 @@ async fn test_get_user_info() {
     let ret =
         GetAccountInfoResponse::from_json(&user.lock().await.get_text().await.unwrap()).unwrap();
     assert_eq!(ret.code, MessageType::GetAccountInfoRes);
-    assert_eq!(ret.status, requests::Status::Success);
     assert_eq!(
-        ret.data.as_ref().unwrap().get(&GetAccountValues::Ocid),
+        ret.data.get(&GetAccountValues::Ocid),
         Some(&serde_json::Value::String(user_ocid.clone()))
     );
     assert_eq!(
-        ret.data.as_ref().unwrap().get(&GetAccountValues::UserName),
+        ret.data.get(&GetAccountValues::UserName),
         Some(&serde_json::Value::String(user_name.clone()))
     );
     // don't have privileges
     assert_eq!(
-        ret.data.unwrap().get(&GetAccountValues::Email),
+        ret.data.get(&GetAccountValues::Email),
         Some(&serde_json::Value::Null)
     );
     // now have privileges
@@ -67,19 +66,19 @@ async fn test_get_user_info() {
     let ret =
         GetAccountInfoResponse::from_json(&user.lock().await.get_text().await.unwrap()).unwrap();
     assert_eq!(
-        ret.data.as_ref().unwrap().get(&GetAccountValues::Ocid),
+        ret.data.get(&GetAccountValues::Ocid),
         Some(&serde_json::Value::String(user_ocid.clone()))
     );
     assert_eq!(
-        ret.data.as_ref().unwrap().get(&GetAccountValues::UserName),
+        ret.data.get(&GetAccountValues::UserName),
         Some(&serde_json::Value::String(user_name.clone()))
     );
     assert_eq!(
-        ret.data.as_ref().unwrap().get(&GetAccountValues::Email),
+        ret.data.get(&GetAccountValues::Email),
         Some(&serde_json::Value::String(user_email.clone()))
     );
     assert_eq!(
-        ret.data.as_ref().unwrap().get(&GetAccountValues::Friends),
+        ret.data.get(&GetAccountValues::Friends),
         Some(&serde_json::Value::Array(vec![]))
     );
     // TODO:add display_name test
@@ -123,7 +122,6 @@ async fn test_set_user_info() {
     let ret =
         SetAccountInfoResponse::from_json(&user.lock().await.get_text().await.unwrap()).unwrap();
     assert_eq!(ret.code, MessageType::SetAccountInfoRes);
-    assert_eq!(ret.status, requests::Status::Success);
     // get name
     user.lock()
         .await
@@ -133,7 +131,7 @@ async fn test_set_user_info() {
     let ret =
         GetAccountInfoResponse::from_json(&user.lock().await.get_text().await.unwrap()).unwrap();
     assert_eq!(
-        ret.data.as_ref().unwrap().get(&GetAccountValues::UserName),
+        ret.data.get(&GetAccountValues::UserName),
         Some(&serde_json::Value::String(new_name.clone()))
     );
     app.async_drop().await;
@@ -174,10 +172,9 @@ async fn test_set_friend_info() {
         )
         .await
         .unwrap();
-    let ret =
-        SetAccountInfoResponse::from_json(&user.lock().await.get_text().await.unwrap()).unwrap();
-    assert_eq!(ret.code, MessageType::SetAccountInfoRes);
-    assert_eq!(ret.status, requests::Status::ServerError);
+    let ret = user.lock().await.get_text().await.unwrap();
+    let ret = ErrorMsgResponse::from_json(&ret).unwrap();
+    assert_eq!(ret.code, MessageType::ErrorMsg, "{:?}", ret);
     // add friend
     user2.lock().await.ocid_login().await.unwrap();
     app.async_drop().await;

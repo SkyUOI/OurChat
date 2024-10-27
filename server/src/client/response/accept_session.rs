@@ -10,17 +10,10 @@ pub struct AcceptSessionResponse {
 }
 
 impl AcceptSessionResponse {
-    pub fn success() -> Self {
+    pub fn new() -> Self {
         Self {
             code: MessageType::AcceptSessionRes,
             status: Status::Success,
-        }
-    }
-
-    pub fn failed() -> Self {
-        Self {
-            code: MessageType::AcceptSessionRes,
-            status: Status::AccountLimitation,
         }
     }
 }

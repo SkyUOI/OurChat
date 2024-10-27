@@ -1,7 +1,7 @@
 use crate::{
     client::{
         MsgConvert, requests,
-        response::{self, LoginResponse},
+        response::{ErrorMsgResponse, LoginResponse},
     },
     connection::{NetSender, UserInfo, VerifyStatus},
     utils,
@@ -10,15 +10,23 @@ use anyhow::Context;
 use argon2::{PasswordHash, PasswordVerifier};
 use sea_orm::{ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter};
 
+#[derive(Debug, thiserror::Error)]
+enum ErrorOfLogin {
+    #[error("wrong password")]
+    WrongPassword,
+    #[error("database error")]
+    DbError(#[from] sea_orm::DbErr),
+    #[error("unknown error")]
+    UnknownError(#[from] anyhow::Error),
+}
+
 #[derive::db_compatibility]
 pub async fn login(
     request: requests::LoginRequest,
     db_connection: &DatabaseConnection,
-) -> anyhow::Result<Result<(LoginResponse, UserInfo), requests::Status>> {
+) -> Result<(LoginResponse, UserInfo), ErrorOfLogin> {
     use entities::prelude::*;
     use entities::user::Column;
-    use requests::Status;
-    use response::login::Status;
     // Judge login type
     let user = match request.login_type {
         requests::LoginType::Email => {
@@ -45,32 +53,30 @@ pub async fn login(
                 .is_ok()
                 {
                     match request.login_type {
-                        requests::LoginType::Email => Ok(Ok((
-                            LoginResponse::success_email(user.ocid.clone()),
-                            UserInfo {
+                        requests::LoginType::Email => {
+                            Ok((LoginResponse::success_email(user.ocid.clone()), UserInfo {
                                 ocid: user.ocid,
                                 id: user.id.into(),
-                            },
-                        ))),
+                            }))
+                        }
                         requests::LoginType::Ocid => {
-                            Ok(Ok((LoginResponse::success_ocid(), UserInfo {
+                            Ok((LoginResponse::success_ocid(), UserInfo {
                                 ocid: user.ocid,
                                 id: user.id.into(),
-                            })))
+                            }))
                         }
                     }
                 } else {
-                    Ok(Err(Status!(WrongPassword)))
+                    Err(ErrorOfLogin::WrongPassword)
                 }
             }
-            None => Ok(Err(Status!(WrongPassword))),
+            None => Err(ErrorOfLogin::WrongPassword),
         },
         Err(e) => {
             if let DbErr::RecordNotFound(_) = e {
-                Ok(Err(Status!(WrongPassword)))
+                Err(ErrorOfLogin::WrongPassword)
             } else {
-                tracing::error!("database error:{}", e);
-                Ok(Err(Status::ServerError))
+                Err(e)?
             }
         }
     }
@@ -82,13 +88,25 @@ pub async fn login_request(
     login_data: requests::LoginRequest,
     db_conn: &DatabaseConnection,
 ) -> anyhow::Result<VerifyStatus> {
-    match login(login_data, db_conn).await? {
+    match login(login_data, db_conn).await {
         Ok(ok_resp) => {
             net_sender.send(ok_resp.0.to_msg()).await?;
             Ok(VerifyStatus::Success(ok_resp.1))
         }
         Err(e) => {
-            net_sender.send(LoginResponse::failed(e).to_msg()).await?;
+            match e {
+                ErrorOfLogin::WrongPassword => {
+                    net_sender
+                        .send(LoginResponse::wrong_password().to_msg())
+                        .await?;
+                }
+                e => {
+                    net_sender
+                        .send(ErrorMsgResponse::server_error("Database error when log in").to_msg())
+                        .await?;
+                    tracing::error!("{}", e);
+                }
+            }
             Ok(VerifyStatus::Fail)
         }
     }

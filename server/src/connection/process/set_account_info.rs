@@ -3,7 +3,7 @@ use crate::{
     client::{
         MsgConvert,
         requests::{self, set_account_info::CHANGE_PUBLIC_TIME},
-        response::SetAccountInfoResponse,
+        response::{ErrorMsgResponse, SetAccountInfoResponse},
     },
     connection::{NetSender, UserInfo},
     consts::ID,
@@ -18,22 +18,22 @@ pub async fn set_account_info(
     db_pool: &DbPool,
 ) -> anyhow::Result<()> {
     let response = match update_account(user_info.id, request_data, &db_pool.db_pool).await {
-        Ok(_) => SetAccountInfoResponse::success(),
+        Ok(_) => SetAccountInfoResponse::success().to_msg(),
         Err(SetError::Db(e)) => {
             tracing::error!("Database error: {}", e);
-            SetAccountInfoResponse::arg_error()
+            ErrorMsgResponse::server_error("Database error").to_msg()
         }
         Err(SetError::Type) => {
             tracing::error!("Type error");
-            SetAccountInfoResponse::server_error()
+            ErrorMsgResponse::server_error("Json format error").to_msg()
         }
         Err(SetError::Unknown(e)) => {
             tracing::error!("Unknown error: {}", e);
-            SetAccountInfoResponse::server_error()
+            ErrorMsgResponse::server_error("Unknown error").to_msg()
         }
     };
     net_sender
-        .send(response.to_msg())
+        .send(response)
         .await
         .map_err(|_| anyhow::anyhow!("Failed to send response"))?;
     Ok(())

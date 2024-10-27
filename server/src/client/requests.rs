@@ -41,16 +41,22 @@ pub enum Status {
     ServerError = 1,
     #[error("Maintaining")]
     Maintaining = 2,
-    #[error("Unknown Instruction")]
-    UnknownInstruction = 3,
-    #[error("Dup")]
-    Dup = 4,
-    #[error("Argument Error")]
-    ArgumentError = 5,
+    #[error("Request Info Not Found")]
+    RequestInfoNotFound = 3,
+    #[error("Info Exists")]
+    InfoExists = 4,
+    #[error("Argument or Instruction NotFound Error")]
+    ArgOrInstNotCorrectError,
     #[error("Account Limitation")]
     AccountLimitation = 6,
     #[error("Timeout")]
     Timeout = 7,
     #[error("Unknown Error")]
     UnknownError = 8,
+    #[error("Reject")]
+    RequestReject = 9,
+    #[error("Verify Failed")]
+    VerifyFailed = 10,
+    #[error("Feature Disable")]
+    FeatureDisable = 11,
 }

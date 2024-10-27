@@ -2,8 +2,8 @@ use crate::{
     DbPool,
     client::{
         MsgConvert,
-        requests::{Status, UserSendMsgRequest},
-        response::UserSendMsgResponse,
+        requests::UserSendMsgRequest,
+        response::{ErrorMsgResponse, UserSendMsgResponse},
     },
     connection::{NetSender, UserInfo},
     consts::{ID, MsgID},
@@ -18,15 +18,19 @@ pub async fn send_msg(
     db_pool: &DbPool,
 ) -> anyhow::Result<()> {
     let msg = serde_json::to_string(&request.bundle_msg).unwrap();
-    let ret = match insert_msg_record(user_info.id, request.session_id, msg, &db_pool.db_pool).await
-    {
-        Ok(msg_id) => UserSendMsgResponse::success(msg_id),
+    match insert_msg_record(user_info.id, request.session_id, msg, &db_pool.db_pool).await {
+        Ok(msg_id) => {
+            net_sender
+                .send(UserSendMsgResponse::success(msg_id).to_msg())
+                .await?
+        }
         Err(e) => {
             tracing::error!("Database error:{e}");
-            UserSendMsgResponse::failure(Status::ServerError)
+            net_sender
+                .send(ErrorMsgResponse::server_error("Database error").to_msg())
+                .await?
         }
     };
-    net_sender.send(ret.to_msg()).await?;
     Ok(())
 }
 

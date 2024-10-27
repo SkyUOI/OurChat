@@ -10,7 +10,7 @@ pub struct LoginResponse {
 }
 
 pub macro Status(WrongPassword) {
-    $crate::client::requests::Status::ArgumentError
+    $crate::client::requests::Status::VerifyFailed
 }
 
 impl LoginResponse {
@@ -30,11 +30,11 @@ impl LoginResponse {
         }
     }
 
-    pub fn failed(status: Status) -> Self {
+    pub fn wrong_password() -> Self {
         Self {
             code: MessageType::LoginRes,
             ocid: None,
-            status,
+            status: Status!(WrongPassword),
         }
     }
 }

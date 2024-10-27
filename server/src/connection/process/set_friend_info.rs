@@ -1,6 +1,10 @@
 use crate::{
     DbPool,
-    client::{MsgConvert, requests::SetFriendInfoRequest, response::SetAccountInfoResponse},
+    client::{
+        MsgConvert,
+        requests::SetFriendInfoRequest,
+        response::{ErrorMsgResponse, SetAccountInfoResponse},
+    },
     connection::{NetSender, UserInfo, basic::get_id},
     consts::ID,
 };
@@ -14,21 +18,21 @@ pub async fn set_friend_info(
     db_pool: &DbPool,
 ) -> anyhow::Result<()> {
     let ret = match update_friend(user_info.id, request, db_pool).await {
-        Ok(_) => SetAccountInfoResponse::success(),
+        Ok(_) => SetAccountInfoResponse::success().to_msg(),
         Err(SetError::Db(e)) => {
             tracing::error!("Database error: {}", e);
-            SetAccountInfoResponse::server_error()
+            ErrorMsgResponse::server_error("Database error").to_msg()
         }
         Err(SetError::Type) => {
             tracing::error!("Type format error");
-            SetAccountInfoResponse::arg_error()
+            ErrorMsgResponse::server_error("Json format error").to_msg()
         }
         Err(SetError::Unknown(e)) => {
             tracing::error!("Unknown error: {}", e);
-            SetAccountInfoResponse::server_error()
+            ErrorMsgResponse::server_error("Unknown error").to_msg()
         }
     };
-    net_sender.send(ret.to_msg()).await?;
+    net_sender.send(ret).await?;
     Ok(())
 }
 

@@ -130,7 +130,13 @@ async fn from_value<T: DeserializeOwned>(
         Ok(t) => Ok(Some(t)),
         Err(e) => {
             net_sender
-                .send(ErrorMsgResponse::new("wrong json structure".to_owned()).to_msg())
+                .send(
+                    ErrorMsgResponse::new(
+                        requests::Status::ArgOrInstNotCorrectError,
+                        "wrong json structure".to_owned(),
+                    )
+                    .to_msg(),
+                )
                 .await?;
             tracing::trace!("wrong json structure: {}", e);
             Ok(None)
@@ -251,7 +257,8 @@ impl<T: EmailSender> Connection<T> {
                     if let Err(e) = net_sender
                         .send(
                             response::ErrorMsgResponse::new(
-                                "Email has not been confirmed now".to_owned(),
+                                requests::Status::RequestReject,
+                                "Email has not been confirmed now",
                             )
                             .to_msg(),
                         )
@@ -291,8 +298,12 @@ impl<T: EmailSender> Connection<T> {
             match msg {
                 Message::Text(text) => {
                     let verify_failed = || async {
-                        basic::send_error_msg(net_send_closure, "Not login or register code")
-                            .await?;
+                        basic::send_error_msg(
+                            net_send_closure,
+                            requests::Status::ArgOrInstNotCorrectError,
+                            "Not login or register code",
+                        )
+                        .await?;
                         tracing::info!(
                             "Failed to login,msg is {:?},not login or register code",
                             text
@@ -431,8 +442,12 @@ impl<T: EmailSender> Connection<T> {
                         let (code, json) = match get_code(&msg) {
                             Ok(Some((code, json))) => (code, json),
                             _ => {
-                                basic::send_error_msg(net_sender_closure, "code is not correct")
-                                    .await?;
+                                basic::send_error_msg(
+                                    net_sender_closure,
+                                    requests::Status::ArgOrInstNotCorrectError,
+                                    "code is not correct",
+                                )
+                                .await?;
                                 continue 'con_loop;
                             }
                         };
@@ -578,6 +593,7 @@ impl<T: EmailSender> Connection<T> {
                             _ => {
                                 basic::send_error_msg(
                                     net_sender_closure,
+                                    requests::Status::ArgOrInstNotCorrectError,
                                     format!("Not a supported code {:?}", code),
                                 )
                                 .await?;

@@ -29,6 +29,7 @@ def postgres_test():
 
 def test_process() -> int:
     return_code = 0
+    os.putenv("RUST_LOG", "trace")
     # Run tests
     test_suite = sys.argv[1]
     if test_suite == "sqlite":

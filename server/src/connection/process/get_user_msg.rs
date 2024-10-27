@@ -19,7 +19,11 @@ pub async fn get_user_msg(
         }
         Err(e) => {
             tracing::error!("Database error:{e}");
-            ErrorMsgResponse::new("Database error".to_owned()).to_msg()
+            ErrorMsgResponse::new(
+                crate::client::requests::Status::ServerError,
+                "Database error",
+            )
+            .to_msg()
         }
     };
     net_sender.send(ret).await?;

@@ -1,5 +1,8 @@
 use crate::{
-    client::{MsgConvert, requests, response::RegisterResponse},
+    client::{
+        MsgConvert, requests,
+        response::{ErrorMsgResponse, RegisterResponse},
+    },
     connection::{NetSender, UserInfo, VerifyStatus},
     consts::{self, ID},
     shared_state, utils,
@@ -43,7 +46,7 @@ async fn add_new_user(
         }
         Err(e) => {
             if let DbErr::RecordNotInserted = e {
-                Ok(Err(requests::Status::Dup))
+                Ok(Err(requests::Status::InfoExists))
             } else {
                 tracing::error!("Database error:{e}");
                 Ok(Err(requests::Status::ServerError))
@@ -79,8 +82,9 @@ pub async fn register(
         }
         Err(e) => {
             net_sender
-                .send(RegisterResponse::failed(e).to_msg())
+                .send(ErrorMsgResponse::server_error("Database error").to_msg())
                 .await?;
+            tracing::error!("{}", e);
             Ok(VerifyStatus::Fail)
         }
     }
