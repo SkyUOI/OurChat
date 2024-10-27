@@ -19,12 +19,13 @@
     "ocid": "OCID",
     "password": "密码",
     "showPassword": "显示密码",
-    "nickname": "昵称",
+    "username": "昵称",
     "server_address": "服务器地址",
     "ws_port": "Websocket端口",
     "http_port": "Http端口",
     "reconnection_attempt": "尝试重连次数",
     "reconnection_interval": "重连间隔时间",
     "language": "语言",
-    "notWithinRange": "不在范围内({min}~{max})"
+    "notWithinRange": "不在范围内({min}~{max})",
+    "cantConnectToServer": "无法连接到服务器: {reason}"
 }

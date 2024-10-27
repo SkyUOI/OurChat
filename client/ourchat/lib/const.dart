@@ -23,3 +23,6 @@ const unknownErrorStatusCode = 8;
 // UI ID
 const joinUi = 0;
 const homeUi = 1;
+
+// Client Private Event
+const connectServerResponse = -1;

@@ -78,7 +78,7 @@ class _JoinState extends State<Join> {
 class JoinState extends ChangeNotifier {
   var account = "";
   var password = "";
-  var nickname = "";
+  var username = "";
   var showPassword = false;
   var errorText = "";
   var page = 0; // 0: login, 1: register
@@ -98,8 +98,25 @@ class JoinState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void connectToServer() {
+    ourchatAppState!.listen(connectServerResponse, connectResponse);
+    ourchatAppState!.connection!.connectToServer();
+  }
+
   void connectResponse(var data) {
-    ourchatAppState!.unlisten(serverStatusMsgCode, connectResponse);
+    ourchatAppState!.unlisten(connectServerResponse, connectResponse);
+    if (data["status"] == operationSuccessfulStatusCode) {
+      ourchatAppState!.listen(serverStatusMsgCode, getServerStatusResponse);
+      ourchatAppState!.connection!.send({"code": serverStatusMsgCode});
+    } else {
+      errorText =
+          AppLocalizations.of(context!)!.cantConnectToServer(data["msg"]);
+      notifyListeners();
+    }
+  }
+
+  void getServerStatusResponse(var data) {
+    ourchatAppState!.unlisten(serverStatusMsgCode, getServerStatusResponse);
     if (data["status"] == operationSuccessfulStatusCode) {
       if (page == 0) {
         login();
@@ -107,24 +124,16 @@ class JoinState extends ChangeNotifier {
         register();
       }
     } else if (data["status"] == serverErrorStatusCode) {
-      errorText = AppLocalizations.of(context!)!.serverError;
+      errorText = AppLocalizations.of(context!)!
+          .cantConnectToServer(AppLocalizations.of(context!)!.serverError);
     } else if (data["status"] == underMaintenanceStatusCode) {
-      errorText = AppLocalizations.of(context!)!.serverUnderMaintenance;
+      errorText = AppLocalizations.of(context!)!.cantConnectToServer(
+          AppLocalizations.of(context!)!.serverUnderMaintenance);
     } else {
-      errorText = AppLocalizations.of(context!)!.unknownError;
+      errorText = AppLocalizations.of(context!)!
+          .cantConnectToServer(AppLocalizations.of(context!)!.unknownError);
     }
     notifyListeners();
-  }
-
-  bool checkTextField() {
-    if (account.isEmpty || password.isEmpty) {
-      errorText = AppLocalizations.of(context!)!.cantBeEmpty;
-      notifyListeners();
-      return false;
-    }
-    errorText = "";
-    notifyListeners();
-    return true;
   }
 
   void login() {
@@ -233,66 +242,79 @@ class Login extends StatelessWidget {
     var joinState = context.watch<JoinState>();
     joinState.setPage(0);
     joinState.setContext(context);
+    var key = GlobalKey<FormState>();
     return Scaffold(
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          TextField(
-            decoration: InputDecoration(
-                labelText:
-                    "${AppLocalizations.of(context)!.email}/${AppLocalizations.of(context)!.ocid}"),
-            controller: TextEditingController(text: joinState.account),
-            onChanged: (value) {
-              joinState.account = value;
-            },
-          ),
-          TextField(
-            decoration: InputDecoration(
-              labelText: AppLocalizations.of(context)!.password,
+      body: Form(
+        key: key,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            TextFormField(
+              decoration: InputDecoration(
+                  labelText:
+                      "${AppLocalizations.of(context)!.email}/${AppLocalizations.of(context)!.ocid}"),
+              controller: TextEditingController(text: joinState.account),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return AppLocalizations.of(context)!.cantBeEmpty;
+                }
+                return null;
+              },
+              onChanged: (value) {
+                joinState.account = value;
+              },
             ),
-            controller: TextEditingController(text: joinState.password),
-            onChanged: (value) {
-              joinState.password = value;
-            },
-            obscureText: !joinState.showPassword,
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              GestureDetector(
-                child: Text(AppLocalizations.of(context)!.showPassword),
-                onTap: () {
-                  joinState.setPassword(!joinState.showPassword);
-                },
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context)!.password,
               ),
-              Checkbox(
-                  value: joinState.showPassword,
-                  onChanged: (value) {
-                    joinState.setPassword(value!);
-                  }),
-            ],
-          ),
-          Container(
-              margin: const EdgeInsets.only(top: 20),
-              child: ElevatedButton(
-                  onPressed: () {
-                    if (!joinState.checkTextField()) {
-                      return;
-                    }
-                    if (ourchatAppState.connection!.closed) {
-                      ourchatAppState.listen(
-                          serverStatusMsgCode, joinState.connectResponse);
-                      ourchatAppState.connection!.connectToServer();
-                    } else {
-                      joinState.login();
-                    }
+              controller: TextEditingController(text: joinState.password),
+              obscureText: !joinState.showPassword,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return AppLocalizations.of(context)!.cantBeEmpty;
+                }
+                return null;
+              },
+              onChanged: (value) {
+                joinState.password = value;
+              },
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                GestureDetector(
+                  child: Text(AppLocalizations.of(context)!.showPassword),
+                  onTap: () {
+                    joinState.setPassword(!joinState.showPassword);
                   },
-                  child: Text(AppLocalizations.of(context)!.login))),
-          Text(
-            joinState.errorText,
-            style: const TextStyle(color: Colors.red),
-          ),
-        ],
+                ),
+                Checkbox(
+                    value: joinState.showPassword,
+                    onChanged: (value) {
+                      joinState.setPassword(value!);
+                    }),
+              ],
+            ),
+            Container(
+                margin: const EdgeInsets.only(top: 20),
+                child: ElevatedButton(
+                    onPressed: () {
+                      if (key.currentState!.validate()) {
+                        if (ourchatAppState.connection!.closed) {
+                          joinState.connectToServer();
+                        } else {
+                          joinState.login();
+                        }
+                      }
+                    },
+                    child: Text(AppLocalizations.of(context)!.login))),
+            Text(
+              joinState.errorText,
+              style: const TextStyle(color: Colors.red),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -309,73 +331,88 @@ class Register extends StatelessWidget {
     var ourchatAppState = context.watch<OurchatAppState>();
     joinState.setContext(context);
     joinState.setPage(1);
+    var key = GlobalKey<FormState>();
     return Scaffold(
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          TextField(
-            decoration:
-                InputDecoration(labelText: AppLocalizations.of(context)!.email),
-            controller: TextEditingController(text: joinState.account),
-            onChanged: (value) {
-              joinState.account = value;
-            },
-          ),
-          TextField(
-            decoration: InputDecoration(
-                labelText: AppLocalizations.of(context)!.nickname),
-            controller: TextEditingController(text: joinState.nickname),
-            onChanged: (value) {
-              joinState.nickname = value;
-            },
-          ),
-          TextField(
-            decoration: InputDecoration(
-              labelText: AppLocalizations.of(context)!.password,
-            ),
-            controller: TextEditingController(text: joinState.password),
-            onChanged: (value) {
-              joinState.password = value;
-            },
-            obscureText: !joinState.showPassword,
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              GestureDetector(
-                child: Text(AppLocalizations.of(context)!.showPassword),
-                onTap: () {
-                  joinState.setPassword(!joinState.showPassword);
-                },
+      body: Form(
+        key: key,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context)!.username,
               ),
-              Checkbox(
-                  value: joinState.showPassword,
-                  onChanged: (value) {
-                    joinState.setPassword(value!);
-                  }),
-            ],
-          ),
-          Container(
-              margin: const EdgeInsets.only(top: 20),
-              child: ElevatedButton(
-                  onPressed: () {
-                    if (!joinState.checkTextField()) {
-                      return;
-                    }
-                    if (ourchatAppState.connection!.closed) {
-                      ourchatAppState.listen(
-                          serverStatusMsgCode, joinState.connectResponse);
-                      ourchatAppState.connection!.connectToServer();
-                    } else {
-                      joinState.register();
-                    }
+              controller: TextEditingController(text: joinState.username),
+              onChanged: (value) {
+                joinState.username = value;
+              },
+            ),
+            TextFormField(
+              decoration: InputDecoration(
+                  labelText:
+                      "${AppLocalizations.of(context)!.email}/${AppLocalizations.of(context)!.ocid}"),
+              controller: TextEditingController(text: joinState.account),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return AppLocalizations.of(context)!.cantBeEmpty;
+                }
+                return null;
+              },
+              onChanged: (value) {
+                joinState.account = value;
+              },
+            ),
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context)!.password,
+              ),
+              controller: TextEditingController(text: joinState.password),
+              obscureText: !joinState.showPassword,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return AppLocalizations.of(context)!.cantBeEmpty;
+                }
+                return null;
+              },
+              onChanged: (value) {
+                joinState.password = value;
+              },
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                GestureDetector(
+                  child: Text(AppLocalizations.of(context)!.showPassword),
+                  onTap: () {
+                    joinState.setPassword(!joinState.showPassword);
                   },
-                  child: Text(AppLocalizations.of(context)!.register))),
-          Text(
-            joinState.errorText,
-            style: const TextStyle(color: Colors.red),
-          ),
-        ],
+                ),
+                Checkbox(
+                    value: joinState.showPassword,
+                    onChanged: (value) {
+                      joinState.setPassword(value!);
+                    }),
+              ],
+            ),
+            Container(
+                margin: const EdgeInsets.only(top: 20),
+                child: ElevatedButton(
+                    onPressed: () {
+                      if (key.currentState!.validate()) {
+                        if (ourchatAppState.connection!.closed) {
+                          joinState.connectToServer();
+                        } else {
+                          joinState.register();
+                        }
+                      }
+                    },
+                    child: Text(AppLocalizations.of(context)!.register))),
+            Text(
+              joinState.errorText,
+              style: const TextStyle(color: Colors.red),
+            ),
+          ],
+        ),
       ),
     );
   }

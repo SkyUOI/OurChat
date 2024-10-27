@@ -73,9 +73,9 @@
     "@showPassword": {
         "description": "Show password"
     },
-    "nickname": "Nickname",
-    "@nickname": {
-        "description": "Nickname"
+    "username": "username",
+    "@username": {
+        "description": "username"
     },
     "server_address": "Server Address",
     "@server_address": {
@@ -103,12 +103,22 @@
     },
     "notWithinRange": "not Within the Range of {min} to {max}",
     "@notWithinRange": {
+        "description": "not Within the Range of {min} to {max}",
         "placeholders": {
             "min": {
                 "type": "num"
             },
             "max": {
                 "type": "num"
+            }
+        }
+    },
+    "cantConnectToServer": "Cannot connect to the server: {reason}",
+    "@cantConnectToServer": {
+        "description": "Cannot connect to the server:{reason}",
+        "placeholders": {
+            "reason": {
+                "type": "String"
             }
         }
     }

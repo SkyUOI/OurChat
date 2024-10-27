@@ -1,9 +1,11 @@
 import 'dart:convert';
-import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:web_socket_channel/io.dart';
 import 'const.dart';
+import 'dart:io';
 
 class OurchatConnection {
-  WebSocketChannel? channel;
+  WebSocket? connection;
+  IOWebSocketChannel? channel;
   Function? responseFunc;
   bool closed = true;
   String uri = "ws://localhost:7777";
@@ -16,21 +18,30 @@ class OurchatConnection {
     uri = "ws://$ip:$port";
   }
 
-  void connectToServer() {
+  void connectToServer() async {
     if (!closed) {
       close();
     }
-    channel = WebSocketChannel.connect(Uri.parse(uri));
-    channel!.ready.then((_) => already());
-  }
-
-  void already() {
-    channel!.stream.listen((event) {
-      var data = jsonDecode(event);
-      responseFunc!(data);
-    });
-    closed = false;
-    send({"code": serverStatusMsgCode});
+    try {
+      connection = await WebSocket.connect(uri);
+      channel = IOWebSocketChannel(connection!);
+      channel!.ready.then((_) {
+        closed = false;
+        channel!.stream.listen((data) {
+          responseFunc!(jsonDecode(data));
+        });
+        responseFunc!({
+          "code": connectServerResponse,
+          "status": operationSuccessfulStatusCode
+        });
+      });
+    } catch (e) {
+      responseFunc!({
+        "code": connectServerResponse,
+        "status": unknownErrorStatusCode,
+        "msg": e.toString()
+      });
+    }
   }
 
   void send(var data) {

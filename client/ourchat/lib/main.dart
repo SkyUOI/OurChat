@@ -18,9 +18,9 @@ class OurchatAppState extends ChangeNotifier {
   List listenQueue = [
     // {"code":0,"func":func}
   ];
-  int where = homeUi;
+  int where = joinUi;
   /*
-    0: login
+    0: join
     1: home
   */
   OurchatConfig? config;
@@ -28,19 +28,19 @@ class OurchatAppState extends ChangeNotifier {
   void init() {
     config = OurchatConfig();
     config!.loadConfig();
-    connection = OurchatConnection(dealWithMessage);
+    connection = OurchatConnection(dealWithEvent);
     connection!
         .setAddress(config!.data!["server_address"], config!.data!["ws_port"]);
   }
 
-  void dealWithMessage(var messageData) {
+  void dealWithEvent(var data) {
     var tmp = [];
     for (var pair in listenQueue) {
       tmp.add(pair);
     }
     for (var pair in tmp) {
-      if (pair["code"] == messageData["code"]) {
-        pair["func"](messageData);
+      if (pair["code"] == data["code"]) {
+        pair["func"](data);
       }
     }
   }
@@ -105,3 +105,8 @@ class Controller extends StatelessWidget {
     );
   }
 }
+
+// refactor connect
+// rename dealWithMessage to dealWithEvent
+// refactor join
+// rename nickname to username
