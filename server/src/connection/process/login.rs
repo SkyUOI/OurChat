@@ -4,6 +4,7 @@ use crate::{
         response::{ErrorMsgResponse, LoginResponse},
     },
     connection::{NetSender, UserInfo, VerifyStatus},
+    entities::{prelude::*, user},
     utils,
 };
 use anyhow::Context;
@@ -20,24 +21,21 @@ enum ErrorOfLogin {
     UnknownError(#[from] anyhow::Error),
 }
 
-#[derive::db_compatibility]
 pub async fn login(
     request: requests::LoginRequest,
     db_connection: &DatabaseConnection,
 ) -> Result<(LoginResponse, UserInfo), ErrorOfLogin> {
-    use entities::prelude::*;
-    use entities::user::Column;
     // Judge login type
     let user = match request.login_type {
         requests::LoginType::Email => {
             User::find()
-                .filter(Column::Email.eq(request.account))
+                .filter(user::Column::Email.eq(request.account))
                 .one(db_connection)
                 .await
         }
         requests::LoginType::Ocid => {
             User::find()
-                .filter(Column::Ocid.eq(request.account))
+                .filter(user::Column::Ocid.eq(request.account))
                 .one(db_connection)
                 .await
         }

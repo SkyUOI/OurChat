@@ -5,6 +5,7 @@ use crate::{
     },
     connection::response::UploadResponse,
     consts::{Bt, ID},
+    entities::{prelude::*, user},
     shared_state,
     utils::generate_random_string,
 };
@@ -23,14 +24,12 @@ fn generate_key_name(hash: &str) -> String {
     format!("{}{}", prefix, hash)
 }
 
-#[derive::db_compatibility]
 pub async fn add_file_record(
     id: ID,
     sz: Bt,
     db_connection: &DatabaseConnection,
 ) -> anyhow::Result<requests::Status> {
-    use entities::user;
-    let user_info = match user::Entity::find_by_id(id).one(db_connection).await? {
+    let user_info = match User::find_by_id(id).one(db_connection).await? {
         Some(user) => user,
         None => {
             return Ok(requests::Status::ServerError);

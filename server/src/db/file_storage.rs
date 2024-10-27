@@ -1,12 +1,15 @@
 //! Manage the file storage
 
-use crate::{ShutdownRev, consts::ID, shared_state};
-use derive::db_compatibility;
+use crate::{
+    ShutdownRev,
+    consts::ID,
+    entities::{files, prelude::*},
+    shared_state,
+};
 use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use std::{fs::exists, time::Duration};
 use tokio::{
     fs::{File, remove_file},
-    io::AsyncWriteExt,
     select,
     time::{Instant, sleep_until},
 };
@@ -35,23 +38,18 @@ impl FileSys {
         tokio::spawn(async move {
             select! {
                 _ = auto_clean_files(db_conn_clone) => {}
-                _ = shutdown_receiver.recv() => {}
+                _ = shutdown_receiver.wait_shutdowning() => {}
             }
         });
     }
 }
 
-#[db_compatibility]
 pub async fn clean_files(db_conn: &mut DatabaseConnection) -> anyhow::Result<()> {
-    use entities::files;
     // Query the file first
     let del_time =
         chrono::Utc::now() - chrono::Duration::days(shared_state::get_file_save_days() as i64);
     let cond = files::Column::Date.lt(del_time.timestamp());
-    let files = files::Entity::find()
-        .filter(cond.clone())
-        .all(db_conn)
-        .await?;
+    let files = Files::find().filter(cond.clone()).all(db_conn).await?;
     for i in files {
         match remove_file(i.path).await {
             Ok(_) => {}
@@ -91,24 +89,22 @@ pub enum AddFileError {
     InternalIOError(#[from] std::io::Error),
 }
 
-#[db_compatibility]
 pub async fn add_file(
     key: &str,
     auto_clean: bool,
     user_id: ID,
     db_conn: &DatabaseConnection,
 ) -> Result<File, AddFileError> {
-    use entities::files;
     let timestamp = chrono::Utc::now().timestamp();
     let path = format!("{}/{}", "files_storage", key);
     let file = files::ActiveModel {
         key: sea_orm::Set(key.to_string()),
         path: sea_orm::Set(path.to_string()),
-        date: sea_orm::Set(timestamp.try_into().unwrap()),
-        auto_clean: sea_orm::Set(auto_clean.into()),
+        date: sea_orm::Set(timestamp),
+        auto_clean: sea_orm::Set(auto_clean),
         user_id: sea_orm::Set(user_id.into()),
     };
     file.insert(db_conn).await?;
-    let mut f = File::create(&path).await?;
+    let f = File::create(&path).await?;
     Ok(f)
 }

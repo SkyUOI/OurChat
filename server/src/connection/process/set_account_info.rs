@@ -7,8 +7,8 @@ use crate::{
     },
     connection::{NetSender, UserInfo},
     consts::ID,
+    entities::user,
 };
-use derive::db_compatibility;
 use sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection};
 
 pub async fn set_account_info(
@@ -49,14 +49,11 @@ enum SetError {
     Unknown(#[from] anyhow::Error),
 }
 
-#[db_compatibility]
 async fn update_account(
     id: ID,
     request_data: requests::SetAccountRequest,
     db_conn: &DatabaseConnection,
 ) -> Result<(), SetError> {
-    use entities::user;
-
     let mut user = user::ActiveModel {
         id: ActiveValue::Set(id.into()),
         ..Default::default()

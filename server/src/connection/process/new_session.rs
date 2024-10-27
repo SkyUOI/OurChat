@@ -8,6 +8,7 @@ use crate::{
     component::EmailSender,
     connection::{NetSender, UserInfo, basic::get_id},
     consts::{ID, OCID, SessionID},
+    entities::{friend, operations, prelude::*, session, session_relation},
     utils,
 };
 use anyhow::Context;
@@ -25,14 +26,12 @@ pub enum ErrorOfSession {
     UnknownError(#[from] anyhow::Error),
 }
 
-#[derive::db_compatibility]
 pub async fn create_session(
     session_id: SessionID,
     people_num: usize,
     session_name: String,
     db_conn: &DatabaseConnection,
 ) -> Result<Result<(), requests::Status>, ErrorOfSession> {
-    use entities::session;
     let session = session::ActiveModel {
         session_id: ActiveValue::Set(session_id.into()),
         name: ActiveValue::Set(session_name),
@@ -42,14 +41,11 @@ pub async fn create_session(
     Ok(Ok(()))
 }
 
-#[derive::db_compatibility]
 pub async fn whether_to_verify(
     sender: ID,
     invitee: ID,
     db_conn: &DbPool,
 ) -> Result<bool, ErrorOfSession> {
-    use entities::friend;
-    use entities::prelude::*;
     let sender: u64 = sender.into();
     let invitee: u64 = invitee.into();
     let friend = Friend::find()
@@ -161,18 +157,16 @@ pub async fn send_verification_request(
     Ok(())
 }
 
-#[derive::db_compatibility]
 async fn save_invitation_to_db(
     id: ID,
     operation: String,
     expiresat: TimeStamp,
     db_conn: &DbPool,
 ) -> anyhow::Result<()> {
-    use entities::operations;
     let oper = operations::ActiveModel {
         id: ActiveValue::Set(id.into()),
         operation: ActiveValue::Set(operation),
-        once: ActiveValue::Set(true.into()),
+        once: ActiveValue::Set(true),
         expires_at: ActiveValue::Set(expiresat),
         ..Default::default()
     };
@@ -180,14 +174,11 @@ async fn save_invitation_to_db(
     Ok(())
 }
 
-#[derive::db_compatibility]
 pub async fn add_to_session(
     db_conn: &DatabaseConnection,
     session_id: SessionID,
     id: ID,
 ) -> anyhow::Result<()> {
-    use entities::prelude::*;
-    use entities::session_relation;
     let session_relation = session_relation::ActiveModel {
         user_id: ActiveValue::Set(id.into()),
         session_id: ActiveValue::Set(session_id.into()),

@@ -15,19 +15,15 @@ use server::client::requests::{self, LoginRequest, LoginType, RegisterRequest, U
 use server::client::response::{self, UnregisterResponse};
 use server::component::MockEmailSender;
 use server::consts::{MessageType, SessionID};
-use server::db::{DbCfg, DbCfgTrait, DbType};
+use server::db::DbCfgTrait;
 use server::utils::{self, gen_ws_bind_addr};
 use server::{Application, ArgsParser, DbPool, ParserCfg, SharedData, ShutdownSdr, connection};
 use sqlx::migrate::MigrateDatabase;
 use std::collections::HashSet;
-use std::path::PathBuf;
-use std::rc::Rc;
 use std::sync::{Arc, LazyLock};
 use std::thread;
 use std::time::Duration;
-use tokio::fs::remove_file;
 use tokio::net::TcpStream;
-use tokio::task::JoinHandle;
 use tokio_tungstenite::WebSocketStream;
 use tokio_tungstenite::tungstenite::Message;
 
@@ -249,15 +245,15 @@ async fn establish_connection_internal(port: u16) -> anyhow::Result<ClientWS> {
     Ok(connection.unwrap())
 }
 
+#[derive(Clone)]
 pub struct TestApp {
     pub port: u16,
     pub http_port: u16,
-    pub handle: JoinHandle<()>,
     pub db_url: String,
     pub app_shared: Arc<SharedData<MockEmailSender>>,
     pub db_pool: DbPool,
     pub http_client: reqwest::Client,
-    owned_users: Vec<Rc<tokio::sync::Mutex<TestUser>>>,
+    owned_users: Vec<Arc<tokio::sync::Mutex<TestUser>>>,
 
     server_config: server::Cfg,
     has_dropped: bool,
@@ -283,7 +279,7 @@ impl TestAppTrait for ArgsParser {
     }
 }
 
-pub type TestUserShared = Rc<tokio::sync::Mutex<TestUser>>;
+pub type TestUserShared = Arc<tokio::sync::Mutex<TestUser>>;
 
 pub struct TestSession {
     pub session_id: SessionID,
@@ -301,18 +297,9 @@ impl TestApp {
         let server_config = server::get_configuration(args.shared_cfg.config.as_ref())?;
         let mut server_config = server::Cfg::new(server_config)?;
         // should create different database for each test
-        let db_url;
         let db = uuid::Uuid::new_v4().to_string();
-        match &mut server_config.db_cfg {
-            DbCfg::Sqlite(cfg) => {
-                cfg.path = PathBuf::from(format!(".{}.db", db));
-                db_url = cfg.url();
-            }
-            DbCfg::Postgres(postgres_db_cfg) => {
-                postgres_db_cfg.db = db;
-                db_url = postgres_db_cfg.url();
-            }
-        }
+        server_config.db_cfg.db = db;
+        let db_url = server_config.db_cfg.url();
         let mut application = Application::build(args, server_config.clone(), email_client).await?;
         let port = application.get_port();
         let http_port = application.get_http_port();
@@ -320,18 +307,17 @@ impl TestApp {
         let shared = application.shared.clone();
         let db_pool = application.pool.clone();
 
-        let handle = tokio::spawn(async move {
+        tokio::spawn(async move {
             application.run_forever().await.unwrap();
         });
 
         let obj = TestApp {
             port,
             http_port,
-            handle,
             db_url,
             server_config,
-            has_dropped: false,
             server_drop_handle: abort_handle,
+            has_dropped: false,
             app_shared: shared,
             owned_users: vec![],
             http_client: reqwest::Client::builder()
@@ -347,32 +333,15 @@ impl TestApp {
         for i in &self.owned_users {
             i.lock().await.async_drop().await;
         }
-        self.server_drop_handle.send(()).unwrap();
+        self.server_drop_handle.shutdown_all_tasks().await.unwrap();
         tracing::info!("shutdown message sent");
-        loop {
-            if self.handle.is_finished() {
-                break;
-            }
-            tokio::time::sleep(Duration::from_millis(100)).await;
-        }
+
         tracing::info!("app shutdowned");
-        match self.server_config.main_cfg.db_type {
-            DbType::Sqlite => {
-                sqlx::Sqlite::drop_database(&self.db_url).await.unwrap();
-                let mut path = PathBuf::from(&self.db_url.strip_prefix("sqlite://").unwrap());
-                path.set_extension("db-shm");
-                remove_file(&path).await.ok();
-                path.set_extension("db-wal");
-                remove_file(&path).await.ok();
-            }
-            DbType::Postgres => {
-                tokio::time::sleep(Duration::from_secs(1)).await;
-                match sqlx::Postgres::drop_database(&self.db_url).await {
-                    Ok(_) => {}
-                    Err(e) => {
-                        tracing::warn!("failed to drop database: {}", e);
-                    }
-                }
+        tokio::time::sleep(Duration::from_secs(1)).await;
+        match sqlx::Postgres::drop_database(&self.db_url).await {
+            Ok(_) => {}
+            Err(e) => {
+                tracing::error!("failed to drop database: {}", e);
             }
         }
         tracing::info!("db deleted");
@@ -390,7 +359,7 @@ impl TestApp {
     }
 
     pub async fn new_user(&mut self) -> anyhow::Result<TestUserShared> {
-        let user = Rc::new(tokio::sync::Mutex::new(TestUser::random(self).await));
+        let user = Arc::new(tokio::sync::Mutex::new(TestUser::random(self).await));
         user.lock().await.close_connection().await;
         user.lock().await.establish_connection().await?;
         self.owned_users.push(user.clone());
@@ -398,7 +367,7 @@ impl TestApp {
     }
 
     pub async fn new_user_logined(&mut self) -> anyhow::Result<TestUserShared> {
-        let user = Rc::new(tokio::sync::Mutex::new(TestUser::random(self).await));
+        let user = Arc::new(tokio::sync::Mutex::new(TestUser::random(self).await));
         self.owned_users.push(user.clone());
         Ok(user)
     }
@@ -420,17 +389,22 @@ impl TestApp {
         n: usize,
         name: impl Into<String>,
     ) -> anyhow::Result<(Vec<TestUserShared>, TestSession)> {
-        let users = vec![self.new_user_logined().await?; n];
+        let mut users = Vec::with_capacity(n);
+        for _ in 0..n {
+            users.push(self.new_user_logined().await?);
+        }
         // create a group in database level
         let session_id = utils::generate_session_id()?;
         connection::db::create_session(session_id, n, name.into(), &self.db_pool.db_pool)
             .await?
             .unwrap();
+        tracing::info!("create session:{}", session_id);
         let mut id_vec = vec![];
         for i in &users {
             let id = connection::db::get_id(&i.lock().await.ocid, &self.db_pool).await?;
             id_vec.push(id);
         }
+        tracing::debug!("id:{:?}", id_vec);
         server::connection::db::batch_add_to_session(&self.db_pool.db_pool, session_id, &id_vec)
             .await?;
         Ok((users, TestSession::new(session_id)))

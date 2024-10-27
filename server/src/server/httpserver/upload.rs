@@ -1,15 +1,10 @@
 use crate::{consts::ID, db::file_storage};
 use actix_multipart::form::MultipartForm;
-use actix_web::{
-    HttpRequest, HttpResponse, Responder, post,
-    web::{self, Data},
-};
+use actix_web::{HttpRequest, HttpResponse, Responder, post, web::Data};
 use dashmap::DashMap;
-use futures_util::StreamExt;
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
-use sha3::{Digest, Sha3_256 as Sha256};
-use tokio::{io::AsyncWriteExt, sync::mpsc};
+use tokio::sync::mpsc;
 
 use super::FileUploadForm;
 

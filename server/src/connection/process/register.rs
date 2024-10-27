@@ -5,25 +5,24 @@ use crate::{
     },
     connection::{NetSender, UserInfo, VerifyStatus},
     consts::{self, ID},
+    entities::user,
     shared_state, utils,
 };
 use argon2::{Params, PasswordHasher, password_hash::SaltString};
 use sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection, DbErr};
 use snowdon::ClassicLayoutSnowflakeExtension;
 
-#[derive::db_compatibility]
 async fn add_new_user(
     request: requests::RegisterRequest,
     db_connection: &DatabaseConnection,
 ) -> anyhow::Result<Result<(RegisterResponse, UserInfo), requests::Status>> {
-    use entities::user::ActiveModel as UserModel;
     // Generate snowflake id
     let id = ID(utils::GENERATOR.generate()?.into_i64().try_into()?);
     // Generate ocid by random
     let ocid = utils::generate_ocid(consts::OCID_LEN);
     let passwd = request.password;
     let passwd = utils::spawn_blocking_with_tracing(move || compute_password_hash(&passwd)).await?;
-    let user = UserModel {
+    let user = user::ActiveModel {
         id: ActiveValue::Set(id.into()),
         ocid: ActiveValue::Set(ocid),
         passwd: ActiveValue::Set(passwd),

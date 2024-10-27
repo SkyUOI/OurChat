@@ -1,6 +1,5 @@
 use crate::consts::{self, FileSize};
 use parking_lot::{Mutex, RwLock};
-use static_keys::{define_static_key_false, static_branch_unlikely};
 
 static AUTO_CLEAN_DURATION: Mutex<u64> = Mutex::new(consts::default_clear_interval());
 static FILE_SAVE_DAYS: Mutex<u64> = Mutex::new(consts::default_file_save_days());
@@ -26,24 +25,16 @@ pub fn set_file_save_days(days: u64) {
     tracing::info!("set file_save_days: {}", days);
 }
 
-define_static_key_false!(MAINTAINING);
-static MAINTAINING_PROTECTION: RwLock<bool> = RwLock::new(false);
+static MAINTAINING: RwLock<bool> = RwLock::new(false);
 
 pub fn get_maintaining() -> bool {
-    let _lock = MAINTAINING_PROTECTION.read();
-    static_branch_unlikely!(MAINTAINING)
+    *MAINTAINING.read()
 }
 
 pub fn set_maintaining(maintaining: bool) {
-    let _lock = MAINTAINING_PROTECTION.write();
-    unsafe {
-        if maintaining {
-            MAINTAINING.enable();
-        } else {
-            MAINTAINING.disable();
-        }
-        tracing::info!("set maintaining: {}", maintaining);
-    }
+    let mut lock = MAINTAINING.write();
+    *lock = maintaining;
+    tracing::info!("set maintaining: {}", maintaining);
 }
 
 pub fn get_user_files_store_limit() -> FileSize {

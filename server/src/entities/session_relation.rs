@@ -3,13 +3,13 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "user_chat_msg")]
+#[sea_orm(table_name = "session_relation")]
 pub struct Model {
-    #[sea_orm(primary_key)]
-    pub chat_msg_id: i32,
-    pub msg_data: String,
-    pub sender_id: i64,
+    #[sea_orm(primary_key, auto_increment = false)]
     pub session_id: i64,
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub user_id: i64,
+    pub display_name: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -24,7 +24,7 @@ pub enum Relation {
     Session,
     #[sea_orm(
         belongs_to = "super::user::Entity",
-        from = "Column::SenderId",
+        from = "Column::UserId",
         to = "super::user::Column::Id",
         on_update = "NoAction",
         on_delete = "NoAction"

@@ -58,4 +58,13 @@ impl Related<super::user_chat_msg::Entity> for Entity {
     }
 }
 
+impl Related<super::session::Entity> for Entity {
+    fn to() -> RelationDef {
+        super::session_relation::Relation::Session.def()
+    }
+    fn via() -> Option<RelationDef> {
+        Some(super::session_relation::Relation::User.def().rev())
+    }
+}
+
 impl ActiveModelBehavior for ActiveModel {}

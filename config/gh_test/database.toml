@@ -1,0 +1,5 @@
+host = "localhost"
+user = "postgres"
+passwd = "123456"
+db = "OurChat"
+port = 5432

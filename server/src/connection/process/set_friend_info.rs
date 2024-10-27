@@ -7,8 +7,8 @@ use crate::{
     },
     connection::{NetSender, UserInfo, basic::get_id},
     consts::ID,
+    entities::{friend, prelude::*},
 };
-use derive::db_compatibility;
 use sea_orm::{ActiveModelTrait, ActiveValue};
 
 pub async fn set_friend_info(
@@ -46,15 +46,11 @@ enum SetError {
     Unknown(#[from] anyhow::Error),
 }
 
-#[db_compatibility]
 async fn update_friend(
     id: ID,
     request: SetFriendInfoRequest,
     db_conn: &DbPool,
 ) -> Result<(), SetError> {
-    use entities::friend;
-    use entities::prelude::*;
-
     let mut friend = friend::ActiveModel {
         user_id: ActiveValue::Set(id.into()),
         friend_id: ActiveValue::Set(get_id(&request.ocid, db_conn).await?.into()),

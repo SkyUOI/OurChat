@@ -2,7 +2,7 @@ use crate::helper;
 use server::client::{MsgConvert, requests::GetStatus, response::get_status::GetStatusResponse};
 
 #[tokio::test]
-async fn test_status() {
+async fn test_status_ws() {
     let mut app = helper::TestApp::new(None).await.unwrap();
     let user = app.new_user_logined().await.unwrap();
     let req = GetStatus::new();

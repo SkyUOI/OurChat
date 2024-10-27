@@ -6,7 +6,6 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        let db_type = manager.get_database_backend();
         manager
             .create_table(
                 Table::create()
@@ -74,7 +73,6 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(big_unsigned(SessionRelation::SessionId))
                     .col(big_unsigned(SessionRelation::UserId))
-                    .col(pk_auto(SessionRelation::RelationIdx))
                     .col(string_len(SessionRelation::DisplayName, 200).default(Expr::value("")))
                     .foreign_key(
                         ForeignKey::create()
@@ -85,6 +83,11 @@ impl MigrationTrait for Migration {
                         ForeignKey::create()
                             .from(SessionRelation::Table, SessionRelation::SessionId)
                             .to(Session::Table, Session::SessionId),
+                    )
+                    .primary_key(
+                        Index::create()
+                            .col(SessionRelation::SessionId)
+                            .col(SessionRelation::UserId),
                     )
                     .to_owned(),
             )
@@ -102,6 +105,10 @@ impl MigrationTrait for Migration {
                     .col(string_len(UserChatMsg::MsgData, 8000))
                     .col(big_unsigned(UserChatMsg::SenderId))
                     .col(big_unsigned(UserChatMsg::SessionId))
+                    .col(
+                        timestamp_with_time_zone(UserChatMsg::Time)
+                            .default(Expr::current_timestamp()),
+                    )
                     .foreign_key(
                         ForeignKey::create()
                             .from(UserChatMsg::Table, UserChatMsg::SenderId)
@@ -166,7 +173,6 @@ enum Friend {
 #[derive(DeriveIden)]
 enum SessionRelation {
     Table,
-    RelationIdx,
     SessionId,
     UserId,
     DisplayName,
@@ -188,4 +194,5 @@ enum UserChatMsg {
     MsgData,
     SenderId,
     SessionId,
+    Time,
 }

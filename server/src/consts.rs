@@ -6,8 +6,6 @@ use serde::{Deserialize, Serialize, Serializer};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 use std::{fmt::Display, io::IsTerminal, str::FromStr, sync::LazyLock};
 
-use crate::db::DbType;
-
 /// OCID Length
 pub const OCID_LEN: usize = 10;
 
@@ -56,8 +54,6 @@ pub fn default_ip() -> String {
 pub const DEFAULT_PORT: u16 = 7777;
 /// http server default port
 pub const DEFAULT_HTTP_PORT: u16 = 7778;
-/// default database type
-pub const DB_TYPE: DbType = DbType::Postgres;
 pub const APP_NAME: &str = "OurChat";
 
 // define ID type to fit many types of databases

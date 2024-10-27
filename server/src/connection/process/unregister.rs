@@ -4,6 +4,7 @@ use crate::{
         response::{ErrorMsgResponse, UnregisterResponse},
     },
     consts::ID,
+    entities::{prelude::*, session_relation, user, user_chat_msg},
 };
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
@@ -20,13 +21,11 @@ enum ErrorOfUnregister {
 }
 
 /// Remove user from database
-#[derive::db_compatibility]
 async fn remove_account(
     id: ID,
     db_connection: &DatabaseConnection,
 ) -> Result<(), ErrorOfUnregister> {
-    use entities::user::ActiveModel as UserModel;
-    let user = UserModel {
+    let user = user::ActiveModel {
         id: ActiveValue::Set(id.into()),
         ..Default::default()
     };
@@ -35,28 +34,24 @@ async fn remove_account(
 }
 
 /// Remove all session related to the user
-#[derive::db_compatibility]
 async fn remove_session_record(
     id: ID,
     db_conn: &DatabaseConnection,
 ) -> Result<(), ErrorOfUnregister> {
-    use entities::session_relation;
     let id: u64 = id.into();
-    session_relation::Entity::delete_many()
+    SessionRelation::delete_many()
         .filter(session_relation::Column::UserId.eq(id))
         .exec(db_conn)
         .await?;
     Ok(())
 }
 
-#[derive::db_compatibility]
 async fn remove_msgs_of_user(
     id: ID,
     db_conn: &DatabaseConnection,
 ) -> Result<(), ErrorOfUnregister> {
-    use entities::user_chat_msg;
     let id: u64 = id.into();
-    user_chat_msg::Entity::delete_many()
+    UserChatMsg::delete_many()
         .filter(user_chat_msg::Column::SenderId.eq(id))
         .exec(db_conn)
         .await?;

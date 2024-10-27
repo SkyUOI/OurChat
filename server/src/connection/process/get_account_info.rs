@@ -1,14 +1,14 @@
 use crate::client::requests::get_account_info::OWNER_PRIVILEGE;
 use crate::connection::basic::get_id;
-use crate::db::data_wrapper;
+use crate::entities::{friend, user};
 use crate::{
     DbPool,
     client::{MsgConvert, requests, response::GetAccountInfoResponse},
     connection::{NetSender, UserInfo},
     consts::ID,
+    entities::prelude::*,
 };
 use anyhow::Context;
-use derive::db_compatibility;
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use std::cmp::PartialEq;
 use std::collections::HashMap;
@@ -41,7 +41,7 @@ pub async fn get_account_info(
     let requests_id = get_id(&request_data.ocid, db_pool).await?;
     let queried_user = get_account_info_db(requests_id, &db_pool.db_pool).await?;
     let mut data_map = HashMap::new();
-    let data_cell: OnceLock<Vec<data_wrapper::Friend>> = OnceLock::new();
+    let data_cell: OnceLock<Vec<friend::Model>> = OnceLock::new();
     let friends = || async {
         if data_cell.get().is_none() {
             let list = get_friends(requests_id, &db_pool.db_pool).await?;
@@ -94,7 +94,7 @@ pub async fn get_account_info(
                     let mut ret = vec![];
                     for i in friends {
                         ret.push(serde_json::Value::String(
-                            get_account_info_db(i.friend_id, &db_pool.db_pool)
+                            get_account_info_db(i.friend_id.into(), &db_pool.db_pool)
                                 .await?
                                 .ocid,
                         ));
@@ -113,42 +113,25 @@ pub async fn get_account_info(
     Ok(())
 }
 
-#[db_compatibility]
-async fn get_account_info_db(
-    id: ID,
-    db_conn: &DatabaseConnection,
-) -> anyhow::Result<data_wrapper::User> {
-    use entities::prelude::*;
-    use entities::user;
-    let queried_user = user::Entity::find_by_id(id).one(db_conn).await?.unwrap();
-    Ok(queried_user.into())
+async fn get_account_info_db(id: ID, db_conn: &DatabaseConnection) -> anyhow::Result<user::Model> {
+    let queried_user = User::find_by_id(id).one(db_conn).await?.unwrap();
+    Ok(queried_user)
 }
 
-#[db_compatibility]
-async fn get_friends(
-    id: ID,
-    db_conn: &DatabaseConnection,
-) -> anyhow::Result<Vec<data_wrapper::Friend>> {
-    use entities::friend;
-    use entities::prelude::*;
-
+async fn get_friends(id: ID, db_conn: &DatabaseConnection) -> anyhow::Result<Vec<friend::Model>> {
     let id: u64 = id.into();
     let friends = Friend::find()
         .filter(friend::Column::UserId.eq(id))
         .all(db_conn)
         .await?;
-    Ok(friends.into_iter().map(|d| d.into()).collect())
+    Ok(friends)
 }
 
-#[db_compatibility]
 async fn get_one_friend(
     id: ID,
     friend_id: ID,
     db_conn: &DatabaseConnection,
-) -> anyhow::Result<Option<data_wrapper::Friend>> {
-    use entities::friend;
-    use entities::prelude::*;
-
+) -> anyhow::Result<Option<friend::Model>> {
     let id: u64 = id.into();
     let friend_id: u64 = friend_id.into();
     let friend = Friend::find()
@@ -162,5 +145,5 @@ async fn get_one_friend(
                 id, friend_id
             )
         })?;
-    Ok(friend.map(|d| d.into()))
+    Ok(friend)
 }

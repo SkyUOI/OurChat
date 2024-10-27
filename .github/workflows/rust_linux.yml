@@ -10,28 +10,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  sqlite:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@nightly
-      - uses: Swatinem/rust-cache@v2
-      - name: Build
-        run: cargo build --all
-      - name: Start Redis
-        uses: supercharge/redis-github-action@1.7.0
-        with:
-          redis-version: latest
-      - name: Sqlite Test
-        run: |
-          python3 script/test_server.py sqlite "cargo test -- --test-threads 2"
-      - name: Build Release
-        run: |
-          cargo check --all --release
-          rm -rf target
-
-  postgres:
+  test:
     runs-on: ubuntu-latest
 
     steps:
@@ -41,7 +20,7 @@ jobs:
         with:
           file: compose.dev.yml
           service: OurChatServer
-          command: "script/action_test_server.py postgres"
+          command: "script/action_test_server.py"
           registry: "ghcr.io"
           docker-compose-version: "2.29.1"
           entrypoint: "python3"

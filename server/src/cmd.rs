@@ -2,7 +2,7 @@
 //! TODO:add command for set friends limit
 
 use crate::{
-    ShutdownRev,
+    ShutdownRev, ShutdownSdr,
     connection::WS,
     db::file_storage,
     shared_state::{self},
@@ -278,9 +278,10 @@ pub type CommandTransmitData = (String, oneshot::Sender<Option<String>>);
 pub async fn cmd_process_loop(
     mut db_conn: DatabaseConnection,
     mut command_rev: mpsc::Receiver<CommandTransmitData>,
-    mut shutdown_rev: ShutdownRev,
+    mut shutdown_sdr: ShutdownSdr,
 ) -> anyhow::Result<()> {
     tracing::info!("cmd process started");
+    let mut shutdown_rev = shutdown_sdr.new_receiver("cmd process", "cmd process");
     let insts = InstManager::new();
     let logic = async {
         while let Some((command, ret)) = command_rev.recv().await {
@@ -301,7 +302,7 @@ pub async fn cmd_process_loop(
                                 // If the instruction runs successfully, run the next operation
                                 match inst_enum {
                                     InstName::Exit => {
-                                        return Ok(());
+                                        shutdown_sdr.shutdown_all_tasks().await?;
                                     }
                                     InstName::CleanFS => {
                                         match file_storage::clean_files(&mut db_conn).await {
@@ -334,7 +335,7 @@ pub async fn cmd_process_loop(
     };
     let ret = select! {
         ret=logic =>{ret},
-        _=shutdown_rev.recv()=>{Ok(())}
+        _=shutdown_rev.wait_shutdowning()=>{Ok(())}
     };
     tracing::info!("cmd process loop exited");
     ret
@@ -380,7 +381,7 @@ pub async fn setup_stdin(
     };
     select! {
         _=logic=>{},
-        _=shutdown_rev.recv()=>{}
+        _=shutdown_rev.wait_shutdowning()=>{}
     }
     tracing::info!("stdin cmd source exited");
     Ok(())
@@ -423,7 +424,7 @@ pub async fn setup_network(
     };
     let ret = select! {
         ret=logic=>{ ret},
-        _=shutdown_rec.recv()=>{ Ok(())}
+        _=shutdown_rec.wait_shutdowning()=>{ Ok(())}
     };
     tracing::info!("network cmd source exited");
     ret
