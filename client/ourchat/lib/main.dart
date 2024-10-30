@@ -105,8 +105,3 @@ class Controller extends StatelessWidget {
     );
   }
 }
-
-// refactor connect
-// rename dealWithMessage to dealWithEvent
-// refactor join
-// rename nickname to username
