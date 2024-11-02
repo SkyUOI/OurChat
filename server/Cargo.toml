@@ -19,7 +19,6 @@ rand = "0"
 snowdon = "0"
 redis = { version = "0", features = ["tokio-rustls-comp"] }
 sea-orm = { version = "1", features = [
-    "sqlx-sqlite",
     "sqlx-postgres",
     "runtime-tokio-rustls",
     "macros",
@@ -33,13 +32,12 @@ tracing-subscriber = { version = "0", features = ["tracing-log", "env-filter"] }
 migration = { path = "migration" }
 mimalloc = "0"
 parking_lot = "0"
-static-keys = "0"
-sqlx = { version = "0", features = ["runtime-tokio-rustls", "sqlite"] }
+sqlx = { version = "0", features = ["runtime-tokio-rustls"] }
 derive = { path = "derive" }
 actix-web = { version = "4", features = ["rustls"] }
 dashmap = { "version" = "6" }
 sha3 = "0"
-uuid = "1"
+uuid = { version = "1", features = ["v4"] }
 config = "0"
 validator = "0"
 argon2 = { version = "0", features = ["std"] }
@@ -65,6 +63,4 @@ assert_cmd = "2"
 reqwest = "0"
 fake = { version = "2" }
 linkify = "0"
-ctor = "0"
-libc-print = "0"
 claims = "0"

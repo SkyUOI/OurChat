@@ -6,7 +6,7 @@ mod process;
 use std::sync::Arc;
 
 use crate::{
-    DbPool, HttpSender,
+    DbPool, HttpSender, ShutdownRev, ShutdownSdr,
     client::{
         MsgConvert,
         requests::{
@@ -18,7 +18,7 @@ use crate::{
     },
     component::EmailSender,
     consts::{ID, MessageType},
-    db::BooleanLike,
+    entities::{operations, prelude::*},
     server::httpserver::{FileRecord, VerifyRecord, verify::verify_client},
     shared_state,
 };
@@ -35,7 +35,7 @@ use serde_json::Value;
 use tokio::{
     net::TcpStream,
     select,
-    sync::{Notify, broadcast, mpsc},
+    sync::{Notify, mpsc},
 };
 use tokio_tungstenite::WebSocketStream;
 use tokio_tungstenite::tungstenite::protocol::Message;
@@ -75,7 +75,7 @@ where
 /// Connection to a client
 pub struct Connection<T: EmailSender + 'static> {
     socket: Option<WebSocketStream<TcpStream>>,
-    shutdown_sender: broadcast::Sender<()>,
+    shutdown_sender: ShutdownSdr,
     http_sender: Option<HttpSender>,
     shared_data: Arc<crate::SharedData<T>>,
     dbpool: Option<DbPool>,
@@ -99,10 +99,7 @@ fn get_code(s: &str) -> anyhow::Result<Option<(MessageType, Value)>> {
     Ok(None)
 }
 
-#[derive::db_compatibility]
 async fn get_requests(id: ID, db_conn: &DatabaseConnection) -> anyhow::Result<Vec<String>> {
-    use entities::operations;
-    use entities::prelude::*;
     let id: u64 = id.into();
     let stored_requests = Operations::find()
         .filter(operations::Column::Id.eq(id))
@@ -110,7 +107,7 @@ async fn get_requests(id: ID, db_conn: &DatabaseConnection) -> anyhow::Result<Ve
         .await?;
     let mut ret = Vec::new();
     for i in stored_requests {
-        if i.once.is_true() {
+        if i.once {
             Operations::delete_by_id(i.oper_id).exec(db_conn).await?;
         }
         if i.expires_at < chrono::Utc::now() {
@@ -148,7 +145,7 @@ impl<T: EmailSender> Connection<T> {
     pub fn new(
         socket: WS,
         http_sender: HttpSender,
-        shutdown_sender: broadcast::Sender<()>,
+        shutdown_sender: ShutdownSdr,
         shared_data: Arc<crate::SharedData<T>>,
         dbpool: DbPool,
     ) -> Self {
@@ -415,7 +412,7 @@ impl<T: EmailSender> Connection<T> {
         user_info: UserInfo,
         net_sender: mpsc::Sender<Message>,
         http_sender: HttpSender,
-        mut shutdown_receiver: broadcast::Receiver<()>,
+        mut shutdown_receiver: ShutdownRev,
         shared_data: Arc<crate::SharedData<T>>,
         db_pool: DbPool,
     ) -> anyhow::Result<()> {
@@ -617,7 +614,7 @@ impl<T: EmailSender> Connection<T> {
         };
         select! {
             ret = work => {ret},
-            _ = shutdown_receiver.recv() => {
+            _ = shutdown_receiver.wait_shutdowning() => {
                 Ok(())
             }
         }
@@ -626,7 +623,7 @@ impl<T: EmailSender> Connection<T> {
     pub async fn write_loop(
         mut outgoing: OutGoing,
         mut receiver: mpsc::Receiver<Message>,
-        mut shutdown_receiver: broadcast::Receiver<()>,
+        mut shutdown_receiver: ShutdownRev,
     ) -> anyhow::Result<()> {
         let work = async {
             while let Some(msg) = receiver.recv().await {
@@ -639,7 +636,7 @@ impl<T: EmailSender> Connection<T> {
         };
         select! {
             ret = work => {ret},
-            _ = shutdown_receiver.recv() => {
+            _ = shutdown_receiver.wait_shutdowning() => {
                 Ok(())
             }
         }
@@ -684,12 +681,13 @@ impl<T: EmailSender> Connection<T> {
     #[tracing::instrument(skip(self))]
     pub async fn work(&mut self) -> anyhow::Result<()> {
         let mut socket = self.socket.take().unwrap();
-        let mut shutdown_receiver = self.shutdown_sender.subscribe();
+        let mut shutdown_receiver = self.shutdown_sender.new_receiver("connection", "");
         let user_info;
         let http_sender = self.http_sender.take().unwrap();
         let dbpool = self.dbpool.take().unwrap();
         // start maintaining loop
         if shared_state::get_maintaining() {
+            tracing::info!("start maintaining loop");
             Self::maintaining(&mut socket).await?;
             return Ok(());
         }
@@ -698,8 +696,10 @@ impl<T: EmailSender> Connection<T> {
         tokio::spawn(Self::write_loop(
             outgoing,
             msg_receiver,
-            self.shutdown_sender.subscribe(),
+            self.shutdown_sender
+                .new_receiver("connection write loop", ""),
         ));
+        tracing::debug!("start verify");
         select! {
             ret = Connection::verify(
                 &mut incoming,
@@ -719,8 +719,8 @@ impl<T: EmailSender> Connection<T> {
                     None => return Ok(())
                 };
             }
-            _ = shutdown_receiver.recv() => {
-                    return Ok(());
+            _ = shutdown_receiver.wait_shutdowning() => {
+                return Ok(());
             }
         }
         let requests = get_requests(user_info.id, &dbpool.db_pool).await?;

@@ -2,7 +2,7 @@ use crate::helper;
 use server::client::{
     MsgConvert,
     basic::{Msg, TextMsg},
-    requests::{self, UserSendMsgRequest},
+    requests::UserSendMsgRequest,
     response::UserSendMsgResponse,
 };
 

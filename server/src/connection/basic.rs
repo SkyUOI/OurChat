@@ -3,6 +3,7 @@ use crate::{
     DbPool,
     client::{MsgConvert, requests, response},
     consts::{ID, OCID},
+    entities::{prelude::*, user},
 };
 use anyhow::bail;
 use redis::AsyncCommands;
@@ -22,9 +23,7 @@ fn mapped_to_ocid(key: &str) -> String {
     format!("ocid:{}", key)
 }
 
-#[derive::db_compatibility]
 pub async fn get_id(ocid: &OCID, db_conn: &DbPool) -> anyhow::Result<ID> {
-    use entities::user;
     // first query in redis
     let mut redis_conn = db_conn.redis_pool.get().await?;
     let id: Option<u64> = redis_conn.get(mapped_to_ocid(ocid)).await?;
@@ -32,7 +31,7 @@ pub async fn get_id(ocid: &OCID, db_conn: &DbPool) -> anyhow::Result<ID> {
         return Ok(id.into());
     }
     // query in database
-    let user = user::Entity::find()
+    let user = User::find()
         .filter(user::Column::Ocid.eq(ocid.to_string()))
         .one(&db_conn.db_pool)
         .await?;

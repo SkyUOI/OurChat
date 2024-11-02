@@ -3,11 +3,7 @@ use server::client::basic::{GetAccountValues, SetAccountValues, SetFriendValues}
 use server::client::requests::{SetAccountRequest, SetFriendInfoRequest};
 use server::client::response::{ErrorMsgResponse, SetAccountInfoResponse};
 use server::{
-    client::{
-        MsgConvert,
-        requests::{self, GetAccountInfoRequest},
-        response::GetAccountInfoResponse,
-    },
+    client::{MsgConvert, requests::GetAccountInfoRequest, response::GetAccountInfoResponse},
     consts::MessageType,
 };
 

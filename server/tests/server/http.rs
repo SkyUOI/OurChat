@@ -1,7 +1,7 @@
 use crate::helper::TestApp;
 
 #[tokio::test]
-async fn test_status() {
+async fn test_status_http() {
     let mut app = TestApp::new(None).await.unwrap();
     let response = app
         .http_get("status")

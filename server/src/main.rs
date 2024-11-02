@@ -1,3 +1,5 @@
+use std::process::exit;
+
 use clap::Parser;
 use server::ArgsParser;
 
@@ -8,5 +10,7 @@ async fn main() -> anyhow::Result<()> {
     let email_client = config.build_email_client().ok();
     let config = server::Cfg::new(config)?;
     let mut application = server::Application::build(parser, config, email_client).await?;
-    application.run_forever().await
+    application.run_forever().await?;
+    tracing::info!("Application stopped");
+    exit(0);
 }

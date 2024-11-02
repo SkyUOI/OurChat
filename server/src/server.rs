@@ -3,11 +3,12 @@
 pub mod httpserver;
 
 use crate::component::EmailSender;
-use crate::{DbPool, HttpSender, SharedData, connection};
+use crate::{DbPool, HttpSender, SharedData, ShutdownRev, ShutdownSdr, connection};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::net::TcpStream;
-use tokio::{net::TcpListener, select, sync::broadcast};
+use tokio::{net::TcpListener, select};
+
 pub struct Server<T: EmailSender> {
     tcplistener: TcpListener,
     db: Option<DbPool>,
@@ -33,8 +34,8 @@ impl<T: EmailSender> Server<T> {
 
     pub async fn accept_sockets(
         &mut self,
-        shutdown_sender: broadcast::Sender<()>,
-        mut shutdown_receiver: broadcast::Receiver<()>,
+        shutdown_sender: ShutdownSdr,
+        mut shutdown_receiver: ShutdownRev,
     ) -> anyhow::Result<()> {
         let db_conn = self.db.take().unwrap();
 
@@ -65,7 +66,7 @@ impl<T: EmailSender> Server<T> {
         };
         select! {
             _ = async_loop => {},
-            _ = shutdown_receiver.recv() => {
+            _ = shutdown_receiver.wait_shutdowning() => {
                 tracing::info!("Accepting loop exited")
             }
         }
@@ -76,7 +77,7 @@ impl<T: EmailSender> Server<T> {
         stream: TcpStream,
         addr: SocketAddr,
         http_sender: HttpSender,
-        shutdown_sender: broadcast::Sender<()>,
+        shutdown_sender: ShutdownSdr,
         shared_data: Arc<SharedData<T>>,
         dbpool: DbPool,
     ) {

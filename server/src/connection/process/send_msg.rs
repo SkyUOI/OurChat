@@ -7,8 +7,8 @@ use crate::{
     },
     connection::{NetSender, UserInfo},
     consts::{ID, MsgID},
+    entities::user_chat_msg,
 };
-use derive::db_compatibility;
 use sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection};
 
 pub async fn send_msg(
@@ -34,15 +34,12 @@ pub async fn send_msg(
     Ok(())
 }
 
-#[db_compatibility]
 async fn insert_msg_record(
     user_id: ID,
     session_id: ID,
     msg: String,
     db_conn: &DatabaseConnection,
 ) -> anyhow::Result<MsgID> {
-    use entities::prelude::*;
-    use entities::user_chat_msg;
     let msg = user_chat_msg::ActiveModel {
         msg_data: ActiveValue::Set(msg),
         sender_id: ActiveValue::Set(user_id.into()),

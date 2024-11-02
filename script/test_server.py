@@ -4,11 +4,12 @@ import os
 import sys
 
 default_test_command = "cargo test"
+default_test_cfg = "config/ourchat.toml"
 
 
 def run_tests():
-    if len(sys.argv) > 2:
-        test_command = sys.argv[2]
+    if len(sys.argv) > 1:
+        test_command = sys.argv[1]
     else:
         test_command = default_test_command
     print("Running tests...")
@@ -17,28 +18,23 @@ def run_tests():
         raise Exception("Tests failed.")
 
 
-def sqlite_test():
-    os.putenv("OURCHAT_CONFIG_FILE", os.path.abspath("config/sqlite/ourchat.toml"))
-    run_tests()
-
-
-def postgres_test():
-    os.putenv("OURCHAT_CONFIG_FILE", os.path.abspath("config/postgres/ourchat.toml"))
+def start_test():
+    if len(sys.argv) > 2:
+        cfg = sys.argv[2]
+    else:
+        cfg = default_test_cfg
+    os.putenv("OURCHAT_CONFIG_FILE", os.path.abspath(cfg))
     run_tests()
 
 
 def test_process() -> int:
     return_code = 0
-    os.putenv("RUST_LOG", "trace")
+    os.putenv(
+        "RUST_LOG",
+        "trace,actix_web=off,tokio_tungstenite=off,tungstenite=off,actix_server=off,mio=off",
+    )
     # Run tests
-    test_suite = sys.argv[1]
-    if test_suite == "sqlite":
-        sqlite_test()
-    elif test_suite == "postgres":
-        postgres_test()
-    else:
-        sqlite_test()
-        postgres_test()
+    start_test()
     return return_code
 
 

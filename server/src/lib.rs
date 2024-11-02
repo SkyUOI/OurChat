@@ -1,7 +1,7 @@
-#![feature(asm_goto)]
 #![feature(decl_macro)]
 #![feature(duration_constructors)]
 
+pub mod basic;
 pub mod client;
 mod cmd;
 pub mod component;
@@ -15,13 +15,15 @@ pub mod utils;
 
 use crate::component::EmailClient;
 use anyhow::bail;
+pub use basic::*;
 use clap::Parser;
 use cmd::CommandTransmitData;
 use component::EmailSender;
 use config::File;
 use consts::{FileSize, ID, STDIN_AVAILABLE};
 use dashmap::DashMap;
-use db::{DbCfg, DbType, PostgresDbCfg, SqliteDbCfg, file_storage};
+use db::{DbCfgTrait, PostgresDbCfg, file_storage};
+use futures_util::future::join_all;
 use lettre::{AsyncSmtpTransport, transport::smtp::authentication::Credentials};
 use parking_lot::Once;
 use rand::Rng;
@@ -34,11 +36,7 @@ use std::{
     path::{Path, PathBuf},
     sync::{Arc, LazyLock, OnceLock},
 };
-use tokio::{
-    net::TcpListener,
-    select,
-    sync::{broadcast, mpsc},
-};
+use tokio::{net::TcpListener, sync::mpsc, task::JoinHandle};
 use tokio_tungstenite::tungstenite::Message;
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{
@@ -51,9 +49,6 @@ use tracing_subscriber::{
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
-pub type ShutdownRev = broadcast::Receiver<()>;
-pub type ShutdownSdr = broadcast::Sender<()>;
-
 #[derive(Debug, Parser, Default)]
 #[command(author = "SkyUOI", version = base::build::VERSION, about = "The Server of OurChat")]
 pub struct ArgsParser {
@@ -63,8 +58,6 @@ pub struct ArgsParser {
     pub http_port: Option<u16>,
     #[arg(long, help = "binding ip")]
     pub ip: Option<String>,
-    #[arg(long, help = "database type,postgres or sqlite")]
-    pub db_type: Option<String>,
     #[command(flatten)]
     pub shared_cfg: ParserCfg,
     #[arg(long, help = "whether to enable cmd")]
@@ -81,8 +74,6 @@ pub struct MainCfg {
     pub port: u16,
     #[serde(default = "consts::default_http_port")]
     pub http_port: u16,
-    #[serde(default)]
-    pub db_type: DbType,
     #[serde(default = "consts::default_clear_interval")]
     pub auto_clean_duration: u64,
     #[serde(default = "consts::default_file_save_days")]
@@ -134,29 +125,17 @@ impl MainCfg {
 #[derive(Debug, Clone)]
 pub struct Cfg {
     pub main_cfg: MainCfg,
-    pub db_cfg: DbCfg,
+    pub db_cfg: PostgresDbCfg,
 }
 
 impl Cfg {
     pub fn new(main_cfg: MainCfg) -> anyhow::Result<Self> {
-        let dbcfg = match main_cfg.db_type {
-            DbType::Sqlite => {
-                let cfg = config::Config::builder()
-                    .add_source(config::File::with_name(main_cfg.dbcfg.to_str().unwrap()))
-                    .build()?;
-                let mut cfg: SqliteDbCfg = cfg.try_deserialize()?;
-                cfg.convert_to_abs_path(
-                    main_cfg.cmd_args.config.as_ref().unwrap().parent().unwrap(),
-                )?;
-                DbCfg::Sqlite(cfg)
-            }
-            DbType::Postgres => {
-                let cfg = config::Config::builder()
-                    .add_source(config::File::with_name(main_cfg.dbcfg.to_str().unwrap()))
-                    .build()?;
-                let cfg: PostgresDbCfg = cfg.try_deserialize()?;
-                DbCfg::Postgres(cfg)
-            }
+        let dbcfg = {
+            let cfg = config::Config::builder()
+                .add_source(config::File::with_name(main_cfg.dbcfg.to_str().unwrap()))
+                .build()?;
+            let cfg: PostgresDbCfg = cfg.try_deserialize()?;
+            cfg
         };
         Ok(Self {
             main_cfg,
@@ -227,8 +206,11 @@ where
             || EnvFilter::try_from_default_env().unwrap_or("info".into())
         };
         let formatting_layer = fmt::layer().pretty().with_writer(source);
-
-        let file_appender = tracing_appender::rolling::daily("log/", "ourchat");
+        let file_appender = if test_mode {
+            tracing_appender::rolling::never("log/", "test")
+        } else {
+            tracing_appender::rolling::daily("log/", "ourchat")
+        };
         let (non_blocking, file_guard) = tracing_appender::non_blocking(file_appender);
         Registry::default()
             .with(env())
@@ -256,26 +238,22 @@ async fn cmd_start(
     db_conn: DatabaseConnection,
     test_mode: bool,
 ) -> anyhow::Result<()> {
-    let mut shutdown_receiver1 = shutdown_sender.subscribe();
     if !test_mode {
-        let mut shutdown_receiver2 = shutdown_sender.subscribe();
-        select! {
-            _ = cmd::cmd_process_loop(db_conn, command_rev, shutdown_receiver1) => {
-                shutdown_sender.send(())?;
-                tracing::info!("Exit because command loop has exited");
-            },
-            _ = shutdown_receiver2.recv() => {
-                tracing::info!("Command loop exited");
+        match cmd::cmd_process_loop(db_conn, command_rev, shutdown_sender.clone()).await {
+            Ok(()) => {}
+            Err(e) => {
+                tracing::error!("cmd error:{}", e);
             }
-        }
+        };
     } else {
-        shutdown_receiver1.recv().await?;
+        let mut shutdown_receiver = shutdown_sender.new_receiver("cmd process loop", "cmd loop");
+        shutdown_receiver.wait_shutdowning().await;
     }
     Ok(())
 }
 
-fn exit_signal(shutdown_sender: ShutdownSdr) -> anyhow::Result<()> {
-    let shutdown_sender_clone = shutdown_sender.clone();
+fn exit_signal(mut shutdown_sender: ShutdownSdr) -> anyhow::Result<()> {
+    let mut shutdown_sender_clone = shutdown_sender.clone();
     #[cfg(not(windows))]
     tokio::spawn(async move {
         if let Some(()) = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())?
@@ -283,7 +261,7 @@ fn exit_signal(shutdown_sender: ShutdownSdr) -> anyhow::Result<()> {
             .await
         {
             tracing::info!("Exit because of sigterm signal");
-            shutdown_sender.send(())?;
+            shutdown_sender.shutdown_all_tasks().await?;
         }
         anyhow::Ok(())
     });
@@ -291,11 +269,11 @@ fn exit_signal(shutdown_sender: ShutdownSdr) -> anyhow::Result<()> {
         match tokio::signal::ctrl_c().await {
             Ok(()) => {
                 tracing::info!("Exit because of ctrl-c signal");
-                shutdown_sender_clone.send(())?;
+                shutdown_sender_clone.shutdown_all_tasks().await?;
             }
             Err(err) => {
                 tracing::error!("Unable to listen to ctrl-c signal:{}", err);
-                shutdown_sender_clone.send(())?;
+                shutdown_sender_clone.shutdown_all_tasks().await?;
             }
         }
         anyhow::Ok(())
@@ -315,23 +293,21 @@ async fn start_server(
     http_sender: HttpSender,
     shared_data: Arc<SharedData<impl EmailSender>>,
     shutdown_sender: ShutdownSdr,
-    shutdown_receiver: broadcast::Receiver<()>,
-) -> anyhow::Result<()> {
+    shutdown_receiver: ShutdownRev,
+) -> anyhow::Result<JoinHandle<anyhow::Result<()>>> {
     let mut server = server::Server::new(listener, db, http_sender, shared_data).await?;
-    tokio::spawn(async move {
+    let handle = tokio::spawn(async move {
         server
             .accept_sockets(shutdown_sender, shutdown_receiver)
             .await
     });
-    Ok(())
+    Ok(handle)
 }
 
 /// global init,can be called many times,but only the first time will be effective
 fn global_init() {
     static INIT: Once = Once::new();
-    INIT.call_once(|| {
-        static_keys::global_init();
-    })
+    INIT.call_once(|| {})
 }
 
 pub struct Application<T: EmailSender> {
@@ -437,26 +413,16 @@ impl<T: EmailSender> Application<T> {
         .await??;
         main_cfg.http_port = http_listener.local_addr()?.port();
 
-        // database type
-        let db_type = match parser.db_type {
-            None => main_cfg.db_type,
-            Some(db_type) => match serde_plain::from_str::<DbType>(&db_type) {
-                Ok(db_type) => db_type,
-                Err(_) => bail!("Unknown database type. Only support postgres and sqlite"),
-            },
-        };
-        main_cfg.db_type = db_type;
-
         // enable cmd
         let enable_cmd = match parser.enable_cmd {
             None => main_cfg.enable_cmd,
             Some(enable_cmd) => enable_cmd,
         };
         main_cfg.enable_cmd = enable_cmd;
-        let (abort_sender, _) = broadcast::channel(20);
+        let abort_sender = ShutdownSdr::new(None);
         // connect to database
-        db::init_db_system(main_cfg.db_type);
-        let db = db::connect_to_db(&db::get_db_url(&cfg.db_cfg)?).await?;
+        db::init_db_system();
+        let db = db::connect_to_db(&cfg.db_cfg.url()).await?;
         db::init_db(&db).await?;
         // connect to redis
         let redis = db::connect_to_redis(&db::get_redis_url(&main_cfg.rediscfg)?).await?;
@@ -493,38 +459,41 @@ impl<T: EmailSender> Application<T> {
     pub async fn run_forever(&mut self) -> anyhow::Result<()> {
         tracing::info!("Starting server");
         let cfg = &self.shared.cfg.main_cfg;
-        let mut abort = self.abort_sender.subscribe();
 
         if cfg.cmd_args.clear {
             clear()?;
         }
 
+        let mut handles = Vec::new();
         // Build http server
         let (handle, record_sender) = httpserver::HttpServer::new()
             .start(
                 self.http_listener.take().unwrap(),
                 self.pool.clone(),
                 self.shared.clone(),
-                self.abort_sender.subscribe(),
+                self.abort_sender.clone(),
             )
             .await?;
+        handles.push(handle);
 
-        start_server(
+        let handle = start_server(
             self.server_listener.take().unwrap(),
             self.pool.clone(),
             record_sender,
             self.shared.clone(),
             self.abort_sender.clone(),
-            self.abort_sender.subscribe(),
+            self.abort_sender.new_receiver("ws server", "ws server"),
         )
         .await?;
+        handles.push(handle);
+
         // Start the database file system
-        file_storage::FileSys::new(self.pool.db_pool.clone()).start(self.abort_sender.subscribe());
+        file_storage::FileSys::new(self.pool.db_pool.clone())
+            .start(self.abort_sender.new_receiver("file system", "file system"));
         // Start the shutdown signal listener
         exit_signal(self.abort_sender.clone())?;
         // Start the cmd
         if cfg.enable_cmd {
-            let mut is_enable = false;
             let (command_sdr, command_rev) = mpsc::channel(50);
             match cfg.cmd_network_port {
                 None => {
@@ -532,7 +501,9 @@ impl<T: EmailSender> Application<T> {
                 }
                 Some(port) => {
                     let command_sdr = command_sdr.clone();
-                    let shutdown_rev = self.abort_sender.subscribe();
+                    let shutdown_rev = self
+                        .abort_sender
+                        .new_receiver("network cmd", "network source");
                     tokio::spawn(async move {
                         match cmd::setup_network(port, command_sdr, shutdown_rev).await {
                             Ok(_) => {}
@@ -541,38 +512,38 @@ impl<T: EmailSender> Application<T> {
                             }
                         }
                     });
-                    is_enable = true;
                 }
             }
             // Start the cmd from stdin
             if cfg.enable_cmd_stdin && *STDIN_AVAILABLE {
                 let shutdown_sender = self.abort_sender.clone();
                 tokio::spawn(async move {
-                    match cmd::setup_stdin(command_sdr, shutdown_sender.subscribe()).await {
+                    match cmd::setup_stdin(
+                        command_sdr,
+                        shutdown_sender.new_receiver("stdin cmd", "stdin source"),
+                    )
+                    .await
+                    {
                         Ok(_) => {}
                         Err(e) => {
                             tracing::error!("cmd error:{}", e);
                         }
                     }
                 });
-                is_enable = true;
             }
-            cmd_start(
+            tokio::spawn(cmd_start(
                 command_rev,
                 self.abort_sender.clone(),
                 self.pool.db_pool.clone(),
                 cfg.cmd_args.test_mode,
-            )
-            .await?;
-            if !is_enable {
-                // Cmd is not enabled normally
-                tracing::warn!("cmd is not enabled");
-                self.abort_sender.subscribe().recv().await?;
-            }
+            ));
         }
         tracing::info!("Server started");
-        abort.recv().await?;
-        handle.await??;
+        join_all(handles).await.iter().for_each(|x| {
+            if let Err(e) = x {
+                tracing::error!("server error:{}", e);
+            }
+        });
         self.pool.close().await?;
         tracing::info!("Server exited");
         Ok(())

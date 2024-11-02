@@ -42,6 +42,7 @@ data/redis-data/**
 
 machine_id
 log/
+*.log
 
 # Server SQLite db
 *.db

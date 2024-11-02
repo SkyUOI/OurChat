@@ -2,7 +2,7 @@ use crate::helper;
 use server::{
     client::{
         MsgConvert,
-        requests::{Status, upload::UploadRequest},
+        requests::upload::UploadRequest,
         response::{ErrorMsgResponse, UploadResponse},
     },
     consts::MessageType,
@@ -30,6 +30,5 @@ async fn test_upload() {
         UploadResponse::from_json(&user.lock().await.recv().await.unwrap().to_string()).unwrap();
     assert_eq!(ret.code, MessageType::UploadRes);
     // post file
-
     app.async_drop().await;
 }

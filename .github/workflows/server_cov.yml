@@ -10,7 +10,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  sqlite:
+  Test:
     runs-on: ubuntu-latest
 
     steps:
@@ -23,9 +23,12 @@ jobs:
         uses: supercharge/redis-github-action@1.7.0
         with:
           redis-version: latest
-      - name: Sqlite Test
+      - uses: harmon758/postgresql-action@v1
+        with:
+          postgresql version: "17"
+      - name: Test
         run: |
-          python3 script/test_server.py sqlite "cargo tarpaulin --bins -o lcov"
+          python3 script/test_server.py "cargo tarpaulin -o lcov" "config/gh_test/ourchat.toml"
 
       - name: Display Coverage
         uses: codecov/codecov-action@v1

@@ -3,26 +3,40 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "operations")]
+#[sea_orm(table_name = "user_chat_msg")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    pub oper_id: i32,
-    pub id: i64,
-    pub operation: String,
-    pub once: bool,
-    pub expires_at: DateTimeWithTimeZone,
+    pub chat_msg_id: i64,
+    pub msg_data: String,
+    pub sender_id: i64,
+    pub session_id: i64,
+    pub time: DateTimeWithTimeZone,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(
+        belongs_to = "super::session::Entity",
+        from = "Column::SessionId",
+        to = "super::session::Column::SessionId",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    Session,
+    #[sea_orm(
         belongs_to = "super::user::Entity",
-        from = "Column::Id",
+        from = "Column::SenderId",
         to = "super::user::Column::Id",
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
     User,
+}
+
+impl Related<super::session::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Session.def()
+    }
 }
 
 impl Related<super::user::Entity> for Entity {

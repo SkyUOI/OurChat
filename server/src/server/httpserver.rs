@@ -7,7 +7,7 @@ pub mod verify;
 
 use std::sync::Arc;
 
-use crate::{DbPool, HttpSender, ShutdownRev, component::EmailSender};
+use crate::{DbPool, HttpSender, ShutdownRev, ShutdownSdr, component::EmailSender};
 use actix_multipart::form::MultipartForm;
 use actix_web::{
     App,
@@ -43,7 +43,7 @@ impl HttpServer {
         listener: std::net::TcpListener,
         db_conn: DbPool,
         shared_data: Arc<crate::SharedData<impl EmailSender>>,
-        mut shutdown_receiver: ShutdownRev,
+        mut shutdown_sender: ShutdownSdr,
     ) -> anyhow::Result<(JoinHandle<anyhow::Result<()>>, HttpSender)> {
         let upload_manager = Data::new(upload::UploadManager::new());
         let data_clone = upload_manager.clone();
@@ -66,13 +66,14 @@ impl HttpServer {
         })
         .listen(listener)?
         .run();
+        let mut shutdown_receiver = shutdown_sender.new_receiver("http server", "http server");
         let http_server_handle = tokio::spawn(async move {
             select! {
                 ret = http_server => {
                     tracing::info!("Http server exited internally");
                     ret?;
                 }
-                _ = shutdown_receiver.recv() => {
+                _ = shutdown_receiver.wait_shutdowning() => {
                     tracing::info!("Http server exited by shutdown signal");
                 }
             }
@@ -83,10 +84,16 @@ impl HttpServer {
             upload_manager,
             file_receiver,
         ));
-        tokio::spawn(verify::regularly_clean_notifier(
-            shared_data.clone(),
-            db_conn.redis_pool.clone(),
-        ));
+        let mut shutdown_receiver = shutdown_sender.new_receiver("notifier cleaner", "");
+        tokio::spawn(async move {
+            select! {
+                _ = verify::regularly_clean_notifier(
+                    shared_data.clone(),
+                    db_conn.redis_pool.clone(),
+                ) => {},
+                _ = shutdown_receiver.wait_shutdowning() => {},
+            }
+        });
         Ok((http_server_handle, HttpSender {
             file_record: file_sender,
         }))
