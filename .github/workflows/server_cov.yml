@@ -29,7 +29,7 @@ jobs:
           password: 123456
       - name: Test
         run: |
-          python3 script/test_server.py "cargo tarpaulin -o lcov" "config/gh_test/ourchat.toml"
+          python3 script/test_server.py "cargo tarpaulin -e derive --workspace -o lcov" "config/gh_test/ourchat.toml"
 
       - name: Display Coverage
         uses: codecov/codecov-action@v1
