@@ -1,11 +1,9 @@
 import 'dart:convert';
-import 'package:web_socket_channel/io.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 import 'const.dart';
-import 'dart:io';
 
 class OurchatConnection {
-  WebSocket? connection;
-  IOWebSocketChannel? channel;
+  WebSocketChannel? channel;
   Function? responseFunc;
   bool closed = true;
   String uri = "ws://localhost:7777";
@@ -23,17 +21,15 @@ class OurchatConnection {
       close();
     }
     try {
-      connection = await WebSocket.connect(uri);
-      channel = IOWebSocketChannel(connection!);
-      channel!.ready.then((_) {
-        closed = false;
-        channel!.stream.listen((data) {
-          responseFunc!(jsonDecode(data));
-        });
-        responseFunc!({
-          "code": connectServerResponse,
-          "status": operationSuccessfulStatusCode
-        });
+      channel = WebSocketChannel.connect(Uri.parse(uri));
+      await channel!.ready;
+      closed = false;
+      channel!.stream.listen((data) {
+        responseFunc!(jsonDecode(data));
+      });
+      responseFunc!({
+        "code": connectServerResponse,
+        "status": operationSuccessfulStatusCode
       });
     } catch (e) {
       responseFunc!({
