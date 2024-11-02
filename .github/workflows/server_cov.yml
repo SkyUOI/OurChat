@@ -23,9 +23,10 @@ jobs:
         uses: supercharge/redis-github-action@1.7.0
         with:
           redis-version: latest
-      - uses: harmon758/postgresql-action@v1
+      - uses: ikalnytskyi/action-setup-postgres@v7
         with:
-          postgresql version: "17"
+          postgres-version: "17"
+          password: 123456
       - name: Test
         run: |
           python3 script/test_server.py "cargo tarpaulin -o lcov" "config/gh_test/ourchat.toml"
