@@ -12,7 +12,7 @@ use argon2::{PasswordHash, PasswordVerifier};
 use sea_orm::{ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter};
 
 #[derive(Debug, thiserror::Error)]
-enum ErrorOfLogin {
+pub enum ErrorOfLogin {
     #[error("wrong password")]
     WrongPassword,
     #[error("database error")]

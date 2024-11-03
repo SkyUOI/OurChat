@@ -12,7 +12,7 @@ pub struct GetUserMsgRequest {
 impl GetUserMsgRequest {
     pub fn new(time: TimeStamp) -> Self {
         Self {
-            code: MessageType::UserSendMsg,
+            code: MessageType::GetUserMsg,
             time,
         }
     }

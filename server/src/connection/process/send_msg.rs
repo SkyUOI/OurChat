@@ -17,8 +17,14 @@ pub async fn send_msg(
     net_sender: impl NetSender,
     db_pool: &DbPool,
 ) -> anyhow::Result<()> {
-    let msg = serde_json::to_string(&request.bundle_msg).unwrap();
-    match insert_msg_record(user_info.id, request.session_id, msg, &db_pool.db_pool).await {
+    match insert_msg_record(
+        user_info.id,
+        request.session_id,
+        serde_json::value::to_value(request.bundle_msg).unwrap(),
+        &db_pool.db_pool,
+    )
+    .await
+    {
         Ok(msg_id) => {
             net_sender
                 .send(UserSendMsgResponse::success(msg_id).to_msg())
@@ -37,7 +43,7 @@ pub async fn send_msg(
 async fn insert_msg_record(
     user_id: ID,
     session_id: ID,
-    msg: String,
+    msg: serde_json::Value,
     db_conn: &DatabaseConnection,
 ) -> anyhow::Result<MsgID> {
     let msg = user_chat_msg::ActiveModel {

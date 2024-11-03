@@ -37,13 +37,13 @@ enum SetSessionValues {
     DisplayName,
 }
 
-#[derive(Debug, Serialize_repr, Deserialize_repr)]
+#[derive(Debug, Serialize_repr, Deserialize_repr, Clone, PartialEq, Eq)]
 #[repr(u32)]
 pub enum UserMsgType {
     Text = 0,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct TextMsg {
     pub r#type: UserMsgType,
     pub text: String,
@@ -58,7 +58,7 @@ impl TextMsg {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub enum Msg {
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+pub enum UnitMsg {
     Text(TextMsg),
 }

@@ -38,7 +38,7 @@ pub mod verify;
 pub use accept_session::AcceptSessionResponse;
 pub use error_msg::ErrorMsgResponse;
 pub use get_account_info::GetAccountInfoResponse;
-pub use get_user_msg::GetUserMsgResponse;
+pub use get_user_msg::{GetUserMsgResponse, OneMsg};
 pub use invite_session::InviteSession;
 pub use login::LoginResponse;
 pub use new_session::NewSessionResponse;
