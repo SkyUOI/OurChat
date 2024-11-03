@@ -7,7 +7,8 @@ use sea_orm::entity::prelude::*;
 pub struct Model {
     #[sea_orm(primary_key)]
     pub chat_msg_id: i64,
-    pub msg_data: String,
+    #[sea_orm(column_type = "JsonBinary")]
+    pub msg_data: Json,
     pub sender_id: i64,
     pub session_id: i64,
     pub time: DateTimeWithTimeZone,

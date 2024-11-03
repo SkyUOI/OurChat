@@ -102,7 +102,7 @@ impl MigrationTrait for Migration {
                             .auto_increment()
                             .primary_key(),
                     )
-                    .col(string_len(UserChatMsg::MsgData, 8000))
+                    .col(json_binary(UserChatMsg::MsgData))
                     .col(big_unsigned(UserChatMsg::SenderId))
                     .col(big_unsigned(UserChatMsg::SessionId))
                     .col(
