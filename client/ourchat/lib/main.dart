@@ -23,6 +23,7 @@ class OurchatAppState extends ChangeNotifier {
     0: join
     1: home
   */
+  int device = desktop;
   OurchatConfig? config;
 
   void init() {
@@ -98,7 +99,11 @@ class Controller extends StatelessWidget {
     return MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      home: page,
+      home: LayoutBuilder(builder: (context, constraints) {
+        appState.device =
+            (constraints.maxHeight < constraints.maxWidth) ? desktop : mobile;
+        return page;
+      }),
       theme: ThemeData(
           useMaterial3: true,
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue)),
