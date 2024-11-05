@@ -5,7 +5,7 @@ import sys
 
 from basic import msg_system
 
-VERSION = "1.1.0"
+VERSION = "1.1.1"
 
 
 def version_check():
