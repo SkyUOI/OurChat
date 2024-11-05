@@ -38,7 +38,7 @@ data/postgres-data/**
 data/redis-data/**
 !data/redis-data/.gitkeep
 
-machine_id
+server_info.json
 log/
 *.log
 

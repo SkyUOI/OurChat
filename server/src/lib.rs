@@ -180,16 +180,29 @@ impl MainCfg {
     }
 }
 
-static MACHINE_ID: LazyLock<u64> = LazyLock::new(|| {
-    let state = Path::new("machine_id").exists();
+static SERVER_INFO_PATH: &str = "server_info.json";
+
+#[derive(Debug, Serialize, Deserialize)]
+struct ServerInfo {
+    unique_id: uuid::Uuid,
+    machine_id: u64,
+}
+
+static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
+    let state = Path::new(SERVER_INFO_PATH).exists();
     if state {
-        return u64::from_be_bytes(fs::read("machine_id").unwrap().try_into().unwrap());
+        return serde_json::from_str(&fs::read_to_string(SERVER_INFO_PATH).unwrap()).unwrap();
     }
-    tracing::info!("Create machine id");
-    let mut f = fs::File::create("machine_id").unwrap();
+    tracing::info!("Create server info file");
+
+    let mut f = fs::File::create(SERVER_INFO_PATH).unwrap();
     let id: u64 = rand::thread_rng().gen_range(0..(1024 - 1));
-    f.write_all(&id.to_be_bytes()).unwrap();
-    id
+    let info = ServerInfo {
+        unique_id: uuid::Uuid::new_v4(),
+        machine_id: id,
+    };
+    serde_json::to_writer(&mut f, &info).unwrap();
+    info
 });
 
 /// # Warning
@@ -282,9 +295,7 @@ fn exit_signal(mut shutdown_sender: ShutdownSdr) -> anyhow::Result<()> {
 }
 
 #[derive(Clone)]
-pub struct HttpSender {
-    file_record: mpsc::Sender<httpserver::FileRecord>,
-}
+pub struct HttpSender {}
 
 /// build websocket server
 async fn start_server(
