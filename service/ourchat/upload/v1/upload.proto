@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package service.ourchat.upload.v1;
+
+message UploadRequest {
+  oneof data {
+    // message of the uploaded file
+    Header metadata = 1;
+    bytes content = 2;
+  }
+}
+
+message Header {
+  // the SHA256 of the file
+  string hash = 1;
+  // bytes num of the file
+  uint64 size = 2;
+  // If the file should be cleaned automatically after several days
+  bool auto_clean = 3;
+}
+
+message UploadResponse {
+  // the unique id of the file
+  string key = 1;
+}

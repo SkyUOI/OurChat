@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package service.auth.register.v1;
+
+// Request for registering a new user
+// example
+// {
+//   "email": "ourchat@skyuoi.org",
+//   "password": "123456",
+//   "name": "limuy"
+// }
+message RegisterRequest {
+  string email = 1;
+  string password = 2;
+  // nick name
+  string name = 3;
+}
+
+// example
+// {
+//   "id": 1,
+//   "token": "OXJOncoejwodfenONONOI"
+// }
+message RegisterResponse {
+  string ocid = 1;
+  uint64 id = 2;
+  string token = 3;
+}

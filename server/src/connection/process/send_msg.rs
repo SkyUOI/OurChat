@@ -1,10 +1,6 @@
 use crate::{
     DbPool,
-    client::{
-        MsgConvert,
-        requests::UserSendMsgRequest,
-        response::{ErrorMsgResponse, UserSendMsgResponse},
-    },
+    client::{MsgConvert, requests::UserSendMsgRequest, response::UserSendMsgResponse},
     connection::{NetSender, UserInfo},
     consts::{ID, MsgID},
     entities::user_chat_msg,
@@ -32,9 +28,9 @@ pub async fn send_msg(
         }
         Err(e) => {
             tracing::error!("Database error:{e}");
-            net_sender
-                .send(ErrorMsgResponse::server_error("Database error").to_msg())
-                .await?
+            // net_sender
+            //     .send(ErrorMsgResponse::server_error("Database error").to_msg())
+            //     .await?
         }
     };
     Ok(())

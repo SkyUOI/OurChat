@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package service.auth.authorize.v1;
+
+// Request for authorization and get JWT
+// example
+// {
+//   "account": {
+//     "email": "ourchat@skyuoi.org" // or "ocid": "ocid"
+//   },
+//   "password": "123456"
+// }
+message AuthRequest {
+  oneof account {
+    string email = 1;
+    string ocid = 2;
+  }
+  string password = 3;
+}
+
+// example
+// {
+//   "token": "OXJOncoejwodfenONONOI",
+//   "id": 1
+// }
+message AuthResponse {
+  // JWT
+  string token = 1;
+  // id of user
+  uint64 id = 2;
+  // ocid of user
+  string ocid = 3;
+}

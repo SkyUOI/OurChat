@@ -72,6 +72,10 @@ pub fn generate_session_id() -> anyhow::Result<SessionID> {
     Ok(GENERATOR.generate()?.into_i64().into())
 }
 
+pub fn from_google_timestamp(ts: &prost_types::Timestamp) -> Option<chrono::DateTime<chrono::Utc>> {
+    chrono::DateTime::from_timestamp(ts.seconds, ts.nanos as u32)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

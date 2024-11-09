@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package service.ourchat.session.get_session_info.v1;
+
+import "google/protobuf/timestamp.proto";
+
+enum QueryValues {
+  QUERY_VALUES_UNSPECIFIED = 0;
+  // The id of the session
+  QUERY_VALUES_SESSION_ID = 1;
+  // The name of the session
+  QUERY_VALUES_NAME = 2;
+  // The avata's unique resource key of the session
+  QUERY_VALUES_AVATAR_KEY = 3;
+  // The created time of the session
+  QUERY_VALUES_CREATED_TIME = 4;
+  // The updated time of the session information, such as name
+  QUERY_VALUES_UPDATED_TIME = 5;
+  // The members of the session
+  QUERY_VALUES_MEMBERS = 6;
+  // The session owner's ocid
+  QUERY_VALUES_OWNER_ID = 7;
+}
+
+message GetSessionInfoRequest {
+  uint64 session_id = 1;
+  repeated QueryValues query_values = 2;
+}
+
+message GetSessionInfoResponse {
+  optional uint64 session_id = 1;
+  optional string name = 2;
+  optional string avatar_key = 3;
+  optional google.protobuf.Timestamp created_time = 4;
+  optional google.protobuf.Timestamp updated_time = 5;
+  repeated uint64 members = 6;
+  optional uint64 owner_id = 7;
+}

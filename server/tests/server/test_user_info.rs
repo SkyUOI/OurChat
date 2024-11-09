@@ -1,11 +1,7 @@
 use crate::helper::TestApp;
-use server::client::basic::{GetAccountValues, SetAccountValues, SetFriendValues};
-use server::client::requests::{SetAccountRequest, SetFriendInfoRequest};
-use server::client::response::{ErrorMsgResponse, SetAccountInfoResponse};
-use server::{
-    client::{MsgConvert, requests::GetAccountInfoRequest, response::GetAccountInfoResponse},
-    consts::MessageType,
-};
+use server::client::basic::{SetAccountValues, SetFriendValues};
+use server::client::response::ErrorMsgResponse;
+use server::{client::MsgConvert, consts::MessageType};
 
 #[tokio::test]
 async fn test_get_user_info() {

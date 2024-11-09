@@ -12,7 +12,7 @@ use parking_lot::Mutex;
 use rand::Rng;
 use server::client::MsgConvert;
 use server::client::requests::{self, LoginRequest, LoginType, RegisterRequest, UnregisterRequest};
-use server::client::response::{self, UnregisterResponse};
+use server::client::response::{self};
 use server::component::MockEmailSender;
 use server::consts::{MessageType, SessionID};
 use server::db::DbCfgTrait;

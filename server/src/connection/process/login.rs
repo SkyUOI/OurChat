@@ -1,42 +1,40 @@
+use super::{generate_access_token, wrong_password};
 use crate::{
-    client::{
-        MsgConvert, requests,
-        response::{ErrorMsgResponse, LoginResponse},
-    },
-    connection::{NetSender, UserInfo, VerifyStatus},
+    DbPool,
+    component::EmailSender,
+    connection::UserInfo,
     entities::{prelude::*, user},
+    pb::login::{LoginRequest, LoginResponse, login_request::Account},
+    server::RpcServer,
     utils,
 };
 use anyhow::Context;
 use argon2::{PasswordHash, PasswordVerifier};
-use sea_orm::{ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter};
+use sea_orm::{ColumnTrait, DbErr, EntityTrait, QueryFilter};
+use tonic::{Response, Status};
 
-#[derive(Debug, thiserror::Error)]
-pub enum ErrorOfLogin {
-    #[error("wrong password")]
-    WrongPassword,
-    #[error("database error")]
-    DbError(#[from] sea_orm::DbErr),
-    #[error("unknown error")]
-    UnknownError(#[from] anyhow::Error),
-}
-
-pub async fn login(
-    request: requests::LoginRequest,
-    db_connection: &DatabaseConnection,
-) -> Result<(LoginResponse, UserInfo), ErrorOfLogin> {
+pub async fn login_db(
+    request: LoginRequest,
+    db_connection: &DbPool,
+) -> Result<(LoginResponse, UserInfo), tonic::Status> {
     // Judge login type
-    let user = match request.login_type {
-        requests::LoginType::Email => {
+    let login_type = match request.account {
+        None => {
+            return Err(Status::invalid_argument("missing account"));
+        }
+        Some(account) => account,
+    };
+    let user = match login_type {
+        Account::Email(email) => {
             User::find()
-                .filter(user::Column::Email.eq(request.account))
-                .one(db_connection)
+                .filter(user::Column::Email.eq(email))
+                .one(&db_connection.db_pool)
                 .await
         }
-        requests::LoginType::Ocid => {
+        Account::Ocid(ocid) => {
             User::find()
-                .filter(user::Column::Ocid.eq(request.account))
-                .one(db_connection)
+                .filter(user::Column::Ocid.eq(ocid))
+                .one(&db_connection.db_pool)
                 .await
         }
     };
@@ -50,63 +48,42 @@ pub async fn login(
                 .await
                 .is_ok()
                 {
-                    match request.login_type {
-                        requests::LoginType::Email => {
-                            Ok((LoginResponse::success_email(user.ocid.clone()), UserInfo {
-                                ocid: user.ocid,
-                                id: user.id.into(),
-                            }))
-                        }
-                        requests::LoginType::Ocid => {
-                            Ok((LoginResponse::success_ocid(), UserInfo {
-                                ocid: user.ocid,
-                                id: user.id.into(),
-                            }))
-                        }
-                    }
+                    let token = generate_access_token(user.id.into());
+
+                    Ok((
+                        LoginResponse {
+                            ocid: user.ocid.clone(),
+                            token,
+                        },
+                        UserInfo {
+                            ocid: user.ocid,
+                            id: user.id.into(),
+                        },
+                    ))
                 } else {
-                    Err(ErrorOfLogin::WrongPassword)
+                    Err(wrong_password())
                 }
             }
-            None => Err(ErrorOfLogin::WrongPassword),
+            None => Err(wrong_password()),
         },
         Err(e) => {
             if let DbErr::RecordNotFound(_) = e {
-                Err(ErrorOfLogin::WrongPassword)
+                Err(wrong_password())
             } else {
-                Err(e)?
+                Err(tonic::Status::internal("database error"))
             }
         }
     }
 }
 
 /// Login Request
-pub async fn login_request(
-    net_sender: impl NetSender,
-    login_data: requests::LoginRequest,
-    db_conn: &DatabaseConnection,
-) -> anyhow::Result<VerifyStatus> {
-    match login(login_data, db_conn).await {
-        Ok(ok_resp) => {
-            net_sender.send(ok_resp.0.to_msg()).await?;
-            Ok(VerifyStatus::Success(ok_resp.1))
-        }
-        Err(e) => {
-            match e {
-                ErrorOfLogin::WrongPassword => {
-                    net_sender
-                        .send(LoginResponse::wrong_password().to_msg())
-                        .await?;
-                }
-                e => {
-                    net_sender
-                        .send(ErrorMsgResponse::server_error("Database error when log in").to_msg())
-                        .await?;
-                    tracing::error!("{}", e);
-                }
-            }
-            Ok(VerifyStatus::Fail)
-        }
+pub async fn login<T: EmailSender>(
+    server: &RpcServer<T>,
+    request: tonic::Request<LoginRequest>,
+) -> Result<Response<LoginResponse>, Status> {
+    match login_db(request.into_inner(), &server.db).await {
+        Ok(ok_resp) => Ok(Response::new(ok_resp.0)),
+        Err(e) => Err(e),
     }
 }
 

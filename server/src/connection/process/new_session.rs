@@ -3,7 +3,7 @@ use crate::{
     client::{
         MsgConvert,
         requests::{self, AcceptSessionRequest, NewSessionRequest},
-        response::{ErrorMsgResponse, InviteSession, NewSessionResponse},
+        response::{InviteSession, NewSessionResponse},
     },
     component::EmailSender,
     connection::{NetSender, UserInfo, basic::get_id},
@@ -97,9 +97,9 @@ pub async fn new_session(
     }
     let bundle = async {
         if let Err(e) = create_session(session_id, people_num, json.name, &db_conn.db_pool).await? {
-            net_sender
-                .send(ErrorMsgResponse::server_error("Database error").to_msg())
-                .await?;
+            // net_sender
+            //     .send(ErrorMsgResponse::server_error("Database error").to_msg())
+            //     .await?;
             tracing::error!("create session error: {}", e);
         }
         // add session relation

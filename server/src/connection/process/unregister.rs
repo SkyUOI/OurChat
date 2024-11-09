@@ -1,16 +1,15 @@
 use crate::{
-    client::{
-        MsgConvert,
-        response::{ErrorMsgResponse, UnregisterResponse},
-    },
+    component::EmailSender,
+    connection::db::get_id,
     consts::ID,
     entities::{prelude::*, session_relation, user, user_chat_msg},
+    pb::register::{UnregisterRequest, UnregisterResponse},
+    server::RpcServer,
 };
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
 };
-use tokio::sync::mpsc;
-use tokio_tungstenite::tungstenite::Message;
+use tonic::{Response, Status};
 
 #[derive(Debug, thiserror::Error)]
 enum ErrorOfUnregister {
@@ -58,29 +57,33 @@ async fn remove_msgs_of_user(
     Ok(())
 }
 
-pub async fn unregister(
-    id: ID,
-    net_sender: &mpsc::Sender<Message>,
-    db_conn: &DatabaseConnection,
-) -> anyhow::Result<()> {
+pub async fn unregister<T: EmailSender>(
+    server: &RpcServer<T>,
+    request: tonic::Request<UnregisterRequest>,
+) -> Result<tonic::Response<UnregisterResponse>, tonic::Status> {
+    let db_conn = &server.db.db_pool;
+    let id = match get_id(&request.into_inner().ocid, &server.db).await {
+        Ok(id) => id,
+        Err(e) => {
+            tracing::error!("cannot get id from ocid:{e}");
+            return Err(tonic::Status::internal("cannot get id from ocid"));
+        }
+    };
     let batch = async {
         remove_session_record(id, db_conn).await?;
         remove_msgs_of_user(id, db_conn).await?;
         remove_account(id, db_conn).await?;
         Ok(())
     };
-    let resp = match batch.await {
-        Ok(_) => UnregisterResponse::new().to_msg(),
+    match batch.await {
+        Ok(_) => Ok(Response::new(UnregisterResponse {})),
         Err(ErrorOfUnregister::DbError(e)) => {
             tracing::error!("Database error:{e}");
-            ErrorMsgResponse::server_error("Database error").to_msg()
+            Err(Status::internal("database error"))
         }
         Err(ErrorOfUnregister::UnknownError(e)) => {
             tracing::error!("Unknown error:{e}");
-            ErrorMsgResponse::server_error("Unknown error").to_msg()
+            Err(Status::internal("Unknown error"))
         }
-    };
-    net_sender.send(resp).await?;
-    net_sender.send(Message::Close(None)).await?;
-    Ok(())
+    }
 }
