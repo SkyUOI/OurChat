@@ -20,7 +20,7 @@ class OurchatConnection {
   }
 
   void connectToServer() async {
-    logger.i("try connect to WSserver");
+    logger.i("try connect to WS-server");
     if (!closed) {
       logger.d("already connected\nclose old connection firstly");
       close();
