@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:ourchat/const.dart';
 import 'package:provider/provider.dart';
@@ -7,6 +8,9 @@ import 'connection.dart';
 import 'home.dart';
 import 'config.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'dart:core';
+import 'dart:io';
+import 'package:logger/logger.dart';
 
 void main() async {
   await initLocalStorage();
@@ -24,14 +28,26 @@ class OurchatAppState extends ChangeNotifier {
     1: home
   */
   int device = desktop;
+  bool isWeb = kIsWeb;
   OurchatConfig? config;
+  Logger logger = Logger();
 
-  void init() {
+  void init() async {
+    logger.i("init Ourchat");
     config = OurchatConfig();
     config!.loadConfig();
     connection = OurchatConnection(dealWithEvent);
     connection!
         .setAddress(config!.data!["server_address"], config!.data!["ws_port"]);
+
+    if (!isWeb) {
+      if (!await Directory("./cache").exists()) {
+        await Directory("./cache").create();
+      }
+    }
+    logger.d("IsWeb: $isWeb");
+    notifyListeners();
+    logger.i("init Ourchat done");
   }
 
   void dealWithEvent(var data) {
@@ -110,3 +126,5 @@ class Controller extends StatelessWidget {
     );
   }
 }
+
+// logger

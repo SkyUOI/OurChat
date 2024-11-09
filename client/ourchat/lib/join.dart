@@ -140,7 +140,7 @@ class JoinState extends ChangeNotifier {
     ourchatAppState!.listen(loginResponseMsgCode, loginResponse);
     ourchatAppState!.connection!.send({
       "code": loginMsgCode,
-      "login_type": !account.contains("@"),
+      "login_type": (account.contains("@") ? 1 : 0),
       "account": account,
       "password": sha256.convert(utf8.encode(password)).toString(),
     });

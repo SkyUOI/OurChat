@@ -16,6 +16,7 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   intl: any
+  logger: ^2.4.0
   
 
 dev_dependencies:
