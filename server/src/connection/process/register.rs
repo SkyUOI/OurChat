@@ -1,3 +1,4 @@
+use super::get_new_access_token;
 use crate::{
     DbPool,
     component::EmailSender,
@@ -14,8 +15,6 @@ use redis::AsyncCommands;
 use sea_orm::{ActiveModelTrait, ActiveValue, DbErr};
 use snowdon::ClassicLayoutSnowflakeExtension;
 use tonic::{Request, Status};
-use super::get_new_access_token;
-
 
 async fn add_new_user(
     request: RegisterRequest,
