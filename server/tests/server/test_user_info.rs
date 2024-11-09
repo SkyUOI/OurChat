@@ -1,82 +1,58 @@
 use crate::helper::TestApp;
-use server::client::basic::{GetAccountValues, SetAccountValues, SetFriendValues};
-use server::client::requests::{SetAccountRequest, SetFriendInfoRequest};
-use server::client::response::{ErrorMsgResponse, SetAccountInfoResponse};
-use server::{
-    client::{MsgConvert, requests::GetAccountInfoRequest, response::GetAccountInfoResponse},
-    consts::MessageType,
+use claims::assert_err;
+use server::pb::{
+    get_info::{self, GetAccountInfoRequest, RequestValues},
+    set_info::{SetFriendInfoRequest, SetSelfInfoRequest},
 };
 
 #[tokio::test]
 async fn test_get_user_info() {
     let mut app = TestApp::new(None).await.unwrap();
     let user = app.new_user().await.unwrap();
+    let user2 = app.new_user().await.unwrap();
     // request before logged in
+    // don't have privileges
     let user_ocid = user.lock().await.ocid.clone();
     let user_name = user.lock().await.name.clone();
     let user_email = user.lock().await.email.clone();
 
-    user.lock()
-        .await
-        .send(
-            GetAccountInfoRequest::new(user_ocid.clone(), vec![
-                GetAccountValues::Ocid,
-                GetAccountValues::Email,
-                GetAccountValues::UserName,
-            ])
-            .to_msg(),
-        )
-        .await
-        .unwrap();
-    let ret =
-        GetAccountInfoResponse::from_json(&user.lock().await.get_text().await.unwrap()).unwrap();
-    assert_eq!(ret.code, MessageType::GetAccountInfoRes);
-    assert_eq!(
-        ret.data.get(&GetAccountValues::Ocid),
-        Some(&serde_json::Value::String(user_ocid.clone()))
-    );
-    assert_eq!(
-        ret.data.get(&GetAccountValues::UserName),
-        Some(&serde_json::Value::String(user_name.clone()))
-    );
-    // don't have privileges
-    assert_eq!(
-        ret.data.get(&GetAccountValues::Email),
-        Some(&serde_json::Value::Null)
+    assert_err!(
+        user2
+            .lock()
+            .await
+            .oc()
+            .get_info(GetAccountInfoRequest {
+                ocid: user_ocid.clone(),
+                request_values: vec![
+                    get_info::RequestValues::Ocid.into(),
+                    get_info::RequestValues::Email.into(),
+                    get_info::RequestValues::UserName.into(),
+                ],
+            })
+            .await
     );
     // now have privileges
     user.lock().await.ocid_login().await.unwrap();
-    user.lock()
+    let ret = user
+        .lock()
         .await
-        .send(
-            GetAccountInfoRequest::new(user_ocid.clone(), vec![
-                GetAccountValues::Ocid,
-                GetAccountValues::Email,
-                GetAccountValues::UserName,
-                GetAccountValues::Friends,
-            ])
-            .to_msg(),
-        )
+        .oc()
+        .get_info(GetAccountInfoRequest {
+            ocid: user_ocid.clone(),
+            request_values: vec![
+                get_info::RequestValues::Ocid.into(),
+                get_info::RequestValues::Email.into(),
+                get_info::RequestValues::UserName.into(),
+                get_info::RequestValues::Friends.into(),
+            ],
+        })
         .await
         .unwrap();
-    let ret =
-        GetAccountInfoResponse::from_json(&user.lock().await.get_text().await.unwrap()).unwrap();
-    assert_eq!(
-        ret.data.get(&GetAccountValues::Ocid),
-        Some(&serde_json::Value::String(user_ocid.clone()))
-    );
-    assert_eq!(
-        ret.data.get(&GetAccountValues::UserName),
-        Some(&serde_json::Value::String(user_name.clone()))
-    );
-    assert_eq!(
-        ret.data.get(&GetAccountValues::Email),
-        Some(&serde_json::Value::String(user_email.clone()))
-    );
-    assert_eq!(
-        ret.data.get(&GetAccountValues::Friends),
-        Some(&serde_json::Value::Array(vec![]))
-    );
+    let ret = ret.into_inner();
+    assert_eq!(ret.ocid, Some(user_ocid.clone()));
+    assert_eq!(ret.user_name, Some(user_name.clone()));
+    assert_eq!(ret.email, Some(user_email.clone()));
+    assert_eq!(ret.friends, Vec::<String>::default());
     // TODO:add display_name test
     app.async_drop().await;
 }
@@ -89,47 +65,29 @@ async fn test_set_user_info() {
     let ocid = user.lock().await.ocid.clone();
 
     let new_name = "test_set_user_info".to_string();
-    // dont have privileges
-    user.lock()
+    let ret = user
+        .lock()
         .await
-        .send(
-            SetAccountRequest::new(collection_literals::collection! {
-                SetAccountValues::UserName => serde_json::Value::String(new_name.clone())
-            })
-            .to_msg(),
-        )
-        .await
-        .unwrap();
-    // will be rejected
-    let ret = ErrorMsgResponse::from_json(&user.lock().await.get_text().await.unwrap()).unwrap();
-    assert_eq!(ret.code, MessageType::ErrorMsg);
-    // now have privileges
-    user.lock().await.ocid_login().await.unwrap();
-    user.lock()
-        .await
-        .send(
-            SetAccountRequest::new(collection_literals::collection! {
-                SetAccountValues::UserName => serde_json::Value::String(new_name.clone())
-            })
-            .to_msg(),
-        )
+        .oc()
+        .set_self_info(SetSelfInfoRequest {
+            user_name: Some(new_name.clone()),
+            ..Default::default()
+        })
         .await
         .unwrap();
-    let ret =
-        SetAccountInfoResponse::from_json(&user.lock().await.get_text().await.unwrap()).unwrap();
-    assert_eq!(ret.code, MessageType::SetAccountInfoRes);
     // get name
-    user.lock()
+    let ret = user
+        .lock()
         .await
-        .send(GetAccountInfoRequest::new(ocid.clone(), vec![GetAccountValues::UserName]).to_msg())
+        .oc()
+        .get_info(GetAccountInfoRequest {
+            ocid: ocid.clone(),
+            request_values: vec![RequestValues::UserName.into()],
+        })
         .await
         .unwrap();
-    let ret =
-        GetAccountInfoResponse::from_json(&user.lock().await.get_text().await.unwrap()).unwrap();
-    assert_eq!(
-        ret.data.get(&GetAccountValues::UserName),
-        Some(&serde_json::Value::String(new_name.clone()))
-    );
+    let ret = ret.into_inner();
+    assert_eq!(ret.user_name, Some(new_name.clone()));
     app.async_drop().await;
 }
 
@@ -141,37 +99,19 @@ async fn test_set_friend_info() {
     let user_ocid = user.lock().await.ocid.clone();
     let user2_ocid = user2.lock().await.ocid.clone();
     let new_name = "xxx";
-    // dont have privileges
-    // try set display names for him
-    user.lock()
-        .await
-        .send(
-            SetFriendInfoRequest::new(user2_ocid.clone(), collection_literals::collection! {
-                SetFriendValues::DisplayName => serde_json::Value::String(new_name.to_owned())
-            })
-            .to_msg(),
-        )
-        .await
-        .unwrap();
-    // will be rejected
-    let ret = ErrorMsgResponse::from_json(&user.lock().await.get_text().await.unwrap()).unwrap();
-    assert_eq!(ret.code, MessageType::ErrorMsg);
+
     // now have privileges,but is no friends now
-    user.lock().await.ocid_login().await.unwrap();
-    user.lock()
+    let ret = user
+        .lock()
         .await
-        .send(
-            SetFriendInfoRequest::new(user2_ocid.clone(), collection_literals::collection! {
-                SetFriendValues::DisplayName => serde_json::Value::String(new_name.to_owned())
-            })
-            .to_msg(),
-        )
+        .oc()
+        .set_friend_info(SetFriendInfoRequest {
+            ocid: user2_ocid.clone(),
+            display_name: Some(new_name.to_owned()),
+        })
         .await
         .unwrap();
-    let ret = user.lock().await.get_text().await.unwrap();
-    let ret = ErrorMsgResponse::from_json(&ret).unwrap();
-    assert_eq!(ret.code, MessageType::ErrorMsg, "{:?}", ret);
+    let ret = ret.into_inner();
     // add friend
-    user2.lock().await.ocid_login().await.unwrap();
     app.async_drop().await;
 }

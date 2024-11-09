@@ -31,7 +31,7 @@ def test_process() -> int:
     return_code = 0
     os.putenv(
         "RUST_LOG",
-        "trace,actix_web=off,tokio_tungstenite=off,tungstenite=off,actix_server=off,mio=off",
+        "trace,actix_web=off,tokio_tungstenite=off,tungstenite=off,actix_server=off,mio=off,h2=off,tonic=off,tower=off",
     )
     # Run tests
     start_test()

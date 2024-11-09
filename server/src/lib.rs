@@ -2,13 +2,13 @@
 #![feature(duration_constructors)]
 
 pub mod basic;
-pub mod client;
 mod cmd;
 pub mod component;
 pub mod connection;
 pub mod consts;
 pub mod db;
 mod entities;
+pub mod pb;
 mod server;
 mod shared_state;
 pub mod utils;
@@ -26,6 +26,7 @@ use db::{DbCfgTrait, PostgresDbCfg, file_storage};
 use futures_util::future::join_all;
 use lettre::{AsyncSmtpTransport, transport::smtp::authentication::Credentials};
 use parking_lot::Once;
+use pb::msg_delivery::Msg;
 use rand::Rng;
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
@@ -33,11 +34,13 @@ use server::httpserver;
 use std::{
     fs,
     io::Write,
+    net::{IpAddr, SocketAddr},
     path::{Path, PathBuf},
     sync::{Arc, LazyLock, OnceLock},
 };
 use tokio::{net::TcpListener, sync::mpsc, task::JoinHandle};
 use tokio_tungstenite::tungstenite::Message;
+use tracing::info;
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{
     EnvFilter, Registry,
@@ -186,7 +189,10 @@ static SERVER_INFO_PATH: &str = "server_info.json";
 struct ServerInfo {
     unique_id: uuid::Uuid,
     machine_id: u64,
+    secret: String,
 }
+
+const SECRET_LEN: usize = 32;
 
 static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
     let state = Path::new(SERVER_INFO_PATH).exists();
@@ -200,6 +206,7 @@ static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
     let info = ServerInfo {
         unique_id: uuid::Uuid::new_v4(),
         machine_id: id,
+        secret: utils::generate_random_string(SECRET_LEN),
     };
     serde_json::to_writer(&mut f, &info).unwrap();
     info
@@ -299,19 +306,15 @@ pub struct HttpSender {}
 
 /// build websocket server
 async fn start_server(
-    listener: TcpListener,
+    addr: impl Into<SocketAddr>,
     db: DbPool,
     http_sender: HttpSender,
     shared_data: Arc<SharedData<impl EmailSender>>,
     shutdown_sender: ShutdownSdr,
     shutdown_receiver: ShutdownRev,
 ) -> anyhow::Result<JoinHandle<anyhow::Result<()>>> {
-    let mut server = server::Server::new(listener, db, http_sender, shared_data).await?;
-    let handle = tokio::spawn(async move {
-        server
-            .accept_sockets(shutdown_sender, shutdown_receiver)
-            .await
-    });
+    let server = server::RpcServer::new(addr, db, http_sender, shared_data);
+    let handle = tokio::spawn(async move { server.run(shutdown_receiver).await });
     Ok(handle)
 }
 
@@ -324,10 +327,11 @@ fn global_init() {
 pub struct Application<T: EmailSender> {
     pub shared: Arc<SharedData<T>>,
     pub pool: DbPool,
-    server_listener: Option<TcpListener>,
+    server_addr: SocketAddr,
     http_listener: Option<std::net::TcpListener>,
     /// for shutdowning server fully,you shouldn't use handle.abort() to do this
     abort_sender: ShutdownSdr,
+    pub started_notify: Arc<tokio::sync::Notify>,
 }
 
 #[derive(Debug, Clone)]
@@ -351,7 +355,7 @@ pub struct SharedData<T: EmailSender> {
     pub email_client: Option<T>,
     pub cfg: Cfg,
     pub verify_record: DashMap<String, Arc<tokio::sync::Notify>>,
-    pub connected_clients: DashMap<ID, mpsc::Sender<Message>>,
+    pub connected_clients: DashMap<ID, mpsc::Sender<Msg>>,
 }
 
 pub fn get_configuration(config_path: Option<impl Into<PathBuf>>) -> anyhow::Result<MainCfg> {
@@ -408,9 +412,8 @@ impl<T: EmailSender> Application<T> {
             None => main_cfg.port,
             Some(port) => port,
         };
-        let addr = format!("{}:{}", &main_cfg.ip, port);
-        let server_listener = TcpListener::bind(&addr).await?;
-        main_cfg.port = server_listener.local_addr()?.port();
+        let addr: SocketAddr = format!("{}:{}", &main_cfg.ip, port).parse().unwrap();
+        main_cfg.port = addr.port();
 
         // http port
         let http_port = match parser.http_port {
@@ -449,9 +452,10 @@ impl<T: EmailSender> Application<T> {
                 redis_pool: redis,
                 db_pool: db,
             },
-            server_listener: Some(server_listener),
+            server_addr: addr,
             http_listener: Some(http_listener),
             abort_sender,
+            started_notify: Arc::new(tokio::sync::Notify::new()),
         })
     }
 
@@ -488,12 +492,12 @@ impl<T: EmailSender> Application<T> {
         handles.push(handle);
 
         let handle = start_server(
-            self.server_listener.take().unwrap(),
+            self.server_addr,
             self.pool.clone(),
             record_sender,
             self.shared.clone(),
             self.abort_sender.clone(),
-            self.abort_sender.new_receiver("ws server", "ws server"),
+            self.abort_sender.new_receiver("rpc server", "rpc server"),
         )
         .await?;
         handles.push(handle);
@@ -550,6 +554,7 @@ impl<T: EmailSender> Application<T> {
             ));
         }
         tracing::info!("Server started");
+        self.started_notify.notify_waiters();
         join_all(handles).await.iter().for_each(|x| {
             if let Err(e) = x {
                 tracing::error!("server error:{}", e);

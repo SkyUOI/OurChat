@@ -1,47 +1,11 @@
 //! Define constants
 
 use base::impl_newtype_int;
-use num_enum::TryFromPrimitive;
 use serde::{Deserialize, Serialize, Serializer};
-use serde_repr::{Deserialize_repr, Serialize_repr};
 use std::{fmt::Display, io::IsTerminal, str::FromStr, sync::LazyLock};
 
 /// OCID Length
 pub const OCID_LEN: usize = 10;
-
-/// Message type for round trip
-#[derive(Debug, Serialize_repr, Deserialize_repr, TryFromPrimitive, PartialEq, Eq, Copy, Clone)]
-#[repr(i32)]
-pub enum MessageType {
-    GetBundledUserMsgRes = 0,
-    Register = 4,
-    RegisterRes = 5,
-    Login = 6,
-    LoginRes = 7,
-    NewSession = 8,
-    NewSessionRes = 9,
-    GetAccountInfo = 10,
-    GetAccountInfoRes = 11,
-    GetStatus = 12,
-    Verify = 14,
-    VerifyStatusRes = 15,
-    Unregister = 16,
-    UnregisterRes = 17,
-    ErrorMsg = 18,
-    SetAccountInfo = 19,
-    SetAccountInfoRes = 20,
-    Upload = 21,
-    UploadRes = 22,
-    VerifyRes = 23,
-    InviteSession = 24,
-    AcceptSession = 25,
-    AcceptSessionRes = 26,
-    SetFriendInfo = 27,
-    GetUserMsg = 28,
-    UserSendMsg = 29,
-    UserSendMsgRes = 30,
-    ReturnOpers = 31,
-}
 
 /// default ip
 pub const DEFAULT_IP: &str = "0.0.0.0";

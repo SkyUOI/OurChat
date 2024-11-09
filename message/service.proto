@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+import "message/register.proto";
+import "message/login.proto";
+import "message/get_account_info.proto";
+import "message/set_account_info.proto";
+import "message/server.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+import "message/msg_delivery.proto";
+import "message/upload.proto";
+import "message/session.proto";
+
+package ourchat;
+
+service OurChatService {
+  rpc unregister(register.UnregisterRequest)
+      returns (register.UnregisterResponse);
+
+  rpc get_info(get_info.GetAccountInfoRequest)
+      returns (get_info.GetAccountInfoResponse);
+
+  rpc set_self_info(set_info.SetSelfInfoRequest)
+      returns (set_info.SetAccountInfoResponse);
+
+  rpc set_friend_info(set_info.SetFriendInfoRequest)
+      returns (set_info.SetAccountInfoResponse);
+
+  rpc fetch_msgs(msg_delivery.FetchMsgRequest)
+      returns (stream msg_delivery.Msg);
+
+  rpc msg_delivery(stream msg_delivery.SendMsgRequest)
+      returns (stream msg_delivery.SendMsgResponse);
+
+    rpc upload(stream upload.UploadRequest) returns (upload.UploadResponse);
+
+    rpc new_session(session.NewSessionRequest) returns (session.NewSessionResponse);
+}
+
+service BasicService {
+  rpc timestamp(google.protobuf.Empty) returns (google.protobuf.Timestamp);
+
+  rpc get_server_info(google.protobuf.Empty) returns (server.ServerInfo);
+}
+
+service AuthService {
+      rpc register(register.RegisterRequest) returns (register.RegisterResponse);
+
+  rpc login(login.LoginRequest) returns (login.LoginResponse);
+}

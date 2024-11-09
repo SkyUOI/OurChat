@@ -72,6 +72,25 @@ pub fn generate_session_id() -> anyhow::Result<SessionID> {
     Ok(GENERATOR.generate()?.into_i64().into())
 }
 
+pub fn from_google_timestamp(ts: &prost_types::Timestamp) -> Option<chrono::DateTime<chrono::Utc>> {
+    chrono::DateTime::from_timestamp(ts.seconds, ts.nanos as u32)
+}
+
+pub fn to_google_timestamp(ts: chrono::DateTime<chrono::Utc>) -> prost_types::Timestamp {
+    prost_types::Timestamp {
+        seconds: ts.timestamp(),
+        nanos: ts.timestamp_subsec_nanos() as i32,
+    }
+}
+
+pub fn get_available_port() -> u16 {
+    std::net::TcpListener::bind("0.0.0.0:0")
+        .unwrap()
+        .local_addr()
+        .unwrap()
+        .port()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

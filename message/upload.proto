@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package upload;
+
+message UploadRequest {
+    oneof data {
+        Header metadata = 1;
+        bytes content = 2;
+    }
+}
+
+message Header {
+    string hash = 1;
+    uint64 size = 2;
+    bool auto_clean = 3;
+}
+
+message UploadResponse {
+    string key = 1;
+}

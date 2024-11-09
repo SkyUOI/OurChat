@@ -23,7 +23,7 @@ sea-orm = { version = "1", features = [
     "runtime-tokio-rustls",
     "macros",
 ] }
-thiserror = "1"
+thiserror = "2"
 chrono = { version = "0", features = ["serde"] }
 base = { path = "base" }
 tracing = { version = "0" }
@@ -52,6 +52,13 @@ mockall = "0"
 async-trait = { version = "0" }
 serde_plain = "1"
 
+tonic = { version = "0", features = ["tls"] }
+tonic-types = { version = "0" }
+prost-types = { version = "0" }
+prost = { version = "0" }
+jsonwebtoken = "9"
+tokio-stream = { version = "0" }
+
 [dependencies.lettre]
 version = "0"
 default-features = false
@@ -60,6 +67,10 @@ features = ["tokio1", "tokio1-rustls-tls", "smtp-transport", "builder"]
 [dev-dependencies]
 assert_cmd = "2"
 reqwest = "0"
-fake = { version = "2" }
+fake = { version = "3" }
 linkify = "0"
 claims = "0"
+
+[build-dependencies]
+tonic-build = { version = "0" }
+anyhow = "1"
