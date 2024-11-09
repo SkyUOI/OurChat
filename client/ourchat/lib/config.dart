@@ -1,4 +1,5 @@
 import 'package:localstorage/localstorage.dart';
+import 'package:logger/logger.dart';
 
 class OurchatConfig {
   Map<String, dynamic>? data;
@@ -14,16 +15,22 @@ class OurchatConfig {
     };
   }
 
+  Logger logger = Logger();
+
   void checkConfig() {
+    logger.i("check config");
     var defaultConfig = getDefaultConfig();
     for (var key in defaultConfig.keys) {
       if (!data!.containsKey(key)) {
         data![key] = defaultConfig[key];
+        logger.t("$key does not exist,use default value: $defaultConfig[key]");
       }
     }
+    logger.i("check config done");
   }
 
   void loadConfig() {
+    logger.i("load config");
     var defaultConfig = getDefaultConfig();
     data = {};
     for (var key in defaultConfig.keys) {
@@ -33,12 +40,15 @@ class OurchatConfig {
       }
     }
     checkConfig();
+    logger.i("load config done");
   }
 
   void saveConfig() {
+    logger.i("save config");
     checkConfig();
     for (var key in data!.keys) {
       localStorage.setItem(key, data![key]);
     }
+    logger.i("save config done");
   }
 }
