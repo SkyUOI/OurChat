@@ -121,5 +121,30 @@
                 "type": "String"
             }
         }
+    },
+    "featureUnavailable": "Feature Unavailable",
+    "@featureUnavailable": {
+        "description": "Feature Unavailable"
+    },
+    "commandNotFound": "Command not found",
+    "@commandNotFound": {
+        "description": "Command not found"
+    },
+    "unexpectedStatusCode": "Unexpected status code: {code}",
+    "@unexpectedStatusCode": {
+        "description": "Unexpected status code: {code}",
+        "placeholders": {
+            "code": {
+                "type": "num"
+            }
+        }
+    },
+    "defaultUsername": "OurchatUser",
+    "@defaultUsername": {
+        "description": "default username when leave blank in register"
+    },
+    "optional": "optional",
+    "@optional": {
+        "description": "optional"
     }
 }
