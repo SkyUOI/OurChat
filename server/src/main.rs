@@ -12,5 +12,5 @@ async fn main() -> anyhow::Result<()> {
     let mut application = server::Application::build(parser, config, email_client).await?;
     application.run_forever().await?;
     tracing::info!("Application stopped");
-    exit(0);
+    Ok(())
 }

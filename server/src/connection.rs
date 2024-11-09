@@ -1,7 +1,7 @@
 //! Process the connection to server
 
 mod basic;
-mod process;
+pub mod process;
 
 use std::sync::Arc;
 
@@ -332,32 +332,6 @@ impl<T: EmailSender> Connection<T> {
                             }
                         };
                         match code {
-                            MessageType::Login => {
-                                let login_data: requests::LoginRequest =
-                                    match from_value(json, &net_send_closure).await? {
-                                        None => {
-                                            continue;
-                                        }
-                                        Some(data) => data,
-                                    };
-                                process::login::login_request(
-                                    net_send_closure,
-                                    login_data,
-                                    &dbpool.db_pool,
-                                )
-                                .await?
-                            }
-                            MessageType::Register => {
-                                let request_data: requests::RegisterRequest =
-                                    match from_value(json, &net_send_closure).await? {
-                                        None => {
-                                            continue;
-                                        }
-                                        Some(data) => data,
-                                    };
-                                process::register(net_send_closure, request_data, &dbpool.db_pool)
-                                    .await?
-                            }
                             MessageType::Verify => {
                                 tracing::info!("Start to verify email");
                                 match Self::email_verify(&json, &shared_data, dbpool, |msg| async {
@@ -461,11 +435,6 @@ impl<T: EmailSender> Connection<T> {
                             None => continue,
                         };
                         match code {
-                            MessageType::Unregister => {
-                                process::unregister(user_info.id, &net_sender, &db_pool.db_pool)
-                                    .await?;
-                                continue 'con_loop;
-                            }
                             MessageType::NewSession => {
                                 let json: NewSessionRequest =
                                     match from_value(json, &net_sender_closure).await? {

@@ -3,105 +3,75 @@
 pub mod httpserver;
 
 use crate::component::EmailSender;
-use crate::{DbPool, HttpSender, SharedData, ShutdownRev, ShutdownSdr, connection};
-use std::net::SocketAddr;
+use crate::connection::process;
+use crate::pb::service::our_chat_service_server::{OurChatService, OurChatServiceServer};
+use crate::{DbPool, HttpSender, SharedData, ShutdownRev, ShutdownSdr, connection, pb};
+use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
 use tokio::net::TcpStream;
 use tokio::{net::TcpListener, select};
 
-pub struct Server<T: EmailSender> {
-    tcplistener: TcpListener,
-    db: Option<DbPool>,
-    http_sender: HttpSender,
-    shared_data: Arc<SharedData<T>>,
+pub struct RpcServer<T: EmailSender> {
+    pub db: DbPool,
+    pub http_sender: HttpSender,
+    pub shared_data: Arc<SharedData<T>>,
+    pub addr: SocketAddr,
 }
 
-impl<T: EmailSender> Server<T> {
-    pub async fn new(
-        tcplistener: TcpListener,
+impl<T: EmailSender> RpcServer<T> {
+    pub fn new(
+        ip: impl Into<SocketAddr>,
         db: DbPool,
         http_sender: HttpSender,
         shared_data: Arc<SharedData<T>>,
-    ) -> anyhow::Result<Self> {
-        let ret = Self {
-            tcplistener,
-            db: Some(db),
+    ) -> Self {
+        Self {
+            db,
             http_sender,
             shared_data,
-        };
-        Ok(ret)
+            addr: ip.into(),
+        }
     }
 
-    pub async fn accept_sockets(
-        &mut self,
-        shutdown_sender: ShutdownSdr,
-        mut shutdown_receiver: ShutdownRev,
-    ) -> anyhow::Result<()> {
-        let db_conn = self.db.take().unwrap();
-
-        let shutdown_sender_clone = shutdown_sender.clone();
-        let async_loop = async move {
-            loop {
-                let ret = self.tcplistener.accept().await;
-                let shutdown_handle = shutdown_sender_clone.clone();
-                let http_sender = self.http_sender.clone();
-                let db_conn = db_conn.clone();
-                match ret {
-                    Ok((socket, addr)) => {
-                        tracing::info!("Connected to a socket");
-                        tokio::spawn(Self::handle_connection(
-                            socket,
-                            addr,
-                            http_sender,
-                            shutdown_handle,
-                            self.shared_data.clone(),
-                            db_conn,
-                        ));
-                    }
-                    Err(e) => {
-                        tracing::warn!("Failed to accept a socket: {}", e);
-                    }
-                }
-            }
-        };
+    pub async fn run(self, mut shutdown_rev: ShutdownRev) -> anyhow::Result<()> {
+        let addr = self.addr;
         select! {
-            _ = async_loop => {},
-            _ = shutdown_receiver.wait_shutdowning() => {
-                tracing::info!("Accepting loop exited")
+            _ = shutdown_rev.wait_shutdowning() => {
+
             }
+            _ = tonic::transport::Server::builder().add_service(OurChatServiceServer::new(self)).serve(addr) => {}
         }
         Ok(())
     }
+}
 
-    async fn handle_connection(
-        stream: TcpStream,
-        addr: SocketAddr,
-        http_sender: HttpSender,
-        shutdown_sender: ShutdownSdr,
-        shared_data: Arc<SharedData<T>>,
-        dbpool: DbPool,
-    ) {
-        let ws_stream = match tokio_tungstenite::accept_async(stream).await {
-            Ok(data) => data,
-            Err(e) => {
-                tracing::error!("Error during websocket handshake: {}", e);
-                return;
-            }
-        };
-        let mut connection = connection::Connection::new(
-            ws_stream,
-            http_sender,
-            shutdown_sender,
-            shared_data,
-            dbpool,
-        );
-        match connection.work().await {
-            Ok(_) => {
-                tracing::info!("Connection closed: {}", addr);
-            }
-            Err(e) => {
-                tracing::error!("Connection error: {}", crate::utils::error_chain(e));
-            }
-        }
+#[tonic::async_trait]
+impl<T: EmailSender> OurChatService for RpcServer<T> {
+    async fn register(
+        &self,
+        request: tonic::Request<pb::register::RegisterRequest>,
+    ) -> Result<tonic::Response<pb::register::RegisterResponse>, tonic::Status> {
+        process::register::register(self, request).await
+    }
+
+    async fn unregister(
+        &self,
+        request: tonic::Request<pb::register::UnregisterRequest>,
+    ) -> Result<tonic::Response<pb::register::UnregisterResponse>, tonic::Status> {
+        process::unregister::unregister(self, request).await
+    }
+
+    async fn auth(
+        &self,
+        request: tonic::Request<pb::auth::AuthRequest>,
+    ) -> Result<tonic::Response<pb::auth::AuthResponse>, tonic::Status> {
+        todo!()
+    }
+
+    async fn login(
+        &self,
+        request: tonic::Request<pb::login::LoginRequest>,
+    ) -> Result<tonic::Response<pb::login::LoginResponse>, tonic::Status> {
+        process::login::login(self, request).await
     }
 }
