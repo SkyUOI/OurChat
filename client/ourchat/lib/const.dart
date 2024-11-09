@@ -12,13 +12,16 @@ const verifyResponseMsgCode = 15;
 // Status Code
 const operationSuccessfulStatusCode = 0;
 const serverErrorStatusCode = 1;
-const underMaintenanceStatusCode = 2;
-const requestInfoDoesNotExistStatusCode = 3;
+const serverMaintenanceStatusCode = 2;
+const requestInfoNotFoundStatusCode = 3;
 const newInfoAlreadyExistsStatusCode = 4;
 const parameterErrorStatusCode = 5;
-const accountRestrictionStatusCode = 6;
+const accountLimitStatusCode = 6;
 const timeoutStatusCode = 7;
 const unknownErrorStatusCode = 8;
+const requestRejectedStatusCode = 9;
+const validationFailedStatusCode = 10;
+const featureUnavailableStatusCode = 11;
 
 // UI ID
 const joinUi = 0;

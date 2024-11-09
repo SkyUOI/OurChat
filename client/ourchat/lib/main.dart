@@ -126,5 +126,3 @@ class Controller extends StatelessWidget {
     );
   }
 }
-
-// logger

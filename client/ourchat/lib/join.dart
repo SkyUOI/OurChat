@@ -118,20 +118,36 @@ class JoinState extends ChangeNotifier {
   void getServerStatusResponse(var data) {
     ourchatAppState!.unlisten(serverStatusMsgCode, getServerStatusResponse);
     if (data["status"] == operationSuccessfulStatusCode) {
+      errorText = "";
       if (page == 0) {
         login();
       } else {
         register();
       }
-    } else if (data["status"] == serverErrorStatusCode) {
-      errorText = AppLocalizations.of(context!)!
-          .cantConnectToServer(AppLocalizations.of(context!)!.serverError);
-    } else if (data["status"] == underMaintenanceStatusCode) {
-      errorText = AppLocalizations.of(context!)!.cantConnectToServer(
-          AppLocalizations.of(context!)!.serverUnderMaintenance);
     } else {
-      errorText = AppLocalizations.of(context!)!
-          .cantConnectToServer(AppLocalizations.of(context!)!.unknownError);
+      switch (data["status"]) {
+        case serverMaintenanceStatusCode:
+          errorText = AppLocalizations.of(context!)!.cantConnectToServer(
+              AppLocalizations.of(context!)!.serverUnderMaintenance);
+          break;
+        case serverErrorStatusCode:
+          errorText = AppLocalizations.of(context!)!
+              .cantConnectToServer(AppLocalizations.of(context!)!.serverError);
+          break;
+        case parameterErrorStatusCode:
+          errorText = AppLocalizations.of(context!)!.cantConnectToServer(
+              AppLocalizations.of(context!)!.commandNotFound);
+          break;
+        case unknownErrorStatusCode:
+          errorText = AppLocalizations.of(context!)!
+              .cantConnectToServer(AppLocalizations.of(context!)!.unknownError);
+          break;
+        default:
+          errorText = AppLocalizations.of(context!)!.cantConnectToServer(
+              AppLocalizations.of(context!)!
+                  .unexpectedStatusCode(data["status"]));
+          break;
+      }
     }
     notifyListeners();
   }
@@ -150,14 +166,25 @@ class JoinState extends ChangeNotifier {
     ourchatAppState!.unlisten(loginResponseMsgCode, loginResponse);
     if (data["status"] == operationSuccessfulStatusCode) {
       ourchatAppState!.toSomewhere(homeUi);
-    } else if (data["status"] == serverErrorStatusCode) {
-      errorText = AppLocalizations.of(context!)!.serverError;
-    } else if (data["status"] == underMaintenanceStatusCode) {
-      errorText = AppLocalizations.of(context!)!.serverUnderMaintenance;
-    } else if (data["status"] == parameterErrorStatusCode) {
-      errorText = AppLocalizations.of(context!)!.wrongAccountOrPassword;
     } else {
-      errorText = AppLocalizations.of(context!)!.unknownError;
+      switch (data["status"]) {
+        case validationFailedStatusCode:
+          errorText = AppLocalizations.of(context!)!.wrongAccountOrPassword;
+          break;
+        case serverErrorStatusCode:
+          errorText = AppLocalizations.of(context!)!.serverError;
+          break;
+        case parameterErrorStatusCode:
+          errorText = AppLocalizations.of(context!)!.commandNotFound;
+          break;
+        case unknownErrorStatusCode:
+          errorText = AppLocalizations.of(context!)!.unknownError;
+          break;
+        default:
+          errorText = AppLocalizations.of(context!)!
+              .unexpectedStatusCode(data["status"]);
+          break;
+      }
     }
     notifyListeners();
   }
@@ -175,15 +202,33 @@ class JoinState extends ChangeNotifier {
     if (data["status"] == operationSuccessfulStatusCode) {
       ourchatAppState!.unlisten(verifyResponseMsgCode, verifyResponse);
       errorText = AppLocalizations.of(context!)!.plzCheckYourEmail;
-    } else if (data["status"] == serverErrorStatusCode) {
-      errorText = AppLocalizations.of(context!)!.serverError;
-    } else if (data["status"] == requestInfoDoesNotExistStatusCode) {
-      errorText = AppLocalizations.of(context!)!.emailAddressUnreachable;
-    } else if (data["status"] == accountRestrictionStatusCode) {
-      errorText = AppLocalizations.of(context!)!.requestRefused;
     } else {
-      errorText = AppLocalizations.of(context!)!.unknownError;
+      switch (data["status"]) {
+        case requestInfoNotFoundStatusCode:
+          errorText = AppLocalizations.of(context!)!.emailAddressUnreachable;
+          break;
+        case validationFailedStatusCode:
+          errorText = AppLocalizations.of(context!)!.requestRefused;
+          break;
+        case featureUnavailableStatusCode:
+          errorText = AppLocalizations.of(context!)!.featureUnavailable;
+          break;
+        case serverErrorStatusCode:
+          errorText = AppLocalizations.of(context!)!.serverError;
+          break;
+        case parameterErrorStatusCode:
+          errorText = AppLocalizations.of(context!)!.commandNotFound;
+          break;
+        case unknownErrorStatusCode:
+          errorText = AppLocalizations.of(context!)!.unknownError;
+          break;
+        default:
+          errorText = AppLocalizations.of(context!)!
+              .unexpectedStatusCode(data["status"]);
+          break;
+      }
     }
+
     notifyListeners();
   }
 
@@ -191,14 +236,25 @@ class JoinState extends ChangeNotifier {
     ourchatAppState!.unlisten(verifyResponseMsgCode, verifyResponse);
     if (data["status"] == operationSuccessfulStatusCode) {
       register();
-    } else if (data["status"] == serverErrorStatusCode) {
-      errorText = AppLocalizations.of(context!)!.serverError;
-    } else if (data["status"] == underMaintenanceStatusCode) {
-      errorText = AppLocalizations.of(context!)!.serverUnderMaintenance;
-    } else if (data["status"] == timeoutStatusCode) {
-      errorText = AppLocalizations.of(context!)!.verifyTimeout;
     } else {
-      errorText = AppLocalizations.of(context!)!.unknownError;
+      switch (data["status"]) {
+        case timeoutStatusCode:
+          errorText = AppLocalizations.of(context!)!.verifyTimeout;
+          break;
+        case serverErrorStatusCode:
+          errorText = AppLocalizations.of(context!)!.serverError;
+          break;
+        case parameterErrorStatusCode:
+          errorText = AppLocalizations.of(context!)!.commandNotFound;
+          break;
+        case unknownErrorStatusCode:
+          errorText = AppLocalizations.of(context!)!.unknownError;
+          break;
+        default:
+          errorText = AppLocalizations.of(context!)!
+              .unexpectedStatusCode(data["status"]);
+          break;
+      }
     }
     notifyListeners();
   }
@@ -209,6 +265,9 @@ class JoinState extends ChangeNotifier {
       "code": registerMsgCode,
       "email": account,
       "password": sha256.convert(utf8.encode(password)).toString(),
+      "name": (username == ""
+          ? AppLocalizations.of(context!)!.defaultUsername
+          : username)
     });
   }
 
@@ -216,17 +275,30 @@ class JoinState extends ChangeNotifier {
     ourchatAppState!.unlisten(registerResponseMsgCode, registerResponse);
     if (data["status"] == operationSuccessfulStatusCode) {
       ourchatAppState!.toSomewhere(homeUi);
-    } else if (data["status"] == serverErrorStatusCode) {
-      errorText = AppLocalizations.of(context!)!.serverError;
-    } else if (data["status"] == underMaintenanceStatusCode) {
-      errorText = AppLocalizations.of(context!)!.serverUnderMaintenance;
-    } else if (data["status"] == newInfoAlreadyExistsStatusCode) {
-      errorText = AppLocalizations.of(context!)!.emailExists;
-    } else if (data["status"] == parameterErrorStatusCode) {
-      errorText = AppLocalizations.of(context!)!.verifyNotCompleted;
     } else {
-      errorText = AppLocalizations.of(context!)!.unknownError;
+      switch (data["status"]) {
+        case newInfoAlreadyExistsStatusCode:
+          errorText = AppLocalizations.of(context!)!.emailExists;
+          break;
+        case validationFailedStatusCode:
+          errorText = AppLocalizations.of(context!)!.verifyNotCompleted;
+          break;
+        case serverErrorStatusCode:
+          errorText = AppLocalizations.of(context!)!.serverError;
+          break;
+        case parameterErrorStatusCode:
+          errorText = AppLocalizations.of(context!)!.commandNotFound;
+          break;
+        case unknownErrorStatusCode:
+          errorText = AppLocalizations.of(context!)!.unknownError;
+          break;
+        default:
+          errorText = AppLocalizations.of(context!)!
+              .unexpectedStatusCode(data["status"]);
+          break;
+      }
     }
+
     notifyListeners();
   }
 }
@@ -341,6 +413,7 @@ class Register extends StatelessWidget {
             TextFormField(
               decoration: InputDecoration(
                 labelText: AppLocalizations.of(context)!.username,
+                hintText: AppLocalizations.of(context)!.optional,
               ),
               controller: TextEditingController(text: joinState.username),
               onChanged: (value) {
@@ -349,8 +422,7 @@ class Register extends StatelessWidget {
             ),
             TextFormField(
               decoration: InputDecoration(
-                  labelText:
-                      "${AppLocalizations.of(context)!.email}/${AppLocalizations.of(context)!.ocid}"),
+                  labelText: AppLocalizations.of(context)!.email),
               controller: TextEditingController(text: joinState.account),
               validator: (value) {
                 if (value == null || value.isEmpty) {

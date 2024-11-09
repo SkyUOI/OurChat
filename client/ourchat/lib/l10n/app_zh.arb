@@ -27,5 +27,10 @@
     "reconnection_interval": "重连间隔时间",
     "language": "语言",
     "notWithinRange": "不在范围内({min}~{max})",
-    "cantConnectToServer": "无法连接到服务器: {reason}"
+    "cantConnectToServer": "无法连接到服务器: {reason}",
+    "featureUnavailable": "对应功能不存在或无法启用",
+    "commandNotFound": "命令不存在",
+    "unexpectedStatusCode": "意外的状态码: {code}",
+    "defaultUsername": "Ourchat用户",
+    "optional": "可选"
 }
