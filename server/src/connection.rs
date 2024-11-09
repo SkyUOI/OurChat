@@ -19,7 +19,7 @@ use crate::{
     component::EmailSender,
     consts::{ID, MessageType},
     entities::{operations, prelude::*},
-    server::httpserver::{FileRecord, VerifyRecord, verify::verify_client},
+    server::httpserver::{VerifyRecord, verify::verify_client},
     shared_state,
 };
 use anyhow::{anyhow, bail};
@@ -502,8 +502,6 @@ impl<T: EmailSender> Connection<T> {
                                     &db_pool.db_pool,
                                 )
                                 .await?;
-                                let record = FileRecord::new(key, hash, auto_clean, user_info.id);
-                                http_sender.file_record.send(record).await?;
                                 send.await?;
                                 continue 'con_loop;
                             }

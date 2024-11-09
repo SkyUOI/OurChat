@@ -1,5 +1,5 @@
 use crate::{
-    client::basic::Msg,
+    client::basic::UnitMsg,
     consts::{MessageType, SessionID},
 };
 use base::time::TimeStamp;
@@ -11,11 +11,11 @@ pub struct UserSendMsgRequest {
     pub session_id: SessionID,
     #[serde(with = "base::time::rfc3339")]
     pub time: TimeStamp,
-    pub bundle_msg: Vec<Msg>,
+    pub bundle_msg: Vec<UnitMsg>,
 }
 
 impl UserSendMsgRequest {
-    pub fn new(session_id: SessionID, time: TimeStamp, bundle_msg: Vec<Msg>) -> Self {
+    pub fn new(session_id: SessionID, time: TimeStamp, bundle_msg: Vec<UnitMsg>) -> Self {
         Self {
             code: MessageType::UserSendMsg,
             session_id,

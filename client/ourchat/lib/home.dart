@@ -1,4 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:ourchat/const.dart';
+import 'package:ourchat/main.dart';
+import 'package:provider/provider.dart';
+
+class HomeState extends ChangeNotifier {
+  int currentSession = -1;
+
+  void setCurrentSession(int index) {
+    currentSession = index;
+    notifyListeners();
+  }
+}
 
 class Home extends StatelessWidget {
   const Home({
@@ -7,25 +19,34 @@ class Home extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-        body: Padding(
-      padding: EdgeInsets.all(8.0),
-      child: Row(
-        children: [
-          Flexible(
-            flex: 1,
-            child: Padding(
-              padding: EdgeInsets.all(8.0),
-              child: SessionList(),
-            ),
-          ),
-          Flexible(
-            flex: 3,
-            child: SessionWidget(),
-          )
-        ],
-      ),
-    ));
+    OurchatAppState appState = context.watch<OurchatAppState>();
+    return Scaffold(
+        body: ChangeNotifierProvider(
+            create: (_) => HomeState(),
+            child: LayoutBuilder(builder: (context, constraints) {
+              HomeState homeState = context.watch<HomeState>();
+              Widget page = const Placeholder();
+              if (appState.device == mobile) {
+                page = (homeState.currentSession == -1
+                    ? const SessionList()
+                    : const SessionWidget());
+              } else if (appState.device == desktop) {
+                page = const Row(
+                  children: [
+                    Flexible(
+                      flex: 1,
+                      child: SessionList(),
+                    ),
+                    Flexible(
+                      flex: 3,
+                      child: SessionWidget(),
+                    )
+                  ],
+                );
+              }
+
+              return Padding(padding: const EdgeInsets.all(8.0), child: page);
+            })));
   }
 }
 
@@ -51,11 +72,11 @@ class _SessionListState extends State<SessionList> {
     {"name": "username9", "image": "assets/images/logo.png"},
     {"name": "username10", "image": "assets/images/logo.png"}
   ];
-  var currentIndex = -1;
   var hoverIndex = -1;
 
   @override
   Widget build(BuildContext context) {
+    HomeState homeState = context.watch<HomeState>();
     return Column(
       children: [
         const TextField(
@@ -68,7 +89,7 @@ class _SessionListState extends State<SessionList> {
               child: GestureDetector(
                 child: Container(
                   padding: const EdgeInsets.all(10.0),
-                  color: (index == currentIndex
+                  color: (index == homeState.currentSession
                       ? Theme.of(context).focusColor
                       : (index == hoverIndex
                           ? Theme.of(context).secondaryHeaderColor
@@ -84,9 +105,7 @@ class _SessionListState extends State<SessionList> {
                   ),
                 ),
                 onTap: () {
-                  setState(() {
-                    currentIndex = index;
-                  });
+                  homeState.setCurrentSession(index);
                 },
               ),
               onEnter: (e) {
@@ -115,22 +134,30 @@ class SessionWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
+    OurchatAppState appState = context.watch<OurchatAppState>();
+    HomeState homeState = context.watch<HomeState>();
+    Widget sessionTitle = const Text(
+      "Session",
+      style: TextStyle(fontSize: 30),
+    );
+    return Column(
       mainAxisSize: MainAxisSize.max,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Flexible(
-          flex: 1,
-          child: Align(
-            alignment: Alignment.topCenter,
-            child: Text(
-              "Session",
-              style: TextStyle(fontSize: 30),
-            ),
-          ),
-        ),
-        Flexible(flex: 10, child: SessionRecord()),
-        Flexible(
+            flex: 1,
+            child: (appState.device == mobile
+                ? Row(children: [
+                    BackButton(
+                      onPressed: () {
+                        homeState.setCurrentSession(-1);
+                      },
+                    ),
+                    sessionTitle
+                  ])
+                : Align(alignment: Alignment.center, child: sessionTitle))),
+        const Flexible(flex: 10, child: SessionRecord()),
+        const Flexible(
             flex: 2,
             child: Align(
               alignment: Alignment.bottomCenter,

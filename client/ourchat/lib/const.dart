@@ -26,3 +26,7 @@ const homeUi = 1;
 
 // Client Private Event
 const connectServerResponse = -1;
+
+// Device
+const mobile = 0;
+const desktop = 1;

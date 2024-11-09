@@ -1,6 +1,6 @@
 //! Some utils functions
 use crate::{
-    MACHINE_ID,
+    SERVER_INFO,
     consts::{self, SessionID},
 };
 use rand::Rng;
@@ -20,7 +20,7 @@ impl Epoch for SnowflakeParams {
 
 impl MachineId for SnowflakeParams {
     fn machine_id() -> u64 {
-        *MACHINE_ID
+        SERVER_INFO.machine_id
     }
 }
 
