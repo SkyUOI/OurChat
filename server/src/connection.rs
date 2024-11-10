@@ -10,9 +10,8 @@ use crate::{
     client::{
         MsgConvert,
         requests::{
-            self, AcceptSessionRequest, GetUserMsgRequest,
-            SetAccountRequest, SetFriendInfoRequest, UserSendMsgRequest,
-            new_session::NewSessionRequest, upload::UploadRequest,
+            self, AcceptSessionRequest, GetUserMsgRequest, SetAccountRequest, SetFriendInfoRequest,
+            UserSendMsgRequest, new_session::NewSessionRequest, upload::UploadRequest,
         },
         response::{self, ErrorMsgResponse},
     },

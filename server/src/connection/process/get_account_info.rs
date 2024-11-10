@@ -4,10 +4,7 @@ use crate::connection::basic::get_id;
 use crate::entities::{friend, user};
 use crate::pb::get_info::{GetAccountInfoRequest, GetAccountInfoResponse, RequestValues};
 use crate::server::RpcServer;
-use crate::{
-    consts::ID,
-    entities::prelude::*,
-};
+use crate::{consts::ID, entities::prelude::*};
 use anyhow::Context;
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use std::cmp::PartialEq;
