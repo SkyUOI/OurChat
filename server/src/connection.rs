@@ -10,7 +10,7 @@ use crate::{
     client::{
         MsgConvert,
         requests::{
-            self, AcceptSessionRequest, GetUserMsgRequest, SetAccountRequest, SetFriendInfoRequest,
+            self, AcceptSessionRequest, GetUserMsgRequest, SetFriendInfoRequest,
             UserSendMsgRequest, new_session::NewSessionRequest, upload::UploadRequest,
         },
         response::{self, ErrorMsgResponse},
@@ -475,23 +475,6 @@ impl<T: EmailSender> Connection<T> {
                                     };
                                 process::accept_session(
                                     user_info.id,
-                                    net_sender_closure,
-                                    json,
-                                    &db_pool,
-                                )
-                                .await?;
-                                continue 'con_loop;
-                            }
-                            MessageType::SetAccountInfo => {
-                                let json: SetAccountRequest =
-                                    match from_value(json, &net_sender_closure).await? {
-                                        None => {
-                                            continue 'con_loop;
-                                        }
-                                        Some(data) => data,
-                                    };
-                                process::set_account_info(
-                                    &user_info,
                                     net_sender_closure,
                                     json,
                                     &db_pool,

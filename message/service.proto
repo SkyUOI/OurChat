@@ -1,6 +1,5 @@
 syntax = "proto3";
 
-import "message/auth.proto";
 import "message/register.proto";
 import "message/login.proto";
 import "message/get_account_info.proto";
@@ -13,8 +12,6 @@ service OurChatService {
       returns (register.UnregisterResponse);
 
   rpc register(register.RegisterRequest) returns (register.RegisterResponse);
-
-  rpc auth(auth.AuthRequest) returns (auth.AuthResponse);
 
   rpc login(login.LoginRequest) returns (login.LoginResponse);
 

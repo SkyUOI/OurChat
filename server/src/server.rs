@@ -5,11 +5,10 @@ pub mod httpserver;
 use crate::component::EmailSender;
 use crate::connection::process;
 use crate::pb::service::our_chat_service_server::{OurChatService, OurChatServiceServer};
-use crate::{DbPool, HttpSender, SharedData, ShutdownRev, ShutdownSdr, connection, pb};
-use std::net::{IpAddr, SocketAddr};
+use crate::{DbPool, HttpSender, SharedData, ShutdownRev, pb};
+use std::net::SocketAddr;
 use std::sync::Arc;
-use tokio::net::TcpStream;
-use tokio::{net::TcpListener, select};
+use tokio::select;
 
 pub struct RpcServer<T: EmailSender> {
     pub db: DbPool,
@@ -59,13 +58,6 @@ impl<T: EmailSender> OurChatService for RpcServer<T> {
         request: tonic::Request<pb::register::UnregisterRequest>,
     ) -> Result<tonic::Response<pb::register::UnregisterResponse>, tonic::Status> {
         process::unregister::unregister(self, request).await
-    }
-
-    async fn auth(
-        &self,
-        request: tonic::Request<pb::auth::AuthRequest>,
-    ) -> Result<tonic::Response<pb::auth::AuthResponse>, tonic::Status> {
-        todo!()
     }
 
     async fn login(

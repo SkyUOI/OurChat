@@ -23,7 +23,7 @@ pub async fn get_info<T: EmailSender>(
     server: &RpcServer<T>,
     request: Request<GetAccountInfoRequest>,
 ) -> Result<tonic::Response<GetAccountInfoResponse>, tonic::Status> {
-    let id = get_id_from_req(request).await.unwrap();
+    let id = get_id_from_req(&request).unwrap();
     let request = request.into_inner();
     // query in database
     // get id first

@@ -104,7 +104,7 @@ enum ErrAuth {
     JWT(#[from] jsonwebtoken::errors::Error),
 }
 
-pub async fn access_token(token: &str) -> Result<JWTdata, ErrAuth> {
+pub fn access_token(token: &str) -> Result<JWTdata, ErrAuth> {
     let token = jsonwebtoken::decode(
         token,
         &DecodingKey::from_secret(SERVER_INFO.secret.as_bytes()),
@@ -113,7 +113,7 @@ pub async fn access_token(token: &str) -> Result<JWTdata, ErrAuth> {
     Ok(token.claims)
 }
 
-pub async fn get_id_from_req<T>(req: Request<T>) -> Option<ID> {
+pub fn get_id_from_req<T>(req: &Request<T>) -> Option<ID> {
     match req.metadata().get("id") {
         Some(id) => Some(ID(id.to_str().unwrap().parse::<u64>().unwrap())),
         None => None,
