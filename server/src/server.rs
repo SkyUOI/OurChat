@@ -51,7 +51,8 @@ impl<T: EmailSender> RpcServer<T> {
     }
 }
 
-pub type FetchMsgStream = Pin<Box<dyn tokio_stream::Stream<Item = Result<pb::msg_delivery::Msg, Status>> + Send>>;
+pub type FetchMsgStream =
+    Pin<Box<dyn tokio_stream::Stream<Item = Result<pb::msg_delivery::Msg, Status>> + Send>>;
 
 #[tonic::async_trait]
 impl<T: EmailSender> OurChatService for RpcServer<T> {
@@ -97,8 +98,7 @@ impl<T: EmailSender> OurChatService for RpcServer<T> {
         process::set_friend_info(self, request).await
     }
 
-    type fetch_msgsStream =
-        FetchMsgStream;
+    type fetch_msgsStream = FetchMsgStream;
 
     async fn fetch_msgs(
         &self,
