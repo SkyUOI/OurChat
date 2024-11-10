@@ -7,6 +7,7 @@ import "message/set_account_info.proto";
 import "message/server.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";
+import "message/msg_delivery.proto";
 
 package ourchat;
 
@@ -26,6 +27,12 @@ service OurChatService {
 
   rpc set_friend_info(set_info.SetFriendInfoRequest)
       returns (set_info.SetAccountInfoResponse);
+
+  rpc fetch_msgs(msg_delivery.FetchMsgRequest)
+      returns (stream msg_delivery.Msg);
+
+  rpc msg_delivery(stream msg_delivery.SendMsgRequest)
+      returns (msg_delivery.SendMsgResponse);
 }
 
 service BasicService {

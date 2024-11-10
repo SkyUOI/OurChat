@@ -4318,6 +4318,7 @@ dependencies = [
  "strum",
  "thiserror",
  "tokio",
+ "tokio-stream",
  "tokio-tungstenite",
  "tonic",
  "tonic-build",

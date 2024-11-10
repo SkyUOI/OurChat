@@ -57,6 +57,7 @@ tonic-types = { version = "0" }
 prost-types = { version = "0" }
 prost = { version = "0" }
 jsonwebtoken = "9"
+tokio-stream = { version = "0" }
 
 [dependencies.lettre]
 version = "0"

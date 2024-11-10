@@ -20,7 +20,6 @@
 // ```
 
 mod accept_session;
-mod get_user_msg;
 mod invite_session;
 mod new_session;
 mod opers;
@@ -29,7 +28,6 @@ mod user_send_msg;
 pub mod verify;
 
 pub use accept_session::AcceptSessionResponse;
-pub use get_user_msg::{GetUserMsgResponse, OneMsg};
 pub use invite_session::InviteSession;
 pub use new_session::NewSessionResponse;
 pub use opers::OpersResponse;

@@ -1,7 +1,6 @@
 //! Requests from client to server
 
 mod accept_session;
-mod get_user_msg;
 pub mod new_session;
 mod set_session_info;
 mod unregister;
@@ -10,7 +9,6 @@ mod user_send_msg;
 mod verify;
 
 pub use accept_session::AcceptSessionRequest;
-pub use get_user_msg::GetUserMsgRequest;
 pub use new_session::NewSessionRequest;
 pub use unregister::UnregisterRequest;
 pub use user_send_msg::UserSendMsgRequest;

@@ -4,3 +4,4 @@ pub mod register;
 pub mod server;
 pub mod service;
 pub mod set_info;
+pub mod msg_delivery;

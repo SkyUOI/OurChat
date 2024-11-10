@@ -6,14 +6,13 @@ use crate::component::EmailSender;
 use crate::connection::process;
 use crate::pb::service::basic_service_server::{BasicService, BasicServiceServer};
 use crate::pb::service::our_chat_service_server::{OurChatService, OurChatServiceServer};
-use crate::{
-    DbPool, HttpSender, SERVER_INFO, ServerInfo, SharedData, ShutdownRev, pb, shared_state,
-};
+use crate::{DbPool, HttpSender, SharedData, ShutdownRev, pb, shared_state};
 use prost_types::Timestamp;
 use std::net::SocketAddr;
+use std::pin::Pin;
 use std::sync::{Arc, LazyLock};
 use tokio::select;
-use tonic::Response;
+use tonic::{Response, Status};
 
 pub struct RpcServer<T: EmailSender> {
     pub db: DbPool,
@@ -51,6 +50,8 @@ impl<T: EmailSender> RpcServer<T> {
         Ok(())
     }
 }
+
+pub type FetchMsgStream = Pin<Box<dyn tokio_stream::Stream<Item = Result<pb::msg_delivery::Msg, Status>> + Send>>;
 
 #[tonic::async_trait]
 impl<T: EmailSender> OurChatService for RpcServer<T> {
@@ -94,6 +95,23 @@ impl<T: EmailSender> OurChatService for RpcServer<T> {
         request: tonic::Request<pb::set_info::SetFriendInfoRequest>,
     ) -> Result<tonic::Response<pb::set_info::SetAccountInfoResponse>, tonic::Status> {
         process::set_friend_info(self, request).await
+    }
+
+    type fetch_msgsStream =
+        FetchMsgStream;
+
+    async fn fetch_msgs(
+        &self,
+        request: tonic::Request<pb::msg_delivery::FetchMsgRequest>,
+    ) -> Result<Response<Self::fetch_msgsStream>, tonic::Status> {
+        todo!()
+    }
+
+    async fn msg_delivery(
+        &self,
+        request: tonic::Request<tonic::Streaming<pb::msg_delivery::SendMsgRequest>>,
+    ) -> Result<Response<pb::msg_delivery::SendMsgResponse>, tonic::Status> {
+        todo!()
     }
 }
 
