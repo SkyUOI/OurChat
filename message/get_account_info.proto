@@ -14,12 +14,11 @@ enum RequestValues {
   UPDATE_TIME = 8;
   SESSIONS = 9;
   FRIENDS = 10;
-  TIME = 11;
 }
 
 message GetAccountInfoRequest {
   string ocid = 1;
-  repeated RequestValues request_values = 2;
+  repeated RequestValues request_values = 3;
 }
 
 message GetAccountInfoResponse {
@@ -33,6 +32,5 @@ message GetAccountInfoResponse {
   optional string public_update_time = 8;
   optional string update_time = 9;
   optional string sessions = 10;
-  optional string friends = 11;
-  optional string time = 12;
+  repeated string friends = 11;
 }

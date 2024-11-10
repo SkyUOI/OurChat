@@ -16,7 +16,6 @@ mod user_send_msg;
 mod verify;
 
 pub use accept_session::AcceptSessionRequest;
-pub use get_account_info::GetAccountInfoRequest;
 pub use get_status::GetStatus;
 pub use get_user_msg::GetUserMsgRequest;
 pub use login::{LoginRequest, LoginType};

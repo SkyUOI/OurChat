@@ -188,7 +188,10 @@ static SERVER_INFO_PATH: &str = "server_info.json";
 struct ServerInfo {
     unique_id: uuid::Uuid,
     machine_id: u64,
+    secret: String,
 }
+
+const SECRET_LEN: usize = 32;
 
 static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
     let state = Path::new(SERVER_INFO_PATH).exists();
@@ -202,6 +205,7 @@ static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
     let info = ServerInfo {
         unique_id: uuid::Uuid::new_v4(),
         machine_id: id,
+        secret: utils::generate_random_string(SECRET_LEN),
     };
     serde_json::to_writer(&mut f, &info).unwrap();
     info

@@ -10,7 +10,7 @@ use crate::{
     client::{
         MsgConvert,
         requests::{
-            self, AcceptSessionRequest, GetAccountInfoRequest, GetUserMsgRequest,
+            self, AcceptSessionRequest, GetUserMsgRequest,
             SetAccountRequest, SetFriendInfoRequest, UserSendMsgRequest,
             new_session::NewSessionRequest, upload::UploadRequest,
         },
@@ -27,7 +27,6 @@ use futures_util::{
     SinkExt, StreamExt,
     stream::{SplitSink, SplitStream},
 };
-use process::get_account_info;
 use response::{get_status::GetStatusResponse, verify::VerifyResponse};
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use serde::de::DeserializeOwned;
@@ -173,13 +172,6 @@ impl<T: EmailSender> Connection<T> {
                 net_sender
                     .send(GetStatusResponse::normal().to_msg())
                     .await?;
-            }
-            MessageType::GetAccountInfo => {
-                let json: GetAccountInfoRequest = match from_value(json, &net_sender).await? {
-                    Some(json) => json,
-                    None => return Ok(None),
-                };
-                get_account_info(user_info, net_sender, json, dbpool).await?;
             }
             _ => {
                 return Ok(Some(json));

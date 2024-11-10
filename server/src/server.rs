@@ -74,4 +74,25 @@ impl<T: EmailSender> OurChatService for RpcServer<T> {
     ) -> Result<tonic::Response<pb::login::LoginResponse>, tonic::Status> {
         process::login::login(self, request).await
     }
+
+    async fn get_info(
+        &self,
+        request: tonic::Request<pb::get_info::GetAccountInfoRequest>,
+    ) -> Result<tonic::Response<pb::get_info::GetAccountInfoResponse>, tonic::Status> {
+        process::get_account_info::get_info(self, request).await
+    }
+
+    async fn set_self_info(
+        &self,
+        request: tonic::Request<pb::set_info::SetSelfInfoRequest>,
+    ) -> Result<tonic::Response<pb::set_info::SetAccountInfoResponse>, tonic::Status> {
+        todo!()
+    }
+
+    async fn set_friend_info(
+        &self,
+        request: tonic::Request<pb::set_info::SetFriendInfoRequest>,
+    ) -> Result<tonic::Response<pb::set_info::SetAccountInfoResponse>, tonic::Status> {
+        todo!()
+    }
 }

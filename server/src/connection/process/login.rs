@@ -1,4 +1,4 @@
-use super::{get_new_access_token, wrong_password};
+use super::{generate_access_token, wrong_password};
 use crate::{
     DbPool,
     component::EmailSender,
@@ -48,14 +48,8 @@ pub async fn login_db(
                 .await
                 .is_ok()
                 {
-                    let token =
-                        match get_new_access_token(&db_connection.redis_pool, &user.ocid).await {
-                            Ok(token) => token,
-                            Err(e) => {
-                                tracing::error!("{}", e);
-                                return Err(tonic::Status::internal("failed to generate a token"));
-                            }
-                        };
+                    let token = generate_access_token(user.id.into());
+
                     Ok((
                         LoginResponse {
                             ocid: user.ocid.clone(),

@@ -1,4 +1,3 @@
-use super::get_new_access_token;
 use crate::{
     DbPool,
     component::EmailSender,
@@ -11,10 +10,11 @@ use crate::{
 };
 use anyhow::anyhow;
 use argon2::{Params, PasswordHasher, password_hash::SaltString};
-use redis::AsyncCommands;
 use sea_orm::{ActiveModelTrait, ActiveValue, DbErr};
 use snowdon::ClassicLayoutSnowflakeExtension;
 use tonic::{Request, Status};
+
+use super::generate_access_token;
 
 async fn add_new_user(
     request: RegisterRequest,
@@ -43,7 +43,7 @@ async fn add_new_user(
             // Happy Path
             let response = RegisterResponse {
                 ocid: res.ocid.clone(),
-                token: get_new_access_token(&db_connection.redis_pool, &res.ocid).await?,
+                token: generate_access_token(id),
             };
             Ok(Ok((response, UserInfo {
                 ocid: res.ocid,

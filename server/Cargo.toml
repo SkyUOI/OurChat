@@ -54,6 +54,7 @@ serde_plain = "1"
 
 tonic = { version = "0", features = ["tls"] }
 prost = { version = "0" }
+jsonwebtoken = "9"
 
 [dependencies.lettre]
 version = "0"

@@ -21,7 +21,6 @@
 
 mod accept_session;
 pub mod error_msg;
-mod get_account_info;
 pub mod get_status;
 mod get_user_msg;
 mod invite_session;
@@ -36,7 +35,6 @@ pub mod verify;
 
 pub use accept_session::AcceptSessionResponse;
 pub use error_msg::ErrorMsgResponse;
-pub use get_account_info::GetAccountInfoResponse;
 pub use get_user_msg::{GetUserMsgResponse, OneMsg};
 pub use invite_session::InviteSession;
 pub use login::LoginResponse;
