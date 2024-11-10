@@ -3,7 +3,6 @@
 use crate::{client::requests, consts};
 use serde::{Deserialize, Serialize};
 
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct VerifyResponse {
     pub code: consts::MessageType,

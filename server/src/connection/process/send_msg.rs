@@ -1,10 +1,6 @@
 use crate::{
     DbPool,
-    client::{
-        MsgConvert,
-        requests::UserSendMsgRequest,
-        response::{UserSendMsgResponse},
-    },
+    client::{MsgConvert, requests::UserSendMsgRequest, response::UserSendMsgResponse},
     connection::{NetSender, UserInfo},
     consts::{ID, MsgID},
     entities::user_chat_msg,
