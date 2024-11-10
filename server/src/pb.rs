@@ -3,3 +3,4 @@ pub mod login;
 pub mod register;
 pub mod service;
 pub mod set_info;
+pub mod server;

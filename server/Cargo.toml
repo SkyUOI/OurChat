@@ -53,6 +53,8 @@ async-trait = { version = "0" }
 serde_plain = "1"
 
 tonic = { version = "0", features = ["tls"] }
+tonic-types = { version = "0" }
+prost-types = { version = "0" }
 prost = { version = "0" }
 jsonwebtoken = "9"
 

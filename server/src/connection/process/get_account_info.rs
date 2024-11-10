@@ -1,8 +1,7 @@
-use crate::client::requests::get_account_info::OWNER_PRIVILEGE;
 use crate::component::EmailSender;
 use crate::connection::basic::get_id;
 use crate::entities::{friend, user};
-use crate::pb::get_info::{GetAccountInfoRequest, GetAccountInfoResponse, RequestValues};
+use crate::pb::get_info::{GetAccountInfoRequest, GetAccountInfoResponse, RequestValues, OWNER_PRIVILEGE};
 use crate::server::RpcServer;
 use crate::{consts::ID, entities::prelude::*};
 use anyhow::Context;
@@ -55,7 +54,7 @@ pub async fn get_info<T: EmailSender>(
         }
         anyhow::Ok(data_cell.get().unwrap())
     };
-    let ret = GetAccountInfoResponse::default();
+    let mut ret = GetAccountInfoResponse::default();
 
     for i in &request.request_values {
         let i = RequestValues::try_from(*i).unwrap();

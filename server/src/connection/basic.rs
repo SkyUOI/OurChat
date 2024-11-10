@@ -14,8 +14,6 @@ pub async fn send_error_msg(
     status: requests::Status,
     msg: impl Into<String>,
 ) -> anyhow::Result<()> {
-    let error_resp = response::error_msg::ErrorMsgResponse::new(status, msg.into());
-    sender.send(error_resp.to_msg()).await?;
     Ok(())
 }
 

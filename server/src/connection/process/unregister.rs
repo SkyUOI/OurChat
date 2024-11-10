@@ -1,5 +1,4 @@
 use crate::{
-    client::{MsgConvert, response::ErrorMsgResponse},
     component::EmailSender,
     connection::db::get_id,
     consts::ID,
@@ -10,7 +9,6 @@ use crate::{
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
 };
-use tokio_tungstenite::tungstenite::Message;
 use tonic::{Response, Status};
 
 #[derive(Debug, thiserror::Error)]

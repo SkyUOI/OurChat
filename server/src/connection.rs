@@ -10,10 +10,10 @@ use crate::{
     client::{
         MsgConvert,
         requests::{
-            self, AcceptSessionRequest, GetUserMsgRequest, SetFriendInfoRequest,
-            UserSendMsgRequest, new_session::NewSessionRequest, upload::UploadRequest,
+            self, AcceptSessionRequest, GetUserMsgRequest, UserSendMsgRequest,
+            new_session::NewSessionRequest, upload::UploadRequest,
         },
-        response::{self, ErrorMsgResponse},
+        response::{self},
     },
     component::EmailSender,
     consts::{ID, MessageType},
@@ -26,9 +26,8 @@ use futures_util::{
     SinkExt, StreamExt,
     stream::{SplitSink, SplitStream},
 };
-use response::{get_status::GetStatusResponse, verify::VerifyResponse};
+use response::verify::VerifyResponse;
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
-use serde::de::DeserializeOwned;
 use serde_json::Value;
 use tokio::{
     net::TcpStream,
@@ -117,28 +116,6 @@ async fn get_requests(id: ID, db_conn: &DatabaseConnection) -> anyhow::Result<Ve
     Ok(ret)
 }
 
-async fn from_value<T: DeserializeOwned>(
-    json: Value,
-    net_sender: &impl NetSender,
-) -> anyhow::Result<Option<T>> {
-    match serde_json::from_value(json) {
-        Ok(t) => Ok(Some(t)),
-        Err(e) => {
-            net_sender
-                .send(
-                    ErrorMsgResponse::new(
-                        requests::Status::ArgOrInstNotCorrectError,
-                        "wrong json structure".to_owned(),
-                    )
-                    .to_msg(),
-                )
-                .await?;
-            tracing::trace!("wrong json structure: {}", e);
-            Ok(None)
-        }
-    }
-}
-
 impl<T: EmailSender> Connection<T> {
     pub fn new(
         socket: WS,
@@ -167,11 +144,6 @@ impl<T: EmailSender> Connection<T> {
         net_sender: impl NetSender,
     ) -> anyhow::Result<Option<Value>> {
         match code {
-            MessageType::GetStatus => {
-                net_sender
-                    .send(GetStatusResponse::normal().to_msg())
-                    .await?;
-            }
             _ => {
                 return Ok(Some(json));
             }
@@ -567,38 +539,6 @@ impl<T: EmailSender> Connection<T> {
     }
 
     async fn maintaining(socket: &mut WS) -> anyhow::Result<()> {
-        while let Some(msg) = socket.next().await {
-            match msg {
-                Ok(msg) => match msg {
-                    Message::Text(msg) => {
-                        let json: Value = serde_json::from_str(&msg)?;
-                        let code = &json["code"];
-                        if let Value::Number(code) = code {
-                            let code = code.as_u64();
-                            if let Some(code) = code {
-                                if code == MessageType::GetStatus as u64 {
-                                    let resp = GetStatusResponse::maintaining();
-                                    socket.send(resp.to_msg()).await?;
-                                    tracing::debug!("Send maintaining msg");
-                                }
-                            } else {
-                                bail!("Wrong json msg code");
-                            }
-                        } else {
-                            bail!("Wrong json structure");
-                        }
-                    }
-                    Message::Ping(_) => {
-                        socket.send(Message::Pong(vec![])).await?;
-                    }
-                    Message::Pong(_) => {
-                        tracing::info!("recv pong");
-                    }
-                    _ => {}
-                },
-                Err(e) => Err(e)?,
-            };
-        }
         Ok(())
     }
 

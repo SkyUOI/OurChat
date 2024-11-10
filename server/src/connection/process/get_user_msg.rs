@@ -3,7 +3,7 @@ use crate::{
     client::{
         MsgConvert,
         requests::GetUserMsgRequest,
-        response::{ErrorMsgResponse, GetUserMsgResponse, OneMsg},
+        response::{GetUserMsgResponse, OneMsg},
     },
     connection::{NetSender, UserInfo},
     consts::ID,
@@ -52,29 +52,29 @@ pub async fn get_user_msg(
                 Ok(_) => {}
                 Err(ErrorOfMsg::DbError(e)) => {
                     tracing::error!("Database error:{e}");
-                    net_sender
-                        .send(ErrorMsgResponse::server_error("Database error").to_msg())
-                        .await?;
+                    // net_sender
+                    //     .send(ErrorMsgResponse::server_error("Database error").to_msg())
+                    //     .await?;
                 }
                 Err(ErrorOfMsg::UnknownError(e)) => {
                     tracing::error!("Unknown error:{e}");
-                    net_sender
-                        .send(ErrorMsgResponse::server_error("Unknown error").to_msg())
-                        .await?;
+                    // net_sender
+                    //     .send(ErrorMsgResponse::server_error("Unknown error").to_msg())
+                    //     .await?;
                 }
             }
         }
         Err(e) => {
             tracing::error!("Database error:{e}");
-            net_sender
-                .send(
-                    ErrorMsgResponse::new(
-                        crate::client::requests::Status::ServerError,
-                        "Database error",
-                    )
-                    .to_msg(),
-                )
-                .await?;
+            // net_sender
+            //     .send(
+            //         ErrorMsgResponse::new(
+            //             crate::client::requests::Status::ServerError,
+            //             "Database error",
+            //         )
+            //         .to_msg(),
+            //     )
+            //     .await?;
         }
     };
     Ok(())

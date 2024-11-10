@@ -4303,6 +4303,7 @@ dependencies = [
  "num_enum",
  "parking_lot",
  "prost",
+ "prost-types",
  "rand",
  "redis",
  "reqwest",
@@ -4320,6 +4321,7 @@ dependencies = [
  "tokio-tungstenite",
  "tonic",
  "tonic-build",
+ "tonic-types",
  "tracing",
  "tracing-appender",
  "tracing-subscriber",
@@ -5217,6 +5219,17 @@ dependencies = [
  "prost-types",
  "quote",
  "syn 2.0.87",
+]
+
+[[package]]
+name = "tonic-types"
+version = "0.12.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0081d8ee0847d01271392a5aebe960a4600f5d4da6c67648a6382a0940f8b367"
+dependencies = [
+ "prost",
+ "prost-types",
+ "tonic",
 ]
 
 [[package]]

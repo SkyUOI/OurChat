@@ -3,7 +3,7 @@ use crate::{
     client::{
         MsgConvert,
         requests::UserSendMsgRequest,
-        response::{ErrorMsgResponse, UserSendMsgResponse},
+        response::{UserSendMsgResponse},
     },
     connection::{NetSender, UserInfo},
     consts::{ID, MsgID},
@@ -32,9 +32,9 @@ pub async fn send_msg(
         }
         Err(e) => {
             tracing::error!("Database error:{e}");
-            net_sender
-                .send(ErrorMsgResponse::server_error("Database error").to_msg())
-                .await?
+            // net_sender
+            //     .send(ErrorMsgResponse::server_error("Database error").to_msg())
+            //     .await?
         }
     };
     Ok(())
