@@ -78,13 +78,13 @@ impl<T: EmailSender> OurChatService for RpcServer<T> {
         &self,
         request: tonic::Request<pb::set_info::SetSelfInfoRequest>,
     ) -> Result<tonic::Response<pb::set_info::SetAccountInfoResponse>, tonic::Status> {
-        todo!()
+        process::set_account_info(self, request).await
     }
 
     async fn set_friend_info(
         &self,
         request: tonic::Request<pb::set_info::SetFriendInfoRequest>,
     ) -> Result<tonic::Response<pb::set_info::SetAccountInfoResponse>, tonic::Status> {
-        todo!()
+        process::set_friend_info(self, request).await
     }
 }

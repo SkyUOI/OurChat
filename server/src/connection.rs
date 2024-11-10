@@ -482,23 +482,6 @@ impl<T: EmailSender> Connection<T> {
                                 .await?;
                                 continue 'con_loop;
                             }
-                            MessageType::SetFriendInfo => {
-                                let json: SetFriendInfoRequest =
-                                    match from_value(json, &net_sender_closure).await? {
-                                        None => {
-                                            continue 'con_loop;
-                                        }
-                                        Some(data) => data,
-                                    };
-                                process::set_friend_info(
-                                    &user_info,
-                                    json,
-                                    net_sender_closure,
-                                    &db_pool,
-                                )
-                                .await?;
-                                continue 'con_loop;
-                            }
                             MessageType::UserSendMsg => {
                                 let json: UserSendMsgRequest =
                                     match from_value(json, &net_sender_closure).await? {
