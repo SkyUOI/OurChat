@@ -1,21 +1,25 @@
 use crate::{
-    client::{
-        MsgConvert, requests,
-        response::{ErrorMsgResponse, RegisterResponse},
-    },
-    connection::{NetSender, UserInfo, VerifyStatus},
+    DbPool,
+    component::EmailSender,
+    connection::UserInfo,
     consts::{self, ID},
     entities::user,
+    pb::register::{RegisterRequest, RegisterResponse},
+    server::RpcServer,
     shared_state, utils,
 };
+use anyhow::anyhow;
 use argon2::{Params, PasswordHasher, password_hash::SaltString};
-use sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection, DbErr};
+use sea_orm::{ActiveModelTrait, ActiveValue, DbErr};
 use snowdon::ClassicLayoutSnowflakeExtension;
+use tonic::{Request, Status};
+
+use super::generate_access_token;
 
 async fn add_new_user(
-    request: requests::RegisterRequest,
-    db_connection: &DatabaseConnection,
-) -> anyhow::Result<Result<(RegisterResponse, UserInfo), requests::Status>> {
+    request: RegisterRequest,
+    db_connection: &DbPool,
+) -> anyhow::Result<Result<(RegisterResponse, UserInfo), tonic::Status>> {
     // Generate snowflake id
     let id = ID(utils::GENERATOR.generate()?.into_i64().try_into()?);
     // Generate ocid by random
@@ -34,21 +38,24 @@ async fn add_new_user(
         friend_limit: ActiveValue::Set(shared_state::get_friends_number_limit().try_into()?),
         ..Default::default()
     };
-    match user.insert(db_connection).await {
+    match user.insert(&db_connection.db_pool).await {
         Ok(res) => {
             // Happy Path
-            let response = RegisterResponse::success(res.ocid.clone());
+            let response = RegisterResponse {
+                ocid: res.ocid.clone(),
+                token: generate_access_token(id),
+            };
             Ok(Ok((response, UserInfo {
                 ocid: res.ocid,
                 id: res.id.into(),
             })))
         }
         Err(e) => {
+            tracing::error!("Database error:{e}");
             if let DbErr::RecordNotInserted = e {
-                Ok(Err(requests::Status::InfoExists))
+                Ok(Err(Status::already_exists("User already exists")))
             } else {
-                tracing::error!("Database error:{e}");
-                Ok(Err(requests::Status::ServerError))
+                Err(anyhow!(e))
             }
         }
     }
@@ -68,23 +75,18 @@ fn compute_password_hash(password: &str) -> String {
     password_hash
 }
 
-/// Register Request
-pub async fn register(
-    net_sender: impl NetSender,
-    register_data: requests::RegisterRequest,
-    db_conn: &DatabaseConnection,
-) -> anyhow::Result<VerifyStatus> {
-    match add_new_user(register_data, db_conn).await? {
-        Ok(ok_resp) => {
-            net_sender.send(ok_resp.0.to_msg()).await?;
-            Ok(VerifyStatus::Success(ok_resp.1))
-        }
+pub async fn register<T: EmailSender>(
+    server: &RpcServer<T>,
+    request: Request<RegisterRequest>,
+) -> Result<tonic::Response<RegisterResponse>, tonic::Status> {
+    match add_new_user(request.into_inner(), &server.db).await {
+        Ok(ok_resp) => match ok_resp {
+            Ok((response, user_info)) => Ok(tonic::Response::new(response)),
+            Err(e) => Err(e),
+        },
         Err(e) => {
-            net_sender
-                .send(ErrorMsgResponse::server_error("Database error").to_msg())
-                .await?;
-            tracing::error!("{}", e);
-            Ok(VerifyStatus::Fail)
+            tracing::error!("Database error:{e}");
+            Err(tonic::Status::internal("database error"))
         }
     }
 }

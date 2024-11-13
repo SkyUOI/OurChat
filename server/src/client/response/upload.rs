@@ -1,6 +1,5 @@
 //! Upload Files
 
-use crate::client::response::ErrorMsgResponse;
 use crate::{client::requests::Status, consts};
 use serde::{Deserialize, Serialize};
 
@@ -20,10 +19,10 @@ impl UploadResponse {
         }
     }
 
-    pub fn limited() -> ErrorMsgResponse {
-        ErrorMsgResponse::new(
-            Status::AccountLimitation,
-            "Account Limitation Has Been Reached".to_string(),
-        )
-    }
+    // pub fn limited() -> ErrorMsgResponse {
+    //     ErrorMsgResponse::new(
+    //         Status::AccountLimitation,
+    //         "Account Limitation Has Been Reached".to_string(),
+    //     )
+    // }
 }

@@ -13,6 +13,6 @@ message RegisterResponse {
   string token = 3;
 }
 
-message UnregisterRequest {}
+message UnregisterRequest { string ocid = 1; }
 
 message UnregisterResponse {}

@@ -1,10 +1,13 @@
 syntax = "proto3";
 
-import "message/auth.proto";
 import "message/register.proto";
 import "message/login.proto";
 import "message/get_account_info.proto";
 import "message/set_account_info.proto";
+import "message/server.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+import "message/msg_delivery.proto";
 
 package ourchat;
 
@@ -13,8 +16,6 @@ service OurChatService {
       returns (register.UnregisterResponse);
 
   rpc register(register.RegisterRequest) returns (register.RegisterResponse);
-
-  rpc auth(auth.AuthRequest) returns (auth.AuthResponse);
 
   rpc login(login.LoginRequest) returns (login.LoginResponse);
 
@@ -26,4 +27,16 @@ service OurChatService {
 
   rpc set_friend_info(set_info.SetFriendInfoRequest)
       returns (set_info.SetAccountInfoResponse);
+
+  rpc fetch_msgs(msg_delivery.FetchMsgRequest)
+      returns (stream msg_delivery.Msg);
+
+  rpc msg_delivery(stream msg_delivery.SendMsgRequest)
+      returns (msg_delivery.SendMsgResponse);
+}
+
+service BasicService {
+  rpc timestamp(google.protobuf.Empty) returns (google.protobuf.Timestamp);
+
+  rpc get_server_info(google.protobuf.Empty) returns (server.ServerInfo);
 }

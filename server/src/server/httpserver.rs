@@ -1,6 +1,5 @@
 mod easter_egg;
 mod status;
-mod timestamp;
 pub mod verify;
 
 use std::sync::Arc;
@@ -11,7 +10,7 @@ use actix_web::{
     web::{self},
 };
 use serde::Deserialize;
-use tokio::{select, sync::mpsc, task::JoinHandle};
+use tokio::{select, task::JoinHandle};
 pub use verify::VerifyRecord;
 
 #[derive(Deserialize)]
@@ -38,7 +37,6 @@ impl HttpServer {
         let http_server = actix_web::HttpServer::new(move || {
             let v1 = web::scope("/v1")
                 .service(status::status)
-                .service(timestamp::timestamp)
                 .configure(verify::config);
             App::new()
                 .wrap(actix_web::middleware::Logger::default())

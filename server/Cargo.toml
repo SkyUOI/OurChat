@@ -52,6 +52,13 @@ mockall = "0"
 async-trait = { version = "0" }
 serde_plain = "1"
 
+tonic = { version = "0", features = ["tls"] }
+tonic-types = { version = "0" }
+prost-types = { version = "0" }
+prost = { version = "0" }
+jsonwebtoken = "9"
+tokio-stream = { version = "0" }
+
 [dependencies.lettre]
 version = "0"
 default-features = false
@@ -63,3 +70,7 @@ reqwest = "0"
 fake = { version = "2" }
 linkify = "0"
 claims = "0"
+
+[build-dependencies]
+tonic-build = { version = "0" }
+anyhow = "1"
