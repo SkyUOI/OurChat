@@ -17,6 +17,8 @@ dependencies:
     sdk: flutter
   intl: any
   logger: ^2.4.0
+  protobuf: ^3.1.0
+  grpc: ^4.0.1
   
 
 dev_dependencies:

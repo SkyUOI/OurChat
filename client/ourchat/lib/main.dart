@@ -19,9 +19,6 @@ void main() async {
 
 class OurchatAppState extends ChangeNotifier {
   OurchatConnection? connection;
-  List listenQueue = [
-    // {"code":0,"func":func}
-  ];
   int where = joinUi;
   /*
     0: join
@@ -36,9 +33,6 @@ class OurchatAppState extends ChangeNotifier {
     logger.i("init Ourchat");
     config = OurchatConfig();
     config!.loadConfig();
-    connection = OurchatConnection(dealWithEvent);
-    connection!
-        .setAddress(config!.data!["server_address"], config!.data!["ws_port"]);
 
     if (!isWeb) {
       if (!await Directory("./cache").exists()) {
@@ -48,27 +42,9 @@ class OurchatAppState extends ChangeNotifier {
     logger.d("IsWeb: $isWeb");
     notifyListeners();
     logger.i("init Ourchat done");
-  }
-
-  void dealWithEvent(var data) {
-    var tmp = [];
-    for (var pair in listenQueue) {
-      tmp.add(pair);
-    }
-    for (var pair in tmp) {
-      if (pair["code"] == data["code"]) {
-        pair["func"](data);
-      }
-    }
-  }
-
-  void listen(var code, var func) {
-    listenQueue.add({"code": code, "func": func});
-  }
-
-  void unlisten(var code, var func) {
-    listenQueue
-        .removeWhere((value) => value["code"] == code && value["func"] == func);
+    connection = OurchatConnection(null);
+    connection!.setAddress("localhost", 7777);
+    connection!.connectToServer();
   }
 
   void toSomewhere(var id) {

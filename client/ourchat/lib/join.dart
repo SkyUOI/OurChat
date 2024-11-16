@@ -99,15 +99,15 @@ class JoinState extends ChangeNotifier {
   }
 
   void connectToServer() {
-    ourchatAppState!.listen(connectServerResponse, connectResponse);
-    ourchatAppState!.connection!.connectToServer();
+    // ourchatAppState!.listen(connectServerResponse, connectResponse);
+    // ourchatAppState!.connection!.connectToServer();
   }
 
   void connectResponse(var data) {
-    ourchatAppState!.unlisten(connectServerResponse, connectResponse);
+    // ourchatAppState!.unlisten(connectServerResponse, connectResponse);
     if (data["status"] == operationSuccessfulStatusCode) {
-      ourchatAppState!.listen(serverStatusMsgCode, getServerStatusResponse);
-      ourchatAppState!.connection!.send({"code": serverStatusMsgCode});
+      // ourchatAppState!.listen(serverStatusMsgCode, getServerStatusResponse);
+      // ourchatAppState!.connection!.send({"code": serverStatusMsgCode});
     } else {
       errorText =
           AppLocalizations.of(context!)!.cantConnectToServer(data["msg"]);
@@ -116,7 +116,7 @@ class JoinState extends ChangeNotifier {
   }
 
   void getServerStatusResponse(var data) {
-    ourchatAppState!.unlisten(serverStatusMsgCode, getServerStatusResponse);
+    // ourchatAppState!.unlisten(serverStatusMsgCode, getServerStatusResponse);
     if (data["status"] == operationSuccessfulStatusCode) {
       errorText = "";
       if (page == 0) {
@@ -153,17 +153,17 @@ class JoinState extends ChangeNotifier {
   }
 
   void login() {
-    ourchatAppState!.listen(loginResponseMsgCode, loginResponse);
-    ourchatAppState!.connection!.send({
-      "code": loginMsgCode,
-      "login_type": (account.contains("@") ? 1 : 0),
-      "account": account,
-      "password": sha256.convert(utf8.encode(password)).toString(),
-    });
+    // ourchatAppState!.listen(loginResponseMsgCode, loginResponse);
+    // ourchatAppState!.connection!.send({
+    //   "code": loginMsgCode,
+    //   "login_type": (account.contains("@") ? 1 : 0),
+    //   "account": account,
+    //   "password": sha256.convert(utf8.encode(password)).toString(),
+    // });
   }
 
   void loginResponse(var data) {
-    ourchatAppState!.unlisten(loginResponseMsgCode, loginResponse);
+    // ourchatAppState!.unlisten(loginResponseMsgCode, loginResponse);
     if (data["status"] == operationSuccessfulStatusCode) {
       ourchatAppState!.toSomewhere(homeUi);
     } else {
@@ -190,17 +190,17 @@ class JoinState extends ChangeNotifier {
   }
 
   void initVerify() {
-    ourchatAppState!.listen(initVerifyResponseMsgCode, initVerifyResponse);
-    ourchatAppState!.connection!.send({
-      "code": initVerifyMsgCode,
-      "email": account,
-    });
+    // ourchatAppState!.listen(initVerifyResponseMsgCode, initVerifyResponse);
+    // ourchatAppState!.connection!.send({
+    //   "code": initVerifyMsgCode,
+    //   "email": account,
+    // });
   }
 
   void initVerifyResponse(var data) {
-    ourchatAppState!.unlisten(initVerifyResponseMsgCode, initVerifyResponse);
+    // ourchatAppState!.unlisten(initVerifyResponseMsgCode, initVerifyResponse);
     if (data["status"] == operationSuccessfulStatusCode) {
-      ourchatAppState!.unlisten(verifyResponseMsgCode, verifyResponse);
+      // ourchatAppState!.unlisten(verifyResponseMsgCode, verifyResponse);
       errorText = AppLocalizations.of(context!)!.plzCheckYourEmail;
     } else {
       switch (data["status"]) {
@@ -233,7 +233,7 @@ class JoinState extends ChangeNotifier {
   }
 
   void verifyResponse(var data) {
-    ourchatAppState!.unlisten(verifyResponseMsgCode, verifyResponse);
+    // ourchatAppState!.unlisten(verifyResponseMsgCode, verifyResponse);
     if (data["status"] == operationSuccessfulStatusCode) {
       register();
     } else {
@@ -260,19 +260,19 @@ class JoinState extends ChangeNotifier {
   }
 
   void register() {
-    ourchatAppState!.listen(registerResponseMsgCode, registerResponse);
-    ourchatAppState!.connection!.send({
-      "code": registerMsgCode,
-      "email": account,
-      "password": sha256.convert(utf8.encode(password)).toString(),
-      "name": (username == ""
-          ? AppLocalizations.of(context!)!.defaultUsername
-          : username)
-    });
+    // ourchatAppState!.listen(registerResponseMsgCode, registerResponse);
+    // ourchatAppState!.connection!.send({
+    //   "code": registerMsgCode,
+    //   "email": account,
+    //   "password": sha256.convert(utf8.encode(password)).toString(),
+    //   "name": (username == ""
+    //       ? AppLocalizations.of(context!)!.defaultUsername
+    //       : username)
+    // });
   }
 
   void registerResponse(var data) {
-    ourchatAppState!.unlisten(registerResponseMsgCode, registerResponse);
+    // ourchatAppState!.unlisten(registerResponseMsgCode, registerResponse);
     if (data["status"] == operationSuccessfulStatusCode) {
       ourchatAppState!.toSomewhere(homeUi);
     } else {
@@ -373,11 +373,11 @@ class Login extends StatelessWidget {
                 child: ElevatedButton(
                     onPressed: () {
                       if (key.currentState!.validate()) {
-                        if (ourchatAppState.connection!.closed) {
-                          joinState.connectToServer();
-                        } else {
-                          joinState.login();
-                        }
+                        // if (ourchatAppState.connection!.closed) {
+                        //   joinState.connectToServer();
+                        // } else {
+                        //   joinState.login();
+                        // }
                       }
                     },
                     child: Text(AppLocalizations.of(context)!.login))),
@@ -471,11 +471,11 @@ class Register extends StatelessWidget {
                 child: ElevatedButton(
                     onPressed: () {
                       if (key.currentState!.validate()) {
-                        if (ourchatAppState.connection!.closed) {
-                          joinState.connectToServer();
-                        } else {
-                          joinState.register();
-                        }
+                        // if (ourchatAppState.connection!.closed) {
+                        //   joinState.connectToServer();
+                        // } else {
+                        //   joinState.register();
+                        // }
                       }
                     },
                     child: Text(AppLocalizations.of(context)!.register))),
