@@ -1,4 +1,5 @@
 import 'package:grpc/grpc.dart';
+import 'package:ourchat/google/protobuf/empty.pb.dart';
 import 'package:ourchat/message/service.pbgrpc.dart';
 import 'package:protobuf/protobuf.dart';
 import 'const.dart';
@@ -24,6 +25,8 @@ class OurchatConnection {
 
   void connectToServer() async {
     channel = ClientChannel(host, port: port);
-    OurChatServiceClient(channel!);
+    final stub = BasicServiceClient(channel!);
+    final res = await stub.get_server_info(Empty());
+    print(res.status.value);
   }
 }
