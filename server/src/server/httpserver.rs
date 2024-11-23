@@ -1,4 +1,3 @@
-mod easter_egg;
 mod status;
 pub mod verify;
 
@@ -9,14 +8,7 @@ use actix_web::{
     App,
     web::{self},
 };
-use serde::Deserialize;
 use tokio::{select, task::JoinHandle};
-pub use verify::VerifyRecord;
-
-#[derive(Deserialize)]
-struct FileUploadMetadata {
-    key: String,
-}
 
 pub struct HttpServer {}
 
@@ -30,7 +22,7 @@ impl HttpServer {
         listener: std::net::TcpListener,
         db_conn: DbPool,
         shared_data: Arc<crate::SharedData<impl EmailSender>>,
-        mut shutdown_sender: ShutdownSdr,
+        shutdown_sender: ShutdownSdr,
     ) -> anyhow::Result<(JoinHandle<anyhow::Result<()>>, HttpSender)> {
         let shared_state_moved = shared_data.clone();
         let db_conn_clone = db_conn.clone();
@@ -43,7 +35,6 @@ impl HttpServer {
                 .app_data(db_conn_clone.clone())
                 .app_data(shared_state_moved.clone())
                 .service(v1)
-                .service(easter_egg::easter_egg)
         })
         .listen(listener)?
         .run();

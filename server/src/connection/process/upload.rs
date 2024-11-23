@@ -70,7 +70,7 @@ pub async fn add_file_record(
 }
 
 #[derive(Debug, thiserror::Error)]
-enum UploadError {
+pub enum UploadError {
     #[error("Metadata error")]
     MetaDataError,
     #[error("unknown error:{0}")]

@@ -1,7 +1,4 @@
-use crate::{
-    entities::user_chat_msg,
-    utils::{from_google_timestamp, to_google_timestamp},
-};
+use crate::{entities::user_chat_msg, utils::to_google_timestamp};
 
 tonic::include_proto!("msg_delivery");
 

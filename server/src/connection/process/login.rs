@@ -5,7 +5,7 @@ use crate::{
     connection::UserInfo,
     entities::{prelude::*, user},
     pb::login::{LoginRequest, LoginResponse, login_request::Account},
-    server::{AuthServiceProvider, RpcServer},
+    server::AuthServiceProvider,
     utils,
 };
 use anyhow::Context;

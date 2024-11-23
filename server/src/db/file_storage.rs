@@ -2,14 +2,13 @@
 
 use crate::{
     ShutdownRev,
-    consts::ID,
     entities::{files, prelude::*},
     shared_state,
 };
-use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
+use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use std::{fs::exists, time::Duration};
 use tokio::{
-    fs::{File, remove_file},
+    fs::remove_file,
     select,
     time::{Instant, sleep_until},
 };

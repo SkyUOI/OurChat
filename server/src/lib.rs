@@ -33,14 +33,11 @@ use serde::{Deserialize, Serialize};
 use server::httpserver;
 use std::{
     fs,
-    io::Write,
-    net::{IpAddr, SocketAddr},
+    net::SocketAddr,
     path::{Path, PathBuf},
     sync::{Arc, LazyLock, OnceLock},
 };
-use tokio::{net::TcpListener, sync::mpsc, task::JoinHandle};
-use tokio_tungstenite::tungstenite::Message;
-use tracing::info;
+use tokio::{sync::mpsc, task::JoinHandle};
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{
     EnvFilter, Registry,

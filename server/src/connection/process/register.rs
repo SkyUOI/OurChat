@@ -7,7 +7,7 @@ use crate::{
     consts::{self, ID},
     entities::user,
     pb::register::{RegisterRequest, RegisterResponse},
-    server::{AuthServiceProvider, RpcServer},
+    server::AuthServiceProvider,
     shared_state, utils,
 };
 use anyhow::Context;

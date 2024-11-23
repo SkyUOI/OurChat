@@ -1,5 +1,3 @@
-use std::process::exit;
-
 use clap::Parser;
 use server::ArgsParser;
 
