@@ -16,7 +16,7 @@ use tokio_stream::wrappers::ReceiverStream;
 use tonic::{Response, Status};
 
 #[derive(Debug, thiserror::Error)]
-pub enum ErrorOfMsg {
+pub enum MsgError {
     #[error("database error")]
     DbError(#[from] sea_orm::DbErr),
     #[error("unknown error")]
@@ -63,15 +63,15 @@ pub async fn get_user_msg<T: EmailSender>(
                             }
                         }
                     }
-                    Ok::<(), ErrorOfMsg>(())
+                    Ok::<(), MsgError>(())
                 };
                 match db_logic.await {
                     Ok(_) => {}
-                    Err(ErrorOfMsg::DbError(e)) => {
+                    Err(MsgError::DbError(e)) => {
                         tracing::error!("Database error:{e}");
                         tx.send(Err(Status::internal("Database error"))).await.ok();
                     }
-                    Err(ErrorOfMsg::UnknownError(e)) => {
+                    Err(MsgError::UnknownError(e)) => {
                         tracing::error!("Unknown error:{e}");
                         tx.send(Err(Status::internal("Unknown error"))).await.ok();
                     }
@@ -91,7 +91,7 @@ async fn get_session_msgs(
     user_id: ID,
     end_timestamp: TimeStamp,
     db_conn: &DatabaseConnection,
-) -> Result<Paginator<'_, DatabaseConnection, sea_orm::SelectModel<user_chat_msg::Model>>, ErrorOfMsg>
+) -> Result<Paginator<'_, DatabaseConnection, sea_orm::SelectModel<user_chat_msg::Model>>, MsgError>
 {
     // TODO:move page_size to config file
     let user_id: u64 = user_id.into();

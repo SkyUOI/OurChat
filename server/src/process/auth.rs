@@ -13,7 +13,7 @@ use sea_orm::{ColumnTrait, DbErr, EntityTrait, QueryFilter};
 use tonic::{Response, Status};
 
 #[derive(Debug, thiserror::Error)]
-enum LoginError {
+enum AuthError {
     #[error("user not found")]
     UserNotFound,
     #[error("wrong password")]
@@ -26,14 +26,14 @@ enum LoginError {
     UnknownError(#[from] anyhow::Error),
 }
 
-async fn login_db(
+async fn auth_db(
     request: AuthRequest,
     db_connection: &DbPool,
-) -> Result<(AuthResponse, UserInfo), LoginError> {
+) -> Result<(AuthResponse, UserInfo), AuthError> {
     // Judge login type
     let login_type = match request.account {
         None => {
-            return Err(LoginError::MissingAuthType);
+            return Err(AuthError::MissingAuthType);
         }
         Some(account) => account,
     };
@@ -75,14 +75,14 @@ async fn login_db(
                         },
                     ))
                 } else {
-                    Err(LoginError::WrongPassword)
+                    Err(AuthError::WrongPassword)
                 }
             }
-            None => Err(LoginError::WrongPassword),
+            None => Err(AuthError::WrongPassword),
         },
         Err(e) => {
             if let DbErr::RecordNotFound(_) = e {
-                Err(LoginError::UserNotFound)
+                Err(AuthError::UserNotFound)
             } else {
                 Err(e.into())
             }
@@ -91,16 +91,16 @@ async fn login_db(
 }
 
 /// Login Request
-pub async fn login<T: EmailSender>(
+pub async fn auth<T: EmailSender>(
     server: &AuthServiceProvider<T>,
     request: tonic::Request<AuthRequest>,
 ) -> Result<Response<AuthResponse>, Status> {
-    match login_db(request.into_inner(), &server.db).await {
+    match auth_db(request.into_inner(), &server.db).await {
         Ok(ok_resp) => Ok(Response::new(ok_resp.0)),
         Err(e) => Err(match e {
-            LoginError::WrongPassword => Status::unauthenticated(&e.to_string()),
-            LoginError::MissingAuthType => Status::invalid_argument(&e.to_string()),
-            LoginError::UserNotFound => Status::not_found(&e.to_string()),
+            AuthError::WrongPassword => Status::unauthenticated(&e.to_string()),
+            AuthError::MissingAuthType => Status::invalid_argument(&e.to_string()),
+            AuthError::UserNotFound => Status::not_found(&e.to_string()),
             _ => {
                 tracing::error!("{}", e);
                 Status::internal("Server Error")

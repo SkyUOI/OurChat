@@ -13,7 +13,7 @@ use tonic::{Response, Status};
 use super::get_id_from_req;
 
 #[derive(Debug, thiserror::Error)]
-enum ErrorOfUnregister {
+enum UnregisterError {
     #[error("database error:{0}")]
     DbError(#[from] sea_orm::DbErr),
     #[error("unknown error:{0}")]
@@ -21,10 +21,7 @@ enum ErrorOfUnregister {
 }
 
 /// Remove user from database
-async fn remove_account(
-    id: ID,
-    db_connection: &DatabaseConnection,
-) -> Result<(), ErrorOfUnregister> {
+async fn remove_account(id: ID, db_connection: &DatabaseConnection) -> Result<(), UnregisterError> {
     let user = user::ActiveModel {
         id: ActiveValue::Set(id.into()),
         ..Default::default()
@@ -37,7 +34,7 @@ async fn remove_account(
 async fn remove_session_record(
     id: ID,
     db_conn: &DatabaseConnection,
-) -> Result<(), ErrorOfUnregister> {
+) -> Result<(), UnregisterError> {
     let id: u64 = id.into();
     SessionRelation::delete_many()
         .filter(session_relation::Column::UserId.eq(id))
@@ -46,10 +43,7 @@ async fn remove_session_record(
     Ok(())
 }
 
-async fn remove_msgs_of_user(
-    id: ID,
-    db_conn: &DatabaseConnection,
-) -> Result<(), ErrorOfUnregister> {
+async fn remove_msgs_of_user(id: ID, db_conn: &DatabaseConnection) -> Result<(), UnregisterError> {
     let id: u64 = id.into();
     UserChatMsg::delete_many()
         .filter(user_chat_msg::Column::SenderId.eq(id))
@@ -58,7 +52,7 @@ async fn remove_msgs_of_user(
     Ok(())
 }
 
-async fn remove_friend(id: ID, db_conn: &DatabaseConnection) -> Result<(), ErrorOfUnregister> {
+async fn remove_friend(id: ID, db_conn: &DatabaseConnection) -> Result<(), UnregisterError> {
     let id: u64 = id.into();
     Friend::delete_many()
         .filter(friend::Column::UserId.eq(id))
@@ -71,7 +65,7 @@ async fn remove_friend(id: ID, db_conn: &DatabaseConnection) -> Result<(), Error
     Ok(())
 }
 
-async fn remove_operations(id: ID, db_conn: &DatabaseConnection) -> Result<(), ErrorOfUnregister> {
+async fn remove_operations(id: ID, db_conn: &DatabaseConnection) -> Result<(), UnregisterError> {
     let id: u64 = id.into();
     Operations::delete_many()
         .filter(operations::Column::UserId.eq(id))
@@ -83,7 +77,7 @@ async fn remove_operations(id: ID, db_conn: &DatabaseConnection) -> Result<(), E
 async fn unregister_impl(
     server: &RpcServer<impl EmailSender>,
     request: tonic::Request<UnregisterRequest>,
-) -> Result<UnregisterResponse, ErrorOfUnregister> {
+) -> Result<UnregisterResponse, UnregisterError> {
     let db_conn = &server.db;
     let id = get_id_from_req(&request).unwrap();
     let batch = async {

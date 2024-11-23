@@ -288,7 +288,7 @@ impl TestApp {
             application.run_forever().await.unwrap();
         });
         notifier.notified().await;
-        let rpc_url = format!("http://0.0.0.0:{}", port);
+        let rpc_url = format!("http://localhost:{}", port);
         let obj = TestApp {
             port,
             http_port,

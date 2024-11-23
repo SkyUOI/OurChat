@@ -1,9 +1,9 @@
 //! Functions process the requests from clients
 
+pub mod auth;
 pub mod basic;
 pub mod get_account_info;
 mod get_user_msg;
-pub mod login;
 pub mod new_session;
 pub mod register;
 mod send_msg;

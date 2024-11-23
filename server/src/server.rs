@@ -160,7 +160,7 @@ impl<T: EmailSender> pb::service::auth_service_server::AuthService for AuthServi
         &self,
         request: tonic::Request<pb::auth::AuthRequest>,
     ) -> Result<tonic::Response<pb::auth::AuthResponse>, tonic::Status> {
-        process::login::login(self, request).await
+        process::auth::auth(self, request).await
     }
 
     async fn register(

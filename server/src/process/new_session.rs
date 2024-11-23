@@ -45,7 +45,7 @@ impl InviteSession {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum ErrorOfSession {
+pub enum SessionError {
     #[error("user not found")]
     UserNotFound,
     #[error("database error")]
@@ -59,7 +59,7 @@ pub async fn create_session(
     people_num: usize,
     session_name: String,
     db_conn: &DatabaseConnection,
-) -> Result<(), ErrorOfSession> {
+) -> Result<(), SessionError> {
     let session = session::ActiveModel {
         session_id: ActiveValue::Set(session_id.into()),
         name: ActiveValue::Set(session_name),
@@ -73,7 +73,7 @@ pub async fn whether_to_verify(
     sender: ID,
     invitee: ID,
     db_conn: &DbPool,
-) -> Result<bool, ErrorOfSession> {
+) -> Result<bool, SessionError> {
     let sender: u64 = sender.into();
     let invitee: u64 = invitee.into();
     let friend = Friend::find()
@@ -92,13 +92,13 @@ pub async fn whether_to_verify(
 async fn new_session_impl(
     server: &RpcServer<impl EmailSender>,
     req: Request<NewSessionRequest>,
-) -> Result<NewSessionResponse, ErrorOfSession> {
+) -> Result<NewSessionResponse, SessionError> {
     let session_id = utils::generate_session_id()?;
     let id = get_id_from_req(&req).unwrap();
     let ocid = match get_ocid(id, &server.db).await {
         Ok(ocid) => ocid,
         Err(e) => {
-            return Err(ErrorOfSession::UserNotFound);
+            return Err(SessionError::UserNotFound);
         }
     };
 
@@ -133,7 +133,7 @@ async fn new_session_impl(
         // add session relation
         batch_add_to_session(&server.db.db_pool, session_id, &peoples).await?;
 
-        Ok::<(), ErrorOfSession>(())
+        Ok::<(), SessionError>(())
     };
     bundle.await?;
     Ok(NewSessionResponse {
@@ -147,12 +147,12 @@ pub async fn new_session(
 ) -> Result<Response<NewSessionResponse>, tonic::Status> {
     match new_session_impl(server, req).await {
         Ok(res) => Ok(Response::new(res)),
-        Err(ErrorOfSession::UserNotFound) => Err(tonic::Status::not_found("User not found")),
-        Err(ErrorOfSession::DbError(e)) => {
+        Err(SessionError::UserNotFound) => Err(tonic::Status::not_found("User not found")),
+        Err(SessionError::DbError(e)) => {
             error!("{}", e);
             Err(tonic::Status::internal("Database error"))
         }
-        Err(ErrorOfSession::UnknownError(e)) => {
+        Err(SessionError::UnknownError(e)) => {
             error!("{}", e);
             Err(tonic::Status::internal("Unknown error"))
         }
