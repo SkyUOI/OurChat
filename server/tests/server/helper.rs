@@ -186,13 +186,20 @@ impl TestUser {
     }
 
     pub async fn email_login(&mut self) -> anyhow::Result<()> {
+        self.email_login_internal(self.password.clone()).await
+    }
+
+    pub async fn email_login_internal(
+        &mut self,
+        password: impl Into<String>,
+    ) -> anyhow::Result<()> {
         let login_req = AuthRequest {
             account: Some(server::pb::auth::auth_request::Account::Email(
                 self.email.clone(),
             )),
-            password: self.password.clone(),
+            password: password.into(),
         };
-        let ret = self.client.auth.auth(login_req).await.unwrap().into_inner();
+        let ret = self.client.auth.auth(login_req).await?.into_inner();
         assert_eq!(self.ocid, ret.ocid);
         Ok(())
     }

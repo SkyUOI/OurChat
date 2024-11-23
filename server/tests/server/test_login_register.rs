@@ -5,6 +5,13 @@ use claims::assert_ok;
 async fn test_email_login() {
     let mut app = helper::TestApp::new(None).await.unwrap();
     let user = app.new_user().await.unwrap();
+    // try wrong password
+    claims::assert_err!(
+        user.lock()
+            .await
+            .email_login_internal("wrong password")
+            .await
+    );
     assert_ok!(user.lock().await.email_login().await);
     app.async_drop().await;
 }

@@ -29,7 +29,6 @@ pub use set_account_info::set_account_info;
 pub use set_friend_info::set_friend_info;
 use std::time::Duration;
 use tonic::Request;
-use tonic::Status;
 pub use unregister::unregister;
 pub use upload::upload;
 
@@ -47,10 +46,6 @@ pub mod db {
 pub struct JWTdata {
     pub id: ID,
     exp: i64,
-}
-
-fn wrong_password() -> tonic::Status {
-    Status::unauthenticated("wrong password")
 }
 
 const EXPIRE_TIME: Duration = Duration::from_days(5);

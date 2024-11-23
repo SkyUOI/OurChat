@@ -1,4 +1,4 @@
-use super::{UserInfo, generate_access_token, wrong_password};
+use super::{UserInfo, generate_access_token};
 use crate::{
     DbPool,
     component::EmailSender,
@@ -12,14 +12,28 @@ use argon2::{PasswordHash, PasswordVerifier};
 use sea_orm::{ColumnTrait, DbErr, EntityTrait, QueryFilter};
 use tonic::{Response, Status};
 
+#[derive(Debug, thiserror::Error)]
+enum LoginError {
+    #[error("user not found")]
+    UserNotFound,
+    #[error("wrong password")]
+    WrongPassword,
+    #[error("missing auth type")]
+    MissingAuthType,
+    #[error("db error:{0}")]
+    DbError(#[from] sea_orm::DbErr),
+    #[error("Unknown Error:{0}")]
+    UnknownError(#[from] anyhow::Error),
+}
+
 async fn login_db(
     request: AuthRequest,
     db_connection: &DbPool,
-) -> Result<(AuthResponse, UserInfo), tonic::Status> {
+) -> Result<(AuthResponse, UserInfo), LoginError> {
     // Judge login type
     let login_type = match request.account {
         None => {
-            return Err(Status::invalid_argument("missing account"));
+            return Err(LoginError::MissingAuthType);
         }
         Some(account) => account,
     };
@@ -45,6 +59,7 @@ async fn login_db(
                     verify_password_hash(&request.password, &passwd)
                 })
                 .await
+                .context("computing and verifying password")?
                 .is_ok()
                 {
                     let token = generate_access_token(user.id.into());
@@ -60,16 +75,16 @@ async fn login_db(
                         },
                     ))
                 } else {
-                    Err(wrong_password())
+                    Err(LoginError::WrongPassword)
                 }
             }
-            None => Err(wrong_password()),
+            None => Err(LoginError::WrongPassword),
         },
         Err(e) => {
             if let DbErr::RecordNotFound(_) = e {
-                Err(wrong_password())
+                Err(LoginError::UserNotFound)
             } else {
-                Err(tonic::Status::internal("database error"))
+                Err(e.into())
             }
         }
     }
@@ -82,7 +97,15 @@ pub async fn login<T: EmailSender>(
 ) -> Result<Response<AuthResponse>, Status> {
     match login_db(request.into_inner(), &server.db).await {
         Ok(ok_resp) => Ok(Response::new(ok_resp.0)),
-        Err(e) => Err(e),
+        Err(e) => Err(match e {
+            LoginError::WrongPassword => Status::unauthenticated(&e.to_string()),
+            LoginError::MissingAuthType => Status::invalid_argument(&e.to_string()),
+            LoginError::UserNotFound => Status::not_found(&e.to_string()),
+            _ => {
+                tracing::error!("{}", e);
+                Status::internal("Server Error")
+            }
+        }),
     }
 }
 
