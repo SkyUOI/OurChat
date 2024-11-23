@@ -33,6 +33,6 @@ message GetAccountInfoResponse {
   optional string public_update_time = 8;
   optional string update_time = 9;
   optional string sessions = 10;
-  optional string friends = 11;
+  repeated string friends = 11;
   optional string time = 12;
 }

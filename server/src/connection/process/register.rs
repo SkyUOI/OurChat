@@ -1,27 +1,40 @@
+use std::num::TryFromIntError;
+
 use crate::{
-    client::{
-        MsgConvert, requests,
-        response::{ErrorMsgResponse, RegisterResponse},
-    },
-    connection::{NetSender, UserInfo, VerifyStatus},
+    DbPool,
+    component::EmailSender,
+    connection::UserInfo,
     consts::{self, ID},
     entities::user,
+    pb::register::{RegisterRequest, RegisterResponse},
+    server::{AuthServiceProvider, RpcServer},
     shared_state, utils,
 };
+use anyhow::Context;
 use argon2::{Params, PasswordHasher, password_hash::SaltString};
-use sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection, DbErr};
+use sea_orm::{ActiveModelTrait, ActiveValue, DbErr};
 use snowdon::ClassicLayoutSnowflakeExtension;
+use tonic::{Request, Response, Status};
+use tracing::error;
+
+use super::generate_access_token;
 
 async fn add_new_user(
-    request: requests::RegisterRequest,
-    db_connection: &DatabaseConnection,
-) -> anyhow::Result<Result<(RegisterResponse, UserInfo), requests::Status>> {
+    request: RegisterRequest,
+    db_connection: &DbPool,
+) -> Result<(RegisterResponse, UserInfo), RegisterError> {
     // Generate snowflake id
-    let id = ID(utils::GENERATOR.generate()?.into_i64().try_into()?);
+    let id = ID(utils::GENERATOR
+        .generate()
+        .context("failed to generate snowflake id")?
+        .into_i64()
+        .try_into()?);
     // Generate ocid by random
     let ocid = utils::generate_ocid(consts::OCID_LEN);
     let passwd = request.password;
-    let passwd = utils::spawn_blocking_with_tracing(move || compute_password_hash(&passwd)).await?;
+    let passwd = utils::spawn_blocking_with_tracing(move || compute_password_hash(&passwd))
+        .await
+        .context("compute hash error")?;
     let user = user::ActiveModel {
         id: ActiveValue::Set(id.into()),
         ocid: ActiveValue::Set(ocid),
@@ -34,24 +47,38 @@ async fn add_new_user(
         friend_limit: ActiveValue::Set(shared_state::get_friends_number_limit().try_into()?),
         ..Default::default()
     };
-    match user.insert(db_connection).await {
+    match user.insert(&db_connection.db_pool).await {
         Ok(res) => {
             // Happy Path
-            let response = RegisterResponse::success(res.ocid.clone());
-            Ok(Ok((response, UserInfo {
+            let response = RegisterResponse {
+                ocid: res.ocid.clone(),
+                token: generate_access_token(id),
+            };
+            Ok((response, UserInfo {
                 ocid: res.ocid,
                 id: res.id.into(),
-            })))
+            }))
         }
         Err(e) => {
             if let DbErr::RecordNotInserted = e {
-                Ok(Err(requests::Status::InfoExists))
+                Err(RegisterError::UserExists)
             } else {
-                tracing::error!("Database error:{e}");
-                Ok(Err(requests::Status::ServerError))
+                Err(e.into())
             }
         }
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+enum RegisterError {
+    #[error("User exists")]
+    UserExists,
+    #[error("database error:{0}")]
+    DbError(#[from] sea_orm::DbErr),
+    #[error("unknown error:{0}")]
+    UnknownError(#[from] anyhow::Error),
+    #[error("from int error")]
+    FromIntError(#[from] TryFromIntError),
 }
 
 fn compute_password_hash(password: &str) -> String {
@@ -68,23 +95,34 @@ fn compute_password_hash(password: &str) -> String {
     password_hash
 }
 
-/// Register Request
-pub async fn register(
-    net_sender: impl NetSender,
-    register_data: requests::RegisterRequest,
-    db_conn: &DatabaseConnection,
-) -> anyhow::Result<VerifyStatus> {
-    match add_new_user(register_data, db_conn).await? {
-        Ok(ok_resp) => {
-            net_sender.send(ok_resp.0.to_msg()).await?;
-            Ok(VerifyStatus::Success(ok_resp.1))
+async fn register_impl(
+    server: &AuthServiceProvider<impl EmailSender>,
+    request: Request<RegisterRequest>,
+) -> Result<RegisterResponse, RegisterError> {
+    match add_new_user(request.into_inner(), &server.db).await {
+        Ok((response, user_info)) => Ok(response),
+        Err(e) => Err(e),
+    }
+}
+
+pub async fn register<T: EmailSender>(
+    server: &AuthServiceProvider<T>,
+    request: Request<RegisterRequest>,
+) -> Result<tonic::Response<RegisterResponse>, tonic::Status> {
+    match register_impl(server, request).await {
+        Ok(ok_resp) => Ok(Response::new(ok_resp)),
+        Err(RegisterError::DbError(e)) => {
+            error!("{}", e);
+            Err(Status::internal("Database error"))
         }
-        Err(e) => {
-            net_sender
-                .send(ErrorMsgResponse::server_error("Database error").to_msg())
-                .await?;
-            tracing::error!("{}", e);
-            Ok(VerifyStatus::Fail)
+        Err(RegisterError::UserExists) => Err(Status::already_exists("User exists")),
+        Err(RegisterError::UnknownError(e)) => {
+            error!("{}", e);
+            Err(Status::internal("Unknown error"))
+        }
+        Err(RegisterError::FromIntError(e)) => {
+            error!("{}", e);
+            Err(Status::internal("Unknown error"))
         }
     }
 }

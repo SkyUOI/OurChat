@@ -7,7 +7,7 @@ use sea_orm::entity::prelude::*;
 pub struct Model {
     #[sea_orm(primary_key)]
     pub oper_id: i32,
-    pub id: i64,
+    pub user_id: i64,
     pub operation: String,
     pub once: bool,
     pub expires_at: DateTimeWithTimeZone,
@@ -17,7 +17,7 @@ pub struct Model {
 pub enum Relation {
     #[sea_orm(
         belongs_to = "super::user::Entity",
-        from = "Column::Id",
+        from = "Column::UserId",
         to = "super::user::Column::Id",
         on_update = "NoAction",
         on_delete = "NoAction"

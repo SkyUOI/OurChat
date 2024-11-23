@@ -88,23 +88,3 @@ pub enum AddFileError {
     #[error("Internal IO error")]
     InternalIOError(#[from] std::io::Error),
 }
-
-pub async fn add_file(
-    key: &str,
-    auto_clean: bool,
-    user_id: ID,
-    db_conn: &DatabaseConnection,
-) -> Result<File, AddFileError> {
-    let timestamp = chrono::Utc::now().timestamp();
-    let path = format!("{}/{}", "files_storage", key);
-    let file = files::ActiveModel {
-        key: sea_orm::Set(key.to_string()),
-        path: sea_orm::Set(path.to_string()),
-        date: sea_orm::Set(timestamp),
-        auto_clean: sea_orm::Set(auto_clean),
-        user_id: sea_orm::Set(user_id.into()),
-    };
-    file.insert(db_conn).await?;
-    let f = File::create(&path).await?;
-    Ok(f)
-}

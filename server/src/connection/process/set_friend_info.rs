@@ -1,47 +1,40 @@
+use super::get_id_from_req;
 use crate::{
     DbPool,
-    client::{
-        MsgConvert,
-        requests::SetFriendInfoRequest,
-        response::{ErrorMsgResponse, SetAccountInfoResponse},
-    },
-    connection::{NetSender, UserInfo, basic::get_id},
+    component::EmailSender,
+    connection::basic::get_id,
     consts::ID,
-    entities::{friend, prelude::*},
+    entities::friend,
+    pb::set_info::{SetAccountInfoResponse, SetFriendInfoRequest},
+    server::RpcServer,
 };
-use sea_orm::{ActiveModelTrait, ActiveValue};
+use sea_orm::{ActiveModelTrait, ActiveValue, DbErr};
+use tonic::{Response, Status};
 
-pub async fn set_friend_info(
-    user_info: &UserInfo,
-    request: SetFriendInfoRequest,
-    net_sender: impl NetSender,
-    db_pool: &DbPool,
-) -> anyhow::Result<()> {
-    let ret = match update_friend(user_info.id, request, db_pool).await {
-        Ok(_) => SetAccountInfoResponse::success().to_msg(),
+pub async fn set_friend_info<T: EmailSender>(
+    server: &RpcServer<T>,
+    request: tonic::Request<SetFriendInfoRequest>,
+) -> Result<Response<SetAccountInfoResponse>, tonic::Status> {
+    let id = get_id_from_req(&request).unwrap();
+    let request = request.into_inner();
+    match update_friend(id, request, &server.db).await {
+        Ok(_) => {}
         Err(SetError::Db(e)) => {
             tracing::error!("Database error: {}", e);
-            ErrorMsgResponse::server_error("Database error").to_msg()
-        }
-        Err(SetError::Type) => {
-            tracing::error!("Type format error");
-            ErrorMsgResponse::server_error("Json format error").to_msg()
+            return Err(Status::internal("Database error"));
         }
         Err(SetError::Unknown(e)) => {
             tracing::error!("Unknown error: {}", e);
-            ErrorMsgResponse::server_error("Unknown error").to_msg()
+            return Err(Status::internal("Unknown error"));
         }
     };
-    net_sender.send(ret).await?;
-    Ok(())
+    Ok(Response::new(SetAccountInfoResponse {}))
 }
 
 #[derive(Debug, thiserror::Error)]
 enum SetError {
     #[error("db error")]
     Db(#[from] sea_orm::DbErr),
-    #[error("type error")]
-    Type,
     #[error("unknown error")]
     Unknown(#[from] anyhow::Error),
 }
@@ -56,18 +49,24 @@ async fn update_friend(
         friend_id: ActiveValue::Set(get_id(&request.ocid, db_conn).await?.into()),
         ..Default::default()
     };
-    for i in request.data {
-        match i.0 {
-            crate::client::basic::SetFriendValues::DisplayName => {
-                if let serde_json::Value::String(name) = i.1 {
-                    friend.display_name = ActiveValue::Set(name)
-                } else {
-                    tracing::error!("Type error");
-                    return Err(SetError::Type);
-                }
+    let mut modified = false;
+    if let Some(name) = request.display_name {
+        friend.display_name = ActiveValue::Set(name);
+        modified = true;
+    }
+    if !modified {
+        return Ok(());
+    }
+    match friend.clone().update(&db_conn.db_pool).await {
+        Ok(_) => {}
+        Err(DbErr::RecordNotUpdated) => {
+            // record not existed, create it
+            match friend.insert(&db_conn.db_pool).await {
+                Ok(_) => {}
+                Err(e) => return Err(SetError::Db(e)),
             }
         }
+        Err(e) => return Err(SetError::Db(e)),
     }
-    friend.update(&db_conn.db_pool).await?;
     Ok(())
 }

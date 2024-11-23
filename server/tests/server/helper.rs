@@ -1,42 +1,49 @@
 //! Helper functions for tests
 
-use anyhow::Context;
-use base::time::TimeStamp;
+use base::time::TimeStampUtc;
 use fake::Fake;
 use fake::faker::internet::raw::FreeEmail;
 use fake::faker::name::en;
 use fake::faker::name::raw::Name;
 use fake::locales::EN;
-use futures_util::{SinkExt, StreamExt};
 use parking_lot::Mutex;
 use rand::Rng;
-use server::client::MsgConvert;
-use server::client::requests::{self, LoginRequest, LoginType, RegisterRequest, UnregisterRequest};
-use server::client::response::{self, UnregisterResponse};
 use server::component::MockEmailSender;
-use server::consts::{MessageType, SessionID};
+use server::consts::SessionID;
 use server::db::DbCfgTrait;
-use server::utils::{self, gen_ws_bind_addr};
+use server::pb::login::LoginRequest;
+use server::pb::register::{RegisterRequest, UnregisterRequest};
+use server::pb::service::auth_service_client::AuthServiceClient;
+use server::pb::service::basic_service_client::BasicServiceClient;
+use server::pb::service::our_chat_service_client::OurChatServiceClient;
+use server::utils::{self, from_google_timestamp, get_available_port};
 use server::{Application, ArgsParser, DbPool, ParserCfg, SharedData, ShutdownSdr, connection};
 use sqlx::migrate::MigrateDatabase;
 use std::collections::HashSet;
 use std::sync::{Arc, LazyLock};
 use std::thread;
 use std::time::Duration;
-use tokio::net::TcpStream;
-use tokio_tungstenite::WebSocketStream;
-use tokio_tungstenite::tungstenite::Message;
+use tonic::metadata::MetadataValue;
+use tonic::service::interceptor::InterceptedService;
+use tonic::transport::{Channel, Uri};
 
-pub type ClientWS = WebSocketStream<tokio_tungstenite::MaybeTlsStream<TcpStream>>;
+pub type OCClient = OurChatServiceClient<
+    InterceptedService<
+        Channel,
+        Box<dyn FnMut(tonic::Request<()>) -> Result<tonic::Request<()>, tonic::Status>>,
+    >,
+>;
 
-#[derive(Debug)]
 pub struct TestUser {
     pub name: String,
     pub password: String,
     pub email: String,
     pub ocid: String,
-    pub connection: Option<ClientWS>,
     pub port: u16,
+    pub token: String,
+    pub client: Clients,
+    pub rpc_url: String,
+    pub oc_server: Option<OCClient>,
 
     has_dropped: bool,
 }
@@ -87,6 +94,7 @@ impl TestUser {
     pub async fn random(app: &TestApp) -> Self {
         let name = FAKE_MANAGER.lock().generate_unique_name();
         let email = FAKE_MANAGER.lock().generate_unique_email();
+        let url = app.rpc_url.clone();
         let mut ret = Self {
             name,
             password: rand::thread_rng()
@@ -95,66 +103,52 @@ impl TestUser {
                 .map(char::from)
                 .collect(),
             email,
-            connection: None,
             port: app.port,
             has_dropped: false,
+            client: app.clients.clone(),
+            rpc_url: url,
             // reserved
             ocid: String::default(),
+            token: String::default(),
+            oc_server: None,
         };
         ret.register().await;
         ret
     }
 
-    pub async fn send(&mut self, msg: Message) -> anyhow::Result<()> {
-        self.get_conn().send(msg).await?;
-        Ok(())
-    }
-
-    pub async fn recv(&mut self) -> anyhow::Result<Message> {
-        Ok(self.get_conn().next().await.unwrap().unwrap())
-    }
-
-    pub async fn get_text(&mut self) -> anyhow::Result<String> {
-        Ok(self.get_conn().next().await.unwrap()?.to_text()?.to_owned())
-    }
-
-    pub fn get_conn(&mut self) -> &mut ClientWS {
-        self.connection.as_mut().unwrap()
-    }
-
-    async fn establish_connection(&mut self) -> anyhow::Result<()> {
-        if let Some(conn) = &mut self.connection {
-            conn.close(None).await.ok();
-        }
-        let conn = establish_connection_internal(self.port).await?;
-        self.connection = Some(conn);
-        Ok(())
-    }
-
     pub async fn register_internal(user: &mut TestUser) -> anyhow::Result<()> {
-        let request =
-            RegisterRequest::new(user.name.clone(), user.password.clone(), user.email.clone());
-        let conn = user.get_conn();
-        conn.send(request.to_msg()).await.unwrap();
-        let ret = conn.next().await.unwrap().unwrap();
-        let json: response::RegisterResponse = serde_json::from_str(&ret.to_string()).unwrap();
-        assert_eq!(json.status, requests::Status::Success);
-        assert_eq!(json.code, MessageType::RegisterRes);
-        user.ocid = json.ocid;
+        let request = RegisterRequest {
+            name: user.name.clone(),
+            password: user.password.clone(),
+            email: user.email.clone(),
+        };
+        let ret = user
+            .client
+            .auth
+            .register(request)
+            .await
+            .unwrap()
+            .into_inner();
+        user.ocid = ret.ocid;
+        user.token = ret.token;
+        let chann = Channel::builder(Uri::from_maybe_shared(user.rpc_url.clone()).unwrap())
+            .connect()
+            .await
+            .unwrap();
+        let token: MetadataValue<_> = user.token.to_string().parse().unwrap();
+        user.oc_server = Some(OurChatServiceClient::with_interceptor(
+            chann,
+            Box::new(move |mut req: tonic::Request<()>| {
+                req.metadata_mut().insert("token", token.clone());
+                Ok(req)
+            }),
+        ));
         Ok(())
-    }
-
-    pub async fn close_connection(&mut self) {
-        if let Some(conn) = &mut self.connection {
-            conn.close(None).await.unwrap();
-        }
     }
 
     async fn async_drop(&mut self) {
         claims::assert_ok!(self.unregister().await);
         tracing::info!("unregister done");
-        self.close_connection().await;
-        tracing::info!("connection closed");
         self.has_dropped = true;
     }
 }
@@ -166,51 +160,52 @@ impl TestUser {
     }
 
     pub async fn register(&mut self) {
-        self.establish_connection().await.unwrap();
         Self::register_internal(self).await.unwrap();
     }
 
     pub async fn unregister(&mut self) -> anyhow::Result<()> {
-        let req = UnregisterRequest::new();
-        self.get_conn()
-            .send(Message::text(serde_json::to_string(&req).unwrap()))
-            .await
-            .unwrap();
-        let ret = self.get_conn().next().await.unwrap()?;
-        let json: UnregisterResponse = serde_json::from_str(ret.to_text()?)?;
-        assert_eq!(json.code, MessageType::UnregisterRes);
+        let req = UnregisterRequest {};
+        self.oc().unregister(req).await.unwrap();
         Ok(())
     }
 
+    pub fn oc(&mut self) -> &mut OCClient {
+        self.oc_server.as_mut().unwrap()
+    }
+
     pub async fn ocid_login(&mut self) -> anyhow::Result<()> {
-        let login_req =
-            LoginRequest::new(self.ocid.clone(), self.password.clone(), LoginType::Ocid);
-        self.get_conn().send(login_req.to_msg()).await.unwrap();
-        let ret = self.get_conn().next().await.unwrap().unwrap();
-        let json: response::LoginResponse = serde_json::from_str(ret.to_text().unwrap()).unwrap();
-        if json.code != MessageType::LoginRes {
-            anyhow::bail!("Failed to login,code is not login response");
-        }
+        let login_req = LoginRequest {
+            account: Some(server::pb::login::login_request::Account::Ocid(
+                self.ocid.clone(),
+            )),
+            password: self.password.clone(),
+        };
+        let ret = self
+            .client
+            .auth
+            .login(login_req)
+            .await
+            .unwrap()
+            .into_inner();
+        self.token = ret.token.clone();
         Ok(())
     }
 
     pub async fn email_login(&mut self) -> anyhow::Result<()> {
-        let login_req =
-            LoginRequest::new(self.email.clone(), self.password.clone(), LoginType::Email);
-        self.get_conn().send(login_req.to_msg()).await.unwrap();
-        let ret = self.get_conn().next().await.unwrap().unwrap();
-        let json: response::LoginResponse =
-            serde_json::from_str(ret.to_text().unwrap()).with_context(|| ret)?;
-        if json.code != MessageType::LoginRes {
-            anyhow::bail!("Failed to login,code is not login response");
-        }
-        if let Some(ocid) = json.ocid.clone() {
-            if ocid != self.ocid {
-                anyhow::bail!("Failed to login,ocid is not correct");
-            }
-        } else {
-            anyhow::bail!("Failed to login,ocid is not found");
-        }
+        let login_req = LoginRequest {
+            account: Some(server::pb::login::login_request::Account::Email(
+                self.email.clone(),
+            )),
+            password: self.password.clone(),
+        };
+        let ret = self
+            .client
+            .auth
+            .login(login_req)
+            .await
+            .unwrap()
+            .into_inner();
+        assert_eq!(self.ocid, ret.ocid);
         Ok(())
     }
 }
@@ -223,26 +218,10 @@ impl Drop for TestUser {
     }
 }
 
-async fn establish_connection_internal(port: u16) -> anyhow::Result<ClientWS> {
-    let mut connection = None;
-    // server maybe not ready
-    let ip = gen_ws_bind_addr("127.0.0.1", port);
-    for _ in 0..10 {
-        match tokio_tungstenite::connect_async(&ip).await {
-            Ok((conn, _)) => {
-                connection = Some(conn);
-                break;
-            }
-            Err(e) => {
-                println!("{} ", e);
-            }
-        };
-        tokio::time::sleep(Duration::from_millis(100)).await;
-    }
-    if connection.is_none() {
-        anyhow::bail!(format!("Failed to connect to server {}", ip));
-    }
-    Ok(connection.unwrap())
+#[derive(Debug, Clone)]
+pub struct Clients {
+    pub auth: AuthServiceClient<Channel>,
+    pub basic: BasicServiceClient<Channel>,
 }
 
 #[derive(Clone)]
@@ -254,6 +233,8 @@ pub struct TestApp {
     pub db_pool: DbPool,
     pub http_client: reqwest::Client,
     owned_users: Vec<Arc<tokio::sync::Mutex<TestUser>>>,
+    pub clients: Clients,
+    pub rpc_url: String,
 
     server_config: server::Cfg,
     has_dropped: bool,
@@ -267,7 +248,7 @@ trait TestAppTrait {
 impl TestAppTrait for ArgsParser {
     fn test() -> Self {
         Self {
-            port: Some(0),
+            port: Some(get_available_port()),
             http_port: Some(0),
             enable_cmd: Some(false),
             shared_cfg: ParserCfg {
@@ -307,10 +288,12 @@ impl TestApp {
         let shared = application.shared.clone();
         let db_pool = application.pool.clone();
 
+        let notifier = application.started_notify.clone();
         tokio::spawn(async move {
             application.run_forever().await.unwrap();
         });
-
+        notifier.notified().await;
+        let rpc_url = format!("http://0.0.0.0:{}", port);
         let obj = TestApp {
             port,
             http_port,
@@ -324,6 +307,11 @@ impl TestApp {
                 .timeout(Duration::from_secs(2))
                 .build()?,
             db_pool,
+            rpc_url: rpc_url.clone(),
+            clients: Clients {
+                auth: AuthServiceClient::connect(rpc_url.clone()).await?,
+                basic: BasicServiceClient::connect(rpc_url.clone()).await?,
+            },
         };
         Ok(obj)
     }
@@ -360,14 +348,6 @@ impl TestApp {
 
     pub async fn new_user(&mut self) -> anyhow::Result<TestUserShared> {
         let user = Arc::new(tokio::sync::Mutex::new(TestUser::random(self).await));
-        user.lock().await.close_connection().await;
-        user.lock().await.establish_connection().await?;
-        self.owned_users.push(user.clone());
-        Ok(user)
-    }
-
-    pub async fn new_user_logined(&mut self) -> anyhow::Result<TestUserShared> {
-        let user = Arc::new(tokio::sync::Mutex::new(TestUser::random(self).await));
         self.owned_users.push(user.clone());
         Ok(user)
     }
@@ -391,13 +371,11 @@ impl TestApp {
     ) -> anyhow::Result<(Vec<TestUserShared>, TestSession)> {
         let mut users = Vec::with_capacity(n);
         for _ in 0..n {
-            users.push(self.new_user_logined().await?);
+            users.push(self.new_user().await?);
         }
         // create a group in database level
         let session_id = utils::generate_session_id()?;
-        connection::db::create_session(session_id, n, name.into(), &self.db_pool.db_pool)
-            .await?
-            .unwrap();
+        connection::db::create_session(session_id, n, name.into(), &self.db_pool.db_pool).await?;
         tracing::info!("create session:{}", session_id);
         let mut id_vec = vec![];
         for i in &users {
@@ -413,15 +391,9 @@ impl TestApp {
     /// # Warning
     /// Must request the server, shouldn't build a time from local by chrono, because some tests
     /// rely on this behaviour
-    pub async fn get_timestamp(&self) -> TimeStamp {
-        let response = self
-            .http_get("timestamp")
-            .await
-            .unwrap()
-            .error_for_status()
-            .unwrap();
-        let text = response.text().await.unwrap();
-        chrono::DateTime::parse_from_rfc3339(&text).unwrap()
+    pub async fn get_timestamp(&mut self) -> TimeStampUtc {
+        let ret = self.clients.basic.timestamp(()).await.unwrap().into_inner();
+        from_google_timestamp(&ret).unwrap()
     }
 }
 

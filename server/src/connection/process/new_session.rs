@@ -1,14 +1,11 @@
 use crate::{
     DbPool, SharedData,
-    client::{
-        MsgConvert,
-        requests::{self, AcceptSessionRequest, NewSessionRequest},
-        response::{ErrorMsgResponse, InviteSession, NewSessionResponse},
-    },
     component::EmailSender,
-    connection::{NetSender, UserInfo, basic::get_id},
+    connection::basic::{get_id, get_ocid},
     consts::{ID, OCID, SessionID},
     entities::{friend, operations, prelude::*, session, session_relation},
+    pb::session::{NewSessionRequest, NewSessionResponse},
+    server::RpcServer,
     utils,
 };
 use anyhow::Context;
@@ -16,10 +13,41 @@ use base::time::TimeStamp;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
 };
+use serde::{Deserialize, Serialize};
 use std::{sync::Arc, time::Duration};
+use tonic::{Request, Response};
+use tracing::error;
+
+use super::get_id_from_req;
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct InviteSession {
+    pub expire_timestamp: TimeStamp,
+    pub session_id: SessionID,
+    pub inviter_id: String,
+    pub message: String,
+}
+
+impl InviteSession {
+    pub fn new(
+        expire_timestamp: TimeStamp,
+        session_id: SessionID,
+        inviter_id: String,
+        message: String,
+    ) -> Self {
+        Self {
+            expire_timestamp,
+            session_id,
+            inviter_id,
+            message,
+        }
+    }
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum ErrorOfSession {
+    #[error("user not found")]
+    UserNotFound,
     #[error("database error")]
     DbError(#[from] sea_orm::DbErr),
     #[error("unknown error")]
@@ -31,14 +59,14 @@ pub async fn create_session(
     people_num: usize,
     session_name: String,
     db_conn: &DatabaseConnection,
-) -> Result<Result<(), requests::Status>, ErrorOfSession> {
+) -> Result<(), ErrorOfSession> {
     let session = session::ActiveModel {
         session_id: ActiveValue::Set(session_id.into()),
         name: ActiveValue::Set(session_name),
         size: ActiveValue::Set(people_num.try_into().context("people num error")?),
     };
     session.insert(db_conn).await?;
-    Ok(Ok(()))
+    Ok(())
 }
 
 pub async fn whether_to_verify(
@@ -61,33 +89,38 @@ pub async fn whether_to_verify(
     }
 }
 
-pub async fn new_session(
-    user_info: &UserInfo,
-    net_sender: impl NetSender + Clone,
-    json: NewSessionRequest,
-    db_conn: &DbPool,
-    shared_data: &Arc<SharedData<impl EmailSender>>,
-) -> anyhow::Result<()> {
+async fn new_session_impl(
+    server: &RpcServer<impl EmailSender>,
+    req: Request<NewSessionRequest>,
+) -> Result<NewSessionResponse, ErrorOfSession> {
     let session_id = utils::generate_session_id()?;
+    let id = get_id_from_req(&req).unwrap();
+    let ocid = match get_ocid(id, &server.db).await {
+        Ok(ocid) => ocid,
+        Err(e) => {
+            return Err(ErrorOfSession::UserNotFound);
+        }
+    };
 
+    let req = req.into_inner();
     // check whether to send verification request
     let mut people_num = 1;
-    let mut peoples = vec![user_info.id];
-    for i in &json.members {
-        let member_id = get_id(i, db_conn).await?;
+    let mut peoples = vec![id];
+    for i in &req.members {
+        let member_id = get_id(i, &server.db).await?;
         // ignore self
-        if member_id == user_info.id {
+        if member_id == id {
             continue;
         }
-        let verify = whether_to_verify(user_info.id, member_id, db_conn).await?;
+        let verify = whether_to_verify(id, member_id, &server.db).await?;
         if verify {
             send_verification_request(
-                user_info.ocid.clone(),
+                ocid.clone(),
                 member_id,
                 session_id,
-                json.message.clone(),
-                shared_data,
-                db_conn,
+                req.message.clone(),
+                &server.shared_data,
+                &server.db,
             )
             .await?;
         } else {
@@ -96,29 +129,34 @@ pub async fn new_session(
         }
     }
     let bundle = async {
-        if let Err(e) = create_session(session_id, people_num, json.name, &db_conn.db_pool).await? {
-            net_sender
-                .send(ErrorMsgResponse::server_error("Database error").to_msg())
-                .await?;
-            tracing::error!("create session error: {}", e);
-        }
+        create_session(session_id, people_num, req.name, &server.db.db_pool).await?;
         // add session relation
-        batch_add_to_session(&db_conn.db_pool, session_id, &peoples).await?;
+        batch_add_to_session(&server.db.db_pool, session_id, &peoples).await?;
 
-        anyhow::Ok(())
+        Ok::<(), ErrorOfSession>(())
     };
-    match bundle.await {
-        Ok(_) => {
-            net_sender
-                .send(NewSessionResponse::success(session_id).to_msg())
-                .await?;
+    bundle.await?;
+    Ok(NewSessionResponse {
+        session_id: session_id.into(),
+    })
+}
+
+pub async fn new_session(
+    server: &RpcServer<impl EmailSender>,
+    req: Request<NewSessionRequest>,
+) -> Result<Response<NewSessionResponse>, tonic::Status> {
+    match new_session_impl(server, req).await {
+        Ok(res) => Ok(Response::new(res)),
+        Err(ErrorOfSession::UserNotFound) => Err(tonic::Status::not_found("User not found")),
+        Err(ErrorOfSession::DbError(e)) => {
+            error!("{}", e);
+            Err(tonic::Status::internal("Database error"))
         }
-        Err(e) => {
-            tracing::error!("{e}");
+        Err(ErrorOfSession::UnknownError(e)) => {
+            error!("{}", e);
+            Err(tonic::Status::internal("Unknown error"))
         }
     }
-
-    Ok(())
 }
 
 pub async fn send_verification_request(
@@ -140,7 +178,7 @@ pub async fn send_verification_request(
     // try to find connected client
     match shared_data.connected_clients.get(&invitee) {
         Some(client) => {
-            client.send(request.to_msg()).await?;
+            // client.send(request.to_msg()).await?;
             return Ok(());
         }
         None => {
@@ -164,7 +202,7 @@ async fn save_invitation_to_db(
     db_conn: &DbPool,
 ) -> anyhow::Result<()> {
     let oper = operations::ActiveModel {
-        id: ActiveValue::Set(id.into()),
+        user_id: ActiveValue::Set(id.into()),
         operation: ActiveValue::Set(operation),
         once: ActiveValue::Set(true),
         expires_at: ActiveValue::Set(expiresat),
@@ -199,12 +237,7 @@ pub async fn batch_add_to_session(
     Ok(())
 }
 
-pub async fn accept_session(
-    id: ID,
-    net_sender: impl NetSender,
-    json: AcceptSessionRequest,
-    db_conn: &DbPool,
-) -> anyhow::Result<()> {
-    // check if the time is expired
-    Ok(())
-}
+// pub async fn accept_session(json: AcceptSessionRequest, db_conn: &DbPool) -> anyhow::Result<()> {
+//     // check if the time is expired
+//     Ok(())
+// }

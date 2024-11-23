@@ -1,23 +1,11 @@
-use super::NetSender;
 use crate::{
     DbPool,
-    client::{MsgConvert, requests, response},
     consts::{ID, OCID},
     entities::{prelude::*, user},
 };
 use anyhow::bail;
 use redis::AsyncCommands;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
-
-pub async fn send_error_msg(
-    sender: impl NetSender,
-    status: requests::Status,
-    msg: impl Into<String>,
-) -> anyhow::Result<()> {
-    let error_resp = response::error_msg::ErrorMsgResponse::new(status, msg.into());
-    sender.send(error_resp.to_msg()).await?;
-    Ok(())
-}
 
 fn mapped_to_ocid(key: &str) -> String {
     format!("ocid:{}", key)
@@ -41,4 +29,12 @@ pub async fn get_id(ocid: &OCID, db_conn: &DbPool) -> anyhow::Result<ID> {
         return Ok(id.into());
     }
     bail!("ocid not found")
+}
+
+pub async fn get_ocid(id: ID, db_conn: &DbPool) -> anyhow::Result<OCID> {
+    let user = User::find_by_id(id).one(&db_conn.db_pool).await?;
+    if let Some(user) = user {
+        return Ok(user.ocid);
+    }
+    bail!("id not found")
 }

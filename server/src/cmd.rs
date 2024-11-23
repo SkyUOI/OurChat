@@ -3,7 +3,6 @@
 
 use crate::{
     ShutdownRev, ShutdownSdr,
-    connection::WS,
     db::file_storage,
     shared_state::{self},
 };
@@ -387,13 +386,11 @@ pub async fn setup_stdin(
     Ok(())
 }
 
-struct _CmdConnection {
-    socket: WS,
-}
+struct _CmdConnection {}
 
 impl _CmdConnection {
-    fn _new(socket: WS) -> Self {
-        Self { socket }
+    fn _new() -> Self {
+        Self {}
     }
 }
 

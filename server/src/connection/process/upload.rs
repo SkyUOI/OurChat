@@ -1,18 +1,21 @@
 use crate::{
-    client::{
-        MsgConvert,
-        requests::{self, upload::UploadRequest},
-    },
-    connection::response::UploadResponse,
+    component::EmailSender,
     consts::{Bt, ID},
-    entities::{prelude::*, user},
+    entities::{files, prelude::*, user},
+    pb::upload::{UploadRequest, UploadResponse, upload_request},
+    server::RpcServer,
     shared_state,
     utils::generate_random_string,
 };
-use anyhow::bail;
+use anyhow::anyhow;
+use futures_util::StreamExt;
 use sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection, EntityTrait};
-use tokio::sync::mpsc;
-use tokio_tungstenite::tungstenite::protocol::Message;
+use sha3::{Digest, Sha3_256};
+use std::num::TryFromIntError;
+use tokio::{fs::File, io::AsyncWriteExt};
+use tonic::{Response, Status};
+
+use super::get_id_from_req;
 
 const PREFIX_LEN: usize = 20;
 
@@ -27,12 +30,14 @@ fn generate_key_name(hash: &str) -> String {
 pub async fn add_file_record(
     id: ID,
     sz: Bt,
+    key: String,
+    auto_clean: bool,
     db_connection: &DatabaseConnection,
-) -> anyhow::Result<requests::Status> {
+) -> Result<File, UploadError> {
     let user_info = match User::find_by_id(id).one(db_connection).await? {
         Some(user) => user,
         None => {
-            return Ok(requests::Status::ServerError);
+            return Err(anyhow!("user not found").into());
         }
     };
     // first check if the limit has been reached
@@ -48,28 +53,116 @@ pub async fn add_file_record(
     let mut user_info: user::ActiveModel = user_info.into();
     user_info.resource_used = ActiveValue::Set(updated_res_lim);
     user_info.update(db_connection).await?;
-    Ok(requests::Status::Success)
+
+    let timestamp = chrono::Utc::now().timestamp();
+    // TODO:move this path to config
+    let path = format!("{}/{}", "files_storage", key);
+    let file = files::ActiveModel {
+        key: sea_orm::Set(key.to_string()),
+        path: sea_orm::Set(path.to_string()),
+        date: sea_orm::Set(timestamp),
+        auto_clean: sea_orm::Set(auto_clean),
+        user_id: sea_orm::Set(id.into()),
+    };
+    file.insert(db_connection).await?;
+    let f = File::create(&path).await?;
+    Ok(f)
 }
 
-pub async fn upload(
-    id: ID,
-    net_sender: &mpsc::Sender<Message>,
-    json: &mut UploadRequest,
-    db_conn: &DatabaseConnection,
-) -> anyhow::Result<(impl Future<Output = anyhow::Result<()>>, String)> {
-    let ret = add_file_record(id, Bt(json.size), db_conn).await?;
-    match ret {
-        crate::client::requests::Status::Success => {
-            let key = generate_key_name(&json.hash);
-            let resp = UploadResponse::success(key.clone(), json.hash.clone());
-            let send = async move {
-                net_sender.send(resp.to_msg()).await?;
-                Ok(())
-            };
-            Ok((send, key))
+#[derive(Debug, thiserror::Error)]
+enum UploadError {
+    #[error("Metadata error")]
+    MetaDataError,
+    #[error("unknown error:{0}")]
+    Unknown(#[from] anyhow::Error),
+    #[error("status:{0}")]
+    StatusError(#[from] tonic::Status),
+    #[error("database error:{0}")]
+    DbError(#[from] sea_orm::DbErr),
+    #[error("from int error")]
+    FromIntError(#[from] TryFromIntError),
+    #[error("Internal IO error")]
+    InternalIOError(#[from] std::io::Error),
+    #[error("wrong structure")]
+    WrongStructure,
+    #[error("file hash error")]
+    FileHashError,
+    #[error("file size error")]
+    FileSizeError,
+}
+
+async fn upload_impl(
+    server: &RpcServer<impl EmailSender>,
+    request: tonic::Request<tonic::Streaming<UploadRequest>>,
+) -> Result<UploadResponse, UploadError> {
+    let id = get_id_from_req(&request).unwrap();
+    let mut stream_req = request.into_inner();
+    let metadata = match stream_req.next().await {
+        None => {
+            return Err(UploadError::MetaDataError);
         }
-        _ => {
-            bail!("unexpected error");
+        Some(meta) => meta?,
+    };
+    let metadata = match metadata.header() {
+        None => {
+            return Err(UploadError::MetaDataError);
+        }
+        Some(data) => data,
+    };
+    let key = generate_key_name(&metadata.hash);
+    let mut file_handle = add_file_record(
+        id,
+        Bt(metadata.size),
+        key.clone(),
+        metadata.auto_clean,
+        &server.db.db_pool,
+    )
+    .await?;
+    let mut hasher = Sha3_256::new();
+    let mut sz = 0;
+    while let Some(data) = stream_req.next().await {
+        let data = match data?.data {
+            Some(upload_request::Data::Content(data)) => data,
+            _ => {
+                return Err(UploadError::WrongStructure);
+            }
+        };
+        sz += data.len();
+        if sz > metadata.size as usize {
+            return Err(UploadError::FileSizeError);
+        }
+        file_handle.write_all(&data).await?;
+        hasher.update(&data);
+    }
+    let hash = hasher.finalize();
+    if format!("{:x}", hash) != metadata.hash {
+        return Err(UploadError::FileHashError);
+    }
+    if sz != metadata.size as usize {
+        return Err(UploadError::FileSizeError);
+    }
+    Ok(UploadResponse { key })
+}
+
+pub async fn upload<T: EmailSender>(
+    server: &RpcServer<T>,
+    request: tonic::Request<tonic::Streaming<UploadRequest>>,
+) -> Result<tonic::Response<UploadResponse>, Status> {
+    match upload_impl(server, request).await {
+        Ok(ok_resp) => Ok(Response::new(ok_resp)),
+        Err(e) => {
+            tracing::error!("{}", e);
+            match e {
+                UploadError::MetaDataError => Err(Status::invalid_argument("Metadata error")),
+                UploadError::Unknown(_) => Err(Status::internal("Unknown error")),
+                UploadError::StatusError(e) => Err(e),
+                UploadError::DbError(_) => Err(Status::internal("Database error")),
+                UploadError::FromIntError(_) => Err(Status::internal("Server Error")),
+                UploadError::InternalIOError(_) => Err(Status::internal("Internal IO error")),
+                UploadError::WrongStructure => Err(Status::invalid_argument("Wrong structure")),
+                UploadError::FileSizeError => Err(Status::invalid_argument("File size error")),
+                UploadError::FileHashError => Err(Status::invalid_argument("File hash error")),
+            }
         }
     }
 }
