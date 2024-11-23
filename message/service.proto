@@ -50,5 +50,5 @@ service AuthService {
 
   rpc auth(auth.AuthRequest) returns (auth.AuthResponse);
 
-  rpc verify (email_verify.VerifyRequest) returns (email_verify.VerifyResponse);
+  rpc verify (email_verify.VerifyRequest) returns (stream email_verify.VerifyResponse);
 }

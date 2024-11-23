@@ -1,7 +1,7 @@
 use crate::{
     DbPool, SharedData,
     component::{EmailClient, EmailSender, MockEmailSender},
-    consts,
+    consts::{self, VERIFY_EMAIL_EXPIRE},
 };
 use actix_web::{HttpRequest, HttpResponse, Responder, get, web};
 use anyhow::Context;
@@ -152,11 +152,7 @@ pub async fn regularly_clean_notifier<T: EmailSender>(
 async fn add_token(token: &str, conn: &deadpool_redis::Pool) -> anyhow::Result<()> {
     let mut conn = conn.get().await?;
     let _: () = conn
-        .set_ex(
-            mapped_to_redis(token),
-            1,
-            std::time::Duration::from_mins(5).as_secs(),
-        )
+        .set_ex(mapped_to_redis(token), 1, VERIFY_EMAIL_EXPIRE.as_secs())
         .await?;
     Ok(())
 }

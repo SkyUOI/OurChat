@@ -150,6 +150,10 @@ pub struct AuthServiceProvider<T: EmailSender> {
     pub db: DbPool,
 }
 
+pub type VerifyStream = Pin<
+    Box<dyn tokio_stream::Stream<Item = Result<pb::email_verify::VerifyResponse, Status>> + Send>,
+>;
+
 #[tonic::async_trait]
 impl<T: EmailSender> pb::service::auth_service_server::AuthService for AuthServiceProvider<T> {
     async fn auth(
@@ -166,11 +170,13 @@ impl<T: EmailSender> pb::service::auth_service_server::AuthService for AuthServi
         process::register::register(self, request).await
     }
 
+    type verifyStream = VerifyStream;
+
     async fn verify(
         &self,
         request: tonic::Request<pb::email_verify::VerifyRequest>,
-    ) -> Result<tonic::Response<pb::email_verify::VerifyResponse>, tonic::Status> {
-        todo!()
+    ) -> Result<tonic::Response<Self::verifyStream>, tonic::Status> {
+        process::verify::email_verify(self, request).await
     }
 }
 

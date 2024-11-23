@@ -2,7 +2,7 @@
 
 use base::impl_newtype_int;
 use serde::{Deserialize, Serialize, Serializer};
-use std::{fmt::Display, io::IsTerminal, str::FromStr, sync::LazyLock};
+use std::{fmt::Display, io::IsTerminal, str::FromStr, sync::LazyLock, time::Duration};
 
 /// OCID Length
 pub const OCID_LEN: usize = 10;
@@ -22,6 +22,7 @@ pub const APP_NAME: &str = "OurChat";
 pub const LOG_ENV_VAR: &str = "OURCHAT_LOG";
 pub const LOG_OUTPUT_DIR: &str = "log/";
 pub const CONFIG_FILE_ENV_VAR: &str = "OURCHAT_CONFIG_FILE";
+pub const VERIFY_EMAIL_EXPIRE: Duration = Duration::from_mins(5);
 
 // define ID type to fit many types of databases
 impl_newtype_int!(ID, u64, serde::Serialize, serde::Deserialize);
