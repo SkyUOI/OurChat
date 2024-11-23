@@ -2,7 +2,6 @@ syntax = "proto3";
 
 import "message/auth.proto";
 import "message/register.proto";
-import "message/login.proto";
 import "message/get_account_info.proto";
 import "message/set_account_info.proto";
 import "message/server.proto";
@@ -11,6 +10,7 @@ import "google/protobuf/empty.proto";
 import "message/msg_delivery.proto";
 import "message/upload.proto";
 import "message/session.proto";
+import "message/email_verify.proto";
 
 package ourchat;
 
@@ -48,5 +48,7 @@ service BasicService {
 service AuthService {
   rpc register(register.RegisterRequest) returns (register.RegisterResponse);
 
-  rpc login(login.LoginRequest) returns (login.LoginResponse);
+  rpc auth(auth.AuthRequest) returns (auth.AuthResponse);
+
+  rpc verify (email_verify.VerifyRequest) returns (email_verify.VerifyResponse);
 }

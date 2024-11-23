@@ -1,5 +1,6 @@
+pub mod auth;
+pub mod email_verify;
 pub mod get_info;
-pub mod login;
 pub mod msg_delivery;
 pub mod register;
 pub mod server;

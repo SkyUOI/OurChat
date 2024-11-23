@@ -1,9 +1,7 @@
-use std::num::TryFromIntError;
-
+use super::UserInfo;
 use crate::{
     DbPool,
     component::EmailSender,
-    connection::UserInfo,
     consts::{self, ID},
     entities::user,
     pb::register::{RegisterRequest, RegisterResponse},
@@ -14,6 +12,7 @@ use anyhow::Context;
 use argon2::{Params, PasswordHasher, password_hash::SaltString};
 use sea_orm::{ActiveModelTrait, ActiveValue, DbErr};
 use snowdon::ClassicLayoutSnowflakeExtension;
+use std::num::TryFromIntError;
 use tonic::{Request, Response, Status};
 use tracing::error;
 

@@ -11,13 +11,13 @@ use rand::Rng;
 use server::component::MockEmailSender;
 use server::consts::SessionID;
 use server::db::DbCfgTrait;
-use server::pb::login::LoginRequest;
+use server::pb::auth::AuthRequest;
 use server::pb::register::{RegisterRequest, UnregisterRequest};
 use server::pb::service::auth_service_client::AuthServiceClient;
 use server::pb::service::basic_service_client::BasicServiceClient;
 use server::pb::service::our_chat_service_client::OurChatServiceClient;
 use server::utils::{self, from_google_timestamp, get_available_port};
-use server::{Application, ArgsParser, DbPool, ParserCfg, SharedData, ShutdownSdr, connection};
+use server::{Application, ArgsParser, DbPool, ParserCfg, SharedData, ShutdownSdr, process};
 use sqlx::migrate::MigrateDatabase;
 use std::collections::HashSet;
 use std::sync::{Arc, LazyLock};
@@ -174,37 +174,25 @@ impl TestUser {
     }
 
     pub async fn ocid_login(&mut self) -> anyhow::Result<()> {
-        let login_req = LoginRequest {
-            account: Some(server::pb::login::login_request::Account::Ocid(
+        let login_req = AuthRequest {
+            account: Some(server::pb::auth::auth_request::Account::Ocid(
                 self.ocid.clone(),
             )),
             password: self.password.clone(),
         };
-        let ret = self
-            .client
-            .auth
-            .login(login_req)
-            .await
-            .unwrap()
-            .into_inner();
+        let ret = self.client.auth.auth(login_req).await.unwrap().into_inner();
         self.token = ret.token.clone();
         Ok(())
     }
 
     pub async fn email_login(&mut self) -> anyhow::Result<()> {
-        let login_req = LoginRequest {
-            account: Some(server::pb::login::login_request::Account::Email(
+        let login_req = AuthRequest {
+            account: Some(server::pb::auth::auth_request::Account::Email(
                 self.email.clone(),
             )),
             password: self.password.clone(),
         };
-        let ret = self
-            .client
-            .auth
-            .login(login_req)
-            .await
-            .unwrap()
-            .into_inner();
+        let ret = self.client.auth.auth(login_req).await.unwrap().into_inner();
         assert_eq!(self.ocid, ret.ocid);
         Ok(())
     }
@@ -375,16 +363,15 @@ impl TestApp {
         }
         // create a group in database level
         let session_id = utils::generate_session_id()?;
-        connection::db::create_session(session_id, n, name.into(), &self.db_pool.db_pool).await?;
+        process::db::create_session(session_id, n, name.into(), &self.db_pool.db_pool).await?;
         tracing::info!("create session:{}", session_id);
         let mut id_vec = vec![];
         for i in &users {
-            let id = connection::db::get_id(&i.lock().await.ocid, &self.db_pool).await?;
+            let id = process::db::get_id(&i.lock().await.ocid, &self.db_pool).await?;
             id_vec.push(id);
         }
         tracing::debug!("id:{:?}", id_vec);
-        server::connection::db::batch_add_to_session(&self.db_pool.db_pool, session_id, &id_vec)
-            .await?;
+        process::db::batch_add_to_session(&self.db_pool.db_pool, session_id, &id_vec).await?;
         Ok((users, TestSession::new(session_id)))
     }
 

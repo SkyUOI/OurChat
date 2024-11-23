@@ -1,10 +1,9 @@
-use super::{generate_access_token, wrong_password};
+use super::{UserInfo, generate_access_token, wrong_password};
 use crate::{
     DbPool,
     component::EmailSender,
-    connection::UserInfo,
     entities::{prelude::*, user},
-    pb::login::{LoginRequest, LoginResponse, login_request::Account},
+    pb::auth::{AuthRequest, AuthResponse, auth_request::Account},
     server::AuthServiceProvider,
     utils,
 };
@@ -14,9 +13,9 @@ use sea_orm::{ColumnTrait, DbErr, EntityTrait, QueryFilter};
 use tonic::{Response, Status};
 
 async fn login_db(
-    request: LoginRequest,
+    request: AuthRequest,
     db_connection: &DbPool,
-) -> Result<(LoginResponse, UserInfo), tonic::Status> {
+) -> Result<(AuthResponse, UserInfo), tonic::Status> {
     // Judge login type
     let login_type = match request.account {
         None => {
@@ -51,7 +50,7 @@ async fn login_db(
                     let token = generate_access_token(user.id.into());
 
                     Ok((
-                        LoginResponse {
+                        AuthResponse {
                             ocid: user.ocid.clone(),
                             token,
                         },
@@ -79,8 +78,8 @@ async fn login_db(
 /// Login Request
 pub async fn login<T: EmailSender>(
     server: &AuthServiceProvider<T>,
-    request: tonic::Request<LoginRequest>,
-) -> Result<Response<LoginResponse>, Status> {
+    request: tonic::Request<AuthRequest>,
+) -> Result<Response<AuthResponse>, Status> {
     match login_db(request.into_inner(), &server.db).await {
         Ok(ok_resp) => Ok(Response::new(ok_resp.0)),
         Err(e) => Err(e),

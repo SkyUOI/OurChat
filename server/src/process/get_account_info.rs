@@ -1,5 +1,5 @@
+use super::basic::get_id;
 use crate::component::EmailSender;
-use crate::connection::basic::get_id;
 use crate::entities::{friend, user};
 use crate::pb::get_info::{
     GetAccountInfoRequest, GetAccountInfoResponse, OWNER_PRIVILEGE, RequestValues,

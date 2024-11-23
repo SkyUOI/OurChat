@@ -3,10 +3,10 @@
 pub mod httpserver;
 
 use crate::component::EmailSender;
-use crate::connection::process;
 use crate::pb::service::auth_service_server::AuthServiceServer;
 use crate::pb::service::basic_service_server::{BasicService, BasicServiceServer};
 use crate::pb::service::our_chat_service_server::{OurChatService, OurChatServiceServer};
+use crate::process;
 use crate::utils::to_google_timestamp;
 use crate::{DbPool, HttpSender, SharedData, ShutdownRev, pb, shared_state};
 use std::net::SocketAddr;
@@ -152,10 +152,10 @@ pub struct AuthServiceProvider<T: EmailSender> {
 
 #[tonic::async_trait]
 impl<T: EmailSender> pb::service::auth_service_server::AuthService for AuthServiceProvider<T> {
-    async fn login(
+    async fn auth(
         &self,
-        request: tonic::Request<pb::login::LoginRequest>,
-    ) -> Result<tonic::Response<pb::login::LoginResponse>, tonic::Status> {
+        request: tonic::Request<pb::auth::AuthRequest>,
+    ) -> Result<tonic::Response<pb::auth::AuthResponse>, tonic::Status> {
         process::login::login(self, request).await
     }
 
@@ -164,6 +164,13 @@ impl<T: EmailSender> pb::service::auth_service_server::AuthService for AuthServi
         request: tonic::Request<pb::register::RegisterRequest>,
     ) -> Result<tonic::Response<pb::register::RegisterResponse>, tonic::Status> {
         process::register::register(self, request).await
+    }
+
+    async fn verify(
+        &self,
+        request: tonic::Request<pb::email_verify::VerifyRequest>,
+    ) -> Result<tonic::Response<pb::email_verify::VerifyResponse>, tonic::Status> {
+        todo!()
     }
 }
 

@@ -1,7 +1,7 @@
+use super::basic::{get_id, get_ocid};
 use crate::{
     DbPool, SharedData,
     component::EmailSender,
-    connection::basic::{get_id, get_ocid},
     consts::{ID, OCID, SessionID},
     entities::{friend, operations, prelude::*, session, session_relation},
     pb::session::{NewSessionRequest, NewSessionResponse},

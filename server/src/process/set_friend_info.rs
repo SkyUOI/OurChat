@@ -1,8 +1,7 @@
-use super::get_id_from_req;
+use super::{basic::get_id, get_id_from_req};
 use crate::{
     DbPool,
     component::EmailSender,
-    connection::basic::get_id,
     consts::ID,
     entities::friend,
     pb::set_info::{SetAccountInfoResponse, SetFriendInfoRequest},

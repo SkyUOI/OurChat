@@ -2,9 +2,15 @@ syntax = "proto3";
 
 package auth;
 
-message AuthResponse { optional string token = 2; }
-
 message AuthRequest {
-  string ocid = 1;
-  string password = 2;
+  oneof account {
+    string email = 1;
+    string ocid = 2;
+  };
+  string password = 3;
+}
+
+message AuthResponse {
+  string token = 1;
+  string ocid = 2;
 }

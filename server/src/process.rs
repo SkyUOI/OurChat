@@ -1,5 +1,6 @@
 //! Functions process the requests from clients
 
+pub mod basic;
 pub mod get_account_info;
 mod get_user_msg;
 pub mod login;
@@ -17,6 +18,10 @@ use jsonwebtoken::DecodingKey;
 use jsonwebtoken::EncodingKey;
 use jsonwebtoken::Validation;
 pub use new_session::new_session;
+use sea_orm::ColumnTrait;
+use sea_orm::DatabaseConnection;
+use sea_orm::EntityTrait;
+use sea_orm::QueryFilter;
 pub use send_msg::send_msg;
 use serde::Deserialize;
 use serde::Serialize;
@@ -30,6 +35,13 @@ pub use upload::upload;
 
 use crate::SERVER_INFO;
 use crate::consts::ID;
+use crate::entities::operations;
+use crate::entities::prelude::*;
+
+pub mod db {
+    pub use super::basic::get_id;
+    pub use super::new_session::{add_to_session, batch_add_to_session, create_session};
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct JWTdata {
@@ -92,4 +104,29 @@ pub fn get_id_from_req<T>(req: &Request<T>) -> Option<ID> {
     req.metadata()
         .get("id")
         .map(|id| ID(id.to_str().unwrap().parse::<u64>().unwrap()))
+}
+
+struct UserInfo {
+    id: ID,
+    ocid: String,
+}
+
+async fn get_requests(id: ID, db_conn: &DatabaseConnection) -> anyhow::Result<Vec<String>> {
+    let id: u64 = id.into();
+    let stored_requests = Operations::find()
+        .filter(operations::Column::UserId.eq(id))
+        .all(db_conn)
+        .await?;
+    let mut ret = Vec::new();
+    for i in stored_requests {
+        if i.once {
+            Operations::delete_by_id(i.oper_id).exec(db_conn).await?;
+        }
+        if i.expires_at < chrono::Utc::now() {
+            Operations::delete_by_id(i.oper_id).exec(db_conn).await?;
+            continue;
+        }
+        ret.push(i.operation);
+    }
+    Ok(ret)
 }
