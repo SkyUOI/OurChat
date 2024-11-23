@@ -1,7 +1,7 @@
 use crate::{
     component::EmailSender,
     consts::ID,
-    entities::{friend, prelude::*, session_relation, user, user_chat_msg},
+    entities::{friend, operations, prelude::*, session_relation, user, user_chat_msg},
     pb::register::{UnregisterRequest, UnregisterResponse},
     server::RpcServer,
 };
@@ -71,6 +71,15 @@ async fn remove_friend(id: ID, db_conn: &DatabaseConnection) -> Result<(), Error
     Ok(())
 }
 
+async fn remove_operations(id: ID, db_conn: &DatabaseConnection) -> Result<(), ErrorOfUnregister> {
+    let id: u64 = id.into();
+    Operations::delete_many()
+        .filter(operations::Column::UserId.eq(id))
+        .exec(db_conn)
+        .await?;
+    Ok(())
+}
+
 async fn unregister_impl(
     server: &RpcServer<impl EmailSender>,
     request: tonic::Request<UnregisterRequest>,
@@ -81,6 +90,7 @@ async fn unregister_impl(
         remove_session_record(id, &db_conn.db_pool).await?;
         remove_msgs_of_user(id, &db_conn.db_pool).await?;
         remove_friend(id, &db_conn.db_pool).await?;
+        remove_operations(id, &db_conn.db_pool).await?;
         remove_account(id, &db_conn.db_pool).await?;
         Ok(())
     };

@@ -36,5 +36,5 @@ async fn test_session() {
     // assert_eq!(json.code, MessageType::InviteSession);
     // assert!(json.message.is_empty());
     // assert_eq!(json.session_id, session_id);
-    // app.async_drop().await;
+    app.async_drop().await;
 }

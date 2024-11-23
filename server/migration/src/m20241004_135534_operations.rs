@@ -13,13 +13,13 @@ impl MigrationTrait for Migration {
                     .table(Operations::Table)
                     .if_not_exists()
                     .col(pk_auto(Operations::OperId))
-                    .col(big_unsigned(Operations::Id))
+                    .col(big_unsigned(Operations::UserId))
                     .col(string(Operations::Operation))
                     .col(boolean(Operations::Once))
                     .col(timestamp_with_time_zone(Operations::ExpiresAt))
                     .foreign_key(
                         ForeignKey::create()
-                            .from(Operations::Table, Operations::Id)
+                            .from(Operations::Table, Operations::UserId)
                             .to(User::Table, User::Id),
                     )
                     .to_owned(),
@@ -38,7 +38,7 @@ impl MigrationTrait for Migration {
 enum Operations {
     Table,
     OperId,
-    Id,
+    UserId,
     Operation,
     Once,
     ExpiresAt,

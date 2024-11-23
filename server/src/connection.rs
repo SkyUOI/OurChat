@@ -22,7 +22,7 @@ struct UserInfo {
 async fn get_requests(id: ID, db_conn: &DatabaseConnection) -> anyhow::Result<Vec<String>> {
     let id: u64 = id.into();
     let stored_requests = Operations::find()
-        .filter(operations::Column::Id.eq(id))
+        .filter(operations::Column::UserId.eq(id))
         .all(db_conn)
         .await?;
     let mut ret = Vec::new();

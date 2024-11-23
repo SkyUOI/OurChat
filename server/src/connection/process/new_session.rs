@@ -202,7 +202,7 @@ async fn save_invitation_to_db(
     db_conn: &DbPool,
 ) -> anyhow::Result<()> {
     let oper = operations::ActiveModel {
-        id: ActiveValue::Set(id.into()),
+        user_id: ActiveValue::Set(id.into()),
         operation: ActiveValue::Set(operation),
         once: ActiveValue::Set(true),
         expires_at: ActiveValue::Set(expiresat),

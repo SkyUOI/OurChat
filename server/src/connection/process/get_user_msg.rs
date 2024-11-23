@@ -48,7 +48,14 @@ pub async fn get_user_msg<T: EmailSender>(
                 let db_logic = async {
                     while let Some(msgs) = pag.fetch_and_next().await? {
                         for msg in msgs {
-                            match tx.send(Ok(Msg::from(msg))).await {
+                            let msg = match Msg::try_from(msg) {
+                                Ok(m) => m,
+                                Err(e) => {
+                                    tracing::warn!("incorrect msg in database:{e}");
+                                    continue;
+                                }
+                            };
+                            match tx.send(Ok(msg)).await {
                                 Ok(_) => {}
                                 Err(e) => {
                                     tracing::error!("send msg error:{e}");
