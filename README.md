@@ -3,9 +3,9 @@
 [![codecov](https://codecov.io/github/SkyUOI/OurChat/graph/badge.svg?token=U6BWN74URE)](https://codecov.io/github/SkyUOI/OurChat)
 
 <!-- markdownlint-disable MD033 -->
-<div style="text-align: center;">
+<p align="center">
     <img src="./resource/logo.png" alt="OurChat_logo" />
-</div>
+</p>
 <!-- markdownlint-enable MD033 -->
 
 ## [中文](./README-zh.md)
