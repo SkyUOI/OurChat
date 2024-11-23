@@ -94,8 +94,16 @@ pub struct MainCfg {
     pub smtp_address: Option<String>,
     #[serde(default)]
     pub smtp_password: Option<String>,
+    pub db: OCDbCfg,
+
     #[serde(skip)]
     pub cmd_args: ParserCfg,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct OCDbCfg {
+    #[serde(default = "consts::default_fetch_msg_page_size")]
+    pub fetch_msg_page_size: u64,
 }
 
 impl MainCfg {

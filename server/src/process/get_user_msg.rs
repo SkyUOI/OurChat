@@ -42,8 +42,9 @@ pub async fn get_user_msg<T: EmailSender>(
     };
     let (tx, rx) = mpsc::channel(32);
     let db_conn = server.db.clone();
+    let fetch_page_size = server.shared_data.cfg.main_cfg.db.fetch_msg_page_size;
     tokio::spawn(async move {
-        match get_session_msgs(id, time.into(), &db_conn.db_pool).await {
+        match get_session_msgs(id, time.into(), &db_conn.db_pool, fetch_page_size).await {
             Ok(mut pag) => {
                 let db_logic = async {
                     while let Some(msgs) = pag.fetch_and_next().await? {
@@ -91,9 +92,9 @@ async fn get_session_msgs(
     user_id: ID,
     end_timestamp: TimeStamp,
     db_conn: &DatabaseConnection,
+    page_size: u64,
 ) -> Result<Paginator<'_, DatabaseConnection, sea_orm::SelectModel<user_chat_msg::Model>>, ErrorOfMsg>
 {
-    // TODO:move page_size to config file
     let user_id: u64 = user_id.into();
     let msgs = user_chat_msg::Entity::find()
             .from_raw_sql(Statement::from_sql_and_values(
@@ -103,6 +104,6 @@ async fn get_session_msgs(
         EXISTS (SELECT * FROM session_relation WHERE user_id = $2 AND session_id = user_chat_msg.session_id)"#,
                 [end_timestamp.into(), user_id.into()],
             ))
-            .paginate(db_conn, 2000);
+            .paginate(db_conn, page_size );
     Ok(msgs)
 }

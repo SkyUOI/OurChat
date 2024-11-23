@@ -81,6 +81,10 @@ pub const fn default_http_port() -> u16 {
     DEFAULT_HTTP_PORT
 }
 
+pub const fn default_fetch_msg_page_size() -> u64 {
+    2000
+}
+
 macro impl_to_bytes {
     ($($name:ident, ($($opers:tt)*)),*) => {
         $(

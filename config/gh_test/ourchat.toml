@@ -21,6 +21,10 @@ enable_cmd_stdin = true
 # Assign the network terminal listening port,note,it will enable the network terminal mode by default
 cmd_network_port = 7779
 
+[db]
+# The size of one page to fetch message
+fetch_msg_page_size = 2000
+
 # If any fields below is not specified, the email will be disabled
 # email address displaying in sent email
 # email_address = "default@ourchat.org"
