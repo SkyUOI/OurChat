@@ -94,6 +94,10 @@ pub struct MainCfg {
     pub smtp_address: Option<String>,
     #[serde(default)]
     pub smtp_password: Option<String>,
+    #[serde(default = "consts::default_verification_expire_days")]
+    pub verification_expire_days: u64,
+    // #[serde(default = "consts::default_password_hash_algorithm"))]
+    // pub password_hash_algorithm: argon2::Algorithm,
     pub db: OCDbCfg,
 
     #[serde(skip)]

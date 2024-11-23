@@ -85,6 +85,14 @@ pub const fn default_fetch_msg_page_size() -> u64 {
     2000
 }
 
+pub const fn default_verification_expire_days() -> u64 {
+    3
+}
+
+pub const fn default_password_hash_algorithm() -> argon2::Algorithm {
+    argon2::Algorithm::Argon2id
+}
+
 macro impl_to_bytes {
     ($($name:ident, ($($opers:tt)*)),*) => {
         $(

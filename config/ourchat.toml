@@ -20,6 +20,10 @@ enable_cmd = true
 enable_cmd_stdin = true
 # Assign the network terminal listening port,note,it will enable the network terminal mode by default
 cmd_network_port = 7779
+# The expire time in days of the verification request
+verification_expire_days = 3
+# # The algorithm used to hash the password
+# password_hash_algorithm = "argon2id"
 
 [db]
 # The size of one page to fetch message
