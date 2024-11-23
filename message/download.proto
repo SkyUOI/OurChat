@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package download;
+
+message DownloadRequest {
+    string key = 1;
+}
+
+message DownloadResponse {
+    bytes data = 1;
+}

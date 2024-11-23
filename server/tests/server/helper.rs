@@ -12,10 +12,12 @@ use server::component::MockEmailSender;
 use server::consts::SessionID;
 use server::db::DbCfgTrait;
 use server::pb::auth::AuthRequest;
+use server::pb::download::DownloadRequest;
 use server::pb::register::{RegisterRequest, UnregisterRequest};
 use server::pb::service::auth_service_client::AuthServiceClient;
 use server::pb::service::basic_service_client::BasicServiceClient;
 use server::pb::service::our_chat_service_client::OurChatServiceClient;
+use server::pb::upload::UploadRequest;
 use server::utils::{self, from_google_timestamp, get_available_port};
 use server::{Application, ArgsParser, DbPool, ParserCfg, SharedData, ShutdownSdr, process};
 use sqlx::migrate::MigrateDatabase;
@@ -23,6 +25,7 @@ use std::collections::HashSet;
 use std::sync::{Arc, LazyLock};
 use std::thread;
 use std::time::Duration;
+use tokio_stream::StreamExt;
 use tonic::metadata::MetadataValue;
 use tonic::service::interceptor::InterceptedService;
 use tonic::transport::{Channel, Uri};
@@ -203,6 +206,37 @@ impl TestUser {
         assert_eq!(self.ocid, ret.ocid);
         Ok(())
     }
+
+    pub async fn post_file(&mut self, content: String) -> anyhow::Result<String> {
+        let size = content.len();
+        let hash = base::sha3_256(content.as_bytes());
+        // post file
+        let ret = self
+            .oc()
+            .upload(tokio_stream::iter(vec![
+                UploadRequest::new_header(size, hash, false),
+                UploadRequest::new_content(content.into_bytes()),
+            ]))
+            .await?;
+        let ret = ret.into_inner();
+        let key = ret.key;
+        Ok(key)
+    }
+
+    pub async fn download_file(&mut self, key: impl Into<String>) -> anyhow::Result<Vec<u8>> {
+        let files_part = self
+            .oc()
+            .download(DownloadRequest { key: key.into() })
+            .await?;
+        // Allow
+        let mut files_part = files_part.into_inner();
+        let mut file_download = Vec::new();
+        while let Some(part) = files_part.next().await {
+            let part = part?;
+            file_download.extend_from_slice(&part.data);
+        }
+        Ok(file_download)
+    }
 }
 
 impl Drop for TestUser {
@@ -353,10 +387,6 @@ impl TestApp {
             .get(format!("http://127.0.0.1:{}/v1/{}", self.http_port, name))
             .send()
             .await?)
-    }
-
-    pub async fn post_file(&mut self) -> anyhow::Result<()> {
-        Ok(())
     }
 
     pub async fn new_session(

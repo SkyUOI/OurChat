@@ -81,6 +81,9 @@ pub type FetchMsgStream =
 pub type SendMsgStream = Pin<
     Box<dyn tokio_stream::Stream<Item = Result<pb::msg_delivery::SendMsgResponse, Status>> + Send>,
 >;
+pub type DownloadStream = Pin<
+    Box<dyn tokio_stream::Stream<Item = Result<pb::download::DownloadResponse, Status>> + Send>,
+>;
 
 #[tonic::async_trait]
 impl<T: EmailSender> OurChatService for RpcServer<T> {
@@ -142,6 +145,15 @@ impl<T: EmailSender> OurChatService for RpcServer<T> {
         request: tonic::Request<pb::session::NewSessionRequest>,
     ) -> Result<tonic::Response<pb::session::NewSessionResponse>, tonic::Status> {
         process::new_session(self, request).await
+    }
+
+    type downloadStream = DownloadStream;
+
+    async fn download(
+        &self,
+        request: tonic::Request<pb::download::DownloadRequest>,
+    ) -> Result<Response<Self::downloadStream>, tonic::Status> {
+        process::download(self, request).await
     }
 }
 

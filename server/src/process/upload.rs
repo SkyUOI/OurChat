@@ -5,7 +5,7 @@ use crate::{
     pb::upload::{UploadRequest, UploadResponse, upload_request},
     server::RpcServer,
     shared_state,
-    utils::generate_random_string,
+    utils::{create_file_with_dirs_if_not_exist, generate_random_string},
 };
 use anyhow::anyhow;
 use futures_util::StreamExt;
@@ -65,7 +65,7 @@ pub async fn add_file_record(
         user_id: sea_orm::Set(id.into()),
     };
     file.insert(db_connection).await?;
-    let f = File::create(&path).await?;
+    let f = create_file_with_dirs_if_not_exist(&path).await?;
     Ok(f)
 }
 

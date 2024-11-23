@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+import "google/protobuf/timestamp.proto";
+
 package get_info;
 
 enum RequestValues {
@@ -14,7 +16,6 @@ enum RequestValues {
   UPDATE_TIME = 8;
   SESSIONS = 9;
   FRIENDS = 10;
-  TIME = 11;
 }
 
 message GetAccountInfoRequest {
@@ -29,10 +30,9 @@ message GetAccountInfoResponse {
   optional string display_name = 4;
   optional string status = 5;
   optional string avatar_key = 6;
-  optional string register_time = 7;
-  optional string public_update_time = 8;
-  optional string update_time = 9;
+  optional google.protobuf.Timestamp register_time = 7;
+  optional google.protobuf.Timestamp public_update_time = 8;
+  optional google.protobuf.Timestamp update_time = 9;
   optional string sessions = 10;
   repeated string friends = 11;
-  optional string time = 12;
 }

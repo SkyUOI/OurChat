@@ -14,7 +14,7 @@ async fn test_text_sent() {
         session_user[1].clone(),
         session_user[2].clone(),
     );
-    let time = app.get_timestamp().await.into();
+    let time = app.get_timestamp().await;
     let time_google = to_google_timestamp(time);
     let msg_sent = SendMsgRequest {
         session_id: session.session_id.into(),
@@ -48,7 +48,7 @@ async fn test_text_get() {
     let msg_should_sent = OneMsg {
         data: Some(msg_delivery::one_msg::Data::Text("hello".to_owned())),
     };
-    let time = app.get_timestamp().await.into();
+    let time = app.get_timestamp().await;
     let time_google = to_google_timestamp(time);
     let msg_sent = SendMsgRequest {
         session_id: session.session_id.into(),
@@ -64,7 +64,7 @@ async fn test_text_get() {
         .unwrap();
     let mut msg_id = vec![ret.into_inner().next().await.unwrap().unwrap().msg_id];
 
-    let time = app.get_timestamp().await.into();
+    let time = app.get_timestamp().await;
     let time_google = to_google_timestamp(time);
     let msg_sent = SendMsgRequest {
         session_id: session.session_id.into(),
@@ -82,7 +82,7 @@ async fn test_text_get() {
 
     // get message
     let msg_get = FetchMsgRequest {
-        time: Some(to_google_timestamp(base_time.into())),
+        time: Some(to_google_timestamp(base_time)),
     };
     let ret = c.lock().await.oc().fetch_msgs(msg_get).await.unwrap();
     let ret = ret.into_inner();

@@ -2,6 +2,7 @@
 
 pub mod auth;
 pub mod basic;
+mod download;
 pub mod get_account_info;
 mod get_user_msg;
 pub mod new_session;
@@ -13,6 +14,7 @@ pub mod unregister;
 mod upload;
 pub mod verify;
 
+pub use download::download;
 pub use get_user_msg::get_user_msg;
 use jsonwebtoken::DecodingKey;
 use jsonwebtoken::EncodingKey;

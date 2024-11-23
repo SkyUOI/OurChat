@@ -11,6 +11,7 @@ import "message/msg_delivery.proto";
 import "message/upload.proto";
 import "message/session.proto";
 import "message/email_verify.proto";
+import "message/download.proto";
 
 package ourchat;
 
@@ -34,6 +35,8 @@ service OurChatService {
       returns (stream msg_delivery.SendMsgResponse);
 
   rpc upload(stream upload.UploadRequest) returns (upload.UploadResponse);
+
+  rpc download(download.DownloadRequest) returns (stream download.DownloadResponse);
 
   rpc new_session(session.NewSessionRequest)
       returns (session.NewSessionResponse);

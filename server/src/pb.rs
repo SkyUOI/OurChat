@@ -1,4 +1,5 @@
 pub mod auth;
+pub mod download;
 pub mod email_verify;
 pub mod get_info;
 pub mod msg_delivery;

@@ -68,6 +68,13 @@ where
     tokio::task::spawn_blocking(move || current_span.in_scope(f))
 }
 
+pub async fn create_file_with_dirs_if_not_exist<T: AsRef<std::path::Path>>(
+    path: T,
+) -> std::io::Result<tokio::fs::File> {
+    tokio::fs::create_dir_all(std::path::Path::new(path.as_ref()).parent().unwrap()).await?;
+    tokio::fs::File::create(path).await
+}
+
 pub fn generate_session_id() -> anyhow::Result<SessionID> {
     Ok(GENERATOR.generate()?.into_i64().into())
 }

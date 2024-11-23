@@ -5,6 +5,7 @@ use crate::pb::get_info::{
     GetAccountInfoRequest, GetAccountInfoResponse, OWNER_PRIVILEGE, RequestValues,
 };
 use crate::server::RpcServer;
+use crate::utils::to_google_timestamp;
 use crate::{consts::ID, entities::prelude::*};
 use anyhow::Context;
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
@@ -87,13 +88,14 @@ pub async fn get_info<T: EmailSender>(
                 RequestValues::Status => todo!(),
                 RequestValues::AvatarKey => todo!(),
                 RequestValues::RegisterTime => {
-                    ret.register_time = Some(queried_user.time.to_rfc3339())
+                    ret.register_time = Some(to_google_timestamp(queried_user.time.into()))
                 }
                 RequestValues::PublicUpdateTime => {
-                    ret.public_update_time = Some(queried_user.public_update_time.to_rfc3339())
+                    ret.public_update_time =
+                        Some(to_google_timestamp(queried_user.public_update_time.into()))
                 }
                 RequestValues::UpdateTime => {
-                    ret.update_time = Some(queried_user.update_time.to_rfc3339())
+                    ret.update_time = Some(to_google_timestamp(queried_user.update_time.into()))
                 }
                 RequestValues::Sessions => todo!(),
                 RequestValues::Friends => {
@@ -122,7 +124,6 @@ pub async fn get_info<T: EmailSender>(
                     ret.friends = ids
                 }
                 RequestValues::UserName => ret.user_name = Some(queried_user.name.clone()),
-                RequestValues::Time => ret.time = Some(queried_user.time.to_rfc3339()),
             }
         }
     }
