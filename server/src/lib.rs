@@ -218,9 +218,9 @@ where
     static INIT: OnceLock<Option<WorkerGuard>> = OnceLock::new();
     INIT.get_or_init(|| {
         let env = if test_mode {
-            || EnvFilter::try_from_default_env().unwrap_or("trace".into())
+            || EnvFilter::try_from_env("OURCHAT_LOG").unwrap_or("trace".into())
         } else {
-            || EnvFilter::try_from_default_env().unwrap_or("info".into())
+            || EnvFilter::try_from_env("OURCHAT_LOG").unwrap_or("info".into())
         };
         let formatting_layer = fmt::layer().pretty().with_writer(source);
         let file_appender = if test_mode {

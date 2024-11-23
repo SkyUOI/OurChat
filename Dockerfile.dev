@@ -4,4 +4,4 @@ WORKDIR /app
 
 COPY . /app
 
-RUN apt update && apt install cmake -y
+RUN apt update && apt install cmake protobuf-compiler -y

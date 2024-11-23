@@ -19,6 +19,8 @@ jobs:
       - uses: cargo-bins/cargo-binstall@main
       - name: Tarpaulin
         run: cargo binstall cargo-tarpaulin --no-confirm --force
+      - name: Install Deps
+        run: sudo apt-get update && sudo apt install -y protobuf-compiler
       - name: Start Redis
         uses: supercharge/redis-github-action@1.7.0
         with:
