@@ -1,4 +1,4 @@
-use crate::helper;
+use client::TestApp;
 use parking_lot::Mutex;
 use server::component::MockEmailSender;
 use server::pb::email_verify::VerifyRequest;
@@ -18,7 +18,7 @@ async fn test_verify() {
             *mock_body.lock() = body;
             anyhow::Ok(())
         });
-    let mut app = helper::TestApp::new(Some(mock_smtp)).await.unwrap();
+    let mut app = TestApp::new(Some(mock_smtp)).await.unwrap();
     let user = app.new_user().await.unwrap();
     let email = user.lock().await.email.clone();
     claims::assert_some!(app.app_shared.email_client.as_ref());

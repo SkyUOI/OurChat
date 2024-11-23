@@ -6,6 +6,8 @@ members = [
     "server/server_manager",
     "server/base",
     "server/load_balancer",
+    "server/client",
+    "server/stress_test",
 ]
 resolver = "2"
 

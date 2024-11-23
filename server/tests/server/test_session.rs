@@ -1,9 +1,8 @@
-use crate::helper;
 use server::pb::session::NewSessionRequest;
 
 #[tokio::test]
 async fn test_session() {
-    let mut app = helper::TestApp::new(None).await.unwrap();
+    let mut app = client::TestApp::new(None).await.unwrap();
     let user1 = app.new_user().await.unwrap();
     let user2 = app.new_user().await.unwrap();
     let user3 = app.new_user().await.unwrap();

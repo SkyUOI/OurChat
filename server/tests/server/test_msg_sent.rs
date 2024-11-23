@@ -1,4 +1,3 @@
-use crate::helper;
 use futures_util::StreamExt;
 use server::{
     pb::msg_delivery::{self, FetchMsgRequest, Msg, OneMsg, SendMsgRequest},
@@ -7,7 +6,7 @@ use server::{
 
 #[tokio::test]
 async fn test_text_sent() {
-    let mut app = helper::TestApp::new(None).await.unwrap();
+    let mut app = client::TestApp::new(None).await.unwrap();
     let (session_user, session) = app.new_session(3, "session1").await.unwrap();
     let (a, b, c) = (
         session_user[0].clone(),
@@ -36,7 +35,7 @@ async fn test_text_sent() {
 
 #[tokio::test]
 async fn test_text_get() {
-    let mut app = helper::TestApp::new(None).await.unwrap();
+    let mut app = client::TestApp::new(None).await.unwrap();
     let (session_user, session) = app.new_session(3, "session1").await.unwrap();
     let (a, b, c) = (
         session_user[0].clone(),

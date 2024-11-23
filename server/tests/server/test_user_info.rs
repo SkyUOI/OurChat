@@ -1,5 +1,5 @@
-use crate::helper::TestApp;
 use claims::assert_err;
+use client::TestApp;
 use server::pb::{
     get_info::{self, GetAccountInfoRequest, RequestValues},
     set_info::{SetFriendInfoRequest, SetSelfInfoRequest},

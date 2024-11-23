@@ -1,0 +1,15 @@
+cargo-features = ["edition2024"]
+[package]
+name = "stress_test"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+client = { path = "../client" }
+tonic = { version = "0", features = ["tls"] }
+tonic-types = { version = "0" }
+prost-types = { version = "0" }
+prost = { version = "0" }
+server = { path = ".." }
+parking_lot = "0"

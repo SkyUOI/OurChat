@@ -1,4 +1,4 @@
-use crate::helper::TestApp;
+use client::TestApp;
 
 #[tokio::test]
 async fn test_status_http() {

@@ -70,6 +70,7 @@ reqwest = "0"
 fake = { version = "3" }
 linkify = "0"
 claims = "0"
+client = { path = "client" }
 
 [build-dependencies]
 tonic-build = { version = "0" }
