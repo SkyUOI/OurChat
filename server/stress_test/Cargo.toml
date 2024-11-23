@@ -13,3 +13,4 @@ prost-types = { version = "0" }
 prost = { version = "0" }
 server = { path = ".." }
 parking_lot = "0"
+mimalloc = "0"

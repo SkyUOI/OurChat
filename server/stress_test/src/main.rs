@@ -4,6 +4,9 @@ use parking_lot::Mutex;
 use std::{sync::Arc, time::Duration};
 use tokio::time::Instant;
 
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 async fn test_timestamp(app: &mut client::TestApp) {
     let max_time = Arc::new(Mutex::new(Duration::from_nanos(0)));
     let min_time = Arc::new(Mutex::new(Duration::from_hours(1)));

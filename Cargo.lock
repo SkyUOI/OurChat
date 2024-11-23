@@ -4802,6 +4802,7 @@ name = "stress_test"
 version = "0.1.0"
 dependencies = [
  "client",
+ "mimalloc",
  "parking_lot",
  "prost",
  "prost-types",

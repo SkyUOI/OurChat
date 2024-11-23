@@ -46,9 +46,6 @@ use tracing_subscriber::{
     util::SubscriberInitExt,
 };
 
-#[global_allocator]
-static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
-
 #[derive(Debug, Parser, Default)]
 #[command(author = "SkyUOI", version = base::build::VERSION, about = "The Server of OurChat")]
 pub struct ArgsParser {
