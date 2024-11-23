@@ -20,7 +20,7 @@ use clap::Parser;
 use cmd::CommandTransmitData;
 use component::EmailSender;
 use config::File;
-use consts::{FileSize, ID, STDIN_AVAILABLE};
+use consts::{CONFIG_FILE_ENV_VAR, FileSize, ID, LOG_ENV_VAR, LOG_OUTPUT_DIR, STDIN_AVAILABLE};
 use dashmap::DashMap;
 use db::{DbCfgTrait, PostgresDbCfg, file_storage};
 use futures_util::future::join_all;
@@ -194,7 +194,18 @@ const SECRET_LEN: usize = 32;
 static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
     let state = Path::new(SERVER_INFO_PATH).exists();
     if state {
-        return serde_json::from_str(&fs::read_to_string(SERVER_INFO_PATH).unwrap()).unwrap();
+        let info = match serde_json::from_str(&fs::read_to_string(SERVER_INFO_PATH).unwrap()) {
+            Ok(info) => info,
+            Err(e) => {
+                tracing::error!(
+                    "read server info error:{}.You can try modify the file \"{}\" to satisfy the requirement,or you can delete the file and rerun the server to generate a new file",
+                    e,
+                    SERVER_INFO_PATH
+                );
+                std::process::exit(1);
+            }
+        };
+        return info;
     }
     tracing::info!("Create server info file");
 
@@ -218,15 +229,15 @@ where
     static INIT: OnceLock<Option<WorkerGuard>> = OnceLock::new();
     INIT.get_or_init(|| {
         let env = if test_mode {
-            || EnvFilter::try_from_env("OURCHAT_LOG").unwrap_or("trace".into())
+            || EnvFilter::try_from_env(LOG_ENV_VAR).unwrap_or("trace".into())
         } else {
-            || EnvFilter::try_from_env("OURCHAT_LOG").unwrap_or("info".into())
+            || EnvFilter::try_from_env(LOG_ENV_VAR).unwrap_or("info".into())
         };
         let formatting_layer = fmt::layer().pretty().with_writer(source);
         let file_appender = if test_mode {
-            tracing_appender::rolling::never("log/", "test")
+            tracing_appender::rolling::never(LOG_OUTPUT_DIR, "test")
         } else {
-            tracing_appender::rolling::daily("log/", "ourchat")
+            tracing_appender::rolling::daily(LOG_OUTPUT_DIR, "ourchat")
         };
         let (non_blocking, file_guard) = tracing_appender::non_blocking(file_appender);
         Registry::default()
@@ -239,7 +250,7 @@ where
 }
 
 fn clear() -> anyhow::Result<()> {
-    let dirpath = Path::new("log");
+    let dirpath = Path::new(LOG_OUTPUT_DIR);
     if !dirpath.exists() {
         tracing::warn!("try clear log but not found");
         return Ok(());
@@ -307,7 +318,6 @@ async fn start_server(
     db: DbPool,
     http_sender: HttpSender,
     shared_data: Arc<SharedData<impl EmailSender>>,
-    shutdown_sender: ShutdownSdr,
     shutdown_receiver: ShutdownRev,
 ) -> anyhow::Result<JoinHandle<anyhow::Result<()>>> {
     let server = server::RpcServer::new(addr, db, http_sender, shared_data);
@@ -358,7 +368,7 @@ pub struct SharedData<T: EmailSender> {
 pub fn get_configuration(config_path: Option<impl Into<PathBuf>>) -> anyhow::Result<MainCfg> {
     let cfg_path = match config_path {
         Some(cfg_path) => cfg_path.into(),
-        None => if let Ok(env) = std::env::var("OURCHAT_CONFIG_FILE") {
+        None => if let Ok(env) = std::env::var(CONFIG_FILE_ENV_VAR) {
             env
         } else {
             tracing::error!("Please specify config file");
@@ -493,7 +503,6 @@ impl<T: EmailSender> Application<T> {
             self.pool.clone(),
             record_sender,
             self.shared.clone(),
-            self.abort_sender.clone(),
             self.abort_sender.new_receiver("rpc server", "rpc server"),
         )
         .await?;

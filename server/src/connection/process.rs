@@ -41,7 +41,6 @@ fn wrong_password() -> tonic::Status {
     Status::unauthenticated("wrong password")
 }
 
-const ACCESS_TOKEN_LEN: usize = 20;
 const EXPIRE_TIME: Duration = Duration::from_days(5);
 
 pub fn generate_access_token(id: ID) -> String {
@@ -73,7 +72,7 @@ pub fn check_token(token: &str) -> Option<JWTdata> {
 }
 
 #[derive(Debug, thiserror::Error)]
-enum ErrAuth {
+pub enum ErrAuth {
     #[error("Expire")]
     Expire,
     #[error("JWT error")]
@@ -90,8 +89,7 @@ pub fn access_token(token: &str) -> Result<JWTdata, ErrAuth> {
 }
 
 pub fn get_id_from_req<T>(req: &Request<T>) -> Option<ID> {
-    match req.metadata().get("id") {
-        Some(id) => Some(ID(id.to_str().unwrap().parse::<u64>().unwrap())),
-        None => None,
-    }
+    req.metadata()
+        .get("id")
+        .map(|id| ID(id.to_str().unwrap().parse::<u64>().unwrap()))
 }

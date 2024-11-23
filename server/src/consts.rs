@@ -19,6 +19,9 @@ pub const DEFAULT_PORT: u16 = 7777;
 /// http server default port
 pub const DEFAULT_HTTP_PORT: u16 = 7778;
 pub const APP_NAME: &str = "OurChat";
+pub const LOG_ENV_VAR: &str = "OURCHAT_LOG";
+pub const LOG_OUTPUT_DIR: &str = "log/";
+pub const CONFIG_FILE_ENV_VAR: &str = "OURCHAT_CONFIG_FILE";
 
 // define ID type to fit many types of databases
 impl_newtype_int!(ID, u64, serde::Serialize, serde::Deserialize);

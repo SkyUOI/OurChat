@@ -63,10 +63,6 @@ impl HttpServer {
         });
         Ok((http_server_handle, HttpSender {}))
     }
-
-    pub async fn db_loop() -> anyhow::Result<()> {
-        Ok(())
-    }
 }
 
 impl Default for HttpServer {
