@@ -22,8 +22,16 @@ enable_cmd_stdin = true
 cmd_network_port = 7779
 # The expire time in days of the verification request
 verification_expire_days = 3
-# # The algorithm used to hash the password
-# password_hash_algorithm = "argon2id"
+
+[password_hash]
+# The memory size in 1 KiB blocks. Between 8*`p_cost` and (2^32)-1
+m_cost = 19456
+# The number of iterations. Between 1 and (2^32)-1
+t_cost = 2
+# The degree of parallelism. Between 1 and (2^24)-1
+p_cost = 1
+# The size of the KDF output in bytes
+output_len = 32
 
 [db]
 # The size of one page to fetch message

@@ -89,8 +89,20 @@ pub const fn default_verification_expire_days() -> u64 {
     3
 }
 
-pub const fn default_password_hash_algorithm() -> argon2::Algorithm {
-    argon2::Algorithm::Argon2id
+pub const fn default_t_cost() -> u32 {
+    2
+}
+
+pub const fn default_m_cost() -> u32 {
+    19456
+}
+
+pub const fn default_p_cost() -> u32 {
+    1
+}
+
+pub const fn default_output_len() -> Option<usize> {
+    Some(32)
 }
 
 macro impl_to_bytes {

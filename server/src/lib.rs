@@ -96,12 +96,23 @@ pub struct MainCfg {
     pub smtp_password: Option<String>,
     #[serde(default = "consts::default_verification_expire_days")]
     pub verification_expire_days: u64,
-    // #[serde(default = "consts::default_password_hash_algorithm"))]
-    // pub password_hash_algorithm: argon2::Algorithm,
+    pub password_hash: PasswordHash,
     pub db: OCDbCfg,
 
     #[serde(skip)]
     pub cmd_args: ParserCfg,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct PasswordHash {
+    #[serde(default = "consts::default_m_cost")]
+    pub m_cost: u32,
+    #[serde(default = "consts::default_t_cost")]
+    pub t_cost: u32,
+    #[serde(default = "consts::default_p_cost")]
+    pub p_cost: u32,
+    #[serde(default = "consts::default_output_len")]
+    pub output_len: Option<usize>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
