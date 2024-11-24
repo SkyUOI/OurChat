@@ -102,7 +102,7 @@ impl TestUser {
         let name = FAKE_MANAGER.lock().generate_unique_name();
         let email = FAKE_MANAGER.lock().generate_unique_email();
         let url = app.rpc_url.clone();
-        let mut ret = Self {
+        Self {
             name,
             password: rand::thread_rng()
                 .sample_iter(&rand::distributions::Alphanumeric)
@@ -118,9 +118,7 @@ impl TestUser {
             ocid: String::default(),
             token: String::default(),
             oc_server: None,
-        };
-        ret.register().await;
-        ret
+        }
     }
 
     pub async fn register_internal(user: &mut TestUser) -> anyhow::Result<()> {
@@ -166,8 +164,8 @@ impl TestUser {
         Ok(())
     }
 
-    pub async fn register(&mut self) {
-        Self::register_internal(self).await.unwrap();
+    pub async fn register(&mut self) -> anyhow::Result<()> {
+        Self::register_internal(self).await
     }
 
     pub async fn unregister(&mut self) -> anyhow::Result<()> {
@@ -265,7 +263,7 @@ pub struct TestApp {
     pub app_shared: Arc<SharedData<MockEmailSender>>,
     pub db_pool: DbPool,
     pub http_client: reqwest::Client,
-    owned_users: Vec<Arc<tokio::sync::Mutex<TestUser>>>,
+    pub owned_users: Vec<Arc<tokio::sync::Mutex<TestUser>>>,
     pub clients: Clients,
     pub rpc_url: String,
 
@@ -381,6 +379,7 @@ impl TestApp {
 
     pub async fn new_user(&mut self) -> anyhow::Result<TestUserShared> {
         let user = Arc::new(tokio::sync::Mutex::new(TestUser::random(self).await));
+        user.lock().await.register().await?;
         self.owned_users.push(user.clone());
         Ok(user)
     }

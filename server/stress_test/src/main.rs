@@ -3,7 +3,10 @@
 use parking_lot::Mutex;
 use std::{
     fmt,
-    sync::{Arc, atomic::AtomicUsize},
+    sync::{
+        Arc,
+        atomic::{AtomicUsize, Ordering},
+    },
     time::Duration,
 };
 use tokio::time::Instant;
@@ -173,9 +176,42 @@ async fn test_basic_service(report: &mut Report, app: &mut client::TestApp) {
     });
 }
 
+async fn test_register(
+    report: &mut Report,
+    app: &mut client::TestApp,
+) -> Vec<Arc<tokio::sync::Mutex<client::TestUser>>> {
+    let mut stress_test = StressTest::builder()
+        .set_concurrency(1000)
+        .set_requests(1000);
+    let mut users = Vec::with_capacity(1000);
+    for _ in 0..1000 {
+        users.push(Arc::new(tokio::sync::Mutex::new(
+            client::TestUser::random(app).await,
+        )));
+    }
+    let idx = Arc::new(AtomicUsize::new(0));
+    let users = users;
+    let users_test = users.clone();
+    let output = stress_test
+        .stress_test(move || {
+            let now = idx.fetch_add(1, Ordering::SeqCst);
+            let user = users[now].clone();
+            async move { user.lock().await.register().await.is_ok() }
+        })
+        .await;
+
+    app.owned_users.extend(users_test.clone().into_iter());
+    report.add_record(Record {
+        name: "register".to_string(),
+        record: output,
+    });
+    users_test
+}
+
 async fn test_endpoint(app: &mut client::TestApp) {
     let mut report = Report::new();
     test_basic_service(&mut report, app).await;
+    test_register(&mut report, app).await;
     println!("{}", report);
 }
 

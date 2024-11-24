@@ -50,3 +50,7 @@ log/
 # file storage
 files_storage/*
 server/files_storage/*
+
+# pref
+perf.data*
+flamegraph.svg
