@@ -33,7 +33,11 @@ use tonic::transport::{Channel, Uri};
 pub type OCClient = OurChatServiceClient<
     InterceptedService<
         Channel,
-        Box<dyn FnMut(tonic::Request<()>) -> Result<tonic::Request<()>, tonic::Status>>,
+        Box<
+            dyn FnMut(tonic::Request<()>) -> Result<tonic::Request<()>, tonic::Status>
+                + Send
+                + Sync,
+        >,
     >,
 >;
 
