@@ -6,6 +6,7 @@ use fake::faker::internet::raw::FreeEmail;
 use fake::faker::name::en;
 use fake::faker::name::raw::Name;
 use fake::locales::EN;
+use itertools::Itertools;
 use parking_lot::Mutex;
 use rand::Rng;
 use server::component::MockEmailSender;
@@ -178,7 +179,7 @@ impl TestUser {
         self.oc_server.as_mut().unwrap()
     }
 
-    pub async fn ocid_login(&mut self) -> anyhow::Result<()> {
+    pub async fn ocid_auth(&mut self) -> anyhow::Result<()> {
         let login_req = AuthRequest {
             account: Some(server::pb::auth::auth_request::Account::Ocid(
                 self.ocid.clone(),
@@ -190,14 +191,11 @@ impl TestUser {
         Ok(())
     }
 
-    pub async fn email_login(&mut self) -> anyhow::Result<()> {
-        self.email_login_internal(self.password.clone()).await
+    pub async fn email_auth(&mut self) -> anyhow::Result<()> {
+        self.email_auth_internal(self.password.clone()).await
     }
 
-    pub async fn email_login_internal(
-        &mut self,
-        password: impl Into<String>,
-    ) -> anyhow::Result<()> {
+    pub async fn email_auth_internal(&mut self, password: impl Into<String>) -> anyhow::Result<()> {
         let login_req = AuthRequest {
             account: Some(server::pb::auth::auth_request::Account::Email(
                 self.email.clone(),
@@ -213,13 +211,12 @@ impl TestUser {
         let size = content.len();
         let hash = base::sha3_256(content.as_bytes());
         // post file
-        let ret = self
-            .oc()
-            .upload(tokio_stream::iter(vec![
-                UploadRequest::new_header(size, hash, false),
-                UploadRequest::new_content(content.into_bytes()),
-            ]))
-            .await?;
+        let mut files_content = vec![UploadRequest::new_header(size, hash, false)];
+        let content = content.into_bytes();
+        for i in &content.into_iter().chunks(1024 * 1024) {
+            files_content.push(UploadRequest::new_content(i.collect()));
+        }
+        let ret = self.oc().upload(tokio_stream::iter(files_content)).await?;
         let ret = ret.into_inner();
         let key = ret.key;
         Ok(key)

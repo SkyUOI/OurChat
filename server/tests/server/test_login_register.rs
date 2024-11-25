@@ -8,10 +8,10 @@ async fn test_email_login() {
     claims::assert_err!(
         user.lock()
             .await
-            .email_login_internal("wrong password")
+            .email_auth_internal("wrong password")
             .await
     );
-    assert_ok!(user.lock().await.email_login().await);
+    assert_ok!(user.lock().await.email_auth().await);
     app.async_drop().await;
 }
 
@@ -19,6 +19,6 @@ async fn test_email_login() {
 async fn test_ocid_login() {
     let mut app = client::TestApp::new(None).await.unwrap();
     let user = app.new_user().await.unwrap();
-    assert_ok!(user.lock().await.ocid_login().await);
+    assert_ok!(user.lock().await.ocid_auth().await);
     app.async_drop().await;
 }

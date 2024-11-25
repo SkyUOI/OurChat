@@ -32,7 +32,7 @@ async fn test_get_user_info() {
             .await
     );
     // now have privileges
-    user.lock().await.ocid_login().await.unwrap();
+    user.lock().await.ocid_auth().await.unwrap();
     let ret = user
         .lock()
         .await

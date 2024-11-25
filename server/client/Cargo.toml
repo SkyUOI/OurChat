@@ -5,10 +5,8 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-assert_cmd = "2"
 reqwest = "0"
 fake = { version = "3" }
-linkify = "0"
 claims = "0"
 base = { path = "../base" }
 server = { path = ".." }
@@ -16,7 +14,6 @@ parking_lot = "0"
 rand = "0"
 tokio-stream = { version = "0" }
 tonic = { version = "0", features = ["tls"] }
-tonic-types = { version = "0" }
 prost-types = { version = "0" }
 prost = { version = "0" }
 sqlx = { version = "0", features = ["runtime-tokio-rustls"] }
@@ -24,3 +21,4 @@ anyhow = "1"
 tracing = { version = "0" }
 tokio = { version = "1", features = ["full"] }
 uuid = { version = "1", features = ["v4"] }
+itertools = "0"

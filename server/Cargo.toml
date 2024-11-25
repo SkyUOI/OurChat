@@ -11,8 +11,8 @@ bytes = "1"
 anyhow = "1"
 serde = { version = "1" }
 serde_json = "1"
-serde_repr = "0"
-tokio-tungstenite = "0"
+# serde_repr = "0"
+# tokio-tungstenite = "0"
 clap = { version = "4", features = ["derive"] }
 futures-util = "0"
 rand = "0"
@@ -47,10 +47,10 @@ deadpool-redis = "0.18.0"
 collection_literals = "1"
 colored = "2"
 strum = { version = "0", features = ["derive"] }
-num_enum = "0"
+# num_enum = "0"
 mockall = "0"
 async-trait = { version = "0" }
-serde_plain = "1"
+# serde_plain = "1"
 
 tonic = { version = "0", features = ["tls"] }
 tonic-types = { version = "0" }

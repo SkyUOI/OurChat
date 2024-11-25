@@ -1,6 +1,11 @@
 #![feature(duration_constructors)]
 
+use dashmap::DashMap;
 use parking_lot::Mutex;
+use server::{
+    consts::ID,
+    pb::{self, get_info::GetAccountInfoRequest, upload::UploadRequest},
+};
 use std::{
     fmt,
     sync::{
@@ -9,7 +14,8 @@ use std::{
     },
     time::Duration,
 };
-use tokio::time::Instant;
+use tokio::{fs::read_to_string, time::Instant};
+use tonic::IntoRequest;
 
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
@@ -176,10 +182,9 @@ async fn test_basic_service(report: &mut Report, app: &mut client::TestApp) {
     });
 }
 
-async fn test_register(
-    report: &mut Report,
-    app: &mut client::TestApp,
-) -> Vec<Arc<tokio::sync::Mutex<client::TestUser>>> {
+type UsersGroup = Vec<Arc<tokio::sync::Mutex<client::TestUser>>>;
+
+async fn test_register(report: &mut Report, app: &mut client::TestApp) -> UsersGroup {
     let mut stress_test = StressTest::builder()
         .set_concurrency(1000)
         .set_requests(1000);
@@ -208,10 +213,140 @@ async fn test_register(
     users_test
 }
 
+async fn test_auth(users: &UsersGroup, report: &mut Report, app: &mut client::TestApp) {
+    let mut stress_test = StressTest::builder()
+        .set_concurrency(1000)
+        .set_requests(1000);
+    let users = users.clone();
+    let idx = Arc::new(AtomicUsize::new(0));
+    let output = stress_test
+        .stress_test(move || {
+            let now = idx.fetch_add(1, Ordering::SeqCst);
+            let user = users[now].clone();
+            async move { user.lock().await.ocid_auth().await.is_ok() }
+        })
+        .await;
+    report.add_record(Record {
+        name: "auth".to_string(),
+        record: output,
+    });
+}
+
+async fn test_get_info(users: &UsersGroup, report: &mut Report, app: &mut client::TestApp) {
+    use pb::get_info::*;
+    let mut stress_test = StressTest::builder()
+        .set_concurrency(1000)
+        .set_requests(1000);
+    let users = users.clone();
+    let idx = Arc::new(AtomicUsize::new(0));
+    let output = stress_test
+        .stress_test(move || {
+            let now = idx.fetch_add(1, Ordering::SeqCst);
+            let user = users[now].clone();
+            async move {
+                let ocid = user.lock().await.ocid.clone();
+                user.lock()
+                    .await
+                    .oc()
+                    .get_info(GetAccountInfoRequest {
+                        ocid: ocid.clone(),
+                        request_values: vec![
+                            RequestValues::Ocid.into(),
+                            RequestValues::UserName.into(),
+                            RequestValues::Email.into(),
+                            RequestValues::Friends.into(),
+                            RequestValues::UpdateTime.into(),
+                            RequestValues::RegisterTime.into(),
+                            RequestValues::PublicUpdateTime.into(),
+                        ],
+                    })
+                    .await
+                    .is_ok()
+            }
+        })
+        .await;
+    report.add_record(Record {
+        name: "get_info".to_string(),
+        record: output,
+    });
+}
+
+async fn test_upload(
+    users: &UsersGroup,
+    report: &mut Report,
+    app: &mut client::TestApp,
+) -> Arc<DashMap<String, String>> {
+    let mut stress_test = StressTest::builder()
+        .set_concurrency(1000)
+        .set_requests(1000);
+    let users = users.clone();
+    let idx = Arc::new(AtomicUsize::new(0));
+    let file = read_to_string("server/tests/server/test_data/big_file.txt")
+        .await
+        .unwrap();
+    let keys = Arc::new(DashMap::new());
+    let keys_ret = keys.clone();
+    let output = stress_test
+        .stress_test(move || {
+            let now = idx.fetch_add(1, Ordering::SeqCst);
+            let user = users[now].clone();
+            let content = file.clone();
+            let keys = keys.clone();
+            async move {
+                let user_id = user.lock().await.ocid.clone();
+                match user.lock().await.post_file(content).await {
+                    Ok(key) => {
+                        keys.insert(user_id, key);
+                        true
+                    }
+                    Err(e) => false,
+                }
+            }
+        })
+        .await;
+    report.add_record(Record {
+        name: "upload".to_string(),
+        record: output,
+    });
+    keys_ret
+}
+
+async fn test_download(
+    keys: Arc<DashMap<String, String>>,
+    users: &UsersGroup,
+    report: &mut Report,
+    app: &mut client::TestApp,
+) {
+    let mut stress_test = StressTest::builder()
+        .set_concurrency(1000)
+        .set_requests(1000);
+    let users = users.clone();
+    let idx = Arc::new(AtomicUsize::new(0));
+    let output = stress_test
+        .stress_test(move || {
+            let now = idx.fetch_add(1, Ordering::SeqCst);
+            let user = users[now].clone();
+            let keys = keys.clone();
+            async move {
+                let key = keys.get(&user.lock().await.ocid).unwrap();
+                user.lock().await.download_file(key.clone()).await.is_ok()
+            }
+        })
+        .await;
+    report.add_record(Record {
+        name: "download".to_string(),
+        record: output,
+    });
+}
+
 async fn test_endpoint(app: &mut client::TestApp) {
     let mut report = Report::new();
     test_basic_service(&mut report, app).await;
-    test_register(&mut report, app).await;
+    let users = test_register(&mut report, app).await;
+    test_auth(&users, &mut report, app).await;
+    test_get_info(&users, &mut report, app).await;
+    let keys = test_upload(&users, &mut report, app).await;
+    test_download(keys.clone(), &users, &mut report, app).await;
     println!("{}", report);
 }
 
