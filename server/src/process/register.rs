@@ -9,7 +9,10 @@ use crate::{
     shared_state, utils,
 };
 use anyhow::Context;
-use argon2::{Params, PasswordHasher, password_hash::SaltString};
+use argon2::{
+    Params, PasswordHasher,
+    password_hash::{self, SaltString},
+};
 use sea_orm::{ActiveModelTrait, ActiveValue, DbErr};
 use snowdon::ClassicLayoutSnowflakeExtension;
 use std::num::TryFromIntError;
@@ -21,6 +24,7 @@ use super::generate_access_token;
 async fn add_new_user(
     request: RegisterRequest,
     db_connection: &DbPool,
+    params: Params,
 ) -> Result<(RegisterResponse, UserInfo), RegisterError> {
     // Generate snowflake id
     let id = ID(utils::GENERATOR
@@ -31,7 +35,7 @@ async fn add_new_user(
     // Generate ocid by random
     let ocid = utils::generate_ocid(consts::OCID_LEN);
     let passwd = request.password;
-    let passwd = utils::spawn_blocking_with_tracing(move || compute_password_hash(&passwd))
+    let passwd = utils::spawn_blocking_with_tracing(move || compute_password_hash(&passwd, params))
         .await
         .context("compute hash error")?;
     let user = user::ActiveModel {
@@ -80,17 +84,13 @@ enum RegisterError {
     FromIntError(#[from] TryFromIntError),
 }
 
-fn compute_password_hash(password: &str) -> String {
-    // TODO:move factors to config
+fn compute_password_hash(password: &str, params: Params) -> String {
     let salt = SaltString::generate(&mut rand::thread_rng());
-    let password_hash = argon2::Argon2::new(
-        argon2::Algorithm::Argon2id,
-        argon2::Version::V0x13,
-        Params::new(15000, 2, 1, None).unwrap(),
-    )
-    .hash_password(password.as_bytes(), &salt)
-    .unwrap()
-    .to_string();
+    let password_hash =
+        argon2::Argon2::new(argon2::Algorithm::Argon2id, argon2::Version::V0x13, params)
+            .hash_password(password.as_bytes(), &salt)
+            .unwrap()
+            .to_string();
     password_hash
 }
 
@@ -98,7 +98,20 @@ async fn register_impl(
     server: &AuthServiceProvider<impl EmailSender>,
     request: Request<RegisterRequest>,
 ) -> Result<RegisterResponse, RegisterError> {
-    match add_new_user(request.into_inner(), &server.db).await {
+    let password_hash = &server.shared_data.cfg.main_cfg.password_hash;
+    match add_new_user(
+        request.into_inner(),
+        &server.db,
+        Params::new(
+            password_hash.m_cost,
+            password_hash.t_cost,
+            password_hash.p_cost,
+            password_hash.output_len,
+        )
+        .unwrap(),
+    )
+    .await
+    {
         Ok((response, user_info)) => Ok(response),
         Err(e) => Err(e),
     }

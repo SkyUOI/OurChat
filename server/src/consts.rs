@@ -82,6 +82,30 @@ pub const fn default_http_port() -> u16 {
     DEFAULT_HTTP_PORT
 }
 
+pub const fn default_fetch_msg_page_size() -> u64 {
+    2000
+}
+
+pub const fn default_verification_expire_days() -> u64 {
+    3
+}
+
+pub const fn default_t_cost() -> u32 {
+    2
+}
+
+pub const fn default_m_cost() -> u32 {
+    19456
+}
+
+pub const fn default_p_cost() -> u32 {
+    1
+}
+
+pub const fn default_output_len() -> Option<usize> {
+    None
+}
+
 macro impl_to_bytes {
     ($($name:ident, ($($opers:tt)*)),*) => {
         $(

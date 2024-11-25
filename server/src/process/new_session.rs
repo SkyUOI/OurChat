@@ -167,14 +167,9 @@ pub async fn send_verification_request(
     shared_data: &Arc<SharedData<impl EmailSender>>,
     db_conn: &DbPool,
 ) -> anyhow::Result<()> {
-    let expiresat = chrono::Utc::now() + Duration::from_days(3);
-    let request = InviteSession::new(
-        //TODO: Move this to config
-        expiresat.into(),
-        session_id,
-        sender,
-        message,
-    );
+    let expiresat =
+        chrono::Utc::now() + Duration::from_days(shared_data.cfg.main_cfg.verification_expire_days);
+    let request = InviteSession::new(expiresat.into(), session_id, sender, message);
     // try to find connected client
     match shared_data.connected_clients.get(&invitee) {
         Some(client) => {

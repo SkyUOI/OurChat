@@ -20,6 +20,22 @@ enable_cmd = true
 enable_cmd_stdin = true
 # Assign the network terminal listening port,note,it will enable the network terminal mode by default
 cmd_network_port = 7779
+# The expire time in days of the verification request
+verification_expire_days = 3
+
+[password_hash]
+# The memory size in 1 KiB blocks. Between 8*`p_cost` and (2^32)-1
+m_cost = 19456
+# The number of iterations. Between 1 and (2^32)-1
+t_cost = 2
+# The degree of parallelism. Between 1 and (2^24)-1
+p_cost = 1
+# The size of the KDF output in bytes
+output_len = 32
+
+[db]
+# The size of one page to fetch message
+fetch_msg_page_size = 2000
 
 # If any fields below is not specified, the email will be disabled
 # email address displaying in sent email
