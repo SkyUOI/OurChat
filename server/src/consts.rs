@@ -102,7 +102,7 @@ pub const fn default_p_cost() -> u32 {
 }
 
 pub const fn default_output_len() -> Option<usize> {
-    Some(32)
+    None
 }
 
 macro impl_to_bytes {
