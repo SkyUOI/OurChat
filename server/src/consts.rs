@@ -2,7 +2,9 @@
 
 use base::impl_newtype_int;
 use serde::{Deserialize, Serialize, Serializer};
-use std::{fmt::Display, io::IsTerminal, str::FromStr, sync::LazyLock, time::Duration};
+use std::{
+    fmt::Display, io::IsTerminal, path::PathBuf, str::FromStr, sync::LazyLock, time::Duration,
+};
 
 /// OCID Length
 pub const OCID_LEN: usize = 10;
@@ -104,6 +106,10 @@ pub const fn default_p_cost() -> u32 {
 
 pub const fn default_output_len() -> Option<usize> {
     None
+}
+
+pub fn default_files_storage_path() -> PathBuf {
+    PathBuf::from("files_storage/")
 }
 
 macro impl_to_bytes {

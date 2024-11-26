@@ -137,9 +137,11 @@ impl StressTest {
         }
         barrier.wait().await;
         let success = correct.load(std::sync::atomic::Ordering::Relaxed);
+        let max_time = *max_time.lock();
+        let min_time = *min_time.lock();
         Output {
-            max_time: *max_time.lock(),
-            min_time: *min_time.lock(),
+            max_time,
+            min_time,
             qps: self.requests as f64 / total.elapsed().as_secs_f64(),
             success,
             failed: self.requests - success,
