@@ -1,5 +1,5 @@
-# ip listening
-ip = "0.0.0.0"
+# Ip listening
+ip = "127.0.0.1"
 # Assign the config file of database,relative to this config file
 dbcfg = "database.toml"
 # Assign the config file of redis database,relative to this config file
@@ -8,15 +8,15 @@ rediscfg = "redis_connect.toml"
 port = 7777
 # The http server listening port
 http_port = 7778
-# the duration of cleaning the files which are out-of-date
+# The duration of cleaning the files which are out-of-date
 auto_clean_duration = 1
-# the total file size limit of single user
+# The total file size limit of single user
 user_files_limit = "100MB"
-# the friends number limit of single user
+# The friends number limit of single user
 friends_number_limit = 5000
-# whether enabling the terminal
+# Whether enabling the terminal
 enable_cmd = true
-# whether enabling the stdin source of the terminal
+# Whether enabling the stdin source of the terminal
 enable_cmd_stdin = true
 # Assign the network terminal listening port,note,it will enable the network terminal mode by default
 cmd_network_port = 7779
@@ -40,9 +40,10 @@ output_len = 32
 fetch_msg_page_size = 2000
 
 # If any fields below is not specified, the email will be disabled
-# email address displaying in sent email
+
+# Email address displaying in sent email
 # email_address = "default@ourchat.org"
-# smtp server address
+# Smtp server address
 # smtp_address = "smtp.ourchat.org"
-# smtp server password
+# Smtp server password
 # smtp_password = "password"

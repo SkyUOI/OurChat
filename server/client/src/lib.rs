@@ -23,6 +23,7 @@ use server::utils::{self, from_google_timestamp, get_available_port};
 use server::{Application, ArgsParser, DbPool, ParserCfg, SharedData, ShutdownSdr, process};
 use sqlx::migrate::MigrateDatabase;
 use std::collections::HashSet;
+use std::path::Path;
 use std::sync::{Arc, LazyLock};
 use std::thread;
 use std::time::Duration;
@@ -252,21 +253,25 @@ pub struct Clients {
     pub basic: BasicServiceClient<Channel>,
 }
 
+/// A test client
+///
+/// # Details
+/// Some members are Option because you can new a TestApp by connecting to an existing server or not
 #[derive(Clone)]
 pub struct TestApp {
     pub port: u16,
     pub http_port: u16,
     pub db_url: String,
-    pub app_shared: Arc<SharedData<MockEmailSender>>,
-    pub db_pool: DbPool,
+    pub app_shared: Option<Arc<SharedData<MockEmailSender>>>,
+    pub db_pool: Option<DbPool>,
     pub http_client: reqwest::Client,
     pub owned_users: Vec<Arc<tokio::sync::Mutex<TestUser>>>,
     pub clients: Clients,
     pub rpc_url: String,
 
-    server_config: server::Cfg,
     has_dropped: bool,
-    server_drop_handle: ShutdownSdr,
+    server_drop_handle: Option<ShutdownSdr>,
+    should_drop_db: bool,
 }
 
 trait TestAppTrait {
@@ -301,10 +306,11 @@ impl TestSession {
 }
 
 impl TestApp {
-    pub async fn new(email_client: Option<MockEmailSender>) -> anyhow::Result<Self> {
+    pub async fn new_with_launching_instance(
+        email_client: Option<MockEmailSender>,
+    ) -> anyhow::Result<Self> {
         let args = ArgsParser::test();
-        let server_config = server::get_configuration(args.shared_cfg.config.as_ref())?;
-        let mut server_config = server::Cfg::new(server_config)?;
+        let mut server_config = server::get_configuration(args.shared_cfg.config.as_ref())?;
         // should create different database for each test
         let db = uuid::Uuid::new_v4().to_string();
         server_config.db_cfg.db = db;
@@ -326,22 +332,49 @@ impl TestApp {
             port,
             http_port,
             db_url,
-            server_config,
-            server_drop_handle: abort_handle,
+            server_drop_handle: Some(abort_handle),
             has_dropped: false,
-            app_shared: shared,
+            app_shared: Some(shared),
             owned_users: vec![],
             http_client: reqwest::Client::builder()
                 .timeout(Duration::from_secs(2))
                 .build()?,
-            db_pool,
+            db_pool: Some(db_pool),
             rpc_url: rpc_url.clone(),
             clients: Clients {
                 auth: AuthServiceClient::connect(rpc_url.clone()).await?,
                 basic: BasicServiceClient::connect(rpc_url.clone()).await?,
             },
+            should_drop_db: true,
         };
         Ok(obj)
+    }
+
+    pub async fn new_with_existing_instance(cfg: server::Cfg) -> anyhow::Result<Self> {
+        Ok(Self {
+            should_drop_db: false,
+            port: cfg.main_cfg.port,
+            http_port: cfg.main_cfg.http_port,
+            db_url: cfg.db_cfg.url(),
+            app_shared: None,
+            db_pool: None,
+            http_client: reqwest::Client::builder()
+                .timeout(Duration::from_secs(2))
+                .build()?,
+            owned_users: vec![],
+            server_drop_handle: None,
+            has_dropped: false,
+            rpc_url: format!("http://localhost:{}", cfg.main_cfg.port),
+            clients: Clients {
+                auth: AuthServiceClient::connect(format!("http://localhost:{}", cfg.main_cfg.port))
+                    .await?,
+                basic: BasicServiceClient::connect(format!(
+                    "http://localhost:{}",
+                    cfg.main_cfg.port
+                ))
+                .await?,
+            },
+        })
     }
 
     pub async fn async_drop(&mut self) {
@@ -349,8 +382,10 @@ impl TestApp {
         for i in &self.owned_users {
             i.lock().await.async_drop().await;
         }
-        self.server_drop_handle.shutdown_all_tasks().await.unwrap();
-        tracing::info!("shutdown message sent");
+        if let Some(mut handle) = self.server_drop_handle.take() {
+            handle.shutdown_all_tasks().await.unwrap();
+            tracing::info!("shutdown message sent");
+        }
 
         tracing::info!("app shutdowned");
         tokio::time::sleep(Duration::from_secs(1)).await;
@@ -389,7 +424,7 @@ impl TestApp {
             .await?)
     }
 
-    pub async fn new_session(
+    pub async fn new_session_db_level(
         &mut self,
         n: usize,
         name: impl Into<String>,
@@ -400,16 +435,36 @@ impl TestApp {
         }
         // create a group in database level
         let session_id = utils::generate_session_id()?;
-        process::db::create_session(session_id, n, name.into(), &self.db_pool.db_pool).await?;
+        process::db::create_session(
+            session_id,
+            n,
+            name.into(),
+            &self.db_pool.as_ref().unwrap().db_pool,
+        )
+        .await?;
         tracing::info!("create session:{}", session_id);
         let mut id_vec = vec![];
         for i in &users {
-            let id = process::db::get_id(&i.lock().await.ocid, &self.db_pool).await?;
+            let id =
+                process::db::get_id(&i.lock().await.ocid, self.db_pool.as_ref().unwrap()).await?;
             id_vec.push(id);
         }
         tracing::debug!("id:{:?}", id_vec);
-        process::db::batch_add_to_session(&self.db_pool.db_pool, session_id, &id_vec).await?;
+        process::db::batch_add_to_session(
+            &self.db_pool.as_ref().unwrap().db_pool,
+            session_id,
+            &id_vec,
+        )
+        .await?;
         Ok((users, TestSession::new(session_id)))
+    }
+
+    pub async fn new_session(
+        &mut self,
+        n: usize,
+        name: impl Into<String>,
+    ) -> anyhow::Result<(Vec<TestUserShared>, TestSession)> {
+        todo!()
     }
 
     /// # Warning

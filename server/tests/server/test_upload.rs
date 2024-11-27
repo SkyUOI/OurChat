@@ -2,7 +2,9 @@ use tokio::fs::read_to_string;
 
 #[tokio::test]
 async fn test_upload() {
-    let mut app = client::TestApp::new(None).await.unwrap();
+    let mut app = client::TestApp::new_with_launching_instance(None)
+        .await
+        .unwrap();
     let user1 = app.new_user().await.unwrap();
 
     let file = read_to_string("tests/server/test_data/file1.txt")
