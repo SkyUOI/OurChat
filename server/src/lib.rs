@@ -91,6 +91,8 @@ pub struct MainCfg {
     pub smtp_address: Option<String>,
     #[serde(default)]
     pub smtp_password: Option<String>,
+    #[serde(default = "consts::default_files_storage_path")]
+    pub files_storage_path: PathBuf,
     #[serde(default = "consts::default_verification_expire_days")]
     pub verification_expire_days: u64,
     pub password_hash: PasswordHash,

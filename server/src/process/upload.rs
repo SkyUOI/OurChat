@@ -11,7 +11,7 @@ use anyhow::anyhow;
 use futures_util::StreamExt;
 use sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection, EntityTrait};
 use sha3::{Digest, Sha3_256};
-use std::num::TryFromIntError;
+use std::{num::TryFromIntError, path::PathBuf};
 use tokio::{fs::File, io::AsyncWriteExt};
 use tonic::{Response, Status};
 
@@ -33,6 +33,7 @@ pub async fn add_file_record(
     key: String,
     auto_clean: bool,
     db_connection: &DatabaseConnection,
+    files_storage_path: impl Into<PathBuf>,
 ) -> Result<File, UploadError> {
     let user_info = match User::find_by_id(id).one(db_connection).await? {
         Some(user) => user,
@@ -55,8 +56,14 @@ pub async fn add_file_record(
     user_info.update(db_connection).await?;
 
     let timestamp = chrono::Utc::now().timestamp();
-    // TODO:move this path to config
-    let path = format!("{}/{}", "files_storage", key);
+    let path: PathBuf = files_storage_path.into();
+    let path = path.join(key.clone());
+    let path = match path.to_str() {
+        Some(path) => path,
+        None => {
+            return Err(UploadError::InvalidPathError);
+        }
+    };
     let file = files::ActiveModel {
         key: sea_orm::Set(key.to_string()),
         path: sea_orm::Set(path.to_string()),
@@ -89,6 +96,8 @@ pub enum UploadError {
     FileHashError,
     #[error("file size error")]
     FileSizeError,
+    #[error("invalid path")]
+    InvalidPathError,
 }
 
 async fn upload_impl(
@@ -110,12 +119,14 @@ async fn upload_impl(
         Some(data) => data,
     };
     let key = generate_key_name(&metadata.hash);
+    let files_storage_path = &server.shared_data.cfg.main_cfg.files_storage_path;
     let mut file_handle = add_file_record(
         id,
         Bt(metadata.size),
         key.clone(),
         metadata.auto_clean,
         &server.db.db_pool,
+        &files_storage_path,
     )
     .await?;
     let mut hasher = Sha3_256::new();
@@ -162,6 +173,7 @@ pub async fn upload<T: EmailSender>(
                 UploadError::WrongStructure => Err(Status::invalid_argument("Wrong structure")),
                 UploadError::FileSizeError => Err(Status::invalid_argument("File size error")),
                 UploadError::FileHashError => Err(Status::invalid_argument("File hash error")),
+                UploadError::InvalidPathError => Err(Status::internal("Server error")),
             }
         }
     }

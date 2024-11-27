@@ -61,6 +61,7 @@ impl<T: EmailSender> RpcServer<T> {
     }
 
     fn check_auth(mut req: Request<()>) -> Result<Request<()>, Status> {
+        // check token
         match req.metadata().get("token") {
             Some(token) => {
                 if let Some(jwt) = process::check_token(token.to_str().unwrap()) {
