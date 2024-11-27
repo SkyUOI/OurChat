@@ -38,9 +38,10 @@ output_len = 32
 fetch_msg_page_size = 2000
 
 # If any fields below is not specified, the email will be disabled
-# email address displaying in sent email
+
+# Email address displaying in sent email
 # email_address = "default@ourchat.org"
-# smtp server address
+# Emtp server address
 # smtp_address = "smtp.ourchat.org"
-# smtp server password
+# Smtp server password
 # smtp_password = "password"

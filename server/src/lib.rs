@@ -119,6 +119,29 @@ pub struct OCDbCfg {
 }
 
 impl MainCfg {
+    pub fn new(config_path: Option<impl Into<PathBuf>>) -> anyhow::Result<Self> {
+        let cfg_path = match config_path {
+            Some(cfg_path) => cfg_path.into(),
+            None => if let Ok(env) = std::env::var(CONFIG_FILE_ENV_VAR) {
+                env
+            } else {
+                tracing::error!("Please specify config file");
+                bail!("Please specify config file");
+            }
+            .into(),
+        };
+        // read config file
+        let cfg = config::Config::builder()
+            .add_source(File::with_name(cfg_path.to_str().unwrap()))
+            .build()
+            .expect("Failed to build config");
+        let mut cfg: MainCfg = cfg.try_deserialize().expect("Wrong config file structure");
+        cfg.cmd_args.config = Some(cfg_path);
+        // convert the path relevant to the config file to path relevant to the directory
+        cfg.convert_to_abs_path()?;
+        Ok(cfg)
+    }
+
     pub fn email_available(&self) -> bool {
         self.email_address.is_some() && self.smtp_address.is_some() && self.smtp_password.is_some()
     }
@@ -361,9 +384,9 @@ pub struct Application<T: EmailSender> {
     pub started_notify: Arc<tokio::sync::Notify>,
 }
 
-#[derive(Debug, Clone)]
 /// The database connection pool, redis connection pool
 /// you can clone it freely without many extra cost
+#[derive(Debug, Clone)]
 pub struct DbPool {
     pub db_pool: DatabaseConnection,
     pub redis_pool: deadpool_redis::Pool,
@@ -385,27 +408,9 @@ pub struct SharedData<T: EmailSender> {
     pub connected_clients: DashMap<ID, mpsc::Sender<Msg>>,
 }
 
-pub fn get_configuration(config_path: Option<impl Into<PathBuf>>) -> anyhow::Result<MainCfg> {
-    let cfg_path = match config_path {
-        Some(cfg_path) => cfg_path.into(),
-        None => if let Ok(env) = std::env::var(CONFIG_FILE_ENV_VAR) {
-            env
-        } else {
-            tracing::error!("Please specify config file");
-            bail!("Please specify config file");
-        }
-        .into(),
-    };
-    // read config file
-    let cfg = config::Config::builder()
-        .add_source(File::with_name(cfg_path.to_str().unwrap()))
-        .build()
-        .expect("Failed to build config");
-    let mut cfg: MainCfg = cfg.try_deserialize().expect("wrong config file");
-    cfg.cmd_args.config = Some(cfg_path);
-    // convert the path relevant to the config file to path relevant to the directory
-    cfg.convert_to_abs_path()?;
-    Ok(cfg)
+pub fn get_configuration(config_path: Option<impl Into<PathBuf>>) -> anyhow::Result<Cfg> {
+    let main_cfg = MainCfg::new(config_path)?;
+    Cfg::new(main_cfg)
 }
 
 impl<T: EmailSender> Application<T> {

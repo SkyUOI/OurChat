@@ -2,7 +2,7 @@ use client::TestApp;
 
 #[tokio::test]
 async fn test_status_http() {
-    let mut app = TestApp::new(None).await.unwrap();
+    let mut app = TestApp::new_with_launching_instance(None).await.unwrap();
     let response = app
         .http_get("status")
         .await
@@ -15,7 +15,7 @@ async fn test_status_http() {
 
 #[tokio::test]
 async fn test_datetime() {
-    let mut app = TestApp::new(None).await.unwrap();
+    let mut app = TestApp::new_with_launching_instance(None).await.unwrap();
     let _time = app.get_timestamp().await;
     app.async_drop().await;
 }

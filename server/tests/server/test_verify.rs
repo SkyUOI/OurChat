@@ -18,10 +18,12 @@ async fn test_verify() {
             *mock_body.lock() = body;
             anyhow::Ok(())
         });
-    let mut app = TestApp::new(Some(mock_smtp)).await.unwrap();
+    let mut app = TestApp::new_with_launching_instance(Some(mock_smtp))
+        .await
+        .unwrap();
     let user = app.new_user().await.unwrap();
     let email = user.lock().await.email.clone();
-    claims::assert_some!(app.app_shared.email_client.as_ref());
+    claims::assert_some!(app.app_shared.as_ref().unwrap().email_client.as_ref());
     // Start Verify
     let ret = user
         .lock()

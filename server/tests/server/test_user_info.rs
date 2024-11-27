@@ -7,7 +7,7 @@ use server::pb::{
 
 #[tokio::test]
 async fn test_get_user_info() {
-    let mut app = TestApp::new(None).await.unwrap();
+    let mut app = TestApp::new_with_launching_instance(None).await.unwrap();
     let user = app.new_user().await.unwrap();
     let user2 = app.new_user().await.unwrap();
     // request before logged in
@@ -59,7 +59,7 @@ async fn test_get_user_info() {
 
 #[tokio::test]
 async fn test_set_user_info() {
-    let mut app = TestApp::new(None).await.unwrap();
+    let mut app = TestApp::new_with_launching_instance(None).await.unwrap();
     let user = app.new_user().await.unwrap();
 
     let ocid = user.lock().await.ocid.clone();
@@ -93,7 +93,7 @@ async fn test_set_user_info() {
 
 #[tokio::test]
 async fn test_set_friend_info() {
-    let mut app = TestApp::new(None).await.unwrap();
+    let mut app = TestApp::new_with_launching_instance(None).await.unwrap();
     let user = app.new_user().await.unwrap();
     let user2 = app.new_user().await.unwrap();
     let user_ocid = user.lock().await.ocid.clone();
