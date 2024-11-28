@@ -8,7 +8,10 @@ use framework::{Output, Record, Report, StressTest};
 use parking_lot::Mutex;
 use server::{
     consts::ID,
-    pb::{self, get_info::GetAccountInfoRequest, upload::UploadRequest},
+    pb::{
+        self,
+        ourchat::{get_account_info::v1::GetAccountInfoRequest, upload::v1::UploadRequest},
+    },
 };
 use std::{
     env::set_var,
@@ -105,7 +108,7 @@ async fn test_auth(users: &UsersGroup, report: &mut Report, app: &mut client::Te
 }
 
 async fn test_get_info(users: &UsersGroup, report: &mut Report) {
-    use pb::get_info::*;
+    use pb::ourchat::get_account_info::v1::*;
     let mut stress_test = StressTest::builder()
         .set_concurrency(1000)
         .set_requests(1000);

@@ -3,7 +3,10 @@ use crate::{
     component::EmailSender,
     consts::ID,
     entities::user_chat_msg,
-    pb::{self, msg_delivery::Msg},
+    pb::{
+        self,
+        ourchat::msg_delivery::v1::{FetchMsgRequest, Msg},
+    },
     server::{FetchMsgStream, RpcServer},
     utils::from_google_timestamp,
 };
@@ -25,7 +28,7 @@ pub enum MsgError {
 
 pub async fn get_user_msg<T: EmailSender>(
     server: &RpcServer<T>,
-    request: tonic::Request<pb::msg_delivery::FetchMsgRequest>,
+    request: tonic::Request<FetchMsgRequest>,
 ) -> Result<Response<FetchMsgStream>, tonic::Status> {
     let id = get_id_from_req(&request).unwrap();
     let request = request.into_inner();

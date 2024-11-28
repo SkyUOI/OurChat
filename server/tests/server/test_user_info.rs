@@ -1,8 +1,8 @@
 use claims::assert_err;
 use client::TestApp;
-use server::pb::{
-    get_info::{self, GetAccountInfoRequest, RequestValues},
-    set_info::{SetFriendInfoRequest, SetSelfInfoRequest},
+use server::pb::ourchat::{
+    get_account_info::v1::{self, GetAccountInfoRequest, RequestValues},
+    set_account_info::v1::{SetFriendInfoRequest, SetSelfInfoRequest},
 };
 
 #[tokio::test]
@@ -24,9 +24,9 @@ async fn test_get_user_info() {
             .get_info(GetAccountInfoRequest {
                 ocid: user_ocid.clone(),
                 request_values: vec![
-                    get_info::RequestValues::Ocid.into(),
-                    get_info::RequestValues::Email.into(),
-                    get_info::RequestValues::UserName.into(),
+                    RequestValues::Ocid.into(),
+                    RequestValues::Email.into(),
+                    RequestValues::UserName.into(),
                 ],
             })
             .await
@@ -40,10 +40,10 @@ async fn test_get_user_info() {
         .get_info(GetAccountInfoRequest {
             ocid: user_ocid.clone(),
             request_values: vec![
-                get_info::RequestValues::Ocid.into(),
-                get_info::RequestValues::Email.into(),
-                get_info::RequestValues::UserName.into(),
-                get_info::RequestValues::Friends.into(),
+                RequestValues::Ocid.into(),
+                RequestValues::Email.into(),
+                RequestValues::UserName.into(),
+                RequestValues::Friends.into(),
             ],
         })
         .await

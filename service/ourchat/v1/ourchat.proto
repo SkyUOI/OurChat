@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package service.ourchat;
+package service.ourchat.v1;
 
 import "service/ourchat/download/v1/download.proto";
 import "service/ourchat/get_account_info/v1/get_account_info.proto";

@@ -2,7 +2,7 @@ use crate::{
     component::EmailSender,
     consts::ID,
     entities::user,
-    pb::set_info::{SetAccountInfoResponse, SetSelfInfoRequest},
+    pb::ourchat::set_account_info::v1::{SetAccountInfoResponse, SetSelfInfoRequest},
     server::RpcServer,
 };
 use sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection};

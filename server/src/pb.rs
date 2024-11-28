@@ -1,11 +1,3 @@
 pub mod auth;
-pub mod download;
-pub mod email_verify;
-pub mod get_info;
-pub mod msg_delivery;
-pub mod register;
-pub mod server;
-pub mod service;
-pub mod session;
-pub mod set_info;
-pub mod upload;
+pub mod basic;
+pub mod ourchat;

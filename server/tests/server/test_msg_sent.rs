@@ -1,6 +1,9 @@
 use futures_util::StreamExt;
 use server::{
-    pb::msg_delivery::{self, FetchMsgRequest, Msg, OneMsg, SendMsgRequest},
+    pb::ourchat::msg_delivery::{
+        self,
+        v1::{self, FetchMsgRequest, Msg, OneMsg, SendMsgRequest},
+    },
     utils::to_google_timestamp,
 };
 
@@ -21,7 +24,7 @@ async fn test_text_sent() {
         session_id: session.session_id.into(),
         time: Some(time_google),
         bundle_msg: vec![OneMsg {
-            data: Some(msg_delivery::one_msg::Data::Text("hello".to_owned())),
+            data: Some(msg_delivery::v1::one_msg::Data::Text("hello".to_owned())),
         }],
     };
     let ret = a
@@ -49,7 +52,7 @@ async fn test_text_get() {
     let base_time = app.get_timestamp().await;
     // send message
     let msg_should_sent = OneMsg {
-        data: Some(msg_delivery::one_msg::Data::Text("hello".to_owned())),
+        data: Some(msg_delivery::v1::one_msg::Data::Text("hello".to_owned())),
     };
     let time = app.get_timestamp().await;
     let time_google = to_google_timestamp(time);

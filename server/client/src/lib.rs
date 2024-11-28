@@ -12,13 +12,17 @@ use rand::Rng;
 use server::component::MockEmailSender;
 use server::consts::SessionID;
 use server::db::DbCfgTrait;
-use server::pb::auth::AuthRequest;
-use server::pb::download::DownloadRequest;
-use server::pb::register::{RegisterRequest, UnregisterRequest};
-use server::pb::service::auth_service_client::AuthServiceClient;
-use server::pb::service::basic_service_client::BasicServiceClient;
-use server::pb::service::our_chat_service_client::OurChatServiceClient;
-use server::pb::upload::UploadRequest;
+use server::pb::auth::authorize::v1::auth_request;
+use server::pb::auth::register::v1::RegisterRequest;
+use server::pb::{
+    auth::authorize::v1::AuthRequest,
+    auth::v1::auth_service_client::AuthServiceClient,
+    basic::v1::basic_service_client::BasicServiceClient,
+    ourchat::v1::our_chat_service_client::OurChatServiceClient,
+    ourchat::{
+        download::v1::DownloadRequest, unregister::v1::UnregisterRequest, upload::v1::UploadRequest,
+    },
+};
 use server::utils::{self, from_google_timestamp, get_available_port};
 use server::{Application, ArgsParser, DbPool, ParserCfg, SharedData, ShutdownSdr, process};
 use sqlx::migrate::MigrateDatabase;
@@ -182,9 +186,7 @@ impl TestUser {
 
     pub async fn ocid_auth(&mut self) -> anyhow::Result<()> {
         let login_req = AuthRequest {
-            account: Some(server::pb::auth::auth_request::Account::Ocid(
-                self.ocid.clone(),
-            )),
+            account: Some(auth_request::Account::Ocid(self.ocid.clone())),
             password: self.password.clone(),
         };
         let ret = self.client.auth.auth(login_req).await.unwrap().into_inner();
@@ -198,9 +200,7 @@ impl TestUser {
 
     pub async fn email_auth_internal(&mut self, password: impl Into<String>) -> anyhow::Result<()> {
         let login_req = AuthRequest {
-            account: Some(server::pb::auth::auth_request::Account::Email(
-                self.email.clone(),
-            )),
+            account: Some(auth_request::Account::Email(self.email.clone())),
             password: password.into(),
         };
         let ret = self.client.auth.auth(login_req).await?.into_inner();

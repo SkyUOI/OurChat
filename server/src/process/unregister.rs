@@ -2,7 +2,7 @@ use crate::{
     component::EmailSender,
     consts::ID,
     entities::{files, friend, operations, prelude::*, session_relation, user, user_chat_msg},
-    pb::register::{UnregisterRequest, UnregisterResponse},
+    pb::ourchat::unregister::v1::{UnregisterRequest, UnregisterResponse},
     server::RpcServer,
 };
 use sea_orm::{

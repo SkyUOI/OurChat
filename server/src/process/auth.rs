@@ -3,7 +3,7 @@ use crate::{
     DbPool,
     component::EmailSender,
     entities::{prelude::*, user},
-    pb::auth::{AuthRequest, AuthResponse, auth_request::Account},
+    pb::auth::authorize::v1::{AuthRequest, AuthResponse, auth_request::Account},
     server::AuthServiceProvider,
     utils,
 };

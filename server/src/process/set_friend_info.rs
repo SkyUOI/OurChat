@@ -4,7 +4,7 @@ use crate::{
     component::EmailSender,
     consts::ID,
     entities::friend,
-    pb::set_info::{SetAccountInfoResponse, SetFriendInfoRequest},
+    pb::ourchat::set_account_info::v1::{SetAccountInfoResponse, SetFriendInfoRequest},
     server::RpcServer,
 };
 use sea_orm::{ActiveModelTrait, ActiveValue, DbErr};
