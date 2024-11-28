@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package service.ourchat.download;
+package service.ourchat.download.v1;
 
 message DownloadRequest {
   string key = 1;

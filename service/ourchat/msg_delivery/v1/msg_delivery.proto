@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package service.ourchat.msg_delivery;
+package service.ourchat.msg_delivery.v1;
 
 import "google/protobuf/timestamp.proto";
 

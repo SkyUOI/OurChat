@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package service.ourchat;
+
+import "service/ourchat/download/v1/download.proto";
+import "service/ourchat/get_account_info/v1/get_account_info.proto";
+import "service/ourchat/msg_delivery/v1/msg_delivery.proto";
+import "service/ourchat/session/v1/session.proto";
+import "service/ourchat/set_account_info/v1/set_account_info.proto";
+import "service/ourchat/upload/v1/upload.proto";
+import "service/ourchat/unregister/v1/unregister.proto";
+
+service OurChatService {
+  rpc Unregister(unregister.v1.UnregisterRequest) returns (unregister.v1.UnregisterResponse);
+
+  rpc GetInfo(get_account_info.v1.GetAccountInfoRequest) returns (get_account_info.v1.GetAccountInfoResponse);
+
+  rpc SetSelfInfo(set_account_info.v1.SetSelfInfoRequest) returns (set_account_info.v1.SetAccountInfoResponse);
+
+  rpc SetFriendInfo(set_account_info.v1.SetFriendInfoRequest) returns (set_account_info.v1.SetAccountInfoResponse);
+
+  rpc FetchMsgs(msg_delivery.v1.FetchMsgRequest) returns (stream msg_delivery.v1.Msg);
+
+  rpc MsgDelivery(stream msg_delivery.v1.SendMsgRequest) returns (stream msg_delivery.v1.SendMsgResponse);
+
+  rpc Upload(stream upload.v1.UploadRequest) returns (upload.v1.UploadResponse);
+
+  rpc Download(download.v1.DownloadRequest) returns (stream download.v1.DownloadResponse);
+
+  rpc NewSession(session.v1.NewSessionRequest) returns (session.v1.NewSessionResponse);
+}

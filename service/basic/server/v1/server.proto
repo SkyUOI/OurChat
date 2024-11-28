@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package server.v1;
+package service.basic.server.v1;
 
 enum RunningStatus {
   RUNNING_STATUS_UNSPECIFIED = 0;

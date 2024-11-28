@@ -1,10 +1,10 @@
 syntax = "proto3";
 
-package basic.v1;
+package service.basic.v1;
 
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
-import "service/basic/server/server.proto";
+import "service/basic/server/v1/server.proto";
 
 service BasicService {
   rpc Timestamp(google.protobuf.Empty) returns (google.protobuf.Timestamp);

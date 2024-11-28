@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package service.auth.email_verify;
+package service.auth.email_verify.v1;
 
 message VerifyRequest {
   string email = 1;

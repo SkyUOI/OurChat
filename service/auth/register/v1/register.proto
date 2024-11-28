@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package service.auth.register;
+package service.auth.register.v1;
 
 message RegisterRequest {
   string email = 1;
