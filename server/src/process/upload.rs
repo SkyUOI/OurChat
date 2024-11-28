@@ -57,7 +57,7 @@ pub async fn add_file_record(
 
     let timestamp = chrono::Utc::now().timestamp();
     let path: PathBuf = files_storage_path.into();
-    let path = path.join(key.clone());
+    let path = path.join(&key);
     let path = match path.to_str() {
         Some(path) => path,
         None => {
@@ -65,7 +65,7 @@ pub async fn add_file_record(
         }
     };
     let file = files::ActiveModel {
-        key: sea_orm::Set(key.to_string()),
+        key: sea_orm::Set(key),
         path: sea_orm::Set(path.to_string()),
         date: sea_orm::Set(timestamp),
         auto_clean: sea_orm::Set(auto_clean),
