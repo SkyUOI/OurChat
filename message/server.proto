@@ -1,16 +1,16 @@
 syntax = "proto3";
 
-package server;
+package server.v1;
 
 enum RunningStatus {
-    NORMAL = 0;
-    MAINTAINING = 1;
+    RUNNING_STATUS_NORMAL = 0;
+    RUNNING_STATUS_MAINTAINING = 1;
 }
 
 message ServerVersion {
-    int32 Major = 1;
-    int32 Minor = 2;
-    int32 Patch = 3;
+    int32 major = 1;
+    int32 minor = 2;
+    int32 patch = 3;
 }
 
 message ServerInfo {

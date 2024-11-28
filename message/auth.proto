@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package auth;
+package auth.v1;
 
 message AuthRequest {
   oneof account {

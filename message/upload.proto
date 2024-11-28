@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package upload;
+package upload.v1;
 
 message UploadRequest {
     oneof data {

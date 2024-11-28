@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package set_info;
+package set_info.v1;
 
 message SetSelfInfoRequest {
   optional string user_name = 2;

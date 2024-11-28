@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package download;
+package download.v1;
 
 message DownloadRequest {
     string key = 1;

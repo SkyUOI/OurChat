@@ -2,7 +2,7 @@ syntax = "proto3";
 
 import "google/protobuf/timestamp.proto";
 
-package msg_delivery;
+package msg_delivery.v1;
 
 message OneMsg {
   oneof data { string text = 2; };

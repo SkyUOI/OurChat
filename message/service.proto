@@ -13,45 +13,45 @@ import "message/session.proto";
 import "message/email_verify.proto";
 import "message/download.proto";
 
-package ourchat;
+package ourchat.v1;
 
 service OurChatService {
-  rpc unregister(register.UnregisterRequest)
-      returns (register.UnregisterResponse);
+  rpc Unregister(register.v1.UnregisterRequest)
+      returns (register.v1.UnregisterResponse);
 
-  rpc get_info(get_info.GetAccountInfoRequest)
-      returns (get_info.GetAccountInfoResponse);
+  rpc GetInfo(get_info.v1.GetAccountInfoRequest)
+      returns (get_info.v1.GetAccountInfoResponse);
 
-  rpc set_self_info(set_info.SetSelfInfoRequest)
-      returns (set_info.SetAccountInfoResponse);
+  rpc SetSelfInfo(set_info.v1.SetSelfInfoRequest)
+      returns (set_info.v1.SetAccountInfoResponse);
 
-  rpc set_friend_info(set_info.SetFriendInfoRequest)
-      returns (set_info.SetAccountInfoResponse);
+  rpc SetFriendInfo(set_info.v1.SetFriendInfoRequest)
+      returns (set_info.v1.SetAccountInfoResponse);
 
-  rpc fetch_msgs(msg_delivery.FetchMsgRequest)
-      returns (stream msg_delivery.Msg);
+  rpc FetchMsgs(msg_delivery.v1.FetchMsgRequest)
+      returns (stream msg_delivery.v1.Msg);
 
-  rpc msg_delivery(stream msg_delivery.SendMsgRequest)
-      returns (stream msg_delivery.SendMsgResponse);
+  rpc MsgDelivery(stream msg_delivery.v1.SendMsgRequest)
+      returns (stream msg_delivery.v1.SendMsgResponse);
 
-  rpc upload(stream upload.UploadRequest) returns (upload.UploadResponse);
+  rpc Upload(stream upload.v1.UploadRequest) returns (upload.v1.UploadResponse);
 
-  rpc download(download.DownloadRequest) returns (stream download.DownloadResponse);
+  rpc Download(download.v1.DownloadRequest) returns (stream download.v1.DownloadResponse);
 
-  rpc new_session(session.NewSessionRequest)
-      returns (session.NewSessionResponse);
+  rpc NewSession(session.v1.NewSessionRequest)
+      returns (session.v1.NewSessionResponse);
 }
 
 service BasicService {
-  rpc timestamp(google.protobuf.Empty) returns (google.protobuf.Timestamp);
+  rpc Timestamp(google.protobuf.Empty) returns (google.protobuf.Timestamp);
 
-  rpc get_server_info(google.protobuf.Empty) returns (server.ServerInfo);
+  rpc GetServerInfo(google.protobuf.Empty) returns (server.v1.ServerInfo);
 }
 
 service AuthService {
-  rpc register(register.RegisterRequest) returns (register.RegisterResponse);
+  rpc Register(register.v1.RegisterRequest) returns (register.v1.RegisterResponse);
 
-  rpc auth(auth.AuthRequest) returns (auth.AuthResponse);
+  rpc Auth(auth.v1.AuthRequest) returns (auth.v1.AuthResponse);
 
-  rpc verify (email_verify.VerifyRequest) returns (stream email_verify.VerifyResponse);
+  rpc Verify (email_verify.v1.VerifyRequest) returns (stream email_verify.v1.VerifyResponse);
 }

@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package register;
+package register.v1;
 
 message RegisterRequest {
   string email = 1;

@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package session;
+package session.v1;
 
 message NewSessionRequest {
     repeated string members = 1;

@@ -2,20 +2,20 @@ syntax = "proto3";
 
 import "google/protobuf/timestamp.proto";
 
-package get_info;
+package get_info.v1;
 
 enum RequestValues {
-  OCID = 0;
-  EMAIL = 1;
-  USER_NAME = 2;
-  DISPLAY_NAME = 3;
-  STATUS = 4;
-  AVATAR_KEY = 5;
-  REGISTER_TIME = 6;
-  PUBLIC_UPDATE_TIME = 7;
-  UPDATE_TIME = 8;
-  SESSIONS = 9;
-  FRIENDS = 10;
+  REQUEST_VALUES_OCID = 0;
+  REQUEST_VALUES_EMAIL = 1;
+  REQUEST_VALUES_USER_NAME = 2;
+  REQUEST_VALUES_DISPLAY_NAME = 3;
+  REQUEST_VALUES_STATUS = 4;
+  REQUEST_VALUES_AVATAR_KEY = 5;
+  REQUEST_VALUES_REGISTER_TIME = 6;
+  REQUEST_VALUES_PUBLIC_UPDATE_TIME = 7;
+  REQUEST_VALUES_UPDATE_TIME = 8;
+  REQUEST_VALUES_SESSIONS = 9;
+  REQUEST_VALUES_FRIENDS = 10;
 }
 
 message GetAccountInfoRequest {
