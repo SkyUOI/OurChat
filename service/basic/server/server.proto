@@ -3,8 +3,9 @@ syntax = "proto3";
 package server.v1;
 
 enum RunningStatus {
-  RUNNING_STATUS_NORMAL = 0;
-  RUNNING_STATUS_MAINTAINING = 1;
+  RUNNING_STATUS_UNSPECIFIED = 0;
+  RUNNING_STATUS_NORMAL = 1;
+  RUNNING_STATUS_MAINTAINING = 2;
 }
 
 message ServerVersion {

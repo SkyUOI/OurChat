@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package upload.v1;
+package service.ourchat.upload;
 
 message UploadRequest {
   oneof data {

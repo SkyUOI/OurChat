@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package session.v1;
+package service.ourchat.session;
 
 message NewSessionRequest {
   repeated string members = 1;

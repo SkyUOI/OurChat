@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package register.v1;
+package service.auth.register;
 
 message RegisterRequest {
   string email = 1;
@@ -12,7 +12,3 @@ message RegisterResponse {
   string ocid = 2;
   string token = 3;
 }
-
-message UnregisterRequest {}
-
-message UnregisterResponse {}
