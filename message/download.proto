@@ -3,9 +3,9 @@ syntax = "proto3";
 package download.v1;
 
 message DownloadRequest {
-    string key = 1;
+  string key = 1;
 }
 
 message DownloadResponse {
-    bytes data = 1;
+  bytes data = 1;
 }

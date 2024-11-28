@@ -3,7 +3,7 @@ syntax = "proto3";
 package email_verify.v1;
 
 message VerifyRequest {
-    string email = 1;
+  string email = 1;
 }
 
 message VerifyResponse {}

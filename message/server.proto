@@ -3,18 +3,18 @@ syntax = "proto3";
 package server.v1;
 
 enum RunningStatus {
-    RUNNING_STATUS_NORMAL = 0;
-    RUNNING_STATUS_MAINTAINING = 1;
+  RUNNING_STATUS_NORMAL = 0;
+  RUNNING_STATUS_MAINTAINING = 1;
 }
 
 message ServerVersion {
-    int32 major = 1;
-    int32 minor = 2;
-    int32 patch = 3;
+  int32 major = 1;
+  int32 minor = 2;
+  int32 patch = 3;
 }
 
 message ServerInfo {
-    RunningStatus status = 1;
-    uint32 http_port = 2;
-    ServerVersion server_version = 3;
+  RunningStatus status = 1;
+  uint32 http_port = 2;
+  ServerVersion server_version = 3;
 }

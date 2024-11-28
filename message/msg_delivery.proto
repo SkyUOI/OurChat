@@ -1,11 +1,13 @@
 syntax = "proto3";
 
-import "google/protobuf/timestamp.proto";
-
 package msg_delivery.v1;
 
+import "google/protobuf/timestamp.proto";
+
 message OneMsg {
-  oneof data { string text = 2; };
+  oneof data {
+    string text = 2;
+  }
 }
 
 message SendMsgRequest {
@@ -14,7 +16,9 @@ message SendMsgRequest {
   repeated OneMsg bundle_msg = 3;
 }
 
-message FetchMsgRequest { google.protobuf.Timestamp time = 1; }
+message FetchMsgRequest {
+  google.protobuf.Timestamp time = 1;
+}
 
 message Msg {
   google.protobuf.Timestamp time = 1;

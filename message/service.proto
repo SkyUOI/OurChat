@@ -1,45 +1,38 @@
 syntax = "proto3";
 
-import "message/auth.proto";
-import "message/register.proto";
-import "message/get_account_info.proto";
-import "message/set_account_info.proto";
-import "message/server.proto";
-import "google/protobuf/timestamp.proto";
-import "google/protobuf/empty.proto";
-import "message/msg_delivery.proto";
-import "message/upload.proto";
-import "message/session.proto";
-import "message/email_verify.proto";
-import "message/download.proto";
-
 package ourchat.v1;
 
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "message/auth.proto";
+import "message/download.proto";
+import "message/email_verify.proto";
+import "message/get_account_info.proto";
+import "message/msg_delivery.proto";
+import "message/register.proto";
+import "message/server.proto";
+import "message/session.proto";
+import "message/set_account_info.proto";
+import "message/upload.proto";
+
 service OurChatService {
-  rpc Unregister(register.v1.UnregisterRequest)
-      returns (register.v1.UnregisterResponse);
+  rpc Unregister(register.v1.UnregisterRequest) returns (register.v1.UnregisterResponse);
 
-  rpc GetInfo(get_info.v1.GetAccountInfoRequest)
-      returns (get_info.v1.GetAccountInfoResponse);
+  rpc GetInfo(get_info.v1.GetAccountInfoRequest) returns (get_info.v1.GetAccountInfoResponse);
 
-  rpc SetSelfInfo(set_info.v1.SetSelfInfoRequest)
-      returns (set_info.v1.SetAccountInfoResponse);
+  rpc SetSelfInfo(set_info.v1.SetSelfInfoRequest) returns (set_info.v1.SetAccountInfoResponse);
 
-  rpc SetFriendInfo(set_info.v1.SetFriendInfoRequest)
-      returns (set_info.v1.SetAccountInfoResponse);
+  rpc SetFriendInfo(set_info.v1.SetFriendInfoRequest) returns (set_info.v1.SetAccountInfoResponse);
 
-  rpc FetchMsgs(msg_delivery.v1.FetchMsgRequest)
-      returns (stream msg_delivery.v1.Msg);
+  rpc FetchMsgs(msg_delivery.v1.FetchMsgRequest) returns (stream msg_delivery.v1.Msg);
 
-  rpc MsgDelivery(stream msg_delivery.v1.SendMsgRequest)
-      returns (stream msg_delivery.v1.SendMsgResponse);
+  rpc MsgDelivery(stream msg_delivery.v1.SendMsgRequest) returns (stream msg_delivery.v1.SendMsgResponse);
 
   rpc Upload(stream upload.v1.UploadRequest) returns (upload.v1.UploadResponse);
 
   rpc Download(download.v1.DownloadRequest) returns (stream download.v1.DownloadResponse);
 
-  rpc NewSession(session.v1.NewSessionRequest)
-      returns (session.v1.NewSessionResponse);
+  rpc NewSession(session.v1.NewSessionRequest) returns (session.v1.NewSessionResponse);
 }
 
 service BasicService {
@@ -53,5 +46,5 @@ service AuthService {
 
   rpc Auth(auth.v1.AuthRequest) returns (auth.v1.AuthResponse);
 
-  rpc Verify (email_verify.v1.VerifyRequest) returns (stream email_verify.v1.VerifyResponse);
+  rpc Verify(email_verify.v1.VerifyRequest) returns (stream email_verify.v1.VerifyResponse);
 }

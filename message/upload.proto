@@ -3,18 +3,18 @@ syntax = "proto3";
 package upload.v1;
 
 message UploadRequest {
-    oneof data {
-        Header metadata = 1;
-        bytes content = 2;
-    }
+  oneof data {
+    Header metadata = 1;
+    bytes content = 2;
+  }
 }
 
 message Header {
-    string hash = 1;
-    uint64 size = 2;
-    bool auto_clean = 3;
+  string hash = 1;
+  uint64 size = 2;
+  bool auto_clean = 3;
 }
 
 message UploadResponse {
-    string key = 1;
+  string key = 1;
 }

@@ -6,7 +6,7 @@ message AuthRequest {
   oneof account {
     string email = 1;
     string ocid = 2;
-  };
+  }
   string password = 3;
 }
 
