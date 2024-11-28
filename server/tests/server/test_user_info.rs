@@ -21,7 +21,7 @@ async fn test_get_user_info() {
             .lock()
             .await
             .oc()
-            .get_info(GetAccountInfoRequest {
+            .get_account_info(GetAccountInfoRequest {
                 ocid: user_ocid.clone(),
                 request_values: vec![
                     RequestValues::Ocid.into(),
@@ -37,7 +37,7 @@ async fn test_get_user_info() {
         .lock()
         .await
         .oc()
-        .get_info(GetAccountInfoRequest {
+        .get_account_info(GetAccountInfoRequest {
             ocid: user_ocid.clone(),
             request_values: vec![
                 RequestValues::Ocid.into(),
@@ -80,7 +80,7 @@ async fn test_set_user_info() {
         .lock()
         .await
         .oc()
-        .get_info(GetAccountInfoRequest {
+        .get_account_info(GetAccountInfoRequest {
             ocid: ocid.clone(),
             request_values: vec![RequestValues::UserName.into()],
         })

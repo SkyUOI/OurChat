@@ -7,17 +7,17 @@ import "service/ourchat/get_account_info/v1/get_account_info.proto";
 import "service/ourchat/msg_delivery/v1/msg_delivery.proto";
 import "service/ourchat/session/v1/session.proto";
 import "service/ourchat/set_account_info/v1/set_account_info.proto";
-import "service/ourchat/upload/v1/upload.proto";
 import "service/ourchat/unregister/v1/unregister.proto";
+import "service/ourchat/upload/v1/upload.proto";
 
 service OurChatService {
   rpc Unregister(unregister.v1.UnregisterRequest) returns (unregister.v1.UnregisterResponse);
 
-  rpc GetInfo(get_account_info.v1.GetAccountInfoRequest) returns (get_account_info.v1.GetAccountInfoResponse);
+  rpc GetAccountInfo(get_account_info.v1.GetAccountInfoRequest) returns (get_account_info.v1.GetAccountInfoResponse);
 
-  rpc SetSelfInfo(set_account_info.v1.SetSelfInfoRequest) returns (set_account_info.v1.SetAccountInfoResponse);
+  rpc SetSelfInfo(set_account_info.v1.SetSelfInfoRequest) returns (set_account_info.v1.SetSelfInfoResponse);
 
-  rpc SetFriendInfo(set_account_info.v1.SetFriendInfoRequest) returns (set_account_info.v1.SetAccountInfoResponse);
+  rpc SetFriendInfo(set_account_info.v1.SetFriendInfoRequest) returns (set_account_info.v1.SetFriendInfoResponse);
 
   rpc FetchMsgs(msg_delivery.v1.FetchMsgsRequest) returns (stream msg_delivery.v1.FetchMsgsResponse);
 

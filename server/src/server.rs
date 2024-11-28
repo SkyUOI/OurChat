@@ -17,7 +17,7 @@ use crate::pb::ourchat::msg_delivery::v1::{
 };
 use crate::pb::ourchat::session::v1::{NewSessionRequest, NewSessionResponse};
 use crate::pb::ourchat::set_account_info::v1::{
-    SetAccountInfoResponse, SetFriendInfoRequest, SetSelfInfoRequest,
+    SetFriendInfoRequest, SetFriendInfoResponse, SetSelfInfoRequest, SetSelfInfoResponse,
 };
 use crate::pb::ourchat::unregister::v1::{UnregisterRequest, UnregisterResponse};
 use crate::pb::ourchat::upload::v1::{UploadRequest, UploadResponse};
@@ -109,7 +109,7 @@ impl<T: EmailSender> OurChatService for RpcServer<T> {
         process::unregister::unregister(self, request).await
     }
 
-    async fn get_info(
+    async fn get_account_info(
         &self,
         request: tonic::Request<GetAccountInfoRequest>,
     ) -> Result<tonic::Response<GetAccountInfoResponse>, tonic::Status> {
@@ -119,14 +119,14 @@ impl<T: EmailSender> OurChatService for RpcServer<T> {
     async fn set_self_info(
         &self,
         request: tonic::Request<SetSelfInfoRequest>,
-    ) -> Result<tonic::Response<SetAccountInfoResponse>, tonic::Status> {
+    ) -> Result<tonic::Response<SetSelfInfoResponse>, tonic::Status> {
         process::set_account_info(self, request).await
     }
 
     async fn set_friend_info(
         &self,
         request: tonic::Request<SetFriendInfoRequest>,
-    ) -> Result<tonic::Response<SetAccountInfoResponse>, tonic::Status> {
+    ) -> Result<tonic::Response<SetFriendInfoResponse>, tonic::Status> {
         process::set_friend_info(self, request).await
     }
 

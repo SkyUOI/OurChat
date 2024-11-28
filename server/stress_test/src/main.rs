@@ -123,7 +123,7 @@ async fn test_get_info(users: &UsersGroup, report: &mut Report) {
                 user.lock()
                     .await
                     .oc()
-                    .get_info(GetAccountInfoRequest {
+                    .get_account_info(GetAccountInfoRequest {
                         ocid: ocid.clone(),
                         request_values: vec![
                             RequestValues::Ocid.into(),

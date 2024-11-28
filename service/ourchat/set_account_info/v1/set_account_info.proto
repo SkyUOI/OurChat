@@ -13,4 +13,6 @@ message SetFriendInfoRequest {
   optional string display_name = 2;
 }
 
-message SetAccountInfoResponse {}
+message SetSelfInfoResponse {}
+
+message SetFriendInfoResponse {}
