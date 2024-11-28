@@ -14,6 +14,7 @@ use server::consts::SessionID;
 use server::db::DbCfgTrait;
 use server::pb::auth::authorize::v1::auth_request;
 use server::pb::auth::register::v1::RegisterRequest;
+use server::pb::basic::v1::TimestampRequest;
 use server::pb::{
     auth::authorize::v1::AuthRequest,
     auth::v1::auth_service_client::AuthServiceClient,
@@ -471,7 +472,15 @@ impl TestApp {
     /// Must request the server, shouldn't build a time from local by chrono, because some tests
     /// rely on this behaviour
     pub async fn get_timestamp(&mut self) -> TimeStampUtc {
-        let ret = self.clients.basic.timestamp(()).await.unwrap().into_inner();
+        let ret = self
+            .clients
+            .basic
+            .timestamp(TimestampRequest {})
+            .await
+            .unwrap()
+            .into_inner()
+            .timestamp
+            .unwrap();
         from_google_timestamp(&ret).unwrap()
     }
 }

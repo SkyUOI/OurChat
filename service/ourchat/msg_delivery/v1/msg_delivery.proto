@@ -16,8 +16,12 @@ message SendMsgRequest {
   repeated OneMsg bundle_msg = 3;
 }
 
-message FetchMsgRequest {
+message FetchMsgsRequest {
   google.protobuf.Timestamp time = 1;
+}
+
+message FetchMsgsResponse {
+  Msg msg = 1;
 }
 
 message Msg {

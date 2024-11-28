@@ -19,9 +19,9 @@ service OurChatService {
 
   rpc SetFriendInfo(set_account_info.v1.SetFriendInfoRequest) returns (set_account_info.v1.SetAccountInfoResponse);
 
-  rpc FetchMsgs(msg_delivery.v1.FetchMsgRequest) returns (stream msg_delivery.v1.Msg);
+  rpc FetchMsgs(msg_delivery.v1.FetchMsgsRequest) returns (stream msg_delivery.v1.FetchMsgsResponse);
 
-  rpc MsgDelivery(stream msg_delivery.v1.SendMsgRequest) returns (stream msg_delivery.v1.SendMsgResponse);
+  rpc SendMsg(stream msg_delivery.v1.SendMsgRequest) returns (stream msg_delivery.v1.SendMsgResponse);
 
   rpc Upload(stream upload.v1.UploadRequest) returns (upload.v1.UploadResponse);
 

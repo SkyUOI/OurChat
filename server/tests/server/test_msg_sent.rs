@@ -1,11 +1,11 @@
-use futures_util::StreamExt;
 use server::{
     pb::ourchat::msg_delivery::{
         self,
-        v1::{self, FetchMsgRequest, Msg, OneMsg, SendMsgRequest},
+        v1::{self, FetchMsgsRequest, FetchMsgsResponse, Msg, OneMsg, SendMsgRequest},
     },
     utils::to_google_timestamp,
 };
+use tokio_stream::StreamExt;
 
 #[tokio::test]
 async fn test_text_sent() {
@@ -31,7 +31,7 @@ async fn test_text_sent() {
         .lock()
         .await
         .oc()
-        .msg_delivery(tokio_stream::iter(vec![msg_sent]))
+        .send_msg(tokio_stream::iter(vec![msg_sent]))
         .await
         .unwrap();
     let msg_id = ret.into_inner().next().await.unwrap().unwrap().msg_id;
@@ -65,7 +65,7 @@ async fn test_text_get() {
         .lock()
         .await
         .oc()
-        .msg_delivery(tokio_stream::iter(vec![msg_sent]))
+        .send_msg(tokio_stream::iter(vec![msg_sent]))
         .await
         .unwrap();
     let mut msg_id = vec![ret.into_inner().next().await.unwrap().unwrap().msg_id];
@@ -81,21 +81,25 @@ async fn test_text_get() {
         .lock()
         .await
         .oc()
-        .msg_delivery(tokio_stream::iter(vec![msg_sent]))
+        .send_msg(tokio_stream::iter(vec![msg_sent]))
         .await
         .unwrap();
     msg_id.push(ret.into_inner().next().await.unwrap().unwrap().msg_id);
 
     // get message
-    let msg_get = FetchMsgRequest {
+    let msg_get = FetchMsgsRequest {
         time: Some(to_google_timestamp(base_time)),
     };
     let ret = c.lock().await.oc().fetch_msgs(msg_get).await.unwrap();
     let ret = ret.into_inner();
-    let msgs = ret.collect::<Vec<Result<Msg, tonic::Status>>>().await;
+    let msgs: Vec<Msg> = ret
+        .collect::<Vec<Result<FetchMsgsResponse, tonic::Status>>>()
+        .await
+        .into_iter()
+        .map(|r| r.unwrap().msg.unwrap())
+        .collect();
     assert_eq!(msgs.len(), 2);
     for (i, msg_id) in msgs.into_iter().zip(msg_id.iter()) {
-        let i = i.unwrap();
         assert_eq!(i.session_id, u64::from(session.session_id));
         assert_eq!(i.bundle_msg, vec![msg_should_sent.clone()]);
         assert_eq!(i.msg_id, *msg_id);

@@ -14,7 +14,7 @@ message ServerVersion {
   int32 patch = 3;
 }
 
-message ServerInfo {
+message GetServerInfoResponse {
   RunningStatus status = 1;
   uint32 http_port = 2;
   ServerVersion server_version = 3;

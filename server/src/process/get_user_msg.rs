@@ -5,9 +5,9 @@ use crate::{
     entities::user_chat_msg,
     pb::{
         self,
-        ourchat::msg_delivery::v1::{FetchMsgRequest, Msg},
+        ourchat::msg_delivery::v1::{FetchMsgsRequest, FetchMsgsResponse, Msg},
     },
-    server::{FetchMsgStream, RpcServer},
+    server::{FetchMsgsStream, RpcServer},
     utils::from_google_timestamp,
 };
 use base::time::TimeStamp;
@@ -28,8 +28,8 @@ pub enum MsgError {
 
 pub async fn get_user_msg<T: EmailSender>(
     server: &RpcServer<T>,
-    request: tonic::Request<FetchMsgRequest>,
-) -> Result<Response<FetchMsgStream>, tonic::Status> {
+    request: tonic::Request<FetchMsgsRequest>,
+) -> Result<Response<FetchMsgsStream>, tonic::Status> {
     let id = get_id_from_req(&request).unwrap();
     let request = request.into_inner();
     let time = match from_google_timestamp(&match request.time {
@@ -59,7 +59,7 @@ pub async fn get_user_msg<T: EmailSender>(
                                     continue;
                                 }
                             };
-                            match tx.send(Ok(msg)).await {
+                            match tx.send(Ok(FetchMsgsResponse { msg: Some(msg) })).await {
                                 Ok(_) => {}
                                 Err(e) => {
                                     tracing::error!("send msg error:{e}");
@@ -88,7 +88,7 @@ pub async fn get_user_msg<T: EmailSender>(
         }
     });
     let output_stream = ReceiverStream::new(rx);
-    Ok(Response::new(Box::pin(output_stream) as FetchMsgStream))
+    Ok(Response::new(Box::pin(output_stream) as FetchMsgsStream))
 }
 
 async fn get_session_msgs(

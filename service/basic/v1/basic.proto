@@ -2,12 +2,19 @@ syntax = "proto3";
 
 package service.basic.v1;
 
-import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 import "service/basic/server/v1/server.proto";
 
-service BasicService {
-  rpc Timestamp(google.protobuf.Empty) returns (google.protobuf.Timestamp);
+message TimestampRequest {}
 
-  rpc GetServerInfo(google.protobuf.Empty) returns (server.v1.ServerInfo);
+message TimestampResponse {
+  google.protobuf.Timestamp timestamp = 1;
+}
+
+message GetServerInfoRequest {}
+
+service BasicService {
+  rpc Timestamp(TimestampRequest) returns (TimestampResponse);
+
+  rpc GetServerInfo(GetServerInfoRequest) returns (server.v1.GetServerInfoResponse);
 }

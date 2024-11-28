@@ -9,9 +9,12 @@ use crate::pb::auth::register::v1::{RegisterRequest, RegisterResponse};
 use crate::pb::auth::v1::auth_service_server::{self, AuthServiceServer};
 use crate::pb::basic::server::v1::{RunningStatus, ServerVersion};
 use crate::pb::basic::v1::basic_service_server::{BasicService, BasicServiceServer};
+use crate::pb::basic::v1::{GetServerInfoRequest, TimestampRequest, TimestampResponse};
 use crate::pb::ourchat::download::v1::{DownloadRequest, DownloadResponse};
 use crate::pb::ourchat::get_account_info::v1::{GetAccountInfoRequest, GetAccountInfoResponse};
-use crate::pb::ourchat::msg_delivery::v1::{FetchMsgRequest, Msg, SendMsgRequest, SendMsgResponse};
+use crate::pb::ourchat::msg_delivery::v1::{
+    FetchMsgsRequest, FetchMsgsResponse, Msg, SendMsgRequest, SendMsgResponse,
+};
 use crate::pb::ourchat::session::v1::{NewSessionRequest, NewSessionResponse};
 use crate::pb::ourchat::set_account_info::v1::{
     SetAccountInfoResponse, SetFriendInfoRequest, SetSelfInfoRequest,
@@ -90,7 +93,8 @@ impl<T: EmailSender> RpcServer<T> {
     }
 }
 
-pub type FetchMsgStream = Pin<Box<dyn tokio_stream::Stream<Item = Result<Msg, Status>> + Send>>;
+pub type FetchMsgsStream =
+    Pin<Box<dyn tokio_stream::Stream<Item = Result<FetchMsgsResponse, Status>> + Send>>;
 pub type SendMsgStream =
     Pin<Box<dyn tokio_stream::Stream<Item = Result<SendMsgResponse, Status>> + Send>>;
 pub type DownloadStream =
@@ -126,21 +130,21 @@ impl<T: EmailSender> OurChatService for RpcServer<T> {
         process::set_friend_info(self, request).await
     }
 
-    type FetchMsgsStream = FetchMsgStream;
+    type FetchMsgsStream = FetchMsgsStream;
 
     async fn fetch_msgs(
         &self,
-        request: tonic::Request<FetchMsgRequest>,
+        request: tonic::Request<FetchMsgsRequest>,
     ) -> Result<Response<Self::FetchMsgsStream>, tonic::Status> {
         process::get_user_msg(self, request).await
     }
 
-    type MsgDeliveryStream = SendMsgStream;
+    type SendMsgStream = SendMsgStream;
 
-    async fn msg_delivery(
+    async fn send_msg(
         &self,
         request: tonic::Request<tonic::Streaming<SendMsgRequest>>,
-    ) -> Result<Response<Self::MsgDeliveryStream>, tonic::Status> {
+    ) -> Result<Response<Self::SendMsgStream>, tonic::Status> {
         process::send_msg(self, request).await
     }
 
@@ -210,21 +214,26 @@ struct BasicServiceProvider<T: EmailSender> {
 impl<T: EmailSender> BasicService for BasicServiceProvider<T> {
     async fn timestamp(
         &self,
-        _request: tonic::Request<()>,
-    ) -> Result<tonic::Response<prost_types::Timestamp>, tonic::Status> {
+        _request: tonic::Request<TimestampRequest>,
+    ) -> Result<tonic::Response<TimestampResponse>, tonic::Status> {
         let time = chrono::Utc::now();
-        Ok(tonic::Response::new(to_google_timestamp(time)))
+        let res = TimestampResponse {
+            timestamp: Some(to_google_timestamp(time)),
+        };
+        Ok(tonic::Response::new(res))
     }
 
     async fn get_server_info(
         &self,
-        _request: tonic::Request<()>,
-    ) -> Result<tonic::Response<pb::basic::server::v1::ServerInfo>, tonic::Status> {
-        Ok(Response::new(pb::basic::server::v1::ServerInfo {
-            http_port: self.shared_data.cfg.main_cfg.http_port.into(),
-            status: shared_state::get_maintaining().into(),
-            ..*SERVER_INFO_RPC
-        }))
+        _request: tonic::Request<GetServerInfoRequest>,
+    ) -> Result<tonic::Response<pb::basic::server::v1::GetServerInfoResponse>, tonic::Status> {
+        Ok(Response::new(
+            pb::basic::server::v1::GetServerInfoResponse {
+                http_port: self.shared_data.cfg.main_cfg.http_port.into(),
+                status: shared_state::get_maintaining().into(),
+                ..*SERVER_INFO_RPC
+            },
+        ))
     }
 }
 
@@ -237,8 +246,8 @@ static VERSION_SPLIT: LazyLock<ServerVersion> = LazyLock::new(|| {
     }
 });
 
-static SERVER_INFO_RPC: LazyLock<pb::basic::server::v1::ServerInfo> =
-    LazyLock::new(|| pb::basic::server::v1::ServerInfo {
+static SERVER_INFO_RPC: LazyLock<pb::basic::server::v1::GetServerInfoResponse> =
+    LazyLock::new(|| pb::basic::server::v1::GetServerInfoResponse {
         server_version: Some(*VERSION_SPLIT),
         http_port: 0,
         status: RunningStatus::Normal as i32,
