@@ -31,3 +31,13 @@ jobs:
         run: cd client/ourchat && flutter analyze
       - name: FLutter Fmt
         run: cd client/ourchat && dart format ./ --set-exit-if-changed
+      - uses: bufbuild/buf-setup-action@v0.3.1
+      # Lint
+      - uses: bufbuild/buf-lint-action@v0.3.0
+      # Breaking change detection
+      - uses: bufbuild/buf-breaking-action@v0.4.0
+        with:
+          # The 'main' branch of the GitHub repository that defines the module
+          against: "https://github.com/${GITHUB_REPOSITORY}.git#branch=main"
+      - name: Buf Fmt
+        run: buf format --exit-code 233

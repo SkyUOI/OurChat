@@ -4,7 +4,7 @@ use crate::{
     component::EmailSender,
     consts::{ID, OCID, SessionID},
     entities::{friend, operations, prelude::*, session, session_relation},
-    pb::session::{NewSessionRequest, NewSessionResponse},
+    pb::ourchat::session::v1::{NewSessionRequest, NewSessionResponse},
     server::RpcServer,
     utils,
 };

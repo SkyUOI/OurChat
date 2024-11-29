@@ -2,7 +2,7 @@ use crate::{
     component::EmailSender,
     consts::{Bt, ID},
     entities::{files, prelude::*, user},
-    pb::upload::{UploadRequest, UploadResponse, upload_request},
+    pb::ourchat::upload::v1::{UploadRequest, UploadResponse, upload_request},
     server::RpcServer,
     shared_state,
     utils::{create_file_with_dirs_if_not_exist, generate_random_string},

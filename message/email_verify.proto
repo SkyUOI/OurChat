@@ -1,9 +1,0 @@
-syntax = "proto3";
-
-package email_verify;
-
-message VerifyRequest {
-    string email = 1;
-}
-
-message VerifyResponse {}

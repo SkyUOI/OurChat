@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package service.auth.authorize.v1;
+
+message AuthRequest {
+  oneof account {
+    string email = 1;
+    string ocid = 2;
+  }
+  string password = 3;
+}
+
+message AuthResponse {
+  string token = 1;
+  string ocid = 2;
+}

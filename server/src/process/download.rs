@@ -3,7 +3,13 @@ use crate::{
     component::EmailSender,
     consts::ID,
     entities::files,
-    pb,
+    pb::{
+        self,
+        ourchat::download::{
+            self,
+            v1::{DownloadRequest, DownloadResponse},
+        },
+    },
     server::{DownloadStream, RpcServer},
 };
 use bytes::BytesMut;
@@ -41,8 +47,8 @@ pub async fn check_file_privilege(
 
 async fn download_impl(
     id: ID,
-    req: pb::download::DownloadRequest,
-    tx: &mpsc::Sender<Result<pb::download::DownloadResponse, Status>>,
+    req: DownloadRequest,
+    tx: &mpsc::Sender<Result<DownloadResponse, Status>>,
     db_conn: &DbPool,
 ) -> Result<(), DownloadError> {
     let path = format!("{}/{}", "files_storage", &req.key);
@@ -60,7 +66,7 @@ async fn download_impl(
         if n == 0 {
             break;
         }
-        tx.send(Ok(pb::download::DownloadResponse { data: buf.to_vec() }))
+        tx.send(Ok(DownloadResponse { data: buf.to_vec() }))
             .await
             .ok();
     }
@@ -69,7 +75,7 @@ async fn download_impl(
 
 pub async fn download(
     server: &RpcServer<impl EmailSender>,
-    request: Request<pb::download::DownloadRequest>,
+    request: Request<DownloadRequest>,
 ) -> Result<Response<DownloadStream>, tonic::Status> {
     let id = get_id_from_req(&request).unwrap();
     let req = request.into_inner();

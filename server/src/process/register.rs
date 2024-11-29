@@ -4,7 +4,7 @@ use crate::{
     component::EmailSender,
     consts::{self, ID},
     entities::user,
-    pb::register::{RegisterRequest, RegisterResponse},
+    pb::auth::register::v1::{RegisterRequest, RegisterResponse},
     server::AuthServiceProvider,
     shared_state, utils,
 };

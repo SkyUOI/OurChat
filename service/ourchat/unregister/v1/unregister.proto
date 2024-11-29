@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+package service.ourchat.unregister.v1;
+
+message UnregisterRequest {}
+
+message UnregisterResponse {}

@@ -4,7 +4,7 @@ use crate::{
     component::EmailSender,
     consts::ID,
     entities::friend,
-    pb::set_info::{SetAccountInfoResponse, SetFriendInfoRequest},
+    pb::ourchat::set_account_info::v1::{SetFriendInfoRequest, SetFriendInfoResponse},
     server::RpcServer,
 };
 use sea_orm::{ActiveModelTrait, ActiveValue, DbErr};
@@ -13,7 +13,7 @@ use tonic::{Response, Status};
 pub async fn set_friend_info<T: EmailSender>(
     server: &RpcServer<T>,
     request: tonic::Request<SetFriendInfoRequest>,
-) -> Result<Response<SetAccountInfoResponse>, tonic::Status> {
+) -> Result<Response<SetFriendInfoResponse>, tonic::Status> {
     let id = get_id_from_req(&request).unwrap();
     let request = request.into_inner();
     match update_friend(id, request, &server.db).await {
@@ -27,7 +27,7 @@ pub async fn set_friend_info<T: EmailSender>(
             return Err(Status::internal("Unknown error"));
         }
     };
-    Ok(Response::new(SetAccountInfoResponse {}))
+    Ok(Response::new(SetFriendInfoResponse {}))
 }
 
 #[derive(Debug, thiserror::Error)]

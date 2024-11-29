@@ -5,10 +5,9 @@ mod framework;
 use clap::Parser;
 use dashmap::DashMap;
 use framework::{Output, Record, Report, StressTest};
-use parking_lot::Mutex;
-use server::{
-    consts::ID,
-    pb::{self, get_info::GetAccountInfoRequest, upload::UploadRequest},
+use server::pb::{
+    self,
+    basic::v1::{GetServerInfoRequest, TimestampRequest},
 };
 use std::{
     env::set_var,
@@ -21,7 +20,6 @@ use std::{
     time::Duration,
 };
 use tokio::{fs::read_to_string, time::Instant};
-use tonic::IntoRequest;
 
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
@@ -31,7 +29,7 @@ async fn test_timestamp(stress_test: &mut StressTest, app: &mut client::TestApp)
     stress_test
         .stress_test(move || {
             let mut app = app.clone();
-            async move { app.basic.timestamp(()).await.is_ok() }
+            async move { app.basic.timestamp(TimestampRequest {}).await.is_ok() }
         })
         .await
 }
@@ -41,7 +39,12 @@ async fn test_get_server_into(stress_test: &mut StressTest, app: &mut client::Te
     stress_test
         .stress_test(move || {
             let mut app = app.clone();
-            async move { app.basic.get_server_info(()).await.is_ok() }
+            async move {
+                app.basic
+                    .get_server_info(GetServerInfoRequest {})
+                    .await
+                    .is_ok()
+            }
         })
         .await
 }
@@ -105,7 +108,7 @@ async fn test_auth(users: &UsersGroup, report: &mut Report, app: &mut client::Te
 }
 
 async fn test_get_info(users: &UsersGroup, report: &mut Report) {
-    use pb::get_info::*;
+    use pb::ourchat::get_account_info::v1::*;
     let mut stress_test = StressTest::builder()
         .set_concurrency(1000)
         .set_requests(1000);
@@ -120,7 +123,7 @@ async fn test_get_info(users: &UsersGroup, report: &mut Report) {
                 user.lock()
                     .await
                     .oc()
-                    .get_info(GetAccountInfoRequest {
+                    .get_account_info(GetAccountInfoRequest {
                         ocid: ocid.clone(),
                         request_values: vec![
                             RequestValues::Ocid.into(),

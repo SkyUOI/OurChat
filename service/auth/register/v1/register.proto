@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package service.auth.register.v1;
+
+message RegisterRequest {
+  string email = 1;
+  string password = 2;
+  string name = 3;
+}
+
+message RegisterResponse {
+  string ocid = 2;
+  string token = 3;
+}

@@ -3,12 +3,28 @@
 pub mod httpserver;
 
 use crate::component::EmailSender;
-use crate::pb::service::auth_service_server::AuthServiceServer;
-use crate::pb::service::basic_service_server::{BasicService, BasicServiceServer};
-use crate::pb::service::our_chat_service_server::{OurChatService, OurChatServiceServer};
-use crate::process;
+use crate::pb::auth::authorize::v1::{AuthRequest, AuthResponse};
+use crate::pb::auth::email_verify::v1::{VerifyRequest, VerifyResponse};
+use crate::pb::auth::register::v1::{RegisterRequest, RegisterResponse};
+use crate::pb::auth::v1::auth_service_server::{self, AuthServiceServer};
+use crate::pb::basic::server::v1::{RunningStatus, ServerVersion};
+use crate::pb::basic::v1::basic_service_server::{BasicService, BasicServiceServer};
+use crate::pb::basic::v1::{GetServerInfoRequest, TimestampRequest, TimestampResponse};
+use crate::pb::ourchat::download::v1::{DownloadRequest, DownloadResponse};
+use crate::pb::ourchat::get_account_info::v1::{GetAccountInfoRequest, GetAccountInfoResponse};
+use crate::pb::ourchat::msg_delivery::v1::{
+    FetchMsgsRequest, FetchMsgsResponse, Msg, SendMsgRequest, SendMsgResponse,
+};
+use crate::pb::ourchat::session::v1::{NewSessionRequest, NewSessionResponse};
+use crate::pb::ourchat::set_account_info::v1::{
+    SetFriendInfoRequest, SetFriendInfoResponse, SetSelfInfoRequest, SetSelfInfoResponse,
+};
+use crate::pb::ourchat::unregister::v1::{UnregisterRequest, UnregisterResponse};
+use crate::pb::ourchat::upload::v1::{UploadRequest, UploadResponse};
+use crate::pb::ourchat::v1::our_chat_service_server::{OurChatService, OurChatServiceServer};
 use crate::utils::to_google_timestamp;
 use crate::{DbPool, HttpSender, SharedData, ShutdownRev, pb, shared_state};
+use crate::{ServerInfo, process};
 use std::net::SocketAddr;
 use std::pin::Pin;
 use std::sync::{Arc, LazyLock};
@@ -77,83 +93,81 @@ impl<T: EmailSender> RpcServer<T> {
     }
 }
 
-pub type FetchMsgStream =
-    Pin<Box<dyn tokio_stream::Stream<Item = Result<pb::msg_delivery::Msg, Status>> + Send>>;
-pub type SendMsgStream = Pin<
-    Box<dyn tokio_stream::Stream<Item = Result<pb::msg_delivery::SendMsgResponse, Status>> + Send>,
->;
-pub type DownloadStream = Pin<
-    Box<dyn tokio_stream::Stream<Item = Result<pb::download::DownloadResponse, Status>> + Send>,
->;
+pub type FetchMsgsStream =
+    Pin<Box<dyn tokio_stream::Stream<Item = Result<FetchMsgsResponse, Status>> + Send>>;
+pub type SendMsgStream =
+    Pin<Box<dyn tokio_stream::Stream<Item = Result<SendMsgResponse, Status>> + Send>>;
+pub type DownloadStream =
+    Pin<Box<dyn tokio_stream::Stream<Item = Result<DownloadResponse, Status>> + Send>>;
 
 #[tonic::async_trait]
 impl<T: EmailSender> OurChatService for RpcServer<T> {
     async fn unregister(
         &self,
-        request: tonic::Request<pb::register::UnregisterRequest>,
-    ) -> Result<tonic::Response<pb::register::UnregisterResponse>, tonic::Status> {
+        request: tonic::Request<UnregisterRequest>,
+    ) -> Result<tonic::Response<UnregisterResponse>, tonic::Status> {
         process::unregister::unregister(self, request).await
     }
 
-    async fn get_info(
+    async fn get_account_info(
         &self,
-        request: tonic::Request<pb::get_info::GetAccountInfoRequest>,
-    ) -> Result<tonic::Response<pb::get_info::GetAccountInfoResponse>, tonic::Status> {
+        request: tonic::Request<GetAccountInfoRequest>,
+    ) -> Result<tonic::Response<GetAccountInfoResponse>, tonic::Status> {
         process::get_account_info::get_info(self, request).await
     }
 
     async fn set_self_info(
         &self,
-        request: tonic::Request<pb::set_info::SetSelfInfoRequest>,
-    ) -> Result<tonic::Response<pb::set_info::SetAccountInfoResponse>, tonic::Status> {
+        request: tonic::Request<SetSelfInfoRequest>,
+    ) -> Result<tonic::Response<SetSelfInfoResponse>, tonic::Status> {
         process::set_account_info(self, request).await
     }
 
     async fn set_friend_info(
         &self,
-        request: tonic::Request<pb::set_info::SetFriendInfoRequest>,
-    ) -> Result<tonic::Response<pb::set_info::SetAccountInfoResponse>, tonic::Status> {
+        request: tonic::Request<SetFriendInfoRequest>,
+    ) -> Result<tonic::Response<SetFriendInfoResponse>, tonic::Status> {
         process::set_friend_info(self, request).await
     }
 
-    type fetch_msgsStream = FetchMsgStream;
+    type FetchMsgsStream = FetchMsgsStream;
 
     async fn fetch_msgs(
         &self,
-        request: tonic::Request<pb::msg_delivery::FetchMsgRequest>,
-    ) -> Result<Response<Self::fetch_msgsStream>, tonic::Status> {
+        request: tonic::Request<FetchMsgsRequest>,
+    ) -> Result<Response<Self::FetchMsgsStream>, tonic::Status> {
         process::get_user_msg(self, request).await
     }
 
-    type msg_deliveryStream = SendMsgStream;
+    type SendMsgStream = SendMsgStream;
 
-    async fn msg_delivery(
+    async fn send_msg(
         &self,
-        request: tonic::Request<tonic::Streaming<pb::msg_delivery::SendMsgRequest>>,
-    ) -> Result<Response<Self::msg_deliveryStream>, tonic::Status> {
+        request: tonic::Request<tonic::Streaming<SendMsgRequest>>,
+    ) -> Result<Response<Self::SendMsgStream>, tonic::Status> {
         process::send_msg(self, request).await
     }
 
     async fn upload(
         &self,
-        request: tonic::Request<tonic::Streaming<pb::upload::UploadRequest>>,
-    ) -> Result<Response<pb::upload::UploadResponse>, tonic::Status> {
+        request: tonic::Request<tonic::Streaming<UploadRequest>>,
+    ) -> Result<Response<UploadResponse>, tonic::Status> {
         process::upload(self, request).await
     }
 
     async fn new_session(
         &self,
-        request: tonic::Request<pb::session::NewSessionRequest>,
-    ) -> Result<tonic::Response<pb::session::NewSessionResponse>, tonic::Status> {
+        request: tonic::Request<NewSessionRequest>,
+    ) -> Result<tonic::Response<NewSessionResponse>, tonic::Status> {
         process::new_session(self, request).await
     }
 
-    type downloadStream = DownloadStream;
+    type DownloadStream = DownloadStream;
 
     async fn download(
         &self,
-        request: tonic::Request<pb::download::DownloadRequest>,
-    ) -> Result<Response<Self::downloadStream>, tonic::Status> {
+        request: tonic::Request<DownloadRequest>,
+    ) -> Result<Response<Self::DownloadStream>, tonic::Status> {
         process::download(self, request).await
     }
 }
@@ -163,32 +177,31 @@ pub struct AuthServiceProvider<T: EmailSender> {
     pub db: DbPool,
 }
 
-pub type VerifyStream = Pin<
-    Box<dyn tokio_stream::Stream<Item = Result<pb::email_verify::VerifyResponse, Status>> + Send>,
->;
+pub type VerifyStream =
+    Pin<Box<dyn tokio_stream::Stream<Item = Result<VerifyResponse, Status>> + Send>>;
 
 #[tonic::async_trait]
-impl<T: EmailSender> pb::service::auth_service_server::AuthService for AuthServiceProvider<T> {
+impl<T: EmailSender> auth_service_server::AuthService for AuthServiceProvider<T> {
     async fn auth(
         &self,
-        request: tonic::Request<pb::auth::AuthRequest>,
-    ) -> Result<tonic::Response<pb::auth::AuthResponse>, tonic::Status> {
+        request: tonic::Request<AuthRequest>,
+    ) -> Result<tonic::Response<AuthResponse>, tonic::Status> {
         process::auth::auth(self, request).await
     }
 
     async fn register(
         &self,
-        request: tonic::Request<pb::register::RegisterRequest>,
-    ) -> Result<tonic::Response<pb::register::RegisterResponse>, tonic::Status> {
+        request: tonic::Request<RegisterRequest>,
+    ) -> Result<tonic::Response<RegisterResponse>, tonic::Status> {
         process::register::register(self, request).await
     }
 
-    type verifyStream = VerifyStream;
+    type VerifyStream = VerifyStream;
 
     async fn verify(
         &self,
-        request: tonic::Request<pb::email_verify::VerifyRequest>,
-    ) -> Result<tonic::Response<Self::verifyStream>, tonic::Status> {
+        request: tonic::Request<VerifyRequest>,
+    ) -> Result<tonic::Response<Self::VerifyStream>, tonic::Status> {
         process::verify::email_verify(self, request).await
     }
 }
@@ -201,36 +214,41 @@ struct BasicServiceProvider<T: EmailSender> {
 impl<T: EmailSender> BasicService for BasicServiceProvider<T> {
     async fn timestamp(
         &self,
-        _request: tonic::Request<()>,
-    ) -> Result<tonic::Response<prost_types::Timestamp>, tonic::Status> {
+        _request: tonic::Request<TimestampRequest>,
+    ) -> Result<tonic::Response<TimestampResponse>, tonic::Status> {
         let time = chrono::Utc::now();
-        Ok(tonic::Response::new(to_google_timestamp(time)))
+        let res = TimestampResponse {
+            timestamp: Some(to_google_timestamp(time)),
+        };
+        Ok(tonic::Response::new(res))
     }
 
     async fn get_server_info(
         &self,
-        _request: tonic::Request<()>,
-    ) -> Result<tonic::Response<pb::server::ServerInfo>, tonic::Status> {
-        Ok(Response::new(pb::server::ServerInfo {
-            http_port: self.shared_data.cfg.main_cfg.http_port.into(),
-            status: shared_state::get_maintaining().into(),
-            ..*SERVER_INFO_RPC
-        }))
+        _request: tonic::Request<GetServerInfoRequest>,
+    ) -> Result<tonic::Response<pb::basic::server::v1::GetServerInfoResponse>, tonic::Status> {
+        Ok(Response::new(
+            pb::basic::server::v1::GetServerInfoResponse {
+                http_port: self.shared_data.cfg.main_cfg.http_port.into(),
+                status: shared_state::get_maintaining().into(),
+                ..*SERVER_INFO_RPC
+            },
+        ))
     }
 }
 
-static VERSION_SPLIT: LazyLock<pb::server::ServerVersion> = LazyLock::new(|| {
+static VERSION_SPLIT: LazyLock<ServerVersion> = LazyLock::new(|| {
     let ver = base::build::PKG_VERSION.split('.').collect::<Vec<_>>();
-    pb::server::ServerVersion {
+    ServerVersion {
         major: ver[0].parse().unwrap(),
         minor: ver[1].parse().unwrap(),
         patch: ver[2].parse().unwrap(),
     }
 });
 
-static SERVER_INFO_RPC: LazyLock<pb::server::ServerInfo> =
-    LazyLock::new(|| pb::server::ServerInfo {
+static SERVER_INFO_RPC: LazyLock<pb::basic::server::v1::GetServerInfoResponse> =
+    LazyLock::new(|| pb::basic::server::v1::GetServerInfoResponse {
         server_version: Some(*VERSION_SPLIT),
         http_port: 0,
-        status: pb::server::RunningStatus::Normal as i32,
+        status: RunningStatus::Normal as i32,
     });

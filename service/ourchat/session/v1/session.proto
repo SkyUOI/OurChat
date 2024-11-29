@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package service.ourchat.session.v1;
+
+message NewSessionRequest {
+  repeated string members = 1;
+  string name = 2;
+  string message = 3;
+}
+
+message NewSessionResponse {
+  uint64 session_id = 1;
+}

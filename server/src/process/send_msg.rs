@@ -3,7 +3,7 @@ use crate::{
     component::EmailSender,
     consts::{ID, MsgID},
     entities::user_chat_msg,
-    pb::msg_delivery::{SendMsgRequest, SendMsgResponse},
+    pb::ourchat::msg_delivery::v1::{SendMsgRequest, SendMsgResponse},
     server::{RpcServer, SendMsgStream},
 };
 use futures_util::StreamExt;

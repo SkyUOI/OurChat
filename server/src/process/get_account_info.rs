@@ -1,7 +1,7 @@
 use super::basic::get_id;
 use crate::component::EmailSender;
 use crate::entities::{friend, user};
-use crate::pb::get_info::{
+use crate::pb::ourchat::get_account_info::v1::{
     GetAccountInfoRequest, GetAccountInfoResponse, OWNER_PRIVILEGE, RequestValues,
 };
 use crate::server::RpcServer;
@@ -124,6 +124,9 @@ pub async fn get_info<T: EmailSender>(
                     ret.friends = ids
                 }
                 RequestValues::UserName => ret.user_name = Some(queried_user.name.clone()),
+                RequestValues::Unspecified => {
+                    tracing::warn!("Meet a unspecified request value");
+                }
             }
         }
     }

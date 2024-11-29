@@ -26,7 +26,7 @@ use db::{DbCfgTrait, PostgresDbCfg, file_storage};
 use futures_util::future::join_all;
 use lettre::{AsyncSmtpTransport, transport::smtp::authentication::Credentials};
 use parking_lot::Once;
-use pb::msg_delivery::Msg;
+use pb::ourchat::msg_delivery::v1::Msg;
 use rand::Rng;
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};

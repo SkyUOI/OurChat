@@ -10,7 +10,10 @@ use tonic::{Request, Response};
 use crate::{
     component::EmailSender,
     consts::VERIFY_EMAIL_EXPIRE,
-    pb,
+    pb::{
+        self,
+        auth::email_verify::v1::{VerifyRequest, VerifyResponse},
+    },
     server::{
         AuthServiceProvider, VerifyStream,
         httpserver::verify::{VerifyRecord, verify_client},
@@ -26,7 +29,7 @@ pub fn generate_token() -> String {
 
 pub async fn email_verify(
     server: &AuthServiceProvider<impl EmailSender>,
-    request: Request<pb::email_verify::VerifyRequest>,
+    request: Request<VerifyRequest>,
 ) -> Result<Response<VerifyStream>, tonic::Status> {
     let request = request.into_inner();
     let notifier = Arc::new(Notify::new());
@@ -49,7 +52,7 @@ pub async fn email_verify(
                 Err(tonic::Status::deadline_exceeded("Verification has not been down yet"))
             },
             _ = notifier.notified() => {
-                Ok(pb::email_verify::VerifyResponse {})
+                Ok(VerifyResponse {})
             }
         };
         tx.send(ret).await.ok();

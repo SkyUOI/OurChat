@@ -2,7 +2,7 @@ use crate::{
     component::EmailSender,
     consts::ID,
     entities::user,
-    pb::set_info::{SetAccountInfoResponse, SetSelfInfoRequest},
+    pb::ourchat::set_account_info::v1::{SetSelfInfoRequest, SetSelfInfoResponse},
     server::RpcServer,
 };
 use sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection};
@@ -13,7 +13,7 @@ use super::get_id_from_req;
 pub async fn set_account_info<T: EmailSender>(
     server: &RpcServer<T>,
     request: Request<SetSelfInfoRequest>,
-) -> Result<Response<SetAccountInfoResponse>, Status> {
+) -> Result<Response<SetSelfInfoResponse>, Status> {
     let id = get_id_from_req(&request).unwrap();
     let request_data = request.into_inner();
     match update_account(id, request_data, &server.db.db_pool).await {
@@ -31,7 +31,7 @@ pub async fn set_account_info<T: EmailSender>(
             return Err(Status::internal("Unknown error"));
         }
     }
-    Ok(Response::new(SetAccountInfoResponse {}))
+    Ok(Response::new(SetSelfInfoResponse {}))
 }
 
 #[derive(Debug, thiserror::Error)]

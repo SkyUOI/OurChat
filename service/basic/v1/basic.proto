@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package service.basic.v1;
+
+import "google/protobuf/timestamp.proto";
+import "service/basic/server/v1/server.proto";
+
+message TimestampRequest {}
+
+message TimestampResponse {
+  google.protobuf.Timestamp timestamp = 1;
+}
+
+message GetServerInfoRequest {}
+
+service BasicService {
+  rpc Timestamp(TimestampRequest) returns (TimestampResponse);
+
+  rpc GetServerInfo(GetServerInfoRequest) returns (server.v1.GetServerInfoResponse);
+}
