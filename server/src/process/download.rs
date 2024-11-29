@@ -1,15 +1,11 @@
+use std::path::PathBuf;
+
 use crate::{
     DbPool,
     component::EmailSender,
     consts::ID,
     entities::files,
-    pb::{
-        self,
-        ourchat::download::{
-            self,
-            v1::{DownloadRequest, DownloadResponse},
-        },
-    },
+    pb::ourchat::download::v1::{DownloadRequest, DownloadResponse},
     server::{DownloadStream, RpcServer},
 };
 use bytes::BytesMut;
@@ -50,10 +46,11 @@ async fn download_impl(
     req: DownloadRequest,
     tx: &mpsc::Sender<Result<DownloadResponse, Status>>,
     db_conn: &DbPool,
+    path: impl Into<PathBuf>,
 ) -> Result<(), DownloadError> {
-    let path = format!("{}/{}", "files_storage", &req.key);
     // check if the file can be downloaded by the user
     // TODO:check whether it belongs to a session which hold this file
+    let path = path.into();
     let ret = check_file_privilege(id, &req.key, &db_conn.db_pool).await?;
     if !ret {
         return Err(DownloadError::PermissionDenied);
@@ -81,8 +78,14 @@ pub async fn download(
     let req = request.into_inner();
     let (tx, rx) = mpsc::channel(16);
     let db_conn = server.db.clone();
+    let path = server
+        .shared_data
+        .cfg
+        .main_cfg
+        .files_storage_path
+        .join(&req.key);
     tokio::spawn(async move {
-        match download_impl(id, req, &tx, &db_conn).await {
+        match download_impl(id, req, &tx, &db_conn, path).await {
             Ok(_) => {}
             Err(e) => match e {
                 DownloadError::PermissionDenied => {
