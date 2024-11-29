@@ -9,10 +9,13 @@ use crate::{
 };
 use anyhow::anyhow;
 use futures_util::StreamExt;
-use sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection, EntityTrait};
+use sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection, EntityTrait, QueryOrder};
 use sha3::{Digest, Sha3_256};
 use std::{num::TryFromIntError, path::PathBuf};
-use tokio::{fs::File, io::AsyncWriteExt};
+use tokio::{
+    fs::{self, File},
+    io::AsyncWriteExt,
+};
 use tonic::{Response, Status};
 
 use super::get_id_from_req;
@@ -46,13 +49,14 @@ pub async fn add_file_record(
     let bytes_num: Bt = limit.into();
     let res_used: u64 = user_info.resource_used.try_into()?;
     let will_used = Bt(res_used + *sz);
-    if will_used >= bytes_num {
+    tracing::debug!("will used: {}, bytes_num: {}", will_used, bytes_num);
+    if will_used > bytes_num {
         // reach the limit,delete some files to preserve the limit
-        // TODO:clean files
+        clean_files(*will_used - *bytes_num, db_connection).await?;
     }
-    let updated_res_lim = user_info.resource_used + 1;
+    let updated_res_lim = res_used + *sz;
     let mut user_info: user::ActiveModel = user_info.into();
-    user_info.resource_used = ActiveValue::Set(updated_res_lim);
+    user_info.resource_used = ActiveValue::Set(updated_res_lim.try_into()?);
     user_info.update(db_connection).await?;
 
     let timestamp = chrono::Utc::now().timestamp();
@@ -74,6 +78,28 @@ pub async fn add_file_record(
     file.insert(db_connection).await?;
     let f = create_file_with_dirs_if_not_exist(&path).await?;
     Ok(f)
+}
+
+pub async fn clean_files(
+    need_to_delete: u64,
+    db_connection: &DatabaseConnection,
+) -> Result<(), UploadError> {
+    tracing::debug!("Begin to clean files");
+    let files = Files::find()
+        .order_by_asc(files::Column::Date)
+        .all(db_connection)
+        .await?;
+    let mut deleted_size = 0;
+    for file in files.iter() {
+        let delta_size = fs::metadata(&file.path).await?.len();
+        deleted_size += delta_size;
+        fs::remove_file(&file.path).await?;
+        Files::delete_by_id(&file.key).exec(db_connection).await?;
+        if deleted_size + delta_size > need_to_delete {
+            break;
+        }
+    }
+    Ok(())
 }
 
 #[derive(Debug, thiserror::Error)]

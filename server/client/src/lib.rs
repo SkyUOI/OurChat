@@ -10,7 +10,7 @@ use itertools::Itertools;
 use parking_lot::Mutex;
 use rand::Rng;
 use server::component::MockEmailSender;
-use server::consts::SessionID;
+use server::consts::{FileSize, SessionID};
 use server::db::DbCfgTrait;
 use server::pb::auth::authorize::v1::auth_request;
 use server::pb::auth::register::v1::RegisterRequest;
@@ -269,6 +269,7 @@ pub struct TestApp {
     pub owned_users: Vec<Arc<tokio::sync::Mutex<TestUser>>>,
     pub clients: Clients,
     pub rpc_url: String,
+    pub user_files_limit: FileSize,
 
     has_dropped: bool,
     server_drop_handle: Option<ShutdownSdr>,
@@ -322,6 +323,7 @@ impl TestApp {
         let abort_handle = application.get_abort_handle();
         let shared = application.shared.clone();
         let db_pool = application.pool.clone();
+        let user_files_limit: FileSize = server_config.main_cfg.user_files_limit;
 
         let notifier = application.started_notify.clone();
         tokio::spawn(async move {
@@ -347,6 +349,7 @@ impl TestApp {
                 basic: BasicServiceClient::connect(rpc_url.clone()).await?,
             },
             should_drop_db: true,
+            user_files_limit,
         };
         Ok(obj)
     }
@@ -375,6 +378,7 @@ impl TestApp {
                 ))
                 .await?,
             },
+            user_files_limit: cfg.main_cfg.user_files_limit,
         })
     }
 
