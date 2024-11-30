@@ -1,0 +1,23 @@
+name: main_ci
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  common-ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bufbuild/buf-setup-action@v0.3.1
+      # Breaking change detection
+      - uses: bufbuild/buf-breaking-action@v0.4.0
+        with:
+          # The 'main' branch of the GitHub repository that defines the module
+          against: "https://github.com/${GITHUB_REPOSITORY}.git#branch=main"
