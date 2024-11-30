@@ -10,10 +10,7 @@ use tonic::{Request, Response};
 use crate::{
     component::EmailSender,
     consts::VERIFY_EMAIL_EXPIRE,
-    pb::{
-        self,
-        auth::email_verify::v1::{VerifyRequest, VerifyResponse},
-    },
+    pb::auth::email_verify::v1::{VerifyRequest, VerifyResponse},
     server::{
         AuthServiceProvider, VerifyStream,
         httpserver::verify::{VerifyRecord, verify_client},

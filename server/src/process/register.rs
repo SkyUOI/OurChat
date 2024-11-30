@@ -9,10 +9,7 @@ use crate::{
     shared_state, utils,
 };
 use anyhow::Context;
-use argon2::{
-    Params, PasswordHasher,
-    password_hash::{self, SaltString},
-};
+use argon2::{Params, PasswordHasher, password_hash::SaltString};
 use sea_orm::{ActiveModelTrait, ActiveValue, DbErr};
 use snowdon::ClassicLayoutSnowflakeExtension;
 use std::num::TryFromIntError;

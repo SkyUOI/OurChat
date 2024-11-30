@@ -3,13 +3,7 @@ use crate::{
     component::EmailSender,
     consts::ID,
     entities::files,
-    pb::{
-        self,
-        ourchat::download::{
-            self,
-            v1::{DownloadRequest, DownloadResponse},
-        },
-    },
+    pb::ourchat::download::v1::{DownloadRequest, DownloadResponse},
     server::{DownloadStream, RpcServer},
 };
 use bytes::BytesMut;

@@ -11,15 +11,13 @@ use server::pb::{
 };
 use std::{
     env::set_var,
-    fmt,
-    path::{Path, PathBuf},
+    path::PathBuf,
     sync::{
         Arc,
         atomic::{AtomicUsize, Ordering},
     },
-    time::Duration,
 };
-use tokio::{fs::read_to_string, time::Instant};
+use tokio::fs::read_to_string;
 
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
@@ -91,7 +89,7 @@ async fn test_register(report: &mut Report, app: &mut client::TestApp) -> UsersG
     users_test
 }
 
-async fn test_auth(users: &UsersGroup, report: &mut Report, app: &mut client::TestApp) {
+async fn test_auth(users: &UsersGroup, report: &mut Report) {
     let mut stress_test = StressTest::builder()
         .set_concurrency(1000)
         .set_requests(1000);
@@ -167,7 +165,7 @@ async fn test_upload(users: &UsersGroup, report: &mut Report) -> Arc<DashMap<Str
                         keys.insert(user_id, key);
                         true
                     }
-                    Err(e) => false,
+                    Err(_) => false,
                 }
             }
         })
@@ -204,7 +202,7 @@ async fn test_endpoint(app: &mut client::TestApp) {
     let mut report = Report::new();
     test_basic_service(&mut report, app).await;
     let users = test_register(&mut report, app).await;
-    test_auth(&users, &mut report, app).await;
+    test_auth(&users, &mut report).await;
     test_get_info(&users, &mut report).await;
     let keys = test_upload(&users, &mut report).await;
     test_download(keys.clone(), &users, &mut report).await;

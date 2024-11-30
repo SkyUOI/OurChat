@@ -1,7 +1,7 @@
 use server::{
     pb::ourchat::msg_delivery::{
         self,
-        v1::{self, FetchMsgsRequest, FetchMsgsResponse, Msg, OneMsg, SendMsgRequest},
+        v1::{FetchMsgsRequest, FetchMsgsResponse, Msg, OneMsg, SendMsgRequest},
     },
     utils::to_google_timestamp,
 };

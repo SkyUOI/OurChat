@@ -3,10 +3,7 @@ use crate::{
     component::EmailSender,
     consts::ID,
     entities::user_chat_msg,
-    pb::{
-        self,
-        ourchat::msg_delivery::v1::{FetchMsgsRequest, FetchMsgsResponse, Msg},
-    },
+    pb::ourchat::msg_delivery::v1::{FetchMsgsRequest, FetchMsgsResponse, Msg},
     server::{FetchMsgsStream, RpcServer},
     utils::from_google_timestamp,
 };

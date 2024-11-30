@@ -28,7 +28,6 @@ use server::utils::{self, from_google_timestamp, get_available_port};
 use server::{Application, ArgsParser, DbPool, ParserCfg, SharedData, ShutdownSdr, process};
 use sqlx::migrate::MigrateDatabase;
 use std::collections::HashSet;
-use std::path::Path;
 use std::sync::{Arc, LazyLock};
 use std::thread;
 use std::time::Duration;
@@ -390,10 +389,12 @@ impl TestApp {
 
         tracing::info!("app shutdowned");
         tokio::time::sleep(Duration::from_secs(1)).await;
-        match sqlx::Postgres::drop_database(&self.db_url).await {
-            Ok(_) => {}
-            Err(e) => {
-                tracing::error!("failed to drop database: {}", e);
+        if self.should_drop_db {
+            match sqlx::Postgres::drop_database(&self.db_url).await {
+                Ok(_) => {}
+                Err(e) => {
+                    tracing::error!("failed to drop database: {}", e);
+                }
             }
         }
         tracing::info!("db deleted");

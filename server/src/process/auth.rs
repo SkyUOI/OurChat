@@ -98,9 +98,9 @@ pub async fn auth<T: EmailSender>(
     match auth_db(request.into_inner(), &server.db).await {
         Ok(ok_resp) => Ok(Response::new(ok_resp.0)),
         Err(e) => Err(match e {
-            AuthError::WrongPassword => Status::unauthenticated(&e.to_string()),
-            AuthError::MissingAuthType => Status::invalid_argument(&e.to_string()),
-            AuthError::UserNotFound => Status::not_found(&e.to_string()),
+            AuthError::WrongPassword => Status::unauthenticated(e.to_string()),
+            AuthError::MissingAuthType => Status::invalid_argument(e.to_string()),
+            AuthError::UserNotFound => Status::not_found(e.to_string()),
             _ => {
                 tracing::error!("{}", e);
                 Status::internal("Server Error")

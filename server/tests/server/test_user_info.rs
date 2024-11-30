@@ -1,7 +1,7 @@
 use claims::assert_err;
 use client::TestApp;
 use server::pb::ourchat::{
-    get_account_info::v1::{self, GetAccountInfoRequest, RequestValues},
+    get_account_info::v1::{GetAccountInfoRequest, RequestValues},
     set_account_info::v1::{SetFriendInfoRequest, SetSelfInfoRequest},
 };
 

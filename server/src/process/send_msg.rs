@@ -15,11 +15,11 @@ use tonic::{Request, Response, Status, Streaming};
 #[derive(Debug, thiserror::Error)]
 enum SendMsgError {
     #[error("database error:{0}")]
-    DbError(#[from] sea_orm::DbErr),
+    Db(#[from] sea_orm::DbErr),
     #[error("unknown error:{0}")]
-    UnknownError(#[from] anyhow::Error),
+    Unknown(#[from] anyhow::Error),
     #[error("status:{0}")]
-    StatusError(#[from] tonic::Status),
+    Status(#[from] tonic::Status),
 }
 
 pub async fn send_msg(
@@ -56,15 +56,15 @@ pub async fn send_msg(
                     .await
                     .ok();
                 }
-                Err(SendMsgError::DbError(e)) => {
+                Err(SendMsgError::Db(e)) => {
                     tracing::error!("Database error:{e}");
                     tx.send(Err(Status::internal("database error"))).await.ok();
                 }
-                Err(SendMsgError::UnknownError(e)) => {
+                Err(SendMsgError::Unknown(e)) => {
                     tracing::error!("Unknown error:{e}");
                     tx.send(Err(Status::internal("unknown error"))).await.ok();
                 }
-                Err(SendMsgError::StatusError(e)) => {
+                Err(SendMsgError::Status(e)) => {
                     tx.send(Err(e)).await.ok();
                 }
             };
