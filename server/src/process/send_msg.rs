@@ -44,7 +44,7 @@ pub async fn send_msg(
             match insert_msg_record(
                 id,
                 ID(request.session_id),
-                serde_json::value::to_value(request.bundle_msg).unwrap(),
+                serde_json::value::to_value(request.bundle_msgs).unwrap(),
                 &db_conn.db_pool,
             )
             .await

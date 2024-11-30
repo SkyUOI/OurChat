@@ -23,7 +23,7 @@ async fn test_text_sent() {
     let msg_sent = SendMsgRequest {
         session_id: session.session_id.into(),
         time: Some(time_google),
-        bundle_msg: vec![OneMsg {
+        bundle_msgs: vec![OneMsg {
             data: Some(msg_delivery::v1::one_msg::Data::Text("hello".to_owned())),
         }],
     };
@@ -59,7 +59,7 @@ async fn test_text_get() {
     let msg_sent = SendMsgRequest {
         session_id: session.session_id.into(),
         time: Some(time_google),
-        bundle_msg: vec![msg_should_sent.clone()],
+        bundle_msgs: vec![msg_should_sent.clone()],
     };
     let ret = a
         .lock()
@@ -75,7 +75,7 @@ async fn test_text_get() {
     let msg_sent = SendMsgRequest {
         session_id: session.session_id.into(),
         time: Some(time_google),
-        bundle_msg: vec![msg_should_sent.clone()],
+        bundle_msgs: vec![msg_should_sent.clone()],
     };
     let ret = a
         .lock()
@@ -101,7 +101,7 @@ async fn test_text_get() {
     assert_eq!(msgs.len(), 2);
     for (i, msg_id) in msgs.into_iter().zip(msg_id.iter()) {
         assert_eq!(i.session_id, u64::from(session.session_id));
-        assert_eq!(i.bundle_msg, vec![msg_should_sent.clone()]);
+        assert_eq!(i.bundle_msgs, vec![msg_should_sent.clone()]);
         assert_eq!(i.msg_id, *msg_id);
     }
     app.async_drop().await;
