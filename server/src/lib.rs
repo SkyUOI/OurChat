@@ -215,7 +215,7 @@ pub struct ParserCfg {
         default_value_t = false
     )]
     pub maintaining: bool,
-    #[arg(long, help = "ourchat config file path")]
+    #[arg(short, long, help = "ourchat config file path")]
     pub config: Option<PathBuf>,
 }
 

@@ -1,12 +1,8 @@
 name: ourchat_server
 services:
   OurChatServer:
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
     init: true
-    image: ourchat_develop:latest
-    command: tail -f /dev/null
+    image: skyuoi/ourchat:latest
     working_dir: /root
     environment:
       - LC_ALL=C.UTF-8
