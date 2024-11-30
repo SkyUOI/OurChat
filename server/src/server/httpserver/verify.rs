@@ -98,8 +98,11 @@ pub async fn verify_client(
                 user_mailbox,
                 format!("{} Verification", consts::APP_NAME),
                 format!(
-                    "please click \"http://{}:{}/v1/verify/confirm?token={}\" to verify your email",
-                    cfg.ip, cfg.http_port, data.token
+                    "please click \"{}://{}:{}/v1/verify/confirm?token={}\" to verify your email",
+                    cfg.protocol_http(),
+                    cfg.ip,
+                    cfg.http_port,
+                    data.token
                 ),
             )
             .await

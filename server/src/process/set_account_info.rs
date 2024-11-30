@@ -22,10 +22,6 @@ pub async fn set_account_info<T: EmailSender>(
             tracing::error!("Database error: {}", e);
             return Err(Status::internal("Database error"));
         }
-        Err(SetError::Type) => {
-            tracing::error!("Type error");
-            return Err(Status::internal("Json format error"));
-        }
         Err(SetError::Unknown(e)) => {
             tracing::error!("Unknown error: {}", e);
             return Err(Status::internal("Unknown error"));
@@ -38,8 +34,6 @@ pub async fn set_account_info<T: EmailSender>(
 enum SetError {
     #[error("db error")]
     Db(#[from] sea_orm::DbErr),
-    #[error("type error")]
-    Type,
     #[error("unknown error")]
     Unknown(#[from] anyhow::Error),
 }

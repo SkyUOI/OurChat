@@ -268,6 +268,7 @@ pub struct TestApp {
     pub owned_users: Vec<Arc<tokio::sync::Mutex<TestUser>>>,
     pub clients: Clients,
     pub rpc_url: String,
+    pub app_config: server::Cfg,
 
     has_dropped: bool,
     server_drop_handle: Option<ShutdownSdr>,
@@ -346,11 +347,18 @@ impl TestApp {
                 basic: BasicServiceClient::connect(rpc_url.clone()).await?,
             },
             should_drop_db: true,
+            app_config: server_config,
         };
         Ok(obj)
     }
 
     pub async fn new_with_existing_instance(cfg: server::Cfg) -> anyhow::Result<Self> {
+        let remote_url = format!(
+            "{}://{}:{}",
+            cfg.main_cfg.protocol_http(),
+            cfg.main_cfg.ip,
+            cfg.main_cfg.port
+        );
         Ok(Self {
             should_drop_db: false,
             port: cfg.main_cfg.port,
@@ -364,16 +372,12 @@ impl TestApp {
             owned_users: vec![],
             server_drop_handle: None,
             has_dropped: false,
-            rpc_url: format!("http://localhost:{}", cfg.main_cfg.port),
+            rpc_url: remote_url.clone(),
             clients: Clients {
-                auth: AuthServiceClient::connect(format!("http://localhost:{}", cfg.main_cfg.port))
-                    .await?,
-                basic: BasicServiceClient::connect(format!(
-                    "http://localhost:{}",
-                    cfg.main_cfg.port
-                ))
-                .await?,
+                auth: AuthServiceClient::connect(remote_url.clone()).await?,
+                basic: BasicServiceClient::connect(remote_url.clone()).await?,
             },
+            app_config: cfg,
         })
     }
 
@@ -402,12 +406,7 @@ impl TestApp {
     }
 
     pub async fn verify(&mut self, token: &str) -> Result<reqwest::Response, reqwest::Error> {
-        self.http_client
-            .get(format!(
-                "http://127.0.0.1:{}/v1/verify/confirm?token={}",
-                self.http_port, token
-            ))
-            .send()
+        self.http_get(format!("verify/confirm?token={}", token))
             .await
     }
 
@@ -418,12 +417,20 @@ impl TestApp {
         Ok(user)
     }
 
-    pub async fn http_get(&self, name: &str) -> anyhow::Result<reqwest::Response> {
-        Ok(self
-            .http_client
-            .get(format!("http://127.0.0.1:{}/v1/{}", self.http_port, name))
+    pub async fn http_get(
+        &self,
+        name: impl AsRef<str>,
+    ) -> Result<reqwest::Response, reqwest::Error> {
+        self.http_client
+            .get(format!(
+                "{}://{}:{}/v1/{}",
+                self.app_config.main_cfg.protocol_http(),
+                self.app_config.main_cfg.ip,
+                self.http_port,
+                name.as_ref()
+            ))
             .send()
-            .await?)
+            .await
     }
 
     pub async fn new_session_db_level(

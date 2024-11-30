@@ -108,6 +108,10 @@ pub const fn default_output_len() -> Option<usize> {
     None
 }
 
+pub const fn default_ssl() -> bool {
+    false
+}
+
 pub fn default_files_storage_path() -> PathBuf {
     PathBuf::from("files_storage/")
 }

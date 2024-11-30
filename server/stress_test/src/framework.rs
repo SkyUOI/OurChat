@@ -101,6 +101,7 @@ impl StressTest {
         F: FnMut() -> R + Send + Sync + 'static + Clone,
         R: Future<Output = bool> + Send + 'static,
     {
+        tracing::info!("start stress test");
         let max_time = Arc::new(Mutex::new(Duration::from_nanos(0)));
         let min_time = Arc::new(Mutex::new(Duration::from_hours(1)));
         let barrier = Arc::new(tokio::sync::Barrier::new(self.concurrency + 1));
@@ -132,6 +133,7 @@ impl StressTest {
             });
         }
         barrier.wait().await;
+        tracing::info!("stress test ended");
         let success = correct.load(std::sync::atomic::Ordering::Relaxed);
         Output {
             max_time: *max_time.lock(),

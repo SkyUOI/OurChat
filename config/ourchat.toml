@@ -24,6 +24,8 @@ cmd_network_port = 7779
 verification_expire_days = 3
 # The path of the users' files storage
 files_storage_path = "files_storage/"
+# Enable ssl encryption
+ssl = false
 
 [password_hash]
 # The memory size in 1 KiB blocks. Between 8*`p_cost` and (2^32)-1

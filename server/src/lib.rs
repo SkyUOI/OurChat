@@ -95,6 +95,8 @@ pub struct MainCfg {
     pub files_storage_path: PathBuf,
     #[serde(default = "consts::default_verification_expire_days")]
     pub verification_expire_days: u64,
+    #[serde(default = "consts::default_ssl")]
+    pub ssl: bool,
     pub password_hash: PasswordHash,
     pub db: OCDbCfg,
 
@@ -146,6 +148,14 @@ impl MainCfg {
 
     pub fn email_available(&self) -> bool {
         self.email_address.is_some() && self.smtp_address.is_some() && self.smtp_password.is_some()
+    }
+
+    pub fn protocol_http(&self) -> String {
+        if self.ssl {
+            "https".to_string()
+        } else {
+            "http".to_string()
+        }
     }
 
     pub fn build_email_client(&self) -> anyhow::Result<EmailClient> {
@@ -267,7 +277,7 @@ static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
 
 /// # Warning
 /// This function should be called only once.The second one will be ignored
-fn logger_init<Sink>(test_mode: bool, source: Sink)
+pub fn logger_init<Sink>(test_mode: bool, output: Sink)
 where
     Sink: for<'a> MakeWriter<'a> + Send + Sync + 'static,
 {
@@ -278,7 +288,7 @@ where
         } else {
             || EnvFilter::try_from_env(LOG_ENV_VAR).unwrap_or("info".into())
         };
-        let formatting_layer = fmt::layer().pretty().with_writer(source);
+        let formatting_layer = fmt::layer().pretty().with_writer(output);
         let file_appender = if test_mode {
             tracing_appender::rolling::never(LOG_OUTPUT_DIR, "test")
         } else {
