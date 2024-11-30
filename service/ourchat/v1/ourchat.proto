@@ -10,6 +10,7 @@ import "service/ourchat/set_account_info/v1/set_account_info.proto";
 import "service/ourchat/unregister/v1/unregister.proto";
 import "service/ourchat/upload/v1/upload.proto";
 
+// Main service of the Ourchat
 service OurChatService {
   rpc Unregister(unregister.v1.UnregisterRequest) returns (unregister.v1.UnregisterResponse);
 

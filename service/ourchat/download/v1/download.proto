@@ -3,9 +3,11 @@ syntax = "proto3";
 package service.ourchat.download.v1;
 
 message DownloadRequest {
+  // The unique key of the file
   string key = 1;
 }
 
 message DownloadResponse {
+  // The data of the file
   bytes data = 1;
 }

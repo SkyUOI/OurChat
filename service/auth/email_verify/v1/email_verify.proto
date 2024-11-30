@@ -2,6 +2,11 @@ syntax = "proto3";
 
 package service.auth.email_verify.v1;
 
+// Request for email verification
+// example
+// {
+//   "email": "ourchat@skyuoi.org"
+// }
 message VerifyRequest {
   string email = 1;
 }

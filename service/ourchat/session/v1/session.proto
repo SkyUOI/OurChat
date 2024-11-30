@@ -4,7 +4,9 @@ package service.ourchat.session.v1;
 
 message NewSessionRequest {
   repeated string members = 1;
+  // name of the session
   string name = 2;
+  // leaving message
   string message = 3;
 }
 

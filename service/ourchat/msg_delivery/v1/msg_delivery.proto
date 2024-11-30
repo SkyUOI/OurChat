@@ -4,6 +4,7 @@ package service.ourchat.msg_delivery.v1;
 
 import "google/protobuf/timestamp.proto";
 
+// One piece of message
 message OneMsg {
   oneof data {
     string text = 2;
@@ -13,7 +14,7 @@ message OneMsg {
 message SendMsgRequest {
   uint64 session_id = 1;
   google.protobuf.Timestamp time = 2;
-  repeated OneMsg bundle_msg = 3;
+  repeated OneMsg bundle_msgs = 3;
 }
 
 message FetchMsgsRequest {
@@ -25,9 +26,11 @@ message FetchMsgsResponse {
 }
 
 message Msg {
+  // time of the message
   google.protobuf.Timestamp time = 1;
+  // id of the message
   uint64 msg_id = 2;
-  repeated OneMsg bundle_msg = 3;
+  repeated OneMsg bundle_msgs = 3;
   uint64 session_id = 4;
 }
 

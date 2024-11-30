@@ -1,7 +1,9 @@
 #!/bin/sh
 
 # Rust Check
-cargo fmt
+cargo fmt --check
 # Python Check
-ruff format
+ruff format --check
 ruff check
+# protobuf check
+buf format --exit-code

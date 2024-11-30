@@ -2,6 +2,14 @@ syntax = "proto3";
 
 package service.auth.authorize.v1;
 
+// Request for authorization and get JWT
+// example
+// {
+//   "account": {
+//     "email": "ourchat@skyuoi.org" // or "ocid": "ocid"
+//   },
+//   "password": "123456"
+// }
 message AuthRequest {
   oneof account {
     string email = 1;
@@ -10,7 +18,14 @@ message AuthRequest {
   string password = 3;
 }
 
+// example
+// {
+//   "token": "OXJOncoejwodfenONONOI",
+//   "ocid": "ocid"
+// }
 message AuthResponse {
+  // JWT
   string token = 1;
+  // id of user
   string ocid = 2;
 }
