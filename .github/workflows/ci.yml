@@ -35,4 +35,4 @@ jobs:
       # Lint
       - uses: bufbuild/buf-lint-action@v0.3.0
       - name: Buf Fmt
-        run: buf format --exit-code 233
+        run: buf format --exit-code
