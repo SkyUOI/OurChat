@@ -66,7 +66,7 @@ async fn auth_db(
 
                     Ok((
                         AuthResponse {
-                            ocid: user.ocid.clone(),
+                            id: user.id as u64,
                             token,
                         },
                         UserInfo {

@@ -1,9 +1,7 @@
 use server::{
     pb::ourchat::msg_delivery::{
         self,
-        v1::{
-            FetchMsgsRequest, FetchMsgsResponse, Msg, OneMsg, SendMsgRequest, fetch_msgs_response,
-        },
+        v1::{FetchMsgsRequest, OneMsg, SendMsgRequest, fetch_msgs_response},
     },
     utils::to_google_timestamp,
 };
@@ -75,14 +73,15 @@ async fn test_text_get() {
         time: Some(to_google_timestamp(base_time)),
     };
     let ret = c.lock().await.oc().fetch_msgs(msg_get).await.unwrap();
-    let mut ret = ret.into_inner();
+    let mut ret_stream = ret.into_inner();
     let mut msgs = vec![];
     while let Some(i) = tokio::select! {
-        i = ret.next() => i,
+        i = ret_stream.next() => i,
         _ = tokio::time::sleep(tokio::time::Duration::from_millis(100)) => None
     } {
         msgs.push(i.unwrap().data.unwrap());
     }
+    drop(ret_stream);
     assert_eq!(msgs.len(), 2);
     for (i, msg_id) in msgs.into_iter().zip(msg_id.iter()) {
         if let fetch_msgs_response::Data::Msg(i) = i {

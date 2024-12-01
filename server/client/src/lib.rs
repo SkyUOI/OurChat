@@ -10,7 +10,7 @@ use itertools::Itertools;
 use parking_lot::Mutex;
 use rand::Rng;
 use server::component::MockEmailSender;
-use server::consts::SessionID;
+use server::consts::{ID, SessionID};
 use server::db::DbCfgTrait;
 use server::pb::auth::authorize::v1::auth_request;
 use server::pb::auth::register::v1::RegisterRequest;
@@ -52,6 +52,7 @@ pub struct TestUser {
     pub password: String,
     pub email: String,
     pub ocid: String,
+    pub id: ID,
     pub port: u16,
     pub token: String,
     pub client: Clients,
@@ -124,6 +125,7 @@ impl TestUser {
             ocid: String::default(),
             token: String::default(),
             oc_server: None,
+            id: ID::default(),
         }
     }
 
@@ -141,6 +143,7 @@ impl TestUser {
             .unwrap()
             .into_inner();
         user.ocid = ret.ocid;
+        user.id = ID(ret.id);
         user.token = ret.token;
         let chann = Channel::builder(Uri::from_maybe_shared(user.rpc_url.clone()).unwrap())
             .connect()
@@ -204,7 +207,7 @@ impl TestUser {
             password: password.into(),
         };
         let ret = self.client.auth.auth(login_req).await?.into_inner();
-        assert_eq!(self.ocid, ret.ocid);
+        assert_eq!(*self.id, ret.id);
         Ok(())
     }
 

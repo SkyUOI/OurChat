@@ -13,6 +13,7 @@ async fn test_get_user_info() {
     // request before logged in
     // don't have privileges
     let user_ocid = user.lock().await.ocid.clone();
+    let user_id = user.lock().await.id.clone();
     let user_name = user.lock().await.name.clone();
     let user_email = user.lock().await.email.clone();
 
@@ -22,7 +23,7 @@ async fn test_get_user_info() {
             .await
             .oc()
             .get_account_info(GetAccountInfoRequest {
-                ocid: user_ocid.clone(),
+                id: Some(*user_id),
                 request_values: vec![
                     RequestValues::Ocid.into(),
                     RequestValues::Email.into(),
@@ -38,7 +39,7 @@ async fn test_get_user_info() {
         .await
         .oc()
         .get_account_info(GetAccountInfoRequest {
-            ocid: user_ocid.clone(),
+            id: None,
             request_values: vec![
                 RequestValues::Ocid.into(),
                 RequestValues::Email.into(),
@@ -81,7 +82,7 @@ async fn test_set_user_info() {
         .await
         .oc()
         .get_account_info(GetAccountInfoRequest {
-            ocid: ocid.clone(),
+            id: None,
             request_values: vec![RequestValues::UserName.into()],
         })
         .await
@@ -98,6 +99,7 @@ async fn test_set_friend_info() {
     let user2 = app.new_user().await.unwrap();
     let user_ocid = user.lock().await.ocid.clone();
     let user2_ocid = user2.lock().await.ocid.clone();
+    let user2_id = user2.lock().await.id.clone();
     let new_name = "xxx";
 
     // now have privileges,but is no friends now
@@ -106,7 +108,7 @@ async fn test_set_friend_info() {
         .await
         .oc()
         .set_friend_info(SetFriendInfoRequest {
-            ocid: user2_ocid.clone(),
+            id: *user2_id,
             display_name: Some(new_name.to_owned()),
         })
         .await

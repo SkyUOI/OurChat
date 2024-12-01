@@ -45,7 +45,7 @@ async fn update_friend(
 ) -> Result<(), SetError> {
     let mut friend = friend::ActiveModel {
         user_id: ActiveValue::Set(id.into()),
-        friend_id: ActiveValue::Set(get_id(&request.ocid, db_conn).await?.into()),
+        friend_id: ActiveValue::Set(request.id as i64),
         ..Default::default()
     };
     let mut modified = false;

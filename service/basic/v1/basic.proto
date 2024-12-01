@@ -13,8 +13,21 @@ message TimestampResponse {
 
 message GetServerInfoRequest {}
 
+message GetIdRequest {
+  string ocid = 1;
+}
+
+message GetIdResponse {
+  uint64 id = 1;
+}
+
+// Some basic service,jwt is not required
 service BasicService {
+  // Get server timestamp
   rpc Timestamp(TimestampRequest) returns (TimestampResponse);
 
+  // Get server info
   rpc GetServerInfo(GetServerInfoRequest) returns (server.v1.GetServerInfoResponse);
+
+  rpc GetId(GetIdRequest) returns (GetIdResponse);
 }

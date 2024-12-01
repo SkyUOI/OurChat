@@ -5,7 +5,7 @@ use crate::{
     pb::ourchat::set_account_info::v1::{SetSelfInfoRequest, SetSelfInfoResponse},
     server::RpcServer,
 };
-use sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection};
+use sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection, DbErr};
 use tonic::{Request, Response, Status};
 
 use super::get_id_from_req;
@@ -26,6 +26,9 @@ pub async fn set_account_info<T: EmailSender>(
             tracing::error!("Unknown error: {}", e);
             return Err(Status::internal("Unknown error"));
         }
+        Err(SetError::Conflict) => {
+            return Err(Status::already_exists("Conflict"));
+        }
     }
     Ok(Response::new(SetSelfInfoResponse {}))
 }
@@ -34,6 +37,8 @@ pub async fn set_account_info<T: EmailSender>(
 enum SetError {
     #[error("db error")]
     Db(#[from] sea_orm::DbErr),
+    #[error("conflict")]
+    Conflict,
     #[error("unknown error")]
     Unknown(#[from] anyhow::Error),
 }
@@ -58,13 +63,22 @@ async fn update_account(
     if let Some(d) = request_data.avatar_key {
         todo!()
     }
+    if let Some(new_ocid) = request_data.ocid {
+        user.ocid = ActiveValue::Set(new_ocid);
+        public_updated = true;
+    }
     // update the modified time
     let timestamp = chrono::Utc::now();
     user.update_time = ActiveValue::Set(timestamp.into());
     if public_updated {
         user.public_update_time = ActiveValue::Set(timestamp.into());
     }
-
-    user.update(db_conn).await?;
+    match user.update(db_conn).await {
+        Ok(_) => {}
+        Err(DbErr::RecordNotUpdated) => {
+            return Err(SetError::Conflict);
+        }
+        Err(e) => return Err(SetError::Db(e)),
+    }
     Ok(())
 }

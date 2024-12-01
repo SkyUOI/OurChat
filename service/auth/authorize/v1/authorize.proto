@@ -21,11 +21,11 @@ message AuthRequest {
 // example
 // {
 //   "token": "OXJOncoejwodfenONONOI",
-//   "ocid": "ocid"
+//   "id": 1
 // }
 message AuthResponse {
   // JWT
   string token = 1;
   // id of user
-  string ocid = 2;
+  uint64 id = 2;
 }

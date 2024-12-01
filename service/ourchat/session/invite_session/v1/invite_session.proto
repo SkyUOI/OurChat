@@ -2,7 +2,15 @@ syntax = "proto3";
 
 package service.ourchat.session.invite_session.v1;
 
+import "google/protobuf/timestamp.proto";
+
 message InviteSession {
+  // invite to which session
   uint64 session_id = 1;
-  string inviter_id = 2;
+  // inviter
+  uint64 inviter_id = 2;
+  // leaving message for invitee
+  optional string message = 3;
+  // when to expire
+  google.protobuf.Timestamp expire_timestamp = 4;
 }

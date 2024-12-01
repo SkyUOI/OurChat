@@ -117,12 +117,11 @@ async fn test_get_info(users: &UsersGroup, report: &mut Report) {
             let now = idx.fetch_add(1, Ordering::SeqCst);
             let user = users[now].clone();
             async move {
-                let ocid = user.lock().await.ocid.clone();
                 user.lock()
                     .await
                     .oc()
                     .get_account_info(GetAccountInfoRequest {
-                        ocid: ocid.clone(),
+                        id: None,
                         request_values: vec![
                             RequestValues::Ocid.into(),
                             RequestValues::UserName.into(),

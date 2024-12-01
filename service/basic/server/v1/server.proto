@@ -20,6 +20,10 @@ message ServerVersion {
 message GetServerInfoResponse {
   // Server status
   RunningStatus status = 1;
+  // Port of http server, note this is not rpc server
   uint32 http_port = 2;
+  // Server program version
   ServerVersion server_version = 3;
+  // Server unique identifier,to help client distinguish different servers
+  string unique_identifier = 4;
 }

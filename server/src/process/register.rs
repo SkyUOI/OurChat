@@ -51,8 +51,9 @@ async fn add_new_user(
         Ok(res) => {
             // Happy Path
             let response = RegisterResponse {
-                ocid: res.ocid.clone(),
+                id: res.id as u64,
                 token: generate_access_token(id),
+                ocid: res.ocid.clone(),
             };
             Ok((response, UserInfo {
                 ocid: res.ocid,

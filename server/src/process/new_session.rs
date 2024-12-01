@@ -131,7 +131,13 @@ async fn new_session_impl(
         }
     }
     let bundle = async {
-        create_session_db(session_id, people_num, req.name, &server.db.db_pool).await?;
+        create_session_db(
+            session_id,
+            people_num,
+            req.name.unwrap_or_default(),
+            &server.db.db_pool,
+        )
+        .await?;
         // add session relation
         batch_add_to_session(&server.db.db_pool, session_id, &peoples).await?;
 

@@ -30,6 +30,12 @@ pub mod session {
             tonic::include_proto!("service.ourchat.session.invite_session.v1");
         }
     }
+
+    pub mod get_session_info {
+        pub mod v1 {
+            tonic::include_proto!("service.ourchat.session.get_session_info.v1");
+        }
+    }
 }
 
 pub mod set_account_info {

@@ -13,6 +13,7 @@ pub mod v1 {
                 bundle_msgs: serde_json::from_value(msg.msg_data)?,
                 session_id: msg.session_id.try_into()?,
                 time: Some(to_google_timestamp(msg.time.into())),
+                sender_id: msg.sender_id.try_into()?,
             })
         }
     }

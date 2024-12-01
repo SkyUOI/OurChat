@@ -18,10 +18,11 @@ message RegisterRequest {
 
 // example
 // {
-//   "ocid": "ocid",
+//   "id": 1,
 //   "token": "OXJOncoejwodfenONONOI"
 // }
 message RegisterResponse {
-  string ocid = 2;
+  string ocid = 1;
+  uint64 id = 2;
   string token = 3;
 }

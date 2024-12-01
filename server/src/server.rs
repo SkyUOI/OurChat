@@ -9,14 +9,19 @@ use crate::pb::auth::register::v1::{RegisterRequest, RegisterResponse};
 use crate::pb::auth::v1::auth_service_server::{self, AuthServiceServer};
 use crate::pb::basic::server::v1::{RunningStatus, ServerVersion};
 use crate::pb::basic::v1::basic_service_server::{BasicService, BasicServiceServer};
-use crate::pb::basic::v1::{GetServerInfoRequest, TimestampRequest, TimestampResponse};
+use crate::pb::basic::v1::{
+    GetIdRequest, GetIdResponse, GetServerInfoRequest, TimestampRequest, TimestampResponse,
+};
 use crate::pb::ourchat::download::v1::{DownloadRequest, DownloadResponse};
 use crate::pb::ourchat::get_account_info::v1::{GetAccountInfoRequest, GetAccountInfoResponse};
 use crate::pb::ourchat::msg_delivery::v1::{
-    FetchMsgsRequest, FetchMsgsResponse, Msg, SendMsgRequest, SendMsgResponse,
+    FetchMsgsRequest, FetchMsgsResponse, SendMsgRequest, SendMsgResponse,
 };
 use crate::pb::ourchat::session::accept_session::v1::{
     AcceptSessionRequest, AcceptSessionResponse,
+};
+use crate::pb::ourchat::session::get_session_info::v1::{
+    GetSessionInfoRequest, GetSessionInfoResponse,
 };
 use crate::pb::ourchat::session::new_session::v1::{NewSessionRequest, NewSessionResponse};
 use crate::pb::ourchat::set_account_info::v1::{
@@ -25,9 +30,10 @@ use crate::pb::ourchat::set_account_info::v1::{
 use crate::pb::ourchat::unregister::v1::{UnregisterRequest, UnregisterResponse};
 use crate::pb::ourchat::upload::v1::{UploadRequest, UploadResponse};
 use crate::pb::ourchat::v1::our_chat_service_server::{OurChatService, OurChatServiceServer};
+use crate::process;
+use crate::process::db::get_id;
 use crate::utils::to_google_timestamp;
-use crate::{DbPool, HttpSender, SharedData, ShutdownRev, pb, shared_state};
-use crate::{ServerInfo, process};
+use crate::{DbPool, HttpSender, SERVER_INFO, SharedData, ShutdownRev, pb, shared_state};
 use std::net::SocketAddr;
 use std::pin::Pin;
 use std::sync::{Arc, LazyLock};
@@ -62,6 +68,7 @@ impl<T: EmailSender> RpcServer<T> {
         let addr = self.addr;
         let basic_service = BasicServiceProvider {
             shared_data: self.shared_data.clone(),
+            db: self.db.clone(),
         };
         let auth_service = AuthServiceProvider {
             shared_data: self.shared_data.clone(),
@@ -176,6 +183,14 @@ impl<T: EmailSender> OurChatService for RpcServer<T> {
     ) -> Result<tonic::Response<AcceptSessionResponse>, tonic::Status> {
         process::accept_session(self, request).await
     }
+
+    async fn get_session_info(
+        &self,
+        request: tonic::Request<GetSessionInfoRequest>,
+    ) -> Result<tonic::Response<GetSessionInfoResponse>, tonic::Status> {
+        // process::get_session_info(self, request).await
+        todo!()
+    }
 }
 
 pub struct AuthServiceProvider<T: EmailSender> {
@@ -214,6 +229,7 @@ impl<T: EmailSender> auth_service_server::AuthService for AuthServiceProvider<T>
 
 struct BasicServiceProvider<T: EmailSender> {
     pub shared_data: Arc<SharedData<T>>,
+    pub db: DbPool,
 }
 
 #[tonic::async_trait]
@@ -237,9 +253,20 @@ impl<T: EmailSender> BasicService for BasicServiceProvider<T> {
             pb::basic::server::v1::GetServerInfoResponse {
                 http_port: self.shared_data.cfg.main_cfg.http_port.into(),
                 status: shared_state::get_maintaining().into(),
-                ..*SERVER_INFO_RPC
+                ..SERVER_INFO_RPC.clone()
             },
         ))
+    }
+
+    async fn get_id(
+        &self,
+        request: tonic::Request<GetIdRequest>,
+    ) -> Result<tonic::Response<GetIdResponse>, tonic::Status> {
+        let req = request.into_inner();
+        match get_id(&req.ocid, &self.db).await {
+            Ok(id) => Ok(Response::new(GetIdResponse { id: *id })),
+            Err(e) => Err(Status::not_found("user not found")),
+        }
     }
 }
 
@@ -257,4 +284,19 @@ static SERVER_INFO_RPC: LazyLock<pb::basic::server::v1::GetServerInfoResponse> =
         server_version: Some(*VERSION_SPLIT),
         http_port: 0,
         status: RunningStatus::Normal as i32,
+        unique_identifier: SERVER_INFO.unique_id.to_string(),
     });
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_version_split() {
+        let ver_concat = format!(
+            "{}.{}.{}",
+            VERSION_SPLIT.major, VERSION_SPLIT.minor, VERSION_SPLIT.patch
+        );
+        assert_eq!(ver_concat, base::build::PKG_VERSION);
+    }
+}

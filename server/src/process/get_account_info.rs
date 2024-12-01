@@ -1,4 +1,4 @@
-use super::basic::get_id;
+use super::basic::{get_id, get_ocid};
 use crate::component::EmailSender;
 use crate::entities::{friend, user};
 use crate::pb::ourchat::get_account_info::v1::{
@@ -21,20 +21,29 @@ enum Privilege {
     Owner,
 }
 
-pub async fn get_info<T: EmailSender>(
-    server: &RpcServer<T>,
+#[derive(Debug, thiserror::Error)]
+enum GetInfoError {
+    #[error("database error:{0}")]
+    DbError(#[from] sea_orm::DbErr),
+    #[error("not found")]
+    NotFound,
+    #[error("status error:{0}")]
+    StatusError(#[from] tonic::Status),
+    #[error("internal error:{0}")]
+    InternalError(#[from] anyhow::Error),
+}
+
+async fn get_info_impl(
+    server: &RpcServer<impl EmailSender>,
     request: Request<GetAccountInfoRequest>,
-) -> Result<tonic::Response<GetAccountInfoResponse>, tonic::Status> {
+) -> Result<GetAccountInfoResponse, GetInfoError> {
     let id = get_id_from_req(&request).unwrap();
     let request = request.into_inner();
     // query in database
     // get id first
-    let requests_id = match get_id(&request.ocid, &server.db).await {
-        Ok(id) => id,
-        Err(e) => {
-            tracing::error!("Database error:{e}");
-            return Err(tonic::Status::internal("database error"));
-        }
+    let requests_id = match request.id {
+        Some(id) => ID(id),
+        None => id,
     };
     let privilege = if id == requests_id {
         Privilege::Owner
@@ -42,13 +51,7 @@ pub async fn get_info<T: EmailSender>(
         Privilege::Stranger
     };
 
-    let queried_user = match get_account_info_db(requests_id, &server.db.db_pool).await {
-        Ok(user) => user,
-        Err(e) => {
-            tracing::error!("Database error:{e}");
-            return Err(tonic::Status::internal("database error"));
-        }
-    };
+    let queried_user = get_account_info_db(requests_id, &server.db.db_pool).await?;
     let data_cell = OnceLock::new();
     let friends = || async {
         if data_cell.get().is_none() {
@@ -63,26 +66,18 @@ pub async fn get_info<T: EmailSender>(
         let i = RequestValues::try_from(*i).unwrap();
         if privilege != Privilege::Owner && OWNER_PRIVILEGE.contains(&i) {
             // cannot get the info which is owner privilege
-            return Err(tonic::Status::permission_denied("permission denied"));
+            return Err(tonic::Status::permission_denied("permission denied"))?;
         } else {
             // can access the info,get from the database
             match i {
-                RequestValues::Ocid => ret.ocid = Some(request.ocid.clone()),
+                RequestValues::Ocid => ret.ocid = Some(get_ocid(id, &server.db).await?),
                 RequestValues::Email => ret.email = Some(queried_user.email.clone()),
                 RequestValues::DisplayName => {
                     // TODO:optimize the performance
                     if let Privilege::Owner = privilege {
                     } else {
-                        let friend =
-                            match get_one_friend(id, requests_id, &server.db.db_pool).await {
-                                Ok(friend) => friend,
-                                Err(e) => {
-                                    tracing::error!("Database error:{e}");
-                                    return Err(tonic::Status::internal("database error"));
-                                }
-                            }
-                            .unwrap();
-                        ret.display_name = Some(friend.display_name)
+                        let friend = get_one_friend(id, requests_id, &server.db.db_pool).await?;
+                        ret.display_name = friend.map(|x| x.display_name);
                     }
                 }
                 RequestValues::Status => todo!(),
@@ -100,25 +95,13 @@ pub async fn get_info<T: EmailSender>(
                 RequestValues::Sessions => todo!(),
                 RequestValues::Friends => {
                     // TODO:optimize the performance
-                    let friends = match friends().await {
-                        Ok(friends) => friends,
-                        Err(e) => {
-                            tracing::error!("Database error:{e}");
-                            return Err(tonic::Status::internal("database error"));
-                        }
-                    };
+                    let friends = friends().await?;
                     let mut ids = vec![];
                     for i in friends {
                         ids.push(
-                            match get_account_info_db(i.friend_id.into(), &server.db.db_pool).await
-                            {
-                                Ok(user) => user,
-                                Err(e) => {
-                                    tracing::error!("Database error:{e}");
-                                    return Err(tonic::Status::internal("database error"));
-                                }
-                            }
-                            .ocid,
+                            get_account_info_db(i.friend_id.into(), &server.db.db_pool)
+                                .await?
+                                .ocid,
                         );
                     }
                     ret.friends = ids
@@ -130,8 +113,28 @@ pub async fn get_info<T: EmailSender>(
             }
         }
     }
+    Ok(ret)
+}
 
-    Ok(tonic::Response::new(ret))
+pub async fn get_info<T: EmailSender>(
+    server: &RpcServer<T>,
+    request: Request<GetAccountInfoRequest>,
+) -> Result<tonic::Response<GetAccountInfoResponse>, tonic::Status> {
+    match get_info_impl(server, request).await {
+        Ok(d) => Ok(tonic::Response::new(d)),
+        Err(e) => match e {
+            GetInfoError::DbError(db_err) => {
+                tracing::error!("{}", db_err);
+                Err(tonic::Status::internal("Server error"))
+            }
+            GetInfoError::NotFound => Err(tonic::Status::not_found("User not found")),
+            GetInfoError::StatusError(status) => Err(status),
+            GetInfoError::InternalError(error) => {
+                tracing::error!("{}", error);
+                Err(tonic::Status::internal("Server error"))
+            }
+        },
+    }
 }
 
 async fn get_account_info_db(id: ID, db_conn: &DatabaseConnection) -> anyhow::Result<user::Model> {
