@@ -83,7 +83,7 @@ pub enum UploadError {
     #[error("unknown error:{0}")]
     Unknown(#[from] anyhow::Error),
     #[error("status:{0}")]
-    StatusError(#[from] tonic::Status),
+    StatusError(#[from] Status),
     #[error("database error:{0}")]
     DbError(#[from] sea_orm::DbErr),
     #[error("from int error")]
@@ -158,7 +158,7 @@ async fn upload_impl(
 pub async fn upload<T: EmailSender>(
     server: &RpcServer<T>,
     request: tonic::Request<tonic::Streaming<UploadRequest>>,
-) -> Result<tonic::Response<UploadResponse>, Status> {
+) -> Result<Response<UploadResponse>, Status> {
     match upload_impl(server, request).await {
         Ok(ok_resp) => Ok(Response::new(ok_resp)),
         Err(e) => {

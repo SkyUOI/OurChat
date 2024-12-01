@@ -13,7 +13,7 @@ use tonic::{Response, Status};
 pub async fn set_friend_info<T: EmailSender>(
     server: &RpcServer<T>,
     request: tonic::Request<SetFriendInfoRequest>,
-) -> Result<Response<SetFriendInfoResponse>, tonic::Status> {
+) -> Result<Response<SetFriendInfoResponse>, Status> {
     let id = get_id_from_req(&request).unwrap();
     let request = request.into_inner();
     match update_friend(id, request, &server.db).await {
@@ -33,7 +33,7 @@ pub async fn set_friend_info<T: EmailSender>(
 #[derive(Debug, thiserror::Error)]
 enum SetError {
     #[error("db error")]
-    Db(#[from] sea_orm::DbErr),
+    Db(#[from] DbErr),
     #[error("unknown error")]
     Unknown(#[from] anyhow::Error),
 }

@@ -70,7 +70,7 @@ async fn download_impl(
 pub async fn download(
     server: &RpcServer<impl EmailSender>,
     request: Request<DownloadRequest>,
-) -> Result<Response<DownloadStream>, tonic::Status> {
+) -> Result<Response<DownloadStream>, Status> {
     let id = get_id_from_req(&request).unwrap();
     let req = request.into_inner();
     let (tx, rx) = mpsc::channel(16);
@@ -80,15 +80,13 @@ pub async fn download(
             Ok(_) => {}
             Err(e) => match e {
                 DownloadError::PermissionDenied => {
-                    tx.send(Err(tonic::Status::permission_denied("Permission Denied")))
+                    tx.send(Err(Status::permission_denied("Permission Denied")))
                         .await
                         .ok();
                 }
                 _ => {
                     tracing::error!("{}", e);
-                    tx.send(Err(tonic::Status::internal("Server Error")))
-                        .await
-                        .ok();
+                    tx.send(Err(Status::internal("Server Error"))).await.ok();
                 }
             },
         }

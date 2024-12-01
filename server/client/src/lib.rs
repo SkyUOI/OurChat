@@ -135,21 +135,14 @@ impl TestUser {
             password: user.password.clone(),
             email: user.email.clone(),
         };
-        let ret = user
-            .client
-            .auth
-            .register(request)
-            .await
-            .unwrap()
-            .into_inner();
+        let ret = user.client.auth.register(request).await?.into_inner();
         user.ocid = ret.ocid;
         user.id = ID(ret.id);
         user.token = ret.token;
-        let chann = Channel::builder(Uri::from_maybe_shared(user.rpc_url.clone()).unwrap())
+        let chann = Channel::builder(Uri::from_maybe_shared(user.rpc_url.clone())?)
             .connect()
-            .await
-            .unwrap();
-        let token: MetadataValue<_> = user.token.to_string().parse().unwrap();
+            .await?;
+        let token: MetadataValue<_> = user.token.to_string().parse()?;
         user.oc_server = Some(OurChatServiceClient::with_interceptor(
             chann,
             Box::new(move |mut req: tonic::Request<()>| {
@@ -179,7 +172,7 @@ impl TestUser {
 
     pub async fn unregister(&mut self) -> anyhow::Result<()> {
         let req = UnregisterRequest {};
-        self.oc().unregister(req).await.unwrap();
+        self.oc().unregister(req).await?;
         Ok(())
     }
 
@@ -192,7 +185,7 @@ impl TestUser {
             account: Some(auth_request::Account::Ocid(self.ocid.clone())),
             password: self.password.clone(),
         };
-        let ret = self.client.auth.auth(login_req).await.unwrap().into_inner();
+        let ret = self.client.auth.auth(login_req).await?.into_inner();
         self.token = ret.token.clone();
         Ok(())
     }
@@ -259,7 +252,7 @@ pub struct Clients {
 /// A test client
 ///
 /// # Details
-/// Some members are Option because you can new a TestApp by connecting to an existing server or not
+/// Some members are Option because you can construct a TestApp by connecting to an existing server or not
 #[derive(Clone)]
 pub struct TestApp {
     pub port: u16,

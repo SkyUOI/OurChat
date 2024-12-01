@@ -78,7 +78,7 @@ impl VerifyRecord {
 
 pub async fn verify_client(
     db: &DbPool,
-    shared_data: Arc<crate::SharedData<impl EmailSender>>,
+    shared_data: Arc<SharedData<impl EmailSender>>,
     data: VerifyRecord,
     notify: Arc<Notify>,
 ) -> anyhow::Result<()> {

@@ -6,7 +6,7 @@ pub mod v1 {
     impl UploadRequest {
         pub fn header(self) -> Option<Header> {
             match self.data? {
-                upload_request::Data::Metadata(data) => Some(data),
+                Data::Metadata(data) => Some(data),
                 _ => None,
             }
         }

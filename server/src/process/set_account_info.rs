@@ -36,7 +36,7 @@ pub async fn set_account_info<T: EmailSender>(
 #[derive(Debug, thiserror::Error)]
 enum SetError {
     #[error("db error")]
-    Db(#[from] sea_orm::DbErr),
+    Db(#[from] DbErr),
     #[error("conflict")]
     Conflict,
     #[error("unknown error")]

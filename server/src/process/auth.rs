@@ -21,7 +21,7 @@ enum AuthError {
     #[error("missing auth type")]
     MissingAuthType,
     #[error("db error:{0}")]
-    DbError(#[from] sea_orm::DbErr),
+    DbError(#[from] DbErr),
     #[error("Unknown Error:{0}")]
     UnknownError(#[from] anyhow::Error),
 }

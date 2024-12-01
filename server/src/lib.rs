@@ -456,7 +456,7 @@ impl<T: EmailSender> Application<T> {
             None => main_cfg.port,
             Some(port) => port,
         };
-        let addr: SocketAddr = format!("{}:{}", &main_cfg.ip, port).parse().unwrap();
+        let addr: SocketAddr = format!("{}:{}", &main_cfg.ip, port).parse()?;
         main_cfg.port = addr.port();
 
         // http port

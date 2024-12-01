@@ -112,29 +112,29 @@ pub type DownloadStream =
 impl<T: EmailSender> OurChatService for RpcServer<T> {
     async fn unregister(
         &self,
-        request: tonic::Request<UnregisterRequest>,
-    ) -> Result<tonic::Response<UnregisterResponse>, tonic::Status> {
+        request: Request<UnregisterRequest>,
+    ) -> Result<Response<UnregisterResponse>, Status> {
         process::unregister::unregister(self, request).await
     }
 
     async fn get_account_info(
         &self,
-        request: tonic::Request<GetAccountInfoRequest>,
-    ) -> Result<tonic::Response<GetAccountInfoResponse>, tonic::Status> {
+        request: Request<GetAccountInfoRequest>,
+    ) -> Result<Response<GetAccountInfoResponse>, Status> {
         process::get_account_info::get_info(self, request).await
     }
 
     async fn set_self_info(
         &self,
-        request: tonic::Request<SetSelfInfoRequest>,
-    ) -> Result<tonic::Response<SetSelfInfoResponse>, tonic::Status> {
+        request: Request<SetSelfInfoRequest>,
+    ) -> Result<Response<SetSelfInfoResponse>, Status> {
         process::set_account_info(self, request).await
     }
 
     async fn set_friend_info(
         &self,
-        request: tonic::Request<SetFriendInfoRequest>,
-    ) -> Result<tonic::Response<SetFriendInfoResponse>, tonic::Status> {
+        request: Request<SetFriendInfoRequest>,
+    ) -> Result<Response<SetFriendInfoResponse>, Status> {
         process::set_friend_info(self, request).await
     }
 
@@ -142,52 +142,52 @@ impl<T: EmailSender> OurChatService for RpcServer<T> {
 
     async fn fetch_msgs(
         &self,
-        request: tonic::Request<FetchMsgsRequest>,
-    ) -> Result<Response<Self::FetchMsgsStream>, tonic::Status> {
+        request: Request<FetchMsgsRequest>,
+    ) -> Result<Response<Self::FetchMsgsStream>, Status> {
         process::fetch_user_msg(self, request).await
     }
 
     async fn send_msg(
         &self,
-        request: tonic::Request<SendMsgRequest>,
-    ) -> Result<Response<SendMsgResponse>, tonic::Status> {
+        request: Request<SendMsgRequest>,
+    ) -> Result<Response<SendMsgResponse>, Status> {
         process::send_msg(self, request).await
     }
 
     async fn upload(
         &self,
-        request: tonic::Request<tonic::Streaming<UploadRequest>>,
-    ) -> Result<Response<UploadResponse>, tonic::Status> {
+        request: Request<tonic::Streaming<UploadRequest>>,
+    ) -> Result<Response<UploadResponse>, Status> {
         process::upload(self, request).await
-    }
-
-    async fn new_session(
-        &self,
-        request: tonic::Request<NewSessionRequest>,
-    ) -> Result<tonic::Response<NewSessionResponse>, tonic::Status> {
-        process::new_session(self, request).await
     }
 
     type DownloadStream = DownloadStream;
 
     async fn download(
         &self,
-        request: tonic::Request<DownloadRequest>,
-    ) -> Result<Response<Self::DownloadStream>, tonic::Status> {
+        request: Request<DownloadRequest>,
+    ) -> Result<Response<Self::DownloadStream>, Status> {
         process::download(self, request).await
     }
 
     async fn accept_session(
         &self,
-        request: tonic::Request<AcceptSessionRequest>,
-    ) -> Result<tonic::Response<AcceptSessionResponse>, tonic::Status> {
+        request: Request<AcceptSessionRequest>,
+    ) -> Result<Response<AcceptSessionResponse>, Status> {
         process::accept_session(self, request).await
+    }
+
+    async fn new_session(
+        &self,
+        request: Request<NewSessionRequest>,
+    ) -> Result<Response<NewSessionResponse>, Status> {
+        process::new_session(self, request).await
     }
 
     async fn get_session_info(
         &self,
-        request: tonic::Request<GetSessionInfoRequest>,
-    ) -> Result<tonic::Response<GetSessionInfoResponse>, tonic::Status> {
+        request: Request<GetSessionInfoRequest>,
+    ) -> Result<Response<GetSessionInfoResponse>, Status> {
         // process::get_session_info(self, request).await
         todo!()
     }
@@ -203,26 +203,23 @@ pub type VerifyStream =
 
 #[tonic::async_trait]
 impl<T: EmailSender> auth_service_server::AuthService for AuthServiceProvider<T> {
-    async fn auth(
-        &self,
-        request: tonic::Request<AuthRequest>,
-    ) -> Result<tonic::Response<AuthResponse>, tonic::Status> {
-        process::auth::auth(self, request).await
-    }
-
     async fn register(
         &self,
-        request: tonic::Request<RegisterRequest>,
-    ) -> Result<tonic::Response<RegisterResponse>, tonic::Status> {
+        request: Request<RegisterRequest>,
+    ) -> Result<Response<RegisterResponse>, Status> {
         process::register::register(self, request).await
+    }
+
+    async fn auth(&self, request: Request<AuthRequest>) -> Result<Response<AuthResponse>, Status> {
+        process::auth::auth(self, request).await
     }
 
     type VerifyStream = VerifyStream;
 
     async fn verify(
         &self,
-        request: tonic::Request<VerifyRequest>,
-    ) -> Result<tonic::Response<Self::VerifyStream>, tonic::Status> {
+        request: Request<VerifyRequest>,
+    ) -> Result<Response<Self::VerifyStream>, Status> {
         process::verify::email_verify(self, request).await
     }
 }
@@ -236,19 +233,19 @@ struct BasicServiceProvider<T: EmailSender> {
 impl<T: EmailSender> BasicService for BasicServiceProvider<T> {
     async fn timestamp(
         &self,
-        _request: tonic::Request<TimestampRequest>,
-    ) -> Result<tonic::Response<TimestampResponse>, tonic::Status> {
+        _request: Request<TimestampRequest>,
+    ) -> Result<Response<TimestampResponse>, Status> {
         let time = chrono::Utc::now();
         let res = TimestampResponse {
             timestamp: Some(to_google_timestamp(time)),
         };
-        Ok(tonic::Response::new(res))
+        Ok(Response::new(res))
     }
 
     async fn get_server_info(
         &self,
-        _request: tonic::Request<GetServerInfoRequest>,
-    ) -> Result<tonic::Response<pb::basic::server::v1::GetServerInfoResponse>, tonic::Status> {
+        _request: Request<GetServerInfoRequest>,
+    ) -> Result<Response<pb::basic::server::v1::GetServerInfoResponse>, Status> {
         Ok(Response::new(
             pb::basic::server::v1::GetServerInfoResponse {
                 http_port: self.shared_data.cfg.main_cfg.http_port.into(),
@@ -260,8 +257,8 @@ impl<T: EmailSender> BasicService for BasicServiceProvider<T> {
 
     async fn get_id(
         &self,
-        request: tonic::Request<GetIdRequest>,
-    ) -> Result<tonic::Response<GetIdResponse>, tonic::Status> {
+        request: Request<GetIdRequest>,
+    ) -> Result<Response<GetIdResponse>, Status> {
         let req = request.into_inner();
         match get_id(&req.ocid, &self.db).await {
             Ok(id) => Ok(Response::new(GetIdResponse { id: *id })),

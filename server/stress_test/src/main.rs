@@ -228,18 +228,14 @@ async fn main() -> anyhow::Result<()> {
     let mut app = if args.use_exists_instance {
         server::logger_init(true, std::io::stdout);
         let cfg = server::get_configuration(args.config.as_ref().map(PathBuf::from))?;
-        client::TestApp::new_with_existing_instance(cfg)
-            .await
-            .unwrap()
+        client::TestApp::new_with_existing_instance(cfg).await?
     } else {
         if let Some(path) = args.config {
             unsafe {
                 set_var("OURCHAT_CONFIG_FILE", path);
             }
         }
-        client::TestApp::new_with_launching_instance(None)
-            .await
-            .unwrap()
+        client::TestApp::new_with_launching_instance(None).await?
     };
     // test every endpoint's performance
     test_endpoint(&mut app).await;

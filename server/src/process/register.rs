@@ -75,7 +75,7 @@ enum RegisterError {
     #[error("User exists")]
     UserExists,
     #[error("database error:{0}")]
-    DbError(#[from] sea_orm::DbErr),
+    DbError(#[from] DbErr),
     #[error("unknown error:{0}")]
     UnknownError(#[from] anyhow::Error),
     #[error("from int error")]
@@ -118,7 +118,7 @@ async fn register_impl(
 pub async fn register<T: EmailSender>(
     server: &AuthServiceProvider<T>,
     request: Request<RegisterRequest>,
-) -> Result<tonic::Response<RegisterResponse>, tonic::Status> {
+) -> Result<Response<RegisterResponse>, Status> {
     match register_impl(server, request).await {
         Ok(ok_resp) => Ok(Response::new(ok_resp)),
         Err(RegisterError::DbError(e)) => {

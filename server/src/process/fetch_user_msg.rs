@@ -29,18 +29,18 @@ pub enum MsgError {
 pub async fn fetch_user_msg<T: EmailSender>(
     server: &RpcServer<T>,
     request: tonic::Request<FetchMsgsRequest>,
-) -> Result<Response<FetchMsgsStream>, tonic::Status> {
+) -> Result<Response<FetchMsgsStream>, Status> {
     let id = get_id_from_req(&request).unwrap();
     let request = request.into_inner();
     let time = match from_google_timestamp(&match request.time {
         Some(t) => t,
         None => {
-            return Err(tonic::Status::invalid_argument("time is missing"));
+            return Err(Status::invalid_argument("time is missing"));
         }
     }) {
         Some(t) => t,
         None => {
-            return Err(tonic::Status::invalid_argument("time error"));
+            return Err(Status::invalid_argument("time error"));
         }
     };
     let (tx, rx) = mpsc::channel(32);
@@ -62,9 +62,7 @@ pub async fn fetch_user_msg<T: EmailSender>(
                             };
                             match tx
                                 .send(Ok(FetchMsgsResponse {
-                                    data: Some(msg_delivery::v1::fetch_msgs_response::Data::Msg(
-                                        msg,
-                                    )),
+                                    data: Some(fetch_msgs_response::Data::Msg(msg)),
                                 }))
                                 .await
                             {

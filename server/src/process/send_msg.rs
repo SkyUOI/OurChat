@@ -19,7 +19,7 @@ enum SendMsgError {
     #[error("unknown error:{0}")]
     Unknown(#[from] anyhow::Error),
     #[error("status:{0}")]
-    Status(#[from] tonic::Status),
+    Status(#[from] Status),
 }
 
 pub async fn send_msg(

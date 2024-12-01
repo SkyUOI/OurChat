@@ -119,7 +119,7 @@ async fn unregister_impl(
 pub async fn unregister<T: EmailSender>(
     server: &RpcServer<T>,
     request: tonic::Request<UnregisterRequest>,
-) -> Result<tonic::Response<UnregisterResponse>, tonic::Status> {
+) -> Result<Response<UnregisterResponse>, Status> {
     match unregister_impl(server, request).await {
         Ok(d) => Ok(Response::new(d)),
         Err(e) => {

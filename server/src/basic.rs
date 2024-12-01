@@ -1,6 +1,6 @@
 use dashmap::DashMap;
 use parking_lot::Mutex;
-use rand::Rng;
+use rand::{Rng, random};
 use std::sync::Arc;
 use tokio::{
     sync::{Barrier, oneshot},
@@ -39,7 +39,7 @@ impl ShutdownSdr {
     ) -> ShutdownRev {
         let mut task_id;
         loop {
-            task_id = rand::thread_rng().r#gen();
+            task_id = random();
             if !self.tasks.contains_key(&task_id) {
                 break;
             }

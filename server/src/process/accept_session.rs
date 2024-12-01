@@ -22,7 +22,7 @@ async fn accept_impl(
 pub async fn accept_session(
     server: &RpcServer<impl EmailSender>,
     request: tonic::Request<AcceptSessionRequest>,
-) -> Result<tonic::Response<AcceptSessionResponse>, tonic::Status> {
+) -> Result<Response<AcceptSessionResponse>, tonic::Status> {
     // check if the time is expired
     Ok(Response::new(AcceptSessionResponse {}))
 }
