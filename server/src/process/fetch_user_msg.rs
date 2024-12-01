@@ -3,7 +3,10 @@ use crate::{
     component::EmailSender,
     consts::ID,
     entities::user_chat_msg,
-    pb::ourchat::msg_delivery::v1::{FetchMsgsRequest, FetchMsgsResponse, Msg},
+    pb::ourchat::msg_delivery::{
+        self,
+        v1::{FetchMsgsRequest, FetchMsgsResponse, Msg, fetch_msgs_response},
+    },
     server::{FetchMsgsStream, RpcServer},
     utils::from_google_timestamp,
 };
@@ -23,7 +26,7 @@ pub enum MsgError {
     UnknownError(#[from] anyhow::Error),
 }
 
-pub async fn get_user_msg<T: EmailSender>(
+pub async fn fetch_user_msg<T: EmailSender>(
     server: &RpcServer<T>,
     request: tonic::Request<FetchMsgsRequest>,
 ) -> Result<Response<FetchMsgsStream>, tonic::Status> {
@@ -43,6 +46,7 @@ pub async fn get_user_msg<T: EmailSender>(
     let (tx, rx) = mpsc::channel(32);
     let db_conn = server.db.clone();
     let fetch_page_size = server.shared_data.cfg.main_cfg.db.fetch_msg_page_size;
+    server.shared_data.connected_clients.insert(id, tx.clone());
     tokio::spawn(async move {
         match get_session_msgs(id, time.into(), &db_conn.db_pool, fetch_page_size).await {
             Ok(mut pag) => {
@@ -56,7 +60,14 @@ pub async fn get_user_msg<T: EmailSender>(
                                     continue;
                                 }
                             };
-                            match tx.send(Ok(FetchMsgsResponse { msg: Some(msg) })).await {
+                            match tx
+                                .send(Ok(FetchMsgsResponse {
+                                    data: Some(msg_delivery::v1::fetch_msgs_response::Data::Msg(
+                                        msg,
+                                    )),
+                                }))
+                                .await
+                            {
                                 Ok(_) => {}
                                 Err(e) => {
                                     tracing::error!("send msg error:{e}");

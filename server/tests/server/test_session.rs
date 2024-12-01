@@ -1,4 +1,4 @@
-use server::pb::ourchat::session::v1::NewSessionRequest;
+use server::pb::ourchat::session::new_session::v1::NewSessionRequest;
 
 #[tokio::test]
 async fn test_session() {

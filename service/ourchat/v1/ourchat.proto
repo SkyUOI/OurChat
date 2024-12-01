@@ -5,7 +5,8 @@ package service.ourchat.v1;
 import "service/ourchat/download/v1/download.proto";
 import "service/ourchat/get_account_info/v1/get_account_info.proto";
 import "service/ourchat/msg_delivery/v1/msg_delivery.proto";
-import "service/ourchat/session/v1/session.proto";
+import "service/ourchat/session/accept_session/v1/accept_session.proto";
+import "service/ourchat/session/new_session/v1/session.proto";
 import "service/ourchat/set_account_info/v1/set_account_info.proto";
 import "service/ourchat/unregister/v1/unregister.proto";
 import "service/ourchat/upload/v1/upload.proto";
@@ -22,11 +23,15 @@ service OurChatService {
 
   rpc FetchMsgs(msg_delivery.v1.FetchMsgsRequest) returns (stream msg_delivery.v1.FetchMsgsResponse);
 
-  rpc SendMsg(stream msg_delivery.v1.SendMsgRequest) returns (stream msg_delivery.v1.SendMsgResponse);
+  rpc SendMsg(msg_delivery.v1.SendMsgRequest) returns (msg_delivery.v1.SendMsgResponse);
 
   rpc Upload(stream upload.v1.UploadRequest) returns (upload.v1.UploadResponse);
 
   rpc Download(download.v1.DownloadRequest) returns (stream download.v1.DownloadResponse);
 
-  rpc NewSession(session.v1.NewSessionRequest) returns (session.v1.NewSessionResponse);
+  // session operations
+
+  rpc AcceptSession(session.accept_session.v1.AcceptSessionRequest) returns (session.accept_session.v1.AcceptSessionResponse);
+
+  rpc NewSession(session.new_session.v1.NewSessionRequest) returns (session.new_session.v1.NewSessionResponse);
 }

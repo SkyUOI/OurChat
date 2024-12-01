@@ -15,7 +15,10 @@ use crate::pb::ourchat::get_account_info::v1::{GetAccountInfoRequest, GetAccount
 use crate::pb::ourchat::msg_delivery::v1::{
     FetchMsgsRequest, FetchMsgsResponse, Msg, SendMsgRequest, SendMsgResponse,
 };
-use crate::pb::ourchat::session::v1::{NewSessionRequest, NewSessionResponse};
+use crate::pb::ourchat::session::accept_session::v1::{
+    AcceptSessionRequest, AcceptSessionResponse,
+};
+use crate::pb::ourchat::session::new_session::v1::{NewSessionRequest, NewSessionResponse};
 use crate::pb::ourchat::set_account_info::v1::{
     SetFriendInfoRequest, SetFriendInfoResponse, SetSelfInfoRequest, SetSelfInfoResponse,
 };
@@ -95,8 +98,6 @@ impl<T: EmailSender> RpcServer<T> {
 
 pub type FetchMsgsStream =
     Pin<Box<dyn tokio_stream::Stream<Item = Result<FetchMsgsResponse, Status>> + Send>>;
-pub type SendMsgStream =
-    Pin<Box<dyn tokio_stream::Stream<Item = Result<SendMsgResponse, Status>> + Send>>;
 pub type DownloadStream =
     Pin<Box<dyn tokio_stream::Stream<Item = Result<DownloadResponse, Status>> + Send>>;
 
@@ -136,15 +137,13 @@ impl<T: EmailSender> OurChatService for RpcServer<T> {
         &self,
         request: tonic::Request<FetchMsgsRequest>,
     ) -> Result<Response<Self::FetchMsgsStream>, tonic::Status> {
-        process::get_user_msg(self, request).await
+        process::fetch_user_msg(self, request).await
     }
-
-    type SendMsgStream = SendMsgStream;
 
     async fn send_msg(
         &self,
-        request: tonic::Request<tonic::Streaming<SendMsgRequest>>,
-    ) -> Result<Response<Self::SendMsgStream>, tonic::Status> {
+        request: tonic::Request<SendMsgRequest>,
+    ) -> Result<Response<SendMsgResponse>, tonic::Status> {
         process::send_msg(self, request).await
     }
 
@@ -169,6 +168,13 @@ impl<T: EmailSender> OurChatService for RpcServer<T> {
         request: tonic::Request<DownloadRequest>,
     ) -> Result<Response<Self::DownloadStream>, tonic::Status> {
         process::download(self, request).await
+    }
+
+    async fn accept_session(
+        &self,
+        request: tonic::Request<AcceptSessionRequest>,
+    ) -> Result<tonic::Response<AcceptSessionResponse>, tonic::Status> {
+        process::accept_session(self, request).await
     }
 }
 

@@ -444,7 +444,7 @@ impl TestApp {
         }
         // create a group in database level
         let session_id = utils::generate_session_id()?;
-        process::db::create_session(
+        process::db::create_session_db(
             session_id,
             n,
             name.into(),

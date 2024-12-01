@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import basic
 import os
 import sys

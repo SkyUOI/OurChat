@@ -1,10 +1,11 @@
 //! Functions process the requests from clients
 
+mod accept_session;
 pub mod auth;
 pub mod basic;
 mod download;
+mod fetch_user_msg;
 pub mod get_account_info;
-mod get_user_msg;
 pub mod new_session;
 pub mod register;
 mod send_msg;
@@ -14,23 +15,25 @@ pub mod unregister;
 mod upload;
 pub mod verify;
 
-pub use download::download;
-pub use get_user_msg::get_user_msg;
 use jsonwebtoken::DecodingKey;
 use jsonwebtoken::EncodingKey;
 use jsonwebtoken::Validation;
-pub use new_session::new_session;
 use sea_orm::ColumnTrait;
 use sea_orm::DatabaseConnection;
 use sea_orm::EntityTrait;
 use sea_orm::QueryFilter;
-pub use send_msg::send_msg;
 use serde::Deserialize;
 use serde::Serialize;
-pub use set_account_info::set_account_info;
-pub use set_friend_info::set_friend_info;
 use std::time::Duration;
 use tonic::Request;
+
+pub use accept_session::accept_session;
+pub use download::download;
+pub use fetch_user_msg::fetch_user_msg;
+pub use new_session::new_session;
+pub use send_msg::send_msg;
+pub use set_account_info::set_account_info;
+pub use set_friend_info::set_friend_info;
 pub use unregister::unregister;
 pub use upload::upload;
 
@@ -41,7 +44,7 @@ use crate::entities::prelude::*;
 
 pub mod db {
     pub use super::basic::get_id;
-    pub use super::new_session::{add_to_session, batch_add_to_session, create_session};
+    pub use super::new_session::{add_to_session, batch_add_to_session, create_session_db};
 }
 
 #[derive(Debug, Serialize, Deserialize)]

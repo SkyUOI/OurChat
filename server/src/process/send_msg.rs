@@ -4,7 +4,7 @@ use crate::{
     consts::{ID, MsgID},
     entities::user_chat_msg,
     pb::ourchat::msg_delivery::v1::{SendMsgRequest, SendMsgResponse},
-    server::{RpcServer, SendMsgStream},
+    server::RpcServer,
 };
 use futures_util::StreamExt;
 use sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection};
@@ -24,54 +24,33 @@ enum SendMsgError {
 
 pub async fn send_msg(
     server: &RpcServer<impl EmailSender>,
-    request: Request<Streaming<SendMsgRequest>>,
-) -> Result<Response<SendMsgStream>, Status> {
+    request: Request<SendMsgRequest>,
+) -> Result<Response<SendMsgResponse>, Status> {
     let id = get_id_from_req(&request).unwrap();
-    let mut req = request.into_inner();
-    let (tx, rx) = mpsc::channel(32);
+    let req = request.into_inner();
     let db_conn = server.db.clone();
-    tokio::spawn(async move {
-        while let Some(msg) = req.next().await {
-            let request = match msg {
-                Ok(m) => m,
-                Err(e) => {
-                    tracing::error!("send msg error:{e}");
-                    tx.send(Err(e)).await.ok();
-                    continue;
-                }
-            };
-            // TODO:store in binary data
-            match insert_msg_record(
-                id,
-                ID(request.session_id),
-                serde_json::value::to_value(request.bundle_msgs).unwrap(),
-                &db_conn.db_pool,
-            )
-            .await
-            {
-                Ok(msg_id) => {
-                    tx.send(Ok(SendMsgResponse {
-                        msg_id: msg_id.into(),
-                    }))
-                    .await
-                    .ok();
-                }
-                Err(SendMsgError::Db(e)) => {
-                    tracing::error!("Database error:{e}");
-                    tx.send(Err(Status::internal("database error"))).await.ok();
-                }
-                Err(SendMsgError::Unknown(e)) => {
-                    tracing::error!("Unknown error:{e}");
-                    tx.send(Err(Status::internal("unknown error"))).await.ok();
-                }
-                Err(SendMsgError::Status(e)) => {
-                    tx.send(Err(e)).await.ok();
-                }
-            };
+    // TODO:store in binary data
+    match insert_msg_record(
+        id,
+        ID(req.session_id),
+        serde_json::value::to_value(req.bundle_msgs).unwrap(),
+        &db_conn.db_pool,
+    )
+    .await
+    {
+        Ok(msg_id) => Ok(Response::new(SendMsgResponse {
+            msg_id: msg_id.into(),
+        })),
+        Err(SendMsgError::Db(e)) => {
+            tracing::error!("Database error:{e}");
+            Err(Status::internal("database error"))
         }
-    });
-    let output_stream = ReceiverStream::new(rx);
-    Ok(Response::new(Box::pin(output_stream) as SendMsgStream))
+        Err(SendMsgError::Unknown(e)) => {
+            tracing::error!("Unknown error:{e}");
+            Err(Status::internal("unknown error"))
+        }
+        Err(SendMsgError::Status(e)) => Err(e),
+    }
 }
 
 async fn insert_msg_record(

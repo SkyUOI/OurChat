@@ -4,7 +4,7 @@ use crate::{
     component::EmailSender,
     consts::{ID, OCID, SessionID},
     entities::{friend, operations, prelude::*, session, session_relation},
-    pb::ourchat::session::v1::{NewSessionRequest, NewSessionResponse},
+    pb::ourchat::session::new_session::v1::{NewSessionRequest, NewSessionResponse},
     server::RpcServer,
     utils,
 };
@@ -54,7 +54,8 @@ pub enum SessionError {
     UnknownError(#[from] anyhow::Error),
 }
 
-pub async fn create_session(
+/// create a new session in database
+pub async fn create_session_db(
     session_id: SessionID,
     people_num: usize,
     session_name: String,
@@ -69,6 +70,7 @@ pub async fn create_session(
     Ok(())
 }
 
+/// check the privilege and whether to send verification request
 pub async fn whether_to_verify(
     sender: ID,
     invitee: ID,
@@ -129,7 +131,7 @@ async fn new_session_impl(
         }
     }
     let bundle = async {
-        create_session(session_id, people_num, req.name, &server.db.db_pool).await?;
+        create_session_db(session_id, people_num, req.name, &server.db.db_pool).await?;
         // add session relation
         batch_add_to_session(&server.db.db_pool, session_id, &peoples).await?;
 
@@ -231,8 +233,3 @@ pub async fn batch_add_to_session(
     }
     Ok(())
 }
-
-// pub async fn accept_session(json: AcceptSessionRequest, db_conn: &DbPool) -> anyhow::Result<()> {
-//     // check if the time is expired
-//     Ok(())
-// }

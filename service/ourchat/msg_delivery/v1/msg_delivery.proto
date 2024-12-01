@@ -3,6 +3,7 @@ syntax = "proto3";
 package service.ourchat.msg_delivery.v1;
 
 import "google/protobuf/timestamp.proto";
+import "service/ourchat/session/invite_session/v1/invite_session.proto";
 
 // One piece of message
 message OneMsg {
@@ -22,7 +23,10 @@ message FetchMsgsRequest {
 }
 
 message FetchMsgsResponse {
-  Msg msg = 1;
+  oneof data {
+    Msg msg = 1;
+    session.invite_session.v1.InviteSession invite_session = 2;
+  }
 }
 
 message Msg {

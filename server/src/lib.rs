@@ -26,7 +26,7 @@ use db::{DbCfgTrait, PostgresDbCfg, file_storage};
 use futures_util::future::join_all;
 use lettre::{AsyncSmtpTransport, transport::smtp::authentication::Credentials};
 use parking_lot::Once;
-use pb::ourchat::msg_delivery::v1::Msg;
+use pb::ourchat::msg_delivery::v1::{FetchMsgsResponse, Msg, fetch_msgs_response};
 use rand::Rng;
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
@@ -417,7 +417,7 @@ pub struct SharedData<T: EmailSender> {
     pub email_client: Option<T>,
     pub cfg: Cfg,
     pub verify_record: DashMap<String, Arc<tokio::sync::Notify>>,
-    pub connected_clients: DashMap<ID, mpsc::Sender<Msg>>,
+    pub connected_clients: DashMap<ID, mpsc::Sender<Result<FetchMsgsResponse, tonic::Status>>>,
 }
 
 pub fn get_configuration(config_path: Option<impl Into<PathBuf>>) -> anyhow::Result<Cfg> {

@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package service.ourchat.session.invite_session.v1;
+
+message InviteSession {
+  uint64 session_id = 1;
+  string inviter_id = 2;
+}

@@ -1,7 +1,9 @@
 use server::{
     pb::ourchat::msg_delivery::{
         self,
-        v1::{FetchMsgsRequest, FetchMsgsResponse, Msg, OneMsg, SendMsgRequest},
+        v1::{
+            FetchMsgsRequest, FetchMsgsResponse, Msg, OneMsg, SendMsgRequest, fetch_msgs_response,
+        },
     },
     utils::to_google_timestamp,
 };
@@ -27,14 +29,8 @@ async fn test_text_sent() {
             data: Some(msg_delivery::v1::one_msg::Data::Text("hello".to_owned())),
         }],
     };
-    let ret = a
-        .lock()
-        .await
-        .oc()
-        .send_msg(tokio_stream::iter(vec![msg_sent]))
-        .await
-        .unwrap();
-    let msg_id = ret.into_inner().next().await.unwrap().unwrap().msg_id;
+    let ret = a.lock().await.oc().send_msg(msg_sent).await.unwrap();
+    let msg_id = ret.into_inner().msg_id;
     app.async_drop().await;
 }
 
@@ -61,14 +57,8 @@ async fn test_text_get() {
         time: Some(time_google),
         bundle_msgs: vec![msg_should_sent.clone()],
     };
-    let ret = a
-        .lock()
-        .await
-        .oc()
-        .send_msg(tokio_stream::iter(vec![msg_sent]))
-        .await
-        .unwrap();
-    let mut msg_id = vec![ret.into_inner().next().await.unwrap().unwrap().msg_id];
+    let ret = a.lock().await.oc().send_msg(msg_sent).await.unwrap();
+    let mut msg_id = vec![ret.into_inner().msg_id];
 
     let time = app.get_timestamp().await;
     let time_google = to_google_timestamp(time);
@@ -77,32 +67,29 @@ async fn test_text_get() {
         time: Some(time_google),
         bundle_msgs: vec![msg_should_sent.clone()],
     };
-    let ret = a
-        .lock()
-        .await
-        .oc()
-        .send_msg(tokio_stream::iter(vec![msg_sent]))
-        .await
-        .unwrap();
-    msg_id.push(ret.into_inner().next().await.unwrap().unwrap().msg_id);
+    let ret = a.lock().await.oc().send_msg(msg_sent).await.unwrap();
+    msg_id.push(ret.into_inner().msg_id);
 
     // get message
     let msg_get = FetchMsgsRequest {
         time: Some(to_google_timestamp(base_time)),
     };
     let ret = c.lock().await.oc().fetch_msgs(msg_get).await.unwrap();
-    let ret = ret.into_inner();
-    let msgs: Vec<Msg> = ret
-        .collect::<Vec<Result<FetchMsgsResponse, tonic::Status>>>()
-        .await
-        .into_iter()
-        .map(|r| r.unwrap().msg.unwrap())
-        .collect();
+    let mut ret = ret.into_inner();
+    let mut msgs = vec![];
+    while let Some(i) = tokio::select! {
+        i = ret.next() => i,
+        _ = tokio::time::sleep(tokio::time::Duration::from_millis(100)) => None
+    } {
+        msgs.push(i.unwrap().data.unwrap());
+    }
     assert_eq!(msgs.len(), 2);
     for (i, msg_id) in msgs.into_iter().zip(msg_id.iter()) {
-        assert_eq!(i.session_id, u64::from(session.session_id));
-        assert_eq!(i.bundle_msgs, vec![msg_should_sent.clone()]);
-        assert_eq!(i.msg_id, *msg_id);
+        if let fetch_msgs_response::Data::Msg(i) = i {
+            assert_eq!(i.session_id, u64::from(session.session_id));
+            assert_eq!(i.bundle_msgs, vec![msg_should_sent.clone()]);
+            assert_eq!(i.msg_id, *msg_id);
+        }
     }
     app.async_drop().await;
 }

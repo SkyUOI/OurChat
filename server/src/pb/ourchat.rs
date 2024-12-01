@@ -13,8 +13,22 @@ pub mod download {
 }
 
 pub mod session {
-    pub mod v1 {
-        tonic::include_proto!("service.ourchat.session.v1");
+    pub mod new_session {
+        pub mod v1 {
+            tonic::include_proto!("service.ourchat.session.new_session.v1");
+        }
+    }
+
+    pub mod accept_session {
+        pub mod v1 {
+            tonic::include_proto!("service.ourchat.session.accept_session.v1");
+        }
+    }
+
+    pub mod invite_session {
+        pub mod v1 {
+            tonic::include_proto!("service.ourchat.session.invite_session.v1");
+        }
     }
 }
 
