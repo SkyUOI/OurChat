@@ -1,4 +1,5 @@
 import os
+import subprocess
 import sys
 
 
@@ -8,3 +9,15 @@ def msg_system(cmd: str, msg=None):
         if msg is not None:
             print("ERROR:", msg)
         sys.exit(1)
+
+
+VERSION = "1.1.2"
+
+
+def version_check():
+    # get sea version
+    sea_version = subprocess.getoutput("sea --version").split()[1]
+    # check version
+    if VERSION != sea_version:
+        return False
+    return True

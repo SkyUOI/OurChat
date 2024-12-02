@@ -1,20 +1,8 @@
 #!/usr/bin/env python3
 
-import subprocess
 import sys
 
-from basic import msg_system
-
-VERSION = "1.1.1"
-
-
-def version_check():
-    # get sea version
-    sea_version = subprocess.getoutput("sea --version").split()[1]
-    # check version
-    if VERSION != sea_version:
-        return False
-    return True
+from basic import VERSION, msg_system, version_check
 
 
 def main():
