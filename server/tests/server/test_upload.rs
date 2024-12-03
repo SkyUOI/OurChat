@@ -1,10 +1,12 @@
 use claims::assert_err;
-use server::consts::Bt;
+use server::consts::{Bt, FileSize, MBt};
 use tokio::fs::read_to_string;
 
 #[tokio::test]
 async fn test_upload() {
-    let mut app = client::TestApp::new_with_launching_instance(None)
+    let (mut config, args) = client::TestApp::get_test_config().unwrap();
+    config.main_cfg.user_files_limit = FileSize::MB(MBt(10));
+    let mut app = client::TestApp::new_with_launching_instance_custom_cfg(None, (config, args))
         .await
         .unwrap();
     let user1 = app.new_user().await.unwrap();

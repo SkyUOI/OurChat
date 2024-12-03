@@ -9,7 +9,10 @@ use crate::{
 };
 use anyhow::anyhow;
 use futures_util::StreamExt;
-use sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection, EntityTrait, QueryOrder};
+use sea_orm::{
+    ActiveModelTrait, ActiveValue, ConnectionTrait, DatabaseConnection, EntityTrait,
+    PaginatorTrait, QueryOrder,
+};
 use sha3::{Digest, Sha3_256};
 use std::{num::TryFromIntError, path::PathBuf};
 use tokio::{
@@ -37,22 +40,22 @@ pub async fn add_file_record(
     auto_clean: bool,
     db_connection: &DatabaseConnection,
     files_storage_path: impl Into<PathBuf>,
+    limit_size: u64,
 ) -> Result<File, UploadError> {
+    if sz > Bt(limit_size) {
+        return Err(UploadError::FileSizeOverflow);
+    }
     let user_info = match User::find_by_id(id).one(db_connection).await? {
         Some(user) => user,
-        None => {
-            return Err(anyhow!("user not found").into());
-        }
+        None => return Err(UploadError::UserNotFound),
     };
     // first check if the limit has been reached
-    let limit = shared_state::get_user_files_store_limit();
-    let bytes_num: Bt = limit.into();
     let res_used: u64 = user_info.resource_used.try_into()?;
     let will_used = Bt(res_used + *sz);
-    tracing::debug!("will used: {}, bytes_num: {}", will_used, bytes_num);
-    if will_used > bytes_num {
+    tracing::debug!("will used: {}, bytes_num: {}", will_used, limit_size);
+    if will_used > Bt(limit_size) {
         // reach the limit,delete some files to preserve the limit
-        clean_files(*will_used - *bytes_num, db_connection).await?;
+        clean_files(*will_used - limit_size, db_connection).await?;
     }
     let updated_res_lim = res_used + *sz;
     let mut user_info: user::ActiveModel = user_info.into();
@@ -82,21 +85,22 @@ pub async fn add_file_record(
 
 pub async fn clean_files(
     need_to_delete: u64,
-    db_connection: &DatabaseConnection,
+    db_connection: &impl ConnectionTrait,
 ) -> Result<(), UploadError> {
     tracing::debug!("Begin to clean files");
-    let files = Files::find()
+    let mut files_pages = Files::find()
         .order_by_asc(files::Column::Date)
-        .all(db_connection)
-        .await?;
+        .paginate(db_connection, 150);
     let mut deleted_size = 0;
-    for file in files.iter() {
-        let delta_size = fs::metadata(&file.path).await?.len();
-        deleted_size += delta_size;
-        fs::remove_file(&file.path).await?;
-        Files::delete_by_id(&file.key).exec(db_connection).await?;
-        if deleted_size + delta_size > need_to_delete {
-            break;
+    'reserve_space: while let Some(files) = files_pages.fetch_and_next().await? {
+        for file in files {
+            let delta_size = fs::metadata(&file.path).await?.len();
+            deleted_size += delta_size;
+            fs::remove_file(&file.path).await?;
+            Files::delete_by_id(&file.key).exec(db_connection).await?;
+            if deleted_size + delta_size > need_to_delete {
+                break 'reserve_space;
+            }
         }
     }
     Ok(())
@@ -124,6 +128,10 @@ pub enum UploadError {
     FileSizeError,
     #[error("invalid path")]
     InvalidPathError,
+    #[error("user not found")]
+    UserNotFound,
+    #[error("file's size overflows")]
+    FileSizeOverflow,
 }
 
 async fn upload_impl(
@@ -146,6 +154,8 @@ async fn upload_impl(
     };
     let key = generate_key_name(&metadata.hash);
     let files_storage_path = &server.shared_data.cfg.main_cfg.files_storage_path;
+    let limit_size: Bt = server.shared_data.cfg.main_cfg.user_files_limit.into();
+    let limit_size = *limit_size;
     let mut file_handle = add_file_record(
         id,
         Bt(metadata.size),
@@ -153,6 +163,7 @@ async fn upload_impl(
         metadata.auto_clean,
         &server.db.db_pool,
         &files_storage_path,
+        limit_size,
     )
     .await?;
     let mut hasher = Sha3_256::new();
@@ -200,6 +211,10 @@ pub async fn upload<T: EmailSender>(
                 UploadError::FileSizeError => Err(Status::invalid_argument("File size error")),
                 UploadError::FileHashError => Err(Status::invalid_argument("File hash error")),
                 UploadError::InvalidPathError => Err(Status::internal("Server error")),
+                UploadError::UserNotFound => Err(Status::not_found("User not found")),
+                UploadError::FileSizeOverflow => {
+                    Err(Status::resource_exhausted("File size overflow"))
+                }
             }
         }
     }

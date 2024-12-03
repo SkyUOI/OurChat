@@ -434,7 +434,6 @@ impl<T: EmailSender> Application<T> {
         // Set up shared state
         shared_state::set_auto_clean_duration(main_cfg.auto_clean_duration);
         shared_state::set_file_save_days(main_cfg.file_save_days);
-        shared_state::set_user_files_store_limit(main_cfg.user_files_limit);
         shared_state::set_friends_number_limit(main_cfg.friends_number_limit);
 
         if let Some(new_ip) = parser.ip {

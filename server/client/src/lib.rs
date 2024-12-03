@@ -25,7 +25,7 @@ use server::pb::{
     },
 };
 use server::utils::{self, from_google_timestamp, get_available_port};
-use server::{Application, ArgsParser, DbPool, ParserCfg, SharedData, ShutdownSdr, process};
+use server::{Application, ArgsParser, Cfg, DbPool, ParserCfg, SharedData, ShutdownSdr, process};
 use sqlx::migrate::MigrateDatabase;
 use std::collections::HashSet;
 use std::path::Path;
@@ -297,6 +297,8 @@ impl TestAppTrait for ArgsParser {
 
 pub type TestUserShared = Arc<tokio::sync::Mutex<TestUser>>;
 
+type ConfigWithArgs = (Cfg, ArgsParser);
+
 pub struct TestSession {
     pub session_id: SessionID,
 }
@@ -308,11 +310,22 @@ impl TestSession {
 }
 
 impl TestApp {
+    pub fn get_test_config() -> anyhow::Result<ConfigWithArgs> {
+        let args = ArgsParser::test();
+        let config = server::get_configuration(args.shared_cfg.config.as_ref())?;
+        Ok((config, args))
+    }
+
     pub async fn new_with_launching_instance(
         email_client: Option<MockEmailSender>,
     ) -> anyhow::Result<Self> {
-        let args = ArgsParser::test();
-        let mut server_config = server::get_configuration(args.shared_cfg.config.as_ref())?;
+        Self::new_with_launching_instance_custom_cfg(email_client, Self::get_test_config()?).await
+    }
+
+    pub async fn new_with_launching_instance_custom_cfg(
+        email_client: Option<MockEmailSender>,
+        (mut server_config, args): ConfigWithArgs,
+    ) -> anyhow::Result<Self> {
         // should create different database for each test
         let db = uuid::Uuid::new_v4().to_string();
         server_config.db_cfg.db = db;

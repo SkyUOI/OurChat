@@ -3,8 +3,6 @@ use parking_lot::{Mutex, RwLock};
 
 static AUTO_CLEAN_DURATION: Mutex<u64> = Mutex::new(consts::default_clear_interval());
 static FILE_SAVE_DAYS: Mutex<u64> = Mutex::new(consts::default_file_save_days());
-static USER_FILES_STORE_LIMIT: Mutex<FileSize> =
-    Mutex::new(consts::default_user_files_store_limit());
 static FRIENDS_NUMBER_LIMIT: Mutex<u32> = Mutex::new(consts::default_friends_number_limit());
 
 pub fn get_auto_clean_duration() -> u64 {
@@ -35,15 +33,6 @@ pub fn set_maintaining(maintaining: bool) {
     let mut lock = MAINTAINING.write();
     *lock = maintaining;
     tracing::info!("set maintaining: {}", maintaining);
-}
-
-pub fn get_user_files_store_limit() -> FileSize {
-    *USER_FILES_STORE_LIMIT.lock()
-}
-
-pub fn set_user_files_store_limit(limit: FileSize) {
-    *USER_FILES_STORE_LIMIT.lock() = limit;
-    tracing::info!("set user_files_store_limit: {}", limit);
 }
 
 pub fn set_friends_number_limit(limit: u32) {
