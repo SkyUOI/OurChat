@@ -113,6 +113,6 @@ async fn get_session_msgs(
         EXISTS (SELECT * FROM session_relation WHERE user_id = $2 AND session_id = user_chat_msg.session_id)"#,
                 [end_timestamp.into(), user_id.into()],
             ))
-            .paginate(db_conn, page_size );
+            .paginate(db_conn, page_size);
     Ok(msgs)
 }

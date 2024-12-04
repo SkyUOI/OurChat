@@ -81,7 +81,9 @@ async fn get_info_impl(
                     }
                 }
                 RequestValues::Status => todo!(),
-                RequestValues::AvatarKey => todo!(),
+                RequestValues::AvatarKey => {
+                    ret.avatar_key = Some(queried_user.avatar.clone().unwrap_or_default());
+                }
                 RequestValues::RegisterTime => {
                     ret.register_time = Some(to_google_timestamp(queried_user.time.into()))
                 }

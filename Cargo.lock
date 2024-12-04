@@ -347,9 +347,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.93"
+version = "1.0.94"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c95c10ba0b00a02636238b814946408b1322d5ac4760326e6fb8ec956d85775"
+checksum = "c1fd03a028ef38ba2276dce7e33fcd6369c158a1bca17946c4b1b701891c1ff7"
 
 [[package]]
 name = "arc-swap"
@@ -472,7 +472,7 @@ dependencies = [
  "axum-core",
  "bytes",
  "futures-util",
- "http 1.1.0",
+ "http 1.2.0",
  "http-body",
  "http-body-util",
  "itoa",
@@ -498,7 +498,7 @@ dependencies = [
  "async-trait",
  "bytes",
  "futures-util",
- "http 1.1.0",
+ "http 1.2.0",
  "http-body",
  "http-body-util",
  "mime",
@@ -811,9 +811,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.5.21"
+version = "4.5.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb3b4b9e5a7c7514dfa52869339ee98b3156b0bfb4e8a77c4ff4babb64b1604f"
+checksum = "69371e34337c4c984bbe322360c2547210bf632eb2814bbe78a6e87a2935bd2b"
 dependencies = [
  "clap_builder",
  "clap_derive 4.5.18",
@@ -821,9 +821,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.5.21"
+version = "4.5.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b17a95aa67cc7b5ebd32aa5370189aa0d79069ef1c64ce893bd30fb24bff20ec"
+checksum = "6e24c1b4099818523236a8ca881d2b45db98dadfb4625cf6608c12069fcbbde1"
 dependencies = [
  "anstream",
  "anstyle",
@@ -1698,7 +1698,7 @@ dependencies = [
  "fnv",
  "futures-core",
  "futures-sink",
- "http 1.1.0",
+ "http 1.2.0",
  "indexmap 2.7.0",
  "slab",
  "tokio",
@@ -1838,9 +1838,9 @@ dependencies = [
 
 [[package]]
 name = "http"
-version = "1.1.0"
+version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "21b9ddb458710bc376481b842f5da65cdf31522de232c1ca8146abce2a358258"
+checksum = "f16ca2af56261c99fba8bac40a10251ce8188205a4c448fbb745a2e4daa76fea"
 dependencies = [
  "bytes",
  "fnv",
@@ -1854,7 +1854,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1efedce1fb8e6913f23e0c92de8e62cd5b772a67e7b3946df930a62566c93184"
 dependencies = [
  "bytes",
- "http 1.1.0",
+ "http 1.2.0",
 ]
 
 [[package]]
@@ -1865,7 +1865,7 @@ checksum = "793429d76616a256bcb62c2a2ec2bed781c8307e797e2598c50010f2bee2544f"
 dependencies = [
  "bytes",
  "futures-util",
- "http 1.1.0",
+ "http 1.2.0",
  "http-body",
  "pin-project-lite",
 ]
@@ -1892,7 +1892,7 @@ dependencies = [
  "futures-channel",
  "futures-util",
  "h2 0.4.7",
- "http 1.1.0",
+ "http 1.2.0",
  "http-body",
  "httparse",
  "httpdate",
@@ -1910,7 +1910,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08afdbb5c31130e3034af566421053ab03787c640246a446327f550d11bcb333"
 dependencies = [
  "futures-util",
- "http 1.1.0",
+ "http 1.2.0",
  "hyper",
  "hyper-util",
  "rustls 0.23.19",
@@ -1958,7 +1958,7 @@ dependencies = [
  "bytes",
  "futures-channel",
  "futures-util",
- "http 1.1.0",
+ "http 1.2.0",
  "http-body",
  "hyper",
  "pin-project-lite",
@@ -2414,7 +2414,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "base",
- "clap 4.5.21",
+ "clap 4.5.22",
  "config",
  "pingora",
  "serde",
@@ -3037,7 +3037,7 @@ dependencies = [
  "blake2",
  "bytes",
  "hex",
- "http 1.1.0",
+ "http 1.2.0",
  "httparse",
  "httpdate",
  "indexmap 1.9.3",
@@ -3077,7 +3077,7 @@ dependencies = [
  "flate2",
  "futures",
  "h2 0.4.7",
- "http 1.1.0",
+ "http 1.2.0",
  "httparse",
  "httpdate",
  "libc",
@@ -3123,7 +3123,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bcb3f62d852da015e76ced56e93e6d52941679a9825281c90f2897841129e59d"
 dependencies = [
  "bytes",
- "http 1.1.0",
+ "http 1.2.0",
  "httparse",
  "pingora-error",
  "pingora-http",
@@ -3139,7 +3139,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "70202f126056f366549afc804741e12dd9f419cfc79a0063ab15653007a0f4c6"
 dependencies = [
  "bytes",
- "http 1.1.0",
+ "http 1.2.0",
  "pingora-error",
 ]
 
@@ -3163,7 +3163,7 @@ dependencies = [
  "derivative",
  "fnv",
  "futures",
- "http 1.1.0",
+ "http 1.2.0",
  "log",
  "pingora-core",
  "pingora-error",
@@ -3212,7 +3212,7 @@ dependencies = [
  "clap 3.2.25",
  "futures",
  "h2 0.4.7",
- "http 1.1.0",
+ "http 1.2.0",
  "log",
  "once_cell",
  "pingora-cache",
@@ -3561,15 +3561,16 @@ dependencies = [
 
 [[package]]
 name = "redis"
-version = "0.27.5"
+version = "0.27.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81cccf17a692ce51b86564334614d72dcae1def0fd5ecebc9f02956da74352b5"
+checksum = "09d8f99a4090c89cc489a94833c901ead69bfbf3877b4867d5482e321ee875bc"
 dependencies = [
  "arc-swap",
  "async-trait",
  "bytes",
  "combine",
  "futures-util",
+ "itertools 0.13.0",
  "itoa",
  "num-bigint",
  "percent-encoding",
@@ -3667,7 +3668,7 @@ dependencies = [
  "futures-core",
  "futures-util",
  "h2 0.4.7",
- "http 1.1.0",
+ "http 1.2.0",
  "http-body",
  "http-body-util",
  "hyper",
@@ -4049,7 +4050,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "653da4aba23cb596bf03d6f5faad274c74852c8ef014171a4fb9518032377105"
 dependencies = [
  "chrono",
- "clap 4.5.21",
+ "clap 4.5.22",
  "dotenvy",
  "glob",
  "regex",
@@ -4080,7 +4081,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "03b271c0dd7729623d8debb5f017806f066902e3c287f08dc5ff312c3277dc6f"
 dependencies = [
  "async-trait",
- "clap 4.5.21",
+ "clap 4.5.22",
  "dotenvy",
  "futures",
  "sea-orm",
@@ -4273,7 +4274,7 @@ dependencies = [
  "bytes",
  "chrono",
  "claims",
- "clap 4.5.21",
+ "clap 4.5.22",
  "client",
  "collection_literals",
  "colored",
@@ -4302,7 +4303,7 @@ dependencies = [
  "snowdon",
  "sqlx",
  "strum",
- "thiserror 2.0.3",
+ "thiserror 2.0.4",
  "tokio",
  "tokio-stream",
  "tonic",
@@ -4755,7 +4756,7 @@ name = "stress_test"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "clap 4.5.21",
+ "clap 4.5.22",
  "client",
  "dashmap",
  "mimalloc",
@@ -4940,11 +4941,11 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "2.0.3"
+version = "2.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c006c85c7651b3cf2ada4584faa36773bd07bac24acfb39f3c431b36d7e667aa"
+checksum = "2f49a1853cf82743e3b7950f77e0f4d622ca36cf4317cba00c767838bac8d490"
 dependencies = [
- "thiserror-impl 2.0.3",
+ "thiserror-impl 2.0.4",
 ]
 
 [[package]]
@@ -4960,9 +4961,9 @@ dependencies = [
 
 [[package]]
 name = "thiserror-impl"
-version = "2.0.3"
+version = "2.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f077553d607adc1caf65430528a576c757a71ed73944b66ebb58ef2bbd243568"
+checksum = "8381894bb3efe0c4acac3ded651301ceee58a15d47c2e34885ed1908ad667061"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4991,9 +4992,9 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.3.36"
+version = "0.3.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5dfd88e563464686c916c7e46e623e520ddc6d79fa6641390f2e3fa86e83e885"
+checksum = "35e7868883861bd0e56d9ac6efcaaca0d6d5d82a2a7ec8209ff492c07cf37b21"
 dependencies = [
  "deranged",
  "itoa",
@@ -5014,9 +5015,9 @@ checksum = "ef927ca75afb808a4d64dd374f00a2adf8d0fcff8e7b184af886c3c87ec4a3f3"
 
 [[package]]
 name = "time-macros"
-version = "0.2.18"
+version = "0.2.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f252a68540fde3a3877aeea552b832b40ab9a69e318efd078774a01ddee1ccf"
+checksum = "2834e6017e3e5e4b9834939793b282bc03b37a3336245fa820e35e233e2a85de"
 dependencies = [
  "num-conv",
  "time-core",
@@ -5058,9 +5059,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.41.1"
+version = "1.42.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22cfb5bee7a6a52939ca9224d6ac897bb669134078daa8735560897f69de4d33"
+checksum = "5cec9b21b0450273377fc97bd4c33a8acffc8c996c987a7c5b319a0083707551"
 dependencies = [
  "backtrace",
  "bytes",
@@ -5200,7 +5201,7 @@ dependencies = [
  "base64 0.22.1",
  "bytes",
  "h2 0.4.7",
- "http 1.1.0",
+ "http 1.2.0",
  "http-body",
  "http-body-util",
  "hyper",

@@ -18,6 +18,7 @@ pub struct Model {
     pub resource_used: i32,
     pub friend_limit: i32,
     pub friends_num: i32,
+    pub avatar: Option<String>,
     pub public_update_time: DateTimeWithTimeZone,
     pub update_time: DateTimeWithTimeZone,
 }

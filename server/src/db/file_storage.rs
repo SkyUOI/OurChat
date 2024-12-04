@@ -5,7 +5,10 @@ use crate::{
     entities::{files, prelude::*},
     shared_state,
 };
-use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseConnection, EntityTrait, ModelTrait,
+    QueryFilter,
+};
 use std::{fs::exists, time::Duration};
 use tokio::{
     fs::remove_file,
@@ -81,9 +84,38 @@ pub async fn auto_clean_files(mut connection: DatabaseConnection) {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum AddFileError {
+pub enum FileStorageError {
     #[error("Database error")]
-    DbError(#[from] sea_orm::DbErr),
+    Db(#[from] sea_orm::DbErr),
     #[error("Internal IO error")]
-    InternalIOError(#[from] std::io::Error),
+    InternalIO(#[from] std::io::Error),
+    #[error("Not found")]
+    NotFound,
+}
+
+/// Reduce the file ref count
+/// Each file has a ref count, when the ref count is 0, the file will be deleted
+pub async fn dec_file_refcnt(
+    key: impl Into<String>,
+    db_conn: &impl ConnectionTrait,
+) -> Result<(), FileStorageError> {
+    let key = key.into();
+    let mut file = match Files::find_by_id(key).one(db_conn).await? {
+        Some(f) => f,
+        None => return Err(FileStorageError::NotFound),
+    };
+    if file.ref_cnt <= 0 {
+        tracing::error!("invalid file record:{:?}", file);
+        file.delete(db_conn).await?;
+    } else {
+        file.ref_cnt -= 1;
+        if file.ref_cnt == 0 {
+            remove_file(&file.path).await?;
+            file.delete(db_conn).await?;
+        } else {
+            let file: files::ActiveModel = file.into();
+            file.update(db_conn).await?;
+        }
+    }
+    Ok(())
 }

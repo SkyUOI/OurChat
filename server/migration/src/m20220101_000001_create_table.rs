@@ -20,6 +20,7 @@ impl MigrationTrait for Migration {
                     .col(integer(User::ResourceUsed))
                     .col(integer(User::FriendLimit))
                     .col(integer(User::FriendsNum))
+                    .col(string_null(User::Avatar))
                     .col(
                         timestamp_with_time_zone(User::PublicUpdateTime)
                             .default(Expr::current_timestamp()),
@@ -159,6 +160,7 @@ pub enum User {
     FriendsNum,
     PublicUpdateTime,
     UpdateTime,
+    Avatar,
 }
 
 #[derive(DeriveIden)]

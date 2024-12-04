@@ -70,6 +70,7 @@ pub async fn add_file_record(
         date: sea_orm::Set(timestamp),
         auto_clean: sea_orm::Set(auto_clean),
         user_id: sea_orm::Set(id.into()),
+        ref_cnt: sea_orm::Set(1),
     };
     file.insert(db_connection).await?;
     let f = create_file_with_dirs_if_not_exist(&path).await?;

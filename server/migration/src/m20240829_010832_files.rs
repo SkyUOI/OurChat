@@ -18,6 +18,7 @@ impl MigrationTrait for Migration {
                     .col(boolean(Files::AutoClean))
                     .col(string(Files::Path))
                     .col(big_unsigned(Files::UserId))
+                    .col(unsigned(Files::RefCnt).default(1))
                     .foreign_key(
                         ForeignKey::create()
                             .from(Files::Table, Files::UserId)
@@ -45,4 +46,5 @@ enum Files {
     AutoClean,
     Path,
     UserId,
+    RefCnt,
 }

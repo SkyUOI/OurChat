@@ -1,11 +1,13 @@
 use crate::{
     component::EmailSender,
     consts::ID,
+    db::file_storage,
     entities::user,
     pb::ourchat::set_account_info::v1::{SetSelfInfoRequest, SetSelfInfoResponse},
     server::RpcServer,
 };
-use sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection, DbErr};
+use anyhow::Context;
+use sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection, DbErr, TransactionTrait};
 use tonic::{Request, Response, Status};
 
 use super::get_id_from_req;
@@ -60,8 +62,26 @@ async fn update_account(
     if let Some(status) = request_data.status {
         todo!()
     }
-    if let Some(d) = request_data.avatar_key {
-        todo!()
+    let txn = db_conn.begin().await?;
+    if let Some(avater_key) = request_data.avatar_key {
+        let avater_previous = user.avatar.clone().unwrap();
+        let mut should_modified = true;
+        // check whether the avatar is different from previous one
+        if let Some(avatar) = avater_previous {
+            if avatar == avater_key {
+                should_modified = false;
+            }
+            // reduce the refcount
+            file_storage::dec_file_refcnt(avatar, &txn)
+                .await
+                .context("cannot reduce the refcount of file")?;
+        } else {
+            should_modified = avater_key.is_empty();
+        }
+        if should_modified {
+            user.avatar = ActiveValue::Set(Some(avater_key));
+            public_updated = true;
+        }
     }
     if let Some(new_ocid) = request_data.ocid {
         user.ocid = ActiveValue::Set(new_ocid);
@@ -73,12 +93,13 @@ async fn update_account(
     if public_updated {
         user.public_update_time = ActiveValue::Set(timestamp.into());
     }
-    match user.update(db_conn).await {
+    match user.update(&txn).await {
         Ok(_) => {}
         Err(DbErr::RecordNotUpdated) => {
             return Err(SetError::Conflict);
         }
         Err(e) => return Err(SetError::Db(e)),
     }
+    txn.commit().await?;
     Ok(())
 }

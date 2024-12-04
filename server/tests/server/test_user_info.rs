@@ -60,6 +60,7 @@ async fn test_get_user_info() {
 
 #[tokio::test]
 async fn test_set_user_info() {
+    // TODO: test avatar(espeacially reduce the refcnt)
     let mut app = TestApp::new_with_launching_instance(None).await.unwrap();
     let user = app.new_user().await.unwrap();
 
