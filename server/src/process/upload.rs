@@ -1,18 +1,23 @@
 use crate::{
     component::EmailSender,
-    consts::{Bt, ID},
+    consts::ID,
     server::RpcServer,
-    shared_state,
     utils::{create_file_with_dirs_if_not_exist, generate_random_string},
 };
-use anyhow::anyhow;
 use entities::{files, prelude::*, user};
 use futures_util::StreamExt;
 use pb::ourchat::upload::v1::{UploadRequest, UploadResponse, upload_request};
-use sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection, EntityTrait};
+use sea_orm::{
+    ActiveModelTrait, ActiveValue, ColumnTrait, ConnectionTrait, DatabaseConnection, EntityTrait,
+    PaginatorTrait, QueryFilter, QueryOrder,
+};
 use sha3::{Digest, Sha3_256};
+use size::Size;
 use std::{num::TryFromIntError, path::PathBuf};
-use tokio::{fs::File, io::AsyncWriteExt};
+use tokio::{
+    fs::{self, File},
+    io::AsyncWriteExt,
+};
 use tonic::{Response, Status};
 
 use super::get_id_from_req;
@@ -29,30 +34,31 @@ fn generate_key_name(hash: &str) -> String {
 
 pub async fn add_file_record(
     id: ID,
-    sz: Bt,
+    sz: Size,
     key: String,
     auto_clean: bool,
     db_connection: &DatabaseConnection,
     files_storage_path: impl Into<PathBuf>,
+    limit_size: Size,
 ) -> Result<File, UploadError> {
+    if sz > limit_size {
+        return Err(UploadError::FileSizeOverflow);
+    }
     let user_info = match User::find_by_id(id).one(db_connection).await? {
         Some(user) => user,
-        None => {
-            return Err(anyhow!("user not found").into());
-        }
+        None => return Err(UploadError::UserNotFound),
     };
     // first check if the limit has been reached
-    let limit = shared_state::get_user_files_store_limit();
-    let bytes_num: Bt = limit.into();
-    let res_used: u64 = user_info.resource_used.try_into()?;
-    let will_used = Bt(res_used + *sz);
-    if will_used >= bytes_num {
+    let res_used = Size::from_bytes(user_info.resource_used);
+    let will_used = res_used + sz;
+    tracing::debug!("will used: {}, bytes_num: {}", will_used, limit_size);
+    if will_used > limit_size {
         // reach the limit,delete some files to preserve the limit
-        // TODO:clean files
+        clean_files(will_used - limit_size, db_connection, id).await?;
     }
-    let updated_res_lim = user_info.resource_used + 1;
+    let updated_res_lim = res_used + sz;
     let mut user_info: user::ActiveModel = user_info.into();
-    user_info.resource_used = ActiveValue::Set(updated_res_lim);
+    user_info.resource_used = ActiveValue::Set(updated_res_lim.bytes());
     user_info.update(db_connection).await?;
 
     let timestamp = chrono::Utc::now().timestamp();
@@ -77,6 +83,32 @@ pub async fn add_file_record(
     Ok(f)
 }
 
+pub async fn clean_files(
+    need_to_delete: Size,
+    db_connection: &impl ConnectionTrait,
+    user_id: ID,
+) -> Result<(), UploadError> {
+    tracing::debug!("Begin to clean files");
+    let mut files_pages = Files::find()
+        .filter(files::Column::UserId.eq(user_id.0))
+        .order_by_asc(files::Column::Date)
+        .paginate(db_connection, 150);
+    let mut deleted_size = Size::from_bytes(0);
+    'reserve_space: while let Some(files) = files_pages.fetch_and_next().await? {
+        for file in files {
+            let delta_size = Size::from_bytes(fs::metadata(&file.path).await?.len());
+            deleted_size += delta_size;
+            fs::remove_file(&file.path).await?;
+            tracing::debug!("Deleted file: {}", &file.key);
+            Files::delete_by_id(&file.key).exec(db_connection).await?;
+            if deleted_size + delta_size > need_to_delete {
+                break 'reserve_space;
+            }
+        }
+    }
+    Ok(())
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum UploadError {
     #[error("Metadata error")]
@@ -99,6 +131,10 @@ pub enum UploadError {
     FileSizeError,
     #[error("invalid path")]
     InvalidPathError,
+    #[error("user not found")]
+    UserNotFound,
+    #[error("file's size overflows")]
+    FileSizeOverflow,
 }
 
 async fn upload_impl(
@@ -121,13 +157,16 @@ async fn upload_impl(
     };
     let key = generate_key_name(&metadata.hash);
     let files_storage_path = &server.shared_data.cfg.main_cfg.files_storage_path;
+    let limit_size = server.shared_data.cfg.main_cfg.user_files_limit;
+    let limit_size = limit_size;
     let mut file_handle = add_file_record(
         id,
-        Bt(metadata.size),
+        Size::from_bytes(metadata.size),
         key.clone(),
         metadata.auto_clean,
         &server.db.db_pool,
         &files_storage_path,
+        limit_size,
     )
     .await?;
     let mut hasher = Sha3_256::new();
@@ -147,11 +186,17 @@ async fn upload_impl(
         hasher.update(&data);
     }
     let hash = hasher.finalize();
-    if format!("{:x}", hash) != metadata.hash {
-        return Err(UploadError::FileHashError);
-    }
     if sz != metadata.size as usize {
+        tracing::trace!("received size:{}, expected size {}", metadata.size, sz);
         return Err(UploadError::FileSizeError);
+    }
+    if format!("{:x}", hash) != metadata.hash {
+        tracing::trace!(
+            "received hash:{:?}, expected hash {:?}",
+            metadata.hash,
+            format!("{:x}", hash)
+        );
+        return Err(UploadError::FileHashError);
     }
     Ok(UploadResponse { key })
 }
@@ -175,6 +220,10 @@ pub async fn upload<T: EmailSender>(
                 UploadError::FileSizeError => Err(Status::invalid_argument("File size error")),
                 UploadError::FileHashError => Err(Status::invalid_argument("File hash error")),
                 UploadError::InvalidPathError => Err(Status::internal("Server error")),
+                UploadError::UserNotFound => Err(Status::not_found("User not found")),
+                UploadError::FileSizeOverflow => {
+                    Err(Status::resource_exhausted("File size overflow"))
+                }
             }
         }
     }

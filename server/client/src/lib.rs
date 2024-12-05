@@ -6,11 +6,11 @@ use fake::faker::internet::raw::FreeEmail;
 use fake::faker::name::en;
 use fake::faker::name::raw::Name;
 use fake::locales::EN;
-use itertools::Itertools;
 use parking_lot::Mutex;
 use pb::auth::authorize::v1::auth_request;
 use pb::auth::register::v1::RegisterRequest;
 use pb::basic::v1::TimestampRequest;
+use pb::ourchat::download::v1::DownloadResponse;
 use pb::{
     auth::authorize::v1::AuthRequest,
     auth::v1::auth_service_client::AuthServiceClient,
@@ -25,13 +25,14 @@ use server::component::MockEmailSender;
 use server::consts::{ID, SessionID};
 use server::db::DbCfgTrait;
 use server::utils::{self, get_available_port};
-use server::{Application, ArgsParser, DbPool, ParserCfg, SharedData, ShutdownSdr, process};
+use server::{Application, ArgsParser, Cfg, DbPool, ParserCfg, SharedData, ShutdownSdr, process};
 use sqlx::migrate::MigrateDatabase;
 use std::collections::HashSet;
 use std::sync::{Arc, LazyLock};
 use std::thread;
 use std::time::Duration;
 use tokio_stream::StreamExt;
+use tonic::Streaming;
 use tonic::metadata::MetadataValue;
 use tonic::service::interceptor::InterceptedService;
 use tonic::transport::{Channel, Uri};
@@ -205,33 +206,59 @@ impl TestUser {
     }
 
     pub async fn post_file(&mut self, content: String) -> anyhow::Result<String> {
-        let size = content.len();
-        let hash = base::sha3_256(content.as_bytes());
-        // post file
+        self.post_file_as_iter(
+            content
+                .as_bytes()
+                .chunks(1024 * 1024)
+                .map(|chunk| chunk.to_vec()),
+        )
+        .await
+    }
+
+    pub async fn post_file_as_iter(
+        &mut self,
+        content: impl Iterator<Item = Vec<u8>> + Clone,
+    ) -> anyhow::Result<String> {
+        use sha3::{Digest, Sha3_256};
+        let mut size = 0;
+        let mut hasher = Sha3_256::new();
+        for chunks in content.clone() {
+            hasher.update(&chunks);
+            size += chunks.len();
+        }
+        let hash = hasher.finalize();
+        let hash = format!("{:x}", hash);
         let mut files_content = vec![UploadRequest::new_header(size, hash, false)];
-        let content = content.into_bytes();
-        for i in &content.into_iter().chunks(1024 * 1024) {
-            files_content.push(UploadRequest::new_content(i.collect()));
+        for chunks in content {
+            chunks.chunks(1024 * 1024).for_each(|chunk| {
+                files_content.push(UploadRequest::new_content(chunk.to_vec()));
+            })
         }
         let ret = self.oc().upload(tokio_stream::iter(files_content)).await?;
         let ret = ret.into_inner();
-        let key = ret.key;
-        Ok(key)
+        Ok(ret.key)
     }
 
     pub async fn download_file(&mut self, key: impl Into<String>) -> anyhow::Result<Vec<u8>> {
-        let files_part = self
-            .oc()
-            .download(DownloadRequest { key: key.into() })
-            .await?;
-        // Allow
-        let mut files_part = files_part.into_inner();
+        let mut files_part = self.download_file_as_iter(key).await?;
         let mut file_download = Vec::new();
         while let Some(part) = files_part.next().await {
             let part = part?;
             file_download.extend_from_slice(&part.data);
         }
         Ok(file_download)
+    }
+
+    pub async fn download_file_as_iter(
+        &mut self,
+        key: impl Into<String>,
+    ) -> anyhow::Result<Streaming<DownloadResponse>> {
+        let files_part = self
+            .oc()
+            .download(DownloadRequest { key: key.into() })
+            .await?;
+        // Allow
+        Ok(files_part.into_inner())
     }
 }
 
@@ -292,6 +319,8 @@ impl TestAppTrait for ArgsParser {
 
 pub type TestUserShared = Arc<tokio::sync::Mutex<TestUser>>;
 
+type ConfigWithArgs = (Cfg, ArgsParser);
+
 pub struct TestSession {
     pub session_id: SessionID,
 }
@@ -303,11 +332,22 @@ impl TestSession {
 }
 
 impl TestApp {
+    pub fn get_test_config() -> anyhow::Result<ConfigWithArgs> {
+        let args = ArgsParser::test();
+        let config = server::get_configuration(args.shared_cfg.config.as_ref())?;
+        Ok((config, args))
+    }
+
     pub async fn new_with_launching_instance(
         email_client: Option<MockEmailSender>,
     ) -> anyhow::Result<Self> {
-        let args = ArgsParser::test();
-        let mut server_config = server::get_configuration(args.shared_cfg.config.as_ref())?;
+        Self::new_with_launching_instance_custom_cfg(email_client, Self::get_test_config()?).await
+    }
+
+    pub async fn new_with_launching_instance_custom_cfg(
+        email_client: Option<MockEmailSender>,
+        (mut server_config, args): ConfigWithArgs,
+    ) -> anyhow::Result<Self> {
         // should create different database for each test
         let db = uuid::Uuid::new_v4().to_string();
         server_config.db_cfg.db = db;

@@ -54,3 +54,6 @@ server/files_storage/*
 # pref
 perf.data*
 flamegraph.svg
+
+# test generated files
+server/tests/server/test_data/*

@@ -22,3 +22,4 @@ tokio = { version = "1", features = ["full"] }
 uuid = { version = "1", features = ["v4"] }
 itertools = "0"
 pb = { path = "../pb" }
+sha3 = "0"

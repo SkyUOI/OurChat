@@ -18,7 +18,7 @@ use clap::Parser;
 use cmd::CommandTransmitData;
 use component::EmailSender;
 use config::File;
-use consts::{CONFIG_FILE_ENV_VAR, FileSize, ID, LOG_ENV_VAR, LOG_OUTPUT_DIR, STDIN_AVAILABLE};
+use consts::{CONFIG_FILE_ENV_VAR, ID, LOG_ENV_VAR, LOG_OUTPUT_DIR, STDIN_AVAILABLE};
 use dashmap::DashMap;
 use db::{DbCfgTrait, PostgresDbCfg, file_storage};
 use futures_util::future::join_all;
@@ -29,6 +29,7 @@ use rand::Rng;
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 use server::httpserver;
+use size::Size;
 use std::{
     fs,
     net::SocketAddr,
@@ -80,7 +81,7 @@ pub struct MainCfg {
     #[serde(default)]
     pub cmd_network_port: Option<u16>,
     #[serde(default = "consts::default_user_files_store_limit")]
-    pub user_files_limit: FileSize,
+    pub user_files_limit: Size,
     #[serde(default = "consts::default_friends_number_limit")]
     pub friends_number_limit: u32,
     #[serde(default)]
@@ -442,7 +443,6 @@ impl<T: EmailSender> Application<T> {
         // Set up shared state
         shared_state::set_auto_clean_duration(main_cfg.auto_clean_duration);
         shared_state::set_file_save_days(main_cfg.file_save_days);
-        shared_state::set_user_files_store_limit(main_cfg.user_files_limit);
         shared_state::set_friends_number_limit(main_cfg.friends_number_limit);
 
         if let Some(new_ip) = parser.ip {

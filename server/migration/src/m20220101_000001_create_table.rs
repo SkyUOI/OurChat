@@ -17,7 +17,7 @@ impl MigrationTrait for Migration {
                     .col(string_len(User::Name, 200))
                     .col(string_len_uniq(User::Email, 120))
                     .col(timestamp_with_time_zone(User::Time))
-                    .col(integer(User::ResourceUsed))
+                    .col(big_unsigned(User::ResourceUsed))
                     .col(integer(User::FriendLimit))
                     .col(integer(User::FriendsNum))
                     .col(string_null(User::Avatar))

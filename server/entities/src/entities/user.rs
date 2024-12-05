@@ -15,7 +15,7 @@ pub struct Model {
     #[sea_orm(unique)]
     pub email: String,
     pub time: DateTimeWithTimeZone,
-    pub resource_used: i32,
+    pub resource_used: i64,
     pub friend_limit: i32,
     pub friends_num: i32,
     pub avatar: Option<String>,

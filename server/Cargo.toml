@@ -46,6 +46,8 @@ deadpool-redis = "0.18.0"
 collection_literals = "1"
 colored = "2"
 strum = { version = "0", features = ["derive"] }
+size = { version = "0.5.0-preview2", features = ["serde"] }
+
 # num_enum = "0"
 mockall = "0"
 async-trait = { version = "0" }

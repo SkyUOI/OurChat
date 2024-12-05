@@ -888,6 +888,7 @@ dependencies = [
  "rand",
  "reqwest",
  "server",
+ "sha3",
  "sqlx",
  "tokio",
  "tokio-stream",
@@ -4341,6 +4342,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha3",
+ "size",
  "snowdon",
  "sqlx",
  "strum",
@@ -4477,6 +4479,15 @@ dependencies = [
  "num-traits",
  "thiserror 1.0.69",
  "time",
+]
+
+[[package]]
+name = "size"
+version = "0.5.0-preview2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c6916a53089eff8ecef2b6efe5335365be0f1b80c7b5bc725e9c8e0d9ee05ad5"
+dependencies = [
+ "serde",
 ]
 
 [[package]]
