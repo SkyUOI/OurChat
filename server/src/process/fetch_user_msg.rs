@@ -7,9 +7,8 @@ use crate::{
 use base::time::TimeStamp;
 use base::time::from_google_timestamp;
 use entities::user_chat_msg;
-use pb::ourchat::msg_delivery::{
-    self,
-    v1::{FetchMsgsRequest, FetchMsgsResponse, Msg, fetch_msgs_response},
+use pb::ourchat::msg_delivery::v1::{
+    FetchMsgsRequest, FetchMsgsResponse, Msg, fetch_msgs_response,
 };
 use sea_orm::{
     DatabaseBackend, DatabaseConnection, EntityTrait, Paginator, PaginatorTrait, Statement,

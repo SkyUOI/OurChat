@@ -1,11 +1,8 @@
 //! Define constants
 
 use base::impl_newtype_int;
-use serde::{Deserialize, Serialize, Serializer};
 use size::Size;
-use std::{
-    fmt::Display, io::IsTerminal, path::PathBuf, str::FromStr, sync::LazyLock, time::Duration,
-};
+use std::{io::IsTerminal, path::PathBuf, sync::LazyLock, time::Duration};
 
 /// OCID Length
 pub const OCID_LEN: usize = 10;

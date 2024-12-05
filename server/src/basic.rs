@@ -1,6 +1,6 @@
 use dashmap::DashMap;
 use parking_lot::Mutex;
-use rand::{Rng, random};
+use rand::random;
 use std::sync::Arc;
 use tokio::{
     sync::{Barrier, oneshot},
