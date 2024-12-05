@@ -66,6 +66,7 @@ async fn download_impl(
         tx.send(Ok(DownloadResponse { data: buf.to_vec() }))
             .await
             .ok();
+        buf.clear();
     }
     Ok(())
 }

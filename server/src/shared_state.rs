@@ -1,4 +1,4 @@
-use crate::consts::{self, FileSize};
+use crate::consts::{self};
 use parking_lot::{Mutex, RwLock};
 
 static AUTO_CLEAN_DURATION: Mutex<u64> = Mutex::new(consts::default_clear_interval());

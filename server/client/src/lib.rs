@@ -10,11 +10,12 @@ use itertools::Itertools;
 use parking_lot::Mutex;
 use rand::Rng;
 use server::component::MockEmailSender;
-use server::consts::{FileSize, SessionID};
+use server::consts::SessionID;
 use server::db::DbCfgTrait;
 use server::pb::auth::authorize::v1::auth_request;
 use server::pb::auth::register::v1::RegisterRequest;
 use server::pb::basic::v1::TimestampRequest;
+use server::pb::ourchat::download::v1::DownloadResponse;
 use server::pb::{
     auth::authorize::v1::AuthRequest,
     auth::v1::auth_service_client::AuthServiceClient,
@@ -33,6 +34,7 @@ use std::sync::{Arc, LazyLock};
 use std::thread;
 use std::time::Duration;
 use tokio_stream::StreamExt;
+use tonic::Streaming;
 use tonic::metadata::MetadataValue;
 use tonic::service::interceptor::InterceptedService;
 use tonic::transport::{Channel, Uri};
@@ -210,33 +212,59 @@ impl TestUser {
     }
 
     pub async fn post_file(&mut self, content: String) -> anyhow::Result<String> {
-        let size = content.len();
-        let hash = base::sha3_256(content.as_bytes());
-        // post file
+        self.post_file_as_iter(
+            content
+                .as_bytes()
+                .chunks(1024 * 1024)
+                .map(|chunk| chunk.to_vec()),
+        )
+        .await
+    }
+
+    pub async fn post_file_as_iter(
+        &mut self,
+        content: impl Iterator<Item = Vec<u8>> + Clone,
+    ) -> anyhow::Result<String> {
+        use sha3::{Digest, Sha3_256};
+        let mut size = 0;
+        let mut hasher = Sha3_256::new();
+        for chunks in content.clone() {
+            hasher.update(&chunks);
+            size += chunks.len();
+        }
+        let hash = hasher.finalize();
+        let hash = format!("{:x}", hash);
         let mut files_content = vec![UploadRequest::new_header(size, hash, false)];
-        let content = content.into_bytes();
-        for i in &content.into_iter().chunks(1024 * 1024) {
-            files_content.push(UploadRequest::new_content(i.collect()));
+        for chunks in content {
+            chunks.chunks(1024 * 1024).for_each(|chunk| {
+                files_content.push(UploadRequest::new_content(chunk.to_vec()));
+            })
         }
         let ret = self.oc().upload(tokio_stream::iter(files_content)).await?;
         let ret = ret.into_inner();
-        let key = ret.key;
-        Ok(key)
+        Ok(ret.key)
     }
 
     pub async fn download_file(&mut self, key: impl Into<String>) -> anyhow::Result<Vec<u8>> {
-        let files_part = self
-            .oc()
-            .download(DownloadRequest { key: key.into() })
-            .await?;
-        // Allow
-        let mut files_part = files_part.into_inner();
+        let mut files_part = self.download_file_as_iter(key).await?;
         let mut file_download = Vec::new();
         while let Some(part) = files_part.next().await {
             let part = part?;
             file_download.extend_from_slice(&part.data);
         }
         Ok(file_download)
+    }
+
+    pub async fn download_file_as_iter(
+        &mut self,
+        key: impl Into<String>,
+    ) -> anyhow::Result<Streaming<DownloadResponse>> {
+        let files_part = self
+            .oc()
+            .download(DownloadRequest { key: key.into() })
+            .await?;
+        // Allow
+        Ok(files_part.into_inner())
     }
 }
 
@@ -269,7 +297,6 @@ pub struct TestApp {
     pub owned_users: Vec<Arc<tokio::sync::Mutex<TestUser>>>,
     pub clients: Clients,
     pub rpc_url: String,
-    pub user_files_limit: FileSize,
 
     has_dropped: bool,
     server_drop_handle: Option<ShutdownSdr>,
@@ -336,7 +363,6 @@ impl TestApp {
         let abort_handle = application.get_abort_handle();
         let shared = application.shared.clone();
         let db_pool = application.pool.clone();
-        let user_files_limit: FileSize = server_config.main_cfg.user_files_limit;
 
         let notifier = application.started_notify.clone();
         tokio::spawn(async move {
@@ -362,7 +388,6 @@ impl TestApp {
                 basic: BasicServiceClient::connect(rpc_url.clone()).await?,
             },
             should_drop_db: true,
-            user_files_limit,
         };
         Ok(obj)
     }
@@ -391,7 +416,6 @@ impl TestApp {
                 ))
                 .await?,
             },
-            user_files_limit: cfg.main_cfg.user_files_limit,
         })
     }
 

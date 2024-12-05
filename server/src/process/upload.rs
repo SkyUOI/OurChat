@@ -1,19 +1,19 @@
 use crate::{
     component::EmailSender,
-    consts::{Bt, ID},
-    entities::{files, prelude::*, user},
+    consts::ID,
+    entities::{files, user},
     pb::ourchat::upload::v1::{UploadRequest, UploadResponse, upload_request},
+    process::{Files, User},
     server::RpcServer,
-    shared_state,
     utils::{create_file_with_dirs_if_not_exist, generate_random_string},
 };
-use anyhow::anyhow;
 use futures_util::StreamExt;
 use sea_orm::{
-    ActiveModelTrait, ActiveValue, ConnectionTrait, DatabaseConnection, EntityTrait,
-    PaginatorTrait, QueryOrder,
+    ActiveModelTrait, ActiveValue, ColumnTrait, ConnectionTrait, DatabaseConnection, EntityTrait,
+    PaginatorTrait, QueryFilter, QueryOrder,
 };
 use sha3::{Digest, Sha3_256};
+use size::Size;
 use std::{num::TryFromIntError, path::PathBuf};
 use tokio::{
     fs::{self, File},
@@ -35,14 +35,14 @@ fn generate_key_name(hash: &str) -> String {
 
 pub async fn add_file_record(
     id: ID,
-    sz: Bt,
+    sz: Size,
     key: String,
     auto_clean: bool,
     db_connection: &DatabaseConnection,
     files_storage_path: impl Into<PathBuf>,
-    limit_size: u64,
+    limit_size: Size,
 ) -> Result<File, UploadError> {
-    if sz > Bt(limit_size) {
+    if sz > limit_size {
         return Err(UploadError::FileSizeOverflow);
     }
     let user_info = match User::find_by_id(id).one(db_connection).await? {
@@ -50,16 +50,16 @@ pub async fn add_file_record(
         None => return Err(UploadError::UserNotFound),
     };
     // first check if the limit has been reached
-    let res_used: u64 = user_info.resource_used.try_into()?;
-    let will_used = Bt(res_used + *sz);
+    let res_used = Size::from_bytes(user_info.resource_used);
+    let will_used = res_used + sz;
     tracing::debug!("will used: {}, bytes_num: {}", will_used, limit_size);
-    if will_used > Bt(limit_size) {
+    if will_used > limit_size {
         // reach the limit,delete some files to preserve the limit
-        clean_files(*will_used - limit_size, db_connection).await?;
+        clean_files(will_used - limit_size, db_connection, id).await?;
     }
-    let updated_res_lim = res_used + *sz;
+    let updated_res_lim = res_used + sz;
     let mut user_info: user::ActiveModel = user_info.into();
-    user_info.resource_used = ActiveValue::Set(updated_res_lim.try_into()?);
+    user_info.resource_used = ActiveValue::Set(updated_res_lim.bytes());
     user_info.update(db_connection).await?;
 
     let timestamp = chrono::Utc::now().timestamp();
@@ -84,19 +84,22 @@ pub async fn add_file_record(
 }
 
 pub async fn clean_files(
-    need_to_delete: u64,
+    need_to_delete: Size,
     db_connection: &impl ConnectionTrait,
+    user_id: ID,
 ) -> Result<(), UploadError> {
     tracing::debug!("Begin to clean files");
     let mut files_pages = Files::find()
+        .filter(files::Column::UserId.eq(user_id.0))
         .order_by_asc(files::Column::Date)
         .paginate(db_connection, 150);
-    let mut deleted_size = 0;
+    let mut deleted_size = Size::from_bytes(0);
     'reserve_space: while let Some(files) = files_pages.fetch_and_next().await? {
         for file in files {
-            let delta_size = fs::metadata(&file.path).await?.len();
+            let delta_size = Size::from_bytes(fs::metadata(&file.path).await?.len());
             deleted_size += delta_size;
             fs::remove_file(&file.path).await?;
+            tracing::debug!("Deleted file: {}", &file.key);
             Files::delete_by_id(&file.key).exec(db_connection).await?;
             if deleted_size + delta_size > need_to_delete {
                 break 'reserve_space;
@@ -154,11 +157,11 @@ async fn upload_impl(
     };
     let key = generate_key_name(&metadata.hash);
     let files_storage_path = &server.shared_data.cfg.main_cfg.files_storage_path;
-    let limit_size: Bt = server.shared_data.cfg.main_cfg.user_files_limit.into();
-    let limit_size = *limit_size;
+    let limit_size = server.shared_data.cfg.main_cfg.user_files_limit;
+    let limit_size = limit_size;
     let mut file_handle = add_file_record(
         id,
-        Bt(metadata.size),
+        Size::from_bytes(metadata.size),
         key.clone(),
         metadata.auto_clean,
         &server.db.db_pool,
@@ -183,11 +186,17 @@ async fn upload_impl(
         hasher.update(&data);
     }
     let hash = hasher.finalize();
-    if format!("{:x}", hash) != metadata.hash {
-        return Err(UploadError::FileHashError);
-    }
     if sz != metadata.size as usize {
+        tracing::trace!("received size:{}, expected size {}", metadata.size, sz);
         return Err(UploadError::FileSizeError);
+    }
+    if format!("{:x}", hash) != metadata.hash {
+        tracing::trace!(
+            "received hash:{:?}, expected hash {:?}",
+            metadata.hash,
+            format!("{:x}", hash)
+        );
+        return Err(UploadError::FileHashError);
     }
     Ok(UploadResponse { key })
 }

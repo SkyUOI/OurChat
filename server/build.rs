@@ -11,5 +11,6 @@ fn main() -> anyhow::Result<()> {
         .compile_protos(&["../service/ourchat/v1/ourchat.proto"], &[".."])?;
     tonic_build::configure().compile_protos(&["../service/auth/v1/auth.proto"], &[".."])?;
     tonic_build::configure().compile_protos(&["../service/basic/v1/basic.proto"], &[".."])?;
+
     Ok(())
 }
