@@ -1,6 +1,6 @@
 //! Helper functions for tests
 
-use base::time::TimeStampUtc;
+use base::time::{TimeStampUtc, from_google_timestamp};
 use fake::Fake;
 use fake::faker::internet::raw::FreeEmail;
 use fake::faker::name::en;
@@ -8,14 +8,10 @@ use fake::faker::name::raw::Name;
 use fake::locales::EN;
 use itertools::Itertools;
 use parking_lot::Mutex;
-use rand::Rng;
-use server::component::MockEmailSender;
-use server::consts::{ID, SessionID};
-use server::db::DbCfgTrait;
-use server::pb::auth::authorize::v1::auth_request;
-use server::pb::auth::register::v1::RegisterRequest;
-use server::pb::basic::v1::TimestampRequest;
-use server::pb::{
+use pb::auth::authorize::v1::auth_request;
+use pb::auth::register::v1::RegisterRequest;
+use pb::basic::v1::TimestampRequest;
+use pb::{
     auth::authorize::v1::AuthRequest,
     auth::v1::auth_service_client::AuthServiceClient,
     basic::v1::basic_service_client::BasicServiceClient,
@@ -24,7 +20,11 @@ use server::pb::{
         download::v1::DownloadRequest, unregister::v1::UnregisterRequest, upload::v1::UploadRequest,
     },
 };
-use server::utils::{self, from_google_timestamp, get_available_port};
+use rand::Rng;
+use server::component::MockEmailSender;
+use server::consts::{ID, SessionID};
+use server::db::DbCfgTrait;
+use server::utils::{self, get_available_port};
 use server::{Application, ArgsParser, DbPool, ParserCfg, SharedData, ShutdownSdr, process};
 use sqlx::migrate::MigrateDatabase;
 use std::collections::HashSet;

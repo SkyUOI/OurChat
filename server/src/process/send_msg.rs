@@ -2,15 +2,12 @@ use super::get_id_from_req;
 use crate::{
     component::EmailSender,
     consts::{ID, MsgID},
-    entities::user_chat_msg,
-    pb::ourchat::msg_delivery::v1::{SendMsgRequest, SendMsgResponse},
     server::RpcServer,
 };
-use futures_util::StreamExt;
+use entities::user_chat_msg;
+use pb::ourchat::msg_delivery::v1::{SendMsgRequest, SendMsgResponse};
 use sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection};
-use tokio::sync::mpsc;
-use tokio_stream::wrappers::ReceiverStream;
-use tonic::{Request, Response, Status, Streaming};
+use tonic::{Request, Response, Status};
 
 #[derive(Debug, thiserror::Error)]
 enum SendMsgError {

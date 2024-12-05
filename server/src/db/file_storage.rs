@@ -1,10 +1,7 @@
 //! Manage the file storage
 
-use crate::{
-    ShutdownRev,
-    entities::{files, prelude::*},
-    shared_state,
-};
+use crate::{ShutdownRev, shared_state};
+use entities::{files, prelude::*};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseConnection, EntityTrait, ModelTrait,
     QueryFilter,

@@ -3,13 +3,13 @@ use crate::{
     DbPool,
     component::EmailSender,
     consts::{self, ID},
-    entities::user,
-    pb::auth::register::v1::{RegisterRequest, RegisterResponse},
     server::AuthServiceProvider,
     shared_state, utils,
 };
 use anyhow::Context;
 use argon2::{Params, PasswordHasher, password_hash::SaltString};
+use entities::user;
+use pb::auth::register::v1::{RegisterRequest, RegisterResponse};
 use sea_orm::{ActiveModelTrait, ActiveValue, DbErr};
 use snowdon::ClassicLayoutSnowflakeExtension;
 use std::num::TryFromIntError;

@@ -1,9 +1,7 @@
-use server::{
-    pb::ourchat::msg_delivery::{
-        self,
-        v1::{FetchMsgsRequest, OneMsg, SendMsgRequest, fetch_msgs_response},
-    },
-    utils::to_google_timestamp,
+use base::time::to_google_timestamp;
+use pb::ourchat::msg_delivery::{
+    self,
+    v1::{FetchMsgsRequest, OneMsg, SendMsgRequest, fetch_msgs_response},
 };
 use tokio_stream::StreamExt;
 

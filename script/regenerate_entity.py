@@ -11,7 +11,7 @@ def main():
         sys.exit(1)
     msg_system(
         "sea generate entity -u \
-        postgres://postgres:123456@localhost:5432/OurChat -o server/src/entities"
+        postgres://postgres:123456@localhost:5432/OurChat -o server/entities/src/entities"
     )
 
 

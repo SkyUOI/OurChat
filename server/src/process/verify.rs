@@ -10,13 +10,13 @@ use tonic::{Request, Response};
 use crate::{
     component::EmailSender,
     consts::VERIFY_EMAIL_EXPIRE,
-    pb::auth::email_verify::v1::{VerifyRequest, VerifyResponse},
     server::{
         AuthServiceProvider, VerifyStream,
         httpserver::verify::{VerifyRecord, verify_client},
     },
     utils,
 };
+use pb::auth::email_verify::v1::{VerifyRequest, VerifyResponse};
 
 const TOKEN_LEN: usize = 20;
 

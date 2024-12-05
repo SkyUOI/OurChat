@@ -1,16 +1,11 @@
-use crate::{
-    component::EmailSender,
-    consts::ID,
-    entities::{files, friend, operations, prelude::*, session_relation, user, user_chat_msg},
-    pb::ourchat::unregister::v1::{UnregisterRequest, UnregisterResponse},
-    server::RpcServer,
-};
+use super::get_id_from_req;
+use crate::{component::EmailSender, consts::ID, server::RpcServer};
+use entities::{files, friend, operations, prelude::*, session_relation, user, user_chat_msg};
+use pb::ourchat::unregister::v1::{UnregisterRequest, UnregisterResponse};
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
 };
 use tonic::{Response, Status};
-
-use super::get_id_from_req;
 
 #[derive(Debug, thiserror::Error)]
 enum UnregisterError {

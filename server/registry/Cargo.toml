@@ -1,20 +1,16 @@
 [package]
-name = "stress_test"
+name = "registry"
 version.workspace = true
 edition.workspace = true
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
-client = { path = "../client" }
+
 tonic = { version = "0", features = ["tls"] }
 tonic-types = { version = "0" }
 prost-types = { version = "0" }
 prost = { version = "0" }
-server = { path = ".." }
-parking_lot = "0"
-mimalloc = "0"
-dashmap = { "version" = "6" }
-clap = { version = "4", features = ["derive"] }
-anyhow = "1"
-tracing = { version = "0" }
+jsonwebtoken = "9"
+tokio-stream = { version = "0" }
+# Protobuf definitions
 pb = { path = "../pb" }

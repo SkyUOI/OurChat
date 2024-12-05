@@ -10,6 +10,7 @@ serde = { version = "1" }
 anyhow = "1"
 chrono = { version = "0", features = ["serde"] }
 sha3 = "0"
+prost-types = { version = "0" }
 
 [build-dependencies]
 shadow-rs = "0"

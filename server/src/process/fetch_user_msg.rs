@@ -2,15 +2,15 @@ use super::get_id_from_req;
 use crate::{
     component::EmailSender,
     consts::ID,
-    entities::user_chat_msg,
-    pb::ourchat::msg_delivery::{
-        self,
-        v1::{FetchMsgsRequest, FetchMsgsResponse, Msg, fetch_msgs_response},
-    },
     server::{FetchMsgsStream, RpcServer},
-    utils::from_google_timestamp,
 };
 use base::time::TimeStamp;
+use base::time::from_google_timestamp;
+use entities::user_chat_msg;
+use pb::ourchat::msg_delivery::{
+    self,
+    v1::{FetchMsgsRequest, FetchMsgsResponse, Msg, fetch_msgs_response},
+};
 use sea_orm::{
     DatabaseBackend, DatabaseConnection, EntityTrait, Paginator, PaginatorTrait, Statement,
 };

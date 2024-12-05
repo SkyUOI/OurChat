@@ -1,0 +1,19 @@
+[package]
+name = "pb"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+tonic = { version = "0", features = ["tls"] }
+anyhow = "1"
+entities = { path = "../entities" }
+collection_literals = "1"
+prost = { version = "0" }
+prost-types = { version = "0" }
+base = { path = "../base" }
+serde = { version = "1" }
+serde_json = "1"
+
+[build-dependencies]
+tonic-build = { version = "0" }
+anyhow = "1"

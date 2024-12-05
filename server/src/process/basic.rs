@@ -1,9 +1,9 @@
 use crate::{
     DbPool,
     consts::{ID, OCID},
-    entities::{prelude::*, user},
 };
 use anyhow::bail;
+use entities::{prelude::*, user};
 use redis::AsyncCommands;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 

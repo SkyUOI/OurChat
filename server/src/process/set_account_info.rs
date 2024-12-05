@@ -1,12 +1,7 @@
-use crate::{
-    component::EmailSender,
-    consts::ID,
-    db::file_storage,
-    entities::user,
-    pb::ourchat::set_account_info::v1::{SetSelfInfoRequest, SetSelfInfoResponse},
-    server::RpcServer,
-};
+use crate::{component::EmailSender, consts::ID, db::file_storage, server::RpcServer};
 use anyhow::Context;
+use entities::user;
+use pb::ourchat::set_account_info::v1::{SetSelfInfoRequest, SetSelfInfoResponse};
 use sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection, DbErr, TransactionTrait};
 use tonic::{Request, Response, Status};
 

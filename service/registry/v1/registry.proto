@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package service.registry.v1;
+
+import "service/registry/chat_server/v1/chat_server.proto";
+import "service/registry/transmit_msg/v1/transmit_msg.proto";
+
+service Registry {
+  rpc RegisterChatServer(chat_server.v1.RegisterChatServerRequest) returns (chat_server.v1.RegisterChatServerResponse);
+
+  rpc UnregisterChatServer(chat_server.v1.UnregisterChatServerRequest) returns (chat_server.v1.UnregisterChatServerResponse);
+
+  rpc TransmitMsg(transmit_msg.v1.TransmitMsgRequest) returns (transmit_msg.v1.TransmitMsgResponse);
+}

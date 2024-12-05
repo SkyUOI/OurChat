@@ -530,6 +530,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "chrono",
+ "prost-types",
  "serde",
  "sha3",
  "shadow-rs",
@@ -881,6 +882,7 @@ dependencies = [
  "fake",
  "itertools 0.13.0",
  "parking_lot",
+ "pb",
  "prost",
  "prost-types",
  "rand",
@@ -1375,6 +1377,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "75030f3c4f45dafd7586dd6780965a8c7e8e285a5ecb86713e63a79c5b2766f3"
 dependencies = [
  "cfg-if",
+]
+
+[[package]]
+name = "entities"
+version = "0.1.0"
+dependencies = [
+ "sea-orm",
 ]
 
 [[package]]
@@ -2902,6 +2911,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df94ce210e5bc13cb6651479fa48d14f601d9858cfe0467f43ae157023b938d3"
 
 [[package]]
+name = "pb"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "base",
+ "collection_literals",
+ "entities",
+ "prost",
+ "prost-types",
+ "serde",
+ "serde_json",
+ "tonic",
+ "tonic-build",
+]
+
+[[package]]
 name = "pem"
 version = "3.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3648,6 +3673,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 
 [[package]]
+name = "registry"
+version = "0.1.0"
+dependencies = [
+ "jsonwebtoken",
+ "pb",
+ "prost",
+ "prost-types",
+ "tokio",
+ "tokio-stream",
+ "tonic",
+ "tonic-types",
+]
+
+[[package]]
 name = "rend"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4282,6 +4321,7 @@ dependencies = [
  "dashmap",
  "deadpool-redis",
  "derive",
+ "entities",
  "fake",
  "futures-util",
  "jsonwebtoken",
@@ -4291,6 +4331,7 @@ dependencies = [
  "mimalloc",
  "mockall",
  "parking_lot",
+ "pb",
  "prost",
  "prost-types",
  "rand",
@@ -4761,6 +4802,7 @@ dependencies = [
  "dashmap",
  "mimalloc",
  "parking_lot",
+ "pb",
  "prost",
  "prost-types",
  "server",
@@ -5144,9 +5186,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-util"
-version = "0.7.12"
+version = "0.7.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61e7c3654c13bcd040d4a03abee2c75b1d14a37b423cf5a813ceae1cc903ec6a"
+checksum = "d7fcaa8d55a2bdd6b83ace262b016eca0d79ee02818c5c1bcdf0305114081078"
 dependencies = [
  "bytes",
  "futures-core",

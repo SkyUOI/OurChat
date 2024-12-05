@@ -1,7 +1,7 @@
 use client::TestApp;
 use parking_lot::Mutex;
+use pb::auth::email_verify::v1::VerifyRequest;
 use server::component::MockEmailSender;
-use server::pb::auth::email_verify::v1::VerifyRequest;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio_stream::StreamExt;

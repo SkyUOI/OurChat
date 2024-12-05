@@ -5,7 +5,7 @@ mod framework;
 use clap::Parser;
 use dashmap::DashMap;
 use framework::{Output, Record, Report, StressTest};
-use server::pb::{
+use pb::{
     self,
     basic::v1::{GetServerInfoRequest, TimestampRequest},
 };

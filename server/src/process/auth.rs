@@ -1,14 +1,9 @@
 use super::{UserInfo, generate_access_token};
-use crate::{
-    DbPool,
-    component::EmailSender,
-    entities::{prelude::*, user},
-    pb::auth::authorize::v1::{AuthRequest, AuthResponse, auth_request::Account},
-    server::AuthServiceProvider,
-    utils,
-};
+use crate::{DbPool, component::EmailSender, server::AuthServiceProvider, utils};
 use anyhow::Context;
 use argon2::{PasswordHash, PasswordVerifier};
+use entities::{prelude::*, user};
+use pb::auth::authorize::v1::{AuthRequest, AuthResponse, auth_request::Account};
 use sea_orm::{ColumnTrait, DbErr, EntityTrait, QueryFilter};
 use tonic::{Response, Status};
 

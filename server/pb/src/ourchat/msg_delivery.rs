@@ -1,5 +1,6 @@
 pub mod v1 {
-    use crate::{entities::user_chat_msg, utils::to_google_timestamp};
+    use base::time::to_google_timestamp;
+    use entities::user_chat_msg;
     tonic::include_proto!("service.ourchat.msg_delivery.v1");
 
     pub type BundleMsgs = Vec<OneMsg>;

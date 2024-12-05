@@ -39,8 +39,8 @@ pub use upload::upload;
 
 use crate::SERVER_INFO;
 use crate::consts::ID;
-use crate::entities::operations;
-use crate::entities::prelude::*;
+use entities::operations;
+use entities::prelude::*;
 
 pub mod db {
     pub use super::basic::get_id;

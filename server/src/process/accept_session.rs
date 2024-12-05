@@ -1,8 +1,5 @@
-use crate::{
-    component::EmailSender,
-    pb::ourchat::session::accept_session::v1::{AcceptSessionRequest, AcceptSessionResponse},
-    server::RpcServer,
-};
+use crate::{component::EmailSender, server::RpcServer};
+use pb::ourchat::session::accept_session::v1::{AcceptSessionRequest, AcceptSessionResponse};
 use tonic::Response;
 
 #[derive(Debug, thiserror::Error)]

@@ -8,8 +8,14 @@ fn main() -> anyhow::Result<()> {
             "service.ourchat.msg_delivery.v1.OneMsg.data",
             "#[derive(serde::Serialize, serde::Deserialize)]",
         )
-        .compile_protos(&["../service/ourchat/v1/ourchat.proto"], &[".."])?;
-    tonic_build::configure().compile_protos(&["../service/auth/v1/auth.proto"], &[".."])?;
-    tonic_build::configure().compile_protos(&["../service/basic/v1/basic.proto"], &[".."])?;
+        .compile_protos(
+            &[
+                "../../service/ourchat/v1/ourchat.proto",
+                "../../service/auth/v1/auth.proto",
+                "../../service/basic/v1/basic.proto",
+                "../../service/registry/v1/registry.proto",
+            ],
+            &["../.."],
+        )?;
     Ok(())
 }

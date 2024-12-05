@@ -1,4 +1,4 @@
-use server::pb::basic::v1::GetServerInfoRequest;
+use pb::basic::v1::GetServerInfoRequest;
 
 #[tokio::test]
 async fn test_status_ws() {
