@@ -13,7 +13,7 @@ async fn test_get_user_info() {
     // request before logged in
     // don't have privileges
     let user_ocid = user.lock().await.ocid.clone();
-    let user_id = user.lock().await.id.clone();
+    let user_id = user.lock().await.id;
     let user_name = user.lock().await.name.clone();
     let user_email = user.lock().await.email.clone();
 
@@ -100,7 +100,7 @@ async fn test_set_friend_info() {
     let user2 = app.new_user().await.unwrap();
     let user_ocid = user.lock().await.ocid.clone();
     let user2_ocid = user2.lock().await.ocid.clone();
-    let user2_id = user2.lock().await.id.clone();
+    let user2_id = user2.lock().await.id;
     let new_name = "xxx";
 
     // now have privileges,but is no friends now

@@ -1,4 +1,4 @@
-use super::{basic::get_id, get_id_from_req};
+use super::get_id_from_req;
 use crate::{DbPool, component::EmailSender, consts::ID, server::RpcServer};
 use entities::friend;
 use pb::ourchat::set_account_info::v1::{SetFriendInfoRequest, SetFriendInfoResponse};

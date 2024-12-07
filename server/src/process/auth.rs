@@ -86,8 +86,8 @@ async fn auth_db(
 }
 
 /// Login Request
-pub async fn auth<T: EmailSender>(
-    server: &AuthServiceProvider<T>,
+pub async fn auth(
+    server: &AuthServiceProvider<impl EmailSender>,
     request: tonic::Request<AuthRequest>,
 ) -> Result<Response<AuthResponse>, Status> {
     match auth_db(request.into_inner(), &server.db).await {

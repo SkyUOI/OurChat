@@ -1,4 +1,4 @@
-use super::basic::{get_id, get_ocid};
+use super::basic::get_ocid;
 use crate::component::EmailSender;
 use crate::consts::ID;
 use crate::server::RpcServer;

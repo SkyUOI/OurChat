@@ -35,6 +35,7 @@ use std::{
     net::SocketAddr,
     path::{Path, PathBuf},
     sync::{Arc, LazyLock, OnceLock},
+    time::Duration,
 };
 use tokio::{sync::mpsc, task::JoinHandle};
 use tracing_appender::non_blocking::WorkerGuard;
@@ -98,6 +99,7 @@ pub struct MainCfg {
     pub ssl: bool,
     pub password_hash: PasswordHash,
     pub db: OCDbCfg,
+    pub debug: DebugCfg,
 
     #[serde(skip)]
     pub cmd_args: ParserCfg,
@@ -113,6 +115,14 @@ pub struct PasswordHash {
     pub p_cost: u32,
     #[serde(default = "consts::default_output_len")]
     pub output_len: Option<usize>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DebugCfg {
+    #[serde(default = "consts::default_debug_console")]
+    pub debug_console: bool,
+    #[serde(default = "consts::default_debug_console_port")]
+    pub debug_console_port: u16,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -276,7 +286,7 @@ static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
 
 /// # Warning
 /// This function should be called only once.The second one will be ignored
-pub fn logger_init<Sink>(test_mode: bool, output: Sink)
+pub fn logger_init<Sink>(test_mode: bool, debug_cfg: Option<&DebugCfg>, output: Sink)
 where
     Sink: for<'a> MakeWriter<'a> + Send + Sync + 'static,
 {
@@ -294,11 +304,22 @@ where
             tracing_appender::rolling::daily(LOG_OUTPUT_DIR, "ourchat")
         };
         let (non_blocking, file_guard) = tracing_appender::non_blocking(file_appender);
-        Registry::default()
+        let tmp = Registry::default()
             .with(env())
             .with(formatting_layer)
-            .with(fmt::layer().with_ansi(false).with_writer(non_blocking))
-            .init();
+            .with(fmt::layer().with_ansi(false).with_writer(non_blocking));
+        if let Some(debug_cfg) = debug_cfg {
+            if debug_cfg.debug_console {
+                // TODO:move this to "debug" section of config
+                let console_layer = console_subscriber::ConsoleLayer::builder()
+                    .retention(Duration::from_secs(60))
+                    .server_addr(([0, 0, 0, 0], debug_cfg.debug_console_port))
+                    .spawn();
+                tmp.with(console_layer).init();
+            }
+        } else {
+            tmp.init();
+        }
         Some(file_guard)
     });
 }
@@ -363,7 +384,7 @@ fn exit_signal(mut shutdown_sender: ShutdownSdr) -> anyhow::Result<()> {
     Ok(())
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct HttpSender {}
 
 /// build websocket server
@@ -412,6 +433,7 @@ impl DbPool {
 }
 
 /// shared data along the whole application
+#[derive(Debug)]
 pub struct SharedData<T: EmailSender> {
     pub email_client: Option<T>,
     pub cfg: Cfg,
@@ -434,9 +456,17 @@ impl<T: EmailSender> Application<T> {
         let main_cfg = &mut cfg.main_cfg;
 
         if main_cfg.cmd_args.test_mode {
-            logger_init(main_cfg.cmd_args.test_mode, std::io::sink);
+            logger_init(
+                main_cfg.cmd_args.test_mode,
+                Some(&main_cfg.debug),
+                std::io::sink,
+            );
         } else {
-            logger_init(main_cfg.cmd_args.test_mode, std::io::stdout);
+            logger_init(
+                main_cfg.cmd_args.test_mode,
+                Some(&main_cfg.debug),
+                std::io::stdout,
+            );
         }
         // start maintain mode
         shared_state::set_maintaining(main_cfg.cmd_args.maintaining);

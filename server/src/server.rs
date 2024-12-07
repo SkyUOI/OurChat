@@ -37,6 +37,7 @@ use tokio::select;
 use tonic::{Request, Response, Status};
 use tracing::info;
 
+#[derive(Debug)]
 pub struct RpcServer<T: EmailSender> {
     pub db: DbPool,
     pub http_sender: HttpSender,
@@ -106,6 +107,7 @@ pub type DownloadStream =
 
 #[tonic::async_trait]
 impl<T: EmailSender> OurChatService for RpcServer<T> {
+    #[tracing::instrument(skip(self))]
     async fn unregister(
         &self,
         request: Request<UnregisterRequest>,
@@ -113,6 +115,7 @@ impl<T: EmailSender> OurChatService for RpcServer<T> {
         process::unregister::unregister(self, request).await
     }
 
+    #[tracing::instrument(skip(self))]
     async fn get_account_info(
         &self,
         request: Request<GetAccountInfoRequest>,
@@ -120,6 +123,7 @@ impl<T: EmailSender> OurChatService for RpcServer<T> {
         process::get_account_info::get_info(self, request).await
     }
 
+    #[tracing::instrument(skip(self))]
     async fn set_self_info(
         &self,
         request: Request<SetSelfInfoRequest>,
@@ -127,6 +131,7 @@ impl<T: EmailSender> OurChatService for RpcServer<T> {
         process::set_account_info(self, request).await
     }
 
+    #[tracing::instrument(skip(self))]
     async fn set_friend_info(
         &self,
         request: Request<SetFriendInfoRequest>,
@@ -136,6 +141,7 @@ impl<T: EmailSender> OurChatService for RpcServer<T> {
 
     type FetchMsgsStream = FetchMsgsStream;
 
+    #[tracing::instrument(skip(self))]
     async fn fetch_msgs(
         &self,
         request: Request<FetchMsgsRequest>,
@@ -143,6 +149,7 @@ impl<T: EmailSender> OurChatService for RpcServer<T> {
         process::fetch_user_msg(self, request).await
     }
 
+    #[tracing::instrument(skip(self))]
     async fn send_msg(
         &self,
         request: Request<SendMsgRequest>,
@@ -150,6 +157,7 @@ impl<T: EmailSender> OurChatService for RpcServer<T> {
         process::send_msg(self, request).await
     }
 
+    #[tracing::instrument(skip(self))]
     async fn upload(
         &self,
         request: Request<tonic::Streaming<UploadRequest>>,
@@ -159,6 +167,7 @@ impl<T: EmailSender> OurChatService for RpcServer<T> {
 
     type DownloadStream = DownloadStream;
 
+    #[tracing::instrument(skip(self))]
     async fn download(
         &self,
         request: Request<DownloadRequest>,
@@ -166,6 +175,7 @@ impl<T: EmailSender> OurChatService for RpcServer<T> {
         process::download(self, request).await
     }
 
+    #[tracing::instrument(skip(self))]
     async fn accept_session(
         &self,
         request: Request<AcceptSessionRequest>,
@@ -173,6 +183,7 @@ impl<T: EmailSender> OurChatService for RpcServer<T> {
         process::accept_session(self, request).await
     }
 
+    #[tracing::instrument(skip(self))]
     async fn new_session(
         &self,
         request: Request<NewSessionRequest>,
@@ -180,6 +191,7 @@ impl<T: EmailSender> OurChatService for RpcServer<T> {
         process::new_session(self, request).await
     }
 
+    #[tracing::instrument(skip(self))]
     async fn get_session_info(
         &self,
         request: Request<GetSessionInfoRequest>,
@@ -189,6 +201,7 @@ impl<T: EmailSender> OurChatService for RpcServer<T> {
     }
 }
 
+#[derive(Debug)]
 pub struct AuthServiceProvider<T: EmailSender> {
     pub shared_data: Arc<SharedData<T>>,
     pub db: DbPool,
@@ -199,6 +212,7 @@ pub type VerifyStream =
 
 #[tonic::async_trait]
 impl<T: EmailSender> auth_service_server::AuthService for AuthServiceProvider<T> {
+    #[tracing::instrument(skip(self))]
     async fn register(
         &self,
         request: Request<RegisterRequest>,
@@ -206,12 +220,14 @@ impl<T: EmailSender> auth_service_server::AuthService for AuthServiceProvider<T>
         process::register::register(self, request).await
     }
 
+    #[tracing::instrument(skip(self))]
     async fn auth(&self, request: Request<AuthRequest>) -> Result<Response<AuthResponse>, Status> {
         process::auth::auth(self, request).await
     }
 
     type VerifyStream = VerifyStream;
 
+    #[tracing::instrument(skip(self))]
     async fn verify(
         &self,
         request: Request<VerifyRequest>,
@@ -220,6 +236,7 @@ impl<T: EmailSender> auth_service_server::AuthService for AuthServiceProvider<T>
     }
 }
 
+#[derive(Debug)]
 struct BasicServiceProvider<T: EmailSender> {
     pub shared_data: Arc<SharedData<T>>,
     pub db: DbPool,
@@ -227,6 +244,7 @@ struct BasicServiceProvider<T: EmailSender> {
 
 #[tonic::async_trait]
 impl<T: EmailSender> BasicService for BasicServiceProvider<T> {
+    #[tracing::instrument(skip(self))]
     async fn timestamp(
         &self,
         _request: Request<TimestampRequest>,
@@ -238,6 +256,7 @@ impl<T: EmailSender> BasicService for BasicServiceProvider<T> {
         Ok(Response::new(res))
     }
 
+    #[tracing::instrument(skip(self))]
     async fn get_server_info(
         &self,
         _request: Request<GetServerInfoRequest>,
@@ -251,6 +270,7 @@ impl<T: EmailSender> BasicService for BasicServiceProvider<T> {
         ))
     }
 
+    #[tracing::instrument(skip(self))]
     async fn get_id(
         &self,
         request: Request<GetIdRequest>,

@@ -43,7 +43,7 @@ impl FileSys {
     }
 }
 
-pub async fn clean_files(db_conn: &mut DatabaseConnection) -> anyhow::Result<()> {
+pub async fn clean_files(db_conn: &mut DatabaseConnection) -> Result<(), FileStorageError> {
     // Query the file first
     let del_time =
         chrono::Utc::now() - chrono::Duration::days(shared_state::get_file_save_days() as i64);

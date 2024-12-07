@@ -2,6 +2,7 @@ use crate::consts;
 use lettre::message::Mailbox;
 use lettre::{AsyncSmtpTransport, AsyncTransport};
 
+#[derive(Debug)]
 pub struct EmailClient {
     client: InternalEmailClient,
     from: Mailbox,
@@ -21,7 +22,7 @@ impl EmailClient {
 
 #[mockall::automock]
 #[async_trait::async_trait]
-pub trait EmailSender: Send + Sync + 'static {
+pub trait EmailSender: Send + Sync + std::fmt::Debug + 'static {
     async fn send<T: Into<String> + Send + 'static>(
         &self,
         to: Mailbox,

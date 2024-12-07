@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1", features = ["full", "tracing"] }
 bytes = "1"
 anyhow = "1"
 serde = { version = "1" }
@@ -41,6 +41,7 @@ config = "0"
 validator = "0"
 argon2 = { version = "0", features = ["std"] }
 deadpool-redis = "0.18.0"
+console-subscriber = { version = "0", features = ["parking_lot"] }
 
 # Useful crates
 collection_literals = "1"

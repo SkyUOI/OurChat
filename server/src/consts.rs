@@ -82,6 +82,14 @@ pub const fn default_http_port() -> u16 {
     DEFAULT_HTTP_PORT
 }
 
+pub const fn default_debug_console_port() -> u16 {
+    7776
+}
+
+pub const fn default_debug_console() -> bool {
+    true
+}
+
 pub const fn default_fetch_msg_page_size() -> u64 {
     2000
 }

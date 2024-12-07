@@ -158,7 +158,6 @@ async fn upload_impl(
     let key = generate_key_name(&metadata.hash);
     let files_storage_path = &server.shared_data.cfg.main_cfg.files_storage_path;
     let limit_size = server.shared_data.cfg.main_cfg.user_files_limit;
-    let limit_size = limit_size;
     let mut file_handle = add_file_record(
         id,
         Size::from_bytes(metadata.size),

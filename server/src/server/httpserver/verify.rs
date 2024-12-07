@@ -20,6 +20,7 @@ struct Param {
 }
 
 #[get("/verify/confirm")]
+#[tracing::instrument]
 async fn verify_token(
     req: HttpRequest,
     param: web::Query<Param>,

@@ -41,6 +41,11 @@ output_len = 32
 # The size of one page to fetch message
 fetch_msg_page_size = 2000
 
+[debug]
+debug_console = true
+# Warning: don't expose it to the world
+debug_console_port = 7776
+
 # If any fields below is not specified, the email will be disabled
 
 # Email address displaying in sent email

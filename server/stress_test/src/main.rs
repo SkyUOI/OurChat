@@ -226,7 +226,7 @@ pub struct ArgsParser {
 async fn main() -> anyhow::Result<()> {
     let args = ArgsParser::parse();
     let mut app = if args.use_exists_instance {
-        server::logger_init(true, std::io::stdout);
+        server::logger_init(true, None, std::io::stdout);
         let cfg = server::get_configuration(args.config.as_ref().map(PathBuf::from))?;
         client::TestApp::new_with_existing_instance(cfg).await?
     } else {

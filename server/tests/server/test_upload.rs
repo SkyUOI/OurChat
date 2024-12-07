@@ -15,10 +15,10 @@ fn generate_file(size: Size) -> anyhow::Result<impl Iterator<Item = Vec<u8>> + C
     if size % (1024 * 1024) != 0 {
         Ok(iter::repeat(ret.clone())
             .take(size / 1024 / 1024)
-            .chain(iter::once(ret[..size as usize % (1024 * 1024)].to_vec())))
+            .chain(iter::once(ret[..size % (1024 * 1024)].to_vec())))
     } else {
         Ok(iter::repeat(ret)
-            .take(size as usize / 1024 / 1024)
+            .take(size / 1024 / 1024)
             .chain(iter::once(vec![])))
     }
 }
