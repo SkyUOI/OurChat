@@ -1,1 +1,3 @@
-struct RegistryServer {}
+mod consul;
+
+pub use consul::*;

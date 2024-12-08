@@ -85,12 +85,6 @@ pub struct MainCfg {
     pub user_files_limit: Size,
     #[serde(default = "consts::default_friends_number_limit")]
     pub friends_number_limit: u32,
-    #[serde(default)]
-    pub email_address: Option<String>,
-    #[serde(default)]
-    pub smtp_address: Option<String>,
-    #[serde(default)]
-    pub smtp_password: Option<String>,
     #[serde(default = "consts::default_files_storage_path")]
     pub files_storage_path: PathBuf,
     #[serde(default = "consts::default_verification_expire_days")]
@@ -100,6 +94,8 @@ pub struct MainCfg {
     pub password_hash: PasswordHash,
     pub db: OCDbCfg,
     pub debug: DebugCfg,
+    pub email: EmailCfg,
+    pub registry: RegistryCfg,
 
     #[serde(skip)]
     pub cmd_args: ParserCfg,
@@ -123,6 +119,54 @@ pub struct DebugCfg {
     pub debug_console: bool,
     #[serde(default = "consts::default_debug_console_port")]
     pub debug_console_port: u16,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct RegistryCfg {
+    #[serde(default = "consts::default_enable_registry")]
+    pub enable: bool,
+    #[serde(default = "consts::default_registry_port")]
+    pub port: u16,
+    #[serde(default = "consts::default_registry_ip")]
+    pub ip: String,
+    #[serde(default = "consts::default_service_name")]
+    pub service_name: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct EmailCfg {
+    #[serde(default = "consts::default_enable_email")]
+    pub enable: bool,
+    #[serde(default)]
+    pub email_address: Option<String>,
+    #[serde(default)]
+    pub smtp_address: Option<String>,
+    #[serde(default)]
+    pub smtp_password: Option<String>,
+}
+
+impl EmailCfg {
+    pub fn email_available(&self) -> bool {
+        self.email_address.is_some() && self.smtp_address.is_some() && self.smtp_password.is_some()
+    }
+
+    pub fn build_email_client(&self) -> anyhow::Result<EmailClient> {
+        if !self.email_available() {
+            bail!("email is not available");
+        }
+        let creds = Credentials::new(
+            self.email_address.clone().unwrap(),
+            self.smtp_password.clone().unwrap(),
+        );
+        EmailClient::new(
+            AsyncSmtpTransport::<lettre::Tokio1Executor>::relay(
+                &self.smtp_address.clone().unwrap(),
+            )?
+            .credentials(creds)
+            .build(),
+            self.email_address.as_ref().unwrap(),
+        )
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -155,34 +199,12 @@ impl MainCfg {
         Ok(cfg)
     }
 
-    pub fn email_available(&self) -> bool {
-        self.email_address.is_some() && self.smtp_address.is_some() && self.smtp_password.is_some()
-    }
-
     pub fn protocol_http(&self) -> String {
         if self.ssl {
             "https".to_string()
         } else {
             "http".to_string()
         }
-    }
-
-    pub fn build_email_client(&self) -> anyhow::Result<EmailClient> {
-        if !self.email_available() {
-            bail!("email is not available");
-        }
-        let creds = Credentials::new(
-            self.email_address.clone().unwrap(),
-            self.smtp_password.clone().unwrap(),
-        );
-        EmailClient::new(
-            AsyncSmtpTransport::<lettre::Tokio1Executor>::relay(
-                &self.smtp_address.clone().unwrap(),
-            )?
-            .credentials(creds)
-            .build(),
-            self.email_address.as_ref().unwrap(),
-        )
     }
 }
 
@@ -446,6 +468,10 @@ pub fn get_configuration(config_path: Option<impl Into<PathBuf>>) -> anyhow::Res
     Cfg::new(main_cfg)
 }
 
+pub async fn register_service(cfg: &RegistryCfg) -> anyhow::Result<()> {
+    Ok(())
+}
+
 impl<T: EmailSender> Application<T> {
     pub async fn build(
         parser: ArgsParser,
@@ -624,6 +650,8 @@ impl<T: EmailSender> Application<T> {
                 cfg.cmd_args.test_mode,
             ));
         }
+        tracing::info!("Start to register service to registry");
+        register_service(&cfg.registry).await?;
         tracing::info!("Server started");
         self.started_notify.notify_waiters();
         join_all(handles).await.iter().for_each(|x| {

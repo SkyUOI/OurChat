@@ -18,3 +18,4 @@ clap = { version = "4", features = ["derive"] }
 anyhow = "1"
 tracing = { version = "0" }
 pb = { path = "../pb" }
+size = { version = "0.5.0-preview2", features = ["serde"] }

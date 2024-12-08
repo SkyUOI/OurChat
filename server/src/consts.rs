@@ -2,7 +2,7 @@
 
 use base::impl_newtype_int;
 use size::Size;
-use std::{io::IsTerminal, path::PathBuf, sync::LazyLock, time::Duration};
+use std::{default, io::IsTerminal, path::PathBuf, sync::LazyLock, time::Duration};
 
 /// OCID Length
 pub const OCID_LEN: usize = 10;
@@ -116,6 +116,26 @@ pub const fn default_output_len() -> Option<usize> {
 
 pub const fn default_ssl() -> bool {
     false
+}
+
+pub const fn default_enable_email() -> bool {
+    false
+}
+
+pub const fn default_enable_registry() -> bool {
+    false
+}
+
+pub fn default_service_name() -> String {
+    String::from("OurChat")
+}
+
+pub fn default_registry_port() -> u16 {
+    8500
+}
+
+pub fn default_registry_ip() -> String {
+    String::from("127.0.0.1")
 }
 
 pub fn default_files_storage_path() -> PathBuf {

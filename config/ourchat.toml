@@ -46,11 +46,24 @@ debug_console = true
 # Warning: don't expose it to the world
 debug_console_port = 7776
 
-# If any fields below is not specified, the email will be disabled
+# Registry Centre of Services
+[registry]
+# Whether to add this service to registry
+enable = false
+# Registry address
+ip = "127.0.0.1"
+# Registry port
+port = 8500
+# Registry service name
+service_name = "RpcServer"
 
+# If any fields below is not specified, the email will be disabled
+[email]
+# Whether to enable email service
+enable = false
 # Email address displaying in sent email
-# email_address = "default@ourchat.org"
-# Emtp server address
-# smtp_address = "smtp.ourchat.org"
+email_address = "default@ourchat.org"
+# Smtp server address
+smtp_address = "smtp.ourchat.org"
 # Smtp server password
-# smtp_password = "password"
+smtp_password = "password"

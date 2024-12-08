@@ -13,7 +13,6 @@ fn main() -> anyhow::Result<()> {
                 "../../service/ourchat/v1/ourchat.proto",
                 "../../service/auth/v1/auth.proto",
                 "../../service/basic/v1/basic.proto",
-                "../../service/registry/v1/registry.proto",
             ],
             &["../.."],
         )?;

@@ -23,3 +23,4 @@ uuid = { version = "1", features = ["v4"] }
 itertools = "0"
 pb = { path = "../pb" }
 sha3 = "0"
+size = { version = "0.5.0-preview2", features = ["serde"] }
