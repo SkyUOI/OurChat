@@ -42,6 +42,8 @@ validator = "0"
 argon2 = { version = "0", features = ["std"] }
 deadpool-redis = "0.18.0"
 console-subscriber = { version = "0", features = ["parking_lot"] }
+consul-client = { path = "consul-client" }
+registry = { path = "registry" }
 
 # Useful crates
 collection_literals = "1"

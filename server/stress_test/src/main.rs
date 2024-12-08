@@ -3,12 +3,14 @@
 mod framework;
 
 use clap::Parser;
+use client::helper;
 use dashmap::DashMap;
 use framework::{Output, Record, Report, StressTest};
 use pb::{
     self,
     basic::v1::{GetServerInfoRequest, TimestampRequest},
 };
+use size::Size;
 use std::{
     env::set_var,
     path::PathBuf,
@@ -17,7 +19,6 @@ use std::{
         atomic::{AtomicUsize, Ordering},
     },
 };
-use tokio::fs::read_to_string;
 
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
@@ -140,15 +141,13 @@ async fn test_get_info(users: &UsersGroup, report: &mut Report) {
     report.add_record(Record::new("get_info", output));
 }
 
-async fn test_upload(users: &UsersGroup, report: &mut Report) -> Arc<DashMap<String, String>> {
+async fn test_upload(users: &UsersGroup, report: &mut Report) -> anyhow::Result<Arc<DashMap<String, String>>> {
     let mut stress_test = StressTest::builder()
         .set_concurrency(1000)
         .set_requests(1000);
     let users = users.clone();
     let idx = Arc::new(AtomicUsize::new(0));
-    let file = read_to_string("server/tests/server/test_data/big_file.txt")
-        .await
-        .unwrap();
+    let file = helper::generate_file(Size::from_mebibytes(1))?;
     let keys = Arc::new(DashMap::new());
     let keys_ret = keys.clone();
     let output = stress_test
@@ -159,7 +158,7 @@ async fn test_upload(users: &UsersGroup, report: &mut Report) -> Arc<DashMap<Str
             let keys = keys.clone();
             async move {
                 let user_id = user.lock().await.ocid.clone();
-                match user.lock().await.post_file(content).await {
+                match user.lock().await.post_file_as_iter(content).await {
                     Ok(key) => {
                         keys.insert(user_id, key);
                         true
@@ -170,7 +169,7 @@ async fn test_upload(users: &UsersGroup, report: &mut Report) -> Arc<DashMap<Str
         })
         .await;
     report.add_record(Record::new("upload", output));
-    keys_ret
+    Ok(keys_ret)
 }
 
 async fn test_download(
@@ -197,15 +196,16 @@ async fn test_download(
     report.add_record(Record::new("download", output));
 }
 
-async fn test_endpoint(app: &mut client::TestApp) {
+async fn test_endpoint(app: &mut client::TestApp) -> anyhow::Result<()> {
     let mut report = Report::new();
     test_basic_service(&mut report, app).await;
     let users = test_register(&mut report, app).await;
     test_auth(&users, &mut report).await;
     test_get_info(&users, &mut report).await;
-    let keys = test_upload(&users, &mut report).await;
+    let keys = test_upload(&users, &mut report).await?;
     test_download(keys.clone(), &users, &mut report).await;
     println!("{}", report);
+    Ok(())
 }
 
 #[derive(Debug, Parser, Default)]
@@ -238,7 +238,7 @@ async fn main() -> anyhow::Result<()> {
         client::TestApp::new_with_launching_instance(None).await?
     };
     // test every endpoint's performance
-    test_endpoint(&mut app).await;
+    test_endpoint(&mut app).await?;
     app.async_drop().await;
     Ok(())
 }

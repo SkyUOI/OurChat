@@ -11,6 +11,7 @@ members = [
     "server/registry",
     "server/entities",
     "server/pb",
+    "server/consul-client",
 ]
 resolver = "2"
 

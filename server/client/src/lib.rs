@@ -1,5 +1,7 @@
 //! Helper functions for tests
 
+pub mod helper;
+
 use base::time::{TimeStampUtc, from_google_timestamp};
 use fake::Fake;
 use fake::faker::internet::raw::FreeEmail;
