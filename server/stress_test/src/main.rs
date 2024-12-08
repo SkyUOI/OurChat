@@ -141,7 +141,10 @@ async fn test_get_info(users: &UsersGroup, report: &mut Report) {
     report.add_record(Record::new("get_info", output));
 }
 
-async fn test_upload(users: &UsersGroup, report: &mut Report) -> anyhow::Result<Arc<DashMap<String, String>>> {
+async fn test_upload(
+    users: &UsersGroup,
+    report: &mut Report,
+) -> anyhow::Result<Arc<DashMap<String, String>>> {
     let mut stress_test = StressTest::builder()
         .set_concurrency(1000)
         .set_requests(1000);

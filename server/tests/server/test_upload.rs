@@ -1,5 +1,8 @@
 use claims::assert_err;
-use client::{helper::{generate_file, get_hash_from_download, get_hash_from_file}, TestApp};
+use client::{
+    TestApp,
+    helper::{generate_file, get_hash_from_download, get_hash_from_file},
+};
 use size::Size;
 
 async fn test_download(
