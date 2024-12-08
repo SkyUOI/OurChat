@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package service.auth.v1;
+
+import "service/auth/authorize/v1/authorize.proto";
+import "service/auth/email_verify/v1/email_verify.proto";
+import "service/auth/register/v1/register.proto";
+
+// Auth Service, providing authorization and registration
+service AuthService {
+  rpc Register(register.v1.RegisterRequest) returns (register.v1.RegisterResponse);
+
+  rpc Auth(authorize.v1.AuthRequest) returns (authorize.v1.AuthResponse);
+
+  // Verify email, after the request is sent, the rpc will wait until the verification is completed or timeout
+  rpc Verify(email_verify.v1.VerifyRequest) returns (stream email_verify.v1.VerifyResponse);
+}

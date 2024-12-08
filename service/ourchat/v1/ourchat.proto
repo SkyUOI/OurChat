@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package service.ourchat.v1;
+
+import "service/ourchat/download/v1/download.proto";
+import "service/ourchat/get_account_info/v1/get_account_info.proto";
+import "service/ourchat/msg_delivery/v1/msg_delivery.proto";
+import "service/ourchat/session/accept_session/v1/accept_session.proto";
+import "service/ourchat/session/get_session_info/v1/get_session_info.proto";
+import "service/ourchat/session/new_session/v1/session.proto";
+import "service/ourchat/set_account_info/v1/set_account_info.proto";
+import "service/ourchat/unregister/v1/unregister.proto";
+import "service/ourchat/upload/v1/upload.proto";
+
+// Main service of the Ourchat
+// JWT is required.If token is missing or out-of-dated,please refer to AuthService to authenticate one JWT
+// Insert to headers: token: <token>
+service OurChatService {
+  // Warning: the meaning is deleting the account, not logout
+  rpc Unregister(unregister.v1.UnregisterRequest) returns (unregister.v1.UnregisterResponse);
+
+  rpc GetAccountInfo(get_account_info.v1.GetAccountInfoRequest) returns (get_account_info.v1.GetAccountInfoResponse);
+
+  // Set some information of the account
+  rpc SetSelfInfo(set_account_info.v1.SetSelfInfoRequest) returns (set_account_info.v1.SetSelfInfoResponse);
+
+  rpc SetFriendInfo(set_account_info.v1.SetFriendInfoRequest) returns (set_account_info.v1.SetFriendInfoResponse);
+
+  // Turn on the delivery, continuing to receive messages
+  rpc FetchMsgs(msg_delivery.v1.FetchMsgsRequest) returns (stream msg_delivery.v1.FetchMsgsResponse);
+
+  rpc SendMsg(msg_delivery.v1.SendMsgRequest) returns (msg_delivery.v1.SendMsgResponse);
+
+  rpc Upload(stream upload.v1.UploadRequest) returns (upload.v1.UploadResponse);
+
+  rpc Download(download.v1.DownloadRequest) returns (stream download.v1.DownloadResponse);
+
+  // session operations
+
+  rpc AcceptSession(session.accept_session.v1.AcceptSessionRequest) returns (session.accept_session.v1.AcceptSessionResponse);
+
+  rpc NewSession(session.new_session.v1.NewSessionRequest) returns (session.new_session.v1.NewSessionResponse);
+
+  rpc GetSessionInfo(session.get_session_info.v1.GetSessionInfoRequest) returns (session.get_session_info.v1.GetSessionInfoResponse);
+}

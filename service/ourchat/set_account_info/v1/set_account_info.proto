@@ -1,16 +1,21 @@
 syntax = "proto3";
 
-package set_info;
+package service.ourchat.set_account_info.v1;
 
 message SetSelfInfoRequest {
   optional string user_name = 2;
   optional string avatar_key = 3;
   optional int32 status = 4;
+  optional string ocid = 5;
 }
 
 message SetFriendInfoRequest {
-  string ocid = 1;
+  // id of the friend
+  uint64 id = 1;
+  // name only displayed for user
   optional string display_name = 2;
 }
 
-message SetAccountInfoResponse {}
+message SetSelfInfoResponse {}
+
+message SetFriendInfoResponse {}

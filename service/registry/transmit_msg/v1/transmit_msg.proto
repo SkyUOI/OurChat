@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package service.registry.transmit_msg.v1;
+
+import "service/ourchat/msg_delivery/v1/msg_delivery.proto";
+
+message TransmitMsgRequest {
+  service.ourchat.msg_delivery.v1.FetchMsgsResponse msg = 1;
+}
+
+message TransmitMsgResponse {}

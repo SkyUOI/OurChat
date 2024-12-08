@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package service.registry.chat_server.v1;
+
+message RegisterChatServerRequest {}
+
+message RegisterChatServerResponse {}
+
+message UnregisterChatServerRequest {}
+
+message UnregisterChatServerResponse {}
