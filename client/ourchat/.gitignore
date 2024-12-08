@@ -138,4 +138,4 @@ app.*.symbols
 
 # grpc
 lib/google
-lib/message
+lib/service
