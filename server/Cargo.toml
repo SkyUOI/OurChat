@@ -5,43 +5,39 @@ edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-tokio = { version = "1", features = ["full", "tracing"] }
-bytes = "1"
-anyhow = "1"
-serde = { version = "1" }
-serde_json = "1"
+tokio.workspace = true
+bytes.workspace = true
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
 # serde_repr = "0"
 # tokio-tungstenite = "0"
-clap = { version = "4", features = ["derive"] }
-futures-util = "0"
-rand = "0"
-snowdon = "0"
-redis = { version = "0", features = ["tokio-rustls-comp"] }
-sea-orm = { version = "1", features = [
-    "sqlx-postgres",
-    "runtime-tokio-rustls",
-    "macros",
-] }
-thiserror = "2"
-chrono = { version = "0", features = ["serde"] }
+clap.workspace = true
+futures-util.workspace = true
+rand.workspace = true
+snowdon.workspace = true
+redis.workspace = true
+sea-orm.workspace = true
+thiserror.workspace = true
+chrono.workspace = true
 base = { path = "base" }
 tracing = { version = "0" }
-tracing-appender = "0"
-tracing-subscriber = { version = "0", features = ["tracing-log", "env-filter"] }
+tracing-appender.workspace = true
+tracing-subscriber.workspace = true
 migration = { path = "migration" }
-mimalloc = "0"
-parking_lot = "0"
-sqlx = { version = "0", features = ["runtime-tokio-rustls"] }
+mimalloc.workspace = true
+parking_lot.workspace = true
+sqlx.workspace = true
 derive = { path = "derive" }
-actix-web = { version = "4", features = ["rustls"] }
-dashmap = { "version" = "6" }
-sha3 = "0"
-uuid = { version = "1", features = ["v4"] }
-config = "0"
-validator = "0"
-argon2 = { version = "0", features = ["std"] }
-deadpool-redis = "0.18.0"
-console-subscriber = { version = "0", features = ["parking_lot"] }
+actix-web.workspace = true
+dashmap.workspace = true
+sha3.workspace = true
+uuid.workspace = true
+config.workspace = true
+validator.workspace = true
+argon2.workspace = true
+deadpool-redis.workspace = true
+console-subscriber.workspace = true
 consul-client = { path = "consul-client" }
 registry = { path = "registry" }
 

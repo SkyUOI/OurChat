@@ -4,18 +4,18 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-tokio = { version = "1", features = ["full"] }
+tokio.workspace = true
 client = { path = "../client" }
-tonic = { version = "0", features = ["tls"] }
+tonic.workspace = true
 tonic-types = { version = "0" }
 prost-types = { version = "0" }
 prost = { version = "0" }
 server = { path = ".." }
-parking_lot = "0"
-mimalloc = "0"
-dashmap = { "version" = "6" }
-clap = { version = "4", features = ["derive"] }
-anyhow = "1"
-tracing = { version = "0" }
+parking_lot.workspace = true
+mimalloc.workspace = true
+dashmap.workspace = true
+clap.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
 pb = { path = "../pb" }
-size = { version = "0.5.0-preview2", features = ["serde"] }
+size.workspace = true

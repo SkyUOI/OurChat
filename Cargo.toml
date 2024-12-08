@@ -24,3 +24,73 @@ strip = true
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.85"
+
+[workspace.dependencies]
+tokio = { version = "1", features = ["full", "tracing"] }
+bytes = "1"
+anyhow = "1"
+serde = { version = "1" }
+serde_json = "1"
+# serde_repr = "0"
+# tokio-tungstenite = "0"
+clap = { version = "4", features = ["derive"] }
+futures-util = "0"
+rand = "0"
+snowdon = "0"
+redis = { version = "0", features = ["tokio-rustls-comp"] }
+sea-orm = { version = "1", features = [
+    "sqlx-postgres",
+    "runtime-tokio-rustls",
+    "macros",
+] }
+thiserror = "2"
+chrono = { version = "0", features = ["serde"] }
+base = { path = "base" }
+tracing = { version = "0" }
+tracing-appender = "0"
+tracing-subscriber = { version = "0", features = ["tracing-log", "env-filter"] }
+migration = { path = "migration" }
+mimalloc = "0"
+parking_lot = "0"
+sqlx = { version = "0", features = ["runtime-tokio-rustls"] }
+derive = { path = "derive" }
+actix-web = { version = "4", features = ["rustls"] }
+dashmap = { "version" = "6" }
+sha3 = "0"
+uuid = { version = "1", features = ["v4"] }
+config = "0"
+validator = "0"
+argon2 = { version = "0", features = ["std"] }
+deadpool-redis = "0.18.0"
+console-subscriber = { version = "0", features = ["parking_lot"] }
+consul-client = { path = "consul-client" }
+registry = { path = "registry" }
+
+# Useful crates
+collection_literals = "1"
+colored = "2"
+strum = { version = "0", features = ["derive"] }
+size = { version = "0.5.0-preview2", features = ["serde"] }
+
+# num_enum = "0"
+mockall = "0"
+async-trait = { version = "0" }
+# serde_plain = "1"
+
+# Grpc
+tonic = { version = "0", features = ["tls"] }
+tonic-types = { version = "0" }
+prost-types = { version = "0" }
+prost = { version = "0" }
+jsonwebtoken = "9"
+tokio-stream = { version = "0" }
+
+# Protobuf definitions
+pb = { path = "pb" }
+
+entities = { path = "entities" }
+
+[workspace.dependencies.lettre]
+version = "0"
+default-features = false
+features = ["tokio1", "tokio1-rustls-tls", "smtp-transport", "builder"]

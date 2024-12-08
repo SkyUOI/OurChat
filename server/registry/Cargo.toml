@@ -4,19 +4,18 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-tokio = { version = "1", features = ["full"] }
-anyhow = "1"
-
-tonic = { version = "0", features = ["tls"] }
-tonic-types = { version = "0" }
-prost-types = { version = "0" }
-prost = { version = "0" }
-jsonwebtoken = "9"
-tokio-stream = { version = "0" }
+tokio.workspace = true
+anyhow.workspace = true
+tonic.workspace = true
+tonic-types.workspace = true
+prost-types.workspace = true
+prost.workspace = true
+jsonwebtoken.workspace = true
+tokio-stream.workspace = true
 
 consul-client = { path = "../consul-client" }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-uuid = { version = "1", features = ["v4"] }
+serde.workspace = true
+serde_json.workspace = true
+uuid.workspace = true
 # Protobuf definitions
 pb = { path = "../pb" }
