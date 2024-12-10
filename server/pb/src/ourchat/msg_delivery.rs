@@ -15,6 +15,7 @@ pub mod v1 {
                 session_id: msg.session_id.try_into()?,
                 time: Some(to_google_timestamp(msg.time.into())),
                 sender_id: msg.sender_id.try_into()?,
+                is_encrypted: msg.is_encrypted,
             })
         }
     }

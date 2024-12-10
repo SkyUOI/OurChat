@@ -24,6 +24,7 @@ async fn test_text_sent() {
         bundle_msgs: vec![OneMsg {
             data: Some(msg_delivery::v1::one_msg::Data::Text("hello".to_owned())),
         }],
+        is_encrypted: false,
     };
     let ret = a.lock().await.oc().send_msg(msg_sent).await.unwrap();
     let msg_id = ret.into_inner().msg_id;
@@ -52,6 +53,7 @@ async fn test_text_get() {
         session_id: session.session_id.into(),
         time: Some(time_google),
         bundle_msgs: vec![msg_should_sent.clone()],
+        is_encrypted: false,
     };
     let ret = a.lock().await.oc().send_msg(msg_sent).await.unwrap();
     let mut msg_id = vec![ret.into_inner().msg_id];
@@ -62,6 +64,7 @@ async fn test_text_get() {
         session_id: session.session_id.into(),
         time: Some(time_google),
         bundle_msgs: vec![msg_should_sent.clone()],
+        is_encrypted: false,
     };
     let ret = a.lock().await.oc().send_msg(msg_sent).await.unwrap();
     msg_id.push(ret.into_inner().msg_id);

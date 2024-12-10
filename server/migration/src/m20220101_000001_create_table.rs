@@ -164,7 +164,7 @@ pub enum User {
 }
 
 #[derive(DeriveIden)]
-enum Friend {
+pub enum Friend {
     Table,
     UserId,
     #[allow(clippy::enum_variant_names)]
@@ -173,7 +173,7 @@ enum Friend {
 }
 
 #[derive(DeriveIden)]
-enum SessionRelation {
+pub enum SessionRelation {
     Table,
     SessionId,
     UserId,
@@ -181,7 +181,7 @@ enum SessionRelation {
 }
 
 #[derive(DeriveIden)]
-enum Session {
+pub enum Session {
     Table,
     #[allow(clippy::enum_variant_names)]
     SessionId,
@@ -190,11 +190,12 @@ enum Session {
 }
 
 #[derive(DeriveIden)]
-enum UserChatMsg {
+pub enum UserChatMsg {
     Table,
     ChatMsgId,
     MsgData,
     SenderId,
     SessionId,
     Time,
+    IsEncrypted,
 }
