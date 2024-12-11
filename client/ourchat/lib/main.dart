@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:ourchat/const.dart';
 import 'package:provider/provider.dart';
 import 'package:localstorage/localstorage.dart';
-import 'join.dart';
+import 'welcome.dart';
 import 'connection.dart';
 import 'home.dart';
 import 'config.dart';
@@ -42,9 +42,9 @@ class OurchatAppState extends ChangeNotifier {
     logger.d("IsWeb: $isWeb");
     notifyListeners();
     logger.i("init Ourchat done");
-    connection = OurchatConnection(null);
-    connection!.setAddress("localhost", 7777);
-    connection!.connectToServer();
+    connection = OurchatConnection();
+    connection!.setAddress(
+        config!.data!["server_address"], int.parse(config!.data!["ws_port"]));
   }
 
   void toSomewhere(var id) {
@@ -81,7 +81,7 @@ class Controller extends StatelessWidget {
     var appState = context.watch<OurchatAppState>();
     Widget page;
     if (appState.where == joinUi) {
-      page = const Join();
+      page = const Welcome();
     } else if (appState.where == homeUi) {
       page = const Home();
     } else {
@@ -102,3 +102,6 @@ class Controller extends StatelessWidget {
     );
   }
 }
+
+// rename Join to Welcome
+// refactor 通讯方式 to grpc

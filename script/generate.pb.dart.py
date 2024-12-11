@@ -20,7 +20,7 @@ for index in range(len(commands)):
     command = commands[index]
     os.system(command)
     print(
-        f"|{'#'*int(index/len(commands))*20}{' '*(20-(int(index/len(commands))*20))}| {round(index/len(commands),2)}%"
+        f"|{'#'*int(index/len(commands)*100/5)}{' '*(20-(int(index/len(commands)*100/5)))}| {round(index/len(commands)*100,2)}%"
     )
 os.system(
     "protoc --dart_out=grpc:client/ourchat/lib google/protobuf/timestamp.proto google/protobuf/empty.proto"
