@@ -11,7 +11,7 @@ http_port = 7778
 # The duration of cleaning the files which are out-of-date
 auto_clean_duration = 1
 # The total file size limit of single user
-user_files_limit = "100MB"
+user_files_limit = "100MiB"
 # The friends number limit of single user
 friends_number_limit = 5000
 # Whether enabling the terminal
