@@ -891,6 +891,7 @@ dependencies = [
  "sha3",
  "size",
  "sqlx",
+ "thiserror 2.0.6",
  "tokio",
  "tokio-stream",
  "tonic",

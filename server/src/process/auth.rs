@@ -73,7 +73,7 @@ async fn auth_db(
                     Err(AuthError::WrongPassword)
                 }
             }
-            None => Err(AuthError::WrongPassword),
+            None => Err(AuthError::UserNotFound),
         },
         Err(e) => {
             if let DbErr::RecordNotFound(_) = e {

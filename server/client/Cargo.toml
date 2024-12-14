@@ -12,15 +12,16 @@ server = { path = ".." }
 parking_lot = "0"
 rand = "0"
 tokio-stream = { version = "0" }
-tonic = { version = "0", features = ["tls"] }
+tonic.workspace = true
 prost-types = { version = "0" }
 prost = { version = "0" }
 sqlx = { version = "0", features = ["runtime-tokio-rustls"] }
 anyhow = "1"
 tracing = { version = "0" }
-tokio = { version = "1", features = ["full"] }
-uuid = { version = "1", features = ["v4"] }
+tokio.workspace = true
+uuid.workspace = true
 itertools = "0"
 pb = { path = "../pb" }
 sha3 = "0"
-size = { version = "0.5.0-preview2", features = ["serde"] }
+size.workspace = true
+thiserror.workspace = true
