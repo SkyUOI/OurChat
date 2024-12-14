@@ -212,7 +212,10 @@ impl TestUser {
         self.email_auth_internal(self.password.clone()).await
     }
 
-    pub async fn email_auth_internal(&mut self, password: impl Into<String>) -> Result<(), ClientErr> {
+    pub async fn email_auth_internal(
+        &mut self,
+        password: impl Into<String>,
+    ) -> Result<(), ClientErr> {
         let login_req = AuthRequest {
             account: Some(auth_request::Account::Email(self.email.clone())),
             password: password.into(),
