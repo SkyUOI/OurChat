@@ -32,7 +32,12 @@ use server::httpserver;
 use size::Size;
 use std::{
     fs,
+<<<<<<< HEAD
     net::SocketAddr,
+=======
+    io::Write,
+    net::{IpAddr, SocketAddr},
+>>>>>>> client-develop
     path::{Path, PathBuf},
     sync::{Arc, LazyLock, OnceLock},
     time::Duration,
@@ -280,6 +285,7 @@ const SECRET_LEN: usize = 32;
 static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
     let state = Path::new(SERVER_INFO_PATH).exists();
     if state {
+<<<<<<< HEAD
         let info = match serde_json::from_str(&fs::read_to_string(SERVER_INFO_PATH).unwrap()) {
             Ok(info) => info,
             Err(e) => {
@@ -292,6 +298,9 @@ static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
             }
         };
         return info;
+=======
+        return serde_json::from_str(&fs::read_to_string(SERVER_INFO_PATH).unwrap()).unwrap();
+>>>>>>> client-develop
     }
     tracing::info!("Create server info file");
 
@@ -406,7 +415,11 @@ fn exit_signal(mut shutdown_sender: ShutdownSdr) -> anyhow::Result<()> {
     Ok(())
 }
 
+<<<<<<< HEAD
 #[derive(Debug, Clone)]
+=======
+#[derive(Clone)]
+>>>>>>> client-develop
 pub struct HttpSender {}
 
 /// build websocket server
@@ -417,7 +430,11 @@ async fn start_server(
     shared_data: Arc<SharedData<impl EmailSender>>,
     shutdown_receiver: ShutdownRev,
 ) -> anyhow::Result<JoinHandle<anyhow::Result<()>>> {
+<<<<<<< HEAD
     let server = server::RpcServer::new(addr, db, http_sender, shared_data);
+=======
+    let mut server = server::RpcServer::new(addr, db, http_sender, shared_data);
+>>>>>>> client-develop
     let handle = tokio::spawn(async move { server.run(shutdown_receiver).await });
     Ok(handle)
 }
@@ -510,7 +527,11 @@ impl<T: EmailSender> Application<T> {
             None => main_cfg.port,
             Some(port) => port,
         };
+<<<<<<< HEAD
         let addr: SocketAddr = format!("{}:{}", &main_cfg.ip, port).parse()?;
+=======
+        let addr: SocketAddr = format!("{}:{}", &main_cfg.ip, port).parse().unwrap();
+>>>>>>> client-develop
         main_cfg.port = addr.port();
 
         // http port

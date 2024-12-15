@@ -52,18 +52,17 @@ mockall = "0"
 async-trait = { version = "0" }
 # serde_plain = "1"
 
-# Grpc
+# Protobuf definitions
+pb = { path = "pb" }
+
+entities = { path = "entities" }
+
 tonic = { version = "0", features = ["tls"] }
 tonic-types = { version = "0" }
 prost-types = { version = "0" }
 prost = { version = "0" }
 jsonwebtoken = "9"
 tokio-stream = { version = "0" }
-
-# Protobuf definitions
-pb = { path = "pb" }
-
-entities = { path = "entities" }
 
 [dependencies.lettre]
 version = "0"
