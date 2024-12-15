@@ -32,13 +32,6 @@ const unauthenticatedStatusCode = 16;
 const joinUi = 0;
 const homeUi = 1;
 
-// Client Private Event
-<<<<<<< HEAD
-const connectServerResponse = -1;
-=======
-const cannotConnectServer = -1;
->>>>>>> client-develop
-
 // Device
 const mobile = 0;
 const desktop = 1;
