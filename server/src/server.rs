@@ -97,7 +97,7 @@ impl<T: EmailSender> RpcServer<T> {
             }
             None => Err(Status::unauthenticated("Missing token")),
         }
-}
+    }
 }
 
 pub type FetchMsgsStream =
