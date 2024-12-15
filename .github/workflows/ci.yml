@@ -25,8 +25,12 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
+      - name: Install Deps
+        run: sudo apt-get update && sudo apt install -y protobuf-compiler
       - name: Flutter Init
         run: cd client/ourchat && flutter pub get
+      - name: Grpc generate
+        run: python script/generate.pb.dart.py
       - name: Flutter Check
         run: cd client/ourchat && flutter analyze
       - name: FLutter Fmt
