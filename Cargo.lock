@@ -531,6 +531,7 @@ dependencies = [
  "anyhow",
  "chrono",
  "prost-types",
+ "ring 0.16.20",
  "serde",
  "sha3",
  "shadow-rs",
