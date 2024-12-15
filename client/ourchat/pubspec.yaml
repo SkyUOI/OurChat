@@ -1,6 +1,6 @@
 name: ourchat
 description: "A new Flutter project."
-publish_to: 'none'
+publish_to: "none"
 version: 0.1.0
 
 environment:
@@ -19,7 +19,7 @@ dependencies:
   logger: ^2.4.0
   protobuf: ^3.1.0
   grpc: ^4.0.1
-  
+  fixnum: ^1.1.1
 
 dev_dependencies:
   flutter_test:
