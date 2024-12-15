@@ -28,4 +28,6 @@ message AuthResponse {
   string token = 1;
   // id of user
   uint64 id = 2;
+  // ocid of user
+  string ocid = 3;
 }
