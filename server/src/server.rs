@@ -34,15 +34,10 @@ use std::net::SocketAddr;
 use std::pin::Pin;
 use std::sync::{Arc, LazyLock};
 use tokio::select;
-<<<<<<< HEAD
 use tonic::{Request, Response, Status};
 use tracing::info;
 
 #[derive(Debug)]
-=======
-use tonic::{Response, Status};
-
->>>>>>> client-develop
 pub struct RpcServer<T: EmailSender> {
     pub db: DbPool,
     pub http_sender: HttpSender,
@@ -66,17 +61,11 @@ impl<T: EmailSender> RpcServer<T> {
     }
 
     pub async fn run(self, mut shutdown_rev: ShutdownRev) -> anyhow::Result<()> {
-<<<<<<< HEAD
         info!("starting rpc server, connecting to {}", self.addr);
         let addr = self.addr;
         let basic_service = BasicServiceProvider {
             shared_data: self.shared_data.clone(),
             db: self.db.clone(),
-=======
-        let addr = self.addr;
-        let basic_service = BasicServiceProvider {
-            shared_data: self.shared_data.clone(),
->>>>>>> client-develop
         };
         let auth_service = AuthServiceProvider {
             shared_data: self.shared_data.clone(),
@@ -84,25 +73,16 @@ impl<T: EmailSender> RpcServer<T> {
         };
         let svc = OurChatServiceServer::with_interceptor(self, Self::check_auth);
         select! {
-<<<<<<< HEAD
             _ = shutdown_rev.wait_shutdowning() => {}
             _ = tonic::transport::Server::builder()
                 .add_service(svc)
                 .add_service(BasicServiceServer::new(basic_service))
                 .add_service(AuthServiceServer::new(auth_service))
                 .serve(addr) => {}
-=======
-            _ = shutdown_rev.wait_shutdowning() => {
-
-            }
-            _ = tonic::transport::Server::builder().add_service(OurChatServiceServer::new(self)).add_service(BasicServiceServer::new(basic_service)).serve(addr) => {}
->>>>>>> client-develop
         }
         Ok(())
     }
-}
 
-<<<<<<< HEAD
     fn check_auth(mut req: Request<()>) -> Result<Request<()>, Status> {
         // check token
         match req.metadata().get("token") {
@@ -117,7 +97,7 @@ impl<T: EmailSender> RpcServer<T> {
             }
             None => Err(Status::unauthenticated("Missing token")),
         }
-    }
+}
 }
 
 pub type FetchMsgsStream =
@@ -260,79 +240,10 @@ impl<T: EmailSender> auth_service_server::AuthService for AuthServiceProvider<T>
 struct BasicServiceProvider<T: EmailSender> {
     pub shared_data: Arc<SharedData<T>>,
     pub db: DbPool,
-=======
-pub type FetchMsgStream =
-    Pin<Box<dyn tokio_stream::Stream<Item = Result<pb::msg_delivery::Msg, Status>> + Send>>;
-
-#[tonic::async_trait]
-impl<T: EmailSender> OurChatService for RpcServer<T> {
-    async fn register(
-        &self,
-        request: tonic::Request<pb::register::RegisterRequest>,
-    ) -> Result<tonic::Response<pb::register::RegisterResponse>, tonic::Status> {
-        process::register::register(self, request).await
-    }
-
-    async fn unregister(
-        &self,
-        request: tonic::Request<pb::register::UnregisterRequest>,
-    ) -> Result<tonic::Response<pb::register::UnregisterResponse>, tonic::Status> {
-        process::unregister::unregister(self, request).await
-    }
-
-    async fn login(
-        &self,
-        request: tonic::Request<pb::login::LoginRequest>,
-    ) -> Result<tonic::Response<pb::login::LoginResponse>, tonic::Status> {
-        process::login::login(self, request).await
-    }
-
-    async fn get_info(
-        &self,
-        request: tonic::Request<pb::get_info::GetAccountInfoRequest>,
-    ) -> Result<tonic::Response<pb::get_info::GetAccountInfoResponse>, tonic::Status> {
-        process::get_account_info::get_info(self, request).await
-    }
-
-    async fn set_self_info(
-        &self,
-        request: tonic::Request<pb::set_info::SetSelfInfoRequest>,
-    ) -> Result<tonic::Response<pb::set_info::SetAccountInfoResponse>, tonic::Status> {
-        process::set_account_info(self, request).await
-    }
-
-    async fn set_friend_info(
-        &self,
-        request: tonic::Request<pb::set_info::SetFriendInfoRequest>,
-    ) -> Result<tonic::Response<pb::set_info::SetAccountInfoResponse>, tonic::Status> {
-        process::set_friend_info(self, request).await
-    }
-
-    type fetch_msgsStream = FetchMsgStream;
-
-    async fn fetch_msgs(
-        &self,
-        request: tonic::Request<pb::msg_delivery::FetchMsgRequest>,
-    ) -> Result<Response<Self::fetch_msgsStream>, tonic::Status> {
-        todo!()
-    }
-
-    async fn msg_delivery(
-        &self,
-        request: tonic::Request<tonic::Streaming<pb::msg_delivery::SendMsgRequest>>,
-    ) -> Result<Response<pb::msg_delivery::SendMsgResponse>, tonic::Status> {
-        todo!()
-    }
-}
-
-struct BasicServiceProvider<T: EmailSender> {
-    pub shared_data: Arc<SharedData<T>>,
->>>>>>> client-develop
 }
 
 #[tonic::async_trait]
 impl<T: EmailSender> BasicService for BasicServiceProvider<T> {
-<<<<<<< HEAD
     #[tracing::instrument(skip(self))]
     async fn timestamp(
         &self,
@@ -375,42 +286,12 @@ impl<T: EmailSender> BasicService for BasicServiceProvider<T> {
 static VERSION_SPLIT: LazyLock<ServerVersion> = LazyLock::new(|| {
     let ver = base::build::PKG_VERSION.split('.').collect::<Vec<_>>();
     ServerVersion {
-=======
-    async fn timestamp(
-        &self,
-        _request: tonic::Request<()>,
-    ) -> Result<tonic::Response<prost_types::Timestamp>, tonic::Status> {
-        let time = chrono::Utc::now();
-        let timestamp = Timestamp {
-            seconds: time.timestamp(),
-            nanos: time.timestamp_subsec_nanos() as i32,
-        };
-        Ok(tonic::Response::new(timestamp))
-    }
-
-    async fn get_server_info(
-        &self,
-        _request: tonic::Request<()>,
-    ) -> Result<tonic::Response<pb::server::ServerInfo>, tonic::Status> {
-        Ok(Response::new(pb::server::ServerInfo {
-            http_port: self.shared_data.cfg.main_cfg.http_port.into(),
-            status: shared_state::get_maintaining().into(),
-            ..*SERVER_INFO_RPC
-        }))
-    }
-}
-
-static VERSION_SPLIT: LazyLock<pb::server::ServerVersion> = LazyLock::new(|| {
-    let ver = base::build::PKG_VERSION.split('.').collect::<Vec<_>>();
-    pb::server::ServerVersion {
->>>>>>> client-develop
         major: ver[0].parse().unwrap(),
         minor: ver[1].parse().unwrap(),
         patch: ver[2].parse().unwrap(),
     }
 });
 
-<<<<<<< HEAD
 static SERVER_INFO_RPC: LazyLock<pb::basic::server::v1::GetServerInfoResponse> =
     LazyLock::new(|| pb::basic::server::v1::GetServerInfoResponse {
         server_version: Some(*VERSION_SPLIT),
@@ -432,11 +313,3 @@ mod tests {
         assert_eq!(ver_concat, base::build::PKG_VERSION);
     }
 }
-=======
-static SERVER_INFO_RPC: LazyLock<pb::server::ServerInfo> =
-    LazyLock::new(|| pb::server::ServerInfo {
-        server_version: Some(*VERSION_SPLIT),
-        http_port: 0,
-        status: pb::server::RunningStatus::Normal as i32,
-    });
->>>>>>> client-develop

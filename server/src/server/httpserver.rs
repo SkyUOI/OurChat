@@ -62,13 +62,6 @@ impl HttpServer {
             }
         });
         Ok((http_server_handle, HttpSender {}))
-<<<<<<< HEAD
-=======
-    }
-
-    pub async fn db_loop() -> anyhow::Result<()> {
-        Ok(())
->>>>>>> client-develop
     }
 }
 

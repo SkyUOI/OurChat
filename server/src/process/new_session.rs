@@ -131,7 +131,6 @@ async fn new_session_impl(
         }
     }
     let bundle = async {
-<<<<<<< HEAD:server/src/process/new_session.rs
         create_session_db(
             session_id,
             people_num,
@@ -139,14 +138,6 @@ async fn new_session_impl(
             &server.db.db_pool,
         )
         .await?;
-=======
-        if let Err(e) = create_session(session_id, people_num, json.name, &db_conn.db_pool).await? {
-            // net_sender
-            //     .send(ErrorMsgResponse::server_error("Database error").to_msg())
-            //     .await?;
-            tracing::error!("create session error: {}", e);
-        }
->>>>>>> client-develop:server/src/connection/process/new_session.rs
         // add session relation
         batch_add_to_session(&server.db.db_pool, session_id, &peoples).await?;
 
