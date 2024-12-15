@@ -12,6 +12,7 @@ pub struct Model {
     pub sender_id: i64,
     pub session_id: i64,
     pub time: DateTimeWithTimeZone,
+    pub is_encrypted: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

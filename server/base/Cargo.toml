@@ -11,6 +11,7 @@ anyhow = "1"
 chrono = { version = "0", features = ["serde"] }
 sha3 = "0"
 prost-types = { version = "0" }
+ring.workspace = true
 
 [build-dependencies]
 shadow-rs = "0"
