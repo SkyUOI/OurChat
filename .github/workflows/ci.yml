@@ -30,7 +30,7 @@ jobs:
       - name: Flutter Init
         run: cd client/ourchat && flutter pub get
       - name: Grpc generate
-        run: python script/generate.pb.dart.py
+        run: python script/generate.pb.dart.py && dart pub global activate protoc_plugin
       - name: Flutter Check
         run: cd client/ourchat && flutter analyze
       - name: FLutter Fmt
