@@ -34,43 +34,45 @@ class _JoinState extends State<Join> {
         joinState.ourchatAppState = ourchatAppState;
         return joinState;
       },
-      child: Scaffold(
-        body: Column(
-          children: [
-            SafeArea(
-              child: BottomNavigationBar(
-                elevation: 0.0,
-                items: [
-                  BottomNavigationBarItem(
-                      icon: const Icon(Icons.login),
-                      label: AppLocalizations.of(context)!.login),
-                  BottomNavigationBarItem(
-                      icon: const Icon(Icons.person_add),
-                      label: AppLocalizations.of(context)!.register),
-                  BottomNavigationBarItem(
-                      icon: const Icon(Icons.settings),
-                      label: AppLocalizations.of(context)!.setting)
-                ],
-                currentIndex: currentIndex,
-                onTap: (index) {
-                  setState(() {
-                    currentIndex = index;
-                  });
-                },
+      child: LayoutBuilder(builder: (context, constraints) {
+        return Scaffold(
+          body: Column(
+            children: [
+              SafeArea(
+                child: BottomNavigationBar(
+                  elevation: 0.0,
+                  items: [
+                    BottomNavigationBarItem(
+                        icon: const Icon(Icons.login),
+                        label: AppLocalizations.of(context)!.login),
+                    BottomNavigationBarItem(
+                        icon: const Icon(Icons.person_add),
+                        label: AppLocalizations.of(context)!.register),
+                    BottomNavigationBarItem(
+                        icon: const Icon(Icons.settings),
+                        label: AppLocalizations.of(context)!.setting)
+                  ],
+                  currentIndex: currentIndex,
+                  onTap: (index) {
+                    setState(() {
+                      currentIndex = index;
+                    });
+                  },
+                ),
               ),
-            ),
-            Expanded(
-                child: Align(
-                    alignment: Alignment.center,
-                    child: AspectRatio(
-                        aspectRatio: 9 / 16,
-                        child: Padding(
-                            padding:
-                                const EdgeInsets.only(left: 20.0, right: 20.0),
-                            child: page))))
-          ],
-        ),
-      ),
+              Expanded(
+                  child: Align(
+                      alignment: Alignment.center,
+                      child: AspectRatio(
+                          aspectRatio: 9 / 16,
+                          child: Padding(
+                              padding: const EdgeInsets.only(
+                                  left: 20.0, right: 20.0),
+                              child: page))))
+            ],
+          ),
+        );
+      }),
     );
   }
 }
