@@ -31,6 +31,7 @@ pub async fn send_msg(
         id,
         ID(req.session_id),
         serde_json::value::to_value(req.bundle_msgs).unwrap(),
+        req.is_encrypted,
         &db_conn.db_pool,
     )
     .await
@@ -54,12 +55,14 @@ async fn insert_msg_record(
     user_id: ID,
     session_id: ID,
     msg: serde_json::Value,
+    is_encrypted: bool,
     db_conn: &DatabaseConnection,
 ) -> Result<MsgID, SendMsgError> {
     let msg = user_chat_msg::ActiveModel {
         msg_data: ActiveValue::Set(msg),
         sender_id: ActiveValue::Set(user_id.into()),
         session_id: ActiveValue::Set(session_id.into()),
+        is_encrypted: ActiveValue::Set(is_encrypted),
         ..Default::default()
     };
     let msg = msg.insert(db_conn).await?;

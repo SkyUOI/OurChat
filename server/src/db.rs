@@ -1,6 +1,7 @@
 //! Database
 
 pub mod file_storage;
+pub mod helper;
 
 use config::File;
 use migration::MigratorTrait;

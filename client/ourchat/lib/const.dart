@@ -10,25 +10,27 @@ const initVerifyResponseMsgCode = 23;
 const verifyResponseMsgCode = 15;
 
 // Status Code
-const operationSuccessfulStatusCode = 0;
-const serverErrorStatusCode = 1;
-const serverMaintenanceStatusCode = 2;
-const requestInfoNotFoundStatusCode = 3;
-const newInfoAlreadyExistsStatusCode = 4;
-const parameterErrorStatusCode = 5;
-const accountLimitStatusCode = 6;
-const timeoutStatusCode = 7;
-const unknownErrorStatusCode = 8;
-const requestRejectedStatusCode = 9;
-const validationFailedStatusCode = 10;
-const featureUnavailableStatusCode = 11;
+const okStatusCode = 0;
+const cancelledStatusCode = 1;
+const unknownStatusCode = 2;
+const invalidArgumentStatusCode = 3;
+const deadlineExceededStatusCode = 4;
+const notFoundStatusCode = 5;
+const alreadyExistsStatusCode = 6;
+const permissionDeniedStatusCode = 7;
+const resourceExhaustedStatusCode = 8;
+const failedPreconditionStatusCode = 9;
+const abortedStatusCode = 10;
+const outOfRangeStatusCode = 11;
+const unimplementedStatusCode = 12;
+const internalStatusCode = 13;
+const unavailableStatusCode = 14;
+const dataLossStatusCode = 15;
+const unauthenticatedStatusCode = 16;
 
 // UI ID
-const joinUi = 0;
+const welcomeUi = 0;
 const homeUi = 1;
-
-// Client Private Event
-const connectServerResponse = -1;
 
 // Device
 const mobile = 0;

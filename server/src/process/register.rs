@@ -3,6 +3,7 @@ use crate::{
     DbPool,
     component::EmailSender,
     consts::{self, ID},
+    db,
     server::AuthServiceProvider,
     shared_state, utils,
 };
@@ -61,11 +62,10 @@ async fn add_new_user(
             }))
         }
         Err(e) => {
-            if let DbErr::RecordNotInserted = e {
-                Err(RegisterError::UserExists)
-            } else {
-                Err(e.into())
+            if db::helper::is_conflict(&e) {
+                return Err(RegisterError::UserExists);
             }
+            Err(e.into())
         }
     }
 }
@@ -97,7 +97,7 @@ async fn register_impl(
     request: Request<RegisterRequest>,
 ) -> Result<RegisterResponse, RegisterError> {
     let password_hash = &server.shared_data.cfg.main_cfg.password_hash;
-    match add_new_user(
+    let (response, user_info) = add_new_user(
         request.into_inner(),
         &server.db,
         Params::new(
@@ -108,11 +108,8 @@ async fn register_impl(
         )
         .unwrap(),
     )
-    .await
-    {
-        Ok((response, user_info)) => Ok(response),
-        Err(e) => Err(e),
-    }
+    .await?;
+    Ok(response)
 }
 
 pub async fn register<T: EmailSender>(

@@ -5,6 +5,7 @@ pub mod basic;
 mod cmd;
 pub mod component;
 pub mod consts;
+mod cryption;
 pub mod db;
 pub mod process;
 mod server;

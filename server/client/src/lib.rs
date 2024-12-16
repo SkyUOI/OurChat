@@ -2,6 +2,7 @@
 
 pub mod helper;
 
+use anyhow::Context;
 use base::time::{TimeStampUtc, from_google_timestamp};
 use fake::Fake;
 use fake::faker::internet::raw::FreeEmail;
@@ -106,6 +107,14 @@ impl FakeManager {
 static FAKE_MANAGER: LazyLock<Mutex<FakeManager>> =
     LazyLock::new(|| Mutex::new(FakeManager::new()));
 
+#[derive(Debug, thiserror::Error)]
+pub enum ClientErr {
+    #[error("rpc status:{0}")]
+    RpcStatus(#[from] tonic::Status),
+    #[error("unknown error:{0}")]
+    Unknown(#[from] anyhow::Error),
+}
+
 // Utils functions implemented
 impl TestUser {
     pub async fn random(app: &TestApp) -> Self {
@@ -132,7 +141,7 @@ impl TestUser {
         }
     }
 
-    pub async fn register_internal(user: &mut TestUser) -> anyhow::Result<()> {
+    pub async fn register_internal(user: &mut TestUser) -> Result<(), ClientErr> {
         let request = RegisterRequest {
             name: user.name.clone(),
             password: user.password.clone(),
@@ -142,10 +151,16 @@ impl TestUser {
         user.ocid = ret.ocid;
         user.id = ID(ret.id);
         user.token = ret.token;
-        let chann = Channel::builder(Uri::from_maybe_shared(user.rpc_url.clone())?)
-            .connect()
-            .await?;
-        let token: MetadataValue<_> = user.token.to_string().parse()?;
+        let chann =
+            Channel::builder(Uri::from_maybe_shared(user.rpc_url.clone()).context("Uri error")?)
+                .connect()
+                .await
+                .context("connect error")?;
+        let token: MetadataValue<_> = user
+            .token
+            .to_string()
+            .parse()
+            .context("token parse error")?;
         user.oc_server = Some(OurChatServiceClient::with_interceptor(
             chann,
             Box::new(move |mut req: tonic::Request<()>| {
@@ -169,7 +184,7 @@ impl TestUser {
         Ok(())
     }
 
-    pub async fn register(&mut self) -> anyhow::Result<()> {
+    pub async fn register(&mut self) -> Result<(), ClientErr> {
         Self::register_internal(self).await
     }
 
@@ -183,7 +198,7 @@ impl TestUser {
         self.oc_server.as_mut().unwrap()
     }
 
-    pub async fn ocid_auth(&mut self) -> anyhow::Result<()> {
+    pub async fn ocid_auth(&mut self) -> Result<(), ClientErr> {
         let login_req = AuthRequest {
             account: Some(auth_request::Account::Ocid(self.ocid.clone())),
             password: self.password.clone(),
@@ -193,11 +208,14 @@ impl TestUser {
         Ok(())
     }
 
-    pub async fn email_auth(&mut self) -> anyhow::Result<()> {
+    pub async fn email_auth(&mut self) -> Result<(), ClientErr> {
         self.email_auth_internal(self.password.clone()).await
     }
 
-    pub async fn email_auth_internal(&mut self, password: impl Into<String>) -> anyhow::Result<()> {
+    pub async fn email_auth_internal(
+        &mut self,
+        password: impl Into<String>,
+    ) -> Result<(), ClientErr> {
         let login_req = AuthRequest {
             account: Some(auth_request::Account::Email(self.email.clone())),
             password: password.into(),

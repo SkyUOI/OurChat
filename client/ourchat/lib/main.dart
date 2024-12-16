@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:ourchat/const.dart';
 import 'package:provider/provider.dart';
 import 'package:localstorage/localstorage.dart';
-import 'join.dart';
-import 'connection.dart';
+import 'welcome.dart';
 import 'home.dart';
 import 'config.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -18,13 +17,9 @@ void main() async {
 }
 
 class OurchatAppState extends ChangeNotifier {
-  OurchatConnection? connection;
-  List listenQueue = [
-    // {"code":0,"func":func}
-  ];
-  int where = joinUi;
+  int where = welcomeUi;
   /*
-    0: join
+    0: welcome
     1: home
   */
   int device = desktop;
@@ -36,9 +31,6 @@ class OurchatAppState extends ChangeNotifier {
     logger.i("init Ourchat");
     config = OurchatConfig();
     config!.loadConfig();
-    connection = OurchatConnection(dealWithEvent);
-    connection!
-        .setAddress(config!.data!["server_address"], config!.data!["ws_port"]);
 
     if (!isWeb) {
       if (!await Directory("./cache").exists()) {
@@ -48,27 +40,6 @@ class OurchatAppState extends ChangeNotifier {
     logger.d("IsWeb: $isWeb");
     notifyListeners();
     logger.i("init Ourchat done");
-  }
-
-  void dealWithEvent(var data) {
-    var tmp = [];
-    for (var pair in listenQueue) {
-      tmp.add(pair);
-    }
-    for (var pair in tmp) {
-      if (pair["code"] == data["code"]) {
-        pair["func"](data);
-      }
-    }
-  }
-
-  void listen(var code, var func) {
-    listenQueue.add({"code": code, "func": func});
-  }
-
-  void unlisten(var code, var func) {
-    listenQueue
-        .removeWhere((value) => value["code"] == code && value["func"] == func);
   }
 
   void toSomewhere(var id) {
@@ -104,8 +75,8 @@ class Controller extends StatelessWidget {
   Widget build(BuildContext context) {
     var appState = context.watch<OurchatAppState>();
     Widget page;
-    if (appState.where == joinUi) {
-      page = const Join();
+    if (appState.where == welcomeUi) {
+      page = const Welcome();
     } else if (appState.where == homeUi) {
       page = const Home();
     } else {

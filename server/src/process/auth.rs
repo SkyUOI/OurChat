@@ -63,6 +63,7 @@ async fn auth_db(
                         AuthResponse {
                             id: user.id as u64,
                             token,
+                            ocid: user.ocid.clone(),
                         },
                         UserInfo {
                             ocid: user.ocid,
@@ -73,7 +74,7 @@ async fn auth_db(
                     Err(AuthError::WrongPassword)
                 }
             }
-            None => Err(AuthError::WrongPassword),
+            None => Err(AuthError::UserNotFound),
         },
         Err(e) => {
             if let DbErr::RecordNotFound(_) = e {
