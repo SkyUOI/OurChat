@@ -1,4 +1,4 @@
-use super::get_id_from_req;
+use super::super::get_id_from_req;
 use crate::{
     component::EmailSender,
     consts::ID,

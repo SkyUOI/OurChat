@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package service.ourchat.msg_delivery.recall.v1;
+
+message RecallMsgRequest {
+    uint64 msg_id = 1;
+}
+
+message RecallMsgResponse {
+    
+}

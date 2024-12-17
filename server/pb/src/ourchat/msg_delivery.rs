@@ -20,3 +20,9 @@ pub mod v1 {
         }
     }
 }
+
+pub mod recall {
+    pub mod v1 {
+        tonic::include_proto!("service.ourchat.msg_delivery.recall.v1");
+    }
+}

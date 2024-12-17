@@ -18,6 +18,7 @@ use pb::basic::v1::{
 };
 use pb::ourchat::download::v1::{DownloadRequest, DownloadResponse};
 use pb::ourchat::get_account_info::v1::{GetAccountInfoRequest, GetAccountInfoResponse};
+use pb::ourchat::msg_delivery::recall::v1::{RecallMsgRequest, RecallMsgResponse};
 use pb::ourchat::msg_delivery::v1::{
     FetchMsgsRequest, FetchMsgsResponse, SendMsgRequest, SendMsgResponse,
 };
@@ -198,6 +199,14 @@ impl<T: EmailSender> OurChatService for RpcServer<T> {
     ) -> Result<Response<GetSessionInfoResponse>, Status> {
         // process::get_session_info(self, request).await
         todo!()
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn recall_msg(
+        &self,
+        request: Request<RecallMsgRequest>,
+    ) -> Result<Response<RecallMsgResponse>, Status> {
+        process::recall_msg(self, request).await
     }
 }
 
