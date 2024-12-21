@@ -1,9 +1,9 @@
-//! Helper functions for tests
+//! A client for test
 
 pub mod helper;
 
 use anyhow::Context;
-use base::time::{TimeStampUtc, from_google_timestamp};
+use base::time::{TimeStampUtc, from_google_timestamp, to_google_timestamp};
 use fake::Fake;
 use fake::faker::internet::raw::FreeEmail;
 use fake::faker::name::en;
@@ -14,6 +14,7 @@ use pb::auth::authorize::v1::auth_request;
 use pb::auth::register::v1::RegisterRequest;
 use pb::basic::v1::TimestampRequest;
 use pb::ourchat::download::v1::DownloadResponse;
+use pb::ourchat::msg_delivery::v1::{BundleMsgs, SendMsgRequest, SendMsgResponse};
 use pb::{
     auth::authorize::v1::AuthRequest,
     auth::v1::auth_service_client::AuthServiceClient,
@@ -35,10 +36,10 @@ use std::sync::{Arc, LazyLock};
 use std::thread;
 use std::time::Duration;
 use tokio_stream::StreamExt;
-use tonic::Streaming;
 use tonic::metadata::MetadataValue;
 use tonic::service::interceptor::InterceptedService;
 use tonic::transport::{Channel, Uri};
+use tonic::{Response, Streaming};
 
 pub type OCClient = OurChatServiceClient<
     InterceptedService<
@@ -59,7 +60,7 @@ pub struct TestUser {
     pub id: ID,
     pub port: u16,
     pub token: String,
-    pub client: Clients,
+    pub clients: Clients,
     pub rpc_url: String,
     pub oc_server: Option<OCClient>,
 
@@ -131,7 +132,7 @@ impl TestUser {
             email,
             port: app.port,
             has_dropped: false,
-            client: app.clients.clone(),
+            clients: app.clients.clone(),
             rpc_url: url,
             // reserved
             ocid: String::default(),
@@ -147,7 +148,7 @@ impl TestUser {
             password: user.password.clone(),
             email: user.email.clone(),
         };
-        let ret = user.client.auth.register(request).await?.into_inner();
+        let ret = user.clients.auth.register(request).await?.into_inner();
         user.ocid = ret.ocid;
         user.id = ID(ret.id);
         user.token = ret.token;
@@ -203,7 +204,7 @@ impl TestUser {
             account: Some(auth_request::Account::Ocid(self.ocid.clone())),
             password: self.password.clone(),
         };
-        let ret = self.client.auth.auth(login_req).await?.into_inner();
+        let ret = self.clients.auth.auth(login_req).await?.into_inner();
         self.token = ret.token.clone();
         Ok(())
     }
@@ -220,7 +221,7 @@ impl TestUser {
             account: Some(auth_request::Account::Email(self.email.clone())),
             password: password.into(),
         };
-        let ret = self.client.auth.auth(login_req).await?.into_inner();
+        let ret = self.clients.auth.auth(login_req).await?.into_inner();
         assert_eq!(*self.id, ret.id);
         Ok(())
     }
@@ -279,6 +280,36 @@ impl TestUser {
             .await?;
         // Allow
         Ok(files_part.into_inner())
+    }
+
+    pub async fn send_msg(
+        &mut self,
+        session_id: ID,
+        msg: BundleMsgs,
+    ) -> Result<Response<SendMsgResponse>, ClientErr> {
+        let req = SendMsgRequest {
+            session_id: session_id.into(),
+            is_encrypted: false,
+            bundle_msgs: msg,
+            time: Some(to_google_timestamp(self.get_timestamp().await)),
+        };
+        Ok(self.oc().send_msg(req).await?)
+    }
+
+    /// # Warning
+    /// Must request the server, shouldn't build a time from local by chrono, because some tests
+    /// rely on this behaviour
+    pub async fn get_timestamp(&mut self) -> TimeStampUtc {
+        let ret = self
+            .clients
+            .basic
+            .timestamp(TimestampRequest {})
+            .await
+            .unwrap()
+            .into_inner()
+            .timestamp
+            .unwrap();
+        from_google_timestamp(&ret).unwrap()
     }
 }
 
@@ -510,8 +541,7 @@ impl TestApp {
         tracing::info!("create session:{}", session_id);
         let mut id_vec = vec![];
         for i in &users {
-            let id =
-                process::db::get_id(&i.lock().await.ocid, self.db_pool.as_ref().unwrap()).await?;
+            let id = i.lock().await.id;
             id_vec.push(id);
         }
         tracing::debug!("id:{:?}", id_vec);

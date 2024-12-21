@@ -4,8 +4,8 @@ package service.ourchat.v1;
 
 import "service/ourchat/download/v1/download.proto";
 import "service/ourchat/get_account_info/v1/get_account_info.proto";
-import "service/ourchat/msg_delivery/v1/msg_delivery.proto";
 import "service/ourchat/msg_delivery/recall/v1/recall.proto";
+import "service/ourchat/msg_delivery/v1/msg_delivery.proto";
 import "service/ourchat/session/accept_session/v1/accept_session.proto";
 import "service/ourchat/session/get_session_info/v1/get_session_info.proto";
 import "service/ourchat/session/new_session/v1/session.proto";

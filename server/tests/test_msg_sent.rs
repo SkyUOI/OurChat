@@ -1,7 +1,7 @@
 use base::time::to_google_timestamp;
 use pb::ourchat::msg_delivery::{
     self,
-    v1::{FetchMsgsRequest, OneMsg, SendMsgRequest, fetch_msgs_response},
+    v1::{FetchMsgsRequest, OneMsg, fetch_msgs_response},
 };
 use tokio_stream::StreamExt;
 
@@ -16,17 +16,14 @@ async fn test_text_sent() {
         session_user[1].clone(),
         session_user[2].clone(),
     );
-    let time = app.get_timestamp().await;
-    let time_google = to_google_timestamp(time);
-    let msg_sent = SendMsgRequest {
-        session_id: session.session_id.into(),
-        time: Some(time_google),
-        bundle_msgs: vec![OneMsg {
+    let ret = a
+        .lock()
+        .await
+        .send_msg(session.session_id, vec![OneMsg {
             data: Some(msg_delivery::v1::one_msg::Data::Text("hello".to_owned())),
-        }],
-        is_encrypted: false,
-    };
-    let ret = a.lock().await.oc().send_msg(msg_sent).await.unwrap();
+        }])
+        .await
+        .unwrap();
     let msg_id = ret.into_inner().msg_id;
     app.async_drop().await;
 }
@@ -47,26 +44,20 @@ async fn test_text_get() {
     let msg_should_sent = OneMsg {
         data: Some(msg_delivery::v1::one_msg::Data::Text("hello".to_owned())),
     };
-    let time = app.get_timestamp().await;
-    let time_google = to_google_timestamp(time);
-    let msg_sent = SendMsgRequest {
-        session_id: session.session_id.into(),
-        time: Some(time_google),
-        bundle_msgs: vec![msg_should_sent.clone()],
-        is_encrypted: false,
-    };
-    let ret = a.lock().await.oc().send_msg(msg_sent).await.unwrap();
+    let ret = a
+        .lock()
+        .await
+        .send_msg(session.session_id, vec![msg_should_sent.clone()])
+        .await
+        .unwrap();
     let mut msg_id = vec![ret.into_inner().msg_id];
 
-    let time = app.get_timestamp().await;
-    let time_google = to_google_timestamp(time);
-    let msg_sent = SendMsgRequest {
-        session_id: session.session_id.into(),
-        time: Some(time_google),
-        bundle_msgs: vec![msg_should_sent.clone()],
-        is_encrypted: false,
-    };
-    let ret = a.lock().await.oc().send_msg(msg_sent).await.unwrap();
+    let ret = a
+        .lock()
+        .await
+        .send_msg(session.session_id, vec![msg_should_sent.clone()])
+        .await
+        .unwrap();
     msg_id.push(ret.into_inner().msg_id);
 
     // get message

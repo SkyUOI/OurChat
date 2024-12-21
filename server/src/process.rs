@@ -28,7 +28,7 @@ use tonic::Request;
 
 pub use accept_session::accept_session;
 pub use download::download;
-pub use message::{fetch_user_msg::fetch_user_msg, send_msg::send_msg, recall::recall_msg};
+pub use message::{fetch_user_msg::fetch_user_msg, recall::recall_msg, send_msg::send_msg};
 pub use new_session::new_session;
 pub use set_account_info::set_account_info;
 pub use set_friend_info::set_friend_info;

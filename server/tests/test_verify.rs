@@ -28,7 +28,7 @@ async fn test_verify() {
     let ret = user
         .lock()
         .await
-        .client
+        .clients
         .auth
         .verify(VerifyRequest {
             email: email.clone(),
