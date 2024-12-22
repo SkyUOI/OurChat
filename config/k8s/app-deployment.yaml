@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: main-app-deployment
+spec:
+  replicas: 3 # 可以根据需要调整副本数
+  selector:
+    matchLabels:
+      app: main-app
+  template:
+    metadata:
+      labels:
+        app: main-app
+    spec:
+      containers:
+        - name: main-app
+          image: your-main-app-image:latest # 替换为你的主程序镜像
+          ports:
+            - containerPort: 8080 # 替换为主程序的实际端口
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: main-app-service
+spec:
+  type: ClusterIP # 内部服务，负载均衡器将访问此服务
+  ports:
+    - port: 8080
+      targetPort: 8080
+  selector:
+    app: main-app

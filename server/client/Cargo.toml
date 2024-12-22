@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-reqwest = "0"
+reqwest.workspace = true
 fake = { version = "3" }
 claims = "0"
 base = { path = "../base" }

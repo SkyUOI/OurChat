@@ -95,3 +95,8 @@ entities = { path = "entities" }
 version = "0"
 default-features = false
 features = ["tokio1", "tokio1-rustls-tls", "smtp-transport", "builder"]
+
+[workspace.dependencies.reqwest]
+version = "0"
+default-features = false
+features = ["json", "rustls-tls"]

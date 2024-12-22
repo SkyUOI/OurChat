@@ -1,14 +1,14 @@
-FROM rust:latest AS builder
+FROM rustlang/rust:nightly-alpine AS builder
 
 WORKDIR /app
 
-COPY . .
+RUN apk add cmake protobuf-dev musl-dev zlib-static
 
-RUN apt update && apt install cmake protobuf-compiler -y
+COPY . .
 
 RUN cd /app/server && cargo build --release
 
-FROM debian:stable-slim
+FROM alpine:latest
 
 COPY --from=builder /app/target/release/server /usr/local/bin/server
 COPY --from=builder /app/config /etc/ourchat

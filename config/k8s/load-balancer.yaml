@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: custom-load-balancer
+spec:
+  replicas: 1 # 根据需要设置副本数
+  selector:
+    matchLabels:
+      app: custom-load-balancer
+  template:
+    metadata:
+      labels:
+        app: custom-load-balancer
+    spec:
+      containers:
+        - name: custom-load-balancer
+          image: your-load-balancer-image:latest # 替换为你的镜像名称
+          ports:
+            - containerPort: 8080 # 替换为负载均衡器的实际端口

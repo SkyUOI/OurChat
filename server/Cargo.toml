@@ -28,7 +28,6 @@ migration = { path = "migration" }
 mimalloc.workspace = true
 parking_lot.workspace = true
 sqlx.workspace = true
-derive = { path = "derive" }
 actix-web.workspace = true
 dashmap.workspace = true
 sha3.workspace = true
@@ -58,9 +57,6 @@ pb = { path = "pb" }
 entities = { path = "entities" }
 
 tonic = { version = "0", features = ["tls"] }
-tonic-types = { version = "0" }
-prost-types = { version = "0" }
-prost = { version = "0" }
 jsonwebtoken = "9"
 tokio-stream = { version = "0" }
 
@@ -70,13 +66,10 @@ default-features = false
 features = ["tokio1", "tokio1-rustls-tls", "smtp-transport", "builder"]
 
 [dev-dependencies]
-assert_cmd = "2"
-reqwest = "0"
-fake = { version = "3" }
+reqwest.workspace = true
 linkify = "0"
 claims = "0"
 client = { path = "client" }
 
 [build-dependencies]
-tonic-build = { version = "0" }
 anyhow = "1"
