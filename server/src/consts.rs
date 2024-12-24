@@ -2,7 +2,7 @@
 
 use base::impl_newtype_int;
 use size::Size;
-use std::{default, io::IsTerminal, path::PathBuf, sync::LazyLock, time::Duration};
+use std::{io::IsTerminal, path::PathBuf, sync::LazyLock, time::Duration};
 
 /// OCID Length
 pub const OCID_LEN: usize = 10;

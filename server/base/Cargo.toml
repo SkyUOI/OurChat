@@ -7,7 +7,7 @@ version.workspace = true
 shadow-rs = "0"
 validator = "0"
 serde.workspace = true
-anyhow = "1"
+anyhow.workspace = true
 chrono.workspace = true
 sha3 = "0"
 prost-types = { version = "0" }
@@ -15,3 +15,4 @@ ring.workspace = true
 
 [build-dependencies]
 shadow-rs = "0"
+anyhow.workspace = true
