@@ -5,8 +5,12 @@ edition.workspace = true
 
 [dependencies]
 async-trait = "0"
-pingora = { version = "0", features = ["lb", "rustls"] }
 base = { path = "../base" }
 serde = { version = "1" }
-clap = { version = "4", features = ["derive"] }
+clap.workspace = true
 config = "0"
+
+[dependencies.pingora]
+version = "0"
+default-features = false
+features = ["lb", "rustls"]

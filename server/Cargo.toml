@@ -21,7 +21,7 @@ sea-orm.workspace = true
 thiserror.workspace = true
 chrono.workspace = true
 base = { path = "base" }
-tracing = { version = "0" }
+tracing.workspace = true
 tracing-appender.workspace = true
 tracing-subscriber.workspace = true
 migration = { path = "migration" }
@@ -41,14 +41,14 @@ consul-client = { path = "consul-client" }
 registry = { path = "registry" }
 
 # Useful crates
-collection_literals = "1"
-colored = "2"
-strum = { version = "0", features = ["derive"] }
-size = { version = "0.5.0-preview2", features = ["serde"] }
+collection_literals.workspace = true
+colored.workspace = true
+strum.workspace = true
+size.workspace = true
 
 # num_enum = "0"
-mockall = "0"
-async-trait = { version = "0" }
+mockall.workspace = true
+async-trait.workspace = true
 # serde_plain = "1"
 
 # Protobuf definitions
@@ -56,20 +56,17 @@ pb = { path = "pb" }
 
 entities = { path = "entities" }
 
-tonic = { version = "0", features = ["tls"] }
-jsonwebtoken = "9"
-tokio-stream = { version = "0" }
+tonic.workspace = true
+jsonwebtoken.workspace = true
+tokio-stream.workspace = true
 
-[dependencies.lettre]
-version = "0"
-default-features = false
-features = ["tokio1", "tokio1-rustls-tls", "smtp-transport", "builder"]
+lettre.workspace = true
 
 [dev-dependencies]
 reqwest.workspace = true
-linkify = "0"
-claims = "0"
+linkify.workspace = true
+claims.workspace = true
 client = { path = "client" }
 
 [build-dependencies]
-anyhow = "1"
+anyhow.workspace = true

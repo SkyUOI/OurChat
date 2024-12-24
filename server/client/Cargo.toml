@@ -15,7 +15,7 @@ tokio-stream = { version = "0" }
 tonic.workspace = true
 prost-types = { version = "0" }
 prost = { version = "0" }
-sqlx = { version = "0", features = ["runtime-tokio-rustls"] }
+sqlx.workspace = true
 anyhow = "1"
 tracing = { version = "0" }
 tokio.workspace = true

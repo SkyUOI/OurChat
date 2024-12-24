@@ -6,9 +6,9 @@ version.workspace = true
 [dependencies]
 shadow-rs = "0"
 validator = "0"
-serde = { version = "1" }
+serde.workspace = true
 anyhow = "1"
-chrono = { version = "0", features = ["serde"] }
+chrono.workspace = true
 sha3 = "0"
 prost-types = { version = "0" }
 ring.workspace = true
