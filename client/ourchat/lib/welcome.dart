@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:grpc/grpc.dart';
+// import 'package:ourchat/ourchat/ourchat_account.dart';
 import 'package:ourchat/service/auth/authorize/v1/authorize.pb.dart';
 import 'package:ourchat/service/auth/register/v1/register.pb.dart';
 import 'package:provider/provider.dart';
@@ -214,6 +215,8 @@ class Login extends StatelessWidget {
                             return;
                           }
                           logger.e("Login error: $e");
+                          if (!context.mounted) return;
+                          welcomeData.setErrorText(e.toString());
                         }
                       }
                     },
