@@ -385,7 +385,7 @@ impl TestSession {
 impl TestApp {
     pub fn get_test_config() -> anyhow::Result<ConfigWithArgs> {
         let args = ArgsParser::test();
-        let config = server::get_configuration(args.shared_cfg.config.as_ref())?;
+        let config = server::get_configuration(args.shared_cfg.config.clone())?;
         Ok((config, args))
     }
 

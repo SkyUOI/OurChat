@@ -146,4 +146,8 @@ pub fn default_user_files_store_limit() -> Size {
     Size::from_mebibytes(100)
 }
 
+pub const fn default_single_instance() -> bool {
+    true
+}
+
 pub static STDIN_AVAILABLE: LazyLock<bool> = LazyLock::new(|| std::io::stdin().is_terminal());

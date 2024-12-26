@@ -26,6 +26,9 @@ verification_expire_days = 3
 files_storage_path = "files_storage/"
 # Enable ssl encryption
 ssl = false
+# Whether this is started in Single Instance Mode. If true, some actions like cleaning up files will be performed regularly
+# You can set it when you have only one server instance, or you can set this option in only one instance(not recommended)
+single_instance = true
 
 [password_hash]
 # The memory size in 1 KiB blocks. Between 8*`p_cost` and (2^32)-1

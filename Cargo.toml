@@ -26,20 +26,15 @@ edition = "2024"
 rust-version = "1.85"
 
 [workspace.dependencies]
-tokio = { version = "1", features = ["full", "tracing"] }
-bytes = "1"
 anyhow = "1"
-serde = { version = "1" }
 serde_json = "1"
 # serde_repr = "0"
 # tokio-tungstenite = "0"
-clap = { version = "4", features = ["derive"] }
 futures-util = "0"
 rand = "0"
 snowdon = "0"
 
 thiserror = "2"
-chrono = { version = "0", features = ["serde"] }
 base = { path = "base" }
 tracing = { version = "0" }
 tracing-appender = "0"
@@ -48,12 +43,9 @@ migration = { path = "migration" }
 mimalloc = "0"
 parking_lot = "0"
 derive = { path = "derive" }
-dashmap = { "version" = "6" }
 sha3 = "0"
 config = "0"
 validator = "0"
-argon2 = { version = "0", features = ["std"] }
-deadpool-redis = "0.18.0"
 console-subscriber = { version = "0", features = ["parking_lot"] }
 consul-client = { path = "consul-client" }
 registry = { path = "registry" }
@@ -75,7 +67,6 @@ tonic-types = { version = "0" }
 prost-types = { version = "0" }
 prost = { version = "0" }
 jsonwebtoken = "9"
-tokio-stream = { version = "0" }
 
 # Protobuf definitions
 pb = { path = "pb" }
@@ -130,3 +121,44 @@ features = ["rustls", "macros"]
 version = "1"
 default-features = false
 features = ["v4", "serde"]
+
+[workspace.dependencies.tokio]
+version = "1"
+default-features = false
+features = ["full", "tracing"]
+
+[workspace.dependencies.bytes]
+version = "1"
+default-features = false
+
+[workspace.dependencies.serde]
+version = "1"
+default-features = false
+
+[workspace.dependencies.clap]
+version = "4"
+default-features = false
+features = ["derive"]
+
+[workspace.dependencies.argon2]
+version = "0"
+default-features = false
+features = ["std"]
+
+[workspace.dependencies.dashmap]
+version = "6"
+default-features = false
+
+[workspace.dependencies.deadpool-redis]
+version = "0"
+default-features = false
+features = ["rt_tokio_1"]
+
+[workspace.dependencies.chrono]
+version = "0"
+default-features = false
+features = ["serde"]
+
+[workspace.dependencies.tokio-stream]
+version = "0"
+default-features = false

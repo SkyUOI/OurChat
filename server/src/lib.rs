@@ -18,7 +18,7 @@ pub use basic::*;
 use clap::Parser;
 use cmd::CommandTransmitData;
 use component::EmailSender;
-use config::File;
+use config::{ConfigError, File};
 use consts::{CONFIG_FILE_ENV_VAR, ID, LOG_ENV_VAR, LOG_OUTPUT_DIR, STDIN_AVAILABLE};
 use dashmap::DashMap;
 use db::{DbCfgTrait, PostgresDbCfg, file_storage};
@@ -92,6 +92,8 @@ pub struct MainCfg {
     pub verification_expire_days: u64,
     #[serde(default = "consts::default_ssl")]
     pub ssl: bool,
+    #[serde(default = "consts::default_single_instance")]
+    pub single_instance: bool,
     pub password_hash: PasswordHash,
     pub db: OCDbCfg,
     pub debug: DebugCfg,
@@ -176,25 +178,38 @@ pub struct OCDbCfg {
     pub fetch_msg_page_size: u64,
 }
 
+fn read_a_config(path: impl AsRef<Path>) -> Result<config::Config, ConfigError> {
+    config::Config::builder()
+        .add_source(File::with_name(path.as_ref().to_str().unwrap()))
+        .build()
+}
+
 impl MainCfg {
-    pub fn new(config_path: Option<impl Into<PathBuf>>) -> anyhow::Result<Self> {
-        let cfg_path = match config_path {
-            Some(cfg_path) => cfg_path.into(),
-            None => if let Ok(env) = std::env::var(CONFIG_FILE_ENV_VAR) {
+    pub fn new(config_path: Vec<impl Into<PathBuf>>) -> anyhow::Result<Self> {
+        let len = config_path.len();
+        let mut iter = config_path.into_iter();
+        let cfg_path = if len == 0 {
+            if let Ok(env) = std::env::var(CONFIG_FILE_ENV_VAR) {
                 env
             } else {
                 tracing::error!("Please specify config file");
                 bail!("Please specify config file");
             }
-            .into(),
+            .into()
+        } else {
+            iter.next().unwrap().into()
         };
         // read config file
-        let cfg = config::Config::builder()
-            .add_source(File::with_name(cfg_path.to_str().unwrap()))
-            .build()
-            .expect("Failed to build config");
-        let mut cfg: MainCfg = cfg.try_deserialize().expect("Wrong config file structure");
-        cfg.cmd_args.config = Some(cfg_path);
+        let mut cfg: MainCfg = read_a_config(&cfg_path)
+            .expect("Failed to build config")
+            .try_deserialize()
+            .expect("Wrong config file structure");
+        let mut configs_list = vec![cfg_path];
+        for i in iter {
+            configs_list.push(i.into());
+            // TODO: Merge
+        }
+        cfg.cmd_args.config = configs_list;
         // convert the path relevant to the config file to path relevant to the directory
         cfg.convert_to_abs_path()?;
         Ok(cfg)
@@ -247,8 +262,8 @@ pub struct ParserCfg {
         default_value_t = false
     )]
     pub maintaining: bool,
-    #[arg(short, long, help = "ourchat config file path")]
-    pub config: Option<PathBuf>,
+    #[arg(short, long, help = "ourchat config file path", num_args = 0..,)]
+    pub config: Vec<PathBuf>,
 }
 
 impl MainCfg {
@@ -256,7 +271,7 @@ impl MainCfg {
         let full_basepath = self
             .cmd_args
             .config
-            .as_ref()
+            .first()
             .unwrap()
             .parent()
             .unwrap()
@@ -464,7 +479,7 @@ pub struct SharedData<T: EmailSender> {
     pub connected_clients: DashMap<ID, mpsc::Sender<Result<FetchMsgsResponse, tonic::Status>>>,
 }
 
-pub fn get_configuration(config_path: Option<impl Into<PathBuf>>) -> anyhow::Result<Cfg> {
+pub fn get_configuration(config_path: Vec<impl Into<PathBuf>>) -> anyhow::Result<Cfg> {
     let main_cfg = MainCfg::new(config_path)?;
     Cfg::new(main_cfg)
 }
