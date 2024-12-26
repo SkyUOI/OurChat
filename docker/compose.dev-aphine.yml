@@ -1,17 +1,16 @@
+# This template can set up a environment for testing or developing
 name: ourchat_server
 services:
   OurChatServer:
     build:
       context: .
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile.dev-aphine
     init: true
     image: ourchat_develop:latest
     command: tail -f /dev/null
     volumes:
       - "/dev:/dev:rw"
     working_dir: /root
-    environment:
-      - LC_ALL=C.UTF-8
     ports:
       - "7777:7777"
       - "7778:7778"

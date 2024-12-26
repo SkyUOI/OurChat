@@ -15,10 +15,19 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Test
+      - name: Test-Aphine
         uses: SkyUOI/github-action-docker-compose-test-run@main
         with:
-          file: compose.dev.yml
+          file: compose.dev-aphine.yml
+          service: OurChatServer
+          command: "script/action_test_server.py"
+          registry: "ghcr.io"
+          docker-compose-version: "2.29.1"
+          entrypoint: "python3"
+      - name: Test-Debian
+        uses: SkyUOI/github-action-docker-compose-test-run@main
+        with:
+          file: compose.dev-debian.yml
           service: OurChatServer
           command: "script/action_test_server.py"
           registry: "ghcr.io"
