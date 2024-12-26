@@ -18,7 +18,7 @@ jobs:
       - name: Test-Aphine
         uses: SkyUOI/github-action-docker-compose-test-run@main
         with:
-          file: compose.dev-aphine.yml
+          file: docker/compose.dev-aphine.yml
           service: OurChatServer
           command: "script/action_test_server.py"
           registry: "ghcr.io"
@@ -27,7 +27,7 @@ jobs:
       - name: Test-Debian
         uses: SkyUOI/github-action-docker-compose-test-run@main
         with:
-          file: compose.dev-debian.yml
+          file: docker/compose.dev-debian.yml
           service: OurChatServer
           command: "script/action_test_server.py"
           registry: "ghcr.io"

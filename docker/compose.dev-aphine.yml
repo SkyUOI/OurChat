@@ -4,7 +4,7 @@ services:
   OurChatServer:
     build:
       context: .
-      dockerfile: Dockerfile.dev-aphine
+      dockerfile: ./Dockerfile.dev-aphine
     init: true
     image: ourchat_develop:latest
     command: tail -f /dev/null

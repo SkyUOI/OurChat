@@ -4,7 +4,7 @@ services:
   OurChatServer:
     build:
       context: .
-      dockerfile: Dockerfile.dev-debian
+      dockerfile: ./Dockerfile.dev-debian
     init: true
     image: ourchat_develop:latest
     command: tail -f /dev/null
