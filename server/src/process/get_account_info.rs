@@ -51,7 +51,10 @@ async fn get_info_impl(
         Privilege::Stranger
     };
 
-    let queried_user = get_account_info_db(requests_id, &server.db.db_pool).await?;
+    let queried_user = match get_account_info_db(requests_id, &server.db.db_pool).await? {
+        Some(user) => user,
+        None => return Err(GetInfoError::NotFound),
+    };
     let data_cell = OnceLock::new();
     let friends = || async {
         if data_cell.get().is_none() {
@@ -101,9 +104,15 @@ async fn get_info_impl(
                     let mut ids = vec![];
                     for i in friends {
                         ids.push(
-                            get_account_info_db(i.friend_id.into(), &server.db.db_pool)
+                            match get_account_info_db(i.friend_id.into(), &server.db.db_pool)
                                 .await?
-                                .ocid,
+                            {
+                                Some(friend) => friend.ocid,
+                                None => {
+                                    tracing::warn!("A wrong id of friend found");
+                                    continue;
+                                }
+                            },
                         );
                     }
                     ret.friends = ids
@@ -139,9 +148,11 @@ pub async fn get_info<T: EmailSender>(
     }
 }
 
-async fn get_account_info_db(id: ID, db_conn: &DatabaseConnection) -> anyhow::Result<user::Model> {
-    let queried_user = User::find_by_id(id).one(db_conn).await?.unwrap();
-    Ok(queried_user)
+async fn get_account_info_db(
+    id: ID,
+    db_conn: &DatabaseConnection,
+) -> anyhow::Result<Option<user::Model>> {
+    Ok(User::find_by_id(id).one(db_conn).await?)
 }
 
 async fn get_friends(id: ID, db_conn: &DatabaseConnection) -> anyhow::Result<Vec<friend::Model>> {

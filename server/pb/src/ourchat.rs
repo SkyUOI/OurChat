@@ -36,6 +36,12 @@ pub mod session {
             tonic::include_proto!("service.ourchat.session.get_session_info.v1");
         }
     }
+
+    pub mod set_session_info {
+        pub mod v1 {
+            tonic::include_proto!("service.ourchat.session.set_session_info.v1");
+        }
+    }
 }
 
 pub mod set_account_info {
