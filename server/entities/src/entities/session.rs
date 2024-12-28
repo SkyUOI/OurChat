@@ -9,6 +9,9 @@ pub struct Model {
     pub session_id: i64,
     pub name: String,
     pub size: i32,
+    pub avatar_key: Option<String>,
+    pub updated_time: DateTimeWithTimeZone,
+    pub created_time: DateTimeWithTimeZone,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -17,6 +20,8 @@ pub enum Relation {
     SessionRelation,
     #[sea_orm(has_many = "super::user_chat_msg::Entity")]
     UserChatMsg,
+    #[sea_orm(has_many = "super::user_role_relation::Entity")]
+    UserRoleRelation,
 }
 
 impl Related<super::session_relation::Entity> for Entity {
@@ -28,6 +33,12 @@ impl Related<super::session_relation::Entity> for Entity {
 impl Related<super::user_chat_msg::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::UserChatMsg.def()
+    }
+}
+
+impl Related<super::user_role_relation::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::UserRoleRelation.def()
     }
 }
 

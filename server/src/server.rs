@@ -206,8 +206,7 @@ impl<T: EmailSender> OurChatService for RpcServer<T> {
         &self,
         request: Request<SetSessionInfoRequest>,
     ) -> Result<Response<SetSessionInfoResponse>, Status> {
-        // process::get_session_info(self, request).await
-        todo!()
+        process::set_session_info(self, request).await
     }
 
     #[tracing::instrument(skip(self))]

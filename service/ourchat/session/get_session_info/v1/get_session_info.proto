@@ -20,6 +20,7 @@ enum QueryValues {
   QUERY_VALUES_MEMBERS = 6;
   // The session owner's ocid
   QUERY_VALUES_OWNER_ID = 7;
+  QUERY_VALUES_SIZE = 8;
 }
 
 message GetSessionInfoRequest {
@@ -35,4 +36,5 @@ message GetSessionInfoResponse {
   optional google.protobuf.Timestamp updated_time = 5;
   repeated uint64 members = 6;
   optional uint64 owner_id = 7;
+  optional uint64 size = 8;
 }
