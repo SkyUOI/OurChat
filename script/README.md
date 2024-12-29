@@ -1,3 +1,5 @@
+[TOC]
+
 # Helper Scripts
 
 Notice: If there is any script not listing below or out-of-date,please open a issue.
@@ -36,11 +38,21 @@ Run this script to run stress test.The first argument is the test flag(default i
 
 If you modified the `Dockerfile`,use it to rebuild docker image for development usage
 
+## Client Usage
+
+### `generate.pb.dart.py`
+
+Run this script to generate dart protobuf files.
+
 ## Daily
 
 ### `pre-commit`
 
 Run some checks(lint, format) locally before every commit,your can copy it to `.git/hooks`(if your are using linux,use `chmod +x .git/hooks/pre-commit` to make it runnable)
+
+### `pre-commit.py`
+
+Format your code or do other works.You can run it before you commit to prevent your code from being rejected by CI.
 
 ### `merge_and_push_main.py`
 
