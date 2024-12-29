@@ -27,7 +27,7 @@ impl MigrationTrait for Migration {
                 Table::alter()
                     .table(Session::Table)
                     .drop_column(Session::AvatarKey)
-                    .drop_column(Session::UpdatedTime)  
+                    .drop_column(Session::UpdatedTime)
                     .drop_column(Session::CreatedTime)
                     .to_owned(),
             )
