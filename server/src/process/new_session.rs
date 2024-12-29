@@ -61,10 +61,14 @@ pub async fn create_session_db(
     session_name: String,
     db_conn: &DatabaseConnection,
 ) -> Result<(), SessionError> {
+    let time_now = chrono::Utc::now();
     let session = session::ActiveModel {
         session_id: ActiveValue::Set(session_id.into()),
         name: ActiveValue::Set(session_name),
         size: ActiveValue::Set(people_num.try_into().context("people num error")?),
+        created_time: ActiveValue::Set(time_now.into()),
+        updated_time: ActiveValue::Set(time_now.into()),
+        ..Default::default()
     };
     session.insert(db_conn).await?;
     Ok(())

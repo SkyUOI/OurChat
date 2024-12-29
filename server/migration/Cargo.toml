@@ -10,6 +10,7 @@ path = "src/lib.rs"
 
 [dependencies]
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+num_enum.workspace = true
 
 [dependencies.sea-orm-migration]
 version = "1"

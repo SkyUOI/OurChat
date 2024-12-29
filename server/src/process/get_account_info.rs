@@ -56,7 +56,7 @@ async fn get_info_impl(
         None => return Err(GetInfoError::NotFound),
     };
     let data_cell = OnceLock::new();
-    let friends = || async {
+    let friends = async || {
         if data_cell.get().is_none() {
             let list = get_friends(requests_id, &server.db.db_pool).await?;
             data_cell.set(list).unwrap();
@@ -66,7 +66,14 @@ async fn get_info_impl(
     let mut ret = GetAccountInfoResponse::default();
 
     for i in &request.request_values {
-        let i = RequestValues::try_from(*i).unwrap();
+        let i = match RequestValues::try_from(*i) {
+            Ok(i) => i,
+            Err(_) => {
+                return Err(tonic::Status::invalid_argument(
+                    "value requetsed is invalid",
+                ))?;
+            }
+        };
         if privilege != Privilege::Owner && OWNER_PRIVILEGE.contains(&i) {
             // cannot get the info which is owner privilege
             return Err(tonic::Status::permission_denied("permission denied"))?;
