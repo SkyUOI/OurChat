@@ -1,12 +1,11 @@
 use crate::{
     component::EmailSender,
-    process::{get_id_from_req, message::del_msg},
+    db::messages::{MsgError, del_msg},
+    process::get_id_from_req,
     server::RpcServer,
 };
 use pb::ourchat::msg_delivery::recall::v1::{RecallMsgRequest, RecallMsgResponse};
 use tonic::{Request, Response, Status};
-
-use super::DelMsgErr;
 
 pub async fn recall_msg(
     server: &RpcServer<impl EmailSender>,
@@ -38,14 +37,15 @@ enum RecallErr {
     Status(#[from] tonic::Status),
 }
 
-impl From<DelMsgErr> for RecallErr {
-    fn from(value: DelMsgErr) -> Self {
+impl From<MsgError> for RecallErr {
+    fn from(value: MsgError) -> Self {
         match value {
-            DelMsgErr::DbErr(db_err) => Self::Db(db_err),
-            DelMsgErr::WithoutPrivilege => {
+            MsgError::DbError(db_err) => Self::Db(db_err),
+            MsgError::WithoutPrivilege => {
                 Self::Status(Status::permission_denied("permission denied"))
             }
-            DelMsgErr::NotFound => Self::Status(Status::not_found("msg not found")),
+            MsgError::NotFound => Self::Status(Status::not_found("msg not found")),
+            MsgError::UnknownError(error) => Self::Unknown(error),
         }
     }
 }

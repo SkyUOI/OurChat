@@ -2,7 +2,9 @@ use sea_orm::{ConnectionTrait, EntityTrait};
 
 use crate::consts::SessionID;
 pub mod get_session_info;
+pub mod new_session;
 pub mod set_session_info;
+pub mod accept_session;
 
 async fn query_session(
     id: SessionID,

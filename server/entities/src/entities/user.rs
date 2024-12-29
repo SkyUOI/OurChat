@@ -21,6 +21,7 @@ pub struct Model {
     pub avatar: Option<String>,
     pub public_update_time: DateTimeWithTimeZone,
     pub update_time: DateTimeWithTimeZone,
+    pub status: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

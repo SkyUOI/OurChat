@@ -53,7 +53,7 @@ async fn test_get_user_info() {
     assert_eq!(ret.ocid, Some(user_ocid.clone()));
     assert_eq!(ret.user_name, Some(user_name.clone()));
     assert_eq!(ret.email, Some(user_email.clone()));
-    assert_eq!(ret.friends, Vec::<String>::default());
+    assert_eq!(ret.friends, Vec::<u64>::default());
     // TODO:add display_name test
     app.async_drop().await;
 }

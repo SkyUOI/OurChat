@@ -1,6 +1,8 @@
-use std::sync::OnceLock;
-
-use crate::{component::EmailSender, server::RpcServer};
+use crate::{
+    component::EmailSender,
+    db,
+    server::RpcServer,
+};
 use base::time::to_google_timestamp;
 use pb::ourchat::session::get_session_info::v1::{
     GetSessionInfoRequest, GetSessionInfoResponse, QueryValues,
@@ -48,7 +50,8 @@ async fn get_session_info_impl(
 ) -> Result<GetSessionInfoResponse, GetSessionErr> {
     let mut res = GetSessionInfoResponse::default();
     let req_inner = request.into_inner();
-    let session_data = match query_session(req_inner.session_id.into(), &server.db.db_pool).await? {
+    let session_id = req_inner.session_id.into();
+    let session_data = match query_session(session_id, &server.db.db_pool).await? {
         Some(d) => d,
         None => {
             return Err(GetSessionErr::Status(Status::not_found(
@@ -84,7 +87,13 @@ async fn get_session_info_impl(
             QueryValues::UpdatedTime => {
                 res.updated_time = Some(to_google_timestamp(session_data.updated_time.into()));
             }
-            QueryValues::Members => todo!(),
+            QueryValues::Members => {
+                res.members = db::session::get_members(session_id, &server.db.db_pool)
+                    .await?
+                    .into_iter()
+                    .map(|i| i.user_id as u64)
+                    .collect();
+            }
             QueryValues::OwnerId => todo!(),
             QueryValues::Size => {
                 res.size = Some(session_data.size as u64);

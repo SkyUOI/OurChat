@@ -3,7 +3,11 @@
 import os
 import sys
 
-default_test_command = "cargo test"
+if os.name == "nt":
+    # Notice this: windows cannot build load_balancer(by now)
+    default_test_command = "cargo test --exclude load_balancer --workspace"
+else:
+    default_test_command = "cargo test"
 default_test_cfg = "config/ourchat.toml"
 
 

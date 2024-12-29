@@ -1,14 +1,13 @@
 use super::basic::get_ocid;
 use crate::component::EmailSender;
 use crate::consts::ID;
+use crate::db;
+use crate::db::session::get_all_session_relations;
 use crate::server::RpcServer;
-use anyhow::Context;
 use base::time::to_google_timestamp;
-use entities::{friend, prelude::*, user};
 use pb::ourchat::get_account_info::v1::{
     GetAccountInfoRequest, GetAccountInfoResponse, OWNER_PRIVILEGE, RequestValues,
 };
-use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use std::cmp::PartialEq;
 use std::sync::OnceLock;
 use tonic::Request;
@@ -51,14 +50,14 @@ async fn get_info_impl(
         Privilege::Stranger
     };
 
-    let queried_user = match get_account_info_db(requests_id, &server.db.db_pool).await? {
+    let queried_user = match db::user::get_account_info_db(requests_id, &server.db.db_pool).await? {
         Some(user) => user,
         None => return Err(GetInfoError::NotFound),
     };
     let data_cell = OnceLock::new();
     let friends = async || {
         if data_cell.get().is_none() {
-            let list = get_friends(requests_id, &server.db.db_pool).await?;
+            let list = db::user::get_friends(requests_id, &server.db.db_pool).await?;
             data_cell.set(list).unwrap();
         }
         anyhow::Ok(data_cell.get().unwrap())
@@ -83,14 +82,17 @@ async fn get_info_impl(
                 RequestValues::Ocid => ret.ocid = Some(get_ocid(id, &server.db).await?),
                 RequestValues::Email => ret.email = Some(queried_user.email.clone()),
                 RequestValues::DisplayName => {
-                    // TODO:optimize the performance
                     if let Privilege::Owner = privilege {
+                        // invalid for owner, ignore
                     } else {
-                        let friend = get_one_friend(id, requests_id, &server.db.db_pool).await?;
+                        let friend =
+                            db::user::get_one_friend(id, requests_id, &server.db.db_pool).await?;
                         ret.display_name = friend.map(|x| x.display_name);
                     }
                 }
-                RequestValues::Status => todo!(),
+                RequestValues::Status => {
+                    ret.status = Some(queried_user.status.clone().unwrap_or_default());
+                }
                 RequestValues::AvatarKey => {
                     ret.avatar_key = Some(queried_user.avatar.clone().unwrap_or_default());
                 }
@@ -102,25 +104,26 @@ async fn get_info_impl(
                         Some(to_google_timestamp(queried_user.public_update_time.into()))
                 }
                 RequestValues::UpdateTime => {
+                    // only owner can get
+                    if privilege != Privilege::Owner {
+                        return Err(tonic::Status::permission_denied("permission denied"))?;
+                    }
                     ret.update_time = Some(to_google_timestamp(queried_user.update_time.into()))
                 }
-                RequestValues::Sessions => todo!(),
+                RequestValues::Sessions => {
+                    // only owner can get
+                    if privilege != Privilege::Owner {
+                        return Err(tonic::Status::permission_denied("permission denied"))?;
+                    }
+                    let sessions = get_all_session_relations(id, &server.db.db_pool).await?;
+                    let ids = sessions.into_iter().map(|x| x.session_id as u64).collect();
+                    ret.sessions = ids;
+                }
                 RequestValues::Friends => {
-                    // TODO:optimize the performance
                     let friends = friends().await?;
                     let mut ids = vec![];
                     for i in friends {
-                        ids.push(
-                            match get_account_info_db(i.friend_id.into(), &server.db.db_pool)
-                                .await?
-                            {
-                                Some(friend) => friend.ocid,
-                                None => {
-                                    tracing::warn!("A wrong id of friend found");
-                                    continue;
-                                }
-                            },
-                        );
+                        ids.push(i.friend_id as u64);
                     }
                     ret.friends = ids
                 }
@@ -153,41 +156,4 @@ pub async fn get_info<T: EmailSender>(
             }
         },
     }
-}
-
-async fn get_account_info_db(
-    id: ID,
-    db_conn: &DatabaseConnection,
-) -> anyhow::Result<Option<user::Model>> {
-    Ok(User::find_by_id(id).one(db_conn).await?)
-}
-
-async fn get_friends(id: ID, db_conn: &DatabaseConnection) -> anyhow::Result<Vec<friend::Model>> {
-    let id: u64 = id.into();
-    let friends = Friend::find()
-        .filter(friend::Column::UserId.eq(id))
-        .all(db_conn)
-        .await?;
-    Ok(friends)
-}
-
-async fn get_one_friend(
-    id: ID,
-    friend_id: ID,
-    db_conn: &DatabaseConnection,
-) -> anyhow::Result<Option<friend::Model>> {
-    let id: u64 = id.into();
-    let friend_id: u64 = friend_id.into();
-    let friend = Friend::find()
-        .filter(friend::Column::UserId.eq(id))
-        .filter(friend::Column::FriendId.eq(friend_id))
-        .one(db_conn)
-        .await
-        .with_context(|| {
-            format!(
-                "Failed to get the friend of user {} and friend {}",
-                id, friend_id
-            )
-        })?;
-    Ok(friend)
 }

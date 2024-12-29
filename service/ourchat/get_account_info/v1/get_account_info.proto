@@ -50,6 +50,6 @@ message GetAccountInfoResponse {
   optional google.protobuf.Timestamp register_time = 7;
   optional google.protobuf.Timestamp public_update_time = 8;
   optional google.protobuf.Timestamp update_time = 9;
-  optional string sessions = 10;
-  repeated string friends = 11;
+  repeated uint64 sessions = 10;
+  repeated uint64 friends = 11;
 }

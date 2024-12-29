@@ -161,6 +161,7 @@ pub enum User {
     PublicUpdateTime,
     UpdateTime,
     Avatar,
+    Status,
 }
 
 #[derive(DeriveIden)]

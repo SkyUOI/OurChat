@@ -35,6 +35,5 @@ message GetSessionInfoResponse {
   optional google.protobuf.Timestamp created_time = 4;
   optional google.protobuf.Timestamp updated_time = 5;
   repeated uint64 members = 6;
-  optional uint64 owner_id = 7;
   optional uint64 size = 8;
 }

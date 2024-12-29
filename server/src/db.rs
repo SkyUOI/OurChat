@@ -2,6 +2,9 @@
 
 pub mod file_storage;
 pub mod helper;
+pub mod session;
+pub mod user;
+pub mod messages;
 
 use config::File;
 use migration::MigratorTrait;
@@ -18,8 +21,8 @@ pub struct PostgresDbCfg {
     pub passwd: String,
 }
 
-impl DbCfgTrait for PostgresDbCfg {
-    fn url(&self) -> String {
+impl PostgresDbCfg {
+    pub fn url(&self) -> String {
         if self.passwd.is_empty() {
             format!(
                 "postgres://{}@{}:{}/{}",
@@ -32,10 +35,6 @@ impl DbCfgTrait for PostgresDbCfg {
             )
         }
     }
-}
-
-pub trait DbCfgTrait {
-    fn url(&self) -> String;
 }
 
 /// Initialize the database layer

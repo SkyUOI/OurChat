@@ -27,7 +27,6 @@ use pb::{
 use rand::Rng;
 use server::component::MockEmailSender;
 use server::consts::{ID, SessionID};
-use server::db::DbCfgTrait;
 use server::utils::{self, get_available_port};
 use server::{Application, ArgsParser, Cfg, DbPool, ParserCfg, SharedData, ShutdownSdr, process};
 use sqlx::migrate::MigrateDatabase;
