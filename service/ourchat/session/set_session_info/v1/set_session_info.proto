@@ -2,10 +2,6 @@ syntax = "proto3";
 
 package service.ourchat.session.set_session_info.v1;
 
-message SetSessionInfoRequest {
+message SetSessionInfoRequest {}
 
-}
-
-message SetSessionInfoResponse {
-
-}
+message SetSessionInfoResponse {}
