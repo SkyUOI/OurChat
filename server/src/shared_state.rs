@@ -1,3 +1,5 @@
+//! Shared state of server
+
 use crate::consts::{self};
 use parking_lot::{Mutex, RwLock};
 

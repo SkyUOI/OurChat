@@ -1,5 +1,7 @@
 use super::{UserInfo, generate_access_token};
-use crate::{DbPool, component::EmailSender, server::AuthServiceProvider, utils};
+use crate::{
+    DbPool, component::EmailSender, db::helper::is_conflict, server::AuthServiceProvider, utils,
+};
 use anyhow::Context;
 use argon2::{PasswordHash, PasswordVerifier};
 use entities::{prelude::*, user};
@@ -21,6 +23,12 @@ enum AuthError {
     UnknownError(#[from] anyhow::Error),
 }
 
+/// Authenticate user with the given AuthRequest and the given database connection.
+///
+/// Returns an AuthResponse containing the user id, the generated token, and the user's ocid,
+/// together with the user info.
+///
+/// Errors if the user is not found, the password is wrong, or any database error occurs.
 async fn auth_db(
     request: AuthRequest,
     db_connection: &DbPool,
@@ -77,11 +85,10 @@ async fn auth_db(
             None => Err(AuthError::UserNotFound),
         },
         Err(e) => {
-            if let DbErr::RecordNotFound(_) = e {
-                Err(AuthError::UserNotFound)
-            } else {
-                Err(e.into())
+            if is_conflict(&e) {
+                return Err(AuthError::UserNotFound);
             }
+            Err(e.into())
         }
     }
 }

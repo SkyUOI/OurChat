@@ -1,29 +1,16 @@
 use super::super::get_id_from_req;
 use crate::{
     component::EmailSender,
-    consts::ID,
+    db,
     server::{FetchMsgsStream, RpcServer},
 };
-use base::time::TimeStamp;
 use base::time::from_google_timestamp;
-use entities::user_chat_msg;
 use pb::ourchat::msg_delivery::v1::{
     FetchMsgsRequest, FetchMsgsResponse, Msg, fetch_msgs_response,
-};
-use sea_orm::{
-    DatabaseBackend, DatabaseConnection, EntityTrait, Paginator, PaginatorTrait, Statement,
 };
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{Response, Status};
-
-#[derive(Debug, thiserror::Error)]
-pub enum MsgError {
-    #[error("database error")]
-    DbError(#[from] sea_orm::DbErr),
-    #[error("unknown error")]
-    UnknownError(#[from] anyhow::Error),
-}
 
 pub async fn fetch_user_msg<T: EmailSender>(
     server: &RpcServer<T>,
@@ -47,7 +34,9 @@ pub async fn fetch_user_msg<T: EmailSender>(
     let fetch_page_size = server.shared_data.cfg.main_cfg.db.fetch_msg_page_size;
     server.shared_data.connected_clients.insert(id, tx.clone());
     tokio::spawn(async move {
-        match get_session_msgs(id, time.into(), &db_conn.db_pool, fetch_page_size).await {
+        match db::messages::get_session_msgs(id, time.into(), &db_conn.db_pool, fetch_page_size)
+            .await
+        {
             Ok(mut pag) => {
                 let db_logic = async {
                     while let Some(msgs) = pag.fetch_and_next().await? {
@@ -72,17 +61,13 @@ pub async fn fetch_user_msg<T: EmailSender>(
                             }
                         }
                     }
-                    Ok::<(), MsgError>(())
+                    Ok::<(), sea_orm::DbErr>(())
                 };
                 match db_logic.await {
                     Ok(_) => {}
-                    Err(MsgError::DbError(e)) => {
+                    Err(e) => {
                         tracing::error!("Database error:{e}");
                         tx.send(Err(Status::internal("Database error"))).await.ok();
-                    }
-                    Err(MsgError::UnknownError(e)) => {
-                        tracing::error!("Unknown error:{e}");
-                        tx.send(Err(Status::internal("Unknown error"))).await.ok();
                     }
                 }
             }
@@ -94,24 +79,4 @@ pub async fn fetch_user_msg<T: EmailSender>(
     });
     let output_stream = ReceiverStream::new(rx);
     Ok(Response::new(Box::pin(output_stream) as FetchMsgsStream))
-}
-
-async fn get_session_msgs(
-    user_id: ID,
-    end_timestamp: TimeStamp,
-    db_conn: &DatabaseConnection,
-    page_size: u64,
-) -> Result<Paginator<'_, DatabaseConnection, sea_orm::SelectModel<user_chat_msg::Model>>, MsgError>
-{
-    let user_id: u64 = user_id.into();
-    let msgs = user_chat_msg::Entity::find()
-            .from_raw_sql(Statement::from_sql_and_values(
-                DatabaseBackend::Postgres,
-                r#"SELECT * FROM user_chat_msg
-        WHERE time > $1 AND
-        EXISTS (SELECT * FROM session_relation WHERE user_id = $2 AND session_id = user_chat_msg.session_id)"#,
-                [end_timestamp.into(), user_id.into()],
-            ))
-            .paginate(db_conn, page_size);
-    Ok(msgs)
 }

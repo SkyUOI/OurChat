@@ -46,6 +46,8 @@ macro_rules! impl_newtype_int {
     };
 }
 
+/// Compute the SHA3-256 hash of the given data and return it as a lower-case
+/// hexadecimal string.
 pub fn sha3_256(data: &[u8]) -> String {
     use sha3::{Digest, Sha3_256};
     let mut hasher = Sha3_256::new();

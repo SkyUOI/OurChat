@@ -1,4 +1,4 @@
-use super::basic::{get_id, get_ocid};
+use super::super::basic::{get_id, get_ocid};
 use crate::{
     DbPool, SharedData,
     component::EmailSender,
@@ -18,7 +18,7 @@ use std::{sync::Arc, time::Duration};
 use tonic::{Request, Response};
 use tracing::error;
 
-use super::get_id_from_req;
+use super::super::get_id_from_req;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InviteSession {

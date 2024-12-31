@@ -1,12 +1,10 @@
 //! Functions process the requests from clients
 
-mod accept_session;
 pub mod auth;
 pub mod basic;
 mod download;
 pub mod get_account_info;
 mod message;
-pub mod new_session;
 pub mod register;
 mod session;
 mod set_account_info;
@@ -27,11 +25,12 @@ use serde::Serialize;
 use std::time::Duration;
 use tonic::Request;
 
-pub use accept_session::accept_session;
 pub use download::download;
 pub use message::{fetch_user_msg::fetch_user_msg, recall::recall_msg, send_msg::send_msg};
-pub use new_session::new_session;
-pub use session::{get_session_info::get_session_info, set_session_info::set_session_info};
+pub use session::{
+    accept_session::accept_session, get_session_info::get_session_info, new_session::new_session,
+    set_session_info::set_session_info,
+};
 pub use set_account_info::set_account_info;
 pub use set_friend_info::set_friend_info;
 pub use unregister::unregister;
@@ -44,7 +43,9 @@ use entities::prelude::*;
 
 pub mod db {
     pub use super::basic::get_id;
-    pub use super::new_session::{add_to_session, batch_add_to_session, create_session_db};
+    pub use super::session::new_session::{
+        add_to_session, batch_add_to_session, create_session_db,
+    };
 }
 
 #[derive(Debug, Serialize, Deserialize)]

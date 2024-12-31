@@ -21,7 +21,7 @@ use component::EmailSender;
 use config::{ConfigError, File};
 use consts::{CONFIG_FILE_ENV_VAR, ID, LOG_ENV_VAR, LOG_OUTPUT_DIR, STDIN_AVAILABLE};
 use dashmap::DashMap;
-use db::{DbCfgTrait, PostgresDbCfg, file_storage};
+use db::{PostgresDbCfg, file_storage};
 use futures_util::future::join_all;
 use lettre::{AsyncSmtpTransport, transport::smtp::authentication::Credentials};
 use parking_lot::Once;
@@ -322,8 +322,21 @@ static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
     info
 });
 
+/// Initialize the logger.
+///
+/// If `test_mode` is `true`, it will always set the log level to "trace".
+/// Otherwise, it will read the log level from the environment variable
+/// specified by `LOG_ENV_VAR` and set it to "info" if not present.
+/// The log will be written to a file in the directory specified by
+/// `LOG_OUTPUT_DIR` and the file name will be "test" if `test_mode` is
+/// `true` and "ourchat" otherwise.
+/// If `debug_cfg` is `Some` and `debug_console` is `true`, it will also
+/// write the log to the console at the address specified by
+/// `debug_cfg.debug_console_port`.
+///
 /// # Warning
-/// This function should be called only once.The second one will be ignored
+/// This function should be called only once.
+/// The second one will be ignored
 pub fn logger_init<Sink>(test_mode: bool, debug_cfg: Option<&DebugCfg>, output: Sink)
 where
     Sink: for<'a> MakeWriter<'a> + Send + Sync + 'static,
@@ -393,7 +406,7 @@ async fn cmd_start(
     Ok(())
 }
 
-fn exit_signal(mut shutdown_sender: ShutdownSdr) -> anyhow::Result<()> {
+fn exit_signal(#[allow(unused_mut)] mut shutdown_sender: ShutdownSdr) -> anyhow::Result<()> {
     let mut shutdown_sender_clone = shutdown_sender.clone();
     #[cfg(not(windows))]
     tokio::spawn(async move {
@@ -479,6 +492,28 @@ pub struct SharedData<T: EmailSender> {
     pub connected_clients: DashMap<ID, mpsc::Sender<Result<FetchMsgsResponse, tonic::Status>>>,
 }
 
+/// Loads and constructs the configuration for the application.
+///
+/// This function takes a list of paths to configuration files, attempts to read
+/// them, and deserializes the configuration data into the `Cfg` structure.
+/// If no paths are provided, it attempts to read from the environment variable
+/// specified by `CONFIG_FILE_ENV_VAR`.
+///
+/// # Arguments
+///
+/// * `config_path` - A vector of paths pointing to configuration files. Each path
+///   is convertible into a `PathBuf`.
+///
+/// # Returns
+///
+/// Returns a `Result` containing the `Cfg` if successful, or an error if it fails
+/// to read or parse the configuration files.
+///
+/// # Errors
+///
+/// This function will return an error if it is unable to read or deserialize any
+/// of the specified configuration files or if the environment variable is not set
+/// when no paths are provided.
 pub fn get_configuration(config_path: Vec<impl Into<PathBuf>>) -> anyhow::Result<Cfg> {
     let main_cfg = MainCfg::new(config_path)?;
     Cfg::new(main_cfg)
@@ -489,6 +524,24 @@ pub async fn register_service(cfg: &RegistryCfg) -> anyhow::Result<()> {
 }
 
 impl<T: EmailSender> Application<T> {
+    /// Builds a new `Application` instance.
+    ///
+    /// This function will setup the log system, shared state, connect to the database,
+    /// and connect to Redis. The `parser` argument is used to override some of the
+    /// configuration if specified. The `cfg` argument is the configuration to be used.
+    ///
+    /// # Arguments
+    ///
+    /// * `parser` - The parsed command line arguments.
+    /// * `cfg` - The configuration to be used.
+    /// * `email_client` - The email client to be used. If `None`, the email client
+    ///   will be ignored.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `Result` containing the `Application` instance if successful, or an error
+    /// if it fails to set up the log system, shared state, connect to the database, or
+    /// connect to Redis.
     pub async fn build(
         parser: ArgsParser,
         mut cfg: Cfg,
@@ -585,6 +638,16 @@ impl<T: EmailSender> Application<T> {
         self.abort_sender.clone()
     }
 
+    /// Start the server and run forever.
+    ///
+    /// This function will start the http server, rpc server, file system, shutdown signal listener,
+    /// and cmd from stdin (if enabled). It will also register the service to the registry.
+    ///
+    /// The function will return an error if any of the above fails.
+    ///
+    /// You can use `get_abort_handle` to get the shutdown handle and use it to stop the server.
+    ///
+    /// The server will not exit until all the tasks are finished.
     pub async fn run_forever(&mut self) -> anyhow::Result<()> {
         tracing::info!("Starting server");
         let cfg = &self.shared.cfg.main_cfg;

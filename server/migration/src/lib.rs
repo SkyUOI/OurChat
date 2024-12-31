@@ -8,6 +8,7 @@ mod m20241210_081859_add_cryption_for_msg;
 mod m20241210_083126_create_index;
 pub mod m20241229_022701_add_role_for_session;
 mod m20241229_035143_add_data_for_session;
+mod m20241230_092258_add_status_for_user;
 
 pub struct Migrator;
 
@@ -23,6 +24,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20241210_083126_create_index::Migration),
             Box::new(m20241229_022701_add_role_for_session::Migration),
             Box::new(m20241229_035143_add_data_for_session::Migration),
+            Box::new(m20241230_092258_add_status_for_user::Migration),
         ]
     }
 }

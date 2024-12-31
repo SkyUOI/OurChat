@@ -1,4 +1,9 @@
-use crate::{component::EmailSender, consts::ID, db::file_storage, server::RpcServer};
+use crate::{
+    component::EmailSender,
+    consts::ID,
+    db::{self, file_storage},
+    server::RpcServer,
+};
 use anyhow::Context;
 use entities::user;
 use pb::ourchat::set_account_info::v1::{SetSelfInfoRequest, SetSelfInfoResponse};
@@ -55,7 +60,11 @@ async fn update_account(
         public_updated = true;
     }
     if let Some(status) = request_data.status {
-        todo!()
+        user.status = if status.is_empty() {
+            ActiveValue::Set(None)
+        } else {
+            ActiveValue::Set(Some(status))
+        };
     }
     let txn = db_conn.begin().await?;
     if let Some(avater_key) = request_data.avatar_key {
@@ -90,10 +99,12 @@ async fn update_account(
     }
     match user.update(&txn).await {
         Ok(_) => {}
-        Err(DbErr::RecordNotUpdated) => {
-            return Err(SetError::Conflict);
+        Err(e) => {
+            if db::helper::is_conflict(&e) {
+                return Err(SetError::Conflict);
+            }
+            return Err(SetError::Db(e));
         }
-        Err(e) => return Err(SetError::Db(e)),
     }
     txn.commit().await?;
     Ok(())
