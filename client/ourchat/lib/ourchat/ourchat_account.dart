@@ -8,11 +8,11 @@ import 'package:fixnum/fixnum.dart';
 class OurchatAccount {
   Int64 id;
   String ocid, token;
-  String? email, username, avatarKey, displayName, status, sessions;
+  String? email, username, avatarKey, displayName, status;
   bool isMe;
   Timestamp? publicUpdateTime, updateTime, registerTime;
   ClientChannel? channel;
-  List<String>? friends;
+  List<Int64>? friends, sessions;
 
   OurchatAccount(
       OurchatConfig config, this.token, this.id, this.ocid, this.isMe) {
