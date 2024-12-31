@@ -2,9 +2,9 @@
 
 pub mod file_storage;
 pub mod helper;
+pub mod messages;
 pub mod session;
 pub mod user;
-pub mod messages;
 
 use config::File;
 use migration::MigratorTrait;

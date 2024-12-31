@@ -21,7 +21,10 @@ pub async fn get_account_info_db(
 /// # Errors
 ///
 /// Fails if any error occurs in the database.
-pub async fn get_friends(id: ID, db_conn: &impl ConnectionTrait) -> anyhow::Result<Vec<friend::Model>> {
+pub async fn get_friends(
+    id: ID,
+    db_conn: &impl ConnectionTrait,
+) -> anyhow::Result<Vec<friend::Model>> {
     let id: u64 = id.into();
     let friends = Friend::find()
         .filter(friend::Column::UserId.eq(id))

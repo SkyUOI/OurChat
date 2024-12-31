@@ -1,10 +1,10 @@
 use entities::session_relation;
 use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter};
 
-use crate::consts::{SessionID, ID};
+use crate::consts::{ID, SessionID};
 
 /// Retrieves all session relations associated with the given user ID.
-/// 
+///
 /// # Arguments
 ///
 /// * `user_id` - The ID of the user whose session relations are to be fetched.
@@ -13,7 +13,7 @@ use crate::consts::{SessionID, ID};
 /// # Returns
 ///
 /// * `Result<Vec<session_relation::Model>, sea_orm::DbErr>` - A vector of `session_relation::Model`
-///   objects representing the session relations for the specified user, or a `DbErr` if the 
+///   objects representing the session relations for the specified user, or a `DbErr` if the
 ///   operation fails.
 pub async fn get_all_session_relations(
     user_id: ID,
@@ -28,7 +28,7 @@ pub async fn get_all_session_relations(
 }
 
 /// Retrieves all members of the specified session.
-/// 
+///
 /// # Arguments
 ///
 /// * `session_id` - The ID of the session whose members are to be fetched.

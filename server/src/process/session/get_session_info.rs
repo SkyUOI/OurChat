@@ -1,8 +1,4 @@
-use crate::{
-    component::EmailSender,
-    db,
-    server::RpcServer,
-};
+use crate::{component::EmailSender, db, server::RpcServer};
 use base::time::to_google_timestamp;
 use pb::ourchat::session::get_session_info::v1::{
     GetSessionInfoRequest, GetSessionInfoResponse, QueryValues,
