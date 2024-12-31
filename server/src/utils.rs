@@ -45,6 +45,7 @@ pub fn generate_ocid(bits: usize) -> String {
 /// # Examples
 ///
 /// ```
+/// use server::utils::generate_random_string;
 /// let s = generate_random_string(10);
 /// assert_eq!(s.len(), 10);
 /// assert!(s.chars().all(char::is_alphanumeric));
