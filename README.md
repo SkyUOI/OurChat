@@ -18,9 +18,21 @@
 
 OurChat is a chat application for Linux, Windows and macOS. It supports all platforms through flutter.
 
-The server is written in rust.Because of rust,it has a good performance.
-
 The project is under rapid development and there is also a lot of work to be done. It can not be used directly by now.
+
+In the past year of 2024, we have accomplished many outstanding tasks, and it is delightful that developers have devoted so much passion to this project in their spare time. Every developer deserves gratitude.
+
+## Plan
+
+Provide a lightweight chat software that can easily run on devices like Raspberry Pi, allowing you to set up your own chat server for your company, family, etc. At the same time, it has the potential to scale up to a high-performance server capable of accommodating millions of users.
+
+Freedom and openness are the principles of our design, and you will experience much more freedom than other chat software.
+
+End-to-end encryption and other security guarantees make OurChat a service you can trust, and we absolutely protect your privacy!
+
+## Build from source
+
+Refer to [Build Document](https://ourchat.readthedocs.io/en/latest/docs/run/build.html)
 
 ## [Documentation](https://ourchat.readthedocs.io/en/latest/)
 
