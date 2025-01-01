@@ -1,4 +1,3 @@
-use super::UserInfo;
 use crate::{
     DbPool,
     component::EmailSender,
@@ -23,7 +22,7 @@ async fn add_new_user(
     request: RegisterRequest,
     db_connection: &DbPool,
     params: Params,
-) -> Result<(RegisterResponse, UserInfo), RegisterError> {
+) -> Result<RegisterResponse, RegisterError> {
     // Generate snowflake id
     let id = ID(utils::GENERATOR
         .generate()
@@ -56,10 +55,7 @@ async fn add_new_user(
                 token: generate_access_token(id),
                 ocid: res.ocid.clone(),
             };
-            Ok((response, UserInfo {
-                ocid: res.ocid,
-                id: res.id.into(),
-            }))
+            Ok(response)
         }
         Err(e) => {
             if db::helper::is_conflict(&e) {
@@ -97,7 +93,7 @@ async fn register_impl(
     request: Request<RegisterRequest>,
 ) -> Result<RegisterResponse, RegisterError> {
     let password_hash = &server.shared_data.cfg.main_cfg.password_hash;
-    let (response, user_info) = add_new_user(
+    let response = add_new_user(
         request.into_inner(),
         &server.db,
         Params::new(

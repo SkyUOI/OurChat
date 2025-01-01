@@ -18,9 +18,13 @@ enum QueryValues {
   QUERY_VALUES_UPDATED_TIME = 5;
   // The members of the session
   QUERY_VALUES_MEMBERS = 6;
-  // The session owner's ocid
-  QUERY_VALUES_OWNER_ID = 7;
+  QUERY_VALUES_ROLES = 7;
   QUERY_VALUES_SIZE = 8;
+}
+
+message RoleInfo {
+  uint64 role = 1;
+  uint64 user_id = 2;
 }
 
 message GetSessionInfoRequest {
@@ -35,5 +39,6 @@ message GetSessionInfoResponse {
   optional google.protobuf.Timestamp created_time = 4;
   optional google.protobuf.Timestamp updated_time = 5;
   repeated uint64 members = 6;
+  repeated RoleInfo roles = 7;
   optional uint64 size = 8;
 }

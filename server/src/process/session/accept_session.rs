@@ -11,8 +11,10 @@ enum AcceptSessionError {
 }
 
 async fn accept_impl(
-    server: &RpcServer<impl EmailSender>,
+    _server: &RpcServer<impl EmailSender>,
+    _request: tonic::Request<AcceptSessionRequest>,
 ) -> Result<AcceptSessionResponse, AcceptSessionError> {
+    // TODO:check if the time is expired
     Ok(AcceptSessionResponse {})
 }
 
@@ -20,6 +22,18 @@ pub async fn accept_session(
     server: &RpcServer<impl EmailSender>,
     request: tonic::Request<AcceptSessionRequest>,
 ) -> Result<Response<AcceptSessionResponse>, tonic::Status> {
-    // check if the time is expired
-    Ok(Response::new(AcceptSessionResponse {}))
+    match accept_impl(server, request).await {
+        Ok(d) => Ok(Response::new(d)),
+        Err(e) => {
+            match e {
+                AcceptSessionError::DbError(db_err) => {
+                    tracing::error!("{}", db_err);
+                }
+                AcceptSessionError::UnknownError(error) => {
+                    tracing::error!("{}", error);
+                }
+            }
+            Err(tonic::Status::internal("Server Error"))
+        }
+    }
 }

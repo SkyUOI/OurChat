@@ -519,7 +519,7 @@ pub fn get_configuration(config_path: Vec<impl Into<PathBuf>>) -> anyhow::Result
     Cfg::new(main_cfg)
 }
 
-pub async fn register_service(cfg: &RegistryCfg) -> anyhow::Result<()> {
+pub async fn register_service(_cfg: &RegistryCfg) -> anyhow::Result<()> {
     Ok(())
 }
 

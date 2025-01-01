@@ -134,7 +134,7 @@ enum RolePermissions {
 }
 
 #[derive(num_enum::TryFromPrimitive, num_enum::IntoPrimitive)]
-#[repr(u32)]
+#[repr(u64)]
 pub enum PreDefinedPermissions {
     SendMsg = 1,
     RecallMsg = 2,
@@ -149,7 +149,7 @@ pub enum PreDefinedPermissions {
 }
 
 #[derive(num_enum::TryFromPrimitive, num_enum::IntoPrimitive)]
-#[repr(u32)]
+#[repr(u64)]
 pub enum PreDefinedRoles {
     Member = 1,
     Admin = 2,

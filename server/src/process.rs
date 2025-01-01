@@ -17,7 +17,7 @@ use jsonwebtoken::DecodingKey;
 use jsonwebtoken::EncodingKey;
 use jsonwebtoken::Validation;
 use sea_orm::ColumnTrait;
-use sea_orm::DatabaseConnection;
+use sea_orm::ConnectionTrait;
 use sea_orm::EntityTrait;
 use sea_orm::QueryFilter;
 use serde::Deserialize;
@@ -107,12 +107,7 @@ pub fn get_id_from_req<T>(req: &Request<T>) -> Option<ID> {
         .map(|id| ID(id.to_str().unwrap().parse::<u64>().unwrap()))
 }
 
-struct UserInfo {
-    id: ID,
-    ocid: String,
-}
-
-async fn get_requests(id: ID, db_conn: &DatabaseConnection) -> anyhow::Result<Vec<String>> {
+async fn _get_requests(id: ID, db_conn: &impl ConnectionTrait) -> anyhow::Result<Vec<String>> {
     let id: u64 = id.into();
     let stored_requests = Operations::find()
         .filter(operations::Column::UserId.eq(id))

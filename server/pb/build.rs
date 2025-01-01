@@ -8,6 +8,7 @@ fn main() -> anyhow::Result<()> {
             "service.ourchat.msg_delivery.v1.OneMsg.data",
             "#[derive(serde::Serialize, serde::Deserialize)]",
         )
+        .out_dir("./src/generated/")
         .compile_protos(
             &[
                 "../../service/ourchat/v1/ourchat.proto",

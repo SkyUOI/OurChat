@@ -1,5 +1,6 @@
 use crate::{component::EmailSender, db, server::RpcServer};
 use base::time::to_google_timestamp;
+use pb::ourchat::session::get_session_info::v1::RoleInfo;
 use pb::ourchat::session::get_session_info::v1::{
     GetSessionInfoRequest, GetSessionInfoResponse, QueryValues,
 };
@@ -90,7 +91,17 @@ async fn get_session_info_impl(
                     .map(|i| i.user_id as u64)
                     .collect();
             }
-            QueryValues::OwnerId => todo!(),
+            QueryValues::Roles => {
+                let all_users =
+                    db::session::get_all_roles_of_session(session_id, &server.db.db_pool).await?;
+                res.roles = all_users
+                    .into_iter()
+                    .map(|i| RoleInfo {
+                        user_id: i.user_id as u64,
+                        role: i.role_id as u64,
+                    })
+                    .collect();
+            }
             QueryValues::Size => {
                 res.size = Some(session_data.size as u64);
             }

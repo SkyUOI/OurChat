@@ -1,7 +1,7 @@
 pub mod v1 {
     use upload_request::Data;
 
-    tonic::include_proto!("service.ourchat.upload.v1");
+    include!("../generated/service.ourchat.upload.v1.rs");
 
     impl UploadRequest {
         pub fn header(self) -> Option<Header> {

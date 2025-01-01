@@ -103,7 +103,7 @@ async fn new_session_impl(
     let id = get_id_from_req(&req).unwrap();
     let ocid = match get_ocid(id, &server.db).await {
         Ok(ocid) => ocid,
-        Err(e) => {
+        Err(_) => {
             return Err(SessionError::UserNotFound);
         }
     };
@@ -184,7 +184,7 @@ pub async fn send_verification_request(
     let request = InviteSession::new(expiresat.into(), session_id, sender, message);
     // try to find connected client
     match shared_data.connected_clients.get(&invitee) {
-        Some(client) => {
+        Some(_client) => {
             // client.send(request.to_msg()).await?;
             return Ok(());
         }

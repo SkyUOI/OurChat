@@ -1,4 +1,4 @@
-use super::{UserInfo, generate_access_token};
+use super::generate_access_token;
 use crate::{
     DbPool, component::EmailSender, db::helper::is_conflict, server::AuthServiceProvider, utils,
 };
@@ -29,10 +29,7 @@ enum AuthError {
 /// together with the user info.
 ///
 /// Errors if the user is not found, the password is wrong, or any database error occurs.
-async fn auth_db(
-    request: AuthRequest,
-    db_connection: &DbPool,
-) -> Result<(AuthResponse, UserInfo), AuthError> {
+async fn auth_db(request: AuthRequest, db_connection: &DbPool) -> Result<AuthResponse, AuthError> {
     // Judge login type
     let login_type = match request.account {
         None => {
@@ -67,17 +64,11 @@ async fn auth_db(
                 {
                     let token = generate_access_token(user.id.into());
 
-                    Ok((
-                        AuthResponse {
-                            id: user.id as u64,
-                            token,
-                            ocid: user.ocid.clone(),
-                        },
-                        UserInfo {
-                            ocid: user.ocid,
-                            id: user.id.into(),
-                        },
-                    ))
+                    Ok(AuthResponse {
+                        id: user.id as u64,
+                        token,
+                        ocid: user.ocid.clone(),
+                    })
                 } else {
                     Err(AuthError::WrongPassword)
                 }
@@ -99,7 +90,7 @@ pub async fn auth(
     request: tonic::Request<AuthRequest>,
 ) -> Result<Response<AuthResponse>, Status> {
     match auth_db(request.into_inner(), &server.db).await {
-        Ok(ok_resp) => Ok(Response::new(ok_resp.0)),
+        Ok(ok_resp) => Ok(Response::new(ok_resp)),
         Err(e) => Err(match e {
             AuthError::WrongPassword => Status::unauthenticated(e.to_string()),
             AuthError::MissingAuthType => Status::invalid_argument(e.to_string()),

@@ -555,8 +555,8 @@ impl TestApp {
 
     pub async fn new_session(
         &mut self,
-        n: usize,
-        name: impl Into<String>,
+        _n: usize,
+        _name: impl Into<String>,
     ) -> anyhow::Result<(Vec<TestUserShared>, TestSession)> {
         todo!()
     }
