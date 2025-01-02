@@ -1,6 +1,6 @@
 use sea_orm_migration::{prelude::*, schema::*};
 
-use crate::m20220101_000001_create_table::User;
+use crate::m20220101_000001_create_table::Session;
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -11,8 +11,8 @@ impl MigrationTrait for Migration {
         manager
             .alter_table(
                 Table::alter()
-                    .table(User::Table)
-                    .add_column(string_null(User::Status))
+                    .table(Session::Table)
+                    .add_column(string(Session::Description))
                     .to_owned(),
             )
             .await?;
@@ -23,8 +23,8 @@ impl MigrationTrait for Migration {
         manager
             .alter_table(
                 Table::alter()
-                    .table(User::Table)
-                    .drop_column(User::Status)
+                    .table(Session::Table)
+                    .drop_column(Session::Description)
                     .to_owned(),
             )
             .await?;

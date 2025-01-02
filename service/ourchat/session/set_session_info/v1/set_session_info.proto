@@ -2,6 +2,10 @@ syntax = "proto3";
 
 package service.ourchat.session.set_session_info.v1;
 
-message SetSessionInfoRequest {}
+message SetSessionInfoRequest {
+  optional string name = 1;
+  optional string description = 2;
+  optional string avatar_key = 3;
+}
 
 message SetSessionInfoResponse {}

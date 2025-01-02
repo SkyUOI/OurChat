@@ -191,6 +191,7 @@ pub enum Session {
     AvatarKey,
     CreatedTime,
     UpdatedTime,
+    Description,
 }
 
 #[derive(DeriveIden)]
