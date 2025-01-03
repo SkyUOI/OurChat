@@ -16,15 +16,11 @@ pub async fn get_session_info(
         Ok(d) => Ok(Response::new(d)),
         Err(e) => {
             let status = match e {
-                GetSessionErr::Db(e) => {
-                    tracing::error!("Database error: {}", e);
-                    Status::internal(e.to_string())
+                GetSessionErr::Db(_) | GetSessionErr::Internal(_) => {
+                    tracing::error!("{}", e);
+                    Status::internal("Server Error")
                 }
                 GetSessionErr::Status(s) => s,
-                GetSessionErr::Internal(e) => {
-                    tracing::error!("Internal error: {}", e);
-                    Status::internal(e.to_string())
-                }
             };
             Err(status)
         }
@@ -33,11 +29,11 @@ pub async fn get_session_info(
 
 #[derive(Debug, thiserror::Error)]
 enum GetSessionErr {
-    #[error("database error:{0}")]
+    #[error("database error:{0:?}")]
     Db(#[from] sea_orm::DbErr),
-    #[error("status error:{0}")]
+    #[error("status error:{0:?}")]
     Status(#[from] tonic::Status),
-    #[error("internal error:{0}")]
+    #[error("internal error:{0:?}")]
     Internal(#[from] anyhow::Error),
 }
 

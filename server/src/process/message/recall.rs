@@ -14,12 +14,8 @@ pub async fn recall_msg(
     match recall_msg_internal(server, request).await {
         Ok(res) => Ok(Response::new(res)),
         Err(e) => Err(match e {
-            RecallErr::Db(db_err) => {
-                tracing::error!("{:?}", db_err);
-                Status::internal("Server Error")
-            }
-            RecallErr::Unknown(error) => {
-                tracing::error!("{:?}", error);
+            RecallErr::Db(_) | RecallErr::Unknown(_) => {
+                tracing::error!("{}", e);
                 Status::internal("Server Error")
             }
             RecallErr::Status(status) => status,
@@ -29,11 +25,11 @@ pub async fn recall_msg(
 
 #[derive(Debug, thiserror::Error)]
 enum RecallErr {
-    #[error("database error:{0}")]
+    #[error("database error:{0:?}")]
     Db(#[from] sea_orm::DbErr),
-    #[error("unknown error:{0}")]
+    #[error("unknown error:{0:?}")]
     Unknown(#[from] anyhow::Error),
-    #[error("status:{0}")]
+    #[error("status:{0:?}")]
     Status(#[from] tonic::Status),
 }
 

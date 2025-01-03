@@ -19,9 +19,8 @@ pub async fn get_all_session_relations(
     user_id: ID,
     db_conn: &impl ConnectionTrait,
 ) -> Result<Vec<session_relation::Model>, sea_orm::DbErr> {
-    let id: u64 = user_id.into();
     let ret = session_relation::Entity::find()
-        .filter(session_relation::Column::UserId.eq(id))
+        .filter(session_relation::Column::UserId.eq(user_id))
         .all(db_conn)
         .await?;
     Ok(ret)
@@ -43,9 +42,8 @@ pub async fn get_members(
     session_id: SessionID,
     db_conn: &impl ConnectionTrait,
 ) -> Result<Vec<session_relation::Model>, sea_orm::DbErr> {
-    let id: u64 = session_id.into();
     let users = session_relation::Entity::find()
-        .filter(session_relation::Column::SessionId.eq(id))
+        .filter(session_relation::Column::SessionId.eq(session_id))
         .all(db_conn)
         .await?;
     Ok(users)
@@ -69,9 +67,8 @@ pub async fn query_session_role(
     role: u64,
     db_conn: &impl ConnectionTrait,
 ) -> Result<Vec<user_role_relation::Model>, sea_orm::DbErr> {
-    let id: u64 = session_id.into();
     let ret = user_role_relation::Entity::find()
-        .filter(user_role_relation::Column::SessionId.eq(id))
+        .filter(user_role_relation::Column::SessionId.eq(session_id))
         .filter(user_role_relation::Column::RoleId.eq(role))
         .all(db_conn)
         .await?;
@@ -94,9 +91,8 @@ pub async fn get_all_roles_of_session(
     session_id: SessionID,
     db_conn: &impl ConnectionTrait,
 ) -> Result<Vec<user_role_relation::Model>, sea_orm::DbErr> {
-    let id: u64 = session_id.into();
     let ret = user_role_relation::Entity::find()
-        .filter(user_role_relation::Column::SessionId.eq(id))
+        .filter(user_role_relation::Column::SessionId.eq(session_id))
         .all(db_conn)
         .await?;
     Ok(ret)

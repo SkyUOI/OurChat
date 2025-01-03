@@ -1,4 +1,44 @@
 //! Functions process the requests from clients
+//!
+//! For grpc development, a template of unary calling is provided as follow:
+//! ```ignore
+//! use crate::{component::EmailSender, server::RpcServer};
+//! use pb::ourchat::session::set_role::v1::{SetRoleRequest, SetRoleResponse};
+//! use tonic::{Request, Response, Status};
+//!
+//! pub async fn set_role(
+//!     server: &RpcServer<impl EmailSender>,
+//!     request: Request<SetRoleRequest>,
+//! ) -> Result<Response<SetRoleResponse>, Status> {
+//!     match set_role_impl(server, request).await {
+//!         Ok(res) => Ok(Response::new(res)),
+//!         Err(e) => match e {
+//!             SetRoleErr::Db(_) | SetRoleErr::Internal(_) => {
+//!                 tracing::error!("{}", e);
+//!                 Err(Status::internal("Server Error"))
+//!             }
+//!             SetRoleErr::Status(status) => Err(status),
+//!         },
+//!     }
+//! }
+//!
+//! #[derive(thiserror::Error, Debug)]
+//! enum SetRoleErr {
+//!     #[error("database error:{0:?}")]
+//!     Db(#[from] sea_orm::DbErr),
+//!     #[error("status error:{0:?}")]
+//!     Status(#[from] tonic::Status),
+//!     #[error("internal error:{0:?}")]
+//!     Internal(#[from] anyhow::Error),
+//! }
+//!
+//! async fn set_role_impl(
+//!     server: &RpcServer<impl EmailSender>,
+//!     request: Request<SetRoleRequest>,
+//! ) -> Result<SetRoleResponse, SetRoleErr> {
+//!     todo!()
+//! }
+//! ```
 
 pub mod auth;
 pub mod basic;
@@ -29,7 +69,7 @@ pub use download::download;
 pub use message::{fetch_user_msg::fetch_user_msg, recall::recall_msg, send_msg::send_msg};
 pub use session::{
     accept_session::accept_session, get_session_info::get_session_info, new_session::new_session,
-    set_session_info::set_session_info,
+    set_role::set_role, set_session_info::set_session_info,
 };
 pub use set_account_info::set_account_info;
 pub use set_friend_info::set_friend_info;
@@ -108,7 +148,6 @@ pub fn get_id_from_req<T>(req: &Request<T>) -> Option<ID> {
 }
 
 async fn _get_requests(id: ID, db_conn: &impl ConnectionTrait) -> anyhow::Result<Vec<String>> {
-    let id: u64 = id.into();
     let stored_requests = Operations::find()
         .filter(operations::Column::UserId.eq(id))
         .all(db_conn)

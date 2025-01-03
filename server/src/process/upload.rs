@@ -113,15 +113,15 @@ pub async fn clean_files(
 pub enum UploadError {
     #[error("Metadata error")]
     MetaDataError,
-    #[error("unknown error:{0}")]
+    #[error("unknown error:{0:?}")]
     Unknown(#[from] anyhow::Error),
-    #[error("status:{0}")]
+    #[error("status:{0:?}")]
     StatusError(#[from] Status),
-    #[error("database error:{0}")]
+    #[error("database error:{0:?}")]
     DbError(#[from] sea_orm::DbErr),
     #[error("from int error")]
     FromIntError(#[from] TryFromIntError),
-    #[error("Internal IO error")]
+    #[error("Internal IO error:{0:?}")]
     InternalIOError(#[from] std::io::Error),
     #[error("wrong structure")]
     WrongStructure,
@@ -210,15 +210,18 @@ pub async fn upload<T: EmailSender>(
             tracing::error!("{}", e);
             match e {
                 UploadError::MetaDataError => Err(Status::invalid_argument("Metadata error")),
-                UploadError::Unknown(_) => Err(Status::internal("Unknown error")),
+                UploadError::Unknown(_)
+                | UploadError::DbError(_)
+                | UploadError::FromIntError(_)
+                | UploadError::InternalIOError(_)
+                | UploadError::InvalidPathError => {
+                    tracing::error!("{}", e);
+                    Err(Status::internal("Server Error"))
+                }
                 UploadError::StatusError(e) => Err(e),
-                UploadError::DbError(_) => Err(Status::internal("Database error")),
-                UploadError::FromIntError(_) => Err(Status::internal("Server Error")),
-                UploadError::InternalIOError(_) => Err(Status::internal("Internal IO error")),
                 UploadError::WrongStructure => Err(Status::invalid_argument("Wrong structure")),
                 UploadError::FileSizeError => Err(Status::invalid_argument("File size error")),
                 UploadError::FileHashError => Err(Status::invalid_argument("File hash error")),
-                UploadError::InvalidPathError => Err(Status::internal("Server error")),
                 UploadError::UserNotFound => Err(Status::not_found("User not found")),
                 UploadError::FileSizeOverflow => {
                     Err(Status::resource_exhausted("File size overflow"))

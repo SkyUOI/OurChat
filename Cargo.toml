@@ -157,7 +157,7 @@ features = ["rt_tokio_1"]
 [workspace.dependencies.chrono]
 version = "0"
 default-features = false
-features = ["serde"]
+features = ["serde", "now"]
 
 [workspace.dependencies.tokio-stream]
 version = "0"

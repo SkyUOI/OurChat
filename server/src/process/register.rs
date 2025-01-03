@@ -70,9 +70,9 @@ async fn add_new_user(
 enum RegisterError {
     #[error("User exists")]
     UserExists,
-    #[error("database error:{0}")]
+    #[error("database error:{0:?}")]
     DbError(#[from] DbErr),
-    #[error("unknown error:{0}")]
+    #[error("unknown error:{0:?}")]
     UnknownError(#[from] anyhow::Error),
     #[error("from int error")]
     FromIntError(#[from] TryFromIntError),
@@ -114,18 +114,14 @@ pub async fn register<T: EmailSender>(
 ) -> Result<Response<RegisterResponse>, Status> {
     match register_impl(server, request).await {
         Ok(ok_resp) => Ok(Response::new(ok_resp)),
-        Err(RegisterError::DbError(e)) => {
-            error!("{}", e);
-            Err(Status::internal("Database error"))
-        }
-        Err(RegisterError::UserExists) => Err(Status::already_exists("User exists")),
-        Err(RegisterError::UnknownError(e)) => {
-            error!("{}", e);
-            Err(Status::internal("Unknown error"))
-        }
-        Err(RegisterError::FromIntError(e)) => {
-            error!("{}", e);
-            Err(Status::internal("Unknown error"))
-        }
+        Err(e) => match e {
+            RegisterError::UserExists => Err(Status::already_exists("User exists")),
+            RegisterError::DbError(_)
+            | RegisterError::UnknownError(_)
+            | RegisterError::FromIntError(_) => {
+                error!("{}", e);
+                Err(Status::internal("Server Error"))
+            }
+        },
     }
 }

@@ -27,15 +27,13 @@ pub async fn send_msg(
         Ok(msg_id) => Ok(Response::new(SendMsgResponse {
             msg_id: msg_id.into(),
         })),
-        Err(MsgError::DbError(e)) => {
-            tracing::error!("Database error:{e}");
-            Err(Status::internal("database error"))
-        }
-        Err(MsgError::UnknownError(e)) => {
-            tracing::error!("Unknown error:{e}");
-            Err(Status::internal("unknown error"))
-        }
-        Err(MsgError::WithoutPrivilege) => Err(Status::permission_denied("Don't have privilege")),
-        Err(MsgError::NotFound) => Err(Status::not_found("session not found")),
+        Err(e) => match &e {
+            MsgError::DbError(_) | MsgError::UnknownError(_) => {
+                tracing::error!("{}", e);
+                Err(Status::internal("Server Error"))
+            }
+            MsgError::WithoutPrivilege => Err(Status::permission_denied("Don't have privilege")),
+            MsgError::NotFound => Err(Status::not_found("session not found")),
+        },
     }
 }

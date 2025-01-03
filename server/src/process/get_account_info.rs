@@ -22,13 +22,13 @@ enum Privilege {
 
 #[derive(Debug, thiserror::Error)]
 enum GetInfoError {
-    #[error("database error:{0}")]
+    #[error("database error:{0:?}")]
     DbError(#[from] sea_orm::DbErr),
     #[error("not found")]
     NotFound,
-    #[error("status error:{0}")]
+    #[error("status error:{0:?}")]
     StatusError(#[from] tonic::Status),
-    #[error("internal error:{0}")]
+    #[error("internal error:{0:?}")]
     InternalError(#[from] anyhow::Error),
 }
 
@@ -144,16 +144,12 @@ pub async fn get_info<T: EmailSender>(
     match get_info_impl(server, request).await {
         Ok(d) => Ok(tonic::Response::new(d)),
         Err(e) => match e {
-            GetInfoError::DbError(db_err) => {
-                tracing::error!("{}", db_err);
+            GetInfoError::DbError(_) | GetInfoError::InternalError(_) => {
+                tracing::error!("{}", e);
                 Err(tonic::Status::internal("Server error"))
             }
             GetInfoError::NotFound => Err(tonic::Status::not_found("User not found")),
             GetInfoError::StatusError(status) => Err(status),
-            GetInfoError::InternalError(error) => {
-                tracing::error!("{}", error);
-                Err(tonic::Status::internal("Server error"))
-            }
         },
     }
 }

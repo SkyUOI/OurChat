@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package service.ourchat.session.set_role.v1;
+
+message SetRoleRequest {
+  uint64 session_id = 1;
+  uint64 role_id = 2;
+}
+
+message SetRoleResponse {}

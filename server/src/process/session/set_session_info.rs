@@ -14,15 +14,11 @@ pub async fn set_session_info(
         Ok(d) => Ok(Response::new(d)),
         Err(e) => {
             let status = match e {
-                SetSessionErr::Db(e) => {
-                    tracing::error!("Database error: {}", e);
-                    Status::internal(e.to_string())
+                SetSessionErr::Db(_) | SetSessionErr::Internal(_) => {
+                    tracing::error!("{}", e);
+                    Status::internal("Server Error")
                 }
                 SetSessionErr::Status(s) => s,
-                SetSessionErr::Internal(e) => {
-                    tracing::error!("Internal error: {}", e);
-                    Status::internal(e.to_string())
-                }
                 SetSessionErr::Conflic => Status::already_exists("Conflict"),
             };
             Err(status)
@@ -47,7 +43,6 @@ async fn set_session_info_impl(
     request: Request<SetSessionInfoRequest>,
 ) -> Result<SetSessionInfoResponse, SetSessionErr> {
     let id = get_id_from_req(&request).unwrap();
-    let id_u64: u64 = id.into();
     let request = request.into_inner();
     let res = SetSessionInfoResponse {};
     let mut model = entities::session::ActiveModel {
@@ -56,7 +51,7 @@ async fn set_session_info_impl(
     // check the privilege
     // get all roles first
     let roles = user_role_relation::Entity::find()
-        .filter(user_role_relation::Column::UserId.eq(id_u64))
+        .filter(user_role_relation::Column::UserId.eq(id))
         .all(&server.db.db_pool)
         .await?;
     let mut permissions_map = HashSet::new();

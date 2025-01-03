@@ -9,9 +9,9 @@ use crate::consts::{ID, MsgID};
 
 #[derive(Debug, thiserror::Error)]
 pub enum MsgError {
-    #[error("database error")]
+    #[error("database error:{0:?}")]
     DbError(#[from] sea_orm::DbErr),
-    #[error("unknown error")]
+    #[error("unknown error:{0:?}")]
     UnknownError(#[from] anyhow::Error),
     #[error("Don't have privilege")]
     WithoutPrivilege,
@@ -34,7 +34,6 @@ pub async fn get_session_msgs<T: ConnectionTrait>(
     db_conn: &T,
     page_size: u64,
 ) -> Result<Paginator<'_, T, sea_orm::SelectModel<user_chat_msg::Model>>, MsgError> {
-    let user_id: u64 = user_id.into();
     let msgs = user_chat_msg::Entity::find()
             .from_raw_sql(Statement::from_sql_and_values(
                 DatabaseBackend::Postgres,

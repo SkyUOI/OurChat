@@ -48,9 +48,9 @@ impl InviteSession {
 pub enum SessionError {
     #[error("user not found")]
     UserNotFound,
-    #[error("database error")]
+    #[error("database error:{0:?}")]
     DbError(#[from] sea_orm::DbErr),
-    #[error("unknown error")]
+    #[error("unknown error:{0:?}")]
     UnknownError(#[from] anyhow::Error),
 }
 
@@ -80,8 +80,6 @@ pub async fn whether_to_verify(
     invitee: ID,
     db_conn: &DbPool,
 ) -> Result<bool, SessionError> {
-    let sender: u64 = sender.into();
-    let invitee: u64 = invitee.into();
     let friend = Friend::find()
         .filter(friend::Column::UserId.eq(sender))
         .filter(friend::Column::FriendId.eq(invitee))
@@ -159,15 +157,13 @@ pub async fn new_session(
 ) -> Result<Response<NewSessionResponse>, tonic::Status> {
     match new_session_impl(server, req).await {
         Ok(res) => Ok(Response::new(res)),
-        Err(SessionError::UserNotFound) => Err(tonic::Status::not_found("User not found")),
-        Err(SessionError::DbError(e)) => {
-            error!("{}", e);
-            Err(tonic::Status::internal("Database error"))
-        }
-        Err(SessionError::UnknownError(e)) => {
-            error!("{}", e);
-            Err(tonic::Status::internal("Unknown error"))
-        }
+        Err(e) => match e {
+            SessionError::UserNotFound => Err(tonic::Status::not_found("User not found")),
+            SessionError::DbError(_) | SessionError::UnknownError(_) => {
+                error!("{}", e);
+                Err(tonic::Status::internal("Server Error"))
+            }
+        },
     }
 }
 

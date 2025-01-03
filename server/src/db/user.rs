@@ -25,7 +25,6 @@ pub async fn get_friends(
     id: ID,
     db_conn: &impl ConnectionTrait,
 ) -> anyhow::Result<Vec<friend::Model>> {
-    let id: u64 = id.into();
     let friends = Friend::find()
         .filter(friend::Column::UserId.eq(id))
         .all(db_conn)
@@ -43,8 +42,6 @@ pub async fn get_one_friend(
     friend_id: ID,
     db_conn: &impl ConnectionTrait,
 ) -> anyhow::Result<Option<friend::Model>> {
-    let id: u64 = id.into();
-    let friend_id: u64 = friend_id.into();
     let friend = Friend::find()
         .filter(friend::Column::UserId.eq(id))
         .filter(friend::Column::FriendId.eq(friend_id))

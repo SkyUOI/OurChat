@@ -17,9 +17,9 @@ enum AuthError {
     WrongPassword,
     #[error("missing auth type")]
     MissingAuthType,
-    #[error("db error:{0}")]
+    #[error("db error:{0:?}")]
     DbError(#[from] DbErr),
-    #[error("Unknown Error:{0}")]
+    #[error("Unknown Error:{0:?}")]
     UnknownError(#[from] anyhow::Error),
 }
 

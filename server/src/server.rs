@@ -25,6 +25,7 @@ use pb::ourchat::msg_delivery::v1::{
 use pb::ourchat::session::accept_session::v1::{AcceptSessionRequest, AcceptSessionResponse};
 use pb::ourchat::session::get_session_info::v1::{GetSessionInfoRequest, GetSessionInfoResponse};
 use pb::ourchat::session::new_session::v1::{NewSessionRequest, NewSessionResponse};
+use pb::ourchat::session::set_role::v1::{SetRoleRequest, SetRoleResponse};
 use pb::ourchat::session::set_session_info::v1::{SetSessionInfoRequest, SetSessionInfoResponse};
 use pb::ourchat::set_account_info::v1::{
     SetFriendInfoRequest, SetFriendInfoResponse, SetSelfInfoRequest, SetSelfInfoResponse,
@@ -215,6 +216,14 @@ impl<T: EmailSender> OurChatService for RpcServer<T> {
         request: Request<RecallMsgRequest>,
     ) -> Result<Response<RecallMsgResponse>, Status> {
         process::recall_msg(self, request).await
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn set_role(
+        &self,
+        request: Request<SetRoleRequest>,
+    ) -> Result<Response<SetRoleResponse>, Status> {
+        process::set_role(self, request).await
     }
 }
 

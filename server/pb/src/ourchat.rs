@@ -42,6 +42,12 @@ pub mod session {
             include!("./generated/service.ourchat.session.set_session_info.v1.rs");
         }
     }
+
+    pub mod set_role {
+        pub mod v1 {
+            include!("./generated/service.ourchat.session.set_role.v1.rs");
+        }
+    }
 }
 
 pub mod set_account_info {

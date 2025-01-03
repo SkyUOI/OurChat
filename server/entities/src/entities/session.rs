@@ -13,16 +13,31 @@ pub struct Model {
     pub updated_time: DateTimeWithTimeZone,
     pub created_time: DateTimeWithTimeZone,
     pub description: String,
+    pub default_role: i64,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+    #[sea_orm(
+        belongs_to = "super::role::Entity",
+        from = "Column::DefaultRole",
+        to = "super::role::Column::Id",
+        on_update = "Cascade",
+        on_delete = "Cascade"
+    )]
+    Role,
     #[sea_orm(has_many = "super::session_relation::Entity")]
     SessionRelation,
     #[sea_orm(has_many = "super::user_chat_msg::Entity")]
     UserChatMsg,
     #[sea_orm(has_many = "super::user_role_relation::Entity")]
     UserRoleRelation,
+}
+
+impl Related<super::role::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Role.def()
+    }
 }
 
 impl Related<super::session_relation::Entity> for Entity {

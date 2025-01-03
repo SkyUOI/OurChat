@@ -4,9 +4,9 @@ use tonic::Response;
 
 #[derive(Debug, thiserror::Error)]
 enum AcceptSessionError {
-    #[error("database error:{0}")]
+    #[error("database error:{0:?}")]
     DbError(#[from] sea_orm::DbErr),
-    #[error("unknown error:{0}")]
+    #[error("unknown error:{0:?}")]
     UnknownError(#[from] anyhow::Error),
 }
 
@@ -24,16 +24,11 @@ pub async fn accept_session(
 ) -> Result<Response<AcceptSessionResponse>, tonic::Status> {
     match accept_impl(server, request).await {
         Ok(d) => Ok(Response::new(d)),
-        Err(e) => {
-            match e {
-                AcceptSessionError::DbError(db_err) => {
-                    tracing::error!("{}", db_err);
-                }
-                AcceptSessionError::UnknownError(error) => {
-                    tracing::error!("{}", error);
-                }
+        Err(e) => match e {
+            AcceptSessionError::DbError(_) | AcceptSessionError::UnknownError(_) => {
+                tracing::error!("{}", e);
+                Err(tonic::Status::internal("Server Error"))
             }
-            Err(tonic::Status::internal("Server Error"))
-        }
+        },
     }
 }

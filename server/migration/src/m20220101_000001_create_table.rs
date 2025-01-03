@@ -44,12 +44,16 @@ impl MigrationTrait for Migration {
                     .foreign_key(
                         ForeignKey::create()
                             .from(Friend::Table, Friend::FriendId)
-                            .to(User::Table, User::Id),
+                            .to(User::Table, User::Id)
+                            .on_update(ForeignKeyAction::Cascade)
+                            .on_delete(ForeignKeyAction::Cascade),
                     )
                     .foreign_key(
                         ForeignKey::create()
                             .from(Friend::Table, Friend::UserId)
-                            .to(User::Table, User::Id),
+                            .to(User::Table, User::Id)
+                            .on_update(ForeignKeyAction::Cascade)
+                            .on_delete(ForeignKeyAction::Cascade),
                     )
                     .primary_key(Index::create().col(Friend::UserId).col(Friend::FriendId))
                     .to_owned(),
@@ -78,12 +82,16 @@ impl MigrationTrait for Migration {
                     .foreign_key(
                         ForeignKey::create()
                             .from(SessionRelation::Table, SessionRelation::UserId)
-                            .to(User::Table, User::Id),
+                            .to(User::Table, User::Id)
+                            .on_update(ForeignKeyAction::Cascade)
+                            .on_delete(ForeignKeyAction::Cascade),
                     )
                     .foreign_key(
                         ForeignKey::create()
                             .from(SessionRelation::Table, SessionRelation::SessionId)
-                            .to(Session::Table, Session::SessionId),
+                            .to(Session::Table, Session::SessionId)
+                            .on_update(ForeignKeyAction::Cascade)
+                            .on_delete(ForeignKeyAction::Cascade),
                     )
                     .primary_key(
                         Index::create()
@@ -113,12 +121,16 @@ impl MigrationTrait for Migration {
                     .foreign_key(
                         ForeignKey::create()
                             .from(UserChatMsg::Table, UserChatMsg::SenderId)
-                            .to(User::Table, User::Id),
+                            .to(User::Table, User::Id)
+                            .on_update(ForeignKeyAction::Cascade)
+                            .on_delete(ForeignKeyAction::Cascade),
                     )
                     .foreign_key(
                         ForeignKey::create()
                             .from(UserChatMsg::Table, UserChatMsg::SessionId)
-                            .to(Session::Table, Session::SessionId),
+                            .to(Session::Table, Session::SessionId)
+                            .on_update(ForeignKeyAction::Cascade)
+                            .on_delete(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),
             )
@@ -192,6 +204,7 @@ pub enum Session {
     CreatedTime,
     UpdatedTime,
     Description,
+    DefaultRole,
 }
 
 #[derive(DeriveIden)]

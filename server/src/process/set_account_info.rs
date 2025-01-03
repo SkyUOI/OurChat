@@ -20,28 +20,26 @@ pub async fn set_account_info<T: EmailSender>(
     let request_data = request.into_inner();
     match update_account(id, request_data, &server.db.db_pool).await {
         Ok(_) => {}
-        Err(SetError::Db(e)) => {
-            tracing::error!("Database error: {}", e);
-            return Err(Status::internal("Database error"));
-        }
-        Err(SetError::Unknown(e)) => {
-            tracing::error!("Unknown error: {}", e);
-            return Err(Status::internal("Unknown error"));
-        }
-        Err(SetError::Conflict) => {
-            return Err(Status::already_exists("Conflict"));
-        }
+        Err(e) => match e {
+            SetError::Db(_) | SetError::Unknown(_) => {
+                tracing::error!("{}", e);
+                return Err(Status::internal("Server Error"));
+            }
+            SetError::Conflict => {
+                return Err(Status::already_exists("Conflict"));
+            }
+        },
     }
     Ok(Response::new(SetSelfInfoResponse {}))
 }
 
 #[derive(Debug, thiserror::Error)]
 enum SetError {
-    #[error("db error")]
+    #[error("db error:{0:?}")]
     Db(#[from] DbErr),
     #[error("conflict")]
     Conflict,
-    #[error("unknown error")]
+    #[error("unknown error:{0:?}")]
     Unknown(#[from] anyhow::Error),
 }
 

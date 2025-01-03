@@ -326,9 +326,9 @@ static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
 ///
 /// If `test_mode` is `true`, it will always set the log level to "trace".
 /// Otherwise, it will read the log level from the environment variable
-/// specified by `LOG_ENV_VAR` and set it to "info" if not present.
+/// specified by [`crate::consts::LOG_ENV_VAR`] and set it to "info" if not present.
 /// The log will be written to a file in the directory specified by
-/// `LOG_OUTPUT_DIR` and the file name will be "test" if `test_mode` is
+/// [`crate::consts::LOG_OUTPUT_DIR`] and the file name will be "test" if `test_mode` is
 /// `true` and "ourchat" otherwise.
 /// If `debug_cfg` is `Some` and `debug_console` is `true`, it will also
 /// write the log to the console at the address specified by

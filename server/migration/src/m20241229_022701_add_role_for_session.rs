@@ -37,12 +37,16 @@ impl MigrationTrait for Migration {
                     .foreign_key(
                         ForeignKey::create()
                             .from(RolePermissions::Table, RolePermissions::RoleId)
-                            .to(Role::Table, Role::Id),
+                            .to(Role::Table, Role::Id)
+                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_update(ForeignKeyAction::Cascade),
                     )
                     .foreign_key(
                         ForeignKey::create()
                             .from(RolePermissions::Table, RolePermissions::PermissionId)
-                            .to(Permission::Table, Permission::Id),
+                            .to(Permission::Table, Permission::Id)
+                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_update(ForeignKeyAction::Cascade),
                     )
                     .primary_key(
                         Index::create()
@@ -63,17 +67,23 @@ impl MigrationTrait for Migration {
                     .foreign_key(
                         ForeignKey::create()
                             .from(UserRoleRelation::Table, UserRoleRelation::UserId)
-                            .to(User::Table, User::Id),
+                            .to(User::Table, User::Id)
+                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_update(ForeignKeyAction::Cascade),
                     )
                     .foreign_key(
                         ForeignKey::create()
                             .from(UserRoleRelation::Table, UserRoleRelation::RoleId)
-                            .to(Role::Table, Role::Id),
+                            .to(Role::Table, Role::Id)
+                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_update(ForeignKeyAction::Cascade),
                     )
                     .foreign_key(
                         ForeignKey::create()
                             .from(UserRoleRelation::Table, UserRoleRelation::SessionId)
-                            .to(Session::Table, Session::SessionId),
+                            .to(Session::Table, Session::SessionId)
+                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_update(ForeignKeyAction::Cascade),
                     )
                     .primary_key(
                         Index::create()
@@ -113,7 +123,7 @@ enum UserRoleRelation {
 }
 
 #[derive(DeriveIden)]
-enum Role {
+pub enum Role {
     Table,
     Id,
     Description,
@@ -154,6 +164,12 @@ pub enum PreDefinedRoles {
     Member = 1,
     Admin = 2,
     Owner = 3,
+}
+
+impl From<PreDefinedRoles> for sea_orm::Value {
+    fn from(value: PreDefinedRoles) -> Self {
+        sea_orm::Value::BigUnsigned(Some(value.into()))
+    }
 }
 
 async fn init_role_table(manager: &SchemaManager<'_>) -> Result<(), DbErr> {

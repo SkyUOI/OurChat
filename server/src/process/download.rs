@@ -18,13 +18,13 @@ use super::{Files, get_id_from_req};
 
 #[derive(Debug, thiserror::Error)]
 pub enum DownloadError {
-    #[error("unknown error:{0}")]
+    #[error("unknown error:{0:?}")]
     Unknown(#[from] anyhow::Error),
-    #[error("database error:{0}")]
+    #[error("database error:{0:?}")]
     DbError(#[from] sea_orm::DbErr),
     #[error("permission denied")]
     PermissionDenied,
-    #[error("Internal IO error")]
+    #[error("Internal IO error:{0:?}")]
     InternalIOError(#[from] std::io::Error),
 }
 
@@ -33,7 +33,6 @@ pub async fn check_file_privilege(
     key: &str,
     db_conn: &DatabaseConnection,
 ) -> Result<bool, DownloadError> {
-    let id: u64 = id.into();
     let file = Files::find_by_id(key)
         .filter(files::Column::UserId.eq(id))
         .one(db_conn)

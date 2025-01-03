@@ -1,3 +1,4 @@
+use client::TestApp;
 use pb::ourchat::session::new_session::v1::NewSessionRequest;
 
 #[tokio::test]
@@ -37,5 +38,29 @@ async fn test_session() {
     // assert_eq!(json.code, MessageType::InviteSession);
     // assert!(json.message.is_empty());
     // assert_eq!(json.session_id, session_id);
+    app.async_drop().await;
+}
+
+#[tokio::test]
+async fn get_session_info() {
+    let mut app = TestApp::new_with_launching_instance(None).await.unwrap();
+    let (session_user, session) = app.new_session_db_level(3, "session1").await.unwrap();
+    let (a, b, c) = (
+        session_user[0].clone(),
+        session_user[1].clone(),
+        session_user[2].clone(),
+    );
+    app.async_drop().await;
+}
+
+#[tokio::test]
+async fn test_set_role() {
+    let mut app = TestApp::new_with_launching_instance(None).await.unwrap();
+    let (session_user, session) = app.new_session_db_level(3, "session1").await.unwrap();
+    let (a, b, c) = (
+        session_user[0].clone(),
+        session_user[1].clone(),
+        session_user[2].clone(),
+    );
     app.async_drop().await;
 }

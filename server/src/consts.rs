@@ -48,6 +48,12 @@ impl_from!(i64);
 impl_from!(u32);
 impl_from!(u64);
 
+impl From<ID> for sea_orm::Value {
+    fn from(value: ID) -> Self {
+        Self::BigUnsigned(Some(*value))
+    }
+}
+
 /// ocid type
 pub type OCID = String;
 

@@ -21,16 +21,16 @@ pub enum Relation {
         belongs_to = "super::session::Entity",
         from = "Column::SessionId",
         to = "super::session::Column::SessionId",
-        on_update = "NoAction",
-        on_delete = "NoAction"
+        on_update = "Cascade",
+        on_delete = "Cascade"
     )]
     Session,
     #[sea_orm(
         belongs_to = "super::user::Entity",
         from = "Column::SenderId",
         to = "super::user::Column::Id",
-        on_update = "NoAction",
-        on_delete = "NoAction"
+        on_update = "Cascade",
+        on_delete = "Cascade"
     )]
     User,
 }
