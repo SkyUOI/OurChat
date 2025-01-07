@@ -16,9 +16,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@nightly
-      - uses: cargo-bins/cargo-binstall@main
+      # - uses: cargo-bins/cargo-binstall@main
+      # - name: Tarpaulin
+      # run: cargo binstall cargo-tarpaulin --no-confirm --force
+      # Warn: because the glibc version of github action is lower than the requirement(2.38) installed by cargo-binstall, so we need to compile it by cargo install until the version is updated
       - name: Tarpaulin
-        run: cargo binstall cargo-tarpaulin --no-confirm --force
+        run: cargo install cargo-tarpaulin
       - name: Install Deps
         run: sudo apt-get update && sudo apt install -y protobuf-compiler
       - name: Start Redis
