@@ -25,3 +25,4 @@ pb = { path = "../pb" }
 sha3 = "0"
 size.workspace = true
 thiserror.workspace = true
+migration = { path = "../migration" }

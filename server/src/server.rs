@@ -11,7 +11,7 @@ use pb::auth::authorize::v1::{AuthRequest, AuthResponse};
 use pb::auth::email_verify::v1::{VerifyRequest, VerifyResponse};
 use pb::auth::register::v1::{RegisterRequest, RegisterResponse};
 use pb::auth::v1::auth_service_server::{self, AuthServiceServer};
-use pb::basic::server::v1::{RunningStatus, ServerVersion};
+use pb::basic::server::v1::{RunningStatus, ServerVersion, VERSION_SPLIT};
 use pb::basic::v1::basic_service_server::{BasicService, BasicServiceServer};
 use pb::basic::v1::{
     GetIdRequest, GetIdResponse, GetServerInfoRequest, TimestampRequest, TimestampResponse,
@@ -304,19 +304,10 @@ impl<T: EmailSender> BasicService for BasicServiceProvider<T> {
         let req = request.into_inner();
         match get_id(&req.ocid, &self.db).await {
             Ok(id) => Ok(Response::new(GetIdResponse { id: *id })),
-            Err(e) => Err(Status::not_found("user not found")),
+            Err(_) => Err(Status::not_found("user not found")),
         }
     }
 }
-
-static VERSION_SPLIT: LazyLock<ServerVersion> = LazyLock::new(|| {
-    let ver = base::build::PKG_VERSION.split('.').collect::<Vec<_>>();
-    ServerVersion {
-        major: ver[0].parse().unwrap(),
-        minor: ver[1].parse().unwrap(),
-        patch: ver[2].parse().unwrap(),
-    }
-});
 
 static SERVER_INFO_RPC: LazyLock<pb::basic::server::v1::GetServerInfoResponse> =
     LazyLock::new(|| pb::basic::server::v1::GetServerInfoResponse {

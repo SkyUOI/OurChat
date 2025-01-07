@@ -5,7 +5,7 @@ use client::{
 };
 use size::Size;
 
-async fn test_download(
+async fn download(
     app: &mut TestApp,
     small_file: impl Iterator<Item = Vec<u8>> + Clone,
     small_file_hash: &str,
@@ -36,7 +36,7 @@ async fn test_download(
     assert_err!(user1.lock().await.download_file(key2).await);
 }
 
-async fn test_clean_files(
+async fn clean_files(
     app: &mut TestApp,
     small_file: impl Iterator<Item = Vec<u8>> + Clone,
     small_file_hash: &str,
@@ -87,14 +87,14 @@ async fn test_clean_files(
     );
 }
 
-async fn test_deny_too_big_file(app: &mut TestApp) {
+async fn deny_too_big_file(app: &mut TestApp) {
     let user = app.new_user().await.unwrap();
     let super_big_file = generate_file(Size::from_mebibytes(20)).unwrap();
     assert_err!(user.lock().await.post_file_as_iter(super_big_file).await);
 }
 
 #[tokio::test]
-async fn test_upload() {
+async fn upload() {
     let (mut config, args) = client::TestApp::get_test_config().unwrap();
     let user_files_limit = Size::from_mebibytes(10);
     config.main_cfg.user_files_limit = user_files_limit;
@@ -103,8 +103,8 @@ async fn test_upload() {
         .unwrap();
     let small_file = generate_file(Size::from_mebibytes(1.5)).unwrap();
     let small_file_hash = get_hash_from_file(small_file.clone());
-    test_download(&mut app, small_file.clone(), &small_file_hash).await;
-    test_clean_files(&mut app, small_file, &small_file_hash, user_files_limit).await;
-    test_deny_too_big_file(&mut app).await;
+    download(&mut app, small_file.clone(), &small_file_hash).await;
+    clean_files(&mut app, small_file, &small_file_hash, user_files_limit).await;
+    deny_too_big_file(&mut app).await;
     app.async_drop().await;
 }

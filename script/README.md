@@ -22,12 +22,6 @@ If you modified any database migrations and changed the definitions of any table
 
 **Notice:You must ensure the changes has been applied to your database before you run this script**
 
-### `delete_all_database.py`
-
-**Warning:Never run in production environment!**
-
-As every failed integration test will leave a database for debug usage,it will leave hundreds of useless db in your hard disk,run this to delete all databases to clean your disk.
-
 ### `stress_test.py`
 
 **Warning:Your computer may be frozen**

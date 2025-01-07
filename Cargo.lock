@@ -865,6 +865,7 @@ dependencies = [
  "claims",
  "fake",
  "itertools 0.14.0",
+ "migration",
  "parking_lot",
  "pb",
  "prost",

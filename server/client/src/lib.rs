@@ -9,10 +9,11 @@ use fake::faker::internet::raw::FreeEmail;
 use fake::faker::name::en;
 use fake::faker::name::raw::Name;
 use fake::locales::EN;
+use migration::m20241229_022701_add_role_for_session::PreDefinedRoles;
 use parking_lot::Mutex;
 use pb::auth::authorize::v1::auth_request;
 use pb::auth::register::v1::RegisterRequest;
-use pb::basic::v1::TimestampRequest;
+use pb::basic::v1::{GetIdRequest, TimestampRequest};
 use pb::ourchat::download::v1::DownloadResponse;
 use pb::ourchat::msg_delivery::v1::{BundleMsgs, SendMsgRequest, SendMsgResponse};
 use pb::{
@@ -26,7 +27,7 @@ use pb::{
 };
 use rand::Rng;
 use server::component::MockEmailSender;
-use server::consts::{ID, SessionID};
+use server::consts::{ID, OCID, SessionID};
 use server::utils::{self, get_available_port};
 use server::{Application, ArgsParser, Cfg, DbPool, ParserCfg, SharedData, ShutdownSdr, process};
 use sqlx::migrate::MigrateDatabase;
@@ -545,9 +546,10 @@ impl TestApp {
         }
         tracing::debug!("id:{:?}", id_vec);
         process::db::batch_add_to_session(
-            &self.db_pool.as_ref().unwrap().db_pool,
             session_id,
             &id_vec,
+            PreDefinedRoles::Member.into(),
+            &self.db_pool.as_ref().unwrap().db_pool,
         )
         .await?;
         Ok((users, TestSession::new(session_id)))
@@ -583,6 +585,18 @@ impl TestApp {
             .timestamp
             .unwrap();
         from_google_timestamp(&ret).unwrap()
+    }
+
+    pub async fn get_id(&mut self, ocid: OCID) -> anyhow::Result<ID> {
+        let id: ID = self
+            .clients
+            .basic
+            .get_id(GetIdRequest { ocid })
+            .await?
+            .into_inner()
+            .id
+            .into();
+        Ok(id)
     }
 }
 

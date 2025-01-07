@@ -8,10 +8,12 @@ use crate::{
 };
 use anyhow::Context;
 use base::time::TimeStamp;
-use entities::{friend, operations, prelude::*, session, session_relation};
+use entities::{friend, operations, prelude::*, session, session_relation, user_role_relation};
+use migration::m20241229_022701_add_role_for_session::PreDefinedRoles;
 use pb::ourchat::session::new_session::v1::{NewSessionRequest, NewSessionResponse};
 use sea_orm::{
-    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
+    ActiveModelTrait, ActiveValue, ColumnTrait, ConnectionTrait, DatabaseConnection, EntityTrait,
+    QueryFilter,
 };
 use serde::{Deserialize, Serialize};
 use std::{sync::Arc, time::Duration};
@@ -141,7 +143,13 @@ async fn new_session_impl(
         )
         .await?;
         // add session relation
-        batch_add_to_session(&server.db.db_pool, session_id, &peoples).await?;
+        batch_add_to_session(
+            session_id,
+            &peoples,
+            PreDefinedRoles::Member.into(),
+            &server.db.db_pool,
+        )
+        .await?;
 
         Ok::<(), SessionError>(())
     };
@@ -216,9 +224,10 @@ async fn save_invitation_to_db(
 }
 
 pub async fn add_to_session(
-    db_conn: &DatabaseConnection,
     session_id: SessionID,
     id: ID,
+    role: u64,
+    db_conn: &impl ConnectionTrait,
 ) -> anyhow::Result<()> {
     let session_relation = session_relation::ActiveModel {
         user_id: ActiveValue::Set(id.into()),
@@ -226,16 +235,25 @@ pub async fn add_to_session(
         ..Default::default()
     };
     session_relation.insert(db_conn).await?;
+    // Add role
+    let role_relation = user_role_relation::ActiveModel {
+        user_id: ActiveValue::Set(id.into()),
+        session_id: ActiveValue::Set(session_id.into()),
+        role_id: ActiveValue::Set(role as i64),
+        ..Default::default()
+    };
+    role_relation.insert(db_conn).await?;
     Ok(())
 }
 
 pub async fn batch_add_to_session(
-    db_conn: &DatabaseConnection,
     session_id: SessionID,
     ids: &[ID],
+    role: u64,
+    db_conn: &impl ConnectionTrait,
 ) -> anyhow::Result<()> {
     for id in ids {
-        add_to_session(db_conn, session_id, *id).await?;
+        add_to_session(session_id, *id, role, db_conn).await?;
     }
     Ok(())
 }

@@ -1,4 +1,5 @@
 //! Define constants
+//! TODO: use new type for roles and permissions
 
 use base::impl_newtype_int;
 use size::Size;

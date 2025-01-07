@@ -62,9 +62,7 @@ async fn get_session_info_impl(
             }
         };
         match i {
-            QueryValues::Unspecified => {
-                tracing::warn!("Meet a unspecified request value");
-            }
+            QueryValues::Unspecified => {}
             QueryValues::SessionId => {
                 res.session_id = Some(req_inner.session_id);
             }

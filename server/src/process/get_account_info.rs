@@ -128,9 +128,7 @@ async fn get_info_impl(
                     ret.friends = ids
                 }
                 RequestValues::UserName => ret.user_name = Some(queried_user.name.clone()),
-                RequestValues::Unspecified => {
-                    tracing::warn!("Meet a unspecified request value");
-                }
+                RequestValues::Unspecified => {}
             }
         }
     }

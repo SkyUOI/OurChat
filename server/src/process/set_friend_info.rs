@@ -13,12 +13,14 @@ pub async fn set_friend_info<T: EmailSender>(
     let request = request.into_inner();
     match update_friend(id, request, &server.db).await {
         Ok(_) => {}
-        Err(e) => match e {
-            SetError::Db(_) | SetError::Unknown(_) => {
-                tracing::error!("{}", e);
-                return Err(Status::internal("Server Error"));
-            }
-        },
+        Err(e) => {
+            return match e {
+                SetError::Db(_) | SetError::Unknown(_) => {
+                    tracing::error!("{}", e);
+                    Err(Status::internal("Server Error"))
+                }
+            };
+        }
     };
     Ok(Response::new(SetFriendInfoResponse {}))
 }

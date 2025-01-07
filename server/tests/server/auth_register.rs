@@ -2,7 +2,7 @@ use claims::assert_ok;
 use client::ClientErr;
 
 #[tokio::test]
-async fn test_auth() {
+async fn auth_token() {
     // ocid test
     let mut app = client::TestApp::new_with_launching_instance(None)
         .await
@@ -34,7 +34,7 @@ async fn test_auth() {
 }
 
 #[tokio::test]
-async fn test_register() {
+async fn register_account() {
     // register two same users
     let mut app = client::TestApp::new_with_launching_instance(None)
         .await
