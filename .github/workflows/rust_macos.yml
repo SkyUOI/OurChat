@@ -21,9 +21,7 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Start Redis
-        uses: supercharge/redis-github-action@1.7.0
-        with:
-          redis-version: latest
+        run: docker run -d -p 6379:6379 redis
       - uses: ikalnytskyi/action-setup-postgres@v7
         with:
           postgres-version: "17"
