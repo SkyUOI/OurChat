@@ -3,6 +3,8 @@ use sea_orm_migration::{prelude::*, schema::*};
 #[derive(DeriveMigrationName)]
 pub struct Migration;
 
+pub const OCID_MAX_LEN: usize = 50;
+
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
@@ -12,7 +14,10 @@ impl MigrationTrait for Migration {
                     .table(User::Table)
                     .if_not_exists()
                     .col(big_unsigned(User::Id))
-                    .col(string_len_uniq(User::Ocid, 10))
+                    .col(string_len_uniq(
+                        User::Ocid,
+                        OCID_MAX_LEN.try_into().unwrap(),
+                    ))
                     .col(text(User::Passwd))
                     .col(string_len(User::Name, 200))
                     .col(string_len_uniq(User::Email, 120))

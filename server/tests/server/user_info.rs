@@ -1,15 +1,19 @@
-use claims::assert_err;
+use base::time::from_google_timestamp;
+use claims::{assert_err, assert_gt, assert_lt};
 use client::TestApp;
 use pb::ourchat::{
     get_account_info::v1::{GetAccountInfoRequest, RequestValues},
     set_account_info::v1::{SetFriendInfoRequest, SetSelfInfoRequest},
 };
+use server::process::error_msg_consts::OCID_TOO_LONG;
 
 #[tokio::test]
-async fn test_get_user_info() {
+async fn get_user_info() {
     let mut app = TestApp::new_with_launching_instance(None).await.unwrap();
+    let time_before_register = app.get_timestamp().await;
     let user = app.new_user().await.unwrap();
     let user2 = app.new_user().await.unwrap();
+    let time_after_register = app.get_timestamp().await;
     // request before logged in
     // don't have privileges
     let user_ocid = user.lock().await.ocid.clone();
@@ -28,6 +32,7 @@ async fn test_get_user_info() {
                     RequestValues::Ocid.into(),
                     RequestValues::Email.into(),
                     RequestValues::UserName.into(),
+                    RequestValues::RegisterTime.into(),
                 ],
             })
             .await
@@ -45,6 +50,7 @@ async fn test_get_user_info() {
                 RequestValues::Email.into(),
                 RequestValues::UserName.into(),
                 RequestValues::Friends.into(),
+                RequestValues::RegisterTime.into(),
             ],
         })
         .await
@@ -54,12 +60,20 @@ async fn test_get_user_info() {
     assert_eq!(ret.user_name, Some(user_name.clone()));
     assert_eq!(ret.email, Some(user_email.clone()));
     assert_eq!(ret.friends, Vec::<u64>::default());
+    assert_gt!(
+        from_google_timestamp(&ret.register_time.unwrap()).unwrap(),
+        time_before_register
+    );
+    assert_lt!(
+        from_google_timestamp(&ret.register_time.unwrap()).unwrap(),
+        time_after_register
+    );
     // TODO:add display_name test
     app.async_drop().await;
 }
 
 #[tokio::test]
-async fn test_set_user_info() {
+async fn set_user_info() {
     // TODO: test avatar(espeacially reduce the refcnt)
     let mut app = TestApp::new_with_launching_instance(None).await.unwrap();
     let user = app.new_user().await.unwrap();
@@ -73,6 +87,7 @@ async fn test_set_user_info() {
         .oc()
         .set_self_info(SetSelfInfoRequest {
             user_name: Some(new_name.clone()),
+            ocid: Some("modified_ocid".to_string()),
             ..Default::default()
         })
         .await
@@ -84,17 +99,36 @@ async fn test_set_user_info() {
         .oc()
         .get_account_info(GetAccountInfoRequest {
             id: None,
-            request_values: vec![RequestValues::UserName.into()],
+            request_values: vec![RequestValues::UserName.into(), RequestValues::Ocid.into()],
         })
         .await
         .unwrap();
     let ret = ret.into_inner();
     assert_eq!(ret.user_name, Some(new_name.clone()));
+    assert_eq!(&ret.ocid.unwrap(), "modified_ocid");
+    // Too long ocid
+
+    let err = user
+        .lock()
+        .await
+        .oc()
+        .set_self_info(SetSelfInfoRequest {
+            ocid: Some("a".repeat(100)),
+            ..Default::default()
+        })
+        .await;
+    if let Err(err) = err {
+        assert_eq!(err.code(), tonic::Code::InvalidArgument);
+        assert_eq!(err.message(), OCID_TOO_LONG);
+    } else {
+        panic!("expect error");
+    }
+
     app.async_drop().await;
 }
 
 #[tokio::test]
-async fn test_set_friend_info() {
+async fn set_friend_info() {
     let mut app = TestApp::new_with_launching_instance(None).await.unwrap();
     let user = app.new_user().await.unwrap();
     let user2 = app.new_user().await.unwrap();

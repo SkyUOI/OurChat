@@ -71,7 +71,7 @@ pub use session::{
     accept_session::accept_session, get_session_info::get_session_info, new_session::new_session,
     set_role::set_role, set_session_info::set_session_info,
 };
-pub use set_account_info::set_account_info;
+pub use set_account_info::{error_msg_consts, set_account_info};
 pub use set_friend_info::set_friend_info;
 pub use unregister::unregister;
 pub use upload::upload;

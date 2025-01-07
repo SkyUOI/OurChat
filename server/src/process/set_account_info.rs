@@ -6,11 +6,16 @@ use crate::{
 };
 use anyhow::Context;
 use entities::user;
+use migration::m20220101_000001_create_table::OCID_MAX_LEN;
 use pb::ourchat::set_account_info::v1::{SetSelfInfoRequest, SetSelfInfoResponse};
 use sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection, DbErr, TransactionTrait};
 use tonic::{Request, Response, Status};
 
 use super::get_id_from_req;
+
+pub mod error_msg_consts {
+    pub const OCID_TOO_LONG: &str = "ocid too long";
+}
 
 pub async fn set_account_info<T: EmailSender>(
     server: &RpcServer<T>,
@@ -28,6 +33,9 @@ pub async fn set_account_info<T: EmailSender>(
             SetError::Conflict => {
                 return Err(Status::already_exists("Conflict"));
             }
+            SetError::Status(s) => {
+                return Err(s);
+            }
         },
     }
     Ok(Response::new(SetSelfInfoResponse {}))
@@ -41,6 +49,8 @@ enum SetError {
     Conflict,
     #[error("unknown error:{0:?}")]
     Unknown(#[from] anyhow::Error),
+    #[error("status error:{0:?}")]
+    Status(#[from] tonic::Status),
 }
 
 async fn update_account(
@@ -86,6 +96,11 @@ async fn update_account(
         }
     }
     if let Some(new_ocid) = request_data.ocid {
+        if new_ocid.len() > OCID_MAX_LEN {
+            return Err(SetError::Status(Status::invalid_argument(
+                error_msg_consts::OCID_TOO_LONG,
+            )));
+        }
         user.ocid = ActiveValue::Set(new_ocid);
         public_updated = true;
     }
