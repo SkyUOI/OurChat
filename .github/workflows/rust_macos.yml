@@ -16,6 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@nightly
+      - uses: cpunion/setup-docker@v1
       - name: Install Protoc
         uses: arduino/setup-protoc@v3
         with:
