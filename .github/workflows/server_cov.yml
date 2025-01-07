@@ -2,9 +2,9 @@ name: ServerCov
 
 on:
   push:
-    branches: ["main"]
+    branches: [ "main" ]
   pull_request:
-    branches: ["main"]
+    branches: [ "main" ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -19,7 +19,7 @@ jobs:
       # - uses: cargo-bins/cargo-binstall@main
       # - name: Tarpaulin
       # run: cargo binstall cargo-tarpaulin --no-confirm --force
-      # Warn: because the glibc version of github action is lower than the requirement(2.38) installed by cargo-binstall, so we need to compile it by cargo install until the version is updated
+      # Warn: because the glibc version of GitHub action is lower than the requirement(2.38) installed by cargo-binstall, so we need to compile it by cargo install until the version is updated
       - name: Tarpaulin
         run: cargo install cargo-tarpaulin
       - name: Install Deps

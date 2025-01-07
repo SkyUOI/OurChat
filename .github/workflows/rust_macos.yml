@@ -2,9 +2,9 @@ name: ServerMacos
 
 on:
   push:
-    branches: ["main"]
+    branches: [ "main" ]
   pull_request:
-    branches: ["main"]
+    branches: [ "main" ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -20,6 +20,18 @@ jobs:
         uses: arduino/setup-protoc@v3
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Start Redis
+        uses: supercharge/redis-github-action@1.7.0
+        with:
+          redis-version: latest
+      - uses: ikalnytskyi/action-setup-postgres@v7
+        with:
+          postgres-version: "17"
+          password: 123456
+      - name: Test
+        run: |
+          python3 script/test_server.py "cargo test" "config/gh_test/ourchat.toml"
+
       - name: Build
         run: cargo build --all
       - name: Build Release
