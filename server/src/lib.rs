@@ -289,6 +289,7 @@ struct ServerInfo {
     unique_id: uuid::Uuid,
     machine_id: u64,
     secret: String,
+    server_name: String,
 }
 
 const SECRET_LEN: usize = 32;
@@ -313,10 +314,22 @@ static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
 
     let mut f = fs::File::create(SERVER_INFO_PATH).unwrap();
     let id: u64 = rand::thread_rng().gen_range(0..(1024 - 1));
+    let server_name;
+    #[cfg(feature = "meaningful_name")]
+    {
+        let faker = fake::faker::name::en::Name();
+        use fake::Fake;
+        server_name = faker.fake();
+    }
+    #[cfg(not(feature = "meaningful_name"))]
+    {
+        server_name = utils::generate_random_string(10);
+    }
     let info = ServerInfo {
         unique_id: uuid::Uuid::new_v4(),
         machine_id: id,
         secret: utils::generate_random_string(SECRET_LEN),
+        server_name,
     };
     serde_json::to_writer(&mut f, &info).unwrap();
     info
@@ -326,9 +339,9 @@ static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
 ///
 /// If `test_mode` is `true`, it will always set the log level to "trace".
 /// Otherwise, it will read the log level from the environment variable
-/// specified by [`crate::consts::LOG_ENV_VAR`] and set it to "info" if not present.
+/// specified by [`LOG_ENV_VAR`] and set it to "info" if not present.
 /// The log will be written to a file in the directory specified by
-/// [`crate::consts::LOG_OUTPUT_DIR`] and the file name will be "test" if `test_mode` is
+/// [`LOG_OUTPUT_DIR`] and the file name will be "test" if `test_mode` is
 /// `true` and "ourchat" otherwise.
 /// If `debug_cfg` is `Some` and `debug_console` is `true`, it will also
 /// write the log to the console at the address specified by
@@ -376,13 +389,13 @@ where
 }
 
 fn clear() -> anyhow::Result<()> {
-    let dirpath = Path::new(LOG_OUTPUT_DIR);
-    if !dirpath.exists() {
+    let dir_path = Path::new(LOG_OUTPUT_DIR);
+    if !dir_path.exists() {
         tracing::warn!("try clear log but not found");
         return Ok(());
     }
-    fs::remove_dir_all(dirpath)?;
-    fs::create_dir(dirpath)?;
+    fs::remove_dir_all(dir_path)?;
+    fs::create_dir(dir_path)?;
     Ok(())
 }
 
@@ -462,7 +475,7 @@ pub struct Application<T: EmailSender> {
     pub pool: DbPool,
     server_addr: SocketAddr,
     http_listener: Option<std::net::TcpListener>,
-    /// for shutdowning server fully,you shouldn't use handle.abort() to do this
+    /// for shutting down server fully,you shouldn't use handle.abort() to do this
     abort_sender: ShutdownSdr,
     pub started_notify: Arc<tokio::sync::Notify>,
 }
@@ -526,7 +539,7 @@ pub async fn register_service(_cfg: &RegistryCfg) -> anyhow::Result<()> {
 impl<T: EmailSender> Application<T> {
     /// Builds a new `Application` instance.
     ///
-    /// This function will setup the log system, shared state, connect to the database,
+    /// This function will set up the log system, shared state, connect to the database,
     /// and connect to Redis. The `parser` argument is used to override some of the
     /// configuration if specified. The `cfg` argument is the configuration to be used.
     ///

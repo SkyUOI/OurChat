@@ -39,6 +39,7 @@ deadpool-redis.workspace = true
 console-subscriber.workspace = true
 consul-client = { path = "consul-client" }
 registry = { path = "registry" }
+fake = { version = "3", optional = true }
 
 # Useful crates
 collection_literals.workspace = true
@@ -70,3 +71,7 @@ client = { path = "client" }
 
 [build-dependencies]
 anyhow.workspace = true
+
+[features]
+default = []
+meaningful_name = ["dep:fake"]

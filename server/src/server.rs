@@ -324,6 +324,7 @@ static SERVER_INFO_RPC: LazyLock<pb::basic::server::v1::GetServerInfoResponse> =
         http_port: 0,
         status: RunningStatus::Normal as i32,
         unique_identifier: SERVER_INFO.unique_id.to_string(),
+        server_name: SERVER_INFO.server_name.to_string(),
     });
 
 #[cfg(test)]

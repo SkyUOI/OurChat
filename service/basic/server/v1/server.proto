@@ -26,4 +26,5 @@ message GetServerInfoResponse {
   ServerVersion server_version = 3;
   // Server unique identifier,to help client distinguish different servers
   string unique_identifier = 4;
+  string server_name = 5;
 }

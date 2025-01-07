@@ -4369,6 +4369,7 @@ dependencies = [
  "dashmap",
  "deadpool-redis",
  "entities",
+ "fake",
  "futures-util",
  "jsonwebtoken",
  "lettre",
