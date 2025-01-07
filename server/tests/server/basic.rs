@@ -35,9 +35,7 @@ async fn get_server_info() {
 
 #[tokio::test]
 async fn get_id_through_ocid() {
-    let mut app = client::TestApp::new_with_launching_instance(None)
-        .await
-        .unwrap();
+    let mut app = TestApp::new_with_launching_instance(None).await.unwrap();
     let user1 = app.new_user().await.unwrap();
     let user2 = app.new_user().await.unwrap();
     let ocid = user1.lock().await.ocid.clone();

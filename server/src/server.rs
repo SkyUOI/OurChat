@@ -23,6 +23,7 @@ use pb::ourchat::msg_delivery::v1::{
     FetchMsgsRequest, FetchMsgsResponse, SendMsgRequest, SendMsgResponse,
 };
 use pb::ourchat::session::accept_session::v1::{AcceptSessionRequest, AcceptSessionResponse};
+use pb::ourchat::session::add_role::v1::{AddRoleRequest, AddRoleResponse};
 use pb::ourchat::session::get_session_info::v1::{GetSessionInfoRequest, GetSessionInfoResponse};
 use pb::ourchat::session::new_session::v1::{NewSessionRequest, NewSessionResponse};
 use pb::ourchat::session::set_role::v1::{SetRoleRequest, SetRoleResponse};
@@ -224,6 +225,14 @@ impl<T: EmailSender> OurChatService for RpcServer<T> {
         request: Request<SetRoleRequest>,
     ) -> Result<Response<SetRoleResponse>, Status> {
         process::set_role(self, request).await
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn add_role(
+        &self,
+        request: Request<AddRoleRequest>,
+    ) -> Result<Response<AddRoleResponse>, Status> {
+        process::add_role(self, request).await
     }
 }
 

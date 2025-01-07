@@ -12,7 +12,7 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(Role::Table)
                     .if_not_exists()
-                    .col(big_unsigned(Role::Id).primary_key())
+                    .col(big_integer(Role::Id).primary_key().auto_increment())
                     .col(string(Role::Description).not_null())
                     .to_owned(),
             )
@@ -126,6 +126,7 @@ enum UserRoleRelation {
 pub enum Role {
     Table,
     Id,
+    CreatorId,
     Description,
 }
 
@@ -175,14 +176,11 @@ impl From<PreDefinedRoles> for sea_orm::Value {
 async fn init_role_table(manager: &SchemaManager<'_>) -> Result<(), DbErr> {
     let conn = manager.get_connection();
 
-    conn.execute_unprepared(&format!(
+    conn.execute_unprepared(
         r#"
-INSERT INTO role (id, description) VALUES ({}, 'member'), ({}, 'admin'), ({}, 'owner');
+INSERT INTO role (description) VALUES ('member'), ('admin'), ('owner');
     "#,
-        PreDefinedRoles::Member as u32,
-        PreDefinedRoles::Admin as u32,
-        PreDefinedRoles::Owner as u32
-    ))
+    )
     .await?;
     conn.execute_unprepared(r#"
 INSERT INTO permission (id, description) VALUES (1, 'send msg'), (2, 'recall other msg'), (3, 'ban user'),

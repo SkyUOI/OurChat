@@ -5,9 +5,10 @@ use sea_orm::entity::prelude::*;
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
 #[sea_orm(table_name = "role")]
 pub struct Model {
-    #[sea_orm(primary_key, auto_increment = false)]
+    #[sea_orm(primary_key)]
     pub id: i64,
     pub description: String,
+    pub creator_id: Option<i64>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -16,6 +17,14 @@ pub enum Relation {
     RolePermissions,
     #[sea_orm(has_many = "super::session::Entity")]
     Session,
+    #[sea_orm(
+        belongs_to = "super::user::Entity",
+        from = "Column::CreatorId",
+        to = "super::user::Column::Id",
+        on_update = "Cascade",
+        on_delete = "Cascade"
+    )]
+    User,
     #[sea_orm(has_many = "super::user_role_relation::Entity")]
     UserRoleRelation,
 }
@@ -29,6 +38,12 @@ impl Related<super::role_permissions::Entity> for Entity {
 impl Related<super::session::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Session.def()
+    }
+}
+
+impl Related<super::user::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::User.def()
     }
 }
 

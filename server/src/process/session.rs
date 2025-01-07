@@ -3,6 +3,7 @@ use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter};
 
 use crate::consts::{ID, SessionID};
 pub mod accept_session;
+pub mod add_role;
 pub mod get_session_info;
 pub mod new_session;
 pub mod set_role;

@@ -1,3 +1,5 @@
+mod role;
+
 use std::collections::HashSet;
 
 use base::time::from_google_timestamp;
@@ -106,18 +108,6 @@ async fn get_session_info() {
             (b.lock().await.id, PreDefinedRoles::Member.into()),
             (c.lock().await.id, PreDefinedRoles::Member.into())
         ])
-    );
-    app.async_drop().await;
-}
-
-#[tokio::test]
-async fn set_role() {
-    let mut app = TestApp::new_with_launching_instance(None).await.unwrap();
-    let (session_user, session) = app.new_session_db_level(3, "session1").await.unwrap();
-    let (a, b, c) = (
-        session_user[0].clone(),
-        session_user[1].clone(),
-        session_user[2].clone(),
     );
     app.async_drop().await;
 }

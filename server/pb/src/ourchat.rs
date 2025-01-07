@@ -48,6 +48,12 @@ pub mod session {
             include!("./generated/service.ourchat.session.set_role.v1.rs");
         }
     }
+
+    pub mod add_role {
+        pub mod v1 {
+            include!("./generated/service.ourchat.session.add_role.v1.rs");
+        }
+    }
 }
 
 pub mod set_account_info {

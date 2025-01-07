@@ -7,6 +7,7 @@ import "service/ourchat/get_account_info/v1/get_account_info.proto";
 import "service/ourchat/msg_delivery/recall/v1/recall.proto";
 import "service/ourchat/msg_delivery/v1/msg_delivery.proto";
 import "service/ourchat/session/accept_session/v1/accept_session.proto";
+import "service/ourchat/session/add_role/v1/add_role.proto";
 import "service/ourchat/session/get_session_info/v1/get_session_info.proto";
 import "service/ourchat/session/new_session/v1/session.proto";
 import "service/ourchat/session/set_role/v1/set_role.proto";
@@ -51,4 +52,6 @@ service OurChatService {
   rpc RecallMsg(msg_delivery.recall.v1.RecallMsgRequest) returns (msg_delivery.recall.v1.RecallMsgResponse);
 
   rpc SetRole(session.set_role.v1.SetRoleRequest) returns (session.set_role.v1.SetRoleResponse);
+
+  rpc AddRole(session.add_role.v1.AddRoleRequest) returns (session.add_role.v1.AddRoleResponse);
 }

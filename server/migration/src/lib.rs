@@ -10,6 +10,7 @@ pub mod m20241229_022701_add_role_for_session;
 mod m20241229_035143_add_data_for_session;
 mod m20241230_092258_add_status_for_user;
 mod m20250102_091815_add_attr_for_session;
+mod m20250107_153037_record_who_created_role;
 
 pub struct Migrator;
 
@@ -27,6 +28,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20241229_035143_add_data_for_session::Migration),
             Box::new(m20241230_092258_add_status_for_user::Migration),
             Box::new(m20250102_091815_add_attr_for_session::Migration),
+            Box::new(m20250107_153037_record_who_created_role::Migration),
         ]
     }
 }

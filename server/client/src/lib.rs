@@ -152,7 +152,7 @@ impl TestUser {
         user.ocid = ret.ocid;
         user.id = ID(ret.id);
         user.token = ret.token;
-        let chann =
+        let channel =
             Channel::builder(Uri::from_maybe_shared(user.rpc_url.clone()).context("Uri error")?)
                 .connect()
                 .await
@@ -163,7 +163,7 @@ impl TestUser {
             .parse()
             .context("token parse error")?;
         user.oc_server = Some(OurChatServiceClient::with_interceptor(
-            chann,
+            channel,
             Box::new(move |mut req: tonic::Request<()>| {
                 req.metadata_mut().insert("token", token.clone());
                 Ok(req)
@@ -342,7 +342,7 @@ pub struct TestApp {
     pub owned_users: Vec<Arc<tokio::sync::Mutex<TestUser>>>,
     pub clients: Clients,
     pub rpc_url: String,
-    pub app_config: server::Cfg,
+    pub app_config: Cfg,
 
     has_dropped: bool,
     server_drop_handle: Option<ShutdownSdr>,
@@ -478,7 +478,7 @@ impl TestApp {
             tracing::info!("shutdown message sent");
         }
 
-        tracing::info!("app shutdowned");
+        tracing::info!("app shut down");
         tokio::time::sleep(Duration::from_secs(1)).await;
         if self.should_drop_db {
             match sqlx::Postgres::drop_database(&self.db_url).await {
@@ -549,7 +549,7 @@ impl TestApp {
             session_id,
             &id_vec,
             PreDefinedRoles::Member.into(),
-            &self.db_pool.as_ref().unwrap().db_pool,
+            self.get_db_connection().await,
         )
         .await?;
         Ok((users, TestSession::new(session_id)))
@@ -597,6 +597,10 @@ impl TestApp {
             .id
             .into();
         Ok(id)
+    }
+
+    pub async fn get_db_connection(&self) -> &sea_orm::DatabaseConnection {
+        &self.db_pool.as_ref().unwrap().db_pool
     }
 }
 

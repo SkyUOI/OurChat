@@ -1,6 +1,6 @@
 //! Functions process the requests from clients
 //!
-//! For grpc development, a template of unary calling is provided as follow:
+//! For grpc development, a template of unary calling is provided as follows:
 //! ```ignore
 //! use crate::{component::EmailSender, server::RpcServer};
 //! use pb::ourchat::session::set_role::v1::{SetRoleRequest, SetRoleResponse};
@@ -68,8 +68,8 @@ use tonic::Request;
 pub use download::download;
 pub use message::{fetch_user_msg::fetch_user_msg, recall::recall_msg, send_msg::send_msg};
 pub use session::{
-    accept_session::accept_session, get_session_info::get_session_info, new_session::new_session,
-    set_role::set_role, set_session_info::set_session_info,
+    accept_session::accept_session, add_role::add_role, get_session_info::get_session_info,
+    new_session::new_session, set_role::set_role, set_session_info::set_session_info,
 };
 pub use set_account_info::{error_msg_consts, set_account_info};
 pub use set_friend_info::set_friend_info;
