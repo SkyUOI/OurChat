@@ -9,7 +9,6 @@ actix-web.workspace = true
 base = { path = "../base" }
 anyhow.workspace = true
 serde.workspace = true
-redis.workspace = true
 deadpool-redis.workspace = true
 tracing.workspace = true
 clap.workspace = true
@@ -27,3 +26,5 @@ parking_lot.workspace = true
 tokio-stream.workspace = true
 reqwest.workspace = true
 linkify.workspace = true
+ctor.workspace = true
+rustls.workspace = true

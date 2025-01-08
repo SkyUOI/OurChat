@@ -16,7 +16,6 @@ clap.workspace = true
 futures-util.workspace = true
 rand.workspace = true
 snowdon.workspace = true
-redis.workspace = true
 sea-orm.workspace = true
 thiserror.workspace = true
 chrono.workspace = true

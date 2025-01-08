@@ -10,7 +10,7 @@ members = [
     "server/stress_test",
     "server/entities",
     "server/pb",
-    "server/http_server"
+    "server/http_server",
 ]
 resolver = "2"
 
@@ -86,11 +86,6 @@ features = ["tokio1", "tokio1-rustls-tls", "smtp-transport", "builder"]
 version = "0"
 default-features = false
 features = ["json", "rustls-tls"]
-
-[workspace.dependencies.redis]
-version = "0"
-default-features = false
-features = ["tokio-rustls-comp"]
 
 [workspace.dependencies.tonic]
 version = "0"
@@ -168,3 +163,8 @@ default-features = false
 version = "0"
 default-features = false
 features = ["rt_tokio_1"]
+
+[workspace.dependencies.rustls]
+version = "0.23"
+default-features = false
+features = ["ring"]

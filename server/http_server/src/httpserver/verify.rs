@@ -5,7 +5,7 @@ use base::consts;
 use base::consts::VERIFY_EMAIL_EXPIRE;
 use base::database::DbPool;
 use base::rabbitmq::http_server::VerifyRecord;
-use redis::AsyncCommands;
+use deadpool_redis::redis::AsyncCommands;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]

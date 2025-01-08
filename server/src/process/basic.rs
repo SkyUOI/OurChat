@@ -1,8 +1,8 @@
 use anyhow::bail;
 use base::consts::{ID, OCID};
 use base::database::DbPool;
+use deadpool_redis::redis::AsyncCommands;
 use entities::{prelude::*, user};
-use redis::AsyncCommands;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 
 fn mapped_to_ocid(key: &str) -> String {
