@@ -9,6 +9,7 @@ use actix_web::{
 use base::database::DbPool;
 use deadpool_lapin::lapin::options::{BasicAckOptions, BasicRejectOptions};
 use tokio_stream::StreamExt;
+use tracing::debug;
 
 pub struct HttpServer {}
 
@@ -29,7 +30,7 @@ impl HttpServer {
         let cfg_clone = cfg.clone();
         let rabbitmq_clone = rabbitmq.clone();
         let db_conn_clone = db_conn.clone();
-        tracing::info!("Build Server Done");
+        tracing::info!("Start building Server");
         let http_server = actix_web::HttpServer::new(move || {
             let v1 = web::scope("/v1")
                 .service(status::status)
@@ -45,7 +46,9 @@ impl HttpServer {
         .run();
         tracing::info!("Start creating rabbitmq consumer");
         let connection = rabbitmq.get().await?;
+        tracing::debug!("Get connection to rabbitmq");
         let channel = connection.create_channel().await?;
+        tracing::debug!("Get channel to rabbitmq");
         tokio::spawn(async move {
             match Self::listen_rabbitmq(channel, db_conn, cfg, email_client).await {
                 Ok(_) => {}
@@ -64,6 +67,7 @@ impl HttpServer {
         cfg: web::Data<Config>,
         email_client: Option<EmailClientType>,
     ) -> anyhow::Result<()> {
+        tracing::debug!("Starting set channel");
         // TODO:add this to config file
         mq_channel
             .basic_qos(
@@ -80,6 +84,7 @@ impl HttpServer {
             )
             .await
             .expect("basic_consume");
+        tracing::debug!("Starting to consume verification");
         while let Some(data) = consumer.next().await {
             let delivery = match data {
                 Ok(data) => data,
