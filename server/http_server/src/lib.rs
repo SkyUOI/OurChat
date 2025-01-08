@@ -119,7 +119,10 @@ impl Launcher {
         let postgres_cfg =
             base::database::postgres::PostgresDbCfg::build_from_path(&self.config.dbcfg)?;
         let db_pool = DbPool::build(&postgres_cfg, &redis_cfg).await?;
+        tracing::info!("Get database pool");
         let rabbitmq_pool = self.rabbitmq_cfg.build()?;
+        tracing::info!("Connected to RabbitMQ");
+        tracing::info!("Starting http server");
         let handle = server
             .run_forever(
                 self.tcplistener.take().unwrap(),
@@ -130,7 +133,10 @@ impl Launcher {
             )
             .await?;
         let http_server = tokio::spawn(handle);
+        tracing::info!("Started http server");
+        tracing::info!("Sending started notification");
         self.started_notify.notify_waiters();
+        tracing::info!("Http Server started");
         http_server.await??;
         rabbitmq_pool.close();
         Ok(())

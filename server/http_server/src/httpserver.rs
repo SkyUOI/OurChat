@@ -29,6 +29,7 @@ impl HttpServer {
         let cfg_clone = cfg.clone();
         let rabbitmq_clone = rabbitmq.clone();
         let db_conn_clone = db_conn.clone();
+        tracing::info!("Build Server Done");
         let http_server = actix_web::HttpServer::new(move || {
             let v1 = web::scope("/v1")
                 .service(status::status)
@@ -42,6 +43,7 @@ impl HttpServer {
         })
         .listen(listener.into_std()?)?
         .run();
+        tracing::info!("Start creating rabbitmq consumer");
         let connection = rabbitmq.get().await?;
         let channel = connection.create_channel().await?;
         tokio::spawn(async move {
@@ -52,6 +54,7 @@ impl HttpServer {
                 }
             }
         });
+        tracing::info!("Http server setup done");
         Ok(http_server)
     }
 

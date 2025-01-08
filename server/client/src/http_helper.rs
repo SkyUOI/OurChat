@@ -18,16 +18,20 @@ impl TestHttpApp {
         config.port = 0;
         let mut app = Launcher::build_from_config(config).await?;
         app.email_client = email_client;
+        tracing::info!("build server and modify the config opts");
         Ok(app)
     }
 
     pub async fn setup(mut app: Launcher) -> anyhow::Result<Self> {
         let app_config = app.config.clone();
         let notify = app.started_notify.clone();
+        tracing::info!("starting http server");
         let handle = tokio::spawn(async move {
             app.run_forever().await.unwrap();
         });
+        tracing::info!("Waiting for http server to start");
         notify.notified().await;
+        tracing::info!("http server started. Build TestHttpApp done");
         Ok(TestHttpApp {
             client: reqwest::Client::builder()
                 .timeout(Duration::from_secs(2))
