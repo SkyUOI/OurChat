@@ -28,7 +28,6 @@ migration = { path = "migration" }
 mimalloc.workspace = true
 parking_lot.workspace = true
 sqlx.workspace = true
-actix-web.workspace = true
 dashmap.workspace = true
 sha3.workspace = true
 uuid.workspace = true
@@ -37,9 +36,8 @@ validator.workspace = true
 argon2.workspace = true
 deadpool-redis.workspace = true
 console-subscriber.workspace = true
-consul-client = { path = "consul-client" }
-registry = { path = "registry" }
 fake = { version = "3", optional = true }
+urlencoding.workspace = true
 
 # Useful crates
 collection_literals.workspace = true
@@ -58,14 +56,15 @@ pb = { path = "pb" }
 entities = { path = "entities" }
 
 tonic.workspace = true
+prost.workspace = true
 jsonwebtoken.workspace = true
 tokio-stream.workspace = true
 
 lettre.workspace = true
+deadpool-lapin.workspace = true
 
 [dev-dependencies]
 reqwest.workspace = true
-linkify.workspace = true
 claims.workspace = true
 client = { path = "client" }
 

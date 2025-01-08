@@ -229,7 +229,7 @@ pub struct ArgsParser {
 async fn main() -> anyhow::Result<()> {
     let args = ArgsParser::parse();
     let mut app = if args.use_exists_instance {
-        server::logger_init(true, None, std::io::stdout);
+        base::log::logger_init(true, None, std::io::stdout, "ourchat");
         let cfg = server::get_configuration(args.config.iter().map(PathBuf::from).collect())?;
         client::TestApp::new_with_existing_instance(cfg).await?
     } else {
@@ -238,7 +238,7 @@ async fn main() -> anyhow::Result<()> {
                 set_var("OURCHAT_CONFIG_FILE", path);
             }
         }
-        client::TestApp::new_with_launching_instance(None).await?
+        client::TestApp::new_with_launching_instance().await?
     };
     // test every endpoint's performance
     test_endpoint(&mut app).await?;

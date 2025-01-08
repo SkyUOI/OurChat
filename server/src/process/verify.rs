@@ -1,22 +1,14 @@
-use std::sync::Arc;
-
-use tokio::{
-    select,
-    sync::{Notify, mpsc},
-};
-use tokio_stream::wrappers::ReceiverStream;
-use tonic::{Request, Response};
-
 use crate::{
-    component::EmailSender,
-    consts::VERIFY_EMAIL_EXPIRE,
-    server::{
-        AuthServiceProvider, VerifyStream,
-        httpserver::verify::{VerifyRecord, verify_client},
-    },
+    server::{AuthServiceProvider, VerifyStream},
     utils,
 };
+use anyhow::Context;
+use base::rabbitmq::http_server::VerifyRecord;
+use deadpool_lapin::lapin::options::{BasicPublishOptions, ConfirmSelectOptions};
 use pb::auth::email_verify::v1::{VerifyRequest, VerifyResponse};
+use tokio::sync::mpsc;
+use tokio_stream::wrappers::ReceiverStream;
+use tonic::{Request, Response, Status};
 
 const TOKEN_LEN: usize = 20;
 
@@ -25,32 +17,65 @@ pub fn generate_token() -> String {
 }
 
 pub async fn email_verify(
-    server: &AuthServiceProvider<impl EmailSender>,
+    server: &AuthServiceProvider,
     request: Request<VerifyRequest>,
-) -> Result<Response<VerifyStream>, tonic::Status> {
-    let request = request.into_inner();
-    let notifier = Arc::new(Notify::new());
-    if let Err(e) = verify_client(
-        &server.db,
-        server.shared_data.clone(),
-        VerifyRecord::new(request.email, generate_token()),
-        notifier.clone(),
-    )
-    .await
-    {
-        tracing::error!("Failed to create verify process:{}", e);
-        return Err(tonic::Status::internal("failed to verify"));
+) -> Result<Response<VerifyStream>, Status> {
+    match email_verify_impl(server, request).await {
+        Ok(res) => Ok(res),
+        Err(e) => match e {
+            VerifyError::Db(_) | VerifyError::Internal(_) | VerifyError::Rabbitmq(_) => {
+                tracing::error!("{}", e);
+                Err(Status::internal("Server Error"))
+            }
+            VerifyError::Status(s) => Err(s),
+        },
     }
+}
+
+#[derive(thiserror::Error, Debug)]
+enum VerifyError {
+    #[error("database error:{0:?}")]
+    Db(#[from] sea_orm::DbErr),
+    #[error("status error:{0:?}")]
+    Status(#[from] Status),
+    #[error("internal error:{0:?}")]
+    Internal(#[from] anyhow::Error),
+    #[error("rabbitmq:{0:?}")]
+    Rabbitmq(#[from] deadpool_lapin::lapin::Error),
+}
+
+async fn email_verify_impl(
+    server: &AuthServiceProvider,
+    request: Request<VerifyRequest>,
+) -> Result<Response<VerifyStream>, VerifyError> {
+    let request = request.into_inner();
+    let connection = server
+        .rabbitmq
+        .get()
+        .await
+        .context("Cannot get rabbit connection")?;
+    let channel = connection.create_channel().await?;
+    let json_record =
+        serde_json::to_string(&VerifyRecord::new(request.email.clone(), generate_token()))
+            .context("Cannot get json")?;
+    channel
+        .basic_publish(
+            "",
+            base::rabbitmq::http_server::VERIFY_QUEUE,
+            BasicPublishOptions::default(),
+            json_record.as_bytes(),
+            Default::default(),
+        )
+        .await?;
+    channel
+        .confirm_select(ConfirmSelectOptions::default())
+        .await?;
+
     let (tx, rx) = mpsc::channel(1);
     tokio::spawn(async move {
-        let expire_timer = async { tokio::time::sleep(VERIFY_EMAIL_EXPIRE).await };
-        let ret = select! {
-            _ = expire_timer => {
-                Err(tonic::Status::deadline_exceeded("Verification has not been down yet"))
-            },
-            _ = notifier.notified() => {
-                Ok(VerifyResponse {})
-            }
+        let ret = match channel.wait_for_confirms().await {
+            Ok(_) => Ok(VerifyResponse {}),
+            Err(_) => Err(Status::deadline_exceeded("Verification Failed")),
         };
         tx.send(ret).await.ok();
     });

@@ -1,0 +1,29 @@
+[package]
+name = "http_server"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+tokio.workspace = true
+actix-web.workspace = true
+base = { path = "../base" }
+anyhow.workspace = true
+serde.workspace = true
+redis.workspace = true
+deadpool-redis.workspace = true
+tracing.workspace = true
+clap.workspace = true
+config.workspace = true
+lettre.workspace = true
+deadpool-lapin.workspace = true
+serde_json.workspace = true
+tokio-stream.workspace = true
+
+[dev-dependencies]
+client = { path = "../client" }
+claims.workspace = true
+pb = { path = "../pb" }
+parking_lot.workspace = true
+tokio-stream.workspace = true
+reqwest.workspace = true
+linkify.workspace = true

@@ -9,6 +9,7 @@ fake = { version = "3" }
 claims = "0"
 base = { path = "../base" }
 server = { path = ".." }
+http_server = { path = "../http_server" }
 parking_lot = "0"
 rand = "0"
 tokio-stream = { version = "0" }
@@ -27,3 +28,6 @@ size.workspace = true
 thiserror.workspace = true
 migration = { path = "../migration" }
 sea-orm.workspace = true
+dotenv.workspace = true
+ctor.workspace = true
+urlencoding.workspace = true

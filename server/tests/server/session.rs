@@ -2,21 +2,19 @@ mod role;
 
 use std::collections::HashSet;
 
+use base::consts::ID;
 use base::time::from_google_timestamp;
 use claims::assert_lt;
 use client::TestApp;
-use migration::m20241229_022701_add_role_for_session::{PreDefinedPermissions, PreDefinedRoles};
+use migration::m20241229_022701_add_role_for_session::PreDefinedRoles;
 use pb::ourchat::session::{
     get_session_info::v1::{GetSessionInfoRequest, QueryValues},
     new_session::v1::NewSessionRequest,
 };
-use server::consts::ID;
 
 #[tokio::test]
 async fn session_create() {
-    let mut app = client::TestApp::new_with_launching_instance(None)
-        .await
-        .unwrap();
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
     let user1 = app.new_user().await.unwrap();
     let user2 = app.new_user().await.unwrap();
     let user3 = app.new_user().await.unwrap();
@@ -54,7 +52,7 @@ async fn session_create() {
 
 #[tokio::test]
 async fn get_session_info() {
-    let mut app = TestApp::new_with_launching_instance(None).await.unwrap();
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
     let (session_user, session) = app.new_session_db_level(3, "session1").await.unwrap();
     let (a, b, c) = (
         session_user[0].clone(),
@@ -99,7 +97,7 @@ async fn get_session_info() {
     let roles: HashSet<(ID, u64)> = info
         .roles
         .into_iter()
-        .map(|x| (x.user_id.into(), x.role.into()))
+        .map(|x| (x.user_id.into(), x.role))
         .collect();
     assert_eq!(
         roles,
@@ -114,7 +112,7 @@ async fn get_session_info() {
 
 #[tokio::test]
 async fn set_session_info() {
-    let mut app = TestApp::new_with_launching_instance(None).await.unwrap();
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
     let (session_user, session) = app.new_session_db_level(3, "session1").await.unwrap();
     let (a, b, c) = (
         session_user[0].clone(),

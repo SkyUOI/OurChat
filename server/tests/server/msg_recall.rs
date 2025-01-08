@@ -4,7 +4,7 @@ use pb::ourchat::msg_delivery::{self, recall::v1::RecallMsgRequest, v1::OneMsg};
 #[tokio::test]
 async fn test_recall() {
     // TODO:test whether recall signal is received
-    let mut app = TestApp::new_with_launching_instance(None).await.unwrap();
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
     let (session_user, session) = app.new_session_db_level(3, "session1").await.unwrap();
     let (a, b, c) = (
         session_user[0].clone(),

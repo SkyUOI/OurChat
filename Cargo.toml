@@ -8,10 +8,9 @@ members = [
     "server/load_balancer",
     "server/client",
     "server/stress_test",
-    "server/registry",
     "server/entities",
     "server/pb",
-    "server/consul-client",
+    "server/http_server"
 ]
 resolver = "2"
 
@@ -47,8 +46,6 @@ sha3 = "0"
 config = "0"
 validator = "0"
 console-subscriber = { version = "0", features = ["parking_lot"] }
-consul-client = { path = "consul-client" }
-registry = { path = "registry" }
 ring = "0"
 
 # Useful crates
@@ -76,6 +73,9 @@ entities = { path = "entities" }
 linkify = "0"
 claims = "0"
 cfg-if = "1"
+urlencoding = "2"
+dotenv = "0"
+ctor = "0"
 
 [workspace.dependencies.lettre]
 version = "0"
@@ -163,3 +163,8 @@ features = ["serde", "now"]
 [workspace.dependencies.tokio-stream]
 version = "0"
 default-features = false
+
+[workspace.dependencies.deadpool-lapin]
+version = "0"
+default-features = false
+features = ["rt_tokio_1"]

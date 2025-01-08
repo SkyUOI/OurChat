@@ -5,7 +5,7 @@ use sea_orm::{
     Paginator, PaginatorTrait, Statement,
 };
 
-use crate::consts::{ID, MsgID};
+use base::consts::{ID, MsgID};
 
 #[derive(Debug, thiserror::Error)]
 pub enum MsgError {

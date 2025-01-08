@@ -1,11 +1,9 @@
 use std::path::PathBuf;
 
-use crate::{
-    DbPool,
-    component::EmailSender,
-    consts::ID,
-    server::{DownloadStream, RpcServer},
-};
+use super::{Files, get_id_from_req};
+use crate::server::{DownloadStream, RpcServer};
+use base::consts::ID;
+use base::database::DbPool;
 use bytes::BytesMut;
 use entities::files;
 use pb::ourchat::download::v1::{DownloadRequest, DownloadResponse};
@@ -13,8 +11,6 @@ use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use tokio::{io::AsyncReadExt, sync::mpsc};
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{Request, Response, Status};
-
-use super::{Files, get_id_from_req};
 
 #[derive(Debug, thiserror::Error)]
 pub enum DownloadError {
@@ -71,7 +67,7 @@ async fn download_impl(
 }
 
 pub async fn download(
-    server: &RpcServer<impl EmailSender>,
+    server: &RpcServer,
     request: Request<DownloadRequest>,
 ) -> Result<Response<DownloadStream>, Status> {
     let id = get_id_from_req(&request).unwrap();

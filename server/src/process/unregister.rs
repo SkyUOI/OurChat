@@ -1,5 +1,6 @@
 use super::get_id_from_req;
-use crate::{component::EmailSender, consts::ID, server::RpcServer};
+use crate::server::RpcServer;
+use base::consts::ID;
 use entities::user;
 use pb::ourchat::unregister::v1::{UnregisterRequest, UnregisterResponse};
 use sea_orm::{ActiveModelTrait, ActiveValue, ConnectionTrait};
@@ -27,7 +28,7 @@ async fn remove_account(
 }
 
 async fn unregister_impl(
-    server: &RpcServer<impl EmailSender>,
+    server: &RpcServer,
     request: tonic::Request<UnregisterRequest>,
 ) -> Result<UnregisterResponse, UnregisterError> {
     let db_conn = &server.db;
@@ -42,8 +43,8 @@ async fn unregister_impl(
     }
 }
 
-pub async fn unregister<T: EmailSender>(
-    server: &RpcServer<T>,
+pub async fn unregister(
+    server: &RpcServer,
     request: tonic::Request<UnregisterRequest>,
 ) -> Result<Response<UnregisterResponse>, Status> {
     match unregister_impl(server, request).await {

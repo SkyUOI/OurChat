@@ -1,6 +1,6 @@
 //! Shared state of server
 
-use crate::consts::{self};
+use base::consts::{self};
 use parking_lot::{Mutex, RwLock};
 
 static AUTO_CLEAN_DURATION: Mutex<u64> = Mutex::new(consts::default_clear_interval());

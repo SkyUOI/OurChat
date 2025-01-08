@@ -1,7 +1,7 @@
 //! Define constants
 //! TODO: use new type for roles and permissions
 
-use base::impl_newtype_int;
+use crate::impl_newtype_int;
 use size::Size;
 use std::{io::IsTerminal, path::PathBuf, sync::LazyLock, time::Duration};
 
@@ -23,6 +23,7 @@ pub const APP_NAME: &str = "OurChat";
 pub const LOG_ENV_VAR: &str = "OURCHAT_LOG";
 pub const LOG_OUTPUT_DIR: &str = "log/";
 pub const CONFIG_FILE_ENV_VAR: &str = "OURCHAT_CONFIG_FILE";
+// TODO:add this to config file
 pub const VERIFY_EMAIL_EXPIRE: Duration = Duration::from_mins(5);
 
 // define ID type to fit many types of databases
@@ -129,28 +130,17 @@ pub const fn default_enable_email() -> bool {
     false
 }
 
-pub const fn default_enable_registry() -> bool {
-    false
-}
-
-pub fn default_service_name() -> String {
-    String::from("OurChat")
-}
-
-pub fn default_registry_port() -> u16 {
-    8500
-}
-
-pub fn default_registry_ip() -> String {
-    String::from("127.0.0.1")
-}
-
 pub fn default_files_storage_path() -> PathBuf {
     PathBuf::from("files_storage/")
 }
+
 /// default user files store limit(MB)
 pub fn default_user_files_store_limit() -> Size {
     Size::from_mebibytes(100)
+}
+
+pub const fn default_leader_node() -> bool {
+    true
 }
 
 pub const fn default_single_instance() -> bool {

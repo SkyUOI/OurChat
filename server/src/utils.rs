@@ -1,5 +1,6 @@
 //! Some utils functions
-use crate::{SERVER_INFO, consts::SessionID};
+use crate::SERVER_INFO;
+use base::consts::SessionID;
 use rand::Rng;
 use snowdon::{
     ClassicLayout, ClassicLayoutSnowflakeExtension, Epoch, Generator, MachineId, Snowflake,

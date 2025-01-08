@@ -1,8 +1,13 @@
 //! A client for test
 
 pub mod helper;
+pub mod http_helper;
 
+use crate::helper::init_env_var;
+use crate::helper::rabbitmq::create_random_vhost;
 use anyhow::Context;
+use base::consts::{ID, OCID, SessionID};
+use base::database::DbPool;
 use base::time::{TimeStampUtc, from_google_timestamp, to_google_timestamp};
 use fake::Fake;
 use fake::faker::internet::raw::FreeEmail;
@@ -26,10 +31,8 @@ use pb::{
     },
 };
 use rand::Rng;
-use server::component::MockEmailSender;
-use server::consts::{ID, OCID, SessionID};
 use server::utils::{self, get_available_port};
-use server::{Application, ArgsParser, Cfg, DbPool, ParserCfg, SharedData, ShutdownSdr, process};
+use server::{Application, ArgsParser, Cfg, ParserCfg, SharedData, ShutdownSdr, process};
 use sqlx::migrate::MigrateDatabase;
 use std::collections::HashSet;
 use std::sync::{Arc, LazyLock};
@@ -298,7 +301,7 @@ impl TestUser {
 
     /// # Warning
     /// Must request the server, shouldn't build a time from local by chrono, because some tests
-    /// rely on this behaviour
+    /// rely on this behavior
     pub async fn get_timestamp(&mut self) -> TimeStampUtc {
         let ret = self
             .clients
@@ -334,15 +337,14 @@ pub struct Clients {
 #[derive(Clone)]
 pub struct TestApp {
     pub port: u16,
-    pub http_port: u16,
     pub db_url: String,
-    pub app_shared: Option<Arc<SharedData<MockEmailSender>>>,
+    pub app_shared: Option<Arc<SharedData>>,
     pub db_pool: Option<DbPool>,
-    pub http_client: reqwest::Client,
     pub owned_users: Vec<Arc<tokio::sync::Mutex<TestUser>>>,
     pub clients: Clients,
     pub rpc_url: String,
     pub app_config: Cfg,
+    pub rmq_vhost: String,
 
     has_dropped: bool,
     server_drop_handle: Option<ShutdownSdr>,
@@ -357,7 +359,6 @@ impl TestAppTrait for ArgsParser {
     fn test() -> Self {
         Self {
             port: Some(get_available_port()),
-            http_port: Some(0),
             enable_cmd: Some(false),
             shared_cfg: ParserCfg {
                 test_mode: true,
@@ -389,23 +390,27 @@ impl TestApp {
         Ok((config, args))
     }
 
-    pub async fn new_with_launching_instance(
-        email_client: Option<MockEmailSender>,
-    ) -> anyhow::Result<Self> {
-        Self::new_with_launching_instance_custom_cfg(email_client, Self::get_test_config()?).await
+    pub async fn new_with_launching_instance() -> anyhow::Result<Self> {
+        Self::new_with_launching_instance_custom_cfg(Self::get_test_config()?).await
     }
 
     pub async fn new_with_launching_instance_custom_cfg(
-        email_client: Option<MockEmailSender>,
         (mut server_config, args): ConfigWithArgs,
     ) -> anyhow::Result<Self> {
-        // should create different database for each test
+        helper::init_env_var();
+        // should create a different database for each test
         let db = uuid::Uuid::new_v4().to_string();
         server_config.db_cfg.db = db;
+        // Create a new virtual host for each test
+        let vhost = create_random_vhost(
+            &reqwest::Client::new(),
+            &server_config.rabbitmq_cfg.manage_url().unwrap(),
+        )
+        .await?;
+        server_config.rabbitmq_cfg.vhost = vhost.clone();
         let db_url = server_config.db_cfg.url();
-        let mut application = Application::build(args, server_config.clone(), email_client).await?;
+        let mut application = Application::build(args, server_config.clone()).await?;
         let port = application.get_port();
-        let http_port = application.get_http_port();
         let abort_handle = application.get_abort_handle();
         let shared = application.shared.clone();
         let db_pool = application.pool.clone();
@@ -418,15 +423,11 @@ impl TestApp {
         let rpc_url = format!("http://localhost:{}", port);
         let obj = TestApp {
             port,
-            http_port,
             db_url,
             server_drop_handle: Some(abort_handle),
             has_dropped: false,
             app_shared: Some(shared),
             owned_users: vec![],
-            http_client: reqwest::Client::builder()
-                .timeout(Duration::from_secs(2))
-                .build()?,
             db_pool: Some(db_pool),
             rpc_url: rpc_url.clone(),
             clients: Clients {
@@ -435,27 +436,26 @@ impl TestApp {
             },
             should_drop_db: true,
             app_config: server_config,
+            rmq_vhost: vhost,
         };
         Ok(obj)
     }
 
-    pub async fn new_with_existing_instance(cfg: server::Cfg) -> anyhow::Result<Self> {
+    pub async fn new_with_existing_instance(cfg: Cfg) -> anyhow::Result<Self> {
+        helper::init_env_var();
         let remote_url = format!(
             "{}://{}:{}",
             cfg.main_cfg.protocol_http(),
             cfg.main_cfg.ip,
             cfg.main_cfg.port
         );
+        let vhost = cfg.rabbitmq_cfg.vhost.clone();
         Ok(Self {
             should_drop_db: false,
             port: cfg.main_cfg.port,
-            http_port: cfg.main_cfg.http_port,
             db_url: cfg.db_cfg.url(),
             app_shared: None,
             db_pool: None,
-            http_client: reqwest::Client::builder()
-                .timeout(Duration::from_secs(2))
-                .build()?,
             owned_users: vec![],
             server_drop_handle: None,
             has_dropped: false,
@@ -465,6 +465,7 @@ impl TestApp {
                 basic: BasicServiceClient::connect(remote_url.clone()).await?,
             },
             app_config: cfg,
+            rmq_vhost: vhost,
         })
     }
 
@@ -492,32 +493,11 @@ impl TestApp {
         self.has_dropped = true;
     }
 
-    pub async fn verify(&mut self, token: &str) -> Result<reqwest::Response, reqwest::Error> {
-        self.http_get(format!("verify/confirm?token={}", token))
-            .await
-    }
-
     pub async fn new_user(&mut self) -> anyhow::Result<TestUserShared> {
         let user = Arc::new(tokio::sync::Mutex::new(TestUser::random(self).await));
         user.lock().await.register().await?;
         self.owned_users.push(user.clone());
         Ok(user)
-    }
-
-    pub async fn http_get(
-        &self,
-        name: impl AsRef<str>,
-    ) -> Result<reqwest::Response, reqwest::Error> {
-        self.http_client
-            .get(format!(
-                "{}://{}:{}/v1/{}",
-                self.app_config.main_cfg.protocol_http(),
-                self.app_config.main_cfg.ip,
-                self.http_port,
-                name.as_ref()
-            ))
-            .send()
-            .await
     }
 
     pub async fn new_session_db_level(
@@ -610,4 +590,9 @@ impl Drop for TestApp {
             panic!("async_drop is not called to drop this app");
         }
     }
+}
+
+#[ctor::ctor]
+fn init() {
+    init_env_var();
 }

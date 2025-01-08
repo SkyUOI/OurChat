@@ -1,7 +1,7 @@
 use entities::{session_relation, user_role_relation};
 use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter};
 
-use crate::consts::{ID, SessionID};
+use base::consts::{ID, SessionID};
 
 /// Retrieves all session relations associated with the given user ID.
 ///

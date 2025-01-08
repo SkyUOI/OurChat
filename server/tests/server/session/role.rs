@@ -1,12 +1,12 @@
+use base::consts::ID;
 use client::TestApp;
 use migration::m20241229_022701_add_role_for_session::{PreDefinedPermissions, PreDefinedRoles};
 use pb::ourchat::session::add_role::v1::AddRoleRequest;
 use sea_orm::EntityTrait;
-use server::consts::ID;
 
 #[tokio::test]
 async fn set_role() {
-    let mut app = TestApp::new_with_launching_instance(None).await.unwrap();
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
     let (session_user, session) = app.new_session_db_level(3, "session1").await.unwrap();
     let (a, b, c) = (
         session_user[0].clone(),
@@ -18,7 +18,7 @@ async fn set_role() {
 
 #[tokio::test]
 async fn add_role() {
-    let mut app = TestApp::new_with_launching_instance(None).await.unwrap();
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
     let user = app.new_user().await.unwrap();
     let ret = user
         .lock()

@@ -1,8 +1,6 @@
-use crate::{
-    DbPool,
-    consts::{ID, OCID},
-};
 use anyhow::bail;
+use base::consts::{ID, OCID};
+use base::database::DbPool;
 use entities::{prelude::*, user};
 use redis::AsyncCommands;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};

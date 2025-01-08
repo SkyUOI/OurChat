@@ -1,13 +1,9 @@
-use crate::{
-    DbPool,
-    component::EmailSender,
-    consts::{self, ID},
-    db,
-    server::AuthServiceProvider,
-    shared_state, utils,
-};
+use super::generate_access_token;
+use crate::{db, server::AuthServiceProvider, shared_state, utils};
 use anyhow::Context;
 use argon2::{Params, PasswordHasher, password_hash::SaltString};
+use base::consts::{self, ID};
+use base::database::DbPool;
 use entities::user;
 use pb::auth::register::v1::{RegisterRequest, RegisterResponse};
 use sea_orm::{ActiveModelTrait, ActiveValue, DbErr};
@@ -15,8 +11,6 @@ use snowdon::ClassicLayoutSnowflakeExtension;
 use std::num::TryFromIntError;
 use tonic::{Request, Response, Status};
 use tracing::error;
-
-use super::generate_access_token;
 
 async fn add_new_user(
     request: RegisterRequest,
@@ -89,7 +83,7 @@ fn compute_password_hash(password: &str, params: Params) -> String {
 }
 
 async fn register_impl(
-    server: &AuthServiceProvider<impl EmailSender>,
+    server: &AuthServiceProvider,
     request: Request<RegisterRequest>,
 ) -> Result<RegisterResponse, RegisterError> {
     let password_hash = &server.shared_data.cfg.main_cfg.password_hash;
@@ -108,8 +102,8 @@ async fn register_impl(
     Ok(response)
 }
 
-pub async fn register<T: EmailSender>(
-    server: &AuthServiceProvider<T>,
+pub async fn register(
+    server: &AuthServiceProvider,
     request: Request<RegisterRequest>,
 ) -> Result<Response<RegisterResponse>, Status> {
     match register_impl(server, request).await {

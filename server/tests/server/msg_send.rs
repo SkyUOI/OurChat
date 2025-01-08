@@ -7,7 +7,7 @@ use tokio_stream::StreamExt;
 
 #[tokio::test]
 async fn test_text_sent() {
-    let mut app = client::TestApp::new_with_launching_instance(None)
+    let mut app = client::TestApp::new_with_launching_instance()
         .await
         .unwrap();
     let (session_user, session) = app.new_session_db_level(3, "session1").await.unwrap();
@@ -30,7 +30,7 @@ async fn test_text_sent() {
 
 #[tokio::test]
 async fn test_text_get() {
-    let mut app = client::TestApp::new_with_launching_instance(None)
+    let mut app = client::TestApp::new_with_launching_instance()
         .await
         .unwrap();
     let (session_user, session) = app.new_session_db_level(3, "session1").await.unwrap();
@@ -40,7 +40,7 @@ async fn test_text_get() {
         session_user[2].clone(),
     );
     let base_time = app.get_timestamp().await;
-    // send message
+    // send a message
     let msg_should_sent = OneMsg {
         data: Some(msg_delivery::v1::one_msg::Data::Text("hello".to_owned())),
     };
@@ -60,7 +60,7 @@ async fn test_text_get() {
         .unwrap();
     msg_id.push(ret.into_inner().msg_id);
 
-    // get message
+    // get a message
     let msg_get = FetchMsgsRequest {
         time: Some(to_google_timestamp(base_time)),
     };

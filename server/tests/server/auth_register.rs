@@ -4,14 +4,14 @@ use client::ClientErr;
 #[tokio::test]
 async fn auth_token() {
     // ocid test
-    let mut app = client::TestApp::new_with_launching_instance(None)
+    let mut app = client::TestApp::new_with_launching_instance()
         .await
         .unwrap();
     let user = app.new_user().await.unwrap();
     assert_ok!(user.lock().await.ocid_auth().await);
 
     let user = app.new_user().await.unwrap();
-    // try wrong password
+    // try the wrong password
     claims::assert_err!(
         user.lock()
             .await
@@ -21,7 +21,7 @@ async fn auth_token() {
     // email test
     assert_ok!(user.lock().await.email_auth().await);
 
-    // try not found user
+    // try a user which not exists
     let user = app.new_user().await.unwrap();
     user.lock().await.email = "wrong email".to_string();
     let e = user.lock().await.email_auth().await;
@@ -36,7 +36,7 @@ async fn auth_token() {
 #[tokio::test]
 async fn register_account() {
     // register two same users
-    let mut app = client::TestApp::new_with_launching_instance(None)
+    let mut app = client::TestApp::new_with_launching_instance()
         .await
         .unwrap();
     let user = app.new_user().await.unwrap();

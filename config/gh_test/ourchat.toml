@@ -1,18 +1,20 @@
 # Ip listening
 ip = "127.0.0.1"
-# Assign the config file of database,relative to this config file
+# Assign the config file of a database, relative to this config file
 dbcfg = "database.toml"
-# Assign the config file of redis database,relative to this config file
+# Assign the config file of a redis database, relative to this config file
 rediscfg = "redis_connect.toml"
+# Assign the config file of a rabbitmq, relative to this config file
+rabbitmqcfg = "rabbitmq.toml"
 # Ourchat Listening Port
 port = 7777
-# The http server listening port
+# Just for showing, will not use this port
 http_port = 7778
 # The duration of cleaning the files which are out-of-date
 auto_clean_duration = 1
-# The total file size limit of single user
+# The total file size limit of a single user
 user_files_limit = "100MiB"
-# The friends number limit of single user
+# A single user's The number of the friend's limit
 friends_number_limit = 5000
 # Whether enabling the terminal
 enable_cmd = true
@@ -20,7 +22,7 @@ enable_cmd = true
 enable_cmd_stdin = true
 # Assign the network terminal listening port,note,it will enable the network terminal mode by default
 cmd_network_port = 7779
-# The expire time in days of the verification request
+# The expiry time in days of the verification request
 verification_expire_days = 3
 # The path of the users' files storage
 files_storage_path = "files_storage/"
@@ -29,6 +31,8 @@ ssl = false
 # Whether this is started in Single Instance Mode. If true, some actions like cleaning up files will be performed regularly
 # You can set it when you have only one server instance, or you can set this option in only one instance(not recommended)
 single_instance = true
+# In multiple instance mode, choose a node to be the leader node
+leader_node = true
 
 [password_hash]
 # The memory size in 1 KiB blocks. Between 8*`p_cost` and (2^32)-1
@@ -41,32 +45,10 @@ p_cost = 1
 output_len = 32
 
 [db]
-# The size of one page to fetch message
+# The size of one page to fetch a message
 fetch_msg_page_size = 2000
 
 [debug]
 debug_console = true
 # Warning: don't expose it to the world
 debug_console_port = 7776
-
-# Registry Centre of Services
-[registry]
-# Whether to add this service to registry
-enable = false
-# Registry address
-ip = "127.0.0.1"
-# Registry port
-port = 8500
-# Registry service name
-service_name = "RpcServer"
-
-# If any fields below is not specified, the email will be disabled
-[email]
-# Whether to enable email service
-enable = false
-# Email address displaying in sent email
-email_address = "default@ourchat.org"
-# Smtp server address
-smtp_address = "smtp.ourchat.org"
-# Smtp server password
-smtp_password = "password"

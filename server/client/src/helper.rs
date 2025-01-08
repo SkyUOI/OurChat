@@ -1,6 +1,10 @@
+pub mod rabbitmq;
+
 use pb::ourchat::download::v1::DownloadResponse;
 use size::Size;
 use std::iter;
+use std::path::PathBuf;
+use std::sync::Once;
 use tokio_stream::StreamExt;
 use tonic::Streaming;
 
@@ -41,4 +45,20 @@ pub async fn get_hash_from_download(
     }
     let hash = format!("{:x}", hasher.finalize());
     Ok(hash)
+}
+
+pub fn init_env_var() {
+    static TMP: Once = Once::new();
+    TMP.call_once(|| {
+        dotenv::dotenv().ok();
+        // Set config file path
+        let test_config_dir = PathBuf::from(std::env::var("OURCHAT_TEST_CONFIG_DIR").unwrap());
+        unsafe {
+            std::env::set_var("OURCHAT_CONFIG_FILE", test_config_dir.join("ourchat.toml"));
+            std::env::set_var(
+                "OURCHAT_HTTP_CONFIG_FILE",
+                test_config_dir.join("http.toml"),
+            );
+        }
+    });
 }

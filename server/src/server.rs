@@ -1,17 +1,15 @@
 //! Ourchat Server
 
-pub mod httpserver;
-
-use crate::component::EmailSender;
 use crate::process;
 use crate::process::db::get_id;
-use crate::{DbPool, HttpSender, SERVER_INFO, SharedData, ShutdownRev, shared_state};
+use crate::{SERVER_INFO, SharedData, ShutdownRev, shared_state};
+use base::database::DbPool;
 use base::time::to_google_timestamp;
 use pb::auth::authorize::v1::{AuthRequest, AuthResponse};
 use pb::auth::email_verify::v1::{VerifyRequest, VerifyResponse};
 use pb::auth::register::v1::{RegisterRequest, RegisterResponse};
 use pb::auth::v1::auth_service_server::{self, AuthServiceServer};
-use pb::basic::server::v1::{RunningStatus, ServerVersion, VERSION_SPLIT};
+use pb::basic::server::v1::{RunningStatus, VERSION_SPLIT};
 use pb::basic::v1::basic_service_server::{BasicService, BasicServiceServer};
 use pb::basic::v1::{
     GetIdRequest, GetIdResponse, GetServerInfoRequest, TimestampRequest, TimestampResponse,
@@ -42,25 +40,25 @@ use tonic::{Request, Response, Status};
 use tracing::info;
 
 #[derive(Debug)]
-pub struct RpcServer<T: EmailSender> {
+pub struct RpcServer {
     pub db: DbPool,
-    pub http_sender: HttpSender,
-    pub shared_data: Arc<SharedData<T>>,
+    pub shared_data: Arc<SharedData>,
     pub addr: SocketAddr,
+    pub rabbitmq: deadpool_lapin::Pool,
 }
 
-impl<T: EmailSender> RpcServer<T> {
+impl RpcServer {
     pub fn new(
         ip: impl Into<SocketAddr>,
         db: DbPool,
-        http_sender: HttpSender,
-        shared_data: Arc<SharedData<T>>,
+        shared_data: Arc<SharedData>,
+        rabbitmq: deadpool_lapin::Pool,
     ) -> Self {
         Self {
             db,
-            http_sender,
             shared_data,
             addr: ip.into(),
+            rabbitmq,
         }
     }
 
@@ -74,6 +72,7 @@ impl<T: EmailSender> RpcServer<T> {
         let auth_service = AuthServiceProvider {
             shared_data: self.shared_data.clone(),
             db: self.db.clone(),
+            rabbitmq: self.rabbitmq.clone(),
         };
         let svc = OurChatServiceServer::with_interceptor(self, Self::check_auth);
         select! {
@@ -110,7 +109,7 @@ pub type DownloadStream =
     Pin<Box<dyn tokio_stream::Stream<Item = Result<DownloadResponse, Status>> + Send>>;
 
 #[tonic::async_trait]
-impl<T: EmailSender> OurChatService for RpcServer<T> {
+impl OurChatService for RpcServer {
     #[tracing::instrument(skip(self))]
     async fn unregister(
         &self,
@@ -237,16 +236,17 @@ impl<T: EmailSender> OurChatService for RpcServer<T> {
 }
 
 #[derive(Debug)]
-pub struct AuthServiceProvider<T: EmailSender> {
-    pub shared_data: Arc<SharedData<T>>,
+pub struct AuthServiceProvider {
+    pub shared_data: Arc<SharedData>,
     pub db: DbPool,
+    pub rabbitmq: deadpool_lapin::Pool,
 }
 
 pub type VerifyStream =
     Pin<Box<dyn tokio_stream::Stream<Item = Result<VerifyResponse, Status>> + Send>>;
 
 #[tonic::async_trait]
-impl<T: EmailSender> auth_service_server::AuthService for AuthServiceProvider<T> {
+impl auth_service_server::AuthService for AuthServiceProvider {
     #[tracing::instrument(skip(self))]
     async fn register(
         &self,
@@ -272,13 +272,13 @@ impl<T: EmailSender> auth_service_server::AuthService for AuthServiceProvider<T>
 }
 
 #[derive(Debug)]
-struct BasicServiceProvider<T: EmailSender> {
-    pub shared_data: Arc<SharedData<T>>,
+struct BasicServiceProvider {
+    pub shared_data: Arc<SharedData>,
     pub db: DbPool,
 }
 
 #[tonic::async_trait]
-impl<T: EmailSender> BasicService for BasicServiceProvider<T> {
+impl BasicService for BasicServiceProvider {
     #[tracing::instrument(skip(self))]
     async fn timestamp(
         &self,

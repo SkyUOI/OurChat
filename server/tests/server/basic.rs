@@ -1,14 +1,10 @@
 use claims::assert_lt;
 use client::TestApp;
-use pb::basic::{
-    server::v1::VERSION_SPLIT,
-    v1::{GetIdRequest, GetServerInfoRequest},
-};
-use server::consts::ID;
+use pb::basic::{server::v1::VERSION_SPLIT, v1::GetServerInfoRequest};
 
 #[tokio::test]
 async fn get_datetime() {
-    let mut app = TestApp::new_with_launching_instance(None).await.unwrap();
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
     let time1 = app.get_timestamp().await;
     tokio::time::sleep(std::time::Duration::from_millis(10)).await;
     let time2 = app.get_timestamp().await;
@@ -18,9 +14,7 @@ async fn get_datetime() {
 
 #[tokio::test]
 async fn get_server_info() {
-    let mut app = client::TestApp::new_with_launching_instance(None)
-        .await
-        .unwrap();
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
     let req = app
         .clients
         .basic
@@ -35,7 +29,7 @@ async fn get_server_info() {
 
 #[tokio::test]
 async fn get_id_through_ocid() {
-    let mut app = TestApp::new_with_launching_instance(None).await.unwrap();
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
     let user1 = app.new_user().await.unwrap();
     let user2 = app.new_user().await.unwrap();
     let ocid = user1.lock().await.ocid.clone();

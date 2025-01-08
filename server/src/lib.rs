@@ -3,57 +3,47 @@
 
 pub mod basic;
 mod cmd;
-pub mod component;
-pub mod consts;
 mod cryption;
 pub mod db;
 pub mod process;
+pub mod rabbitmq;
 mod server;
 mod shared_state;
 pub mod utils;
 
-use crate::component::EmailClient;
 use anyhow::bail;
+use base::configs::DebugCfg;
+use base::consts::{self, CONFIG_FILE_ENV_VAR, LOG_OUTPUT_DIR, STDIN_AVAILABLE};
+use base::database::DbPool;
+use base::database::postgres::PostgresDbCfg;
+use base::database::redis::RedisCfg;
+use base::log;
+use base::rabbitmq::RabbitMQCfg;
 pub use basic::*;
 use clap::Parser;
 use cmd::CommandTransmitData;
-use component::EmailSender;
 use config::{ConfigError, File};
-use consts::{CONFIG_FILE_ENV_VAR, ID, LOG_ENV_VAR, LOG_OUTPUT_DIR, STDIN_AVAILABLE};
 use dashmap::DashMap;
-use db::{PostgresDbCfg, file_storage};
+use db::file_storage;
 use futures_util::future::join_all;
-use lettre::{AsyncSmtpTransport, transport::smtp::authentication::Credentials};
 use parking_lot::Once;
-use pb::ourchat::msg_delivery::v1::FetchMsgsResponse;
 use rand::Rng;
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
-use server::httpserver;
 use size::Size;
 use std::{
     fs,
     net::SocketAddr,
     path::{Path, PathBuf},
-    sync::{Arc, LazyLock, OnceLock},
-    time::Duration,
+    sync::{Arc, LazyLock},
 };
 use tokio::{sync::mpsc, task::JoinHandle};
-use tracing_appender::non_blocking::WorkerGuard;
-use tracing_subscriber::{
-    EnvFilter, Registry,
-    fmt::{self, MakeWriter},
-    layer::SubscriberExt,
-    util::SubscriberInitExt,
-};
 
 #[derive(Debug, Parser, Default)]
 #[command(author = "SkyUOI", version = base::build::VERSION, about = "The Server of OurChat")]
 pub struct ArgsParser {
     #[arg(short, long, help = "binding port")]
     pub port: Option<u16>,
-    #[arg(long, help = "http server binding port")]
-    pub http_port: Option<u16>,
     #[arg(long, help = "binding ip")]
     pub ip: Option<String>,
     #[command(flatten)]
@@ -68,6 +58,7 @@ pub struct MainCfg {
     pub ip: String,
     pub rediscfg: PathBuf,
     pub dbcfg: PathBuf,
+    pub rabbitmqcfg: PathBuf,
     #[serde(default = "consts::default_port")]
     pub port: u16,
     #[serde(default = "consts::default_http_port")]
@@ -94,11 +85,11 @@ pub struct MainCfg {
     pub ssl: bool,
     #[serde(default = "consts::default_single_instance")]
     pub single_instance: bool,
+    #[serde(default = "consts::default_leader_node")]
+    pub leader_node: bool,
     pub password_hash: PasswordHash,
     pub db: OCDbCfg,
     pub debug: DebugCfg,
-    pub email: EmailCfg,
-    pub registry: RegistryCfg,
 
     #[serde(skip)]
     pub cmd_args: ParserCfg,
@@ -114,62 +105,6 @@ pub struct PasswordHash {
     pub p_cost: u32,
     #[serde(default = "consts::default_output_len")]
     pub output_len: Option<usize>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct DebugCfg {
-    #[serde(default = "consts::default_debug_console")]
-    pub debug_console: bool,
-    #[serde(default = "consts::default_debug_console_port")]
-    pub debug_console_port: u16,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct RegistryCfg {
-    #[serde(default = "consts::default_enable_registry")]
-    pub enable: bool,
-    #[serde(default = "consts::default_registry_port")]
-    pub port: u16,
-    #[serde(default = "consts::default_registry_ip")]
-    pub ip: String,
-    #[serde(default = "consts::default_service_name")]
-    pub service_name: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct EmailCfg {
-    #[serde(default = "consts::default_enable_email")]
-    pub enable: bool,
-    #[serde(default)]
-    pub email_address: Option<String>,
-    #[serde(default)]
-    pub smtp_address: Option<String>,
-    #[serde(default)]
-    pub smtp_password: Option<String>,
-}
-
-impl EmailCfg {
-    pub fn email_available(&self) -> bool {
-        self.email_address.is_some() && self.smtp_address.is_some() && self.smtp_password.is_some()
-    }
-
-    pub fn build_email_client(&self) -> anyhow::Result<EmailClient> {
-        if !self.email_available() {
-            bail!("email is not available");
-        }
-        let creds = Credentials::new(
-            self.email_address.clone().unwrap(),
-            self.smtp_password.clone().unwrap(),
-        );
-        EmailClient::new(
-            AsyncSmtpTransport::<lettre::Tokio1Executor>::relay(
-                &self.smtp_address.clone().unwrap(),
-            )?
-            .credentials(creds)
-            .build(),
-            self.email_address.as_ref().unwrap(),
-        )
-    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -199,7 +134,7 @@ impl MainCfg {
         } else {
             iter.next().unwrap().into()
         };
-        // read config file
+        // read a config file
         let mut cfg: MainCfg = read_a_config(&cfg_path)
             .expect("Failed to build config")
             .try_deserialize()
@@ -210,7 +145,7 @@ impl MainCfg {
             // TODO: Merge
         }
         cfg.cmd_args.config = configs_list;
-        // convert the path relevant to the config file to path relevant to the directory
+        // convert the path relevant to the config file to a path relevant to the directory
         cfg.convert_to_abs_path()?;
         Ok(cfg)
     }
@@ -222,26 +157,30 @@ impl MainCfg {
             "http".to_string()
         }
     }
+
+    pub fn unique_instance(&self) -> bool {
+        self.leader_node || self.single_instance
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct Cfg {
     pub main_cfg: MainCfg,
     pub db_cfg: PostgresDbCfg,
+    pub redis_cfg: RedisCfg,
+    pub rabbitmq_cfg: RabbitMQCfg,
 }
 
 impl Cfg {
     pub fn new(main_cfg: MainCfg) -> anyhow::Result<Self> {
-        let dbcfg = {
-            let cfg = config::Config::builder()
-                .add_source(config::File::with_name(main_cfg.dbcfg.to_str().unwrap()))
-                .build()?;
-            let cfg: PostgresDbCfg = cfg.try_deserialize()?;
-            cfg
-        };
+        let db_cfg = PostgresDbCfg::build_from_path(&main_cfg.dbcfg)?;
+        let redis_cfg = RedisCfg::build_from_path(&main_cfg.rediscfg)?;
+        let rabbitmq_cfg = RabbitMQCfg::build_from_path(&main_cfg.rabbitmqcfg)?;
         Ok(Self {
             main_cfg,
-            db_cfg: dbcfg,
+            db_cfg,
+            redis_cfg,
+            rabbitmq_cfg,
         })
     }
 }
@@ -278,6 +217,8 @@ impl MainCfg {
             .canonicalize()?;
         self.rediscfg = base::resolve_relative_path(&full_basepath, Path::new(&self.rediscfg))?;
         self.dbcfg = base::resolve_relative_path(&full_basepath, Path::new(&self.dbcfg))?;
+        self.rabbitmqcfg =
+            base::resolve_relative_path(&full_basepath, Path::new(&self.rabbitmqcfg))?;
         Ok(())
     }
 }
@@ -334,59 +275,6 @@ static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
     serde_json::to_writer(&mut f, &info).unwrap();
     info
 });
-
-/// Initialize the logger.
-///
-/// If `test_mode` is `true`, it will always set the log level to "trace".
-/// Otherwise, it will read the log level from the environment variable
-/// specified by [`LOG_ENV_VAR`] and set it to "info" if not present.
-/// The log will be written to a file in the directory specified by
-/// [`LOG_OUTPUT_DIR`] and the file name will be "test" if `test_mode` is
-/// `true` and "ourchat" otherwise.
-/// If `debug_cfg` is `Some` and `debug_console` is `true`, it will also
-/// write the log to the console at the address specified by
-/// `debug_cfg.debug_console_port`.
-///
-/// # Warning
-/// This function should be called only once.
-/// The second one will be ignored
-pub fn logger_init<Sink>(test_mode: bool, debug_cfg: Option<&DebugCfg>, output: Sink)
-where
-    Sink: for<'a> MakeWriter<'a> + Send + Sync + 'static,
-{
-    static INIT: OnceLock<Option<WorkerGuard>> = OnceLock::new();
-    INIT.get_or_init(|| {
-        let env = if test_mode {
-            || EnvFilter::try_from_env(LOG_ENV_VAR).unwrap_or("trace".into())
-        } else {
-            || EnvFilter::try_from_env(LOG_ENV_VAR).unwrap_or("info".into())
-        };
-        let formatting_layer = fmt::layer().pretty().with_writer(output);
-        let file_appender = if test_mode {
-            tracing_appender::rolling::never(LOG_OUTPUT_DIR, "test")
-        } else {
-            tracing_appender::rolling::daily(LOG_OUTPUT_DIR, "ourchat")
-        };
-        let (non_blocking, file_guard) = tracing_appender::non_blocking(file_appender);
-        let tmp = Registry::default()
-            .with(env())
-            .with(formatting_layer)
-            .with(fmt::layer().with_ansi(false).with_writer(non_blocking));
-        if let Some(debug_cfg) = debug_cfg {
-            if debug_cfg.debug_console {
-                // TODO:move this to "debug" section of config
-                let console_layer = console_subscriber::ConsoleLayer::builder()
-                    .retention(Duration::from_secs(60))
-                    .server_addr(([0, 0, 0, 0], debug_cfg.debug_console_port))
-                    .spawn();
-                tmp.with(console_layer).init();
-            }
-        } else {
-            tmp.init();
-        }
-        Some(file_guard)
-    });
-}
 
 fn clear() -> anyhow::Result<()> {
     let dir_path = Path::new(LOG_OUTPUT_DIR);
@@ -448,61 +336,40 @@ fn exit_signal(#[allow(unused_mut)] mut shutdown_sender: ShutdownSdr) -> anyhow:
     Ok(())
 }
 
-#[derive(Debug, Clone)]
-pub struct HttpSender {}
-
 /// build websocket server
 async fn start_server(
     addr: impl Into<SocketAddr>,
     db: DbPool,
-    http_sender: HttpSender,
-    shared_data: Arc<SharedData<impl EmailSender>>,
+    shared_data: Arc<SharedData>,
+    rabbitmq: deadpool_lapin::Pool,
     shutdown_receiver: ShutdownRev,
 ) -> anyhow::Result<JoinHandle<anyhow::Result<()>>> {
-    let server = server::RpcServer::new(addr, db, http_sender, shared_data);
+    let server = server::RpcServer::new(addr, db, shared_data, rabbitmq);
     let handle = tokio::spawn(async move { server.run(shutdown_receiver).await });
     Ok(handle)
 }
 
-/// global init,can be called many times,but only the first time will be effective
+/// global init can be called many times,but only the first time will be effective
 fn global_init() {
     static INIT: Once = Once::new();
     INIT.call_once(|| {})
 }
 
-pub struct Application<T: EmailSender> {
-    pub shared: Arc<SharedData<T>>,
+pub struct Application {
+    pub shared: Arc<SharedData>,
     pub pool: DbPool,
+    pub rabbitmq: deadpool_lapin::Pool,
     server_addr: SocketAddr,
-    http_listener: Option<std::net::TcpListener>,
     /// for shutting down server fully,you shouldn't use handle.abort() to do this
     abort_sender: ShutdownSdr,
     pub started_notify: Arc<tokio::sync::Notify>,
 }
 
-/// The database connection pool, redis connection pool
-/// you can clone it freely without many extra cost
-#[derive(Debug, Clone)]
-pub struct DbPool {
-    pub db_pool: DatabaseConnection,
-    pub redis_pool: deadpool_redis::Pool,
-}
-
-impl DbPool {
-    async fn close(&mut self) -> anyhow::Result<()> {
-        self.db_pool.clone().close().await?;
-        self.redis_pool.close();
-        Ok(())
-    }
-}
-
 /// shared data along the whole application
 #[derive(Debug)]
-pub struct SharedData<T: EmailSender> {
-    pub email_client: Option<T>,
+pub struct SharedData {
     pub cfg: Cfg,
     pub verify_record: DashMap<String, Arc<tokio::sync::Notify>>,
-    pub connected_clients: DashMap<ID, mpsc::Sender<Result<FetchMsgsResponse, tonic::Status>>>,
 }
 
 /// Loads and constructs the configuration for the application.
@@ -532,22 +399,21 @@ pub fn get_configuration(config_path: Vec<impl Into<PathBuf>>) -> anyhow::Result
     Cfg::new(main_cfg)
 }
 
-pub async fn register_service(_cfg: &RegistryCfg) -> anyhow::Result<()> {
-    Ok(())
-}
-
-impl<T: EmailSender> Application<T> {
+impl Application {
     /// Builds a new `Application` instance.
     ///
     /// This function will set up the log system, shared state, connect to the database,
-    /// and connect to Redis. The `parser` argument is used to override some of the
-    /// configuration if specified. The `cfg` argument is the configuration to be used.
+    /// and connect to Redis.
+    /// The `parser` argument is used to override some
+    /// configuration if specified.
+    /// The `cfg` argument is the configuration to be used.
     ///
     /// # Arguments
     ///
     /// * `parser` - The parsed command line arguments.
     /// * `cfg` - The configuration to be used.
-    /// * `email_client` - The email client to be used. If `None`, the email client
+    /// * `email_client` - The email client to be used.
+    ///   If `None`, the email client
     ///   will be ignored.
     ///
     /// # Returns
@@ -555,25 +421,23 @@ impl<T: EmailSender> Application<T> {
     /// Returns a `Result` containing the `Application` instance if successful, or an error
     /// if it fails to set up the log system, shared state, connect to the database, or
     /// connect to Redis.
-    pub async fn build(
-        parser: ArgsParser,
-        mut cfg: Cfg,
-        email_client: Option<T>,
-    ) -> anyhow::Result<Self> {
+    pub async fn build(parser: ArgsParser, mut cfg: Cfg) -> anyhow::Result<Self> {
         global_init();
         let main_cfg = &mut cfg.main_cfg;
 
         if main_cfg.cmd_args.test_mode {
-            logger_init(
+            log::logger_init(
                 main_cfg.cmd_args.test_mode,
                 Some(&main_cfg.debug),
                 std::io::sink,
+                "ourchat",
             );
         } else {
-            logger_init(
+            log::logger_init(
                 main_cfg.cmd_args.test_mode,
                 Some(&main_cfg.debug),
                 std::io::stdout,
+                "ourchat",
             );
         }
         // start maintain mode
@@ -595,18 +459,6 @@ impl<T: EmailSender> Application<T> {
         let addr: SocketAddr = format!("{}:{}", &main_cfg.ip, port).parse()?;
         main_cfg.port = addr.port();
 
-        // http port
-        let http_port = match parser.http_port {
-            None => main_cfg.http_port,
-            Some(http_port) => http_port,
-        };
-        let ip = main_cfg.ip.clone();
-        let http_listener = tokio::task::spawn_blocking(move || {
-            std::net::TcpListener::bind(format!("{}:{}", &ip, http_port))
-        })
-        .await??;
-        main_cfg.http_port = http_listener.local_addr()?.port();
-
         // enable cmd
         let enable_cmd = match parser.enable_cmd {
             None => main_cfg.enable_cmd,
@@ -614,37 +466,31 @@ impl<T: EmailSender> Application<T> {
         };
         main_cfg.enable_cmd = enable_cmd;
         let abort_sender = ShutdownSdr::new(None);
-        // connect to database
         db::init_db_system();
-        let db = db::connect_to_db(&cfg.db_cfg.url()).await?;
-        db::init_db(&db).await?;
-        // connect to redis
-        let redis = db::connect_to_redis(&db::get_redis_url(&main_cfg.rediscfg)?).await?;
+        // connect to db
+        let db_pool = DbPool::build(&cfg.db_cfg, &cfg.redis_cfg).await?;
+        db_pool.init().await?;
+        // connect to rabbitmq
+        let rmq_pool = cfg.rabbitmq_cfg.build()?;
+        if cfg.main_cfg.unique_instance() {
+            rabbitmq::init(&rmq_pool).await?;
+        }
 
         Ok(Self {
             shared: Arc::new(SharedData {
-                email_client,
                 cfg,
                 verify_record: DashMap::new(),
-                connected_clients: DashMap::new(),
             }),
-            pool: DbPool {
-                redis_pool: redis,
-                db_pool: db,
-            },
+            pool: db_pool,
             server_addr: addr,
-            http_listener: Some(http_listener),
             abort_sender,
             started_notify: Arc::new(tokio::sync::Notify::new()),
+            rabbitmq: rmq_pool,
         })
     }
 
     pub fn get_port(&self) -> u16 {
         self.shared.cfg.main_cfg.port
-    }
-
-    pub fn get_http_port(&self) -> u16 {
-        self.shared.cfg.main_cfg.http_port
     }
 
     pub fn get_abort_handle(&self) -> ShutdownSdr {
@@ -670,22 +516,12 @@ impl<T: EmailSender> Application<T> {
         }
 
         let mut handles = Vec::new();
-        // Build http server
-        let (handle, record_sender) = httpserver::HttpServer::new()
-            .start(
-                self.http_listener.take().unwrap(),
-                self.pool.clone(),
-                self.shared.clone(),
-                self.abort_sender.clone(),
-            )
-            .await?;
-        handles.push(handle);
 
         let handle = start_server(
             self.server_addr,
             self.pool.clone(),
-            record_sender,
             self.shared.clone(),
+            self.rabbitmq.clone(),
             self.abort_sender.new_receiver("rpc server", "rpc server"),
         )
         .await?;
@@ -743,7 +579,6 @@ impl<T: EmailSender> Application<T> {
             ));
         }
         tracing::info!("Start to register service to registry");
-        register_service(&cfg.registry).await?;
         tracing::info!("Server started");
         self.started_notify.notify_waiters();
         join_all(handles).await.iter().for_each(|x| {
@@ -752,6 +587,7 @@ impl<T: EmailSender> Application<T> {
             }
         });
         self.pool.close().await?;
+        self.rabbitmq.close();
         tracing::info!("Server exited");
         Ok(())
     }

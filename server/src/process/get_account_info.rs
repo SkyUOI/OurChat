@@ -1,9 +1,8 @@
 use super::basic::get_ocid;
-use crate::component::EmailSender;
-use crate::consts::ID;
 use crate::db;
 use crate::db::session::get_all_session_relations;
 use crate::server::RpcServer;
+use base::consts::ID;
 use base::time::to_google_timestamp;
 use pb::ourchat::get_account_info::v1::{
     GetAccountInfoRequest, GetAccountInfoResponse, OWNER_PRIVILEGE, RequestValues,
@@ -33,7 +32,7 @@ enum GetInfoError {
 }
 
 async fn get_info_impl(
-    server: &RpcServer<impl EmailSender>,
+    server: &RpcServer,
     request: Request<GetAccountInfoRequest>,
 ) -> Result<GetAccountInfoResponse, GetInfoError> {
     let id = get_id_from_req(&request).unwrap();
@@ -135,8 +134,8 @@ async fn get_info_impl(
     Ok(ret)
 }
 
-pub async fn get_info<T: EmailSender>(
-    server: &RpcServer<T>,
+pub async fn get_info(
+    server: &RpcServer,
     request: Request<GetAccountInfoRequest>,
 ) -> Result<tonic::Response<GetAccountInfoResponse>, tonic::Status> {
     match get_info_impl(server, request).await {

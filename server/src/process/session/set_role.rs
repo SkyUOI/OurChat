@@ -1,13 +1,12 @@
-use crate::{component::EmailSender, process::get_id_from_req, server::RpcServer};
+use super::check_if_permission_exist;
+use crate::{process::get_id_from_req, server::RpcServer};
 use migration::m20241229_022701_add_role_for_session::PreDefinedPermissions;
 use pb::ourchat::session::set_role::v1::{SetRoleRequest, SetRoleResponse};
 use sea_orm::{ActiveModelTrait, ActiveValue};
 use tonic::{Request, Response, Status};
 
-use super::check_if_permission_exist;
-
 pub async fn set_role(
-    server: &RpcServer<impl EmailSender>,
+    server: &RpcServer,
     request: Request<SetRoleRequest>,
 ) -> Result<Response<SetRoleResponse>, Status> {
     match set_role_impl(server, request).await {
@@ -33,7 +32,7 @@ enum SetRoleErr {
 }
 
 async fn set_role_impl(
-    server: &RpcServer<impl EmailSender>,
+    server: &RpcServer,
     request: Request<SetRoleRequest>,
 ) -> Result<SetRoleResponse, SetRoleErr> {
     let id = get_id_from_req(&request).unwrap();

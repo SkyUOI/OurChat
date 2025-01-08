@@ -1,11 +1,10 @@
+use super::get_id_from_req;
 use crate::{
-    component::EmailSender,
-    consts::ID,
     server::RpcServer,
     utils::{create_file_with_dirs_if_not_exist, generate_random_string},
 };
+use base::consts::ID;
 use entities::{files, prelude::*, user};
-use futures_util::StreamExt;
 use pb::ourchat::upload::v1::{UploadRequest, UploadResponse, upload_request};
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, ConnectionTrait, DatabaseConnection, EntityTrait,
@@ -18,9 +17,8 @@ use tokio::{
     fs::{self, File},
     io::AsyncWriteExt,
 };
+use tokio_stream::StreamExt;
 use tonic::{Response, Status};
-
-use super::get_id_from_req;
 
 const PREFIX_LEN: usize = 20;
 
@@ -138,7 +136,7 @@ pub enum UploadError {
 }
 
 async fn upload_impl(
-    server: &RpcServer<impl EmailSender>,
+    server: &RpcServer,
     request: tonic::Request<tonic::Streaming<UploadRequest>>,
 ) -> Result<UploadResponse, UploadError> {
     let id = get_id_from_req(&request).unwrap();
@@ -200,8 +198,8 @@ async fn upload_impl(
     Ok(UploadResponse { key })
 }
 
-pub async fn upload<T: EmailSender>(
-    server: &RpcServer<T>,
+pub async fn upload(
+    server: &RpcServer,
     request: tonic::Request<tonic::Streaming<UploadRequest>>,
 ) -> Result<Response<UploadResponse>, Status> {
     match upload_impl(server, request).await {

@@ -95,10 +95,10 @@ async fn deny_too_big_file(app: &mut TestApp) {
 
 #[tokio::test]
 async fn upload() {
-    let (mut config, args) = client::TestApp::get_test_config().unwrap();
+    let (mut config, args) = TestApp::get_test_config().unwrap();
     let user_files_limit = Size::from_mebibytes(10);
     config.main_cfg.user_files_limit = user_files_limit;
-    let mut app = client::TestApp::new_with_launching_instance_custom_cfg(None, (config, args))
+    let mut app = TestApp::new_with_launching_instance_custom_cfg((config, args))
         .await
         .unwrap();
     let small_file = generate_file(Size::from_mebibytes(1.5)).unwrap();

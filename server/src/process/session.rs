@@ -1,7 +1,7 @@
 use entities::{role_permissions, user_role_relation};
 use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter};
 
-use crate::consts::{ID, SessionID};
+use base::consts::{ID, SessionID};
 pub mod accept_session;
 pub mod add_role;
 pub mod get_session_info;

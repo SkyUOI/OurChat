@@ -2,7 +2,7 @@ use anyhow::Context;
 use entities::{friend, prelude::*, user};
 use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter};
 
-use crate::consts::ID;
+use base::consts::ID;
 
 /// Get the user info from the database by id.
 ///

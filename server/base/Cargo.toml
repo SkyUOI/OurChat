@@ -12,6 +12,21 @@ chrono.workspace = true
 sha3 = "0"
 prost-types = { version = "0" }
 ring.workspace = true
+size.workspace = true
+sea-orm.workspace = true
+deadpool-redis.workspace = true
+deadpool-lapin.workspace = true
+tracing-appender.workspace = true
+tracing-subscriber.workspace = true
+console-subscriber.workspace = true
+sqlx.workspace = true
+config.workspace = true
+tracing.workspace = true
+migration = { path = "../migration" }
+lettre.workspace = true
+mockall.workspace = true
+async-trait.workspace = true
+urlencoding.workspace = true
 
 [build-dependencies]
 shadow-rs = "0"

@@ -1,11 +1,11 @@
 use crate::process::get_id_from_req;
-use crate::{component::EmailSender, server::RpcServer};
+use crate::server::RpcServer;
 use pb::ourchat::session::add_role::v1::{AddRoleRequest, AddRoleResponse};
 use sea_orm::{ActiveModelTrait, ActiveValue};
 use tonic::{Request, Response, Status};
 
 pub async fn add_role(
-    server: &RpcServer<impl EmailSender>,
+    server: &RpcServer,
     request: Request<AddRoleRequest>,
 ) -> Result<Response<AddRoleResponse>, Status> {
     match add_role_impl(server, request).await {
@@ -31,7 +31,7 @@ enum AddRoleErr {
 }
 
 async fn add_role_impl(
-    server: &RpcServer<impl EmailSender>,
+    server: &RpcServer,
     request: Request<AddRoleRequest>,
 ) -> Result<AddRoleResponse, AddRoleErr> {
     let id = get_id_from_req(&request).unwrap();

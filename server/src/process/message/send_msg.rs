@@ -1,15 +1,14 @@
 use super::super::get_id_from_req;
 use crate::{
-    component::EmailSender,
-    consts::ID,
     db::{self, messages::MsgError},
     server::RpcServer,
 };
+use base::consts::ID;
 use pb::ourchat::msg_delivery::v1::{SendMsgRequest, SendMsgResponse};
 use tonic::{Request, Response, Status};
 
 pub async fn send_msg(
-    server: &RpcServer<impl EmailSender>,
+    server: &RpcServer,
     request: Request<SendMsgRequest>,
 ) -> Result<Response<SendMsgResponse>, Status> {
     let id = get_id_from_req(&request).unwrap();

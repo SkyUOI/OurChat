@@ -1,4 +1,4 @@
-# This template can set up a environment for testing or developing
+# This template can set up an environment for testing or developing
 name: ourchat_server
 services:
   OurChatServer:
@@ -35,6 +35,19 @@ services:
     volumes:
       - ./data/redis-data:/opt/redis/data
       - ./config/redis.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - net
+  mq:
+    image: rabbitmq:4-management
+    restart: always
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: 123456
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - ./data/rabbitmq-data:/var/lib/rabbitmq
     networks:
       - net
 

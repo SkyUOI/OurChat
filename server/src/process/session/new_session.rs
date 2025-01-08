@@ -1,12 +1,9 @@
 use super::super::basic::{get_id, get_ocid};
-use crate::{
-    DbPool, SharedData,
-    component::EmailSender,
-    consts::{ID, OCID, SessionID},
-    server::RpcServer,
-    utils,
-};
+use super::super::get_id_from_req;
+use crate::{SharedData, server::RpcServer, utils};
 use anyhow::Context;
+use base::consts::{ID, OCID, SessionID};
+use base::database::DbPool;
 use base::time::TimeStamp;
 use entities::{friend, operations, prelude::*, session, session_relation, user_role_relation};
 use migration::m20241229_022701_add_role_for_session::PreDefinedRoles;
@@ -19,8 +16,6 @@ use serde::{Deserialize, Serialize};
 use std::{sync::Arc, time::Duration};
 use tonic::{Request, Response};
 use tracing::error;
-
-use super::super::get_id_from_req;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InviteSession {
@@ -56,7 +51,7 @@ pub enum SessionError {
     UnknownError(#[from] anyhow::Error),
 }
 
-/// create a new session in database
+/// create a new session in the database
 pub async fn create_session_db(
     session_id: SessionID,
     people_num: usize,
@@ -76,7 +71,7 @@ pub async fn create_session_db(
     Ok(())
 }
 
-/// check the privilege and whether to send verification request
+/// check the privilege and whether to send a verification request
 pub async fn whether_to_verify(
     sender: ID,
     invitee: ID,
@@ -96,7 +91,7 @@ pub async fn whether_to_verify(
 }
 
 async fn new_session_impl(
-    server: &RpcServer<impl EmailSender>,
+    server: &RpcServer,
     req: Request<NewSessionRequest>,
 ) -> Result<NewSessionResponse, SessionError> {
     let session_id = utils::generate_session_id()?;
@@ -109,7 +104,7 @@ async fn new_session_impl(
     };
 
     let req = req.into_inner();
-    // check whether to send verification request
+    // check whether to send a verification request
     let mut people_num = 1;
     let mut peoples = vec![id];
     for i in &req.members {
@@ -160,7 +155,7 @@ async fn new_session_impl(
 }
 
 pub async fn new_session(
-    server: &RpcServer<impl EmailSender>,
+    server: &RpcServer,
     req: Request<NewSessionRequest>,
 ) -> Result<Response<NewSessionResponse>, tonic::Status> {
     match new_session_impl(server, req).await {
@@ -180,46 +175,38 @@ pub async fn send_verification_request(
     invitee: ID,
     session_id: SessionID,
     message: String,
-    shared_data: &Arc<SharedData<impl EmailSender>>,
+    shared_data: &Arc<SharedData>,
     db_conn: &DbPool,
 ) -> anyhow::Result<()> {
-    let expiresat =
+    let expire_at =
         chrono::Utc::now() + Duration::from_days(shared_data.cfg.main_cfg.verification_expire_days);
-    let request = InviteSession::new(expiresat.into(), session_id, sender, message);
-    // try to find connected client
-    match shared_data.connected_clients.get(&invitee) {
-        Some(_client) => {
-            // client.send(request.to_msg()).await?;
-            return Ok(());
-        }
-        None => {
-            // save to database
-            save_invitation_to_db(
-                invitee,
-                serde_json::to_string(&request).unwrap(),
-                expiresat.into(),
-                db_conn,
-            )
-            .await?;
-        }
-    }
+    let request = InviteSession::new(expire_at.into(), session_id, sender, message);
+    // try to find a connected client
+    // save to the database
+    save_invitation_to_db(
+        invitee,
+        serde_json::to_string(&request).unwrap(),
+        expire_at.into(),
+        db_conn,
+    )
+    .await?;
     Ok(())
 }
 
 async fn save_invitation_to_db(
     id: ID,
     operation: String,
-    expiresat: TimeStamp,
+    expire_at: TimeStamp,
     db_conn: &DbPool,
 ) -> anyhow::Result<()> {
-    let oper = operations::ActiveModel {
+    let operation_model = operations::ActiveModel {
         user_id: ActiveValue::Set(id.into()),
         operation: ActiveValue::Set(operation),
         once: ActiveValue::Set(true),
-        expires_at: ActiveValue::Set(expiresat),
+        expires_at: ActiveValue::Set(expire_at),
         ..Default::default()
     };
-    oper.insert(&db_conn.db_pool).await?;
+    operation_model.insert(&db_conn.db_pool).await?;
     Ok(())
 }
 
@@ -240,7 +227,6 @@ pub async fn add_to_session(
         user_id: ActiveValue::Set(id.into()),
         session_id: ActiveValue::Set(session_id.into()),
         role_id: ActiveValue::Set(role as i64),
-        ..Default::default()
     };
     role_relation.insert(db_conn).await?;
     Ok(())

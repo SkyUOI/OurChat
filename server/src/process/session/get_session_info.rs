@@ -1,4 +1,5 @@
-use crate::{component::EmailSender, db, server::RpcServer};
+use super::query_session;
+use crate::{db, server::RpcServer};
 use base::time::to_google_timestamp;
 use pb::ourchat::session::get_session_info::v1::RoleInfo;
 use pb::ourchat::session::get_session_info::v1::{
@@ -6,10 +7,8 @@ use pb::ourchat::session::get_session_info::v1::{
 };
 use tonic::{Request, Response, Status};
 
-use super::query_session;
-
 pub async fn get_session_info(
-    server: &RpcServer<impl EmailSender>,
+    server: &RpcServer,
     request: Request<GetSessionInfoRequest>,
 ) -> Result<Response<GetSessionInfoResponse>, Status> {
     match get_session_info_impl(server, request).await {
@@ -38,7 +37,7 @@ enum GetSessionErr {
 }
 
 async fn get_session_info_impl(
-    server: &RpcServer<impl EmailSender>,
+    server: &RpcServer,
     request: Request<GetSessionInfoRequest>,
 ) -> Result<GetSessionInfoResponse, GetSessionErr> {
     let mut res = GetSessionInfoResponse::default();

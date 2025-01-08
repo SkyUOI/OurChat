@@ -7,7 +7,7 @@
 //! use tonic::{Request, Response, Status};
 //!
 //! pub async fn set_role(
-//!     server: &RpcServer<impl EmailSender>,
+//!     server: &RpcServer,
 //!     request: Request<SetRoleRequest>,
 //! ) -> Result<Response<SetRoleResponse>, Status> {
 //!     match set_role_impl(server, request).await {
@@ -33,7 +33,7 @@
 //! }
 //!
 //! async fn set_role_impl(
-//!     server: &RpcServer<impl EmailSender>,
+//!     server: &RpcServer,
 //!     request: Request<SetRoleRequest>,
 //! ) -> Result<SetRoleResponse, SetRoleErr> {
 //!     todo!()
@@ -77,7 +77,7 @@ pub use unregister::unregister;
 pub use upload::upload;
 
 use crate::SERVER_INFO;
-use crate::consts::ID;
+use base::consts::ID;
 use entities::operations;
 use entities::prelude::*;
 

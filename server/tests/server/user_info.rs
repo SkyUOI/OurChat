@@ -9,7 +9,7 @@ use server::process::error_msg_consts::OCID_TOO_LONG;
 
 #[tokio::test]
 async fn get_user_info() {
-    let mut app = TestApp::new_with_launching_instance(None).await.unwrap();
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
     let time_before_register = app.get_timestamp().await;
     let user = app.new_user().await.unwrap();
     let user2 = app.new_user().await.unwrap();
@@ -74,8 +74,8 @@ async fn get_user_info() {
 
 #[tokio::test]
 async fn set_user_info() {
-    // TODO: test avatar(espeacially reduce the refcnt)
-    let mut app = TestApp::new_with_launching_instance(None).await.unwrap();
+    // TODO: test avatar(especially reduce the refcnt)
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
     let user = app.new_user().await.unwrap();
 
     let ocid = user.lock().await.ocid.clone();
@@ -129,7 +129,7 @@ async fn set_user_info() {
 
 #[tokio::test]
 async fn set_friend_info() {
-    let mut app = TestApp::new_with_launching_instance(None).await.unwrap();
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
     let user = app.new_user().await.unwrap();
     let user2 = app.new_user().await.unwrap();
     let user_ocid = user.lock().await.ocid.clone();
@@ -137,7 +137,7 @@ async fn set_friend_info() {
     let user2_id = user2.lock().await.id;
     let new_name = "xxx";
 
-    // now have privileges,but is no friends now
+    // now have privileges, but is no friends now
     let ret = user
         .lock()
         .await
@@ -149,6 +149,6 @@ async fn set_friend_info() {
         .await
         .unwrap();
     let ret = ret.into_inner();
-    // add friend
+    // add a friend
     app.async_drop().await;
 }

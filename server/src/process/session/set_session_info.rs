@@ -1,4 +1,4 @@
-use crate::{component::EmailSender, db, process::get_id_from_req, server::RpcServer};
+use crate::{db, process::get_id_from_req, server::RpcServer};
 use entities::{role_permissions, user_role_relation};
 use migration::m20241229_022701_add_role_for_session::PreDefinedPermissions;
 use pb::ourchat::session::set_session_info::v1::{SetSessionInfoRequest, SetSessionInfoResponse};
@@ -7,7 +7,7 @@ use std::collections::HashSet;
 use tonic::{Request, Response, Status};
 
 pub async fn set_session_info(
-    server: &RpcServer<impl EmailSender>,
+    server: &RpcServer,
     request: Request<SetSessionInfoRequest>,
 ) -> Result<Response<SetSessionInfoResponse>, Status> {
     match set_session_info_impl(server, request).await {
@@ -39,7 +39,7 @@ enum SetSessionErr {
 }
 
 async fn set_session_info_impl(
-    server: &RpcServer<impl EmailSender>,
+    server: &RpcServer,
     request: Request<SetSessionInfoRequest>,
 ) -> Result<SetSessionInfoResponse, SetSessionErr> {
     let id = get_id_from_req(&request).unwrap();
@@ -94,7 +94,7 @@ async fn set_session_info_impl(
             if db::helper::is_conflict(&e) {
                 return Err(SetSessionErr::Conflic);
             }
-            return Err(SetSessionErr::Db(e));
+            Err(SetSessionErr::Db(e))
         }
     }
 }

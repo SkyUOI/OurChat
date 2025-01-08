@@ -1,24 +1,22 @@
+use super::get_id_from_req;
 use crate::{
-    component::EmailSender,
-    consts::ID,
     db::{self, file_storage},
     server::RpcServer,
 };
 use anyhow::Context;
+use base::consts::ID;
 use entities::user;
 use migration::m20220101_000001_create_table::OCID_MAX_LEN;
 use pb::ourchat::set_account_info::v1::{SetSelfInfoRequest, SetSelfInfoResponse};
 use sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection, DbErr, TransactionTrait};
 use tonic::{Request, Response, Status};
 
-use super::get_id_from_req;
-
 pub mod error_msg_consts {
     pub const OCID_TOO_LONG: &str = "ocid too long";
 }
 
-pub async fn set_account_info<T: EmailSender>(
-    server: &RpcServer<T>,
+pub async fn set_account_info(
+    server: &RpcServer,
     request: Request<SetSelfInfoRequest>,
 ) -> Result<Response<SetSelfInfoResponse>, Status> {
     let id = get_id_from_req(&request).unwrap();

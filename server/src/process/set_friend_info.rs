@@ -1,12 +1,14 @@
 use super::get_id_from_req;
-use crate::{DbPool, component::EmailSender, consts::ID, server::RpcServer};
+use crate::server::RpcServer;
+use base::consts::ID;
+use base::database::DbPool;
 use entities::friend;
 use pb::ourchat::set_account_info::v1::{SetFriendInfoRequest, SetFriendInfoResponse};
 use sea_orm::{ActiveModelTrait, ActiveValue, DbErr};
 use tonic::{Response, Status};
 
-pub async fn set_friend_info<T: EmailSender>(
-    server: &RpcServer<T>,
+pub async fn set_friend_info(
+    server: &RpcServer,
     request: tonic::Request<SetFriendInfoRequest>,
 ) -> Result<Response<SetFriendInfoResponse>, Status> {
     let id = get_id_from_req(&request).unwrap();

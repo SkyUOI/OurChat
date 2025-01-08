@@ -1,6 +1,13 @@
 #![feature(decl_macro)]
+#![feature(duration_constructors)]
 
+pub mod configs;
+pub mod consts;
 pub mod cryption;
+pub mod database;
+pub mod email_client;
+pub mod log;
+pub mod rabbitmq;
 pub mod time;
 pub mod types;
 pub mod utils;

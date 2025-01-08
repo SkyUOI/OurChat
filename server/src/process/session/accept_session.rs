@@ -1,4 +1,4 @@
-use crate::{component::EmailSender, server::RpcServer};
+use crate::server::RpcServer;
 use pb::ourchat::session::accept_session::v1::{AcceptSessionRequest, AcceptSessionResponse};
 use tonic::Response;
 
@@ -11,7 +11,7 @@ enum AcceptSessionError {
 }
 
 async fn accept_impl(
-    _server: &RpcServer<impl EmailSender>,
+    _server: &RpcServer,
     _request: tonic::Request<AcceptSessionRequest>,
 ) -> Result<AcceptSessionResponse, AcceptSessionError> {
     // TODO:check if the time is expired
@@ -19,7 +19,7 @@ async fn accept_impl(
 }
 
 pub async fn accept_session(
-    server: &RpcServer<impl EmailSender>,
+    server: &RpcServer,
     request: tonic::Request<AcceptSessionRequest>,
 ) -> Result<Response<AcceptSessionResponse>, tonic::Status> {
     match accept_impl(server, request).await {

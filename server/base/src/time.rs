@@ -20,7 +20,7 @@ mod tests {
     fn test_google_timestamp() {
         let timestamp = chrono::Utc::now();
         assert_eq!(
-            from_google_timestamp(&to_google_timestamp(timestamp.clone())).unwrap(),
+            from_google_timestamp(&to_google_timestamp(timestamp)).unwrap(),
             timestamp
         );
     }

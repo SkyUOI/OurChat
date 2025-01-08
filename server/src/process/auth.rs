@@ -1,9 +1,8 @@
 use super::generate_access_token;
-use crate::{
-    DbPool, component::EmailSender, db::helper::is_conflict, server::AuthServiceProvider, utils,
-};
+use crate::{db::helper::is_conflict, server::AuthServiceProvider, utils};
 use anyhow::Context;
 use argon2::{PasswordHash, PasswordVerifier};
+use base::database::DbPool;
 use entities::{prelude::*, user};
 use pb::auth::authorize::v1::{AuthRequest, AuthResponse, auth_request::Account};
 use sea_orm::{ColumnTrait, DbErr, EntityTrait, QueryFilter};
@@ -86,7 +85,7 @@ async fn auth_db(request: AuthRequest, db_connection: &DbPool) -> Result<AuthRes
 
 /// Login Request
 pub async fn auth(
-    server: &AuthServiceProvider<impl EmailSender>,
+    server: &AuthServiceProvider,
     request: tonic::Request<AuthRequest>,
 ) -> Result<Response<AuthResponse>, Status> {
     match auth_db(request.into_inner(), &server.db).await {
