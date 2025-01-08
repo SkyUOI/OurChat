@@ -23,9 +23,11 @@ impl TestHttpApp {
 
     pub async fn setup(mut app: Launcher) -> anyhow::Result<Self> {
         let app_config = app.config.clone();
+        let notify = app.started_notify.clone();
         let handle = tokio::spawn(async move {
             app.run_forever().await.unwrap();
         });
+        notify.notified().await;
         Ok(TestHttpApp {
             client: reqwest::Client::builder()
                 .timeout(Duration::from_secs(2))

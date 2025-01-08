@@ -7,6 +7,7 @@ use base::rabbitmq::RabbitMQCfg;
 use clap::Parser;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 pub mod httpserver;
 
@@ -56,6 +57,7 @@ pub struct Launcher {
     pub email_client: Option<EmailClientType>,
     pub tcplistener: Option<tokio::net::TcpListener>,
     pub rabbitmq_cfg: RabbitMQCfg,
+    pub started_notify: Arc<tokio::sync::Notify>,
 }
 
 pub type EmailClientType = Box<dyn EmailSender>;
@@ -96,11 +98,13 @@ impl Launcher {
         // deal with port 0
         cfg.port = http_listener.local_addr()?.port();
         let rabbitmq_cfg = RabbitMQCfg::build_from_path(&cfg.rabbitmq_cfg)?;
+        let started_notify = Arc::new(tokio::sync::Notify::new());
         Ok(Self {
             config: cfg,
             email_client,
             tcplistener: Some(http_listener),
             rabbitmq_cfg,
+            started_notify,
         })
     }
 
@@ -116,7 +120,7 @@ impl Launcher {
             base::database::postgres::PostgresDbCfg::build_from_path(&self.config.dbcfg)?;
         let db_pool = DbPool::build(&postgres_cfg, &redis_cfg).await?;
         let rabbitmq_pool = self.rabbitmq_cfg.build()?;
-        server
+        let handle = server
             .run_forever(
                 self.tcplistener.take().unwrap(),
                 self.email_client.take(),
@@ -125,6 +129,9 @@ impl Launcher {
                 db_pool,
             )
             .await?;
+        let http_server = tokio::spawn(handle);
+        self.started_notify.notify_waiters();
+        http_server.await??;
         rabbitmq_pool.close();
         Ok(())
     }

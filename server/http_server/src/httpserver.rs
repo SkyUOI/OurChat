@@ -24,7 +24,7 @@ impl HttpServer {
         cfg: Config,
         rabbitmq: deadpool_lapin::Pool,
         db_conn: DbPool,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<actix_web::dev::Server> {
         let cfg = web::Data::new(cfg);
         let cfg_clone = cfg.clone();
         let rabbitmq_clone = rabbitmq.clone();
@@ -52,8 +52,7 @@ impl HttpServer {
                 }
             }
         });
-        http_server.await?;
-        Ok(())
+        Ok(http_server)
     }
 
     async fn listen_rabbitmq(
