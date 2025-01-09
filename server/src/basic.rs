@@ -25,6 +25,7 @@ pub struct ShutdownSdr {
 }
 
 impl ShutdownSdr {
+    /// Create a new ShutdownSdr
     pub fn new(callback: Option<ShutdownFinishCallback>) -> Self {
         Self {
             callback: Arc::new(Mutex::new(callback)),
@@ -32,6 +33,9 @@ impl ShutdownSdr {
         }
     }
 
+    /// Create a new receiver that will send shutdown signal to the shutdown sender
+    /// when it is dropped. The name and description will be used to identify the
+    /// task in the shutdown process.
     pub fn new_receiver(
         &self,
         name: impl Into<String>,
@@ -55,6 +59,9 @@ impl ShutdownSdr {
         ShutdownRev::new(chann_rev, self.tasks.clone(), task_id)
     }
 
+    /// Send shutdown signal to all tasks. If some tasks fails to shutdown,
+    /// it will be logged and return error. After all tasks finished, it will
+    /// send a signal to the callback.
     pub async fn shutdown_all_tasks(&mut self) -> anyhow::Result<()> {
         let mut waiting_finished = JoinSet::new();
         let cnt = Arc::new(Barrier::new(self.tasks.len() + 1));
@@ -111,6 +118,7 @@ impl ShutdownSdr {
         Ok(())
     }
 
+    /// Log all task info. This is called after all tasks finished.
     pub fn log_all_task(&self) {
         for task in self.tasks.iter() {
             tracing::info!(
@@ -122,6 +130,12 @@ impl ShutdownSdr {
         }
     }
 
+    /// Generate a string that describes a task.
+    ///
+    /// # Errors
+    ///
+    /// Will return an error if the `task_id` does not exist in `tasks`.
+    ///
     pub fn gen_task_info(tasks: &Tasks, task_id: TaskId) -> anyhow::Result<String> {
         let task = tasks.get(&task_id).unwrap();
         Ok(format!(
@@ -138,6 +152,17 @@ pub struct ShutdownRev {
 }
 
 impl ShutdownRev {
+    /// Wait until the shutdown signal sender is called, then remove the task from `Tasks`.
+    ///
+    /// If the shutdown signal sender is called, the task will be removed from `Tasks` and a log
+    /// will be printed.
+    ///
+    /// If the shutdown signal sender is not called, but the receiver is dropped, it will print an
+    /// error log.
+    ///
+    /// # Errors
+    ///
+    /// Will print an error if the `receiver` is `None`.
     pub async fn wait_shutdowning(&mut self) {
         let gen_err_info = || ShutdownSdr::gen_task_info(&self.manager_handle, self.task_id);
         match &mut self.receiver {
@@ -169,6 +194,7 @@ impl ShutdownRev {
         }
     }
 
+    /// Remove the task from `Tasks` and print a log, this method is called after the task is finished.
     fn remove_self(&self) {
         tracing::trace!("task {} removed", self.task_id);
         self.manager_handle.remove(&self.task_id);
@@ -176,6 +202,7 @@ impl ShutdownRev {
 }
 
 impl Drop for ShutdownRev {
+    /// If the receiver is not `None`, remove the task from `Tasks` and print a log.
     fn drop(&mut self) {
         if self.receiver.is_some() {
             self.remove_self();
