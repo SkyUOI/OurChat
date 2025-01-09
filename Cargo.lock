@@ -4814,6 +4814,7 @@ dependencies = [
  "prost",
  "rand",
  "reqwest",
+ "scopeguard",
  "sea-orm",
  "serde",
  "serde_json",

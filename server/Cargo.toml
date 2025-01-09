@@ -58,6 +58,7 @@ tonic.workspace = true
 prost.workspace = true
 jsonwebtoken.workspace = true
 tokio-stream.workspace = true
+scopeguard.workspace = true
 
 lettre.workspace = true
 deadpool-lapin.workspace = true

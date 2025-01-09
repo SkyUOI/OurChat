@@ -5,7 +5,7 @@ use crate::{
 };
 use anyhow::Context;
 use base::time::from_google_timestamp;
-use deadpool_lapin::lapin::options::{QueueBindOptions, QueueDeclareOptions};
+use deadpool_lapin::lapin::options::{QueueBindOptions, QueueDeclareOptions, QueueDeleteOptions};
 use deadpool_lapin::lapin::types::FieldTable;
 use pb::ourchat::msg_delivery::v1::{
     FetchMsgsRequest, FetchMsgsResponse, Msg, fetch_msgs_response,
@@ -72,9 +72,10 @@ async fn fetch_user_msg_impl(
         .create_channel()
         .await
         .context("cannot create channel")?;
+    let queue_name = crate::rabbitmq::generate_client_name(id);
     channel
         .queue_declare(
-            &crate::rabbitmq::generate_client_name(id),
+            &queue_name,
             QueueDeclareOptions::default(),
             FieldTable::default(),
         )
@@ -82,7 +83,7 @@ async fn fetch_user_msg_impl(
         .context("failed to create queue")?;
     channel
         .queue_bind(
-            &crate::rabbitmq::generate_client_name(id),
+            &queue_name,
             crate::rabbitmq::USER_MSG_EXCHANGE,
             &crate::rabbitmq::generate_route_key(id),
             QueueBindOptions::default(),
@@ -137,13 +138,31 @@ async fn fetch_user_msg_impl(
         let batch = async move {
             let mut consumer = channel
                 .basic_consume(
-                    &crate::rabbitmq::generate_client_name(id),
+                    &queue_name,
                     "",
                     deadpool_lapin::lapin::options::BasicConsumeOptions::default(),
                     FieldTable::default(),
                 )
                 .await
                 .context("failed to consume")?;
+            let _channel = scopeguard::guard(channel, |channel| {
+                tokio::spawn(async move {
+                    match channel
+                        .queue_delete(
+                            &queue_name,
+                            QueueDeleteOptions::default(),
+                        )
+                        .await
+                    {
+                        Ok(_) => {
+                            tracing::trace!("queue deleted");
+                        }
+                        Err(e) => {
+                            tracing::error!("failed to delete queue:{e}");
+                        }
+                    }
+                });
+            });
             while let Some(delivery) = consumer.next().await {
                 let delivery = delivery?;
                 let msg = match Msg::decode(delivery.data.as_slice()) {

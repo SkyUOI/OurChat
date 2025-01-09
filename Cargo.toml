@@ -76,6 +76,7 @@ cfg-if = "1"
 urlencoding = "2"
 dotenv = "0"
 ctor = "0"
+scopeguard = "1"
 
 [workspace.dependencies.lettre]
 version = "0"
