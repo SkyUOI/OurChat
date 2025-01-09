@@ -32,8 +32,8 @@ jobs:
           password: 123456
       - name: Test
         run: |
-          python3 script/action_test_server_macos.py
-
+          export OURCHAT_TEST_CONFIG_DIR=$(pwd)/config/gh_test/
+          cargo test
       - name: Build
         run: cargo build --all
       - name: Build Release
