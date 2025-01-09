@@ -1,14 +1,8 @@
-[TOC]
-
 # Helper Scripts
 
 Notice: If there is any script not listing below or out-of-date,please open a issue.
 
 ## Server Usage
-
-### `test_server.py`
-
-Help to run set up test environment before `cargo test`.The first argument is the test command(default is `cargo test`).The second argument is the server config file(default is `config/gh_test/ourchat.toml`)
 
 ### `db_migration.py`
 
@@ -54,16 +48,12 @@ Merge the changes from `dev` into `main`,only for core developers to simplify da
 
 ## CI
 
-### `action_test_server.py`
-
-Just for Github Action workflow,**should not run directly on your local machine**
-
-### `init_valgrind_rust.py`
-
-Helper script to [action_test_server.py](#action_test_serverpy),initialize `valgrind`(A memory error detector on Linux) to detect memory bug.**should not run directly on your local machine**
-
 ## Other
 
 ### `basic.py`
 
 Some helper functions for writing scripts
+
+### `ci_test.sh`
+
+Test in docker container in CI, not for local usage

@@ -14,7 +14,7 @@ impl TestHttpApp {
     pub async fn build_server(
         email_client: Option<Box<dyn EmailSender>>,
     ) -> anyhow::Result<Launcher> {
-        let mut config = Launcher::get_config()?;
+        let mut config = Launcher::get_config(None)?;
         config.port = 0;
         let mut app = Launcher::build_from_config(config).await?;
         app.email_client = email_client;

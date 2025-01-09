@@ -47,7 +47,7 @@ impl Config {
 }
 
 #[derive(clap::Parser)]
-struct ArgParser {
+pub struct ArgParser {
     #[clap(short, long, help = "Path to the config file")]
     config: Option<PathBuf>,
 }
@@ -63,18 +63,18 @@ pub struct Launcher {
 pub type EmailClientType = Box<dyn EmailSender>;
 
 impl Launcher {
-    pub fn get_config() -> anyhow::Result<Config> {
-        let parser = ArgParser::parse();
-        let config_file_path =
-            parser
-                .config
-                .unwrap_or_else(|| match std::env::var("OURCHAT_HTTP_CONFIG_FILE") {
-                    Ok(path) => PathBuf::from(path),
-                    Err(_) => {
-                        eprintln!("Please specify the config file path");
-                        std::process::exit(1);
-                    }
-                });
+    pub fn get_config(parser: Option<ArgParser>) -> anyhow::Result<Config> {
+        let get_from_env = || match std::env::var("OURCHAT_HTTP_CONFIG_FILE") {
+            Ok(path) => PathBuf::from(path),
+            Err(_) => {
+                eprintln!("Please specify the config file path");
+                std::process::exit(1);
+            }
+        };
+        let config_file_path = match parser {
+            Some(parser) => parser.config.unwrap_or_else(get_from_env),
+            None => get_from_env(),
+        };
         let cfg = config::Config::builder()
             .add_source(config::File::with_name(config_file_path.to_str().unwrap()))
             .build()?;
@@ -109,7 +109,7 @@ impl Launcher {
     }
 
     pub async fn build() -> anyhow::Result<Self> {
-        let cfg = Self::get_config()?;
+        let cfg = Self::get_config(Some(ArgParser::parse()))?;
         Self::build_from_config(cfg).await
     }
 
