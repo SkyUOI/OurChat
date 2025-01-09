@@ -3,7 +3,7 @@ name: ourchat_server
 services:
   OurChatServer:
     init: true
-    image: skyoi/ourchat:aphine-test
+    image: skyuoi/ourchat:aphine-test
     command: tail -f /dev/null
     working_dir: /app
     ports:

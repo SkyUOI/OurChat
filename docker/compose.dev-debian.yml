@@ -3,7 +3,7 @@ name: ourchat_server
 services:
   OurChatServer:
     init: true
-    image: skyoi/ourchat:debian-test
+    image: skyuoi/ourchat:debian-test
     command: tail -f /dev/null
     working_dir: /app
     ports:
