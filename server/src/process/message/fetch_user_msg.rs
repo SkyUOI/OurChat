@@ -148,10 +148,7 @@ async fn fetch_user_msg_impl(
             let _channel = scopeguard::guard(channel, |channel| {
                 tokio::spawn(async move {
                     match channel
-                        .queue_delete(
-                            &queue_name,
-                            QueueDeleteOptions::default(),
-                        )
+                        .queue_delete(&queue_name, QueueDeleteOptions::default())
                         .await
                     {
                         Ok(_) => {
