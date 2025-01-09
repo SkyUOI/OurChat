@@ -2,15 +2,10 @@
 name: ourchat_server
 services:
   OurChatServer:
-    build:
-      context: .
-      dockerfile: ./Dockerfile.dev-aphine
     init: true
-    image: ourchat_develop:latest
+    image: skyoi/ourchat:aphine-test
     command: tail -f /dev/null
-    volumes:
-      - "/dev:/dev:rw"
-    working_dir: /root
+    working_dir: /app
     ports:
       - "7777:7777"
       - "7778:7778"
