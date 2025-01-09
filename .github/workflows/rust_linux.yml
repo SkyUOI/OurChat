@@ -20,16 +20,14 @@ jobs:
         with:
           file: docker/compose.dev-aphine.yml
           service: OurChatServer
-          command: cargo test
+          command: script/ci_test.sh
           registry: "ghcr.io"
           docker-compose-version: "2.29.1"
-          environment: "OURCHAT_TEST_CONFIG_DIR=/github_workspace/config"
       - name: Test-Debian
         uses: SkyUOI/github-action-docker-compose-test-run@main
         with:
           file: docker/compose.dev-debian.yml
           service: OurChatServer
-          command: cargo test
+          command: script/ci_test.sh
           registry: "ghcr.io"
           docker-compose-version: "2.29.1"
-          environment: "OURCHAT_TEST_CONFIG_DIR=/github_workspace/config"
