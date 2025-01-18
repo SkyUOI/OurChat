@@ -5,25 +5,25 @@ edition.workspace = true
 
 [dependencies]
 reqwest.workspace = true
-fake = { version = "3" }
-claims = "0"
+fake.workspace = true
+claims.workspace = true
 base = { path = "../base" }
 server = { path = ".." }
 http_server = { path = "../http_server" }
-parking_lot = "0"
-rand = "0"
-tokio-stream = { version = "0" }
+parking_lot.workspace = true
+rand.workspace = true
+tokio-stream.workspace = true
 tonic.workspace = true
-prost-types = { version = "0" }
-prost = { version = "0" }
+prost-types.workspace = true
+prost.workspace = true
 sqlx.workspace = true
-anyhow = "1"
-tracing = { version = "0" }
+anyhow.workspace = true
+tracing.workspace = true
 tokio.workspace = true
 uuid.workspace = true
-itertools = "0"
+itertools.workspace = true
 pb = { path = "../pb" }
-sha3 = "0"
+sha3.workspace = true
 size.workspace = true
 thiserror.workspace = true
 migration = { path = "../migration" }
@@ -31,3 +31,4 @@ sea-orm.workspace = true
 dotenv.workspace = true
 ctor.workspace = true
 urlencoding.workspace = true
+libc-print.workspace = true

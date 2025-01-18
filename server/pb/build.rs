@@ -1,4 +1,5 @@
 fn main() -> anyhow::Result<()> {
+    println!("cargo:rerun-if-changed=../../service");
     tonic_build::configure()
         .type_attribute(
             "service.ourchat.msg_delivery.v1.OneMsg",
@@ -8,6 +9,7 @@ fn main() -> anyhow::Result<()> {
             "service.ourchat.msg_delivery.v1.OneMsg.data",
             "#[derive(serde::Serialize, serde::Deserialize)]",
         )
+        .bytes(["."])
         .out_dir("./src/generated/")
         .compile_protos(
             &[

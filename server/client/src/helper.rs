@@ -2,8 +2,10 @@ pub mod rabbitmq;
 
 use pb::ourchat::download::v1::DownloadResponse;
 use size::Size;
+use std::env::VarError;
 use std::iter;
 use std::path::PathBuf;
+use std::process::exit;
 use std::sync::Once;
 use tokio_stream::StreamExt;
 use tonic::Streaming;
@@ -47,12 +49,27 @@ pub async fn get_hash_from_download(
     Ok(hash)
 }
 
+pub const OURCHAT_TEST_CONFIG_DIR: &str = "OURCHAT_TEST_CONFIG_DIR";
+
+/// Initialize the environment variable for testing
 pub fn init_env_var() {
+    // use libc-print because this function will be called in ctor function when the std::print is not available
     static TMP: Once = Once::new();
     TMP.call_once(|| {
         dotenv::dotenv().ok();
         // Set config file path
-        let test_config_dir = PathBuf::from(std::env::var("OURCHAT_TEST_CONFIG_DIR").unwrap());
+        let dir = match std::env::var(OURCHAT_TEST_CONFIG_DIR) {
+            Ok(d) => d,
+            Err(VarError::NotPresent) => {
+                libc_print::libc_eprintln!("\"{}\" is not set, please set it in \".env\" file or set this environment var directly", OURCHAT_TEST_CONFIG_DIR);
+                exit(1);
+            }
+            Err(VarError::NotUnicode(wrong_str)) => {
+                libc_print::libc_eprintln!("\"{}\" is not a valid unicode string: {}", OURCHAT_TEST_CONFIG_DIR, wrong_str.display());
+                exit(1);
+            }
+        };
+        let test_config_dir = PathBuf::from(dir);
         unsafe {
             std::env::set_var("OURCHAT_CONFIG_FILE", test_config_dir.join("ourchat.toml"));
             std::env::set_var(

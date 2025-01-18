@@ -1,3 +1,5 @@
+#![feature(os_str_display)]
+
 //! A client for test
 
 pub mod helper;
@@ -30,6 +32,7 @@ use pb::{
         download::v1::DownloadRequest, unregister::v1::UnregisterRequest, upload::v1::UploadRequest,
     },
 };
+use prost::bytes::Bytes;
 use rand::Rng;
 use server::utils::{self, get_available_port};
 use server::{Application, ArgsParser, Cfg, ParserCfg, SharedData, ShutdownSdr, process};
@@ -255,7 +258,7 @@ impl TestUser {
         let mut files_content = vec![UploadRequest::new_header(size, hash, false)];
         for chunks in content {
             chunks.chunks(1024 * 1024).for_each(|chunk| {
-                files_content.push(UploadRequest::new_content(chunk.to_vec()));
+                files_content.push(UploadRequest::new_content(Bytes::from(chunk.to_vec())));
             })
         }
         let ret = self.oc().upload(tokio_stream::iter(files_content)).await?;
@@ -397,7 +400,6 @@ impl TestApp {
     pub async fn new_with_launching_instance_custom_cfg(
         (mut server_config, args): ConfigWithArgs,
     ) -> anyhow::Result<Self> {
-        helper::init_env_var();
         // should create a different database for each test
         let db = uuid::Uuid::new_v4().to_string();
         server_config.db_cfg.db = db;
@@ -442,7 +444,6 @@ impl TestApp {
     }
 
     pub async fn new_with_existing_instance(cfg: Cfg) -> anyhow::Result<Self> {
-        helper::init_env_var();
         let remote_url = format!(
             "{}://{}:{}",
             cfg.main_cfg.protocol_http(),
