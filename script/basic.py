@@ -11,7 +11,7 @@ def msg_system(cmd: str, msg=None):
         sys.exit(1)
 
 
-VERSION = "1.1.3"
+VERSION = "1.1.4"
 
 
 def version_check():

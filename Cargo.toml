@@ -77,6 +77,9 @@ urlencoding = "2"
 dotenv = "0"
 ctor = "0"
 scopeguard = "1"
+libc-print = "0"
+itertools = "0"
+fake = "3"
 
 [workspace.dependencies.lettre]
 version = "0"

@@ -58,10 +58,11 @@ async fn download_impl(
         if n == 0 {
             break;
         }
-        tx.send(Ok(DownloadResponse { data: buf.to_vec() }))
-            .await
-            .ok();
-        buf.clear();
+        tx.send(Ok(DownloadResponse {
+            data: buf.split().freeze(),
+        }))
+        .await
+        .ok();
     }
     Ok(())
 }

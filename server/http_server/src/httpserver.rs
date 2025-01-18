@@ -9,7 +9,6 @@ use actix_web::{
 use base::database::DbPool;
 use deadpool_lapin::lapin::options::{BasicAckOptions, BasicRejectOptions};
 use tokio_stream::StreamExt;
-use tracing::debug;
 
 pub struct HttpServer {}
 

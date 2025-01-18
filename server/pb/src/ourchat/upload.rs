@@ -1,4 +1,5 @@
 pub mod v1 {
+    use prost::bytes;
     use upload_request::Data;
 
     include!("../generated/service.ourchat.upload.v1.rs");
@@ -21,7 +22,7 @@ pub mod v1 {
             }
         }
 
-        pub fn new_content(binary_data: Vec<u8>) -> Self {
+        pub fn new_content(binary_data: bytes::Bytes) -> Self {
             Self {
                 data: Some(Data::Content(binary_data)),
             }
