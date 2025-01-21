@@ -17,10 +17,6 @@
     "@serverError": {
         "description": "Server error"
     },
-    "serverUnderMaintenance": "Server is under maintenance",
-    "@serverUnderMaintenance": {
-        "description": "Server is under maintenance"
-    },
     "unknownError": "Unknown error",
     "@unknownError": {
         "description": "Unknown error"
@@ -77,24 +73,24 @@
     "@username": {
         "description": "username"
     },
-    "server_address": "Server Address",
-    "@server_address": {
+    "serverAddress": "Server Address",
+    "@serverAddress": {
         "description": "text for server address in setting"
     },
-    "ws_port": "Websocket Port",
-    "@ws_port": {
-        "description": "text for websocket port in setting"
+    "port": "Port",
+    "@port": {
+        "description": "text for port in setting"
     },
-    "http_port": "Http Port",
-    "@http_port": {
+    "httpPort": "Http Port",
+    "@httpPort": {
         "description": "text for http port in setting"
     },
-    "reconnection_attempt": "Reconnection Attempt",
-    "@reconnection_attempt": {
+    "reconnectionAttempt": "Reconnection Attempt",
+    "@reconnectionAttempt": {
         "description": "text for reconnection attempt in setting"
     },
-    "reconnection_interval": "Reconnection Interval",
-    "@reconnection_interval": {
+    "reconnectionInterval": "Reconnection Interval",
+    "@reconnectionInterval": {
         "description": "text for reconnection interval in setting"
     },
     "language": "Language",
@@ -146,5 +142,45 @@
     "optional": "optional",
     "@optional": {
         "description": "optional"
+    },
+    "serverName": "Server Name",
+    "@serverName": {
+        "description": "server name"
+    },
+    "serverStatus": "Server Status",
+    "@serverStatus": {
+        "description": "server status"
+    },
+    "serverStatusUnderMaintenance": "Under Maintenance",
+    "@serverStatusUnderMaintenance": {
+        "description": "server status:Under Maintenance"
+    },
+    "serverStatusOnline": "Online",
+    "@serverStatusOnline": {
+        "description": "server status:Online"
+    },
+    "serverStatusOffline": "Offline",
+    "@serverStatusOffline": {
+        "description": "server status:Offline"
+    },
+    "serverVersion": "Server Version",
+    "@serverVersion": {
+        "description": "server version"
+    },
+    "ping": "Ping",
+    "@ping": {
+        "description": "ping"
+    },
+    "connect": "Connect",
+    "@connect": {
+        "description": "connect"
+    },
+    "invalidPort": "Invalid port",
+    "@invalidPort": {
+        "description": "Invalid port"
+    },
+    "continue_": "Continue",
+    "@continue_": {
+        "description": "Continue"
     }
 }
