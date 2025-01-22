@@ -35,7 +35,7 @@ jobs:
           export OURCHAT_TEST_CONFIG_DIR=$(pwd)/config/gh_test/
           cargo test
       - name: Build
-        run: cargo build --all
+        run: cargo check --all
       - name: Build Release
         run: |
           cargo check --all --release

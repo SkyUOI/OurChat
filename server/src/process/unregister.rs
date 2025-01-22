@@ -1,5 +1,5 @@
 use super::get_id_from_req;
-use crate::server::RpcServer;
+use crate::{process::error_msg::SERVER_ERROR, server::RpcServer};
 use base::consts::ID;
 use entities::user;
 use pb::ourchat::unregister::v1::{UnregisterRequest, UnregisterResponse};
@@ -51,7 +51,7 @@ pub async fn unregister(
         Ok(d) => Ok(Response::new(d)),
         Err(e) => {
             tracing::error!("{}", e);
-            Err(Status::internal("Server Error"))
+            Err(Status::internal(SERVER_ERROR))
         }
     }
 }

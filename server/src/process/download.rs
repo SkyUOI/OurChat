@@ -1,7 +1,10 @@
 use std::path::PathBuf;
 
-use super::{Files, get_id_from_req};
-use crate::server::{DownloadStream, RpcServer};
+use super::{Files, error_msg::PERMISSION_DENIED, get_id_from_req};
+use crate::{
+    process::error_msg::SERVER_ERROR,
+    server::{DownloadStream, RpcServer},
+};
 use base::consts::ID;
 use base::database::DbPool;
 use bytes::BytesMut;
@@ -86,13 +89,13 @@ pub async fn download(
             Ok(_) => {}
             Err(e) => match e {
                 DownloadError::PermissionDenied => {
-                    tx.send(Err(Status::permission_denied("Permission Denied")))
+                    tx.send(Err(Status::permission_denied(PERMISSION_DENIED)))
                         .await
                         .ok();
                 }
                 _ => {
                     tracing::error!("{}", e);
-                    tx.send(Err(Status::internal("Server Error"))).await.ok();
+                    tx.send(Err(Status::internal(SERVER_ERROR))).await.ok();
                 }
             },
         }

@@ -1,8 +1,7 @@
+use client::TestHttpApp;
 use reqwest::header::CONTENT_TYPE;
 
-#[tokio::test]
-async fn logo_get() {
-    let mut app = client::TestHttpApp::new(None).await.unwrap();
+async fn check(app: &mut TestHttpApp) {
     let resp = app
         .http_get("logo")
         .await
@@ -14,5 +13,12 @@ async fn logo_get() {
         resp.bytes().await.unwrap().as_ref(),
         include_bytes!("../../../../resource/logo.png")
     );
+}
+
+#[tokio::test]
+async fn logo_get() {
+    let mut app = TestHttpApp::new(None).await.unwrap();
+    check(&mut app).await;
+    check(&mut app).await;
     app.async_drop().await;
 }

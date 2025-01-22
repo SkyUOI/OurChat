@@ -1,6 +1,7 @@
 use super::super::get_id_from_req;
 use crate::{
     db::{self, messages::MsgError},
+    process::error_msg::{PERMISSION_DENIED, SERVER_ERROR, not_found},
     server::RpcServer,
 };
 use base::consts::ID;
@@ -29,10 +30,10 @@ pub async fn send_msg(
         Err(e) => match &e {
             MsgError::DbError(_) | MsgError::UnknownError(_) => {
                 tracing::error!("{}", e);
-                Err(Status::internal("Server Error"))
+                Err(Status::internal(SERVER_ERROR))
             }
-            MsgError::WithoutPrivilege => Err(Status::permission_denied("Don't have privilege")),
-            MsgError::NotFound => Err(Status::not_found("session not found")),
+            MsgError::WithoutPrivilege => Err(Status::permission_denied(PERMISSION_DENIED)),
+            MsgError::NotFound => Err(Status::not_found(not_found::SESSION)),
         },
     }
 }

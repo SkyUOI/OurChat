@@ -17,26 +17,59 @@ import "service/ourchat/unregister/v1/unregister.proto";
 import "service/ourchat/upload/v1/upload.proto";
 
 // Main service of the Ourchat
-// JWT is required.If token is missing or out-of-dated,please refer to AuthService to authenticate one JWT
-// Insert to headers: token: <token>
+// JWT is required.If token is missing or out-of-dated,please refer to
+// AuthService to authenticate one JWT Insert to headers: token: <token>
 service OurChatService {
   // Warning: the meaning is deleting the account, not logout
   rpc Unregister(unregister.v1.UnregisterRequest) returns (unregister.v1.UnregisterResponse);
 
+  // # Error
+  // If you don't have the privilege, return error
+  //
+  // - PermissionDenied("Permission Denied") - If you don't have the privilege
+  // - NotFound("User Not Found") - If the user does not exist
+  // - InvalidArgument("Request Invalid Value") - If the request value is
+  // invalid
   rpc GetAccountInfo(get_account_info.v1.GetAccountInfoRequest) returns (get_account_info.v1.GetAccountInfoResponse);
 
   // Set some information of the account
+  //
+  // # Error
+  // - AlreadyExists("Conflict") - If the information should be set is conflict
+  // - InvalidArgument("Ocid Too Long") - The ocid is too long to set
   rpc SetSelfInfo(set_account_info.v1.SetSelfInfoRequest) returns (set_account_info.v1.SetSelfInfoResponse);
 
   rpc SetFriendInfo(set_account_info.v1.SetFriendInfoRequest) returns (set_account_info.v1.SetFriendInfoResponse);
 
   // Turn on the delivery, continuing to receive messages
+  //
+  // # Error
+  // - InvalidArgument("Time Format Error") - The structure of time cannot be
+  // parsed
+  // - InvalidArgument("Time Missing") - Member time is required
   rpc FetchMsgs(msg_delivery.v1.FetchMsgsRequest) returns (stream msg_delivery.v1.FetchMsgsResponse);
 
+  // # Error
+  // - PermissionDenied("Permission Denied") - If you don't have the privilege
+  // to send message here
+  // - NotFound("Session Not Found") - If the session you want to send message
+  // to does not exist
   rpc SendMsg(msg_delivery.v1.SendMsgRequest) returns (msg_delivery.v1.SendMsgResponse);
 
+  // # Error
+  // - NotFound("User Not Found") - If the user does not exist
+  // - InvalidArgument("File Size Error") - The size of the data received is not
+  // equal to the size in metadata
+  // - InvalidArgument("File Hash Error") - The hash of the data received is not
+  // equal to the hash in metadata
+  // - ResourceExhausted("Storage Full") - The storage is full
+  // - InvalidArgument("Metadata Error") - The metadata is invalid or missing
+  // - InvalidArgument("Incorrect Order Of Uploading") - You should upload a
+  // package of metadata, then upload content package until process finish
   rpc Upload(stream upload.v1.UploadRequest) returns (upload.v1.UploadResponse);
 
+  // # Error
+  // - PermissionDenied("Permission Denied") - This file is not yours
   rpc Download(download.v1.DownloadRequest) returns (stream download.v1.DownloadResponse);
 
   // session operations

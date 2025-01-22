@@ -5,7 +5,7 @@ use pb::ourchat::{
     get_account_info::v1::{GetAccountInfoRequest, RequestValues},
     set_account_info::v1::{SetFriendInfoRequest, SetSelfInfoRequest},
 };
-use server::process::error_msg_consts::OCID_TOO_LONG;
+use server::process::error_msg::OCID_TOO_LONG;
 
 #[tokio::test]
 async fn get_user_info() {

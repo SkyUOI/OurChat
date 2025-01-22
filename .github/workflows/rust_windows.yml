@@ -21,6 +21,6 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Build
-        run: cargo build --bin server
+        run: cargo check --bin server
       - name: Build Release
         run: cargo check --bin server --release

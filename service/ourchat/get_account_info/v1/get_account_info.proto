@@ -38,7 +38,6 @@ message GetAccountInfoRequest {
   repeated RequestValues request_values = 2;
 }
 
-// If you don't have the privilege, return error
 // If values are requested, return the values otherwise return empty
 message GetAccountInfoResponse {
   optional string ocid = 1;

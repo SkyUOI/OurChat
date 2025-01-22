@@ -1,6 +1,7 @@
 use super::super::get_id_from_req;
 use crate::{
     db,
+    process::error_msg::{SERVER_ERROR, TIME_FORMAT_ERROR, TIME_MISSING},
     server::{FetchMsgsStream, RpcServer},
 };
 use anyhow::Context;
@@ -25,7 +26,7 @@ pub async fn fetch_user_msg(
         Err(e) => match e {
             FetchMsgError::Db(_) | FetchMsgError::Internal(_) => {
                 tracing::error!("{}", e);
-                Err(Status::internal("Server Error"))
+                Err(Status::internal(SERVER_ERROR))
             }
             FetchMsgError::Status(s) => Err(s),
         },
@@ -51,12 +52,12 @@ async fn fetch_user_msg_impl(
     let time = match from_google_timestamp(&match request.time {
         Some(t) => t,
         None => {
-            return Err(Status::invalid_argument("time is missing"))?;
+            return Err(Status::invalid_argument(TIME_MISSING))?;
         }
     }) {
         Some(t) => t,
         None => {
-            return Err(Status::invalid_argument("time error"))?;
+            return Err(Status::invalid_argument(TIME_FORMAT_ERROR))?;
         }
     };
     let (tx, rx) = mpsc::channel(32);
@@ -180,7 +181,7 @@ async fn fetch_user_msg_impl(
             Ok(_) => {}
             Err(e) => {
                 tracing::error!("Error occurred when listening to rabbitmq:{e}");
-                send_to_client(Err(Status::internal("Server Error"))).await;
+                send_to_client(Err(Status::internal(SERVER_ERROR))).await;
             }
         }
     });

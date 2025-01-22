@@ -1,5 +1,5 @@
 use super::get_id_from_req;
-use crate::server::RpcServer;
+use crate::{process::error_msg::SERVER_ERROR, server::RpcServer};
 use base::consts::ID;
 use base::database::DbPool;
 use entities::friend;
@@ -19,7 +19,7 @@ pub async fn set_friend_info(
             return match e {
                 SetError::Db(_) | SetError::Unknown(_) => {
                     tracing::error!("{}", e);
-                    Err(Status::internal("Server Error"))
+                    Err(Status::internal(SERVER_ERROR))
                 }
             };
         }

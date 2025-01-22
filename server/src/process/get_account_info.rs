@@ -1,6 +1,8 @@
 use super::basic::get_ocid;
+use super::error_msg::{PERMISSION_DENIED, REQUEST_INVALID_VALUE, not_found};
 use crate::db;
 use crate::db::session::get_all_session_relations;
+use crate::process::error_msg::SERVER_ERROR;
 use crate::server::RpcServer;
 use base::consts::ID;
 use base::time::to_google_timestamp;
@@ -29,6 +31,8 @@ enum GetInfoError {
     StatusError(#[from] tonic::Status),
     #[error("internal error:{0:?}")]
     InternalError(#[from] anyhow::Error),
+    #[error("permission denied")]
+    PermissionDenied,
 }
 
 async fn get_info_impl(
@@ -67,14 +71,12 @@ async fn get_info_impl(
         let i = match RequestValues::try_from(*i) {
             Ok(i) => i,
             Err(_) => {
-                return Err(tonic::Status::invalid_argument(
-                    "value requetsed is invalid",
-                ))?;
+                return Err(tonic::Status::invalid_argument(REQUEST_INVALID_VALUE))?;
             }
         };
         if privilege != Privilege::Owner && OWNER_PRIVILEGE.contains(&i) {
             // cannot get the info which is owner privilege
-            return Err(tonic::Status::permission_denied("permission denied"))?;
+            return Err(GetInfoError::PermissionDenied);
         } else {
             // can access the info,get from the database
             match i {
@@ -105,14 +107,14 @@ async fn get_info_impl(
                 RequestValues::UpdateTime => {
                     // only owner can get
                     if privilege != Privilege::Owner {
-                        return Err(tonic::Status::permission_denied("permission denied"))?;
+                        return Err(GetInfoError::PermissionDenied)?;
                     }
                     ret.update_time = Some(to_google_timestamp(queried_user.update_time.into()))
                 }
                 RequestValues::Sessions => {
                     // only owner can get
                     if privilege != Privilege::Owner {
-                        return Err(tonic::Status::permission_denied("permission denied"))?;
+                        return Err(GetInfoError::PermissionDenied)?;
                     }
                     let sessions = get_all_session_relations(id, &server.db.db_pool).await?;
                     let ids = sessions.into_iter().map(|x| x.session_id as u64).collect();
@@ -143,9 +145,12 @@ pub async fn get_info(
         Err(e) => match e {
             GetInfoError::DbError(_) | GetInfoError::InternalError(_) => {
                 tracing::error!("{}", e);
-                Err(tonic::Status::internal("Server error"))
+                Err(tonic::Status::internal(SERVER_ERROR))
             }
-            GetInfoError::NotFound => Err(tonic::Status::not_found("User not found")),
+            GetInfoError::NotFound => Err(tonic::Status::not_found(not_found::USER)),
+            GetInfoError::PermissionDenied => {
+                Err(tonic::Status::permission_denied(PERMISSION_DENIED))
+            }
             GetInfoError::StatusError(status) => Err(status),
         },
     }

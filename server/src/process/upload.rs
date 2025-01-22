@@ -1,5 +1,9 @@
 use super::get_id_from_req;
 use crate::{
+    process::error_msg::{
+        FILE_HASH_ERROR, FILE_SIZE_ERROR, INCORRECT_ORDER, METADATA_ERROR, SERVER_ERROR,
+        STORAGE_FULL, not_found,
+    },
     server::RpcServer,
     utils::{create_file_with_dirs_if_not_exist, generate_random_string},
 };
@@ -207,23 +211,21 @@ pub async fn upload(
         Err(e) => {
             tracing::error!("{}", e);
             match e {
-                UploadError::MetaDataError => Err(Status::invalid_argument("Metadata error")),
+                UploadError::MetaDataError => Err(Status::invalid_argument(METADATA_ERROR)),
                 UploadError::Unknown(_)
                 | UploadError::DbError(_)
                 | UploadError::FromIntError(_)
                 | UploadError::InternalIOError(_)
                 | UploadError::InvalidPathError => {
                     tracing::error!("{}", e);
-                    Err(Status::internal("Server Error"))
+                    Err(Status::internal(SERVER_ERROR))
                 }
                 UploadError::StatusError(e) => Err(e),
-                UploadError::WrongStructure => Err(Status::invalid_argument("Wrong structure")),
-                UploadError::FileSizeError => Err(Status::invalid_argument("File size error")),
-                UploadError::FileHashError => Err(Status::invalid_argument("File hash error")),
-                UploadError::UserNotFound => Err(Status::not_found("User not found")),
-                UploadError::FileSizeOverflow => {
-                    Err(Status::resource_exhausted("File size overflow"))
-                }
+                UploadError::WrongStructure => Err(Status::invalid_argument(INCORRECT_ORDER)),
+                UploadError::FileSizeError => Err(Status::invalid_argument(FILE_SIZE_ERROR)),
+                UploadError::FileHashError => Err(Status::invalid_argument(FILE_HASH_ERROR)),
+                UploadError::UserNotFound => Err(Status::not_found(not_found::USER)),
+                UploadError::FileSizeOverflow => Err(Status::resource_exhausted(STORAGE_FULL)),
             }
         }
     }

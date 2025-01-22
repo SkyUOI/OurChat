@@ -11,6 +11,7 @@ message TimestampResponse {
   google.protobuf.Timestamp timestamp = 1;
 }
 
+// Get some basic information of server
 message GetServerInfoRequest {}
 
 message GetIdRequest {
