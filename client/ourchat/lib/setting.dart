@@ -30,9 +30,10 @@ class Setting extends StatelessWidget {
                         TextFormField(
                           decoration: InputDecoration(
                               labelText:
-                                  AppLocalizations.of(context)!.server_address),
+                                  AppLocalizations.of(context)!.serverAddress),
                           controller: TextEditingController(
-                              text: appState.config!.data!["server_address"]),
+                              text: appState.config!.data!["server"][0]
+                                  ["host"]),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
                               return AppLocalizations.of(context)!.cantBeEmpty;
@@ -40,39 +41,14 @@ class Setting extends StatelessWidget {
                             return null;
                           },
                           onSaved: (value) {
-                            appState.config!.data!["server_address"] = value;
+                            appState.config!.data!["server"][0]["host"] = value;
                           },
                         ),
                         TextFormField(
                           decoration: InputDecoration(
-                              labelText: AppLocalizations.of(context)!.ws_port),
+                              labelText: AppLocalizations.of(context)!.port),
                           controller: TextEditingController(
-                              text:
-                                  appState.config!.data!["ws_port"].toString()),
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
-                          ],
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return AppLocalizations.of(context)!.cantBeEmpty;
-                            }
-                            if (int.parse(value) < 0 ||
-                                int.parse(value) > 65535) {
-                              return AppLocalizations.of(context)!
-                                  .notWithinRange(0, 65535);
-                            }
-                            return null;
-                          },
-                          onSaved: (value) {
-                            appState.config!.data!["ws_port"] = value;
-                          },
-                        ),
-                        TextFormField(
-                          decoration: InputDecoration(
-                              labelText:
-                                  AppLocalizations.of(context)!.http_port),
-                          controller: TextEditingController(
-                              text: appState.config!.data!["http_port"]
+                              text: appState.config!.data!["server"][0]["port"]
                                   .toString()),
                           inputFormatters: [
                             FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
@@ -89,13 +65,13 @@ class Setting extends StatelessWidget {
                             return null;
                           },
                           onSaved: (value) {
-                            appState.config!.data!["http_port"] = value;
+                            appState.config!.data!["server"][0]["port"] = value;
                           },
                         ),
                         TextFormField(
                           decoration: InputDecoration(
                               labelText: AppLocalizations.of(context)!
-                                  .reconnection_attempt),
+                                  .reconnectionAttempt),
                           controller: TextEditingController(
                               text: appState
                                   .config!.data!["reconnection_attempt"]
@@ -117,7 +93,7 @@ class Setting extends StatelessWidget {
                         TextFormField(
                           decoration: InputDecoration(
                               labelText: AppLocalizations.of(context)!
-                                  .reconnection_interval),
+                                  .reconnectionInterval),
                           controller: TextEditingController(
                               text: appState
                                   .config!.data!["reconnection_interval"]

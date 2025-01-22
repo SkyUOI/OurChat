@@ -1,15 +1,17 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:ourchat/const.dart';
 import 'package:provider/provider.dart';
 import 'package:localstorage/localstorage.dart';
-import 'welcome.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:logger/logger.dart';
+import 'const.dart';
 import 'home.dart';
 import 'config.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'auth.dart';
+import 'server_setting.dart';
+import 'ourchat/ourchat_server.dart';
 import 'dart:core';
 import 'dart:io';
-import 'package:logger/logger.dart';
 
 void main() async {
   await initLocalStorage();
@@ -17,15 +19,12 @@ void main() async {
 }
 
 class OurchatAppState extends ChangeNotifier {
-  int where = welcomeUi;
-  /*
-    0: welcome
-    1: home
-  */
+  int where = serverSettingUi;
   int device = desktop;
   bool isWeb = kIsWeb;
   OurchatConfig? config;
   Logger logger = Logger();
+  OurChatServer? server;
 
   void init() async {
     logger.i("init Ourchat");
@@ -74,22 +73,21 @@ class Controller extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var appState = context.watch<OurchatAppState>();
-    Widget page;
-    if (appState.where == welcomeUi) {
-      page = const Welcome();
+    Widget window = const Placeholder();
+    if (appState.where == serverSettingUi) {
+      window = const ServerSetting();
+    } else if (appState.where == authUi) {
+      window = const Auth();
     } else if (appState.where == homeUi) {
-      page = const Home();
-    } else {
-      page = const Placeholder();
+      window = const Home();
     }
-
     return MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: LayoutBuilder(builder: (context, constraints) {
         appState.device =
             (constraints.maxHeight < constraints.maxWidth) ? desktop : mobile;
-        return page;
+        return window;
       }),
       theme: ThemeData(
           useMaterial3: true,

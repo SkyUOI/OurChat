@@ -29,8 +29,9 @@ const dataLossStatusCode = 15;
 const unauthenticatedStatusCode = 16;
 
 // UI ID
-const welcomeUi = 0;
-const homeUi = 1;
+const serverSettingUi = 0;
+const authUi = 1;
+const homeUi = 2;
 
 // Device
 const mobile = 0;

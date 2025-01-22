@@ -6,12 +6,11 @@ class OurchatConfig {
 
   Map<String, dynamic> getDefaultConfig() {
     return {
-      "server_address": "127.0.0.1",
-      "ws_port": "7777",
-      "http_port": "7778",
+      "servers": [
+        {"host": "localhost", "port": 7777}
+      ],
       "reconnection_attempt": "5",
       "reconnection_interval": "5",
-      "language": "en-us",
     };
   }
 
