@@ -31,14 +31,8 @@ venv.bak/
 
 /target
 
-# Postgres
-
-data/postgres-data/**
-
-# Redis
-
-data/redis-data/**
-!data/redis-data/.gitkeep
+# data mapped from docker
+docker/data
 
 server_info.json
 log/

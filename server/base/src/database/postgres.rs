@@ -37,13 +37,11 @@ impl PostgresDbCfg {
 
 async fn try_create_postgres_db(url: &str) -> anyhow::Result<DatabaseConnection> {
     use sqlx::{Postgres, migrate::MigrateDatabase};
-    let mut should_run_migrations = false;
     if !Postgres::database_exists(url).await.unwrap_or(false) {
         tracing::info!("Creating postgres database");
         match Postgres::create_database(url).await {
             Ok(_) => {
                 tracing::info!("Created postgres database {}", url);
-                should_run_migrations = true;
             }
             Err(e) => {
                 tracing::warn!(
@@ -54,10 +52,8 @@ async fn try_create_postgres_db(url: &str) -> anyhow::Result<DatabaseConnection>
         }
     }
     let db = sea_orm::Database::connect(url).await?;
-    if should_run_migrations {
-        migration::Migrator::up(&db, None).await?;
-        tracing::info!("Ran all migrations of databases");
-    }
+    tracing::info!("Ran all migrations of databases");
+    migration::Migrator::up(&db, None).await?;
     Ok(db)
 }
 

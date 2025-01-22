@@ -1,7 +1,8 @@
 //! Shared state of server
+//! TODO: remove all of these and add test cases
 
 use base::consts::{self};
-use parking_lot::{Mutex, RwLock};
+use parking_lot::Mutex;
 
 static AUTO_CLEAN_DURATION: Mutex<u64> = Mutex::new(consts::default_clear_interval());
 static FILE_SAVE_DAYS: Mutex<u64> = Mutex::new(consts::default_file_save_days());
@@ -23,18 +24,6 @@ pub fn get_file_save_days() -> u64 {
 pub fn set_file_save_days(days: u64) {
     *FILE_SAVE_DAYS.lock() = days;
     tracing::info!("set file_save_days: {}", days);
-}
-
-static MAINTAINING: RwLock<bool> = RwLock::new(false);
-
-pub fn get_maintaining() -> bool {
-    *MAINTAINING.read()
-}
-
-pub fn set_maintaining(maintaining: bool) {
-    let mut lock = MAINTAINING.write();
-    *lock = maintaining;
-    tracing::info!("set maintaining: {}", maintaining);
 }
 
 pub fn set_friends_number_limit(limit: u32) {

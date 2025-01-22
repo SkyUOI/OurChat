@@ -1,5 +1,6 @@
 mod status;
 pub mod verify;
+mod logo;
 
 use crate::{Config, EmailClientType};
 use actix_web::{
@@ -33,6 +34,7 @@ impl HttpServer {
         let http_server = actix_web::HttpServer::new(move || {
             let v1 = web::scope("/v1")
                 .service(status::status)
+                .service(logo::logo)
                 .configure(verify::config);
             App::new()
                 .wrap(actix_web::middleware::Logger::default())

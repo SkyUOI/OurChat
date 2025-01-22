@@ -2,7 +2,7 @@
 
 use crate::process;
 use crate::process::db::get_id;
-use crate::{SERVER_INFO, SharedData, ShutdownRev, shared_state};
+use crate::{SERVER_INFO, SharedData, ShutdownRev};
 use base::database::DbPool;
 use base::time::to_google_timestamp;
 use pb::auth::authorize::v1::{AuthRequest, AuthResponse};
@@ -74,7 +74,7 @@ impl RpcServer {
             db: self.db.clone(),
             rabbitmq: self.rabbitmq.clone(),
         };
-        let svc = OurChatServiceServer::with_interceptor(self, Self::check_auth);
+        let svc = OurChatServiceServer::with_interceptor(self, Self::interceptor);
         select! {
             _ = shutdown_rev.wait_shutdowning() => {}
             _ = tonic::transport::Server::builder()
@@ -86,14 +86,19 @@ impl RpcServer {
         Ok(())
     }
 
-    fn check_auth(mut req: Request<()>) -> Result<Request<()>, Status> {
+    fn interceptor(mut req: Request<()>) -> Result<Request<()>, Status> {
+        Self::check_auth(&mut req)?;
+        Ok(req)
+    }
+
+    fn check_auth(req: &mut Request<()>) -> Result<(), Status> {
         // check token
         match req.metadata().get("token") {
             Some(token) => {
                 if let Some(jwt) = process::check_token(token.to_str().unwrap()) {
                     req.metadata_mut()
                         .insert("id", jwt.id.to_string().parse().unwrap());
-                    Ok(req)
+                    Ok(())
                 } else {
                     Err(Status::unauthenticated("Invalid token"))
                 }
@@ -299,7 +304,7 @@ impl BasicService for BasicServiceProvider {
         Ok(Response::new(
             pb::basic::server::v1::GetServerInfoResponse {
                 http_port: self.shared_data.cfg.main_cfg.http_port.into(),
-                status: shared_state::get_maintaining().into(),
+                status: self.shared_data.get_maintaining().into(),
                 ..SERVER_INFO_RPC.clone()
             },
         ))

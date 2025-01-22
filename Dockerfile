@@ -8,9 +8,16 @@ COPY . .
 
 RUN cd /app/server && cargo build --release
 
-FROM alpine:latest
+FROM alpine:latest AS ourchat-server
 
 COPY --from=builder /app/target/release/server /usr/local/bin/server
 COPY --from=builder /app/config /etc/ourchat
 
 CMD ["server", "-c", "/etc/ourchat/ourchat.toml"]
+
+FROM alpine:latest AS http-server
+
+COPY --from=builder /app/target/release/http_server /usr/local/bin/http_server
+COPY --from=builder /app/config /etc/ourchat
+
+CMD ["http_server", "-c", "/etc/ourchat/http.toml"]

@@ -2,7 +2,7 @@
 //! TODO:add command for set friends limit
 
 use crate::{
-    ShutdownRev, ShutdownSdr,
+    SharedData, ShutdownRev, ShutdownSdr,
     db::file_storage,
     shared_state::{self},
 };
@@ -45,10 +45,11 @@ enum InstName {
 struct InstManager {
     // Use Map, because we need a stable output
     insts: Arc<Mutex<BTreeMap<InstName, Arc<Inst>>>>,
+    pub shared_data: Arc<SharedData>,
 }
 
 impl InstManager {
-    fn new() -> Self {
+    fn new(shared_data: Arc<SharedData>) -> Self {
         let insts = Arc::new(Mutex::new(collection_literals::collection! {
             InstName::Exit => Arc::new(Inst {
                 _name: InstName::Exit,
@@ -101,7 +102,7 @@ FileSaveDays(How long the files will be kept): Number of day".to_string(),
             }),
 
         }));
-        Self { insts }
+        Self { insts, shared_data }
     }
 
     fn get_inst(&self, name: &InstName) -> Option<Arc<Inst>> {
@@ -185,7 +186,7 @@ fn gen_error_msg_template(help_msg: &str) -> String {
     )
 }
 
-fn set_process(_: &InstManager, argvs: Vec<String>) -> Result<Option<String>, String> {
+fn set_process(manager: &InstManager, argvs: Vec<String>) -> Result<Option<String>, String> {
     if argvs.len() != 2 {
         return Err("status accept 2 args".to_string());
     }
@@ -207,16 +208,16 @@ fn set_process(_: &InstManager, argvs: Vec<String>) -> Result<Option<String>, St
             };
             match status {
                 ServerStatus::Maintaining => {
-                    if !shared_state::get_maintaining() {
-                        shared_state::set_maintaining(true);
+                    if !manager.shared_data.get_maintaining() {
+                        manager.shared_data.set_maintaining(true);
                         ret.push_str("Set server status to Maintaining");
                     } else {
                         ret.push_str("Server status is already Maintaining");
                     }
                 }
                 ServerStatus::Normal => {
-                    if shared_state::get_maintaining() {
-                        shared_state::set_maintaining(false);
+                    if manager.shared_data.get_maintaining() {
+                        manager.shared_data.set_maintaining(false);
                         ret.push_str("Set server status to Normal");
                     } else {
                         ret.push_str("Server status is already Normal");
@@ -240,7 +241,7 @@ fn set_process(_: &InstManager, argvs: Vec<String>) -> Result<Option<String>, St
     Ok(Some(ret))
 }
 
-fn get_process(_: &InstManager, argvs: Vec<String>) -> Result<Option<String>, String> {
+fn get_process(manager: &InstManager, argvs: Vec<String>) -> Result<Option<String>, String> {
     if argvs.len() != 1 {
         return Err("getstatus accept 1 args".to_string());
     }
@@ -254,7 +255,7 @@ fn get_process(_: &InstManager, argvs: Vec<String>) -> Result<Option<String>, St
     let mut ret = String::new();
     match var {
         Variable::Status => {
-            if shared_state::get_maintaining() {
+            if manager.shared_data.get_maintaining() {
                 ret.push_str("Server status is Maintaining");
             } else {
                 ret.push_str("Server status is Normal");
@@ -275,13 +276,14 @@ fn get_process(_: &InstManager, argvs: Vec<String>) -> Result<Option<String>, St
 pub type CommandTransmitData = (String, oneshot::Sender<Option<String>>);
 
 pub async fn cmd_process_loop(
+    shared_data: Arc<SharedData>,
     mut db_conn: DatabaseConnection,
     mut command_rev: mpsc::Receiver<CommandTransmitData>,
     mut shutdown_sdr: ShutdownSdr,
 ) -> anyhow::Result<()> {
     tracing::info!("cmd process started");
     let mut shutdown_rev = shutdown_sdr.new_receiver("cmd process", "cmd process");
-    let insts = InstManager::new();
+    let insts = InstManager::new(shared_data);
     let logic = async {
         while let Some((command, ret)) = command_rev.recv().await {
             let command = command.trim();

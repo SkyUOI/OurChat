@@ -23,6 +23,7 @@ pub struct Config {
     pub dbcfg: PathBuf,
     pub email_cfg: Option<PathBuf>,
     pub rabbitmq_cfg: PathBuf,
+    pub logo_path: PathBuf,
 }
 
 impl Config {
@@ -36,6 +37,7 @@ impl Config {
         self.dbcfg = base::resolve_relative_path(&full_basepath, Path::new(&self.dbcfg))?;
         self.rabbitmq_cfg =
             base::resolve_relative_path(&full_basepath, Path::new(&self.rabbitmq_cfg))?;
+        self.logo_path = base::resolve_relative_path(&full_basepath, Path::new(&self.logo_path))?;
         if let Some(email_cfg) = &self.email_cfg {
             self.email_cfg = Some(base::resolve_relative_path(
                 &full_basepath,

@@ -26,7 +26,7 @@ use config::{ConfigError, File};
 use dashmap::DashMap;
 use db::file_storage;
 use futures_util::future::join_all;
-use parking_lot::Once;
+use parking_lot::{Mutex, Once};
 use rand::Rng;
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
@@ -288,13 +288,16 @@ fn clear() -> anyhow::Result<()> {
 }
 
 async fn cmd_start(
+    shared_data: Arc<SharedData>,
     command_rev: mpsc::Receiver<CommandTransmitData>,
     shutdown_sender: ShutdownSdr,
     db_conn: DatabaseConnection,
     test_mode: bool,
 ) -> anyhow::Result<()> {
     if !test_mode {
-        match cmd::cmd_process_loop(db_conn, command_rev, shutdown_sender.clone()).await {
+        match cmd::cmd_process_loop(shared_data, db_conn, command_rev, shutdown_sender.clone())
+            .await
+        {
             Ok(()) => {}
             Err(e) => {
                 tracing::error!("cmd error:{}", e);
@@ -370,6 +373,18 @@ pub struct Application {
 pub struct SharedData {
     pub cfg: Cfg,
     pub verify_record: DashMap<String, Arc<tokio::sync::Notify>>,
+    maintaining: Mutex<bool>,
+}
+
+impl SharedData {
+    pub fn set_maintaining(&self, maintaining: bool) {
+        *self.maintaining.lock() = maintaining;
+        tracing::info!("set maintaining:{}", maintaining);
+    }
+
+    pub fn get_maintaining(&self) -> bool {
+        *self.maintaining.lock()
+    }
 }
 
 /// Loads and constructs the configuration for the application.
@@ -440,8 +455,7 @@ impl Application {
                 "ourchat",
             );
         }
-        // start maintain mode
-        shared_state::set_maintaining(main_cfg.cmd_args.maintaining);
+        let maintaining = main_cfg.cmd_args.maintaining;
         // Set up shared state
         shared_state::set_auto_clean_duration(main_cfg.auto_clean_duration);
         shared_state::set_file_save_days(main_cfg.file_save_days);
@@ -480,6 +494,7 @@ impl Application {
             shared: Arc::new(SharedData {
                 cfg,
                 verify_record: DashMap::new(),
+                maintaining: Mutex::new(maintaining),
             }),
             pool: db_pool,
             server_addr: addr,
@@ -572,6 +587,7 @@ impl Application {
                 });
             }
             tokio::spawn(cmd_start(
+                self.shared.clone(),
                 command_rev,
                 self.abort_sender.clone(),
                 self.pool.db_pool.clone(),

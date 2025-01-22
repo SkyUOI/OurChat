@@ -10,6 +10,9 @@ services:
       - "7778:7778"
     networks:
       - net
+    depends_on:
+      db:
+        condition: service_healthy
   db:
     image: postgres:17
     restart: always
@@ -22,6 +25,11 @@ services:
       - "5432:5432"
     networks:
       - net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 30s
+      retries: 5
   redis:
     image: redis
     ports:
