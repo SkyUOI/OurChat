@@ -20,7 +20,7 @@ for index in range(len(commands)):
     command = commands[index]
     os.system(command)
     print(
-        f"\r|{'#'*int(index/len(commands)*100/5)}{' '*(20-(int(index/len(commands)*100/5)))}| {round(index/len(commands)*100,2)}%",
+        f"\r|{'#' * int(index / len(commands) * 100 / 5)}{' ' * (20 - (int(index / len(commands) * 100 / 5)))}| {round(index / len(commands) * 100, 2)}%",
         end="",
     )
 os.system(

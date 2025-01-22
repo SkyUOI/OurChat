@@ -1,6 +1,6 @@
+mod logo;
 mod status;
 pub mod verify;
-mod logo;
 
 use crate::{Config, EmailClientType};
 use actix_web::{
