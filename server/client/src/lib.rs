@@ -5,6 +5,8 @@
 pub mod helper;
 pub mod http_helper;
 
+pub use http_helper::TestHttpApp;
+
 use crate::helper::init_env_var;
 use crate::helper::rabbitmq::create_random_vhost;
 use anyhow::Context;

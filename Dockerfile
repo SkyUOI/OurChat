@@ -2,11 +2,11 @@ FROM rustlang/rust:nightly-alpine AS builder
 
 WORKDIR /app
 
-RUN apk add cmake protobuf-dev musl-dev zlib-static
+RUN apk add cmake protobuf-dev musl-dev zlib-static g++
 
 COPY . .
 
-RUN cd /app/server && cargo build --release
+RUN cd /app && cargo build --release
 
 FROM alpine:latest AS ourchat-server
 

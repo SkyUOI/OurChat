@@ -2224,6 +2224,7 @@ dependencies = [
  "actix-web",
  "anyhow",
  "base",
+ "chrono",
  "claims",
  "clap 4.5.26",
  "client",
@@ -2231,6 +2232,7 @@ dependencies = [
  "ctor",
  "deadpool-lapin",
  "deadpool-redis",
+ "imageinfo",
  "lettre",
  "linkify",
  "parking_lot",
@@ -2499,6 +2501,15 @@ checksum = "daca1df1c957320b2cf139ac61e7bd64fed304c5040df000a745aa1de3b4ef71"
 dependencies = [
  "icu_normalizer",
  "icu_properties",
+]
+
+[[package]]
+name = "imageinfo"
+version = "0.7.27"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f206748c3ab3de9dc602a8c9dff3814eee710acb70a7958a599e48a8331adc2"
+dependencies = [
+ "serde",
 ]
 
 [[package]]

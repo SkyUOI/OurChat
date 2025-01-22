@@ -80,6 +80,7 @@ scopeguard = "1"
 libc-print = "0"
 itertools = "0"
 fake = "3"
+imageinfo = "0"
 
 [workspace.dependencies.lettre]
 version = "0"

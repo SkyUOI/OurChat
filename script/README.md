@@ -22,9 +22,13 @@ If you modified any database migrations and changed the definitions of any table
 
 Run this script to run stress test.The first argument is the test flag(default is `--release`).The second one is the test command(default is `cargo run --bin stress_test`)
 
-### `rebuild_dev_container.py`
+### `build_production_container.py`
 
-If you modified the `Dockerfile`,use it to rebuild docker image for development usage
+Build production docker container
+
+### `push_docker_images.py`
+
+Push docker images to docker hub
 
 ## Client Usage
 

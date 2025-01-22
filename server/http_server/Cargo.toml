@@ -17,6 +17,11 @@ lettre.workspace = true
 deadpool-lapin.workspace = true
 serde_json.workspace = true
 tokio-stream.workspace = true
+imageinfo.workspace = true
+parking_lot.workspace = true
+chrono.workspace = true
+ctor.workspace = true
+rustls.workspace = true
 
 [dev-dependencies]
 client = { path = "../client" }
@@ -26,5 +31,3 @@ parking_lot.workspace = true
 tokio-stream.workspace = true
 reqwest.workspace = true
 linkify.workspace = true
-ctor.workspace = true
-rustls.workspace = true

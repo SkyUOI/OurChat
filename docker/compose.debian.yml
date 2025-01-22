@@ -3,7 +3,7 @@ name: ourchat_server
 services:
   OurChatServer:
     init: true
-    image: skyuoi/ourchat:latest
+    image: skyuoi/ourchat:latest-debian
     working_dir: /root
     ports:
       - "7777:7777"
@@ -14,7 +14,7 @@ services:
         condition: service_healthy
   HttpServer:
     init: true
-    image: skyuoi/ourchat:latest-http
+    image: skyuoi/ourchat:latest-http-debian
     working_dir: /root
     ports:
       - "7778:7778"

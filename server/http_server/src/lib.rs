@@ -144,3 +144,8 @@ impl Launcher {
         Ok(())
     }
 }
+
+#[ctor::ctor]
+fn init() {
+    let _ = rustls::crypto::ring::default_provider().install_default();
+}

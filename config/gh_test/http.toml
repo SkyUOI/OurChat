@@ -9,4 +9,4 @@ email_cfg = "email.toml"
 rabbitmq_cfg = "rabbitmq.toml"
 ssl = false
 # The logo of this server
-logo_path = "../resource/logo.png"
+logo_path = "../../resource/logo.png"
