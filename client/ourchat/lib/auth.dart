@@ -115,7 +115,8 @@ class _LoginState extends State<Login> {
                             var res =
                                 await ocAccount.login(password, ocid, email);
                             if (res == okStatusCode) {
-                              ourchatAppState.toSomewhere(homeUi);
+                              ourchatAppState.where = homeUi;
+                              ourchatAppState.update();
                             } // TODO: error
                           },
                           child: Text(AppLocalizations.of(context)!.login)),
@@ -210,7 +211,8 @@ class _RegisterState extends State<Register> {
                             var res = await ocAccount.register(
                                 password, username, email);
                             if (res == okStatusCode) {
-                              ourchatAppState.toSomewhere(homeUi);
+                              ourchatAppState.where = homeUi;
+                              ourchatAppState.update();
                             }
                             // TODO: error
                           },

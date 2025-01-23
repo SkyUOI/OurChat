@@ -25,6 +25,8 @@ class _ServerSettingState extends State<ServerSetting> {
   @override
   Widget build(BuildContext context) {
     var ourchatAppState = context.watch<OurchatAppState>();
+    address = ourchatAppState.config!.data!["servers"][0]["host"];
+    port = ourchatAppState.config!.data!["servers"][0]["port"];
     var key = GlobalKey<FormState>();
     var serverInfoLabels = Expanded(
       child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -184,9 +186,13 @@ class _ServerSettingState extends State<ServerSetting> {
                   key.currentState!.save();
                   if (lastAddress == address && lastPort == port && isOnline) {
                     ourchatAppState.server = server;
-                    ourchatAppState.toSomewhere(authUi);
+                    ourchatAppState.where = authUi;
+                    ourchatAppState.update();
                     return;
                   }
+                  ourchatAppState.config!.data!["servers"][0]["host"] = address;
+                  ourchatAppState.config!.data!["servers"][0]["port"] = port;
+                  ourchatAppState.config!.saveConfig();
                   server = OurChatServer(address, port);
                   setState(() {
                     isOnline = false;

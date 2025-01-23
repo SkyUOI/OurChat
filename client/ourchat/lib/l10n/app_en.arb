@@ -85,30 +85,6 @@
     "@httpPort": {
         "description": "text for http port in setting"
     },
-    "reconnectionAttempt": "Reconnection Attempt",
-    "@reconnectionAttempt": {
-        "description": "text for reconnection attempt in setting"
-    },
-    "reconnectionInterval": "Reconnection Interval",
-    "@reconnectionInterval": {
-        "description": "text for reconnection interval in setting"
-    },
-    "language": "Language",
-    "@language": {
-        "description": "text for language in setting"
-    },
-    "notWithinRange": "not Within the Range of {min} to {max}",
-    "@notWithinRange": {
-        "description": "not Within the Range of {min} to {max}",
-        "placeholders": {
-            "min": {
-                "type": "num"
-            },
-            "max": {
-                "type": "num"
-            }
-        }
-    },
     "cantConnectToServer": "Cannot connect to the server: {reason}",
     "@cantConnectToServer": {
         "description": "Cannot connect to the server:{reason}",
@@ -138,10 +114,6 @@
     "defaultUsername": "OurchatUser",
     "@defaultUsername": {
         "description": "default username when leave blank in register"
-    },
-    "optional": "optional",
-    "@optional": {
-        "description": "optional"
     },
     "serverName": "Server Name",
     "@serverName": {
@@ -182,5 +154,17 @@
     "continue_": "Continue",
     "@continue_": {
         "description": "Continue"
+    },
+    "themeColorSeed": "Theme Color Seed",
+    "@themeColorSeed": {
+        "description": "Theme Color Seed"
+    },
+    "save": "Save",
+    "@save": {
+        "description": "Save"
+    },
+    "reset": "Reset",
+    "@reset": {
+        "description": "Reset"
     }
 }

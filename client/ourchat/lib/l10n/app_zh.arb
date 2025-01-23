@@ -22,16 +22,11 @@
     "serverAddress": "服务器地址",
     "port": "端口",
     "httpPort": "Http端口",
-    "reconnectionAttempt": "尝试重连次数",
-    "reconnectionInterval": "重连间隔时间",
-    "language": "语言",
-    "notWithinRange": "不在范围内({min}~{max})",
     "cantConnectToServer": "无法连接到服务器: {reason}",
     "featureUnavailable": "对应功能不存在或无法启用",
     "commandNotFound": "命令不存在",
     "unexpectedStatusCode": "意外的状态码: {code}",
     "defaultUsername": "Ourchat用户",
-    "optional": "可选",
     "serverStatusUnderMaintenance": "维护中",
     "serverStatusOnline": "在线",
     "serverStatusOffline": "离线",
@@ -41,5 +36,8 @@
     "serverStatus": "服务器状态",
     "connect": "连接",
     "invalidPort": "无效端口",
-    "continue_": "继续"
+    "continue_": "继续",
+    "themeColorSeed": "主题色种子",
+    "save": "保存",
+    "reset": "重置"
 }

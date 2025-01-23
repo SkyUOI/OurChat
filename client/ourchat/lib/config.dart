@@ -1,5 +1,6 @@
 import 'package:localstorage/localstorage.dart';
 import 'package:logger/logger.dart';
+import 'dart:convert';
 
 class OurchatConfig {
   Map<String, dynamic>? data;
@@ -9,8 +10,7 @@ class OurchatConfig {
       "servers": [
         {"host": "localhost", "port": 7777}
       ],
-      "reconnection_attempt": "5",
-      "reconnection_interval": "5",
+      "color": 0xFF2196F3
     };
   }
 
@@ -31,23 +31,21 @@ class OurchatConfig {
   void loadConfig() {
     logger.i("load config");
     var defaultConfig = getDefaultConfig();
-    data = {};
-    for (var key in defaultConfig.keys) {
-      var value = localStorage.getItem(key);
-      if (value != null) {
-        data![key] = value;
-      }
+    var storageConfig = localStorage.getItem("config");
+    if (storageConfig == null) {
+      data = defaultConfig;
+    } else {
+      data = jsonDecode(storageConfig);
     }
     checkConfig();
     logger.i("load config done");
+    logger.i("config: $data");
   }
 
   void saveConfig() {
     logger.i("save config");
     checkConfig();
-    for (var key in data!.keys) {
-      localStorage.setItem(key, data![key]);
-    }
+    localStorage.setItem("config", jsonEncode(data));
     logger.i("save config done");
   }
 }

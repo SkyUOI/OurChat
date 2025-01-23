@@ -41,8 +41,7 @@ class OurchatAppState extends ChangeNotifier {
     logger.i("init Ourchat done");
   }
 
-  void toSomewhere(var id) {
-    where = id;
+  void update() {
     notifyListeners();
   }
 }
@@ -91,7 +90,8 @@ class Controller extends StatelessWidget {
       }),
       theme: ThemeData(
           useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue)),
+          colorScheme: ColorScheme.fromSeed(
+              seedColor: Color(appState.config!.data!["color"]))),
     );
   }
 }
