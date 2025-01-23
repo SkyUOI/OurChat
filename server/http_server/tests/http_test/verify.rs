@@ -21,11 +21,12 @@ async fn test_verify() {
             anyhow::Ok(())
         });
     let mut app = TestApp::new_with_launching_instance().await.unwrap();
-    let mut http_app = TestHttpApp::build_server(Some(Box::new(mock_smtp)))
+    let http_app = TestHttpApp::build_server(Some(Box::new(mock_smtp)))
         .await
         .unwrap();
-    http_app.rabbitmq_cfg.vhost = app.rmq_vhost.clone();
-    let mut http_app = TestHttpApp::setup(http_app).await.unwrap();
+    let mut http_app = TestHttpApp::setup(http_app, Some(app.rmq_vhost.clone()))
+        .await
+        .unwrap();
     let user = app.new_user().await.unwrap();
     let email = user.lock().await.email.clone();
     // Start Verify

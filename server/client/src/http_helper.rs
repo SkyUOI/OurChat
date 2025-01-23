@@ -3,11 +3,15 @@ use http_server::Launcher;
 use std::{thread, time::Duration};
 use tokio::task::JoinHandle;
 
+use crate::helper::rabbitmq::create_random_vhost;
+
 pub struct TestHttpApp {
     pub app_config: http_server::Config,
     pub client: reqwest::Client,
     pub has_dropped: bool,
     handle: JoinHandle<()>,
+
+    should_drop_vhost: bool,
 }
 
 impl TestHttpApp {
@@ -22,9 +26,23 @@ impl TestHttpApp {
         Ok(app)
     }
 
-    pub async fn setup(mut app: Launcher) -> anyhow::Result<Self> {
+    pub async fn setup(mut app: Launcher, vhost: Option<String>) -> anyhow::Result<Self> {
         let app_config = app.config.clone();
         let notify = app.started_notify.clone();
+        let should_drop_vhost = match vhost {
+            Some(vhost) => {
+                app.rabbitmq_cfg.vhost = vhost;
+                false
+            }
+            None => {
+                app.rabbitmq_cfg.vhost = create_random_vhost(
+                    &reqwest::Client::new(),
+                    &app.rabbitmq_cfg.manage_url().unwrap(),
+                )
+                .await?;
+                true
+            }
+        };
         tracing::info!("starting http server");
         let handle = tokio::spawn(async move {
             app.run_forever().await.unwrap();
@@ -39,11 +57,12 @@ impl TestHttpApp {
             app_config,
             has_dropped: false,
             handle,
+            should_drop_vhost,
         })
     }
 
     pub async fn new(email_client: Option<Box<dyn EmailSender>>) -> anyhow::Result<Self> {
-        Self::setup(Self::build_server(email_client).await?).await
+        Self::setup(Self::build_server(email_client).await?, None).await
     }
 
     pub async fn http_get(
