@@ -2,7 +2,7 @@
 //!
 //! For grpc development, a template of unary calling is provided as follows:
 //! ```ignore
-//! use crate::{component::EmailSender, server::RpcServer};
+//! use crate::{process::{error_msg::SERVER_ERROR}, component::EmailSender, server::RpcServer};
 //! use pb::ourchat::session::set_role::v1::{SetRoleRequest, SetRoleResponse};
 //! use tonic::{Request, Response, Status};
 //!
@@ -15,7 +15,7 @@
 //!         Err(e) => match e {
 //!             SetRoleErr::Db(_) | SetRoleErr::Internal(_) => {
 //!                 tracing::error!("{}", e);
-//!                 Err(Status::internal("Server Error"))
+//!                 Err(Status::internal(SERVER_ERROR))
 //!             }
 //!             SetRoleErr::Status(status) => Err(status),
 //!         },

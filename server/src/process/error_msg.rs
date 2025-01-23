@@ -1,6 +1,8 @@
 pub mod not_found {
     pub const USER: &str = "User Not Found";
     pub const SESSION: &str = "Session Not Found";
+    pub const USER_IN_SESSION: &str = "User Not In Session";
+    pub const MSG: &str = "Message Not Found";
 }
 
 pub const SERVER_ERROR: &str = "Server Error";

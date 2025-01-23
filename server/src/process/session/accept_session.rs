@@ -1,4 +1,4 @@
-use crate::server::RpcServer;
+use crate::{process::error_msg::SERVER_ERROR, server::RpcServer};
 use pb::ourchat::session::accept_session::v1::{AcceptSessionRequest, AcceptSessionResponse};
 use tonic::Response;
 
@@ -27,7 +27,7 @@ pub async fn accept_session(
         Err(e) => match e {
             AcceptSessionError::DbError(_) | AcceptSessionError::UnknownError(_) => {
                 tracing::error!("{}", e);
-                Err(tonic::Status::internal("Server Error"))
+                Err(tonic::Status::internal(SERVER_ERROR))
             }
         },
     }

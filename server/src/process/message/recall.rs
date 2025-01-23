@@ -1,6 +1,9 @@
 use crate::{
     db::messages::{MsgError, del_msg},
-    process::get_id_from_req,
+    process::{
+        error_msg::{PERMISSION_DENIED, SERVER_ERROR, not_found},
+        get_id_from_req,
+    },
     server::RpcServer,
 };
 use pb::ourchat::msg_delivery::recall::v1::{RecallMsgRequest, RecallMsgResponse};
@@ -15,7 +18,7 @@ pub async fn recall_msg(
         Err(e) => Err(match e {
             RecallErr::Db(_) | RecallErr::Unknown(_) => {
                 tracing::error!("{}", e);
-                Status::internal("Server Error")
+                Status::internal(SERVER_ERROR)
             }
             RecallErr::Status(status) => status,
         }),
@@ -37,9 +40,9 @@ impl From<MsgError> for RecallErr {
         match value {
             MsgError::DbError(db_err) => Self::Db(db_err),
             MsgError::WithoutPrivilege => {
-                Self::Status(Status::permission_denied("permission denied"))
+                Self::Status(Status::permission_denied(PERMISSION_DENIED))
             }
-            MsgError::NotFound => Self::Status(Status::not_found("msg not found")),
+            MsgError::NotFound => Self::Status(Status::not_found(not_found::MSG)),
             MsgError::UnknownError(error) => Self::Unknown(error),
         }
     }

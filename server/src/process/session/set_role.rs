@@ -1,5 +1,11 @@
 use super::check_if_permission_exist;
-use crate::{process::get_id_from_req, server::RpcServer};
+use crate::{
+    process::{
+        error_msg::{PERMISSION_DENIED, SERVER_ERROR, not_found::USER_IN_SESSION},
+        get_id_from_req,
+    },
+    server::RpcServer,
+};
 use migration::m20241229_022701_add_role_for_session::PreDefinedPermissions;
 use pb::ourchat::session::set_role::v1::{SetRoleRequest, SetRoleResponse};
 use sea_orm::{ActiveModelTrait, ActiveValue};
@@ -14,7 +20,7 @@ pub async fn set_role(
         Err(e) => match e {
             SetRoleErr::Db(_) | SetRoleErr::Internal(_) => {
                 tracing::error!("{}", e);
-                Err(Status::internal("Server Error"))
+                Err(Status::internal(SERVER_ERROR))
             }
             SetRoleErr::Status(status) => Err(status),
         },
@@ -46,7 +52,7 @@ async fn set_role_impl(
     .await?
     {
         return Err(SetRoleErr::Status(Status::permission_denied(
-            "Can't set role",
+            PERMISSION_DENIED,
         )));
     }
     let model = entities::user_role_relation::ActiveModel {
@@ -60,9 +66,7 @@ async fn set_role_impl(
         Err(sea_orm::DbErr::RecordNotUpdated) => {
             // record not existed, create it
             // This is something wrong, because every member in the session should have a role
-            return Err(SetRoleErr::Status(Status::not_found(
-                "User is not in the session",
-            )));
+            return Err(SetRoleErr::Status(Status::not_found(USER_IN_SESSION)));
         }
         Err(e) => return Err(SetRoleErr::Db(e)),
     }

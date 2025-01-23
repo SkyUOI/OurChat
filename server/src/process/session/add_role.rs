@@ -1,4 +1,4 @@
-use crate::process::get_id_from_req;
+use crate::process::{error_msg::SERVER_ERROR, get_id_from_req};
 use crate::server::RpcServer;
 use pb::ourchat::session::add_role::v1::{AddRoleRequest, AddRoleResponse};
 use sea_orm::{ActiveModelTrait, ActiveValue};
@@ -13,7 +13,7 @@ pub async fn add_role(
         Err(e) => match e {
             AddRoleErr::Db(_) | AddRoleErr::Internal(_) => {
                 tracing::error!("{}", e);
-                Err(Status::internal("Server Error"))
+                Err(Status::internal(SERVER_ERROR))
             }
             AddRoleErr::Status(status) => Err(status),
         },

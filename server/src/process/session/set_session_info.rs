@@ -1,4 +1,11 @@
-use crate::{db, process::get_id_from_req, server::RpcServer};
+use crate::{
+    db,
+    process::{
+        error_msg::{CONFLICT, SERVER_ERROR},
+        get_id_from_req,
+    },
+    server::RpcServer,
+};
 use entities::{role_permissions, user_role_relation};
 use migration::m20241229_022701_add_role_for_session::PreDefinedPermissions;
 use pb::ourchat::session::set_session_info::v1::{SetSessionInfoRequest, SetSessionInfoResponse};
@@ -16,10 +23,10 @@ pub async fn set_session_info(
             let status = match e {
                 SetSessionErr::Db(_) | SetSessionErr::Internal(_) => {
                     tracing::error!("{}", e);
-                    Status::internal("Server Error")
+                    Status::internal(SERVER_ERROR)
                 }
                 SetSessionErr::Status(s) => s,
-                SetSessionErr::Conflic => Status::already_exists("Conflict"),
+                SetSessionErr::Conflic => Status::already_exists(CONFLICT),
             };
             Err(status)
         }
@@ -28,11 +35,11 @@ pub async fn set_session_info(
 
 #[derive(thiserror::Error, Debug)]
 enum SetSessionErr {
-    #[error("database error:{0}")]
+    #[error("database error:{0:?}")]
     Db(#[from] sea_orm::DbErr),
-    #[error("status error:{0}")]
+    #[error("status error:{0:?}")]
     Status(#[from] tonic::Status),
-    #[error("internal error:{0}")]
+    #[error("internal error:{0:?}")]
     Internal(#[from] anyhow::Error),
     #[error("conflict")]
     Conflic,

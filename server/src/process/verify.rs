@@ -1,4 +1,5 @@
 use crate::{
+    process::error_msg::SERVER_ERROR,
     server::{AuthServiceProvider, VerifyStream},
     utils,
 };
@@ -25,7 +26,7 @@ pub async fn email_verify(
         Err(e) => match e {
             VerifyError::Db(_) | VerifyError::Internal(_) | VerifyError::Rabbitmq(_) => {
                 tracing::error!("{}", e);
-                Err(Status::internal("Server Error"))
+                Err(Status::internal(SERVER_ERROR))
             }
             VerifyError::Status(s) => Err(s),
         },

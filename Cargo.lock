@@ -754,6 +754,7 @@ dependencies = [
  "shadow-rs",
  "size",
  "sqlx",
+ "tokio",
  "tracing",
  "tracing-appender",
  "tracing-subscriber",

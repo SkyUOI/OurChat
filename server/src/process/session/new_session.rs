@@ -1,5 +1,6 @@
 use super::super::basic::{get_id, get_ocid};
 use super::super::get_id_from_req;
+use crate::process::error_msg::{SERVER_ERROR, not_found};
 use crate::{SharedData, server::RpcServer, utils};
 use anyhow::Context;
 use base::consts::{ID, OCID, SessionID};
@@ -161,10 +162,10 @@ pub async fn new_session(
     match new_session_impl(server, req).await {
         Ok(res) => Ok(Response::new(res)),
         Err(e) => match e {
-            SessionError::UserNotFound => Err(tonic::Status::not_found("User not found")),
+            SessionError::UserNotFound => Err(tonic::Status::not_found(not_found::USER)),
             SessionError::DbError(_) | SessionError::UnknownError(_) => {
                 error!("{}", e);
-                Err(tonic::Status::internal("Server Error"))
+                Err(tonic::Status::internal(SERVER_ERROR))
             }
         },
     }

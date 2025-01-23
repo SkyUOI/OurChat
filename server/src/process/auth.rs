@@ -1,5 +1,7 @@
-use super::generate_access_token;
-use crate::{db::helper::is_conflict, server::AuthServiceProvider, utils};
+use super::{error_msg::not_found, generate_access_token};
+use crate::{
+    db::helper::is_conflict, process::error_msg::SERVER_ERROR, server::AuthServiceProvider, utils,
+};
 use anyhow::Context;
 use argon2::{PasswordHash, PasswordVerifier};
 use base::database::DbPool;
@@ -93,10 +95,10 @@ pub async fn auth(
         Err(e) => Err(match e {
             AuthError::WrongPassword => Status::unauthenticated(e.to_string()),
             AuthError::MissingAuthType => Status::invalid_argument(e.to_string()),
-            AuthError::UserNotFound => Status::not_found(e.to_string()),
+            AuthError::UserNotFound => Status::not_found(not_found::USER),
             _ => {
                 tracing::error!("{}", e);
-                Status::internal("Server Error")
+                Status::internal(SERVER_ERROR)
             }
         }),
     }

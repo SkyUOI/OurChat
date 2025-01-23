@@ -1,8 +1,10 @@
 pub mod http_server;
 
 use config::File;
+use deadpool_lapin::lapin::types::FieldTable;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
+use std::time::Duration;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct RabbitMQCfg {
@@ -57,7 +59,13 @@ impl RabbitMQCfg {
             url: Some(url),
             ..Default::default()
         };
-        let pool = rmq_pool_cfg.create_pool(Some(deadpool_lapin::Runtime::Tokio1))?;
-        Ok(pool)
+        match tokio::time::timeout(
+            Duration::from_secs(10),
+            tokio::spawn(async { rmq_pool_cfg.create_pool(Some(deadpool_lapin::Runtime::Tokio1)) }),
+        ) {
+            Ok(Ok(pool)) => Ok(pool),
+            Ok(Err(e)) => Err(anyhow::anyhow!("Failed to create rabbitmq pool:{e}")),
+            Err(_) => Err(anyhow::anyhow!("Failed to create rabbitmq pool: timeout")),
+        }
     }
 }

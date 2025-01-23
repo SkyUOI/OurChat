@@ -1,4 +1,5 @@
 use super::query_session;
+use crate::process::error_msg::{REQUEST_INVALID_VALUE, SERVER_ERROR, not_found};
 use crate::{db, server::RpcServer};
 use base::time::to_google_timestamp;
 use pb::ourchat::session::get_session_info::v1::RoleInfo;
@@ -17,7 +18,7 @@ pub async fn get_session_info(
             let status = match e {
                 GetSessionErr::Db(_) | GetSessionErr::Internal(_) => {
                     tracing::error!("{}", e);
-                    Status::internal("Server Error")
+                    Status::internal(SERVER_ERROR)
                 }
                 GetSessionErr::Status(s) => s,
             };
@@ -46,9 +47,7 @@ async fn get_session_info_impl(
     let session_data = match query_session(session_id, &server.db.db_pool).await? {
         Some(d) => d,
         None => {
-            return Err(GetSessionErr::Status(Status::not_found(
-                "Session not found",
-            )));
+            return Err(GetSessionErr::Status(Status::not_found(not_found::SESSION)));
         }
     };
     for i in req_inner.query_values {
@@ -56,7 +55,7 @@ async fn get_session_info_impl(
             Ok(i) => i,
             Err(_) => {
                 return Err(GetSessionErr::Status(Status::invalid_argument(
-                    "Invalid query value",
+                    REQUEST_INVALID_VALUE,
                 )));
             }
         };
