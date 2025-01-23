@@ -17,13 +17,13 @@ msg_system(
 msg_system(
     f"docker buildx build -f Dockerfile.debian --target ourchat-server -t skyuoi/ourchat:{extension}-debian ."
 )
-# build aphine test image
+# build aphine base image
 msg_system(
-    f"docker buildx build -f docker/Dockerfile.dev-aphine -t skyuoi/ourchat:aphine-test ."
+    f"docker buildx build -f docker/Dockerfile.aphine-base -t skyuoi/ourchat:aphine-base ."
 )
-# build debian test image
+# build debian base image
 msg_system(
-    f"docker buildx build -f docker/Dockerfile.dev-debian -t skyuoi/ourchat:debian-test ."
+    f"docker buildx build -f docker/Dockerfile.debian-base -t skyuoi/ourchat:debian-base ."
 )
 # build aphine http image
 msg_system(
@@ -31,5 +31,5 @@ msg_system(
 )
 # build debian http image
 msg_system(
-    f"docker buildx build -f Dockerfile --target http-server -t skyuoi/ourchat:{extension}-http-debian ."
+    f"docker buildx build -f Dockerfile.debian --target http-server -t skyuoi/ourchat:{extension}-http-debian ."
 )

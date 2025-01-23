@@ -3,7 +3,13 @@ name: ourchat_server
 services:
   OurChatServer:
     init: true
-    image: skyuoi/ourchat:aphine-test
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.test-aphine
+    image: test-ourchat-aphine:latest
+    environment:
+      - OURCHAT_TEST_CONFIG_DIR=/app/config
+      - OURCHAT_LOG=trace,actix_web=off,actix_server=off,mio=off,h2=off,tonic=off,tower=off,tokio::task::waker=off,runtime::resource=off,actix_http=off,lapin=off,hyper_util=off,pinky_swear=off,async_io=off,polling=off
     command: tail -f /dev/null
     working_dir: /app
     ports:
@@ -19,10 +25,12 @@ services:
       POSTGRES_PASSWORD: 123456
     volumes:
       - "./data/postgres-data:/var/lib/postgresql/data"
+      - "./data/postgres-var:/var/run/postgresql"
     ports:
       - "5432:5432"
     networks:
       - net
+    user: 1000:1000
   redis:
     image: redis
     restart: always
@@ -33,6 +41,7 @@ services:
       - ./config/redis.conf:/usr/local/etc/redis/redis.conf
     networks:
       - net
+    user: 1000:1000
   mq:
     image: rabbitmq:4-management
     restart: always
@@ -46,6 +55,7 @@ services:
       - ./data/rabbitmq-data:/var/lib/rabbitmq
     networks:
       - net
+    user: 1000:1000
 
 networks:
   net:

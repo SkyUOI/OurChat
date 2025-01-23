@@ -16,18 +16,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Test-Aphine
-        uses: SkyUOI/github-action-docker-compose-test-run@main
-        with:
-          file: docker/compose.dev-aphine.yml
-          service: OurChatServer
-          command: script/ci_test.sh
-          registry: "ghcr.io"
-          docker-compose-version: "2.29.1"
+        run: docker compose -f docker/compose.dev-aphine.yml run OurChatServer sh -c "cd /app && cargo test"
       - name: Test-Debian
-        uses: SkyUOI/github-action-docker-compose-test-run@main
-        with:
-          file: docker/compose.dev-debian.yml
-          service: OurChatServer
-          command: script/ci_test.sh
-          registry: "ghcr.io"
-          docker-compose-version: "2.29.1"
+        run: docker compose -f docker/compose.dev-debian.yml run OurChatServer sh -c "cd /app && cargo test"
