@@ -485,7 +485,7 @@ impl Application {
         let db_pool = DbPool::build(&cfg.db_cfg, &cfg.redis_cfg).await?;
         db_pool.init().await?;
         // connect to rabbitmq
-        let rmq_pool = cfg.rabbitmq_cfg.build()?;
+        let rmq_pool = cfg.rabbitmq_cfg.build().await?;
         if cfg.main_cfg.unique_instance() {
             rabbitmq::init(&rmq_pool).await?;
         }

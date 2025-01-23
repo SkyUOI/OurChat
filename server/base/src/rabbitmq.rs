@@ -53,7 +53,7 @@ impl RabbitMQCfg {
         })
     }
 
-    pub fn build(&self) -> anyhow::Result<deadpool_lapin::Pool> {
+    pub async fn build(&self) -> anyhow::Result<deadpool_lapin::Pool> {
         let url = self.url();
         let rmq_pool_cfg = deadpool_lapin::Config {
             url: Some(url),
@@ -61,9 +61,13 @@ impl RabbitMQCfg {
         };
         match tokio::time::timeout(
             Duration::from_secs(10),
-            tokio::spawn(async { rmq_pool_cfg.create_pool(Some(deadpool_lapin::Runtime::Tokio1)) }),
-        ) {
-            Ok(Ok(pool)) => Ok(pool),
+            tokio::spawn(
+                async move { rmq_pool_cfg.create_pool(Some(deadpool_lapin::Runtime::Tokio1)) },
+            ),
+        )
+        .await
+        {
+            Ok(Ok(pool)) => Ok(pool?),
             Ok(Err(e)) => Err(anyhow::anyhow!("Failed to create rabbitmq pool:{e}")),
             Err(_) => Err(anyhow::anyhow!("Failed to create rabbitmq pool: timeout")),
         }

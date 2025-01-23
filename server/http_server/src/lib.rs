@@ -122,7 +122,7 @@ impl Launcher {
             base::database::postgres::PostgresDbCfg::build_from_path(&self.config.dbcfg)?;
         let db_pool = DbPool::build(&postgres_cfg, &redis_cfg).await?;
         tracing::info!("Get database pool");
-        let rabbitmq_pool = self.rabbitmq_cfg.build()?;
+        let rabbitmq_pool = self.rabbitmq_cfg.build().await?;
         tracing::info!("Connected to RabbitMQ");
         tracing::info!("Starting http server");
         let handle = server
