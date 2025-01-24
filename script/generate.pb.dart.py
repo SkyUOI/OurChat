@@ -15,7 +15,7 @@ def generate(dir, from_path, to_path):
     os.chdir(path)
 
 
-generate("service", "service", "client/ourchat/lib")
+generate("service", "service", "client/lib")
 for index in range(len(commands)):
     command = commands[index]
     os.system(command)
@@ -24,7 +24,7 @@ for index in range(len(commands)):
         end="",
     )
 os.system(
-    "protoc --dart_out=grpc:client/ourchat/lib google/protobuf/timestamp.proto google/protobuf/empty.proto"
+    "protoc --dart_out=grpc:client/lib google/protobuf/timestamp.proto google/protobuf/empty.proto"
 )
-os.system("dart format client/ourchat/lib/google")
-os.system("dart format client/ourchat/lib/service")
+os.system("dart format client/lib/google")
+os.system("dart format client/lib/service")
