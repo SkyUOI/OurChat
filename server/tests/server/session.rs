@@ -1,3 +1,5 @@
+mod ban;
+mod mute;
 mod role;
 
 use std::collections::HashSet;

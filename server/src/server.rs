@@ -22,7 +22,13 @@ use pb::ourchat::msg_delivery::v1::{
 };
 use pb::ourchat::session::accept_session::v1::{AcceptSessionRequest, AcceptSessionResponse};
 use pb::ourchat::session::add_role::v1::{AddRoleRequest, AddRoleResponse};
+use pb::ourchat::session::ban::v1::{
+    BanUserRequest, BanUserResponse, UnbanUserRequest, UnbanUserResponse,
+};
 use pb::ourchat::session::get_session_info::v1::{GetSessionInfoRequest, GetSessionInfoResponse};
+use pb::ourchat::session::mute::v1::{
+    MuteUserRequest, MuteUserResponse, UnmuteUserRequest, UnmuteUserResponse,
+};
 use pb::ourchat::session::new_session::v1::{NewSessionRequest, NewSessionResponse};
 use pb::ourchat::session::set_role::v1::{SetRoleRequest, SetRoleResponse};
 use pb::ourchat::session::set_session_info::v1::{SetSessionInfoRequest, SetSessionInfoResponse};
@@ -248,6 +254,38 @@ impl OurChatService for RpcServer {
         request: Request<AddRoleRequest>,
     ) -> Result<Response<AddRoleResponse>, Status> {
         process::add_role(self, request).await
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn mute_user(
+        &self,
+        request: Request<MuteUserRequest>,
+    ) -> Result<Response<MuteUserResponse>, Status> {
+        process::mute_user(self, request).await
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn unmute_user(
+        &self,
+        request: Request<UnmuteUserRequest>,
+    ) -> Result<Response<UnmuteUserResponse>, Status> {
+        process::unmute_user(self, request).await
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn ban_user(
+        &self,
+        request: Request<BanUserRequest>,
+    ) -> Result<Response<BanUserResponse>, Status> {
+        process::ban_user(self, request).await
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn unban_user(
+        &self,
+        request: Request<UnbanUserRequest>,
+    ) -> Result<Response<UnbanUserResponse>, Status> {
+        process::unban_user(self, request).await
     }
 }
 

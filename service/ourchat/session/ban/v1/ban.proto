@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package service.ourchat.session.ban.v1;
+
+message BanUserRequest {
+  uint64 session_id = 1;
+  // If user_ids is empty, all users will be muted
+  repeated uint64 user_ids = 2;
+}
+
+message BanUserResponse {}
+
+message UnbanUserRequest {
+  uint64 session_id = 1;
+  // If user_ids is empty, all users will be unmuted
+  repeated uint64 user_ids = 2;
+}
+
+message UnbanUserResponse {}

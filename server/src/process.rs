@@ -2,7 +2,7 @@
 //!
 //! For grpc development, a template of unary calling is provided as follows:
 //! ```ignore
-//! use crate::{process::{error_msg::SERVER_ERROR}, component::EmailSender, server::RpcServer};
+//! use crate::{process::{error_msg::SERVER_ERROR}, server::RpcServer};
 //! use pb::ourchat::session::set_role::v1::{SetRoleRequest, SetRoleResponse};
 //! use tonic::{Request, Response, Status};
 //!
@@ -69,8 +69,14 @@ use tonic::Request;
 pub use download::download;
 pub use message::{fetch_user_msg::fetch_user_msg, recall::recall_msg, send_msg::send_msg};
 pub use session::{
-    accept_session::accept_session, add_role::add_role, get_session_info::get_session_info,
-    new_session::new_session, set_role::set_role, set_session_info::set_session_info,
+    accept_session::accept_session,
+    add_role::add_role,
+    ban::{ban_user, unban_user},
+    get_session_info::get_session_info,
+    mute::{mute_user, unmute_user},
+    new_session::new_session,
+    set_role::set_role,
+    set_session_info::set_session_info,
 };
 pub use set_account_info::set_account_info;
 pub use set_friend_info::set_friend_info;

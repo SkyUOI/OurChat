@@ -9,21 +9,11 @@ import "service/auth/register/v1/register.proto";
 // Auth Service, providing authorization and registration
 service AuthService {
   // Register a new user
-  //
-  // # Error
-  // AlreadyExists("User Already Exists") - Maybe the email is conflicting with an existing user
   rpc Register(register.v1.RegisterRequest) returns (register.v1.RegisterResponse);
 
   // Authorize a user, return a token if the user is authorized
-  //
-  // # Error
-  // - NotFound("User Not Found") - The user does not exist
-  // - InvalidArgument("Missing AuthType") - The auth type argument is missing
-  // - Unauthenticated("Wrong Password") - The password is wrong
   rpc Auth(authorize.v1.AuthRequest) returns (authorize.v1.AuthResponse);
 
   // Verify email, after the request is sent, the rpc will wait until the verification is completed or timeout
-  //
-  // # Error
   rpc Verify(email_verify.v1.VerifyRequest) returns (stream email_verify.v1.VerifyResponse);
 }

@@ -31,8 +31,5 @@ service BasicService {
   rpc GetServerInfo(GetServerInfoRequest) returns (server.v1.GetServerInfoResponse);
 
   // Get id from ocid
-  //
-  // # Error
-  // - NotFound("User Not Found") - The user you requested does not exist
   rpc GetId(GetIdRequest) returns (GetIdResponse);
 }
