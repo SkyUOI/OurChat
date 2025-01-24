@@ -1,3 +1,4 @@
+use crate::process::error_msg::{CANNOT_SET_AVATAR, CANNOT_SET_DESCRIPTION, CANNOT_SET_NAME};
 use crate::{
     db,
     process::{
@@ -26,7 +27,7 @@ pub async fn set_session_info(
                     Status::internal(SERVER_ERROR)
                 }
                 SetSessionErr::Status(s) => s,
-                SetSessionErr::Conflic => Status::already_exists(CONFLICT),
+                SetSessionErr::Conflict => Status::already_exists(CONFLICT),
             };
             Err(status)
         }
@@ -38,11 +39,11 @@ enum SetSessionErr {
     #[error("database error:{0:?}")]
     Db(#[from] sea_orm::DbErr),
     #[error("status error:{0:?}")]
-    Status(#[from] tonic::Status),
+    Status(#[from] Status),
     #[error("internal error:{0:?}")]
     Internal(#[from] anyhow::Error),
     #[error("conflict")]
-    Conflic,
+    Conflict,
 }
 
 async fn set_session_info_impl(
@@ -74,7 +75,7 @@ async fn set_session_info_impl(
     if let Some(name) = request.name {
         if !permissions_map.contains(&(PreDefinedPermissions::SetTitle as i64)) {
             return Err(SetSessionErr::Status(Status::permission_denied(
-                "Cannot set name",
+                CANNOT_SET_NAME,
             )));
         }
         model.name = ActiveValue::Set(name);
@@ -82,7 +83,7 @@ async fn set_session_info_impl(
     if let Some(description) = request.description {
         if !permissions_map.contains(&(PreDefinedPermissions::SetDescription as i64)) {
             return Err(SetSessionErr::Status(Status::permission_denied(
-                "Cannot set description",
+                CANNOT_SET_DESCRIPTION,
             )));
         }
         model.description = ActiveValue::Set(description);
@@ -90,7 +91,7 @@ async fn set_session_info_impl(
     if let Some(avatar_key) = request.avatar_key {
         if !permissions_map.contains(&(PreDefinedPermissions::SetAvatar as i64)) {
             return Err(SetSessionErr::Status(Status::permission_denied(
-                "Cannot set avatar",
+                CANNOT_SET_AVATAR,
             )));
         }
         model.avatar_key = ActiveValue::Set(Some(avatar_key));
@@ -99,7 +100,7 @@ async fn set_session_info_impl(
         Ok(_) => Ok(res),
         Err(e) => {
             if db::helper::is_conflict(&e) {
-                return Err(SetSessionErr::Conflic);
+                return Err(SetSessionErr::Conflict);
             }
             Err(SetSessionErr::Db(e))
         }

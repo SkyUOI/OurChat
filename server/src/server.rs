@@ -32,6 +32,7 @@ use pb::ourchat::set_account_info::v1::{
 use pb::ourchat::unregister::v1::{UnregisterRequest, UnregisterResponse};
 use pb::ourchat::upload::v1::{UploadRequest, UploadResponse};
 use pb::ourchat::v1::our_chat_service_server::{OurChatService, OurChatServiceServer};
+use process::error_msg::not_found;
 use std::net::SocketAddr;
 use std::pin::Pin;
 use std::sync::{Arc, LazyLock};
@@ -318,7 +319,7 @@ impl BasicService for BasicServiceProvider {
         let req = request.into_inner();
         match get_id(&req.ocid, &self.db).await {
             Ok(id) => Ok(Response::new(GetIdResponse { id: *id })),
-            Err(_) => Err(Status::not_found("user not found")),
+            Err(_) => Err(Status::not_found(not_found::USER)),
         }
     }
 }

@@ -39,6 +39,7 @@ service OurChatService {
   // - InvalidArgument("Ocid Too Long") - The ocid is too long to set
   rpc SetSelfInfo(set_account_info.v1.SetSelfInfoRequest) returns (set_account_info.v1.SetSelfInfoResponse);
 
+  // # Error
   rpc SetFriendInfo(set_account_info.v1.SetFriendInfoRequest) returns (set_account_info.v1.SetFriendInfoResponse);
 
   // Turn on the delivery, continuing to receive messages
@@ -74,17 +75,35 @@ service OurChatService {
 
   // session operations
 
+  // # Error
   rpc AcceptSession(session.accept_session.v1.AcceptSessionRequest) returns (session.accept_session.v1.AcceptSessionResponse);
 
+  // # Error
+  // - NotFound("User Not Found") - If the user you want to invite does not exist
   rpc NewSession(session.new_session.v1.NewSessionRequest) returns (session.new_session.v1.NewSessionResponse);
 
+  // # Error
+  // - NotFound("Session Not Found") - If the session you want to get information does not exist
+  // - InvalidArgument("Request Invalid Value") - If the request value is invalid
   rpc GetSessionInfo(session.get_session_info.v1.GetSessionInfoRequest) returns (session.get_session_info.v1.GetSessionInfoResponse);
 
+  // # Error
+  // - AlreadyExists("Conflict") - If the information should be set is conflict
+  // - PermissionDenied("Cannot Set Name") - If you don't have the privilege to set name
+  // - PermissionDenied("Cannot Set Avatar") - If you don't have the privilege to set avatar
+  // - PermissionDenied("Cannot Set Description") - If you don't have the privilege to set description
   rpc SetSessionInfo(session.set_session_info.v1.SetSessionInfoRequest) returns (session.set_session_info.v1.SetSessionInfoResponse);
 
+  // # Error
+  // - PermissionDenied("Permission Denied") - If you don't have the privilege
+  // - NotFound("Message Not Found") - If the message you want to recall does not exist
   rpc RecallMsg(msg_delivery.recall.v1.RecallMsgRequest) returns (msg_delivery.recall.v1.RecallMsgResponse);
 
+  // # Error
+  // - PermissionDenied("Permission Denied") - If you don't have the privilege
+  // - NotFound("User Not In Session") - If the user you want to set role is not in this session
   rpc SetRole(session.set_role.v1.SetRoleRequest) returns (session.set_role.v1.SetRoleResponse);
 
+  // # Error
   rpc AddRole(session.add_role.v1.AddRoleRequest) returns (session.add_role.v1.AddRoleResponse);
 }

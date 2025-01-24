@@ -1,4 +1,5 @@
 use super::generate_access_token;
+use crate::process::error_msg::{SERVER_ERROR, exist};
 use crate::{db, server::AuthServiceProvider, shared_state, utils};
 use anyhow::Context;
 use argon2::{Params, PasswordHasher, password_hash::SaltString};
@@ -6,6 +7,7 @@ use base::consts::{self, ID};
 use base::database::DbPool;
 use entities::user;
 use pb::auth::register::v1::{RegisterRequest, RegisterResponse};
+use sea_orm::sea_query::SubQueryOper::Exists;
 use sea_orm::{ActiveModelTrait, ActiveValue, DbErr};
 use snowdon::ClassicLayoutSnowflakeExtension;
 use std::num::TryFromIntError;
@@ -109,12 +111,12 @@ pub async fn register(
     match register_impl(server, request).await {
         Ok(ok_resp) => Ok(Response::new(ok_resp)),
         Err(e) => match e {
-            RegisterError::UserExists => Err(Status::already_exists("User exists")),
+            RegisterError::UserExists => Err(Status::already_exists(exist::USER)),
             RegisterError::DbError(_)
             | RegisterError::UnknownError(_)
             | RegisterError::FromIntError(_) => {
                 error!("{}", e);
-                Err(Status::internal("Server Error"))
+                Err(Status::internal(SERVER_ERROR))
             }
         },
     }

@@ -64,8 +64,9 @@ async fn set_role_impl(
     match model.update(&server.db.db_pool).await {
         Ok(_) => {}
         Err(sea_orm::DbErr::RecordNotUpdated) => {
-            // record not existed, create it
-            // This is something wrong, because every member in the session should have a role
+            // record does not exist, create it
+            // There is something wrong,
+            // because every member in the session should have a role
             return Err(SetRoleErr::Status(Status::not_found(USER_IN_SESSION)));
         }
         Err(e) => return Err(SetRoleErr::Db(e)),

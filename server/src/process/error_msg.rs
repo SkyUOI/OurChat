@@ -5,6 +5,13 @@ pub mod not_found {
     pub const MSG: &str = "Message Not Found";
 }
 
+pub mod exist {
+    pub const USER: &str = "User Already Exists";
+    pub const SESSION: &str = "Session Already Exists";
+    pub const USER_IN_SESSION: &str = "User Already In Session";
+    pub const MSG: &str = "Message Already Exists";
+}
+
 pub const SERVER_ERROR: &str = "Server Error";
 pub const PERMISSION_DENIED: &str = "Permission Denied";
 pub const REQUEST_INVALID_VALUE: &str = "Request Invalid Value";
@@ -23,3 +30,12 @@ pub const FILE_HASH_ERROR: &str = "File Hash Error";
 pub const STORAGE_FULL: &str = "Storage Full";
 pub const METADATA_ERROR: &str = "Metadata Error";
 pub const INCORRECT_ORDER: &str = "Incorrect Order Of Uploading";
+
+// Set Session Info
+pub const CANNOT_SET_NAME: &str = "Cannot Set Name";
+pub const CANNOT_SET_DESCRIPTION: &str = "Cannot Set Description";
+pub const CANNOT_SET_AVATAR: &'static str = "Cannot Set Avatar";
+
+// Auth
+pub const MISSING_AUTH_TYPE: &str = "Missing AuthType";
+pub const WRONG_PASSWORD: &str = "Wrong Password";
