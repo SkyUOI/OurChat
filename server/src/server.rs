@@ -76,7 +76,7 @@ impl RpcServer {
         };
         let svc = OurChatServiceServer::with_interceptor(self, Self::interceptor);
         select! {
-            _ = shutdown_rev.wait_shutdowning() => {}
+            _ = shutdown_rev.wait_shutting_down() => {}
             _ = tonic::transport::Server::builder()
                 .add_service(svc)
                 .add_service(BasicServiceServer::new(basic_service))

@@ -2,10 +2,11 @@
 //! TODO:add command for set friends limit
 
 use crate::{
-    SharedData, ShutdownRev, ShutdownSdr,
+    SharedData,
     db::file_storage,
     shared_state::{self},
 };
+use base::shutdown::{ShutdownRev, ShutdownSdr};
 use colored::Colorize;
 use parking_lot::Mutex;
 use sea_orm::DatabaseConnection;
@@ -336,7 +337,7 @@ pub async fn cmd_process_loop(
     };
     let ret = select! {
         ret=logic =>{ret},
-        _=shutdown_rev.wait_shutdowning()=>{Ok(())}
+        _=shutdown_rev.wait_shutting_down()=>{Ok(())}
     };
     tracing::info!("cmd process loop exited");
     ret
@@ -382,7 +383,7 @@ pub async fn setup_stdin(
     };
     select! {
         _=logic=>{},
-        _=shutdown_rev.wait_shutdowning()=>{}
+        _=shutdown_rev.wait_shutting_down()=>{}
     }
     tracing::info!("stdin cmd source exited");
     Ok(())
@@ -423,7 +424,7 @@ pub async fn setup_network(
     };
     let ret = select! {
         ret=logic=>{ ret},
-        _=shutdown_rec.wait_shutdowning()=>{ Ok(())}
+        _=shutdown_rec.wait_shutting_down()=>{ Ok(())}
     };
     tracing::info!("network cmd source exited");
     ret

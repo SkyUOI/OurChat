@@ -1,7 +1,6 @@
 pub mod http_server;
 
 use config::File;
-use deadpool_lapin::lapin::types::FieldTable;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::time::Duration;

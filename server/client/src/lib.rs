@@ -5,6 +5,8 @@
 pub mod helper;
 pub mod http_helper;
 
+use base::shutdown::ShutdownSdr;
+use helper::rabbitmq::delete_vhost;
 pub use http_helper::TestHttpApp;
 
 use crate::helper::init_env_var;
@@ -37,7 +39,7 @@ use pb::{
 use prost::bytes::Bytes;
 use rand::Rng;
 use server::utils::{self, get_available_port};
-use server::{Application, ArgsParser, Cfg, ParserCfg, SharedData, ShutdownSdr, process};
+use server::{Application, ArgsParser, Cfg, ParserCfg, SharedData, process};
 use sqlx::migrate::MigrateDatabase;
 use std::collections::HashSet;
 use std::sync::{Arc, LazyLock};
@@ -354,6 +356,7 @@ pub struct TestApp {
     has_dropped: bool,
     server_drop_handle: Option<ShutdownSdr>,
     should_drop_db: bool,
+    should_drop_vhost: bool,
 }
 
 trait TestAppTrait {
@@ -441,6 +444,7 @@ impl TestApp {
             should_drop_db: true,
             app_config: server_config,
             rmq_vhost: vhost,
+            should_drop_vhost: true,
         };
         Ok(obj)
     }
@@ -469,6 +473,7 @@ impl TestApp {
             },
             app_config: cfg,
             rmq_vhost: vhost,
+            should_drop_vhost: false,
         })
     }
 
@@ -493,6 +498,15 @@ impl TestApp {
             }
         }
         tracing::info!("db deleted");
+        if self.should_drop_vhost {
+            delete_vhost(
+                &reqwest::Client::new(),
+                &self.app_config.rabbitmq_cfg.manage_url().unwrap(),
+                &self.rmq_vhost,
+            )
+            .await
+            .unwrap();
+        }
         self.has_dropped = true;
     }
 

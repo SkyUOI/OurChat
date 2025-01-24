@@ -28,6 +28,9 @@ mockall.workspace = true
 async-trait.workspace = true
 urlencoding.workspace = true
 tokio.workspace = true
+dashmap.workspace = true
+parking_lot.workspace = true
+rand.workspace = true
 
 [build-dependencies]
 shadow-rs = "0"
