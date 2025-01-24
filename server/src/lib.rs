@@ -1,7 +1,6 @@
 #![feature(decl_macro)]
 #![feature(duration_constructors)]
 
-pub mod basic;
 mod cmd;
 mod cryption;
 pub mod db;
@@ -19,7 +18,7 @@ use base::database::postgres::PostgresDbCfg;
 use base::database::redis::RedisCfg;
 use base::log;
 use base::rabbitmq::RabbitMQCfg;
-pub use basic::*;
+use base::shutdown::{ShutdownRev, ShutdownSdr};
 use clap::Parser;
 use cmd::CommandTransmitData;
 use config::{ConfigError, File};
@@ -305,7 +304,7 @@ async fn cmd_start(
         };
     } else {
         let mut shutdown_receiver = shutdown_sender.new_receiver("cmd process loop", "cmd loop");
-        shutdown_receiver.wait_shutdowning().await;
+        shutdown_receiver.wait_shutting_down().await;
     }
     Ok(())
 }

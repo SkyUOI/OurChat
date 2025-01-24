@@ -3,7 +3,7 @@ use parking_lot::RwLock;
 use std::{path::Path, sync::OnceLock, time::SystemTime};
 use tokio::fs::read;
 
-use crate::Config;
+use crate::MainCfg;
 
 struct LogoCache {
     data: Vec<u8>,
@@ -40,7 +40,7 @@ impl LogoCache {
 }
 
 #[get("/logo")]
-pub async fn logo(config: web::Data<Config>) -> Result<HttpResponse, actix_web::Error> {
+pub async fn logo(config: web::Data<MainCfg>) -> Result<HttpResponse, actix_web::Error> {
     static TMP: OnceLock<RwLock<LogoCache>> = OnceLock::new();
     if TMP.get().is_none() {
         let logo_data = read(&config.logo_path).await?;

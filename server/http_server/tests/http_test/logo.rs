@@ -2,12 +2,14 @@ use client::TestHttpApp;
 use reqwest::header::CONTENT_TYPE;
 
 async fn check(app: &mut TestHttpApp) {
+    tracing::info!("sending request");
     let resp = app
         .http_get("logo")
         .await
         .unwrap()
         .error_for_status()
         .unwrap();
+    tracing::info!("response received");
     assert_eq!(resp.headers().get(CONTENT_TYPE).unwrap(), "image/png");
     assert_eq!(
         resp.bytes().await.unwrap().as_ref(),
@@ -17,7 +19,9 @@ async fn check(app: &mut TestHttpApp) {
 
 #[tokio::test]
 async fn logo_get() {
+    tracing::info!("build http client");
     let mut app = TestHttpApp::new(None).await.unwrap();
+    tracing::info!("check logo");
     check(&mut app).await;
     check(&mut app).await;
     app.async_drop().await;

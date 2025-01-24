@@ -1,50 +1,58 @@
-use base::email_client::EmailSender;
-use http_server::Launcher;
-use std::{thread, time::Duration};
-use tokio::task::JoinHandle;
+use base::{email_client::EmailSender, shutdown::ShutdownSdr};
+use http_server::{Cfg, Launcher};
+use sqlx::migrate::MigrateDatabase;
+use std::{sync::Arc, thread, time::Duration};
 
-use crate::helper::rabbitmq::create_random_vhost;
+use crate::helper::rabbitmq::{create_random_vhost, delete_vhost};
 
 pub struct TestHttpApp {
-    pub app_config: http_server::Config,
+    pub app_config: Arc<http_server::Cfg>,
     pub client: reqwest::Client,
     pub has_dropped: bool,
-    handle: JoinHandle<()>,
+    handle: ShutdownSdr,
 
     should_drop_vhost: bool,
+    should_drop_db: bool,
 }
 
 impl TestHttpApp {
-    pub async fn build_server(
-        email_client: Option<Box<dyn EmailSender>>,
-    ) -> anyhow::Result<Launcher> {
+    pub async fn build_server() -> anyhow::Result<Cfg> {
         let mut config = Launcher::get_config(None)?;
-        config.port = 0;
-        let mut app = Launcher::build_from_config(config).await?;
-        app.email_client = email_client;
-        tracing::info!("build server and modify the config opts");
-        Ok(app)
+        config.main_cfg.port = 0;
+        tracing::info!("modify the config opts");
+        Ok(config)
     }
 
-    pub async fn setup(mut app: Launcher, vhost: Option<String>) -> anyhow::Result<Self> {
-        let app_config = app.config.clone();
-        let notify = app.started_notify.clone();
+    pub async fn setup(
+        mut cfg: Cfg,
+        vhost: Option<String>,
+        email_client: Option<Box<dyn EmailSender>>,
+    ) -> anyhow::Result<Self> {
         let should_drop_vhost = match vhost {
             Some(vhost) => {
-                app.rabbitmq_cfg.vhost = vhost;
+                cfg.rabbitmq_cfg.vhost = vhost;
                 false
             }
             None => {
-                app.rabbitmq_cfg.vhost = create_random_vhost(
+                cfg.rabbitmq_cfg.vhost = create_random_vhost(
                     &reqwest::Client::new(),
-                    &app.rabbitmq_cfg.manage_url().unwrap(),
+                    &cfg.rabbitmq_cfg.manage_url().unwrap(),
                 )
                 .await?;
                 true
             }
         };
+        let db_name = uuid::Uuid::new_v4().to_string();
+        cfg.db_cfg.db = db_name;
+
+        let mut app = Launcher::build_from_config(cfg).await?;
+        tracing::info!("Server is built");
+        let handle = app.get_abort_handle();
+        app.email_client = email_client;
+        let notify = app.started_notify.clone();
+        let app_config = app.shared_data.clone();
         tracing::info!("starting http server");
-        let handle = tokio::spawn(async move {
+        tokio::spawn(async move {
             app.run_forever().await.unwrap();
         });
         tracing::info!("Waiting for http server to start");
@@ -58,11 +66,12 @@ impl TestHttpApp {
             has_dropped: false,
             handle,
             should_drop_vhost,
+            should_drop_db: true,
         })
     }
 
     pub async fn new(email_client: Option<Box<dyn EmailSender>>) -> anyhow::Result<Self> {
-        Self::setup(Self::build_server(email_client).await?, None).await
+        Self::setup(Self::build_server().await?, None, email_client).await
     }
 
     pub async fn http_get(
@@ -72,9 +81,9 @@ impl TestHttpApp {
         self.client
             .get(format!(
                 "{}://{}:{}/v1/{}",
-                self.app_config.protocol_http(),
-                self.app_config.ip,
-                self.app_config.port,
+                self.app_config.main_cfg.protocol_http(),
+                self.app_config.main_cfg.ip,
+                self.app_config.main_cfg.port,
                 name.as_ref()
             ))
             .send()
@@ -87,7 +96,25 @@ impl TestHttpApp {
     }
 
     pub async fn async_drop(&mut self) {
-        self.handle.abort();
+        self.handle.shutdown_all_tasks().await.unwrap();
+        if self.should_drop_vhost {
+            delete_vhost(
+                &reqwest::Client::new(),
+                &self.app_config.rabbitmq_cfg.manage_url().unwrap(),
+                &self.app_config.rabbitmq_cfg.vhost,
+            )
+            .await
+            .unwrap();
+            tracing::info!("vhost was deleted");
+        }
+        if self.should_drop_db {
+            match sqlx::Postgres::drop_database(&self.app_config.db_cfg.url()).await {
+                Ok(_) => {}
+                Err(e) => {
+                    tracing::error!("failed to drop database: {}", e);
+                }
+            }
+        }
         self.has_dropped = true;
     }
 }

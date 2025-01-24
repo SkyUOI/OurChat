@@ -45,20 +45,20 @@ impl ShutdownSdr {
             }
         }
         tracing::trace!("task {} created", task_id);
-        let (chann_sdr, chann_rev) = oneshot::channel();
+        let (channel_sdr, channel_rev) = oneshot::channel();
         let task = Task {
             name: name.into(),
             description: description.into(),
-            shutdown_handle: Some(chann_sdr),
+            shutdown_handle: Some(channel_sdr),
         };
         self.tasks.insert(task_id, task);
-        ShutdownRev::new(chann_rev, self.tasks.clone(), task_id)
+        ShutdownRev::new(channel_rev, self.tasks.clone(), task_id)
     }
 
     pub async fn shutdown_all_tasks(&mut self) -> anyhow::Result<()> {
         let mut waiting_finished = JoinSet::new();
         let cnt = Arc::new(Barrier::new(self.tasks.len() + 1));
-        let mut sent_opers = vec![];
+        let mut sent_operators = vec![];
         let wrong_check = Arc::new(Mutex::new(0));
         for mut task in self.tasks.iter_mut() {
             tracing::trace!("task {} shutdown", task.key());
@@ -81,7 +81,7 @@ impl ShutdownSdr {
             let name = task.value().name.clone();
             let description = task.value().description.clone();
             let wrong_check2 = wrong_check.clone();
-            sent_opers.push(move || {
+            sent_operators.push(move || {
                 if let Err(e) = handle.send(wait_stop_sdr) {
                     tracing::error!(
                         "task {} send shutdown error: {:?} name: {}, description: {}",
@@ -100,8 +100,8 @@ impl ShutdownSdr {
         tracing::trace!("total tasks: {}", self.tasks.len());
         cnt.wait().await;
         tracing::trace!("tasks are ready to fetch finish signal");
-        for oper in sent_opers {
-            oper();
+        for operator in sent_operators {
+            operator();
         }
         waiting_finished.join_all().await;
         if let Some(callback) = self.callback.lock().take() {
@@ -138,7 +138,7 @@ pub struct ShutdownRev {
 }
 
 impl ShutdownRev {
-    pub async fn wait_shutdowning(&mut self) {
+    pub async fn wait_shutting_down(&mut self) {
         let gen_err_info = || ShutdownSdr::gen_task_info(&self.manager_handle, self.task_id);
         match &mut self.receiver {
             Some(receiver) => {

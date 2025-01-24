@@ -37,7 +37,7 @@ impl FileSys {
         tokio::spawn(async move {
             select! {
                 _ = auto_clean_files(db_conn_clone) => {}
-                _ = shutdown_receiver.wait_shutdowning() => {}
+                _ = shutdown_receiver.wait_shutting_down() => {}
             }
         });
     }

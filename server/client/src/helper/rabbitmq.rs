@@ -24,7 +24,7 @@ pub async fn create_vhost(client: &Client, rmq_addr: &str, vhost_name: &str) -> 
     Ok(())
 }
 
-pub async fn delete_vhost(client: &Client, rmq_addr: &str, vhost_name: &str) {
+pub async fn delete_vhost(client: &Client, rmq_addr: &str, vhost_name: &str) -> anyhow::Result<()> {
     let url = format!(
         "{}/api/vhosts/{}",
         rmq_addr,
@@ -34,8 +34,8 @@ pub async fn delete_vhost(client: &Client, rmq_addr: &str, vhost_name: &str) {
         .delete(&url)
         .header("Content-Type", "application/json")
         .send()
-        .await
-        .unwrap();
+        .await?;
+    Ok(())
 }
 
 pub async fn create_random_vhost(client: &Client, rmq_addr: &str) -> anyhow::Result<String> {

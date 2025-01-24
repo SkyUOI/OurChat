@@ -1,4 +1,4 @@
-use crate::{Config, EmailClientType};
+use crate::{EmailClientType, MainCfg};
 use actix_web::{HttpRequest, HttpResponse, Responder, get, web};
 use anyhow::Context;
 use base::consts;
@@ -49,7 +49,7 @@ pub async fn verify_client(
     db: &DbPool,
     email_client: &Option<EmailClientType>,
     data: VerifyRecord,
-    cfg: &web::Data<Config>,
+    cfg: &web::Data<MainCfg>,
 ) -> anyhow::Result<()> {
     if let Some(email_client) = email_client {
         let user_mailbox = format!("User <{}>", data.email);
