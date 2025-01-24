@@ -32,7 +32,7 @@ venv.bak/
 /target
 
 # data mapped from docker
-docker/data
+docker/data/
 
 server_info.json
 log/

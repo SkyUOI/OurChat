@@ -12,7 +12,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    user: 1000:1000
   HttpServer:
     init: true
     image: skyuoi/ourchat:latest-http-debian
@@ -24,7 +23,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    user: 1000:1000
   db:
     image: postgres:17
     restart: always
@@ -43,7 +41,6 @@ services:
       interval: 10s
       timeout: 30s
       retries: 5
-    user: 1000:1000
 
   redis:
     image: redis
@@ -55,7 +52,6 @@ services:
       - ./config/redis.conf:/usr/local/etc/redis/redis.conf
     networks:
       - net
-    user: 1000:1000
   mq:
     image: rabbitmq:4-management
     restart: always
@@ -69,7 +65,6 @@ services:
       - ./data/rabbitmq-data:/var/lib/rabbitmq
     networks:
       - net
-    user: 1000:1000
 
 networks:
   net:

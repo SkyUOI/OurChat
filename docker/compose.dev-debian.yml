@@ -17,31 +17,33 @@ services:
       - "7778:7778"
     networks:
       - net
+    depends_on:
+      db:
+        condition: service_healthy
   db:
     image: postgres:17
     restart: always
     environment:
       POSTGRES_DB: OurChat
       POSTGRES_PASSWORD: 123456
-    volumes:
-      - "./data/postgres-data:/var/lib/postgresql/data"
-      - "./data/postgres-var:/var/run/postgresql"
     ports:
       - "5432:5432"
     networks:
       - net
-    user: 1000:1000
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 30s
+      retries: 5
   redis:
     image: redis
     restart: always
     ports:
       - "6379:6379"
     volumes:
-      - ./data/redis-data:/opt/redis/data
       - ./config/redis.conf:/usr/local/etc/redis/redis.conf
     networks:
       - net
-    user: 1000:1000
   mq:
     image: rabbitmq:4-management
     restart: always
@@ -51,11 +53,8 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
-    volumes:
-      - ./data/rabbitmq-data:/var/lib/rabbitmq
     networks:
       - net
-    user: 1000:1000
 
 networks:
   net:
