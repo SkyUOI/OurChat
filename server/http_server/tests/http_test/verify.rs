@@ -9,7 +9,6 @@ use tokio_stream::StreamExt;
 
 #[tokio::test]
 async fn test_verify() {
-    return;
     // TODO:test reject in rabbitmq
     let mut mock_smtp = MockEmailSender::new();
     let email_body = Arc::new(Mutex::new(String::new()));
