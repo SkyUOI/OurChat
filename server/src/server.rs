@@ -75,21 +75,31 @@ impl RpcServer {
             db: self.db.clone(),
             rabbitmq: self.rabbitmq.clone(),
         };
-        let svc = OurChatServiceServer::with_interceptor(self, Self::interceptor);
+        let shared_data = self.shared_data.clone();
+        let shared_data1 = self.shared_data.clone();
+        let shared_data2 = self.shared_data.clone();
+        let main_svc = OurChatServiceServer::with_interceptor(self, move |mut req| {
+            shared_data.convert_maintaining_into_grpc_status()?;
+            Self::check_auth(&mut req)?;
+            Ok(req)
+        });
+        let basic_svc = BasicServiceServer::with_interceptor(basic_service, move |req| {
+            shared_data1.convert_maintaining_into_grpc_status()?;
+            Ok(req)
+        });
+        let auth_svc = AuthServiceServer::with_interceptor(auth_service, move |req| {
+            shared_data2.convert_maintaining_into_grpc_status()?;
+            Ok(req)
+        });
         select! {
             _ = shutdown_rev.wait_shutting_down() => {}
             _ = tonic::transport::Server::builder()
-                .add_service(svc)
-                .add_service(BasicServiceServer::new(basic_service))
-                .add_service(AuthServiceServer::new(auth_service))
+                .add_service(main_svc)
+                .add_service(basic_svc)
+                .add_service(auth_svc)
                 .serve(addr) => {}
         }
         Ok(())
-    }
-
-    fn interceptor(mut req: Request<()>) -> Result<Request<()>, Status> {
-        Self::check_auth(&mut req)?;
-        Ok(req)
     }
 
     fn check_auth(req: &mut Request<()>) -> Result<(), Status> {

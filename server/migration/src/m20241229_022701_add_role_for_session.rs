@@ -157,6 +157,8 @@ pub enum PreDefinedPermissions {
     SetDescription = 8,
     DeleteSession = 9,
     SetRole = 10,
+    MuteUser = 11,
+    UnmuteUser = 12,
 }
 
 #[derive(num_enum::TryFromPrimitive, num_enum::IntoPrimitive)]
@@ -184,12 +186,12 @@ INSERT INTO role (description) VALUES ('member'), ('admin'), ('owner');
     .await?;
     conn.execute_unprepared(r#"
 INSERT INTO permission (id, description) VALUES (1, 'send msg'), (2, 'recall other msg'), (3, 'ban user'),
-(4, 'unban user'), (5, 'kick user'), (6, 'set title'), (7, 'set avatar'), (8, 'set description'), (9, 'delete session'), (10, 'set role');
+(4, 'unban user'), (5, 'kick user'), (6, 'set title'), (7, 'set avatar'), (8, 'set description'), (9, 'delete session'), (10, 'set role'), (11, 'mute user'), (12, 'unmute user');
     "#).await?;
     conn.execute_unprepared(r#"
-    INSERT INTO role_permissions (role_id, permission_id) VALUES (3, 1), (3, 2), (3, 3), (3, 4), (3, 5), (3, 6), (3, 7), (3, 8), (3, 9), (3, 10),
-(2, 1), (2, 2), (2, 3), (2, 4), (2, 5),
-(1, 1);
+    INSERT INTO role_permissions (role_id, permission_id) VALUES (3, 1), (3, 2), (3, 3), (3, 4), (3, 5), (3, 6), (3, 7), (3, 8), (3, 9), (3, 10), (3, 11), (3, 12),
+(2, 1), (2, 2), (2, 3), (2, 4), (2, 5), (2, 11), (2, 12),
+(1, 1), (1, 2);
 "#).await?;
     Ok(())
 }

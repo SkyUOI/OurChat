@@ -17,6 +17,7 @@ pub const PERMISSION_DENIED: &str = "Permission Denied";
 pub const REQUEST_INVALID_VALUE: &str = "Request Invalid Value";
 pub const OCID_TOO_LONG: &str = "Ocid Too Long";
 pub const CONFLICT: &str = "Conflict";
+pub const MAINTAINING: &str = "Server Maintaining";
 
 // fetch msg
 
@@ -34,7 +35,7 @@ pub const INCORRECT_ORDER: &str = "Incorrect Order Of Uploading";
 // Set Session Info
 pub const CANNOT_SET_NAME: &str = "Cannot Set Name";
 pub const CANNOT_SET_DESCRIPTION: &str = "Cannot Set Description";
-pub const CANNOT_SET_AVATAR: &'static str = "Cannot Set Avatar";
+pub const CANNOT_SET_AVATAR: &str = "Cannot Set Avatar";
 
 // Auth
 pub const MISSING_AUTH_TYPE: &str = "Missing AuthType";

@@ -49,7 +49,10 @@ pub async fn add_file_record(
     }
     let user_info = match User::find_by_id(id).one(db_connection).await? {
         Some(user) => user,
-        None => Err(anyhow::anyhow!("User {} should exist in database, but not found", id))?,
+        None => Err(anyhow::anyhow!(
+            "User {} should exist in database, but not found",
+            id
+        ))?,
     };
     // first check if the limit has been reached
     let res_used = Size::from_bytes(user_info.resource_used);
