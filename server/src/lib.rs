@@ -490,7 +490,7 @@ impl Application {
         let abort_sender = ShutdownSdr::new(None);
         db::init_db_system();
         // connect to db
-        let db_pool = DbPool::build(&cfg.db_cfg, &cfg.redis_cfg).await?;
+        let db_pool = DbPool::build(&cfg.db_cfg, &cfg.redis_cfg, true).await?;
         db_pool.init().await?;
         // connect to rabbitmq
         let rmq_pool = cfg.rabbitmq_cfg.build().await?;

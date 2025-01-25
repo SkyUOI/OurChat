@@ -25,6 +25,8 @@ pub struct MainCfg {
     pub email_cfg: Option<PathBuf>,
     pub rabbitmq_cfg: PathBuf,
     pub logo_path: PathBuf,
+    #[serde(default = "base::consts::default_http_run_migration")]
+    pub run_migration: bool,
 }
 
 impl MainCfg {
@@ -136,7 +138,12 @@ impl Launcher {
     pub async fn run_forever(&mut self) -> anyhow::Result<()> {
         let mut server = HttpServer::new();
 
-        let db_pool = DbPool::build(&self.shared_data.db_cfg, &self.shared_data.redis_cfg).await?;
+        let db_pool = DbPool::build(
+            &self.shared_data.db_cfg,
+            &self.shared_data.redis_cfg,
+            self.shared_data.main_cfg.run_migration,
+        )
+        .await?;
         tracing::info!("Get database pool");
         let rabbitmq_pool = self.shared_data.rabbitmq_cfg.build().await?;
         tracing::info!("Connected to RabbitMQ");

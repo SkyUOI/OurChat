@@ -7,7 +7,6 @@ use crate::{
     server::RpcServer,
     utils::{create_file_with_dirs_if_not_exist, generate_random_string},
 };
-use anyhow::bail;
 use base::consts::ID;
 use entities::{files, prelude::*, user};
 use pb::ourchat::upload::v1::{UploadRequest, UploadResponse, upload_request};

@@ -3,7 +3,9 @@ WORKDIR /app
 
 FROM chef AS planner
 
-COPY . .
+COPY server /app/server
+COPY Cargo.toml /app/Cargo.toml
+COPY Cargo.lock /app/Cargo.lock
 RUN cargo chef prepare  --recipe-path recipe.json
 
 FROM chef AS builder
@@ -12,20 +14,24 @@ COPY --from=planner /app/recipe.json recipe.json
 
 RUN cargo chef cook --release --recipe-path recipe.json
 
-COPY . .
+COPY server /app/server
+COPY Cargo.toml /app/Cargo.toml
+COPY Cargo.lock /app/Cargo.lock
+COPY service /app/service
 
 RUN cargo build --release
 
 FROM debian:stable-slim AS ourchat-server
 
 COPY --from=builder /app/target/release/server /usr/local/bin/server
-COPY --from=builder /app/config /etc/ourchat
+COPY config /etc/ourchat
 
 CMD ["server", "-c", "/etc/ourchat/ourchat.toml"]
 
 FROM debian:stable-slim AS http-server
 
 COPY --from=builder /app/target/release/http_server /usr/local/bin/http_server
-COPY --from=builder /app/config /etc/ourchat
+COPY config /etc/ourchat
+COPY resource/logo.png /etc/resource/logo.png
 
 CMD ["http_server", "-c", "/etc/ourchat/http.toml"]

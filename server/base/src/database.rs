@@ -20,8 +20,12 @@ impl DbPool {
         Ok(())
     }
 
-    pub async fn build(postgres: &PostgresDbCfg, redis: &RedisCfg) -> anyhow::Result<Self> {
-        let db_pool = postgres::connect_to_db(&postgres.url()).await?;
+    pub async fn build(
+        postgres: &PostgresDbCfg,
+        redis: &RedisCfg,
+        run_migration: bool,
+    ) -> anyhow::Result<Self> {
+        let db_pool = postgres::connect_to_db(&postgres.url(), run_migration).await?;
         let redis_pool = redis::connect_to_redis(&redis.get_redis_url()?).await?;
         Ok(Self {
             db_pool,
