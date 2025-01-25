@@ -18,6 +18,7 @@ COPY server /app/server
 COPY Cargo.toml /app/Cargo.toml
 COPY Cargo.lock /app/Cargo.lock
 COPY service /app/service
+COPY .cargo /app/.cargo
 
 RUN cargo build --release
 
