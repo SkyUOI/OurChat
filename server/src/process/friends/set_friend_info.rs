@@ -1,9 +1,11 @@
-use super::get_id_from_req;
+use crate::process::get_id_from_req;
 use crate::{process::error_msg::SERVER_ERROR, server::RpcServer};
 use base::consts::ID;
 use base::database::DbPool;
 use entities::friend;
-use pb::ourchat::set_account_info::v1::{SetFriendInfoRequest, SetFriendInfoResponse};
+use pb::service::ourchat::friends::set_friend_info::v1::{
+    SetFriendInfoRequest, SetFriendInfoResponse,
+};
 use sea_orm::{ActiveModelTrait, ActiveValue, DbErr};
 use tonic::{Response, Status};
 
@@ -47,7 +49,7 @@ async fn update_friend(
     };
     let mut modified = false;
     if let Some(name) = request.display_name {
-        friend.display_name = ActiveValue::Set(name);
+        friend.display_name = ActiveValue::Set(Some(name));
         modified = true;
     }
     if !modified {

@@ -1,11 +1,14 @@
 use base::time::TimeStamp;
 use entities::{prelude::UserChatMsg, user_chat_msg};
+use migration::m20241229_022701_add_role_for_session::PreDefinedPermissions;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ConnectionTrait, DatabaseBackend, EntityTrait, ModelTrait,
     Paginator, PaginatorTrait, Statement,
 };
 
-use base::consts::{ID, MsgID};
+use super::session::if_permission_exist;
+use base::consts::{ID, SessionID};
+use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
 
 #[derive(Debug, thiserror::Error)]
 pub enum MsgError {
@@ -39,7 +42,7 @@ pub async fn get_session_msgs<T: ConnectionTrait>(
                 DatabaseBackend::Postgres,
                 r#"SELECT * FROM user_chat_msg
         WHERE time > $1 AND
-        EXISTS (SELECT * FROM session_relation WHERE user_id = $2 AND session_id = user_chat_msg.session_id)"#,
+        (sender_id = $2 OR EXISTS (SELECT * FROM session_relation WHERE user_id = $2 AND session_id = user_chat_msg.session_id))"#,
                 [end_timestamp.into(), user_id.into()],
             ))
             .paginate(db_conn, page_size);
@@ -47,15 +50,16 @@ pub async fn get_session_msgs<T: ConnectionTrait>(
 }
 
 /// Delete a message from the database. The message is specified by `msg_id`.
-/// If `owner_id` is `Some`, the function will check whether the deleter is the owner of the
-/// session, and return `MsgError::WithoutPrivilege` if not. If `owner_id` is `None`, this check
+/// If `deleter_id` is `Some`, the function will check whether the deleter has permission to delete the
+/// message, and return `MsgError::WithoutPrivilege` if not. If `deleter_id` is `None`, this check
 /// will be skipped.
 ///
 /// Returns `MsgError::NotFound` if the message is not found, or `MsgError::DbError` if a database
 /// error occurs.
 pub async fn del_msg(
     msg_id: u64,
-    owner_id: Option<ID>,
+    session_id: SessionID,
+    deleter_id: Option<ID>,
     db_conn: &impl ConnectionTrait,
 ) -> Result<(), MsgError> {
     let msg_id = msg_id as i64;
@@ -63,9 +67,16 @@ pub async fn del_msg(
         None => return Err(MsgError::NotFound),
         Some(d) => d,
     };
-    // TODO:detect whether the deleter is the owner of the session
-    if let Some(owner) = owner_id {
-        if i64::from(owner) != msg.sender_id {
+    if let Some(owner) = deleter_id {
+        if i64::from(owner) != msg.sender_id
+            && !if_permission_exist(
+                owner,
+                session_id,
+                PreDefinedPermissions::RecallMsg.into(),
+                db_conn,
+            )
+            .await?
+        {
             return Err(MsgError::WithoutPrivilege);
         }
     }
@@ -81,19 +92,18 @@ pub async fn del_msg(
 /// Returns `MsgError::DbError` if a database error occurs.
 pub async fn insert_msg_record(
     user_id: ID,
-    session_id: ID,
-    msg: serde_json::Value,
+    session_id: Option<ID>,
+    msg: RespondMsgType,
     is_encrypted: bool,
     db_conn: &impl ConnectionTrait,
-) -> Result<MsgID, MsgError> {
-    // TODO:store in binary data
+) -> Result<user_chat_msg::Model, MsgError> {
     let msg = user_chat_msg::ActiveModel {
-        msg_data: ActiveValue::Set(msg),
+        msg_data: ActiveValue::Set(serde_json::to_value(msg).unwrap()),
         sender_id: ActiveValue::Set(user_id.into()),
-        session_id: ActiveValue::Set(session_id.into()),
+        session_id: ActiveValue::Set(session_id.map(i64::from)),
         is_encrypted: ActiveValue::Set(is_encrypted),
         ..Default::default()
     };
     let msg = msg.insert(db_conn).await?;
-    Ok(msg.chat_msg_id.into())
+    Ok(msg)
 }

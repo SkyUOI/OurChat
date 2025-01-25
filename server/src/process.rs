@@ -3,7 +3,7 @@
 //! For grpc development, a template of unary calling is provided as follows:
 //! ```ignore
 //! use crate::{process::{error_msg::SERVER_ERROR}, server::RpcServer};
-//! use pb::ourchat::session::set_role::v1::{SetRoleRequest, SetRoleResponse};
+//! use pb::service::ourchat::session::set_role::v1::{SetRoleRequest, SetRoleResponse};
 //! use tonic::{Request, Response, Status};
 //!
 //! pub async fn set_role(
@@ -27,7 +27,7 @@
 //!     #[error("database error:{0:?}")]
 //!     Db(#[from] sea_orm::DbErr),
 //!     #[error("status error:{0:?}")]
-//!     Status(#[from] tonic::Status),
+//!     Status(#[from] Status),
 //!     #[error("internal error:{0:?}")]
 //!     Internal(#[from] anyhow::Error),
 //! }
@@ -44,16 +44,18 @@ pub mod auth;
 pub mod basic;
 mod download;
 pub mod error_msg;
+mod friends;
 pub mod get_account_info;
 mod message;
 pub mod register;
 mod session;
 mod set_account_info;
-mod set_friend_info;
 pub mod unregister;
 mod upload;
 pub mod verify;
 
+use base::consts::SessionID;
+use deadpool_lapin::lapin::options::BasicPublishOptions;
 use jsonwebtoken::DecodingKey;
 use jsonwebtoken::EncodingKey;
 use jsonwebtoken::Validation;
@@ -67,11 +69,15 @@ use std::time::Duration;
 use tonic::Request;
 
 pub use download::download;
+pub use friends::{
+    accept_friend::accept_friend, add_friend::add_friend, set_friend_info::set_friend_info,
+};
 pub use message::{fetch_user_msg::fetch_user_msg, recall::recall_msg, send_msg::send_msg};
 pub use session::{
     accept_session::accept_session,
     add_role::add_role,
     ban::{ban_user, unban_user},
+    delete_session::delete_session,
     get_session_info::get_session_info,
     mute::{mute_user, unmute_user},
     new_session::new_session,
@@ -79,20 +85,23 @@ pub use session::{
     set_session_info::set_session_info,
 };
 pub use set_account_info::set_account_info;
-pub use set_friend_info::set_friend_info;
 pub use unregister::unregister;
 pub use upload::upload;
 
 use crate::SERVER_INFO;
+use crate::db::session::get_members;
+use crate::rabbitmq::USER_MSG_EXCHANGE;
+use crate::rabbitmq::generate_route_key;
 use base::consts::ID;
-use entities::operations;
 use entities::prelude::*;
+use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
+use prost::Message;
 
 pub mod db {
     pub use super::basic::get_id;
-    pub use super::session::new_session::{
-        add_to_session, batch_add_to_session, create_session_db,
-    };
+    pub use super::session::new_session::create_session_db;
+    pub use crate::db::session::batch_join_in_session;
+    pub use crate::db::session::join_in_session;
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -154,21 +163,57 @@ pub fn get_id_from_req<T>(req: &Request<T>) -> Option<ID> {
         .map(|id| ID(id.to_str().unwrap().parse::<u64>().unwrap()))
 }
 
-async fn _get_requests(id: ID, db_conn: &impl ConnectionTrait) -> anyhow::Result<Vec<String>> {
-    let stored_requests = Operations::find()
-        .filter(operations::Column::UserId.eq(id))
-        .all(db_conn)
-        .await?;
-    let mut ret = Vec::new();
-    for i in stored_requests {
-        if i.once {
-            Operations::delete_by_id(i.oper_id).exec(db_conn).await?;
+pub async fn check_user_exist(
+    id: ID,
+    db_conn: &impl ConnectionTrait,
+) -> Result<bool, sea_orm::DbErr> {
+    Ok(User::find()
+        .filter(entities::user::Column::Id.eq(id))
+        .one(db_conn)
+        .await?
+        .is_some())
+}
+
+enum Dest {
+    User(ID),
+    Session(SessionID),
+}
+
+async fn transmit_msg(
+    msg: FetchMsgsResponse,
+    dest: Dest,
+    rabbitmq_connection: &mut deadpool_lapin::lapin::Channel,
+    db_connection: &impl ConnectionTrait,
+) -> anyhow::Result<()> {
+    let mut buf = bytes::BytesMut::new();
+    msg.encode(&mut buf)?;
+    match dest {
+        Dest::User(id) => {
+            rabbitmq_connection
+                .basic_publish(
+                    USER_MSG_EXCHANGE,
+                    &generate_route_key(id),
+                    BasicPublishOptions::default(),
+                    buf.as_ref(),
+                    Default::default(),
+                )
+                .await?;
         }
-        if i.expires_at < chrono::Utc::now() {
-            Operations::delete_by_id(i.oper_id).exec(db_conn).await?;
-            continue;
+        Dest::Session(id) => {
+            for i in get_members(id, db_connection).await? {
+                let dest_id = i.user_id.into();
+                rabbitmq_connection
+                    .basic_publish(
+                        USER_MSG_EXCHANGE,
+                        &generate_route_key(dest_id),
+                        BasicPublishOptions::default(),
+                        buf.as_ref(),
+                        Default::default(),
+                    )
+                    .await?;
+            }
         }
-        ret.push(i.operation);
     }
-    Ok(ret)
+
+    Ok(())
 }

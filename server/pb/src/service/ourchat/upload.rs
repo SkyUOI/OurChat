@@ -2,7 +2,7 @@ pub mod v1 {
     use prost::bytes;
     use upload_request::Data;
 
-    include!("../generated/service.ourchat.upload.v1.rs");
+    include!("../../generated/service.ourchat.upload.v1.rs");
 
     impl UploadRequest {
         pub fn header(self) -> Option<Header> {

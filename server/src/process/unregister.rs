@@ -2,7 +2,7 @@ use super::get_id_from_req;
 use crate::{process::error_msg::SERVER_ERROR, server::RpcServer};
 use base::consts::ID;
 use entities::user;
-use pb::ourchat::unregister::v1::{UnregisterRequest, UnregisterResponse};
+use pb::service::ourchat::unregister::v1::{UnregisterRequest, UnregisterResponse};
 use sea_orm::{ActiveModelTrait, ActiveValue, ConnectionTrait};
 use tonic::{Response, Status};
 

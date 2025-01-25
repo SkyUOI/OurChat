@@ -45,7 +45,7 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(big_unsigned(Friend::UserId))
                     .col(big_unsigned(Friend::FriendId))
-                    .col(string_len(Friend::DisplayName, 200))
+                    .col(string_len_null(Friend::DisplayName, 200))
                     .foreign_key(
                         ForeignKey::create()
                             .from(Friend::Table, Friend::FriendId)
@@ -118,7 +118,7 @@ impl MigrationTrait for Migration {
                     )
                     .col(json_binary(UserChatMsg::MsgData))
                     .col(big_unsigned(UserChatMsg::SenderId))
-                    .col(big_unsigned(UserChatMsg::SessionId))
+                    .col(big_unsigned_null(UserChatMsg::SessionId))
                     .col(
                         timestamp_with_time_zone(UserChatMsg::Time)
                             .default(Expr::current_timestamp()),

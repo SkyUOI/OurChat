@@ -7,9 +7,12 @@ use crate::{
     },
     server::RpcServer,
 };
+use base::consts::SessionID;
 use entities::{role_permissions, user_role_relation};
 use migration::m20241229_022701_add_role_for_session::PreDefinedPermissions;
-use pb::ourchat::session::set_session_info::v1::{SetSessionInfoRequest, SetSessionInfoResponse};
+use pb::service::ourchat::session::set_session_info::v1::{
+    SetSessionInfoRequest, SetSessionInfoResponse,
+};
 use sea_orm::{ActiveModelTrait, ActiveValue, ColumnTrait, EntityTrait, QueryFilter};
 use std::collections::HashSet;
 use tonic::{Request, Response, Status};
@@ -53,7 +56,9 @@ async fn set_session_info_impl(
     let id = get_id_from_req(&request).unwrap();
     let request = request.into_inner();
     let res = SetSessionInfoResponse {};
+    let session_id: SessionID = request.session_id.into();
     let mut model = entities::session::ActiveModel {
+        session_id: ActiveValue::Set(session_id.into()),
         ..Default::default()
     };
     // check the privilege

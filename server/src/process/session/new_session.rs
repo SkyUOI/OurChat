@@ -1,46 +1,28 @@
-use super::super::basic::{get_id, get_ocid};
 use super::super::get_id_from_req;
+use crate::db::messages::insert_msg_record;
 use crate::process::error_msg::{SERVER_ERROR, not_found};
-use crate::{SharedData, server::RpcServer, utils};
+use crate::process::{Dest, check_user_exist, transmit_msg};
+use crate::{db, server::RpcServer, utils};
 use anyhow::Context;
-use base::consts::{ID, OCID, SessionID};
+use base::consts::{ID, SessionID};
 use base::database::DbPool;
-use base::time::TimeStamp;
-use entities::{friend, operations, prelude::*, session, session_relation, user_role_relation};
+use base::time::to_google_timestamp;
+use entities::{friend, prelude::*, session};
+use invite_session::v1::InviteSession;
 use migration::m20241229_022701_add_role_for_session::PreDefinedRoles;
-use pb::ourchat::session::new_session::v1::{NewSessionRequest, NewSessionResponse};
-use sea_orm::{
-    ActiveModelTrait, ActiveValue, ColumnTrait, ConnectionTrait, DatabaseConnection, EntityTrait,
-    QueryFilter,
+use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
+use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
+use pb::service::ourchat::session::invite_session;
+use pb::service::ourchat::session::new_session::v1::{
+    FailedMember, FailedReason, NewSessionRequest, NewSessionResponse,
 };
-use serde::{Deserialize, Serialize};
-use std::{sync::Arc, time::Duration};
+use sea_orm::{
+    ActiveModelTrait, ActiveValue, ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter,
+    TransactionTrait,
+};
+use std::time::Duration;
 use tonic::{Request, Response};
 use tracing::error;
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct InviteSession {
-    pub expire_timestamp: TimeStamp,
-    pub session_id: SessionID,
-    pub inviter_id: String,
-    pub message: String,
-}
-
-impl InviteSession {
-    pub fn new(
-        expire_timestamp: TimeStamp,
-        session_id: SessionID,
-        inviter_id: String,
-        message: String,
-    ) -> Self {
-        Self {
-            expire_timestamp,
-            session_id,
-            inviter_id,
-            message,
-        }
-    }
-}
 
 #[derive(Debug, thiserror::Error)]
 pub enum SessionError {
@@ -57,7 +39,7 @@ pub async fn create_session_db(
     session_id: SessionID,
     people_num: usize,
     session_name: String,
-    db_conn: &DatabaseConnection,
+    db_conn: &impl ConnectionTrait,
 ) -> Result<(), SessionError> {
     let time_now = chrono::Utc::now();
     let session = session::ActiveModel {
@@ -97,61 +79,55 @@ async fn new_session_impl(
 ) -> Result<NewSessionResponse, SessionError> {
     let session_id = utils::generate_session_id()?;
     let id = get_id_from_req(&req).unwrap();
-    let ocid = match get_ocid(id, &server.db).await {
-        Ok(ocid) => ocid,
-        Err(_) => {
-            return Err(SessionError::UserNotFound);
-        }
-    };
-
+    let mut failed_members = vec![];
     let req = req.into_inner();
     // check whether to send a verification request
     let mut people_num = 1;
     let mut peoples = vec![id];
+    let mut need_to_verify = vec![];
     for i in &req.members {
-        let member_id = get_id(i, &server.db).await?;
+        let member_id: ID = (*i).into();
+        if !check_user_exist(member_id, &server.db.db_pool).await? {
+            failed_members.push(FailedMember {
+                id: member_id.into(),
+                reason: FailedReason::MemberNotFound.into(),
+            });
+            continue;
+        }
         // ignore self
         if member_id == id {
             continue;
         }
         let verify = whether_to_verify(id, member_id, &server.db).await?;
         if verify {
-            send_verification_request(
-                ocid.clone(),
-                member_id,
-                session_id,
-                req.message.clone(),
-                &server.shared_data,
-                &server.db,
-            )
-            .await?;
+            need_to_verify.push(member_id);
         } else {
             people_num += 1;
             peoples.push(member_id);
         }
     }
     let bundle = async {
+        let transaction = server.db.db_pool.begin().await?;
         create_session_db(
             session_id,
             people_num,
             req.name.unwrap_or_default(),
-            &server.db.db_pool,
+            &transaction,
         )
         .await?;
         // add session relation
-        batch_add_to_session(
-            session_id,
-            &peoples,
-            PreDefinedRoles::Member.into(),
-            &server.db.db_pool,
-        )
-        .await?;
-
+        db::session::batch_join_in_session(session_id, &peoples, None, &transaction).await?;
+        transaction.commit().await?;
         Ok::<(), SessionError>(())
     };
     bundle.await?;
+    for member_id in need_to_verify {
+        send_verification_request(server, id, member_id, session_id, req.leave_message.clone())
+            .await?;
+    }
     Ok(NewSessionResponse {
         session_id: session_id.into(),
+        failed_members,
     })
 }
 
@@ -172,75 +148,53 @@ pub async fn new_session(
 }
 
 pub async fn send_verification_request(
-    sender: OCID,
+    server: &RpcServer,
+    sender: ID,
     invitee: ID,
     session_id: SessionID,
-    message: String,
-    shared_data: &Arc<SharedData>,
-    db_conn: &DbPool,
+    leave_message: String,
 ) -> anyhow::Result<()> {
-    let expire_at =
-        chrono::Utc::now() + Duration::from_days(shared_data.cfg.main_cfg.verification_expire_days);
-    let request = InviteSession::new(expire_at.into(), session_id, sender, message);
-    // try to find a connected client
+    let expire_at = chrono::Utc::now()
+        + Duration::from_days(server.shared_data.cfg.main_cfg.verification_expire_days);
+    let expire_at_google = to_google_timestamp(expire_at);
     // save to the database
-    save_invitation_to_db(
+    let respond_msg = InviteSession {
+        session_id: session_id.into(),
+        inviter_id: sender.into(),
+        leave_message: Some(leave_message.clone()),
+        expire_timestamp: Some(expire_at_google),
+    };
+    let respond_msg = RespondMsgType::InviteSession(respond_msg);
+    // TODO: is_encrypted
+    let msg_model = insert_msg_record(
         invitee,
-        serde_json::to_string(&request).unwrap(),
-        expire_at.into(),
-        db_conn,
+        Some(session_id),
+        respond_msg.clone(),
+        false,
+        &server.db.db_pool,
     )
     .await?;
-    Ok(())
-}
-
-async fn save_invitation_to_db(
-    id: ID,
-    operation: String,
-    expire_at: TimeStamp,
-    db_conn: &DbPool,
-) -> anyhow::Result<()> {
-    let operation_model = operations::ActiveModel {
-        user_id: ActiveValue::Set(id.into()),
-        operation: ActiveValue::Set(operation),
-        once: ActiveValue::Set(true),
-        expires_at: ActiveValue::Set(expire_at),
-        ..Default::default()
+    // try to send the message directly
+    let fetch_response = FetchMsgsResponse {
+        msg_id: msg_model.chat_msg_id as u64,
+        time: Some(expire_at_google),
+        respond_msg_type: Some(respond_msg),
     };
-    operation_model.insert(&db_conn.db_pool).await?;
-    Ok(())
-}
-
-pub async fn add_to_session(
-    session_id: SessionID,
-    id: ID,
-    role: u64,
-    db_conn: &impl ConnectionTrait,
-) -> anyhow::Result<()> {
-    let session_relation = session_relation::ActiveModel {
-        user_id: ActiveValue::Set(id.into()),
-        session_id: ActiveValue::Set(session_id.into()),
-        ..Default::default()
-    };
-    session_relation.insert(db_conn).await?;
-    // Add role
-    let role_relation = user_role_relation::ActiveModel {
-        user_id: ActiveValue::Set(id.into()),
-        session_id: ActiveValue::Set(session_id.into()),
-        role_id: ActiveValue::Set(role as i64),
-    };
-    role_relation.insert(db_conn).await?;
-    Ok(())
-}
-
-pub async fn batch_add_to_session(
-    session_id: SessionID,
-    ids: &[ID],
-    role: u64,
-    db_conn: &impl ConnectionTrait,
-) -> anyhow::Result<()> {
-    for id in ids {
-        add_to_session(session_id, *id, role, db_conn).await?;
-    }
+    let rabbitmq_connection = server
+        .rabbitmq
+        .get()
+        .await
+        .context("cannot get rabbit connection")?;
+    let mut channel = rabbitmq_connection
+        .create_channel()
+        .await
+        .context("cannot create channel")?;
+    transmit_msg(
+        fetch_response,
+        Dest::User(invitee),
+        &mut channel,
+        &server.db.db_pool,
+    )
+    .await?;
     Ok(())
 }

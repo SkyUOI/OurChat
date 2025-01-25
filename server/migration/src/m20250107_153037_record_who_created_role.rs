@@ -37,7 +37,6 @@ impl MigrationTrait for Migration {
                 Table::alter()
                     .table(Role::Table)
                     .drop_column(Role::CreatorId)
-                    .drop_foreign_key(Alias::new(FK_ID))
                     .to_owned(),
             )
             .await?;

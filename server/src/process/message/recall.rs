@@ -1,12 +1,20 @@
+use crate::process::Dest;
 use crate::{
+    db,
     db::messages::{MsgError, del_msg},
     process::{
         error_msg::{PERMISSION_DENIED, SERVER_ERROR, not_found},
-        get_id_from_req,
+        get_id_from_req, transmit_msg,
     },
     server::RpcServer,
 };
-use pb::ourchat::msg_delivery::recall::v1::{RecallMsgRequest, RecallMsgResponse};
+use anyhow::Context;
+use base::time::to_google_timestamp;
+use pb::service::ourchat::msg_delivery::recall::v1::{
+    RecallMsgRequest, RecallMsgResponse, RecallNotification,
+};
+use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
+use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
 use tonic::{Request, Response, Status};
 
 pub async fn recall_msg(
@@ -55,6 +63,44 @@ async fn recall_msg_internal(
     let id = get_id_from_req(&request).unwrap();
     let req = request.into_inner();
     // delete it from the database first
-    del_msg(req.msg_id, Some(id), &server.db.db_pool).await?;
-    Ok(RecallMsgResponse {})
+    del_msg(
+        req.msg_id,
+        req.session_id.into(),
+        Some(id),
+        &server.db.db_pool,
+    )
+    .await?;
+    let respond_msg = RespondMsgType::Recall(RecallNotification { msg_id: req.msg_id });
+    // TODO: is_encrypted
+    let msg = db::messages::insert_msg_record(
+        id,
+        Some(req.session_id.into()),
+        respond_msg.clone(),
+        false,
+        &server.db.db_pool,
+    )
+    .await?;
+    let connection = server
+        .rabbitmq
+        .get()
+        .await
+        .context("cannot get rabbit connection")?;
+    let mut channel = connection
+        .create_channel()
+        .await
+        .context("cannot create channel")?;
+    transmit_msg(
+        FetchMsgsResponse {
+            msg_id: msg.chat_msg_id as u64,
+            respond_msg_type: Some(respond_msg),
+            time: Some(to_google_timestamp(msg.time.into())),
+        },
+        Dest::Session(req.session_id.into()),
+        &mut channel,
+        &server.db.db_pool,
+    )
+    .await?;
+    Ok(RecallMsgResponse {
+        msg_id: msg.chat_msg_id as u64,
+    })
 }

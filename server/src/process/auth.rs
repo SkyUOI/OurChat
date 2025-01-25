@@ -7,7 +7,7 @@ use anyhow::Context;
 use argon2::{PasswordHash, PasswordVerifier};
 use base::database::DbPool;
 use entities::{prelude::*, user};
-use pb::auth::authorize::v1::{AuthRequest, AuthResponse, auth_request::Account};
+use pb::service::auth::authorize::v1::{AuthRequest, AuthResponse, auth_request::Account};
 use sea_orm::{ColumnTrait, DbErr, EntityTrait, QueryFilter};
 use tonic::{Response, Status};
 

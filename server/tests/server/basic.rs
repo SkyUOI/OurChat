@@ -1,6 +1,7 @@
+use base::consts::VERSION_SPLIT;
 use claims::assert_lt;
 use client::TestApp;
-use pb::basic::{server::v1::VERSION_SPLIT, v1::GetServerInfoRequest};
+use pb::service::basic::v1::GetServerInfoRequest;
 
 #[tokio::test]
 async fn get_datetime() {

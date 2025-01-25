@@ -9,13 +9,7 @@ message SetSelfInfoRequest {
   optional string ocid = 5;
 }
 
-message SetFriendInfoRequest {
-  // id of the friend
-  uint64 id = 1;
-  // name only displayed for user
-  optional string display_name = 2;
-}
+
 
 message SetSelfInfoResponse {}
 
-message SetFriendInfoResponse {}

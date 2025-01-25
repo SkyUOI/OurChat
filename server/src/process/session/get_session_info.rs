@@ -2,8 +2,8 @@ use super::query_session;
 use crate::process::error_msg::{REQUEST_INVALID_VALUE, SERVER_ERROR, not_found};
 use crate::{db, server::RpcServer};
 use base::time::to_google_timestamp;
-use pb::ourchat::session::get_session_info::v1::RoleInfo;
-use pb::ourchat::session::get_session_info::v1::{
+use pb::service::ourchat::session::get_session_info::v1::RoleInfo;
+use pb::service::ourchat::session::get_session_info::v1::{
     GetSessionInfoRequest, GetSessionInfoResponse, QueryValues,
 };
 use tonic::{Request, Response, Status};
@@ -96,6 +96,9 @@ async fn get_session_info_impl(
             }
             QueryValues::Size => {
                 res.size = Some(session_data.size as u64);
+            }
+            QueryValues::Description => {
+                res.description = Some(session_data.description.clone());
             }
         }
     }

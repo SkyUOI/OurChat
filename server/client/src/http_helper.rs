@@ -1,9 +1,8 @@
+use crate::helper::rabbitmq::{create_random_vhost, delete_vhost};
 use base::{email_client::EmailSender, shutdown::ShutdownSdr};
 use http_server::{Cfg, Launcher};
 use sqlx::migrate::MigrateDatabase;
 use std::{sync::Arc, thread, time::Duration};
-
-use crate::helper::rabbitmq::{create_random_vhost, delete_vhost};
 
 pub struct TestHttpApp {
     pub app_config: Arc<http_server::Cfg>,

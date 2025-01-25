@@ -17,6 +17,10 @@ import "service/ourchat/session/set_session_info/v1/set_session_info.proto";
 import "service/ourchat/set_account_info/v1/set_account_info.proto";
 import "service/ourchat/unregister/v1/unregister.proto";
 import "service/ourchat/upload/v1/upload.proto";
+import "service/ourchat/friends/add_friend/v1/add_friend.proto";
+import "service/ourchat/friends/set_friend_info/v1/set_friend_info.proto";
+import "service/ourchat/friends/accept_friend/v1/accept_friend.proto";
+import "service/ourchat/session/delete_session/v1/delete_session.proto";
 
 // Main service of the Ourchat
 // JWT is required.If token is missing or out-of-dated,please refer to
@@ -30,7 +34,7 @@ service OurChatService {
   // Set some information of the account
   rpc SetSelfInfo(set_account_info.v1.SetSelfInfoRequest) returns (set_account_info.v1.SetSelfInfoResponse);
 
-  rpc SetFriendInfo(set_account_info.v1.SetFriendInfoRequest) returns (set_account_info.v1.SetFriendInfoResponse);
+  rpc SetFriendInfo(friends.set_friend_info.v1.SetFriendInfoRequest) returns (friends.set_friend_info.v1.SetFriendInfoResponse);
 
   // Turn on the delivery, continuing to receive messages
   rpc FetchMsgs(msg_delivery.v1.FetchMsgsRequest) returns (stream msg_delivery.v1.FetchMsgsResponse);
@@ -51,6 +55,8 @@ service OurChatService {
 
   rpc SetSessionInfo(session.set_session_info.v1.SetSessionInfoRequest) returns (session.set_session_info.v1.SetSessionInfoResponse);
 
+  rpc DeleteSession(session.delete_session.v1.DeleteSessionRequest) returns (session.delete_session.v1.DeleteSessionResponse);
+
   rpc RecallMsg(msg_delivery.recall.v1.RecallMsgRequest) returns (msg_delivery.recall.v1.RecallMsgResponse);
 
   rpc SetRole(session.set_role.v1.SetRoleRequest) returns (session.set_role.v1.SetRoleResponse);
@@ -64,4 +70,8 @@ service OurChatService {
   rpc BanUser(session.ban.v1.BanUserRequest) returns (session.ban.v1.BanUserResponse);
 
   rpc UnbanUser(session.ban.v1.UnbanUserRequest) returns (session.ban.v1.UnbanUserResponse);
+
+  rpc AddFriend(friends.add_friend.v1.AddFriendRequest) returns (friends.add_friend.v1.AddFriendResponse);
+
+  rpc AcceptFriend(friends.accept_friend.v1.AcceptFriendRequest) returns (friends.accept_friend.v1.AcceptFriendResponse);
 }

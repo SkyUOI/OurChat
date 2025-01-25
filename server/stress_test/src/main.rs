@@ -6,10 +6,8 @@ use clap::Parser;
 use client::helper;
 use dashmap::DashMap;
 use framework::{Output, Record, Report, StressTest};
-use pb::{
-    self,
-    basic::v1::{GetServerInfoRequest, TimestampRequest},
-};
+use pb::service::basic::v1::{GetServerInfoRequest, TimestampRequest};
+use pb::{self};
 use size::Size;
 use std::{
     env::set_var,
@@ -62,7 +60,7 @@ async fn test_basic_service(report: &mut Report, app: &mut client::TestApp) {
     ));
 }
 
-type UsersGroup = Vec<Arc<tokio::sync::Mutex<client::TestUser>>>;
+type UsersGroup = Vec<Arc<tokio::sync::Mutex<client::oc_helper::user::TestUser>>>;
 
 async fn test_register(report: &mut Report, app: &mut client::TestApp) -> UsersGroup {
     let mut stress_test = StressTest::builder()
@@ -71,7 +69,7 @@ async fn test_register(report: &mut Report, app: &mut client::TestApp) -> UsersG
     let mut users = Vec::with_capacity(1000);
     for _ in 0..1000 {
         users.push(Arc::new(tokio::sync::Mutex::new(
-            client::TestUser::random(app).await,
+            client::oc_helper::user::TestUser::random(app).await,
         )));
     }
     let idx = Arc::new(AtomicUsize::new(0));
@@ -107,7 +105,7 @@ async fn test_auth(users: &UsersGroup, report: &mut Report) {
 }
 
 async fn test_get_info(users: &UsersGroup, report: &mut Report) {
-    use pb::ourchat::get_account_info::v1::*;
+    use pb::service::ourchat::get_account_info::v1::*;
     let mut stress_test = StressTest::builder()
         .set_concurrency(1000)
         .set_requests(1000);

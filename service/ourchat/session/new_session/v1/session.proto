@@ -3,16 +3,29 @@ syntax = "proto3";
 package service.ourchat.session.new_session.v1;
 
 message NewSessionRequest {
-  repeated string members = 1;
+  repeated uint64 members = 1;
   // name of the session, if not set, will leave a default name
   optional string name = 2;
   // leaving message
-  string message = 3;
+  string leave_message = 3;
   // avatar resource id
   optional string avatar_key = 4;
+}
+
+enum FailedReason {
+    FAILED_REASON_UNSPECIFIED = 0;
+    FAILED_REASON_MEMBER_NOT_FOUND = 1;
+    FAILED_REASON_MEMBER_PRIVACY = 2;
+};
+
+message FailedMember {
+  uint64 id = 1;
+  FailedReason reason = 2;
 }
 
 message NewSessionResponse {
   // created session id just now
   uint64 session_id = 1;
+  // failed to invite members
+  repeated FailedMember failed_members = 2;
 }

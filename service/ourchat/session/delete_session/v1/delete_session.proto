@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package service.ourchat.session.delete_session.v1;
+
+message DeleteSessionRequest {
+  uint64 session_id = 1;
+}
+
+message DeleteSessionResponse {
+
+}

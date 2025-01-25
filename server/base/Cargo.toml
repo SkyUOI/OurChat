@@ -10,7 +10,6 @@ serde.workspace = true
 anyhow.workspace = true
 chrono.workspace = true
 sha3.workspace = true
-prost-types.workspace = true
 ring.workspace = true
 size.workspace = true
 sea-orm.workspace = true
@@ -23,6 +22,7 @@ sqlx.workspace = true
 config.workspace = true
 tracing.workspace = true
 migration = { path = "../migration" }
+pb = { path = "../pb" }
 lettre.workspace = true
 mockall.workspace = true
 async-trait.workspace = true

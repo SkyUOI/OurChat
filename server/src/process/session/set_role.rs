@@ -1,4 +1,4 @@
-use super::check_if_permission_exist;
+use crate::db::session::if_permission_exist;
 use crate::{
     process::{
         error_msg::{PERMISSION_DENIED, SERVER_ERROR, not_found::USER_IN_SESSION},
@@ -7,7 +7,7 @@ use crate::{
     server::RpcServer,
 };
 use migration::m20241229_022701_add_role_for_session::PreDefinedPermissions;
-use pb::ourchat::session::set_role::v1::{SetRoleRequest, SetRoleResponse};
+use pb::service::ourchat::session::set_role::v1::{SetRoleRequest, SetRoleResponse};
 use sea_orm::{ActiveModelTrait, ActiveValue};
 use tonic::{Request, Response, Status};
 
@@ -44,8 +44,9 @@ async fn set_role_impl(
     let id = get_id_from_req(&request).unwrap();
     let req = request.into_inner();
     // check the privilege
-    if !check_if_permission_exist(
+    if !if_permission_exist(
         id,
+        req.session_id.into(),
         PreDefinedPermissions::SetRole.into(),
         &server.db.db_pool,
     )

@@ -1,7 +1,7 @@
 use base::consts::ID;
 use client::TestApp;
 use migration::m20241229_022701_add_role_for_session::{PreDefinedPermissions, PreDefinedRoles};
-use pb::ourchat::session::add_role::v1::AddRoleRequest;
+use pb::service::ourchat::session::add_role::v1::AddRoleRequest;
 use sea_orm::EntityTrait;
 
 #[tokio::test]
@@ -13,6 +13,7 @@ async fn set_role() {
         session_user[1].clone(),
         session_user[2].clone(),
     );
+
     app.async_drop().await;
 }
 

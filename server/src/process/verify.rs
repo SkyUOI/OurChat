@@ -6,7 +6,7 @@ use crate::{
 use anyhow::Context;
 use base::rabbitmq::http_server::VerifyRecord;
 use deadpool_lapin::lapin::options::{BasicPublishOptions, ConfirmSelectOptions};
-use pb::auth::email_verify::v1::{VerifyRequest, VerifyResponse};
+use pb::service::auth::email_verify::v1::{VerifyRequest, VerifyResponse};
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{Request, Response, Status};

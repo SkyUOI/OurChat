@@ -3,7 +3,6 @@
 pub use super::authority::Entity as Authority;
 pub use super::files::Entity as Files;
 pub use super::friend::Entity as Friend;
-pub use super::operations::Entity as Operations;
 pub use super::permission::Entity as Permission;
 pub use super::role::Entity as Role;
 pub use super::role_permissions::Entity as RolePermissions;

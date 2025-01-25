@@ -3,41 +3,54 @@
 use crate::process;
 use crate::process::db::get_id;
 use crate::{SERVER_INFO, SharedData, ShutdownRev};
+use base::consts::VERSION_SPLIT;
 use base::database::DbPool;
 use base::time::to_google_timestamp;
-use pb::auth::authorize::v1::{AuthRequest, AuthResponse};
-use pb::auth::email_verify::v1::{VerifyRequest, VerifyResponse};
-use pb::auth::register::v1::{RegisterRequest, RegisterResponse};
-use pb::auth::v1::auth_service_server::{self, AuthServiceServer};
-use pb::basic::server::v1::{RunningStatus, VERSION_SPLIT};
-use pb::basic::v1::basic_service_server::{BasicService, BasicServiceServer};
-use pb::basic::v1::{
+use pb::service::auth::authorize::v1::{AuthRequest, AuthResponse};
+use pb::service::auth::email_verify::v1::{VerifyRequest, VerifyResponse};
+use pb::service::auth::register::v1::{RegisterRequest, RegisterResponse};
+use pb::service::auth::v1::auth_service_server::{self, AuthServiceServer};
+use pb::service::basic::server::v1::RunningStatus;
+use pb::service::basic::v1::basic_service_server::{BasicService, BasicServiceServer};
+use pb::service::basic::v1::{
     GetIdRequest, GetIdResponse, GetServerInfoRequest, TimestampRequest, TimestampResponse,
 };
-use pb::ourchat::download::v1::{DownloadRequest, DownloadResponse};
-use pb::ourchat::get_account_info::v1::{GetAccountInfoRequest, GetAccountInfoResponse};
-use pb::ourchat::msg_delivery::recall::v1::{RecallMsgRequest, RecallMsgResponse};
-use pb::ourchat::msg_delivery::v1::{
+use pb::service::ourchat::download::v1::{DownloadRequest, DownloadResponse};
+use pb::service::ourchat::friends::accept_friend::v1::{AcceptFriendRequest, AcceptFriendResponse};
+use pb::service::ourchat::friends::add_friend::v1::{AddFriendRequest, AddFriendResponse};
+use pb::service::ourchat::friends::set_friend_info::v1::{
+    SetFriendInfoRequest, SetFriendInfoResponse,
+};
+use pb::service::ourchat::get_account_info::v1::{GetAccountInfoRequest, GetAccountInfoResponse};
+use pb::service::ourchat::msg_delivery::recall::v1::{RecallMsgRequest, RecallMsgResponse};
+use pb::service::ourchat::msg_delivery::v1::{
     FetchMsgsRequest, FetchMsgsResponse, SendMsgRequest, SendMsgResponse,
 };
-use pb::ourchat::session::accept_session::v1::{AcceptSessionRequest, AcceptSessionResponse};
-use pb::ourchat::session::add_role::v1::{AddRoleRequest, AddRoleResponse};
-use pb::ourchat::session::ban::v1::{
+use pb::service::ourchat::session::accept_session::v1::{
+    AcceptSessionRequest, AcceptSessionResponse,
+};
+use pb::service::ourchat::session::add_role::v1::{AddRoleRequest, AddRoleResponse};
+use pb::service::ourchat::session::ban::v1::{
     BanUserRequest, BanUserResponse, UnbanUserRequest, UnbanUserResponse,
 };
-use pb::ourchat::session::get_session_info::v1::{GetSessionInfoRequest, GetSessionInfoResponse};
-use pb::ourchat::session::mute::v1::{
+use pb::service::ourchat::session::delete_session::v1::{
+    DeleteSessionRequest, DeleteSessionResponse,
+};
+use pb::service::ourchat::session::get_session_info::v1::{
+    GetSessionInfoRequest, GetSessionInfoResponse,
+};
+use pb::service::ourchat::session::mute::v1::{
     MuteUserRequest, MuteUserResponse, UnmuteUserRequest, UnmuteUserResponse,
 };
-use pb::ourchat::session::new_session::v1::{NewSessionRequest, NewSessionResponse};
-use pb::ourchat::session::set_role::v1::{SetRoleRequest, SetRoleResponse};
-use pb::ourchat::session::set_session_info::v1::{SetSessionInfoRequest, SetSessionInfoResponse};
-use pb::ourchat::set_account_info::v1::{
-    SetFriendInfoRequest, SetFriendInfoResponse, SetSelfInfoRequest, SetSelfInfoResponse,
+use pb::service::ourchat::session::new_session::v1::{NewSessionRequest, NewSessionResponse};
+use pb::service::ourchat::session::set_role::v1::{SetRoleRequest, SetRoleResponse};
+use pb::service::ourchat::session::set_session_info::v1::{
+    SetSessionInfoRequest, SetSessionInfoResponse,
 };
-use pb::ourchat::unregister::v1::{UnregisterRequest, UnregisterResponse};
-use pb::ourchat::upload::v1::{UploadRequest, UploadResponse};
-use pb::ourchat::v1::our_chat_service_server::{OurChatService, OurChatServiceServer};
+use pb::service::ourchat::set_account_info::v1::{SetSelfInfoRequest, SetSelfInfoResponse};
+use pb::service::ourchat::unregister::v1::{UnregisterRequest, UnregisterResponse};
+use pb::service::ourchat::upload::v1::{UploadRequest, UploadResponse};
+use pb::service::ourchat::v1::our_chat_service_server::{OurChatService, OurChatServiceServer};
 use process::error_msg::not_found;
 use std::net::SocketAddr;
 use std::pin::Pin;
@@ -145,7 +158,7 @@ impl OurChatService for RpcServer {
         &self,
         request: Request<GetAccountInfoRequest>,
     ) -> Result<Response<GetAccountInfoResponse>, Status> {
-        process::get_account_info::get_info(self, request).await
+        process::get_account_info::get_account_info(self, request).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -287,6 +300,30 @@ impl OurChatService for RpcServer {
     ) -> Result<Response<UnbanUserResponse>, Status> {
         process::unban_user(self, request).await
     }
+
+    #[tracing::instrument(skip(self))]
+    async fn add_friend(
+        &self,
+        request: Request<AddFriendRequest>,
+    ) -> Result<Response<AddFriendResponse>, Status> {
+        process::add_friend(self, request).await
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn accept_friend(
+        &self,
+        request: Request<AcceptFriendRequest>,
+    ) -> Result<Response<AcceptFriendResponse>, Status> {
+        process::accept_friend(self, request).await
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn delete_session(
+        &self,
+        request: Request<DeleteSessionRequest>,
+    ) -> Result<Response<DeleteSessionResponse>, Status> {
+        process::delete_session(self, request).await
+    }
 }
 
 #[derive(Debug)]
@@ -349,9 +386,9 @@ impl BasicService for BasicServiceProvider {
     async fn get_server_info(
         &self,
         _request: Request<GetServerInfoRequest>,
-    ) -> Result<Response<pb::basic::server::v1::GetServerInfoResponse>, Status> {
+    ) -> Result<Response<pb::service::basic::server::v1::GetServerInfoResponse>, Status> {
         Ok(Response::new(
-            pb::basic::server::v1::GetServerInfoResponse {
+            pb::service::basic::server::v1::GetServerInfoResponse {
                 http_port: self.shared_data.cfg.main_cfg.http_port.into(),
                 status: self.shared_data.get_maintaining().into(),
                 ..SERVER_INFO_RPC.clone()
@@ -372,8 +409,8 @@ impl BasicService for BasicServiceProvider {
     }
 }
 
-static SERVER_INFO_RPC: LazyLock<pb::basic::server::v1::GetServerInfoResponse> =
-    LazyLock::new(|| pb::basic::server::v1::GetServerInfoResponse {
+static SERVER_INFO_RPC: LazyLock<pb::service::basic::server::v1::GetServerInfoResponse> =
+    LazyLock::new(|| pb::service::basic::server::v1::GetServerInfoResponse {
         server_version: Some(*VERSION_SPLIT),
         http_port: 0,
         status: RunningStatus::Normal as i32,
