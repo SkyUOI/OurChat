@@ -21,6 +21,7 @@ class _ServerSettingState extends State<ServerSetting> {
   String serverName = "", serverState = "", serverVersion = "";
   bool isOnline = false;
   OurChatServer? server;
+  Color serverStatusColor = Colors.grey;
 
   @override
   Widget build(BuildContext context) {
@@ -89,15 +90,10 @@ class _ServerSettingState extends State<ServerSetting> {
             Text(
               "${AppLocalizations.of(context)!.serverStatus}: ",
             ),
-            Text(
-              serverState,
-              style: TextStyle(
-                  color: ((server != null &&
-                          server!.serverStatus != null &&
-                          server!.serverStatus!.value == okStatusCode)
-                      ? Colors.green
-                      : Colors.red)),
-            )
+            Text(serverState,
+                style: TextStyle(
+                  color: serverStatusColor,
+                ))
           ],
         ),
         Row(
@@ -201,12 +197,14 @@ class _ServerSettingState extends State<ServerSetting> {
                     serverVersion = "";
                     serverName = "";
                     ping = -1;
+                    serverStatusColor = Colors.grey;
                   });
                   var resCode = await server!.getServerInfo();
                   if (resCode == unavailableStatusCode) {
                     setState(() {
                       serverState =
                           AppLocalizations.of(context)!.serverStatusOffline;
+                      serverStatusColor = Colors.red;
                     });
                     return;
                   }
@@ -214,8 +212,27 @@ class _ServerSettingState extends State<ServerSetting> {
                   setState(() {
                     isOnline = true;
                     httpPort = server!.httpPort!;
-                    serverState =
-                        AppLocalizations.of(context)!.serverStatusOnline;
+                    switch (server!.serverStatus!.value) {
+                      case okStatusCode:
+                        serverState =
+                            AppLocalizations.of(context)!.serverStatusOnline;
+                        serverStatusColor = Colors.green;
+                        break;
+                      case internalStatusCode:
+                        serverState = AppLocalizations.of(context)!.serverError;
+                        serverStatusColor = Colors.red;
+                        break;
+                      case unavailableStatusCode:
+                        serverState = AppLocalizations.of(context)!
+                            .serverStatusUnderMaintenance;
+                        serverStatusColor = Colors.orange;
+                        break;
+                      default:
+                        serverState =
+                            AppLocalizations.of(context)!.serverStatusUnknown;
+                        serverStatusColor = Colors.grey;
+                        break;
+                    }
                     serverVersion =
                         "${server!.serverVersion!.major}.${server!.serverVersion!.minor}.${server!.serverVersion!.patch}";
                     serverName = server!.serverName!;

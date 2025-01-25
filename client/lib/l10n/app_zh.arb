@@ -7,7 +7,7 @@
     "serverError": "服务器错误",
     "unknownError": "未知错误",
     "cantBeEmpty": "不能留空",
-    "wrongAccountOrPassword": "账号或密码错误",
+    "incorrectPassword": "密码错误",
     "plzCheckYourEmail": "请检查您的邮箱",
     "emailAddressUnreachable": "邮箱地址不可达",
     "requestRefused": "请求被拒绝",
@@ -39,5 +39,8 @@
     "continue_": "继续",
     "themeColorSeed": "主题色种子",
     "save": "保存",
-    "reset": "重置"
+    "reset": "重置",
+    "userNotFound": "用户不存在",
+    "internalError": "内部错误",
+    "serverStatusUnknown": "未知"
 }
