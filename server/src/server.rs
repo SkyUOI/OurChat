@@ -15,6 +15,9 @@ use pb::basic::v1::{
     GetIdRequest, GetIdResponse, GetServerInfoRequest, TimestampRequest, TimestampResponse,
 };
 use pb::ourchat::download::v1::{DownloadRequest, DownloadResponse};
+use pb::ourchat::friends::accept_friend::v1::{AcceptFriendRequest, AcceptFriendResponse};
+use pb::ourchat::friends::add_friend::v1::{AddFriendRequest, AddFriendResponse};
+use pb::ourchat::friends::set_friend_info::v1::{SetFriendInfoRequest, SetFriendInfoResponse};
 use pb::ourchat::get_account_info::v1::{GetAccountInfoRequest, GetAccountInfoResponse};
 use pb::ourchat::msg_delivery::recall::v1::{RecallMsgRequest, RecallMsgResponse};
 use pb::ourchat::msg_delivery::v1::{
@@ -32,9 +35,7 @@ use pb::ourchat::session::mute::v1::{
 use pb::ourchat::session::new_session::v1::{NewSessionRequest, NewSessionResponse};
 use pb::ourchat::session::set_role::v1::{SetRoleRequest, SetRoleResponse};
 use pb::ourchat::session::set_session_info::v1::{SetSessionInfoRequest, SetSessionInfoResponse};
-use pb::ourchat::set_account_info::v1::{
-    SetFriendInfoRequest, SetFriendInfoResponse, SetSelfInfoRequest, SetSelfInfoResponse,
-};
+use pb::ourchat::set_account_info::v1::{SetSelfInfoRequest, SetSelfInfoResponse};
 use pb::ourchat::unregister::v1::{UnregisterRequest, UnregisterResponse};
 use pb::ourchat::upload::v1::{UploadRequest, UploadResponse};
 use pb::ourchat::v1::our_chat_service_server::{OurChatService, OurChatServiceServer};
@@ -145,7 +146,7 @@ impl OurChatService for RpcServer {
         &self,
         request: Request<GetAccountInfoRequest>,
     ) -> Result<Response<GetAccountInfoResponse>, Status> {
-        process::get_account_info::get_info(self, request).await
+        process::get_account_info::get_account_info(self, request).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -286,6 +287,22 @@ impl OurChatService for RpcServer {
         request: Request<UnbanUserRequest>,
     ) -> Result<Response<UnbanUserResponse>, Status> {
         process::unban_user(self, request).await
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn add_friend(
+        &self,
+        request: Request<AddFriendRequest>,
+    ) -> Result<Response<AddFriendResponse>, Status> {
+        process::add_friend(self, request).await
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn accept_friend(
+        &self,
+        request: Request<AcceptFriendRequest>,
+    ) -> Result<Response<AcceptFriendResponse>, Status> {
+        process::accept_friend(self, request).await
     }
 }
 

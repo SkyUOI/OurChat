@@ -43,7 +43,7 @@ enum SetError {
     #[error("unknown error:{0:?}")]
     Unknown(#[from] anyhow::Error),
     #[error("status error:{0:?}")]
-    Status(#[from] tonic::Status),
+    Status(#[from] Status),
 }
 
 async fn update_account(

@@ -1,4 +1,4 @@
-use super::check_if_permission_exist;
+use crate::db::session::check_if_permission_exist;
 use crate::{
     process::{
         error_msg::{PERMISSION_DENIED, SERVER_ERROR, not_found::USER_IN_SESSION},

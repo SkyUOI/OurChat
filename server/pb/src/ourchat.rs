@@ -79,3 +79,23 @@ pub mod unregister {
         include!("./generated/service.ourchat.unregister.v1.rs");
     }
 }
+
+pub mod friends {
+    pub mod add_friend {
+        pub mod v1 {
+            include!("./generated/service.ourchat.friends.add_friend.v1.rs");
+        }
+    }
+
+    pub mod set_friend_info {
+        pub mod v1 {
+            include!("./generated/service.ourchat.friends.set_friend_info.v1.rs");
+        }
+    }
+
+    pub mod accept_friend {
+        pub mod v1 {
+            include!("./generated/service.ourchat.friends.accept_friend.v1.rs");
+        }
+    }
+}

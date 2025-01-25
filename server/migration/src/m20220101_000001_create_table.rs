@@ -45,7 +45,7 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(big_unsigned(Friend::UserId))
                     .col(big_unsigned(Friend::FriendId))
-                    .col(string_len(Friend::DisplayName, 200))
+                    .col(string_len_null(Friend::DisplayName, 200))
                     .foreign_key(
                         ForeignKey::create()
                             .from(Friend::Table, Friend::FriendId)

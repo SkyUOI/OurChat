@@ -56,5 +56,6 @@ async fn recall_msg_internal(
     let req = request.into_inner();
     // delete it from the database first
     del_msg(req.msg_id, Some(id), &server.db.db_pool).await?;
+    // TODO: pass this message to other clients
     Ok(RecallMsgResponse {})
 }

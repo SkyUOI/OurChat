@@ -35,13 +35,13 @@ enum GetInfoError {
     PermissionDenied,
 }
 
-async fn get_info_impl(
+async fn get_account_info_impl(
     server: &RpcServer,
     request: Request<GetAccountInfoRequest>,
 ) -> Result<GetAccountInfoResponse, GetInfoError> {
     let id = get_id_from_req(&request).unwrap();
     let request = request.into_inner();
-    // query in database
+    // query in the database
     // get id first
     let requests_id = match request.id {
         Some(id) => ID(id),
@@ -84,7 +84,7 @@ async fn get_info_impl(
                 RequestValues::Email => ret.email = Some(queried_user.email.clone()),
                 RequestValues::DisplayName => {
                     if let Privilege::Owner = privilege {
-                        // invalid for owner, ignore
+                        // invalid for the owner, ignore
                     } else {
                         let friend =
                             db::user::get_one_friend(id, requests_id, &server.db.db_pool).await?;
@@ -136,11 +136,11 @@ async fn get_info_impl(
     Ok(ret)
 }
 
-pub async fn get_info(
+pub async fn get_account_info(
     server: &RpcServer,
     request: Request<GetAccountInfoRequest>,
 ) -> Result<tonic::Response<GetAccountInfoResponse>, tonic::Status> {
-    match get_info_impl(server, request).await {
+    match get_account_info_impl(server, request).await {
         Ok(d) => Ok(tonic::Response::new(d)),
         Err(e) => match e {
             GetInfoError::DbError(_) | GetInfoError::InternalError(_) => {

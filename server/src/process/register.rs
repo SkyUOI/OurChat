@@ -7,7 +7,6 @@ use base::consts::{self, ID};
 use base::database::DbPool;
 use entities::user;
 use pb::auth::register::v1::{RegisterRequest, RegisterResponse};
-use sea_orm::sea_query::SubQueryOper::Exists;
 use sea_orm::{ActiveModelTrait, ActiveValue, DbErr};
 use snowdon::ClassicLayoutSnowflakeExtension;
 use std::num::TryFromIntError;

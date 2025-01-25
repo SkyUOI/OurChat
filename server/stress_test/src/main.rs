@@ -62,7 +62,7 @@ async fn test_basic_service(report: &mut Report, app: &mut client::TestApp) {
     ));
 }
 
-type UsersGroup = Vec<Arc<tokio::sync::Mutex<client::TestUser>>>;
+type UsersGroup = Vec<Arc<tokio::sync::Mutex<client::oc_helper::user::TestUser>>>;
 
 async fn test_register(report: &mut Report, app: &mut client::TestApp) -> UsersGroup {
     let mut stress_test = StressTest::builder()
@@ -71,7 +71,7 @@ async fn test_register(report: &mut Report, app: &mut client::TestApp) -> UsersG
     let mut users = Vec::with_capacity(1000);
     for _ in 0..1000 {
         users.push(Arc::new(tokio::sync::Mutex::new(
-            client::TestUser::random(app).await,
+            client::oc_helper::user::TestUser::random(app).await,
         )));
     }
     let idx = Arc::new(AtomicUsize::new(0));

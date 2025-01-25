@@ -27,6 +27,8 @@ pub struct MainCfg {
     pub logo_path: PathBuf,
     #[serde(default = "base::consts::default_http_run_migration")]
     pub run_migration: bool,
+    #[serde(default = "base::consts::default_enable_matrix")]
+    pub enable_matrix: bool,
 }
 
 impl MainCfg {

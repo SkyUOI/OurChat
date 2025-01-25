@@ -1,5 +1,6 @@
-use super::super::basic::{get_id, get_ocid};
+use super::super::basic::get_ocid;
 use super::super::get_id_from_req;
+use crate::process::check_user_exist;
 use crate::process::error_msg::{SERVER_ERROR, not_found};
 use crate::{SharedData, server::RpcServer, utils};
 use anyhow::Context;
@@ -8,7 +9,9 @@ use base::database::DbPool;
 use base::time::TimeStamp;
 use entities::{friend, operations, prelude::*, session, session_relation, user_role_relation};
 use migration::m20241229_022701_add_role_for_session::PreDefinedRoles;
-use pb::ourchat::session::new_session::v1::{NewSessionRequest, NewSessionResponse};
+use pb::ourchat::session::new_session::v1::{
+    FailedMember, FailedReason, NewSessionRequest, NewSessionResponse,
+};
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, ConnectionTrait, DatabaseConnection, EntityTrait,
     QueryFilter,
@@ -103,13 +106,20 @@ async fn new_session_impl(
             return Err(SessionError::UserNotFound);
         }
     };
-
+    let mut failed_members = vec![];
     let req = req.into_inner();
     // check whether to send a verification request
     let mut people_num = 1;
     let mut peoples = vec![id];
     for i in &req.members {
-        let member_id = get_id(i, &server.db).await?;
+        let member_id: ID = (*i).into();
+        if !check_user_exist(member_id, &server.db.db_pool).await? {
+            failed_members.push(FailedMember {
+                id: member_id.into(),
+                reason: FailedReason::MemberNotFound.into(),
+            });
+            continue;
+        }
         // ignore self
         if member_id == id {
             continue;
@@ -152,6 +162,7 @@ async fn new_session_impl(
     bundle.await?;
     Ok(NewSessionResponse {
         session_id: session_id.into(),
+        failed_members,
     })
 }
 
@@ -183,6 +194,7 @@ pub async fn send_verification_request(
         chrono::Utc::now() + Duration::from_days(shared_data.cfg.main_cfg.verification_expire_days);
     let request = InviteSession::new(expire_at.into(), session_id, sender, message);
     // try to find a connected client
+
     // save to the database
     save_invitation_to_db(
         invitee,

@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package service.ourchat.friends.set_friend_info.v1;
+
+message SetFriendInfoRequest {
+  // id of the friend
+  uint64 id = 1;
+  // name only displayed for user
+  optional string display_name = 2;
+}
+message SetFriendInfoResponse {}

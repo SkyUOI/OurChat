@@ -1,11 +1,14 @@
 use base::time::TimeStamp;
 use entities::{prelude::UserChatMsg, user_chat_msg};
+use migration::m20241229_022701_add_role_for_session::PreDefinedPermissions;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ConnectionTrait, DatabaseBackend, EntityTrait, ModelTrait,
     Paginator, PaginatorTrait, Statement,
 };
 
 use base::consts::{ID, MsgID};
+
+use super::session::check_if_permission_exist;
 
 #[derive(Debug, thiserror::Error)]
 pub enum MsgError {
@@ -47,15 +50,15 @@ pub async fn get_session_msgs<T: ConnectionTrait>(
 }
 
 /// Delete a message from the database. The message is specified by `msg_id`.
-/// If `owner_id` is `Some`, the function will check whether the deleter is the owner of the
-/// session, and return `MsgError::WithoutPrivilege` if not. If `owner_id` is `None`, this check
+/// If `deleter_id` is `Some`, the function will check whether the deleter has permission to delete the
+/// message, and return `MsgError::WithoutPrivilege` if not. If `deleter_id` is `None`, this check
 /// will be skipped.
 ///
 /// Returns `MsgError::NotFound` if the message is not found, or `MsgError::DbError` if a database
 /// error occurs.
 pub async fn del_msg(
     msg_id: u64,
-    owner_id: Option<ID>,
+    deleter_id: Option<ID>,
     db_conn: &impl ConnectionTrait,
 ) -> Result<(), MsgError> {
     let msg_id = msg_id as i64;
@@ -63,9 +66,11 @@ pub async fn del_msg(
         None => return Err(MsgError::NotFound),
         Some(d) => d,
     };
-    // TODO:detect whether the deleter is the owner of the session
-    if let Some(owner) = owner_id {
-        if i64::from(owner) != msg.sender_id {
+    if let Some(owner) = deleter_id {
+        if i64::from(owner) != msg.sender_id
+            && !check_if_permission_exist(owner, PreDefinedPermissions::RecallMsg.into(), db_conn)
+                .await?
+        {
             return Err(MsgError::WithoutPrivilege);
         }
     }

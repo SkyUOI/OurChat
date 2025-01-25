@@ -2,7 +2,7 @@ use super::get_id_from_req;
 use crate::{
     process::error_msg::{
         FILE_HASH_ERROR, FILE_SIZE_ERROR, INCORRECT_ORDER, METADATA_ERROR, SERVER_ERROR,
-        STORAGE_FULL, not_found,
+        STORAGE_FULL,
     },
     server::RpcServer,
     utils::{create_file_with_dirs_if_not_exist, generate_random_string},

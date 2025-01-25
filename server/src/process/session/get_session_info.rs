@@ -97,6 +97,9 @@ async fn get_session_info_impl(
             QueryValues::Size => {
                 res.size = Some(session_data.size as u64);
             }
+            QueryValues::Description => {
+                res.description = Some(session_data.description.clone());
+            }
         }
     }
     Ok(res)

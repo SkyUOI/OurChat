@@ -22,6 +22,7 @@ enum QueryValues {
   // Please notice that the "role" has included all information of the "members" has, so please don't query "members" and "roles" at the same time, it will be a waste of resources.
   QUERY_VALUES_ROLES = 7;
   QUERY_VALUES_SIZE = 8;
+  QUERY_VALUES_DESCRIPTION = 9;
 }
 
 message RoleInfo {
@@ -43,4 +44,5 @@ message GetSessionInfoResponse {
   repeated uint64 members = 6;
   repeated RoleInfo roles = 7;
   optional uint64 size = 8;
+  optional string description = 9;
 }

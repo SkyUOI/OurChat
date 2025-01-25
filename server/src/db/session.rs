@@ -1,4 +1,4 @@
-use entities::{session_relation, user_role_relation};
+use entities::{role_permissions, session_relation, user_role_relation};
 use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter};
 
 use base::consts::{ID, SessionID};
@@ -96,4 +96,61 @@ pub async fn get_all_roles_of_session(
         .all(db_conn)
         .await?;
     Ok(ret)
+}
+
+/// Checks if the given user is in the given session.
+///
+/// # Arguments
+///
+/// * `user_id` - The ID of the user to check.
+/// * `session_id` - The ID of the session to check.
+/// * `db_conn` - A reference to the database connection implementing the `ConnectionTrait`.
+///
+/// # Returns
+///
+/// * `Result<bool, sea_orm::DbErr>` - `true` if the user is in the session, `false` if not, or a `DbErr` if the operation fails.
+pub async fn check_user_in_session(
+    user_id: ID,
+    session_id: SessionID,
+    db_conn: &impl ConnectionTrait,
+) -> Result<bool, sea_orm::DbErr> {
+    let ret = session_relation::Entity::find_by_id((user_id.into(), session_id.into()))
+        .one(db_conn)
+        .await?;
+    Ok(ret.is_some())
+}
+
+/// Checks if the user has the given permission.
+///
+/// # Arguments
+///
+/// * `user_id` - The ID of the user whose permission is to be checked.
+/// * `permission_checked` - The permission to be checked.
+/// * `db_conn` - A reference to the database connection implementing the `ConnectionTrait`.
+///
+/// # Returns
+///
+/// * `Result<bool, sea_orm::DbErr>` - `true` if the user has the given permission, `false` if not, or a `DbErr` if the operation fails.
+pub async fn check_if_permission_exist(
+    user_id: ID,
+    permission_checked: u64,
+    db_conn: &impl ConnectionTrait,
+) -> Result<bool, sea_orm::DbErr> {
+    // get all roles first
+    let roles = user_role_relation::Entity::find()
+        .filter(user_role_relation::Column::UserId.eq(user_id))
+        .all(db_conn)
+        .await?;
+    for i in &roles {
+        let permissions_queried = role_permissions::Entity::find()
+            .filter(role_permissions::Column::RoleId.eq(i.role_id))
+            .all(db_conn)
+            .await?;
+        for j in permissions_queried {
+            if j.permission_id == permission_checked as i64 {
+                return Ok(true);
+            }
+        }
+    }
+    Ok(false)
 }

@@ -12,7 +12,9 @@ use migration::m20241229_022701_add_role_for_session::PreDefinedRoles;
 use pb::ourchat::session::{
     get_session_info::v1::{GetSessionInfoRequest, QueryValues},
     new_session::v1::NewSessionRequest,
+    set_session_info::v1::SetSessionInfoRequest,
 };
+use server::process::error_msg::PERMISSION_DENIED;
 
 #[tokio::test]
 async fn session_create() {
@@ -22,33 +24,15 @@ async fn session_create() {
     let user3 = app.new_user().await.unwrap();
     // try to create a session in two users
     let req = NewSessionRequest {
-        members: vec![
-            user2.lock().await.ocid.clone(),
-            user3.lock().await.ocid.clone(),
-        ],
+        members: vec![user2.lock().await.id.into(), user3.lock().await.id.into()],
         ..Default::default()
     };
     // get new session response
     let ret = user1.lock().await.oc().new_session(req).await.unwrap();
     let ret = ret.into_inner();
     let session_id = ret.session_id;
-    // verify user2 received the invite
-    // let resp = user2.lock().await.recv().await.unwrap();
-    // let json: InviteSession = serde_json::from_str(resp.to_text().unwrap()).unwrap();
-    // assert_eq!(json.inviter_id, user1.lock().await.ocid);
-    // assert_eq!(json.code, MessageType::InviteSession);
-    // assert!(json.message.is_empty());
-    // assert_eq!(json.session_id, session_id);
+    assert_eq!(ret.failed_members, vec![]);
 
-    // verify user3 received the invite
-    // user3.lock().await.ocid_login().await.unwrap();
-    // let resp = user3.lock().await.recv().await.unwrap();
-    // dbg!(&resp);
-    // let json: InviteSession = serde_json::from_str(resp.to_text().unwrap()).unwrap();
-    // assert_eq!(json.inviter_id, user1.lock().await.ocid);
-    // assert_eq!(json.code, MessageType::InviteSession);
-    // assert!(json.message.is_empty());
-    // assert_eq!(json.session_id, session_id);
     app.async_drop().await;
 }
 
@@ -121,5 +105,45 @@ async fn set_session_info() {
         session_user[1].clone(),
         session_user[2].clone(),
     );
+    let request = SetSessionInfoRequest {
+        name: Some("test name".to_owned()),
+        description: Some("test description".to_owned()),
+        avatar_key: Some("pic key".to_owned()),
+    };
+    a.lock()
+        .await
+        .oc()
+        .set_session_info(request.clone())
+        .await
+        .unwrap();
+    // check if the info was set
+    let info = a
+        .lock()
+        .await
+        .oc()
+        .get_session_info(GetSessionInfoRequest {
+            session_id: session.session_id.into(),
+            query_values: vec![
+                QueryValues::Name.into(),
+                QueryValues::AvatarKey.into(),
+                QueryValues::Description.into(),
+            ],
+        })
+        .await
+        .unwrap()
+        .into_inner();
+    assert_eq!(info.name.unwrap(), "test name");
+    assert_eq!(info.avatar_key.unwrap(), "pic key");
+    assert_eq!(info.description.unwrap(), "test description");
+    // without permission
+    let err = b
+        .lock()
+        .await
+        .oc()
+        .set_session_info(request)
+        .await
+        .unwrap_err();
+    assert_eq!(err.code(), tonic::Code::PermissionDenied);
+    assert_eq!(err.message(), PERMISSION_DENIED);
     app.async_drop().await;
 }

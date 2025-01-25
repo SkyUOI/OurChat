@@ -12,6 +12,9 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    volumes:
+      - ./config/:/etc/ourchat
+      - ./resource/:/etc/resource
   HttpServer:
     init: true
     image: skyuoi/ourchat:latest-http
@@ -23,6 +26,9 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    volumes:
+      - ./config/:/etc/ourchat
+      - ./resource/:/etc/resource
   db:
     image: postgres:17
     restart: always

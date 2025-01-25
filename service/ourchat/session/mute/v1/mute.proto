@@ -2,10 +2,14 @@ syntax = "proto3";
 
 package service.ourchat.session.mute.v1;
 
+import "google/protobuf/duration.proto";
+
 message MuteUserRequest {
   uint64 session_id = 1;
   // If user_ids is empty, all users will be muted
   repeated uint64 user_ids = 2;
+  // If the ban should be lifted automatically after some time
+  optional google.protobuf.Duration duration = 3;
 }
 
 message MuteUserResponse {}

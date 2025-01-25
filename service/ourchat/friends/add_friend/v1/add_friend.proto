@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package service.ourchat.friends.add_friend.v1;
+
+message AddFriendRequest {
+  uint64 friend_id = 1;
+  optional string display_name = 2;
+}
+
+message AddFriendResponse {}

@@ -1,4 +1,12 @@
+use crate::db::session::check_if_permission_exist;
+use crate::process::error_msg::PERMISSION_DENIED;
+use crate::process::error_msg::not_found::NOT_BE_BANNED;
+use crate::process::get_id_from_req;
 use crate::{process::error_msg::SERVER_ERROR, server::RpcServer};
+use anyhow::Context;
+use base::consts::{ID, SessionID};
+use deadpool_redis::redis::AsyncCommands;
+use migration::m20241229_022701_add_role_for_session::PreDefinedPermissions;
 use pb::ourchat::session::ban::v1::{
     BanUserRequest, BanUserResponse, UnbanUserRequest, UnbanUserResponse,
 };
@@ -11,7 +19,7 @@ pub async fn ban_user(
     match ban_user_impl(server, request).await {
         Ok(res) => Ok(Response::new(res)),
         Err(e) => match e {
-            BanUserErr::Db(_) | BanUserErr::Internal(_) => {
+            BanUserErr::Db(_) | BanUserErr::Internal(_) | BanUserErr::Redis(_) => {
                 tracing::error!("{}", e);
                 Err(Status::internal(SERVER_ERROR))
             }
@@ -25,16 +33,53 @@ enum BanUserErr {
     #[error("database error:{0:?}")]
     Db(#[from] sea_orm::DbErr),
     #[error("status error:{0:?}")]
-    Status(#[from] tonic::Status),
+    Status(#[from] Status),
     #[error("internal error:{0:?}")]
     Internal(#[from] anyhow::Error),
+    #[error("redis error:{0:?}")]
+    Redis(#[from] deadpool_redis::redis::RedisError),
+}
+
+fn map_ban_to_redis(session: SessionID, user_id: ID) -> String {
+    format!("ban:{}:{}", session, user_id)
 }
 
 async fn ban_user_impl(
     server: &RpcServer,
     request: Request<BanUserRequest>,
 ) -> Result<BanUserResponse, BanUserErr> {
-    todo!()
+    let id = get_id_from_req(&request).unwrap();
+    if check_if_permission_exist(
+        id,
+        PreDefinedPermissions::BanUser.into(),
+        &server.db.db_pool,
+    )
+    .await?
+    {
+        return Err(BanUserErr::Status(Status::permission_denied(
+            PERMISSION_DENIED,
+        )));
+    }
+    let req = request.into_inner();
+    for i in req.user_ids {
+        let key = map_ban_to_redis(req.session_id.into(), i.into());
+
+        let mut conn = server
+            .db
+            .redis_pool
+            .get()
+            .await
+            .context("cannot get redis connection")?;
+        match req.duration {
+            Some(duration) => {
+                let _: () = conn.set_ex(&key, "1", duration.seconds as u64).await?;
+            }
+            None => {
+                let _: () = conn.set(&key, "1").await?;
+            }
+        }
+    }
+    Ok(BanUserResponse {})
 }
 
 pub async fn unban_user(
@@ -44,7 +89,7 @@ pub async fn unban_user(
     match unban_user_impl(server, request).await {
         Ok(res) => Ok(Response::new(res)),
         Err(e) => match e {
-            BanUserErr::Db(_) | BanUserErr::Internal(_) => {
+            BanUserErr::Db(_) | BanUserErr::Internal(_) | BanUserErr::Redis(_) => {
                 tracing::error!("{}", e);
                 Err(Status::internal(SERVER_ERROR))
             }
@@ -57,5 +102,41 @@ async fn unban_user_impl(
     server: &RpcServer,
     request: Request<UnbanUserRequest>,
 ) -> Result<UnbanUserResponse, BanUserErr> {
-    todo!()
+    let id = get_id_from_req(&request).unwrap();
+    if check_if_permission_exist(
+        id,
+        PreDefinedPermissions::UnbanUser.into(),
+        &server.db.db_pool,
+    )
+    .await?
+    {
+        return Err(BanUserErr::Status(Status::permission_denied(
+            PERMISSION_DENIED,
+        )));
+    }
+    let req = request.into_inner();
+    for i in req.user_ids {
+        let user: ID = i.into();
+        let key = map_ban_to_redis(req.session_id.into(), user);
+        let mut conn = server
+            .db
+            .redis_pool
+            .get()
+            .await
+            .context("cannot get redis connection")?;
+
+        // Check if key exists
+        let exists: bool = conn.exists(&key).await?;
+        if !exists {
+            return Err(BanUserErr::Status(Status::not_found(NOT_BE_BANNED)));
+        }
+        let _: () = match conn.del(&key).await {
+            Ok(data) => data,
+            Err(e) => {
+                tracing::error!("{}", e);
+                return Err(BanUserErr::Redis(e));
+            }
+        };
+    }
+    Ok(UnbanUserResponse {})
 }

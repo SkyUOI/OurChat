@@ -27,7 +27,7 @@
 //!     #[error("database error:{0:?}")]
 //!     Db(#[from] sea_orm::DbErr),
 //!     #[error("status error:{0:?}")]
-//!     Status(#[from] tonic::Status),
+//!     Status(#[from] Status),
 //!     #[error("internal error:{0:?}")]
 //!     Internal(#[from] anyhow::Error),
 //! }
@@ -44,12 +44,12 @@ pub mod auth;
 pub mod basic;
 mod download;
 pub mod error_msg;
+mod friends;
 pub mod get_account_info;
 mod message;
 pub mod register;
 mod session;
 mod set_account_info;
-mod set_friend_info;
 pub mod unregister;
 mod upload;
 pub mod verify;
@@ -67,6 +67,9 @@ use std::time::Duration;
 use tonic::Request;
 
 pub use download::download;
+pub use friends::{
+    accept_friend::accept_friend, add_friend::add_friend, set_friend_info::set_friend_info,
+};
 pub use message::{fetch_user_msg::fetch_user_msg, recall::recall_msg, send_msg::send_msg};
 pub use session::{
     accept_session::accept_session,
@@ -79,7 +82,6 @@ pub use session::{
     set_session_info::set_session_info,
 };
 pub use set_account_info::set_account_info;
-pub use set_friend_info::set_friend_info;
 pub use unregister::unregister;
 pub use upload::upload;
 
@@ -87,6 +89,8 @@ use crate::SERVER_INFO;
 use base::consts::ID;
 use entities::operations;
 use entities::prelude::*;
+use pb::ourchat::msg_delivery::v1::Msg;
+use prost::Message;
 
 pub mod db {
     pub use super::basic::get_id;
@@ -171,4 +175,21 @@ async fn _get_requests(id: ID, db_conn: &impl ConnectionTrait) -> anyhow::Result
         ret.push(i.operation);
     }
     Ok(ret)
+}
+
+pub async fn check_user_exist(
+    id: ID,
+    db_conn: &impl ConnectionTrait,
+) -> Result<bool, sea_orm::DbErr> {
+    Ok(User::find()
+        .filter(entities::user::Column::Id.eq(id))
+        .one(db_conn)
+        .await?
+        .is_some())
+}
+
+async fn transmit_msg(msg: Msg, session_id: ID) -> anyhow::Result<()> {
+    let mut buf = bytes::BytesMut::new();
+    msg.encode(&mut buf)?;
+    Ok(())
 }
