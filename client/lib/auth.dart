@@ -128,9 +128,17 @@ class _LoginState extends State<Login> {
                                     errorText = AppLocalizations.of(context)!
                                         .serverStatusUnderMaintenance;
                                     break;
-                                  case alreadyExistsStatusCode:
+                                  case notFoundStatusCode:
                                     errorText = AppLocalizations.of(context)!
-                                        .emailExists;
+                                        .userNotFound;
+                                    break;
+                                  case invalidArgumentStatusCode:
+                                    errorText = AppLocalizations.of(context)!
+                                        .internalError;
+                                    break;
+                                  case unauthenticatedStatusCode:
+                                    errorText = AppLocalizations.of(context)!
+                                        .incorrectPassword;
                                     break;
                                   default:
                                     errorText = AppLocalizations.of(context)!
@@ -245,17 +253,9 @@ class _RegisterState extends State<Register> {
                                     errorText = AppLocalizations.of(context)!
                                         .serverStatusUnderMaintenance;
                                     break;
-                                  case notFoundStatusCode:
+                                  case alreadyExistsStatusCode:
                                     errorText = AppLocalizations.of(context)!
-                                        .userNotFound;
-                                    break;
-                                  case invalidArgumentStatusCode:
-                                    errorText = AppLocalizations.of(context)!
-                                        .internalError;
-                                    break;
-                                  case unauthenticatedStatusCode:
-                                    errorText = AppLocalizations.of(context)!
-                                        .incorrectPassword;
+                                        .emailExists;
                                     break;
                                   default:
                                     errorText = AppLocalizations.of(context)!
