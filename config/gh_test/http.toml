@@ -10,3 +10,4 @@ rabbitmq_cfg = "rabbitmq.toml"
 ssl = false
 # The logo of this server
 logo_path = "../../resource/logo.png"
+run_migration = false

@@ -1,14 +1,3 @@
-// Message Code
-
-const serverStatusMsgCode = 12;
-const registerMsgCode = 4;
-const registerResponseMsgCode = 5;
-const loginMsgCode = 6;
-const loginResponseMsgCode = 7;
-const initVerifyMsgCode = 14;
-const initVerifyResponseMsgCode = 23;
-const verifyResponseMsgCode = 15;
-
 // Status Code
 const okStatusCode = 0;
 const cancelledStatusCode = 1;

@@ -19,6 +19,7 @@ impl TestHttpApp {
     pub async fn build_server() -> anyhow::Result<Cfg> {
         let mut config = Launcher::get_config(None)?;
         config.main_cfg.port = 0;
+        config.main_cfg.run_migration = true;
         tracing::info!("modify the config opts");
         Ok(config)
     }

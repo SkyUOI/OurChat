@@ -48,7 +48,10 @@ pub async fn add_file_record(
     }
     let user_info = match User::find_by_id(id).one(db_connection).await? {
         Some(user) => user,
-        None => return Err(UploadError::UserNotFound),
+        None => Err(anyhow::anyhow!(
+            "User {} should exist in database, but not found",
+            id
+        ))?,
     };
     // first check if the limit has been reached
     let res_used = Size::from_bytes(user_info.resource_used);
@@ -133,8 +136,6 @@ pub enum UploadError {
     FileSizeError,
     #[error("invalid path")]
     InvalidPathError,
-    #[error("user not found")]
-    UserNotFound,
     #[error("file's size overflows")]
     FileSizeOverflow,
 }
@@ -224,7 +225,6 @@ pub async fn upload(
                 UploadError::WrongStructure => Err(Status::invalid_argument(INCORRECT_ORDER)),
                 UploadError::FileSizeError => Err(Status::invalid_argument(FILE_SIZE_ERROR)),
                 UploadError::FileHashError => Err(Status::invalid_argument(FILE_HASH_ERROR)),
-                UploadError::UserNotFound => Err(Status::not_found(not_found::USER)),
                 UploadError::FileSizeOverflow => Err(Status::resource_exhausted(STORAGE_FULL)),
             }
         }

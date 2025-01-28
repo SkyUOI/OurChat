@@ -147,4 +147,8 @@ pub const fn default_single_instance() -> bool {
     true
 }
 
+pub const fn default_http_run_migration() -> bool {
+    false
+}
+
 pub static STDIN_AVAILABLE: LazyLock<bool> = LazyLock::new(|| std::io::stdin().is_terminal());

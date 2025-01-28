@@ -56,7 +56,7 @@ async fn update_friend(
     match friend.clone().update(&db_conn.db_pool).await {
         Ok(_) => {}
         Err(DbErr::RecordNotUpdated) => {
-            // record not existed, create it
+            // record doesn't exist, create it
             match friend.insert(&db_conn.db_pool).await {
                 Ok(_) => {}
                 Err(e) => return Err(SetError::Db(e)),

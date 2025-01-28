@@ -32,7 +32,7 @@ enum GetSessionErr {
     #[error("database error:{0:?}")]
     Db(#[from] sea_orm::DbErr),
     #[error("status error:{0:?}")]
-    Status(#[from] tonic::Status),
+    Status(#[from] Status),
     #[error("internal error:{0:?}")]
     Internal(#[from] anyhow::Error),
 }

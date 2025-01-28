@@ -54,6 +54,18 @@ pub mod session {
             include!("./generated/service.ourchat.session.add_role.v1.rs");
         }
     }
+
+    pub mod mute {
+        pub mod v1 {
+            include!("./generated/service.ourchat.session.mute.v1.rs");
+        }
+    }
+
+    pub mod ban {
+        pub mod v1 {
+            include!("./generated/service.ourchat.session.ban.v1.rs");
+        }
+    }
 }
 
 pub mod set_account_info {

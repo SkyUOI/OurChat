@@ -7,11 +7,13 @@ use actix_web::{
     App,
     web::{self},
 };
+use anyhow::anyhow;
 use base::{
     database::DbPool,
     shutdown::{ShutdownRev, ShutdownSdr},
 };
 use deadpool_lapin::lapin::options::{BasicAckOptions, BasicRejectOptions};
+use std::time::Duration;
 use tokio::select;
 use tokio_stream::StreamExt;
 
@@ -96,15 +98,31 @@ impl HttpServer {
                     deadpool_lapin::lapin::options::BasicQosOptions::default(),
                 )
                 .await?;
-            let mut consumer = mq_channel
-                .basic_consume(
-                    base::rabbitmq::http_server::VERIFY_QUEUE,
-                    "http_server",
-                    deadpool_lapin::lapin::options::BasicConsumeOptions::default(),
-                    deadpool_lapin::lapin::types::FieldTable::default(),
-                )
-                .await
-                .expect("basic_consume");
+            // Wait for the channel to be set
+            let mut try_cnt = 0;
+            let mut consumer = loop {
+                match mq_channel
+                    .basic_consume(
+                        base::rabbitmq::http_server::VERIFY_QUEUE,
+                        "http_server",
+                        deadpool_lapin::lapin::options::BasicConsumeOptions::default(),
+                        deadpool_lapin::lapin::types::FieldTable::default(),
+                    )
+                    .await
+                {
+                    Ok(c) => {
+                        break c;
+                    }
+                    Err(e) => {
+                        tracing::error!("try {} to get consumer failed:{}", try_cnt, e);
+                        if try_cnt == 9 {
+                            return Err(anyhow!(e));
+                        }
+                    }
+                }
+                tokio::time::sleep(Duration::from_secs(3)).await;
+                try_cnt += 1;
+            };
             tracing::debug!("Starting to consume verification");
             while let Some(data) = consumer.next().await {
                 let delivery = match data {

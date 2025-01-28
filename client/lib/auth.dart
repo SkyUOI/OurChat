@@ -117,7 +117,36 @@ class _LoginState extends State<Login> {
                             if (res == okStatusCode) {
                               ourchatAppState.where = homeUi;
                               ourchatAppState.update();
-                            } // TODO: error
+                            } else {
+                              setState(() {
+                                switch (res) {
+                                  case internalStatusCode:
+                                    errorText = AppLocalizations.of(context)!
+                                        .serverError;
+                                    break;
+                                  case unavailableStatusCode:
+                                    errorText = AppLocalizations.of(context)!
+                                        .serverStatusUnderMaintenance;
+                                    break;
+                                  case notFoundStatusCode:
+                                    errorText = AppLocalizations.of(context)!
+                                        .userNotFound;
+                                    break;
+                                  case invalidArgumentStatusCode:
+                                    errorText = AppLocalizations.of(context)!
+                                        .internalError;
+                                    break;
+                                  case unauthenticatedStatusCode:
+                                    errorText = AppLocalizations.of(context)!
+                                        .incorrectPassword;
+                                    break;
+                                  default:
+                                    errorText = AppLocalizations.of(context)!
+                                        .unknownError;
+                                    break;
+                                }
+                              });
+                            }
                           },
                           child: Text(AppLocalizations.of(context)!.login)),
                     ),
@@ -213,8 +242,28 @@ class _RegisterState extends State<Register> {
                             if (res == okStatusCode) {
                               ourchatAppState.where = homeUi;
                               ourchatAppState.update();
+                            } else {
+                              setState(() {
+                                switch (res) {
+                                  case internalStatusCode:
+                                    errorText = AppLocalizations.of(context)!
+                                        .serverError;
+                                    break;
+                                  case unavailableStatusCode:
+                                    errorText = AppLocalizations.of(context)!
+                                        .serverStatusUnderMaintenance;
+                                    break;
+                                  case alreadyExistsStatusCode:
+                                    errorText = AppLocalizations.of(context)!
+                                        .emailExists;
+                                    break;
+                                  default:
+                                    errorText = AppLocalizations.of(context)!
+                                        .unknownError;
+                                    break;
+                                }
+                              });
                             }
-                            // TODO: error
                           },
                           child: Text(AppLocalizations.of(context)!.register)),
                     ),

@@ -50,6 +50,8 @@ class OurChatServer {
       return okStatusCode;
     } on GrpcError catch (e) {
       return e.code;
+    } catch (e) {
+      return unknownStatusCode;
     }
   }
 }

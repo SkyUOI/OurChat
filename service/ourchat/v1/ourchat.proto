@@ -8,7 +8,9 @@ import "service/ourchat/msg_delivery/recall/v1/recall.proto";
 import "service/ourchat/msg_delivery/v1/msg_delivery.proto";
 import "service/ourchat/session/accept_session/v1/accept_session.proto";
 import "service/ourchat/session/add_role/v1/add_role.proto";
+import "service/ourchat/session/ban/v1/ban.proto";
 import "service/ourchat/session/get_session_info/v1/get_session_info.proto";
+import "service/ourchat/session/mute/v1/mute.proto";
 import "service/ourchat/session/new_session/v1/session.proto";
 import "service/ourchat/session/set_role/v1/set_role.proto";
 import "service/ourchat/session/set_session_info/v1/set_session_info.proto";
@@ -23,53 +25,20 @@ service OurChatService {
   // Warning: the meaning is deleting the account, not logout
   rpc Unregister(unregister.v1.UnregisterRequest) returns (unregister.v1.UnregisterResponse);
 
-  // # Error
-  // If you don't have the privilege, return error
-  //
-  // - PermissionDenied("Permission Denied") - If you don't have the privilege
-  // - NotFound("User Not Found") - If the user does not exist
-  // - InvalidArgument("Request Invalid Value") - If the request value is
-  // invalid
   rpc GetAccountInfo(get_account_info.v1.GetAccountInfoRequest) returns (get_account_info.v1.GetAccountInfoResponse);
 
   // Set some information of the account
-  //
-  // # Error
-  // - AlreadyExists("Conflict") - If the information should be set is conflict
-  // - InvalidArgument("Ocid Too Long") - The ocid is too long to set
   rpc SetSelfInfo(set_account_info.v1.SetSelfInfoRequest) returns (set_account_info.v1.SetSelfInfoResponse);
 
   rpc SetFriendInfo(set_account_info.v1.SetFriendInfoRequest) returns (set_account_info.v1.SetFriendInfoResponse);
 
   // Turn on the delivery, continuing to receive messages
-  //
-  // # Error
-  // - InvalidArgument("Time Format Error") - The structure of time cannot be
-  // parsed
-  // - InvalidArgument("Time Missing") - Member time is required
   rpc FetchMsgs(msg_delivery.v1.FetchMsgsRequest) returns (stream msg_delivery.v1.FetchMsgsResponse);
 
-  // # Error
-  // - PermissionDenied("Permission Denied") - If you don't have the privilege
-  // to send message here
-  // - NotFound("Session Not Found") - If the session you want to send message
-  // to does not exist
   rpc SendMsg(msg_delivery.v1.SendMsgRequest) returns (msg_delivery.v1.SendMsgResponse);
 
-  // # Error
-  // - NotFound("User Not Found") - If the user does not exist
-  // - InvalidArgument("File Size Error") - The size of the data received is not
-  // equal to the size in metadata
-  // - InvalidArgument("File Hash Error") - The hash of the data received is not
-  // equal to the hash in metadata
-  // - ResourceExhausted("Storage Full") - The storage is full
-  // - InvalidArgument("Metadata Error") - The metadata is invalid or missing
-  // - InvalidArgument("Incorrect Order Of Uploading") - You should upload a
-  // package of metadata, then upload content package until process finish
   rpc Upload(stream upload.v1.UploadRequest) returns (upload.v1.UploadResponse);
 
-  // # Error
-  // - PermissionDenied("Permission Denied") - This file is not yours
   rpc Download(download.v1.DownloadRequest) returns (stream download.v1.DownloadResponse);
 
   // session operations
@@ -87,4 +56,12 @@ service OurChatService {
   rpc SetRole(session.set_role.v1.SetRoleRequest) returns (session.set_role.v1.SetRoleResponse);
 
   rpc AddRole(session.add_role.v1.AddRoleRequest) returns (session.add_role.v1.AddRoleResponse);
+
+  rpc MuteUser(session.mute.v1.MuteUserRequest) returns (session.mute.v1.MuteUserResponse);
+
+  rpc UnmuteUser(session.mute.v1.UnmuteUserRequest) returns (session.mute.v1.UnmuteUserResponse);
+
+  rpc BanUser(session.ban.v1.BanUserRequest) returns (session.ban.v1.BanUserResponse);
+
+  rpc UnbanUser(session.ban.v1.UnbanUserRequest) returns (session.ban.v1.UnbanUserResponse);
 }

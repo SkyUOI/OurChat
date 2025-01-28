@@ -12,7 +12,7 @@ def main():
     if os.system("ruff format"):
         print("It seems ruff is not installed.Ignored")
     # format dart
-    os.chdir("client/ourchat/")
+    os.chdir("client/")
     if os.system("dart format lib/"):
         print("It seems dart is not installed.Ignored")
 

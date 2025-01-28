@@ -30,13 +30,13 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Flutter Init
-        run: cd client/ourchat && flutter pub get
+        run: cd client && flutter pub get
       - name: FLutter Fmt
-        run: cd client/ourchat && dart format ./ --set-exit-if-changed
+        run: cd client && dart format ./ --set-exit-if-changed
       - name: Grpc generate
         run: dart pub global activate protoc_plugin && python script/generate.pb.dart.py
       - name: Flutter Check
-        run: cd client/ourchat && flutter analyze
+        run: cd client && flutter analyze
       - uses: bufbuild/buf-setup-action@v0.3.1
       # Lint
       - uses: bufbuild/buf-lint-action@v0.3.0

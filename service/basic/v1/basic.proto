@@ -30,5 +30,6 @@ service BasicService {
   // Get server info
   rpc GetServerInfo(GetServerInfoRequest) returns (server.v1.GetServerInfoResponse);
 
+  // Get id from ocid
   rpc GetId(GetIdRequest) returns (GetIdResponse);
 }

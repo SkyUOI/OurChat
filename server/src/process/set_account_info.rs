@@ -22,21 +22,16 @@ pub async fn set_account_info(
     let id = get_id_from_req(&request).unwrap();
     let request_data = request.into_inner();
     match update_account(id, request_data, &server.db.db_pool).await {
-        Ok(_) => {}
+        Ok(_) => Ok(Response::new(SetSelfInfoResponse {})),
         Err(e) => match e {
             SetError::Db(_) | SetError::Unknown(_) => {
                 tracing::error!("{}", e);
-                return Err(Status::internal(SERVER_ERROR));
+                Err(Status::internal(SERVER_ERROR))
             }
-            SetError::Conflict => {
-                return Err(Status::already_exists(CONFLICT));
-            }
-            SetError::Status(s) => {
-                return Err(s);
-            }
+            SetError::Conflict => Err(Status::already_exists(CONFLICT)),
+            SetError::Status(s) => Err(s),
         },
     }
-    Ok(Response::new(SetSelfInfoResponse {}))
 }
 
 #[derive(Debug, thiserror::Error)]

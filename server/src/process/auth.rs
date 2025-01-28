@@ -1,4 +1,5 @@
 use super::{error_msg::not_found, generate_access_token};
+use crate::process::error_msg::{MISSING_AUTH_TYPE, WRONG_PASSWORD};
 use crate::{
     db::helper::is_conflict, process::error_msg::SERVER_ERROR, server::AuthServiceProvider, utils,
 };
@@ -93,8 +94,8 @@ pub async fn auth(
     match auth_db(request.into_inner(), &server.db).await {
         Ok(ok_resp) => Ok(Response::new(ok_resp)),
         Err(e) => Err(match e {
-            AuthError::WrongPassword => Status::unauthenticated(e.to_string()),
-            AuthError::MissingAuthType => Status::invalid_argument(e.to_string()),
+            AuthError::WrongPassword => Status::unauthenticated(WRONG_PASSWORD),
+            AuthError::MissingAuthType => Status::invalid_argument(MISSING_AUTH_TYPE),
             AuthError::UserNotFound => Status::not_found(not_found::USER),
             _ => {
                 tracing::error!("{}", e);

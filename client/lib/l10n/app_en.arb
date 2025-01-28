@@ -25,9 +25,9 @@
     "@cantBeEmpty": {
         "description": "Cannot be empty"
     },
-    "wrongAccountOrPassword": "Wrong account or password",
-    "@wrongAccountOrPassword": {
-        "description": "Wrong account or password"
+    "incorrectPassword": "Incorrect password",
+    "@incorrectPassword": {
+        "description": "Incorrect password"
     },
     "plzCheckYourEmail": "Please check your email",
     "@plzCheckYourEmail": {
@@ -166,5 +166,17 @@
     "reset": "Reset",
     "@reset": {
         "description": "Reset"
+    },
+    "userNotFound": "User not found",
+    "@userNotFound": {
+        "description": "User not found"
+    },
+    "internalError": "Internal error",
+    "@internalError": {
+        "description": "Internal error"
+    },
+    "serverStatusUnknown": "Unknown",
+    "@serverStatusUnknown": {
+        "description": "server status:Unknown"
     }
 }

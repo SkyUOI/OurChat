@@ -32,7 +32,7 @@ enum RecallErr {
     #[error("unknown error:{0:?}")]
     Unknown(#[from] anyhow::Error),
     #[error("status:{0:?}")]
-    Status(#[from] tonic::Status),
+    Status(#[from] Status),
 }
 
 impl From<MsgError> for RecallErr {
@@ -54,7 +54,7 @@ async fn recall_msg_internal(
 ) -> Result<RecallMsgResponse, RecallErr> {
     let id = get_id_from_req(&request).unwrap();
     let req = request.into_inner();
-    // delete from the database first
+    // delete it from the database first
     del_msg(req.msg_id, Some(id), &server.db.db_pool).await?;
     Ok(RecallMsgResponse {})
 }

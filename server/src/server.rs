@@ -22,7 +22,13 @@ use pb::ourchat::msg_delivery::v1::{
 };
 use pb::ourchat::session::accept_session::v1::{AcceptSessionRequest, AcceptSessionResponse};
 use pb::ourchat::session::add_role::v1::{AddRoleRequest, AddRoleResponse};
+use pb::ourchat::session::ban::v1::{
+    BanUserRequest, BanUserResponse, UnbanUserRequest, UnbanUserResponse,
+};
 use pb::ourchat::session::get_session_info::v1::{GetSessionInfoRequest, GetSessionInfoResponse};
+use pb::ourchat::session::mute::v1::{
+    MuteUserRequest, MuteUserResponse, UnmuteUserRequest, UnmuteUserResponse,
+};
 use pb::ourchat::session::new_session::v1::{NewSessionRequest, NewSessionResponse};
 use pb::ourchat::session::set_role::v1::{SetRoleRequest, SetRoleResponse};
 use pb::ourchat::session::set_session_info::v1::{SetSessionInfoRequest, SetSessionInfoResponse};
@@ -32,6 +38,7 @@ use pb::ourchat::set_account_info::v1::{
 use pb::ourchat::unregister::v1::{UnregisterRequest, UnregisterResponse};
 use pb::ourchat::upload::v1::{UploadRequest, UploadResponse};
 use pb::ourchat::v1::our_chat_service_server::{OurChatService, OurChatServiceServer};
+use process::error_msg::not_found;
 use std::net::SocketAddr;
 use std::pin::Pin;
 use std::sync::{Arc, LazyLock};
@@ -74,21 +81,31 @@ impl RpcServer {
             db: self.db.clone(),
             rabbitmq: self.rabbitmq.clone(),
         };
-        let svc = OurChatServiceServer::with_interceptor(self, Self::interceptor);
+        let shared_data = self.shared_data.clone();
+        let shared_data1 = self.shared_data.clone();
+        let shared_data2 = self.shared_data.clone();
+        let main_svc = OurChatServiceServer::with_interceptor(self, move |mut req| {
+            shared_data.convert_maintaining_into_grpc_status()?;
+            Self::check_auth(&mut req)?;
+            Ok(req)
+        });
+        let basic_svc = BasicServiceServer::with_interceptor(basic_service, move |req| {
+            shared_data1.convert_maintaining_into_grpc_status()?;
+            Ok(req)
+        });
+        let auth_svc = AuthServiceServer::with_interceptor(auth_service, move |req| {
+            shared_data2.convert_maintaining_into_grpc_status()?;
+            Ok(req)
+        });
         select! {
             _ = shutdown_rev.wait_shutting_down() => {}
             _ = tonic::transport::Server::builder()
-                .add_service(svc)
-                .add_service(BasicServiceServer::new(basic_service))
-                .add_service(AuthServiceServer::new(auth_service))
+                .add_service(main_svc)
+                .add_service(basic_svc)
+                .add_service(auth_svc)
                 .serve(addr) => {}
         }
         Ok(())
-    }
-
-    fn interceptor(mut req: Request<()>) -> Result<Request<()>, Status> {
-        Self::check_auth(&mut req)?;
-        Ok(req)
     }
 
     fn check_auth(req: &mut Request<()>) -> Result<(), Status> {
@@ -238,6 +255,38 @@ impl OurChatService for RpcServer {
     ) -> Result<Response<AddRoleResponse>, Status> {
         process::add_role(self, request).await
     }
+
+    #[tracing::instrument(skip(self))]
+    async fn mute_user(
+        &self,
+        request: Request<MuteUserRequest>,
+    ) -> Result<Response<MuteUserResponse>, Status> {
+        process::mute_user(self, request).await
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn unmute_user(
+        &self,
+        request: Request<UnmuteUserRequest>,
+    ) -> Result<Response<UnmuteUserResponse>, Status> {
+        process::unmute_user(self, request).await
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn ban_user(
+        &self,
+        request: Request<BanUserRequest>,
+    ) -> Result<Response<BanUserResponse>, Status> {
+        process::ban_user(self, request).await
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn unban_user(
+        &self,
+        request: Request<UnbanUserRequest>,
+    ) -> Result<Response<UnbanUserResponse>, Status> {
+        process::unban_user(self, request).await
+    }
 }
 
 #[derive(Debug)]
@@ -318,7 +367,7 @@ impl BasicService for BasicServiceProvider {
         let req = request.into_inner();
         match get_id(&req.ocid, &self.db).await {
             Ok(id) => Ok(Response::new(GetIdResponse { id: *id })),
-            Err(_) => Err(Status::not_found("user not found")),
+            Err(_) => Err(Status::not_found(not_found::USER)),
         }
     }
 }

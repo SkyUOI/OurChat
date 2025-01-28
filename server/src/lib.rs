@@ -26,6 +26,7 @@ use dashmap::DashMap;
 use db::file_storage;
 use futures_util::future::join_all;
 use parking_lot::{Mutex, Once};
+use process::error_msg::MAINTAINING;
 use rand::Rng;
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
@@ -384,6 +385,14 @@ impl SharedData {
     pub fn get_maintaining(&self) -> bool {
         *self.maintaining.lock()
     }
+
+    pub fn convert_maintaining_into_grpc_status(&self) -> Result<(), tonic::Status> {
+        if self.get_maintaining() {
+            Err(tonic::Status::unavailable(MAINTAINING))
+        } else {
+            Ok(())
+        }
+    }
 }
 
 /// Loads and constructs the configuration for the application.
@@ -481,7 +490,7 @@ impl Application {
         let abort_sender = ShutdownSdr::new(None);
         db::init_db_system();
         // connect to db
-        let db_pool = DbPool::build(&cfg.db_cfg, &cfg.redis_cfg).await?;
+        let db_pool = DbPool::build(&cfg.db_cfg, &cfg.redis_cfg, true).await?;
         db_pool.init().await?;
         // connect to rabbitmq
         let rmq_pool = cfg.rabbitmq_cfg.build().await?;
