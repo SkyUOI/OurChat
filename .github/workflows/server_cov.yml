@@ -22,16 +22,20 @@ jobs:
       # Warn: because the glibc version of GitHub action is lower than the requirement(2.38) installed by cargo-binstall, so we need to compile it by cargo install until the version is updated
       - name: Tarpaulin
         run: cargo install cargo-tarpaulin
+
       - name: Install Deps
         run: sudo apt-get update && sudo apt install -y protobuf-compiler
+
       - name: Start Redis
         uses: supercharge/redis-github-action@1.7.0
         with:
           redis-version: latest
+
       - uses: ikalnytskyi/action-setup-postgres@v7
         with:
           postgres-version: "17"
           password: 123456
+
       - name: Start RabbitMQ
         run: docker run -d -p 5672:5672 -p 15672:15672 -e RABBITMQ_DEFAULT_USER=guest -e RABBITMQ_DEFAULT_PASS=123456 rabbitmq:4-management
       - name: Test
