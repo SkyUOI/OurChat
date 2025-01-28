@@ -44,7 +44,9 @@ jobs:
           cargo tarpaulin -e derive --workspace -o lcov
 
       - name: Display Coverage
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: lcov.info
+          disable_telem: true
+          skip_validation: true
