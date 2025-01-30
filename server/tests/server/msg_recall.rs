@@ -69,21 +69,22 @@ async fn test_recall() {
         .fetch_msgs(Duration::from_millis(200))
         .await
         .unwrap();
-    let check = |rec: Vec<FetchMsgsResponse>| {
-        assert_eq!(rec.len(), 1);
+    let check = |rec: Vec<FetchMsgsResponse>, msg_len, msg_recall_idx: usize| {
+        assert_eq!(rec.len(), msg_len, "{:?}", rec);
         assert_lt!(
-            from_google_timestamp(&rec[0].time.unwrap()).unwrap(),
+            from_google_timestamp(&rec[msg_recall_idx].time.unwrap()).unwrap(),
             chrono::Utc::now()
         );
-        assert_eq!(rec[0].msg_id, recall_msg_id);
-        let RespondMsgType::Recall(data) = rec[0].clone().respond_msg_type.unwrap() else {
+        assert_eq!(rec[msg_recall_idx].msg_id, recall_msg_id);
+        let RespondMsgType::Recall(data) = rec[msg_recall_idx].clone().respond_msg_type.unwrap()
+        else {
             panic!("not a recall notification")
         };
         assert_eq!(data.msg_id, msg_id);
     };
-    check(b_rec);
+    check(b_rec, 1, 0);
     notify.notify_waiters();
     join!(task).0.unwrap();
-    check(res.lock().clone().unwrap());
+    check(res.lock().clone().unwrap(), 2, 1);
     app.async_drop().await;
 }

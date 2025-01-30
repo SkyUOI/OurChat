@@ -63,36 +63,11 @@ async fn fetch_user_msg_impl(
     let (tx, rx) = mpsc::channel(32);
     let db_conn = server.db.clone();
     let fetch_page_size = server.shared_data.cfg.main_cfg.db.fetch_msg_page_size;
-    // add to rabbitmq
     let connection = server
         .rabbitmq
         .get()
         .await
         .context("cannot get rabbit connection")?;
-    let channel = connection
-        .create_channel()
-        .await
-        .context("cannot create channel")?;
-    let queue_name = crate::rabbitmq::generate_client_name(id);
-    channel
-        .queue_declare(
-            &queue_name,
-            QueueDeclareOptions::default(),
-            FieldTable::default(),
-        )
-        .await
-        .context("failed to create queue")?;
-    channel
-        .queue_bind(
-            &queue_name,
-            crate::rabbitmq::USER_MSG_EXCHANGE,
-            &crate::rabbitmq::generate_route_key(id),
-            QueueBindOptions::default(),
-            FieldTable::default(),
-        )
-        .await
-        .context("failed to bind queue")?;
-
     tokio::spawn(async move {
         let send_to_client = async |res| match tx.send(res).await {
             Ok(_) => Ok(()),
@@ -141,6 +116,30 @@ async fn fetch_user_msg_impl(
             }
         }?;
         // keep listening the rabbitmq
+        // add to rabbitmq
+        let channel = connection
+            .create_channel()
+            .await
+            .context("cannot create channel")?;
+        let queue_name = crate::rabbitmq::generate_client_name(id);
+        channel
+            .queue_declare(
+                &queue_name,
+                QueueDeclareOptions::default(),
+                FieldTable::default(),
+            )
+            .await
+            .context("failed to create queue")?;
+        channel
+            .queue_bind(
+                &queue_name,
+                crate::rabbitmq::USER_MSG_EXCHANGE,
+                &crate::rabbitmq::generate_route_key(id),
+                QueueBindOptions::default(),
+                FieldTable::default(),
+            )
+            .await
+            .context("failed to bind queue")?;
         let batch = async move {
             let mut consumer = channel
                 .basic_consume(
