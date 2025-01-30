@@ -48,6 +48,7 @@ async fn test_recall() {
         *res_clone.lock() = Some(ret);
     });
     rx.await.unwrap();
+    tokio::time::sleep(Duration::from_millis(200)).await;
     // Recall Back
     let recall_msg = a
         .lock()
