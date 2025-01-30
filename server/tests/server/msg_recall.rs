@@ -7,6 +7,8 @@ use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
 use pb::service::ourchat::msg_delivery::{self, recall::v1::RecallMsgRequest, v1::OneMsg};
 use std::sync::Arc;
 use std::time::Duration;
+use tokio::join;
+use tokio::sync::{Notify, oneshot};
 
 #[tokio::test]
 async fn test_recall() {
@@ -31,15 +33,21 @@ async fn test_recall() {
     let res = Arc::new(Mutex::new(None));
     let res_clone = res.clone();
     let c_clone = c.clone();
-    tokio::spawn(async move {
+    let notify = Arc::new(Notify::new());
+    let notify_clone = notify.clone();
+    let (tx, rx) = oneshot::channel();
+
+    let task = tokio::spawn(async move {
+        tx.send(()).unwrap();
         let ret = c_clone
             .lock()
             .await
-            .fetch_msgs(Duration::from_millis(200))
+            .fetch_msgs_notify(notify_clone)
             .await
             .unwrap();
         *res_clone.lock() = Some(ret);
     });
+    rx.await.unwrap();
     // Recall Back
     let recall_msg = a
         .lock()
@@ -73,6 +81,8 @@ async fn test_recall() {
         assert_eq!(data.msg_id, msg_id);
     };
     check(b_rec);
+    notify.notify_waiters();
+    join!(task).0.unwrap();
     check(res.lock().clone().unwrap());
     app.async_drop().await;
 }
