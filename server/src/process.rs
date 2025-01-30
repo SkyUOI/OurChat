@@ -79,6 +79,7 @@ pub use session::{
     ban::{ban_user, unban_user},
     delete_session::delete_session,
     get_session_info::get_session_info,
+    leave_session::leave_session,
     mute::{mute_user, unmute_user},
     new_session::new_session,
     set_role::set_role,

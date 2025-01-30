@@ -6,6 +6,7 @@ pub mod add_role;
 pub mod ban;
 pub mod delete_session;
 pub mod get_session_info;
+pub mod leave_session;
 pub mod mute;
 pub mod new_session;
 pub mod set_role;

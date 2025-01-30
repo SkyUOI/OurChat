@@ -38,7 +38,7 @@ async fn add_role() {
         .into_inner();
     // check in the database
     let model = entities::role::Entity::find_by_id(ret.role_id as i64)
-        .one(app.get_db_connection().await)
+        .one(app.get_db_connection())
         .await
         .unwrap()
         .unwrap();

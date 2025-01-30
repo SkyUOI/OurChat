@@ -242,12 +242,13 @@ pub async fn join_in_session(
     db_conn: &DatabaseTransaction,
 ) -> anyhow::Result<()> {
     // update the session info
-    let mut session_info = get_session_by_id(session_id, db_conn)
+    let session_info = get_session_by_id(session_id, db_conn)
         .await?
         .context("not session found")?;
-    session_info.size += 1;
+    let size = session_info.size;
     let default_role = session_info.default_role;
-    let session_info: session::ActiveModel = session_info.into();
+    let mut session_info: session::ActiveModel = session_info.into();
+    session_info.size = ActiveValue::Set(size + 1);
     session_info.update(db_conn).await?;
 
     let session_relation = session_relation::ActiveModel {
@@ -318,11 +319,12 @@ pub async fn leave_session(
     session_relation::Entity::delete_by_id((session_id.into(), user_id.into()))
         .exec(db_conn)
         .await?;
-    let mut session_info = get_session_by_id(session_id, db_conn)
+    let session_info = get_session_by_id(session_id, db_conn)
         .await?
         .context("not session found")?;
-    session_info.size -= 1;
-    let session_info: session::ActiveModel = session_info.into();
+    let size = session_info.size;
+    let mut session_info: session::ActiveModel = session_info.into();
+    session_info.size = ActiveValue::Set(size - 1);
     session_info.update(db_conn).await?;
     Ok(())
 }

@@ -230,9 +230,10 @@ impl TestApp {
         }
         // create a group in database level
         let session_id = utils::generate_session_id()?;
+        // then will join to session and add size column
         process::db::create_session_db(
             session_id,
-            n,
+            0,
             name.into(),
             &self.db_pool.as_ref().unwrap().db_pool,
         )
@@ -244,7 +245,7 @@ impl TestApp {
             id_vec.push(id);
         }
         tracing::debug!("id:{:?}", id_vec);
-        let transaction = self.get_db_connection().await.begin().await?;
+        let transaction = self.get_db_connection().begin().await?;
         process::db::join_in_session(
             session_id,
             id_vec[0],
@@ -304,7 +305,7 @@ impl TestApp {
     /// # Panics
     ///
     /// Panics if launching with an existing instance.
-    pub async fn get_db_connection(&self) -> &sea_orm::DatabaseConnection {
+    pub fn get_db_connection(&self) -> &sea_orm::DatabaseConnection {
         &self.db_pool.as_ref().unwrap().db_pool
     }
 

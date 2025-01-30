@@ -39,6 +39,7 @@ use pb::service::ourchat::session::delete_session::v1::{
 use pb::service::ourchat::session::get_session_info::v1::{
     GetSessionInfoRequest, GetSessionInfoResponse,
 };
+use pb::service::ourchat::session::leave_session::v1::{LeaveSessionRequest, LeaveSessionResponse};
 use pb::service::ourchat::session::mute::v1::{
     MuteUserRequest, MuteUserResponse, UnmuteUserRequest, UnmuteUserResponse,
 };
@@ -246,6 +247,22 @@ impl OurChatService for RpcServer {
     }
 
     #[tracing::instrument(skip(self))]
+    async fn delete_session(
+        &self,
+        request: Request<DeleteSessionRequest>,
+    ) -> Result<Response<DeleteSessionResponse>, Status> {
+        process::delete_session(self, request).await
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn leave_session(
+        &self,
+        request: Request<LeaveSessionRequest>,
+    ) -> Result<Response<LeaveSessionResponse>, Status> {
+        process::leave_session(self, request).await
+    }
+
+    #[tracing::instrument(skip(self))]
     async fn recall_msg(
         &self,
         request: Request<RecallMsgRequest>,
@@ -315,14 +332,6 @@ impl OurChatService for RpcServer {
         request: Request<AcceptFriendRequest>,
     ) -> Result<Response<AcceptFriendResponse>, Status> {
         process::accept_friend(self, request).await
-    }
-
-    #[tracing::instrument(skip(self))]
-    async fn delete_session(
-        &self,
-        request: Request<DeleteSessionRequest>,
-    ) -> Result<Response<DeleteSessionResponse>, Status> {
-        process::delete_session(self, request).await
     }
 }
 

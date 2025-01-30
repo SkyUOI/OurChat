@@ -72,6 +72,12 @@ pub mod session {
             include!("../generated/service.ourchat.session.delete_session.v1.rs");
         }
     }
+
+    pub mod leave_session {
+        pub mod v1 {
+            include!("../generated/service.ourchat.session.leave_session.v1.rs");
+        }
+    }
 }
 
 pub mod set_account_info {

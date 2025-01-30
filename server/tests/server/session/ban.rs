@@ -44,17 +44,14 @@ async fn ban_user() {
     tokio::time::sleep(Duration::from_millis(200)).await;
     for i in 1..4 {
         assert_eq!(
-            get_all_session_relations(
-                session_user[i].lock().await.id,
-                app.get_db_connection().await
-            )
-            .await
-            .unwrap(),
+            get_all_session_relations(session_user[i].lock().await.id, app.get_db_connection())
+                .await
+                .unwrap(),
             vec![]
         );
     }
     assert_eq!(
-        get_all_session_relations(aid, app.get_db_connection().await)
+        get_all_session_relations(aid, app.get_db_connection())
             .await
             .unwrap()
             .len(),

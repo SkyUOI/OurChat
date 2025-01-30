@@ -1,4 +1,5 @@
 mod ban;
+mod leave;
 mod mute;
 mod role;
 
@@ -98,13 +99,13 @@ async fn session_create() {
         .unwrap();
     tokio::time::sleep(Duration::from_millis(200)).await;
     assert_eq!(
-        get_all_session_relations(user2_id, app.get_db_connection().await)
+        get_all_session_relations(user2_id, app.get_db_connection())
             .await
             .unwrap(),
         vec![]
     );
     assert_eq!(
-        get_all_session_relations(user3_id, app.get_db_connection().await)
+        get_all_session_relations(user3_id, app.get_db_connection())
             .await
             .unwrap()
             .len(),

@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package service.ourchat.session.leave_session.v1;
+
+message LeaveSessionRequest {
+  uint64 session_id = 1;
+}
+
+message LeaveSessionResponse {}
