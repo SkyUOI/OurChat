@@ -6,6 +6,4 @@ message DeleteSessionRequest {
   uint64 session_id = 1;
 }
 
-message DeleteSessionResponse {
-
-}
+message DeleteSessionResponse {}

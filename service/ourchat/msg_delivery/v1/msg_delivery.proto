@@ -3,14 +3,16 @@ syntax = "proto3";
 package service.ourchat.msg_delivery.v1;
 
 import "google/protobuf/timestamp.proto";
-import "service/ourchat/session/invite_session/v1/invite_session.proto";
 import "service/ourchat/friends/accept_friend/v1/accept_friend.proto";
 import "service/ourchat/msg_delivery/recall/v1/recall.proto";
+import "service/ourchat/session/invite_session/v1/invite_session.proto";
 
 // One piece of message
 message OneMsg {
   // Type of the message
-  oneof data { string text = 2; }
+  oneof data {
+    string text = 2;
+  }
 }
 
 message SendMsgRequest {

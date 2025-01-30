@@ -13,10 +13,10 @@ message NewSessionRequest {
 }
 
 enum FailedReason {
-    FAILED_REASON_UNSPECIFIED = 0;
-    FAILED_REASON_MEMBER_NOT_FOUND = 1;
-    FAILED_REASON_MEMBER_PRIVACY = 2;
-};
+  FAILED_REASON_UNSPECIFIED = 0;
+  FAILED_REASON_MEMBER_NOT_FOUND = 1;
+  FAILED_REASON_MEMBER_PRIVACY = 2;
+}
 
 message FailedMember {
   uint64 id = 1;
