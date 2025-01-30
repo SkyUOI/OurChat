@@ -3,10 +3,11 @@ pub mod rabbitmq;
 use pb::service::ourchat::download::v1::DownloadResponse;
 use size::Size;
 use std::env::VarError;
-use std::iter;
+use std::io::ErrorKind;
 use std::path::PathBuf;
 use std::process::exit;
 use std::sync::Once;
+use std::{fmt, iter};
 use tokio_stream::StreamExt;
 use tonic::Streaming;
 
@@ -56,11 +57,20 @@ pub fn init_env_var() {
     // use libc-print because this function will be called in ctor function when the std::print is not available
     static TMP: Once = Once::new();
     TMP.call_once(|| {
+        fn output_err(e: impl fmt::Debug) {
+            libc_print::libc_eprintln!("{:?}", e);
+            exit(1);
+        }
+
         match dotenvy::dotenv() {
             Ok(_) => {}
+            Err(dotenvy::Error::Io(e)) => {
+                if e.kind() != ErrorKind::NotFound {
+                    output_err(e);
+                }
+            }
             Err(e) => {
-                libc_print::libc_eprintln!("{:?}", e);
-                exit(1);
+                output_err(e);
             }
         }
         // Set config file path
