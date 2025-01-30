@@ -86,7 +86,7 @@ features = ["json", "rustls-tls"]
 [workspace.dependencies.tonic]
 version = "0"
 default-features = false
-features = ["tls"]
+features = ["tls", "codegen", "prost", "channel"]
 
 [workspace.dependencies.sqlx]
 version = "0"
@@ -125,7 +125,7 @@ default-features = false
 
 [workspace.dependencies.serde]
 version = "1"
-default-features = false
+features = ["serde_derive"]
 
 [workspace.dependencies.clap]
 version = "4"

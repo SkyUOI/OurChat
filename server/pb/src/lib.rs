@@ -1,3 +1,5 @@
+#![cfg(not(doctest))]
+
 pub mod service;
 
 pub mod google {
