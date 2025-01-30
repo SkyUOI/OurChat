@@ -19,12 +19,15 @@ fn main() -> anyhow::Result<()> {
         println!("cargo:rerun-if-changed={}", proto_file.display());
     }
     let last_build = PathBuf::from("src/generated/.last_build");
-    if !last_build.exists() {
+    let last_modified = if !last_build.exists() {
         File::create(&last_build)?;
-    }
-    let last_modified = metadata(&last_build)
-        .and_then(|m| m.modified())
-        .unwrap_or(SystemTime::UNIX_EPOCH);
+        SystemTime::UNIX_EPOCH
+    } else {
+        metadata(&last_build)
+            .and_then(|m| m.modified())
+            .unwrap_or(SystemTime::UNIX_EPOCH)
+    };
+
     let mut should_rebuilt = false;
     for proto_file in &proto_files {
         let modified = metadata(proto_file)
