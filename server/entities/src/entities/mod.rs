@@ -5,7 +5,6 @@ pub mod prelude;
 pub mod authority;
 pub mod files;
 pub mod friend;
-pub mod operations;
 pub mod permission;
 pub mod role;
 pub mod role_permissions;

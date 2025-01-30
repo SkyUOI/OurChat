@@ -6,10 +6,6 @@ edition.workspace = true
 [dependencies]
 tokio.workspace = true
 client = { path = "../client" }
-tonic.workspace = true
-tonic-types = { version = "0" }
-prost-types = { version = "0" }
-prost = { version = "0" }
 server = { path = ".." }
 parking_lot.workspace = true
 mimalloc.workspace = true

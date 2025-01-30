@@ -1,10 +1,10 @@
-use entities::{role_permissions, user_role_relation};
-use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter};
+use sea_orm::{ConnectionTrait, EntityTrait};
 
-use base::consts::{ID, SessionID};
+use base::consts::SessionID;
 pub mod accept_session;
 pub mod add_role;
 pub mod ban;
+pub mod delete_session;
 pub mod get_session_info;
 pub mod mute;
 pub mod new_session;
@@ -19,28 +19,4 @@ async fn query_session(
         .one(db_conn)
         .await?;
     Ok(ret)
-}
-
-async fn check_if_permission_exist(
-    user_id: ID,
-    permission_checked: u64,
-    db_conn: &impl ConnectionTrait,
-) -> Result<bool, sea_orm::DbErr> {
-    // get all roles first
-    let roles = user_role_relation::Entity::find()
-        .filter(user_role_relation::Column::UserId.eq(user_id))
-        .all(db_conn)
-        .await?;
-    for i in &roles {
-        let permissions_queried = role_permissions::Entity::find()
-            .filter(role_permissions::Column::RoleId.eq(i.role_id))
-            .all(db_conn)
-            .await?;
-        for j in permissions_queried {
-            if j.permission_id == permission_checked as i64 {
-                return Ok(true);
-            }
-        }
-    }
-    Ok(false)
 }

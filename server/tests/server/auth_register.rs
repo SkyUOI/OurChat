@@ -1,5 +1,5 @@
 use claims::assert_ok;
-use client::ClientErr;
+use client::oc_helper::ClientErr;
 
 #[tokio::test]
 async fn auth_token() {
@@ -24,8 +24,8 @@ async fn auth_token() {
     // try a user which not exists
     let user = app.new_user().await.unwrap();
     user.lock().await.email = "wrong email".to_string();
-    let e = user.lock().await.email_auth().await;
-    if let Err(ClientErr::RpcStatus(e)) = e {
+    let e = user.lock().await.email_auth().await.unwrap_err();
+    if let ClientErr::RpcStatus(e) = e {
         assert_eq!(e.code(), tonic::Code::NotFound, "{:?}", e);
     } else {
         panic!("{:?}", e);
@@ -40,8 +40,8 @@ async fn register_account() {
         .await
         .unwrap();
     let user = app.new_user().await.unwrap();
-    let e = user.lock().await.register().await;
-    if let Err(ClientErr::RpcStatus(e)) = e {
+    let e = user.lock().await.register().await.unwrap_err();
+    if let ClientErr::RpcStatus(e) = e {
         assert_eq!(e.code(), tonic::Code::AlreadyExists);
     } else {
         panic!("{:?}", e);

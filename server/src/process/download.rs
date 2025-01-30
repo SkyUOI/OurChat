@@ -9,7 +9,7 @@ use base::consts::ID;
 use base::database::DbPool;
 use bytes::BytesMut;
 use entities::files;
-use pb::ourchat::download::v1::{DownloadRequest, DownloadResponse};
+use pb::service::ourchat::download::v1::{DownloadRequest, DownloadResponse};
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use tokio::{io::AsyncReadExt, sync::mpsc};
 use tokio_stream::wrappers::ReceiverStream;

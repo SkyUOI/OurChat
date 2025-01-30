@@ -42,7 +42,6 @@ impl MigrationTrait for Migration {
                     .table(Session::Table)
                     .drop_column(Session::Description)
                     .drop_column(Session::DefaultRole)
-                    .drop_foreign_key(Alias::new(FK_NAME))
                     .to_owned(),
             )
             .await?;

@@ -1,6 +1,6 @@
 pub mod rabbitmq;
 
-use pb::ourchat::download::v1::DownloadResponse;
+use pb::service::ourchat::download::v1::DownloadResponse;
 use size::Size;
 use std::env::VarError;
 use std::iter;
@@ -56,7 +56,13 @@ pub fn init_env_var() {
     // use libc-print because this function will be called in ctor function when the std::print is not available
     static TMP: Once = Once::new();
     TMP.call_once(|| {
-        dotenv::dotenv().ok();
+        match dotenvy::dotenv() {
+            Ok(_) => {}
+            Err(e) => {
+                libc_print::libc_eprintln!("{:?}", e);
+                exit(1);
+            }
+        }
         // Set config file path
         let dir = match std::env::var(OURCHAT_TEST_CONFIG_DIR) {
             Ok(d) => d,

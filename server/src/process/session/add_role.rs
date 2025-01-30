@@ -1,6 +1,6 @@
 use crate::process::{error_msg::SERVER_ERROR, get_id_from_req};
 use crate::server::RpcServer;
-use pb::ourchat::session::add_role::v1::{AddRoleRequest, AddRoleResponse};
+use pb::service::ourchat::session::add_role::v1::{AddRoleRequest, AddRoleResponse};
 use sea_orm::{ActiveModelTrait, ActiveValue};
 use tonic::{Request, Response, Status};
 

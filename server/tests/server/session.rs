@@ -2,17 +2,25 @@ mod ban;
 mod mute;
 mod role;
 
-use std::collections::HashSet;
-
-use base::consts::ID;
+use base::consts::{ID, SessionID};
 use base::time::from_google_timestamp;
 use claims::assert_lt;
 use client::TestApp;
 use migration::m20241229_022701_add_role_for_session::PreDefinedRoles;
-use pb::ourchat::session::{
+use parking_lot::Mutex;
+use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
+use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
+use pb::service::ourchat::session::{
     get_session_info::v1::{GetSessionInfoRequest, QueryValues},
     new_session::v1::NewSessionRequest,
+    set_session_info::v1::SetSessionInfoRequest,
 };
+use server::db::session::get_all_session_relations;
+use server::process::error_msg;
+use std::collections::HashSet;
+use std::sync::Arc;
+use std::time::Duration;
+use tokio::sync::{Notify, oneshot};
 
 #[tokio::test]
 async fn session_create() {
@@ -20,35 +28,88 @@ async fn session_create() {
     let user1 = app.new_user().await.unwrap();
     let user2 = app.new_user().await.unwrap();
     let user3 = app.new_user().await.unwrap();
+    let (user1_id, user2_id, user3_id) = (
+        user1.lock().await.id,
+        user2.lock().await.id,
+        user3.lock().await.id,
+    );
+
+    let user2_rec = Arc::new(Mutex::new(None));
+    let user2_rec_clone = user2_rec.clone();
+    let user2_clone = user2.clone();
+    let notify = Arc::new(Notify::new());
+    let notify_clone = notify.clone();
+
+    let (tx, rx) = oneshot::channel();
+    let task = tokio::spawn(async move {
+        tx.send(()).unwrap();
+        let ret = user2_clone
+            .lock()
+            .await
+            .fetch_msgs_notify(notify_clone)
+            .await
+            .unwrap();
+        *user2_rec_clone.lock() = Some(ret);
+    });
     // try to create a session in two users
     let req = NewSessionRequest {
-        members: vec![
-            user2.lock().await.ocid.clone(),
-            user3.lock().await.ocid.clone(),
-        ],
+        members: vec![user2_id.into(), user3_id.into()],
+        leave_message: "hello".to_string(),
         ..Default::default()
     };
+    // wait for user2 to listen
+    rx.await.unwrap();
     // get new session response
     let ret = user1.lock().await.oc().new_session(req).await.unwrap();
-    let ret = ret.into_inner();
-    let session_id = ret.session_id;
-    // verify user2 received the invite
-    // let resp = user2.lock().await.recv().await.unwrap();
-    // let json: InviteSession = serde_json::from_str(resp.to_text().unwrap()).unwrap();
-    // assert_eq!(json.inviter_id, user1.lock().await.ocid);
-    // assert_eq!(json.code, MessageType::InviteSession);
-    // assert!(json.message.is_empty());
-    // assert_eq!(json.session_id, session_id);
-
-    // verify user3 received the invite
-    // user3.lock().await.ocid_login().await.unwrap();
-    // let resp = user3.lock().await.recv().await.unwrap();
-    // dbg!(&resp);
-    // let json: InviteSession = serde_json::from_str(resp.to_text().unwrap()).unwrap();
-    // assert_eq!(json.inviter_id, user1.lock().await.ocid);
-    // assert_eq!(json.code, MessageType::InviteSession);
-    // assert!(json.message.is_empty());
-    // assert_eq!(json.session_id, session_id);
+    let new_session = ret.into_inner();
+    let session_id: SessionID = new_session.session_id.into();
+    assert_eq!(new_session.failed_members, vec![]);
+    let user3_rec = user3
+        .lock()
+        .await
+        .fetch_msgs(Duration::from_millis(400))
+        .await
+        .unwrap();
+    let check = async |rec: Vec<FetchMsgsResponse>| {
+        assert_eq!(rec.len(), 1);
+        let RespondMsgType::InviteSession(rec) = rec[0].respond_msg_type.clone().unwrap() else {
+            panic!();
+        };
+        assert_eq!(rec.session_id, *session_id);
+        assert_eq!(rec.inviter_id, *user1_id);
+        assert_eq!(rec.leave_message, Some("hello".to_string()));
+    };
+    check(user3_rec).await;
+    notify.notify_waiters();
+    tokio::join!(task).0.unwrap();
+    check(user2_rec.lock().clone().unwrap()).await;
+    // user2 reject, user3 accept
+    user2
+        .lock()
+        .await
+        .accept_session(session_id, false)
+        .await
+        .unwrap();
+    user3
+        .lock()
+        .await
+        .accept_session(session_id, true)
+        .await
+        .unwrap();
+    tokio::time::sleep(Duration::from_millis(200)).await;
+    assert_eq!(
+        get_all_session_relations(user2_id, app.get_db_connection().await)
+            .await
+            .unwrap(),
+        vec![]
+    );
+    assert_eq!(
+        get_all_session_relations(user3_id, app.get_db_connection().await)
+            .await
+            .unwrap()
+            .len(),
+        1
+    );
     app.async_drop().await;
 }
 
@@ -104,7 +165,7 @@ async fn get_session_info() {
     assert_eq!(
         roles,
         HashSet::from_iter([
-            (a.lock().await.id, PreDefinedRoles::Member.into()),
+            (a.lock().await.id, PreDefinedRoles::Owner.into()),
             (b.lock().await.id, PreDefinedRoles::Member.into()),
             (c.lock().await.id, PreDefinedRoles::Member.into())
         ])
@@ -121,5 +182,46 @@ async fn set_session_info() {
         session_user[1].clone(),
         session_user[2].clone(),
     );
+    let request = SetSessionInfoRequest {
+        session_id: session.session_id.into(),
+        name: Some("test name".to_owned()),
+        description: Some("test description".to_owned()),
+        avatar_key: Some("pic key".to_owned()),
+    };
+    a.lock()
+        .await
+        .oc()
+        .set_session_info(request.clone())
+        .await
+        .unwrap();
+    // check if the info was set
+    let info = a
+        .lock()
+        .await
+        .oc()
+        .get_session_info(GetSessionInfoRequest {
+            session_id: session.session_id.into(),
+            query_values: vec![
+                QueryValues::Name.into(),
+                QueryValues::AvatarKey.into(),
+                QueryValues::Description.into(),
+            ],
+        })
+        .await
+        .unwrap()
+        .into_inner();
+    assert_eq!(info.name.unwrap(), "test name");
+    assert_eq!(info.avatar_key.unwrap(), "pic key");
+    assert_eq!(info.description.unwrap(), "test description");
+    // without permission
+    let err = b
+        .lock()
+        .await
+        .oc()
+        .set_session_info(request)
+        .await
+        .unwrap_err();
+    assert_eq!(err.code(), tonic::Code::PermissionDenied);
+    assert_eq!(err.message(), error_msg::CANNOT_SET_NAME);
     app.async_drop().await;
 }

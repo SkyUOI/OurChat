@@ -4,12 +4,12 @@ use crate::{
     process::error_msg::{SERVER_ERROR, TIME_FORMAT_ERROR, TIME_MISSING},
     server::{FetchMsgsStream, RpcServer},
 };
-use anyhow::Context;
-use base::time::from_google_timestamp;
+use anyhow::{Context, bail};
+use base::time::{from_google_timestamp, to_google_timestamp};
 use deadpool_lapin::lapin::options::{QueueBindOptions, QueueDeclareOptions, QueueDeleteOptions};
 use deadpool_lapin::lapin::types::FieldTable;
-use pb::ourchat::msg_delivery::v1::{
-    FetchMsgsRequest, FetchMsgsResponse, Msg, fetch_msgs_response,
+use pb::service::ourchat::msg_delivery::v1::{
+    FetchMsgsRequest, FetchMsgsResponse, fetch_msgs_response::RespondMsgType,
 };
 use prost::Message;
 use tokio::sync::mpsc;
@@ -95,9 +95,10 @@ async fn fetch_user_msg_impl(
 
     tokio::spawn(async move {
         let send_to_client = async |res| match tx.send(res).await {
-            Ok(_) => {}
-            Err(e) => {
-                tracing::error!("send msg error:{e}");
+            Ok(_) => Ok(()),
+            Err(_) => {
+                tracing::info!("send msg failed:channel to client was closed");
+                bail!("channel to client was closed");
             }
         };
         match db::messages::get_session_msgs(id, time.into(), &db_conn.db_pool, fetch_page_size)
@@ -106,35 +107,39 @@ async fn fetch_user_msg_impl(
             Ok(mut pag) => {
                 let db_logic = async {
                     while let Some(msgs) = pag.fetch_and_next().await? {
-                        for msg in msgs {
-                            let msg = match Msg::try_from(msg) {
-                                Ok(m) => m,
-                                Err(e) => {
-                                    tracing::warn!("incorrect msg in database:{e}");
-                                    continue;
-                                }
-                            };
+                        for msg_model in msgs {
+                            let msg: RespondMsgType =
+                                match serde_json::from_value(msg_model.msg_data) {
+                                    Ok(m) => m,
+                                    Err(e) => {
+                                        tracing::warn!("incorrect msg in database:{e}");
+                                        continue;
+                                    }
+                                };
                             send_to_client(Ok(FetchMsgsResponse {
-                                data: Some(fetch_msgs_response::Data::Msg(msg)),
+                                respond_msg_type: Some(msg),
+                                msg_id: msg_model.chat_msg_id as u64,
+                                time: Some(to_google_timestamp(msg_model.time.into())),
                             }))
-                            .await;
+                            .await?;
                         }
                     }
-                    Ok::<(), sea_orm::DbErr>(())
+                    anyhow::Ok(())
                 };
                 match db_logic.await {
                     Ok(_) => {}
                     Err(e) => {
                         tracing::error!("Database error:{e}");
-                        send_to_client(Err(Status::internal("Database error"))).await;
+                        send_to_client(Err(Status::internal("Database error"))).await?;
                     }
                 }
+                anyhow::Ok(())
             }
             Err(e) => {
-                tracing::error!("Database error:{e}");
-                send_to_client(Err(Status::internal("Unknown error"))).await;
+                send_to_client(Err(Status::internal("Unknown error"))).await?;
+                Err(e)?
             }
-        }
+        }?;
         // keep listening the rabbitmq
         let batch = async move {
             let mut consumer = channel
@@ -163,17 +168,14 @@ async fn fetch_user_msg_impl(
             });
             while let Some(delivery) = consumer.next().await {
                 let delivery = delivery?;
-                let msg = match Msg::decode(delivery.data.as_slice()) {
+                let msg = match FetchMsgsResponse::decode(delivery.data.as_slice()) {
                     Ok(m) => m,
                     Err(e) => {
                         tracing::warn!("incorrect msg in rabbitmq:{e}");
                         continue;
                     }
                 };
-                send_to_client(Ok(FetchMsgsResponse {
-                    data: Some(fetch_msgs_response::Data::Msg(msg)),
-                }))
-                .await;
+                send_to_client(Ok(msg)).await?;
             }
             anyhow::Ok(())
         };
@@ -181,9 +183,10 @@ async fn fetch_user_msg_impl(
             Ok(_) => {}
             Err(e) => {
                 tracing::error!("Error occurred when listening to rabbitmq:{e}");
-                send_to_client(Err(Status::internal(SERVER_ERROR))).await;
+                send_to_client(Err(Status::internal(SERVER_ERROR))).await?;
             }
         }
+        anyhow::Ok(())
     });
     let output_stream = ReceiverStream::new(rx);
     Ok(Response::new(Box::pin(output_stream) as FetchMsgsStream))

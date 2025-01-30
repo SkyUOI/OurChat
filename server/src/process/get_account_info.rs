@@ -6,9 +6,10 @@ use crate::process::error_msg::SERVER_ERROR;
 use crate::server::RpcServer;
 use base::consts::ID;
 use base::time::to_google_timestamp;
-use pb::ourchat::get_account_info::v1::{
+use pb::service::ourchat::get_account_info::v1::{
     GetAccountInfoRequest, GetAccountInfoResponse, OWNER_PRIVILEGE, RequestValues,
 };
+use sea_orm::EntityTrait;
 use std::cmp::PartialEq;
 use std::sync::OnceLock;
 use tonic::Request;
@@ -35,13 +36,13 @@ enum GetInfoError {
     PermissionDenied,
 }
 
-async fn get_info_impl(
+async fn get_account_info_impl(
     server: &RpcServer,
     request: Request<GetAccountInfoRequest>,
 ) -> Result<GetAccountInfoResponse, GetInfoError> {
     let id = get_id_from_req(&request).unwrap();
     let request = request.into_inner();
-    // query in database
+    // query in the database
     // get id first
     let requests_id = match request.id {
         Some(id) => ID(id),
@@ -84,11 +85,24 @@ async fn get_info_impl(
                 RequestValues::Email => ret.email = Some(queried_user.email.clone()),
                 RequestValues::DisplayName => {
                     if let Privilege::Owner = privilege {
-                        // invalid for owner, ignore
+                        // invalid for the owner, ignore
                     } else {
                         let friend =
                             db::user::get_one_friend(id, requests_id, &server.db.db_pool).await?;
-                        ret.display_name = friend.map(|x| x.display_name);
+                        ret.display_name = match friend {
+                            Some(x) => match x.display_name {
+                                Some(name) => Some(name),
+                                None => {
+                                    let friend_info =
+                                        entities::user::Entity::find_by_id(x.friend_id)
+                                            .one(&server.db.db_pool)
+                                            .await?
+                                            .unwrap();
+                                    Some(friend_info.name)
+                                }
+                            },
+                            None => None,
+                        }
                     }
                 }
                 RequestValues::Status => {
@@ -136,11 +150,11 @@ async fn get_info_impl(
     Ok(ret)
 }
 
-pub async fn get_info(
+pub async fn get_account_info(
     server: &RpcServer,
     request: Request<GetAccountInfoRequest>,
 ) -> Result<tonic::Response<GetAccountInfoResponse>, tonic::Status> {
-    match get_info_impl(server, request).await {
+    match get_account_info_impl(server, request).await {
         Ok(d) => Ok(tonic::Response::new(d)),
         Err(e) => match e {
             GetInfoError::DbError(_) | GetInfoError::InternalError(_) => {

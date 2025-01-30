@@ -1,3 +1,7 @@
-pub mod auth;
-pub mod basic;
-pub mod ourchat;
+pub mod service;
+
+pub mod google {
+    pub mod protobuf {
+        include!("./generated/google.protobuf.rs");
+    }
+}

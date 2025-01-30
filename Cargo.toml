@@ -30,18 +30,15 @@ serde_json = "1"
 # serde_repr = "0"
 # tokio-tungstenite = "0"
 futures-util = "0"
-rand = "0"
+rand = "0.8.5"
 snowdon = "0"
 
 thiserror = "2"
-base = { path = "base" }
 tracing = { version = "0" }
 tracing-appender = "0"
 tracing-subscriber = { version = "0", features = ["tracing-log", "env-filter"] }
-migration = { path = "migration" }
 mimalloc = "0"
 parking_lot = "0"
-derive = { path = "derive" }
 sha3 = "0"
 config = "0"
 validator = "0"
@@ -50,7 +47,7 @@ ring = "0"
 
 # Useful crates
 collection_literals = "1"
-colored = "2"
+colored = "3"
 strum = { version = "0", features = ["derive"] }
 size = { version = "0.5.0-preview2", features = ["serde"] }
 
@@ -60,27 +57,21 @@ async-trait = { version = "0" }
 # serde_plain = "1"
 
 # Grpc
-tonic-types = { version = "0" }
-prost-types = { version = "0" }
 prost = { version = "0" }
 jsonwebtoken = "9"
-
-# Protobuf definitions
-pb = { path = "pb" }
-
-entities = { path = "entities" }
 
 linkify = "0"
 claims = "0"
 cfg-if = "1"
 urlencoding = "2"
-dotenv = "0"
+dotenvy = "0"
 ctor = "0"
 scopeguard = "1"
 libc-print = "0"
 itertools = "0"
 fake = "3"
 imageinfo = "0"
+walkdir = "2"
 
 [workspace.dependencies.lettre]
 version = "0"

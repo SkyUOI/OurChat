@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package service.ourchat.friends.accept_friend.v1;
+
+enum AcceptFriendResult {
+  ACCEPT_FRIEND_RESULT_UNSPECIFIED = 0;
+  ACCEPT_FRIEND_RESULT_SUCCESS = 1;
+  ACCEPT_FRIEND_RESULT_FAIL = 2;
+}
+
+message AcceptFriendRequest {
+  uint64 friend_id = 1;
+  AcceptFriendResult status = 2;
+}
+
+message AcceptFriendResponse {}
+
+message AcceptFriendNotification {
+  uint64 friend_id = 1;
+  optional string leave_message = 2;
+}

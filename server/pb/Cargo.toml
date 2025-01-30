@@ -6,14 +6,11 @@ edition.workspace = true
 [dependencies]
 tonic.workspace = true
 anyhow.workspace = true
-entities = { path = "../entities" }
 collection_literals.workspace = true
 prost.workspace = true
-prost-types.workspace = true
-base = { path = "../base" }
 serde.workspace = true
-serde_json.workspace = true
 
 [build-dependencies]
 tonic-build = { version = "0" }
 anyhow.workspace = true
+walkdir.workspace = true

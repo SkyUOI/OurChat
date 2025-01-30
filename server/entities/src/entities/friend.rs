@@ -9,7 +9,7 @@ pub struct Model {
     pub user_id: i64,
     #[sea_orm(primary_key, auto_increment = false)]
     pub friend_id: i64,
-    pub display_name: String,
+    pub display_name: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

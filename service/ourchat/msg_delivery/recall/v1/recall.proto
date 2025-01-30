@@ -4,6 +4,15 @@ package service.ourchat.msg_delivery.recall.v1;
 
 message RecallMsgRequest {
   uint64 msg_id = 1;
+  uint64 session_id = 2;
 }
 
-message RecallMsgResponse {}
+message RecallMsgResponse {
+  // warning: not equal to the message you want to recall, it is a new message which is representative of the recall behavior
+  uint64 msg_id = 1;
+}
+
+message RecallNotification {
+  // warning: this is the message you want to recall
+  uint64 msg_id = 1;
+}

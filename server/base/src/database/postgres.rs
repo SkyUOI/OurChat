@@ -56,7 +56,7 @@ async fn try_create_postgres_db(
         }
     }
     let mut opt = ConnectOptions::new(url);
-    opt.connect_timeout(Duration::from_secs(10));
+    opt.connect_timeout(Duration::from_mins(1));
     let db = sea_orm::Database::connect(opt).await?;
     tracing::info!("Ran all migrations of databases");
     if run_migration {

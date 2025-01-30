@@ -14,7 +14,6 @@ parking_lot.workspace = true
 rand.workspace = true
 tokio-stream.workspace = true
 tonic.workspace = true
-prost-types.workspace = true
 prost.workspace = true
 sqlx.workspace = true
 anyhow.workspace = true
@@ -28,7 +27,8 @@ size.workspace = true
 thiserror.workspace = true
 migration = { path = "../migration" }
 sea-orm.workspace = true
-dotenv.workspace = true
+dotenvy.workspace = true
 ctor.workspace = true
 urlencoding.workspace = true
 libc-print.workspace = true
+chrono.workspace = true

@@ -11,7 +11,7 @@ use anyhow::Context;
 use base::consts::ID;
 use entities::user;
 use migration::m20220101_000001_create_table::OCID_MAX_LEN;
-use pb::ourchat::set_account_info::v1::{SetSelfInfoRequest, SetSelfInfoResponse};
+use pb::service::ourchat::set_account_info::v1::{SetSelfInfoRequest, SetSelfInfoResponse};
 use sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection, DbErr, TransactionTrait};
 use tonic::{Request, Response, Status};
 
@@ -43,7 +43,7 @@ enum SetError {
     #[error("unknown error:{0:?}")]
     Unknown(#[from] anyhow::Error),
     #[error("status error:{0:?}")]
-    Status(#[from] tonic::Status),
+    Status(#[from] Status),
 }
 
 async fn update_account(

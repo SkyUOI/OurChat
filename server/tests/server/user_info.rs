@@ -1,9 +1,10 @@
 use base::time::from_google_timestamp;
 use claims::{assert_err, assert_gt, assert_lt};
 use client::TestApp;
-use pb::ourchat::{
+use pb::service::ourchat::{
+    friends::set_friend_info::v1::SetFriendInfoRequest,
     get_account_info::v1::{GetAccountInfoRequest, RequestValues},
-    set_account_info::v1::{SetFriendInfoRequest, SetSelfInfoRequest},
+    set_account_info::v1::SetSelfInfoRequest,
 };
 use server::process::error_msg::OCID_TOO_LONG;
 
@@ -116,13 +117,10 @@ async fn set_user_info() {
             ocid: Some("a".repeat(100)),
             ..Default::default()
         })
-        .await;
-    if let Err(err) = err {
-        assert_eq!(err.code(), tonic::Code::InvalidArgument);
-        assert_eq!(err.message(), OCID_TOO_LONG);
-    } else {
-        panic!("expect error");
-    }
+        .await
+        .unwrap_err();
+    assert_eq!(err.code(), tonic::Code::InvalidArgument);
+    assert_eq!(err.message(), OCID_TOO_LONG);
 
     app.async_drop().await;
 }

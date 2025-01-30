@@ -2,6 +2,7 @@
 //! TODO: use new type for roles and permissions
 
 use crate::impl_newtype_int;
+use pb::service::basic::server::v1::ServerVersion;
 use size::Size;
 use std::{io::IsTerminal, path::PathBuf, sync::LazyLock, time::Duration};
 
@@ -151,4 +152,17 @@ pub const fn default_http_run_migration() -> bool {
     false
 }
 
+pub const fn default_enable_matrix() -> bool {
+    false
+}
+
 pub static STDIN_AVAILABLE: LazyLock<bool> = LazyLock::new(|| std::io::stdin().is_terminal());
+
+pub static VERSION_SPLIT: LazyLock<ServerVersion> = LazyLock::new(|| {
+    let ver = crate::build::PKG_VERSION.split('.').collect::<Vec<_>>();
+    ServerVersion {
+        major: ver[0].parse().unwrap(),
+        minor: ver[1].parse().unwrap(),
+        patch: ver[2].parse().unwrap(),
+    }
+});

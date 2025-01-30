@@ -3,6 +3,9 @@ pub mod not_found {
     pub const SESSION: &str = "Session Not Found";
     pub const USER_IN_SESSION: &str = "User Not In Session";
     pub const MSG: &str = "Message Not Found";
+    pub const NOT_BE_MUTED: &str = "User Not Be Muted";
+    pub const NOT_BE_BANNED: &str = "User Not Be Banned";
+    pub const SESSION_INVITATION: &str = "Session Invitation Not Found";
 }
 
 pub mod exist {
@@ -10,6 +13,7 @@ pub mod exist {
     pub const SESSION: &str = "Session Already Exists";
     pub const USER_IN_SESSION: &str = "User Already In Session";
     pub const MSG: &str = "Message Already Exists";
+    pub const FRIEND: &str = "Friend Already Exists";
 }
 
 pub const SERVER_ERROR: &str = "Server Error";
@@ -18,6 +22,8 @@ pub const REQUEST_INVALID_VALUE: &str = "Request Invalid Value";
 pub const OCID_TOO_LONG: &str = "Ocid Too Long";
 pub const CONFLICT: &str = "Conflict";
 pub const MAINTAINING: &str = "Server Maintaining";
+pub const MUTE: &str = "User Muted";
+pub const BAN: &str = "User Banned";
 
 // fetch msg
 

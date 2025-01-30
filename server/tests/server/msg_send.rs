@@ -1,9 +1,7 @@
-use base::time::to_google_timestamp;
-use pb::ourchat::msg_delivery::{
+use pb::service::ourchat::msg_delivery::{
     self,
-    v1::{FetchMsgsRequest, OneMsg, fetch_msgs_response},
+    v1::{OneMsg, fetch_msgs_response},
 };
-use tokio_stream::StreamExt;
 
 #[tokio::test]
 async fn test_text_sent() {
@@ -60,25 +58,17 @@ async fn test_text_get() {
         .unwrap();
     msg_id.push(ret.into_inner().msg_id);
 
-    // get a message
-    let msg_get = FetchMsgsRequest {
-        time: Some(to_google_timestamp(base_time)),
-    };
-    let ret = c.lock().await.oc().fetch_msgs(msg_get).await.unwrap();
-    let mut ret_stream = ret.into_inner();
-    let mut msgs = vec![];
-    while let Some(i) = tokio::select! {
-        i = ret_stream.next() => i,
-        _ = tokio::time::sleep(tokio::time::Duration::from_millis(100)) => None
-    } {
-        msgs.push(i.unwrap().data.unwrap());
-    }
-    drop(ret_stream);
+    let msgs = c
+        .lock()
+        .await
+        .fetch_msgs(tokio::time::Duration::from_millis(400))
+        .await
+        .unwrap();
     assert_eq!(msgs.len(), 2);
     for (i, msg_id) in msgs.into_iter().zip(msg_id.iter()) {
-        if let fetch_msgs_response::Data::Msg(i) = i {
-            assert_eq!(i.session_id, u64::from(session.session_id));
-            assert_eq!(i.bundle_msgs, vec![msg_should_sent.clone()]);
+        if let fetch_msgs_response::RespondMsgType::Msg(ref item) = i.respond_msg_type.unwrap() {
+            assert_eq!(item.session_id, u64::from(session.session_id));
+            assert_eq!(item.bundle_msgs, vec![msg_should_sent.clone()]);
             assert_eq!(i.msg_id, *msg_id);
         }
     }
