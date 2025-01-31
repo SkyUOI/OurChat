@@ -50,6 +50,7 @@ services:
   redis:
     image: redis
     restart: always
+    command: redis-server /usr/local/etc/redis/redis.conf
     ports:
       - "6379:6379"
     volumes:

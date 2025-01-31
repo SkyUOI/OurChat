@@ -18,7 +18,7 @@ def test():
     else:
         test_command = default_test_command
     os.putenv("OURCHAT_LOG", "error")
-    os.putenv("OURCHAT_CONFIG_FILE", os.path.abspath("config/gh_test/ourchat.toml"))
+    os.putenv("OURCHAT_CONFIG_FILE", os.path.abspath("config/ourchat.toml"))
     basic.msg_system(f"{test_command} {test_flag}")
 
 

@@ -1,4 +1,4 @@
-host = "127.0.0.1"
+host = "mq"
 port = 5672
 user = "guest"
 passwd = "123456"

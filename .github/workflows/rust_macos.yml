@@ -32,7 +32,7 @@ jobs:
           password: 123456
       - name: Test
         run: |
-          export OURCHAT_TEST_CONFIG_DIR=$(pwd)/config/gh_test/
+          export OURCHAT_TEST_CONFIG_DIR=$(pwd)/config/
           cargo test
       - name: Build
         run: cargo check --all

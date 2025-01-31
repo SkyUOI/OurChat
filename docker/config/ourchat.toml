@@ -1,5 +1,5 @@
 # Ip listening
-ip = "127.0.0.1"
+ip = "0.0.0.0"
 # Assign the config file of a database, relative to this config file
 dbcfg = "database.toml"
 # Assign the config file of a redis database, relative to this config file
