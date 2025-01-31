@@ -26,7 +26,7 @@ for index in range(len(commands)):
         end="",
     )
 os.system(
-    "protoc --dart_out=grpc:client/ourchat/lib \
+    "protoc --dart_out=grpc:client/lib \
     google/protobuf/timestamp.proto \
     google/protobuf/empty.proto \
     google/protobuf/duration.proto"
