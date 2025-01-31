@@ -231,6 +231,7 @@ struct ServerInfo {
     machine_id: u64,
     secret: String,
     server_name: String,
+    version: u64,
 }
 
 const SECRET_LEN: usize = 32;
@@ -238,18 +239,74 @@ const SECRET_LEN: usize = 32;
 static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
     let state = Path::new(SERVER_INFO_PATH).exists();
     if state {
-        let info = match serde_json::from_str(&fs::read_to_string(SERVER_INFO_PATH).unwrap()) {
-            Ok(info) => info,
-            Err(e) => {
-                tracing::error!(
-                    "read server info error:{}.You can try modify the file \"{}\" to satisfy the requirement,or you can delete the file and rerun the server to generate a new file",
-                    e,
-                    SERVER_INFO_PATH
-                );
-                std::process::exit(1);
-            }
-        };
-        return info;
+        // let info = match serde_json::from_str(&fs::read_to_string(SERVER_INFO_PATH).unwrap()) {
+        //     Ok(info) => info,
+        //     Err(e) => {
+        //         tracing::error!(
+        //             "read server info error:{}.You can try modify the file \"{}\" to satisfy the requirement,or you can delete the file and rerun the server to generate a new file",
+        //             e,
+        //             SERVER_INFO_PATH
+        //         );
+        //         std::process::exit(1);
+        //     }
+        // };
+        // return info;
+        let origin_info: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(SERVER_INFO_PATH).unwrap())
+                .expect("read server info error");
+        if let serde_json::Value::Number(version) = &origin_info["version"] {
+            let current_version = version.as_i64().unwrap() as u64;
+            let info = if current_version < consts::SERVER_INFO_JSON_VERSION {
+                tracing::info!("server info is updating now");
+                let unique_id: uuid::Uuid = if let Some(unique_id) = origin_info.get("unique_id") {
+                    serde_json::from_str(&unique_id.to_string()).unwrap()
+                } else {
+                    uuid::Uuid::new_v4()
+                };
+                let machine_id: u64 = if let Some(machine_id) = origin_info.get("machine_id") {
+                    serde_json::from_str(&machine_id.to_string()).unwrap()
+                } else {
+                    rand::thread_rng().gen_range(0..(1024 - 1))
+                };
+                let secret: String = if let Some(secret) = origin_info.get("secret") {
+                    serde_json::from_str(&secret.to_string()).unwrap()
+                } else {
+                    utils::generate_random_string(SECRET_LEN)
+                };
+                let server_name: String = if let Some(server_name) = origin_info.get("server_name")
+                {
+                    serde_json::from_str(&server_name.to_string()).unwrap()
+                } else {
+                    let server_name;
+                    #[cfg(feature = "meaningful_name")]
+                    {
+                        let faker = fake::faker::name::en::Name();
+                        use fake::Fake;
+                        server_name = faker.fake();
+                    }
+                    #[cfg(not(feature = "meaningful_name"))]
+                    {
+                        server_name = utils::generate_random_string(10);
+                    }
+                    server_name
+                };
+                let version = current_version;
+                ServerInfo {
+                    unique_id,
+                    machine_id,
+                    secret,
+                    server_name,
+                    version,
+                }
+            } else if current_version == consts::SERVER_INFO_JSON_VERSION {
+                serde_json::from_value(origin_info).unwrap()
+            } else {
+                panic!("server info version is too high");
+            };
+            return info;
+        } else {
+            panic!("Format Error: cannot find version in \"server_info.json\"");
+        }
     }
     tracing::info!("Create server info file");
 
@@ -271,6 +328,7 @@ static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
         machine_id: id,
         secret: utils::generate_random_string(SECRET_LEN),
         server_name,
+        version: consts::SERVER_INFO_JSON_VERSION,
     };
     serde_json::to_writer(&mut f, &info).unwrap();
     info

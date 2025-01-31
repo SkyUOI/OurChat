@@ -26,6 +26,7 @@ pub const LOG_OUTPUT_DIR: &str = "log/";
 pub const CONFIG_FILE_ENV_VAR: &str = "OURCHAT_CONFIG_FILE";
 // TODO:add this to config file
 pub const VERIFY_EMAIL_EXPIRE: Duration = Duration::from_mins(5);
+pub const SERVER_INFO_JSON_VERSION: u64 = 1;
 
 // define ID type to fit many types of databases
 impl_newtype_int!(ID, u64, serde::Serialize, serde::Deserialize);
