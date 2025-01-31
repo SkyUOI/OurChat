@@ -28,7 +28,7 @@ services:
         condition: service_healthy
     volumes:
       - ./config/:/etc/ourchat
-      - ./resource/:/etc/resource
+      - ../resource/:/etc/resource
   db:
     image: postgres:17-alpine
     restart: always

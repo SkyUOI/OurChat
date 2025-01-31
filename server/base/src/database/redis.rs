@@ -33,5 +33,9 @@ impl RedisCfg {
 pub async fn connect_to_redis(url: &str) -> anyhow::Result<deadpool_redis::Pool> {
     let cfg = deadpool_redis::Config::from_url(url);
     let pool = cfg.create_pool(Some(deadpool_redis::Runtime::Tokio1))?;
+    #[cfg(debug_assertions)] {
+        // try getting a connection
+        pool.get().await?;
+    }
     Ok(pool)
 }

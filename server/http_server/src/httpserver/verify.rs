@@ -33,8 +33,8 @@ async fn verify_token(
     // check if the token is valid
     let ret = if match check_token_exist_and_del_token(&param.token, &pool.redis_pool).await {
         Ok(data) => data,
-        Err(_) => {
-            tracing::error!("check token error");
+        Err(e) => {
+            tracing::error!("Error while checking token:{:?}", e);
             return Ok(HttpResponse::InternalServerError());
         }
     } {
