@@ -180,6 +180,14 @@ pub async fn check_user_in_session(
     Ok(ret.is_some())
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum SessionError {
+    #[error("Session not found")]
+    SessionNotFound,
+    #[error("database error:{0:?}")]
+    Db(#[from] sea_orm::DbErr),
+}
+
 /// Checks if the user has the given permission.
 ///
 /// # Arguments
@@ -240,11 +248,11 @@ pub async fn join_in_session(
     id: ID,
     role: Option<u64>,
     db_conn: &DatabaseTransaction,
-) -> anyhow::Result<()> {
+) -> Result<(), SessionError> {
     // update the session info
-    let session_info = get_session_by_id(session_id, db_conn)
-        .await?
-        .context("not session found")?;
+    let Some(session_info) = get_session_by_id(session_id, db_conn).await? else {
+        return Err(SessionError::SessionNotFound);
+    };
     let size = session_info.size;
     let default_role = session_info.default_role;
     let mut session_info: session::ActiveModel = session_info.into();
@@ -288,7 +296,7 @@ pub async fn batch_join_in_session(
     ids: &[ID],
     role: Option<u64>,
     db_conn: &DatabaseTransaction,
-) -> anyhow::Result<()> {
+) -> Result<(), SessionError> {
     for id in ids {
         join_in_session(session_id, *id, role, db_conn).await?;
     }
@@ -315,13 +323,13 @@ pub async fn leave_session(
     session_id: SessionID,
     user_id: ID,
     db_conn: &DatabaseTransaction,
-) -> anyhow::Result<()> {
+) -> Result<(), SessionError> {
     session_relation::Entity::delete_by_id((session_id.into(), user_id.into()))
         .exec(db_conn)
         .await?;
-    let session_info = get_session_by_id(session_id, db_conn)
-        .await?
-        .context("not session found")?;
+    let Some(session_info) = get_session_by_id(session_id, db_conn).await? else {
+        return Err(SessionError::SessionNotFound);
+    };
     let size = session_info.size;
     let mut session_info: session::ActiveModel = session_info.into();
     session_info.size = ActiveValue::Set(size - 1);
@@ -334,4 +342,17 @@ pub async fn get_session_by_id(
     db_conn: &impl ConnectionTrait,
 ) -> Result<Option<session::Model>, sea_orm::DbErr> {
     session::Entity::find_by_id(session_id).one(db_conn).await
+}
+
+pub async fn delete_session(
+    session_id: SessionID,
+    db_conn: &impl ConnectionTrait,
+) -> Result<(), SessionError> {
+    let res = session::Entity::delete_by_id(session_id)
+        .exec(db_conn)
+        .await?;
+    if res.rows_affected == 0 {
+        return Err(SessionError::SessionNotFound);
+    }
+    Ok(())
 }

@@ -1,10 +1,13 @@
-use crate::db::session::if_permission_exist;
+use crate::db::session::{SessionError, get_session_by_id, if_permission_exist};
+use crate::process::error_msg::{PERMISSION_DENIED, not_found};
 use crate::process::get_id_from_req;
-use crate::{process::error_msg::SERVER_ERROR, server::RpcServer};
+use crate::{db, process::error_msg::SERVER_ERROR, server::RpcServer};
+use base::consts::SessionID;
 use migration::m20241229_022701_add_role_for_session::PreDefinedPermissions;
 use pb::service::ourchat::session::delete_session::v1::{
     DeleteSessionRequest, DeleteSessionResponse,
 };
+use sea_orm::TransactionTrait;
 use tonic::{Request, Response, Status};
 
 pub async fn delete_session(
@@ -39,15 +42,34 @@ async fn delete_session_impl(
 ) -> Result<DeleteSessionResponse, DeleteSessionErr> {
     let id = get_id_from_req(&request).unwrap();
     let req = request.into_inner();
+    let session_id: SessionID = req.session_id.into();
+    // check if session exists
+    if get_session_by_id(session_id, &server.db.db_pool)
+        .await?
+        .is_none()
+    {
+        Err(Status::not_found(not_found::SESSION))?;
+    }
     // check permission
-    if if_permission_exist(
+    if !if_permission_exist(
         id,
-        req.session_id.into(),
+        session_id,
         PreDefinedPermissions::DeleteSession.into(),
         &server.db.db_pool,
     )
     .await?
-    {}
+    {
+        Err(Status::permission_denied(PERMISSION_DENIED))?
+    }
+    match db::session::delete_session(session_id, &server.db.db_pool).await {
+        Ok(_) => {}
+        Err(SessionError::Db(e)) => {
+            Err(e)?;
+        }
+        Err(SessionError::SessionNotFound) => {
+            Err(Status::not_found(not_found::SESSION))?;
+        }
+    }
     let ret = DeleteSessionResponse {};
     Ok(ret)
 }

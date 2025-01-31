@@ -1,4 +1,4 @@
-use crate::db::session::{join_in_session, user_banned_status};
+use crate::db::session::{SessionError, join_in_session, user_banned_status};
 use crate::process::error_msg::not_found;
 use crate::process::{error_msg, get_id_from_req};
 use crate::{process::error_msg::SERVER_ERROR, server::RpcServer};
@@ -60,8 +60,21 @@ async fn accept_impl(
     }
     if req.accepted {
         let transaction = server.db.db_pool.begin().await?;
-        join_in_session(session_id, id, None, &transaction).await?;
-        transaction.commit().await?;
+        match join_in_session(session_id, id, None, &transaction).await {
+            Ok(_) => {
+                transaction.commit().await?;
+            }
+            Err(SessionError::Db(e)) => {
+                transaction.rollback().await?;
+                return Err(AcceptSessionError::DbError(e));
+            }
+            Err(SessionError::SessionNotFound) => {
+                transaction.rollback().await?;
+                return Err(AcceptSessionError::Status(Status::not_found(
+                    not_found::SESSION,
+                )));
+            }
+        }
     }
     Ok(AcceptSessionResponse {})
 }

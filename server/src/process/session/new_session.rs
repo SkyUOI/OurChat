@@ -1,5 +1,6 @@
 use super::super::get_id_from_req;
 use crate::db::messages::insert_msg_record;
+use crate::db::session::SessionError;
 use crate::process::error_msg::{SERVER_ERROR, not_found};
 use crate::process::{Dest, check_user_exist, transmit_msg};
 use crate::{db, server::RpcServer, utils};
@@ -25,7 +26,9 @@ use tonic::{Request, Response};
 use tracing::error;
 
 #[derive(Debug, thiserror::Error)]
-pub enum SessionError {
+pub enum NewSessionError {
+    #[error("session not found")]
+    SessionNotFound,
     #[error("user not found")]
     UserNotFound,
     #[error("database error:{0:?}")]
@@ -40,7 +43,7 @@ pub async fn create_session_db(
     people_num: usize,
     session_name: String,
     db_conn: &impl ConnectionTrait,
-) -> Result<(), SessionError> {
+) -> Result<(), NewSessionError> {
     let time_now = chrono::Utc::now();
     let session = session::ActiveModel {
         session_id: ActiveValue::Set(session_id.into()),
@@ -59,7 +62,7 @@ pub async fn whether_to_verify(
     sender: ID,
     invitee: ID,
     db_conn: &DbPool,
-) -> Result<bool, SessionError> {
+) -> Result<bool, NewSessionError> {
     let friend = Friend::find()
         .filter(friend::Column::UserId.eq(sender))
         .filter(friend::Column::FriendId.eq(invitee))
@@ -76,7 +79,7 @@ pub async fn whether_to_verify(
 async fn new_session_impl(
     server: &RpcServer,
     req: Request<NewSessionRequest>,
-) -> Result<NewSessionResponse, SessionError> {
+) -> Result<NewSessionResponse, NewSessionError> {
     let session_id = utils::generate_session_id()?;
     let id = get_id_from_req(&req).unwrap();
     let mut failed_members = vec![];
@@ -116,9 +119,20 @@ async fn new_session_impl(
         )
         .await?;
         // add session relation
-        db::session::batch_join_in_session(session_id, &peoples, None, &transaction).await?;
-        transaction.commit().await?;
-        Ok::<(), SessionError>(())
+        match db::session::batch_join_in_session(session_id, &peoples, None, &transaction).await {
+            Ok(_) => {
+                transaction.commit().await?;
+            }
+            Err(SessionError::SessionNotFound) => {
+                transaction.rollback().await?;
+                return Err(NewSessionError::SessionNotFound);
+            }
+            Err(SessionError::Db(e)) => {
+                transaction.rollback().await?;
+                return Err(NewSessionError::DbError(e));
+            }
+        }
+        Ok::<(), NewSessionError>(())
     };
     bundle.await?;
     for member_id in need_to_verify {
@@ -138,8 +152,9 @@ pub async fn new_session(
     match new_session_impl(server, req).await {
         Ok(res) => Ok(Response::new(res)),
         Err(e) => match e {
-            SessionError::UserNotFound => Err(tonic::Status::not_found(not_found::USER)),
-            SessionError::DbError(_) | SessionError::UnknownError(_) => {
+            NewSessionError::UserNotFound => Err(tonic::Status::not_found(not_found::USER)),
+            NewSessionError::SessionNotFound => Err(tonic::Status::not_found(not_found::SESSION)),
+            NewSessionError::DbError(_) | NewSessionError::UnknownError(_) => {
                 error!("{}", e);
                 Err(tonic::Status::internal(SERVER_ERROR))
             }

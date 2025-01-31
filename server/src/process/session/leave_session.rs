@@ -1,4 +1,4 @@
-use crate::db::session::check_user_in_session;
+use crate::db::session::{SessionError, check_user_in_session};
 use crate::process::error_msg::not_found;
 use crate::process::get_id_from_req;
 use crate::{db, process::error_msg::SERVER_ERROR, server::RpcServer};
@@ -44,8 +44,20 @@ async fn leave_session_impl(
         Err(Status::not_found(not_found::USER_IN_SESSION))?;
     }
     let transaction = server.db.db_pool.begin().await?;
-    db::session::leave_session(session_id, id, &transaction).await?;
-    transaction.commit().await?;
+    match db::session::leave_session(session_id, id, &transaction).await {
+        Ok(_) => {
+            transaction.commit().await?;
+        }
+        Err(SessionError::SessionNotFound) => {
+            tracing::error!("Relation exist but session not found");
+            transaction.rollback().await?;
+            Err(Status::not_found(not_found::SESSION))?
+        }
+        Err(SessionError::Db(e)) => {
+            transaction.rollback().await?;
+            return Err(LeaveSessionErr::Db(e));
+        }
+    }
     tracing::debug!("User {} leave session {}", id, session_id);
     let ret = LeaveSessionResponse {};
     Ok(ret)
