@@ -15,10 +15,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Test-Aphine
+      - name: Test-Alpine
         run: |
-          docker compose -f docker/compose.dev-aphine.yml up -d
-          docker compose -f docker/compose.dev-aphine.yml exec OurChatServer sh -c "cd /app && cargo test"
+          docker compose -f docker/compose.dev-alpine.yml up -d
+          docker compose -f docker/compose.dev-alpine.yml exec OurChatServer sh -c "cd /app && cargo test"
       - name: Test-Debian
         run: |
           docker compose -f docker/compose.dev-debian.yml up -d

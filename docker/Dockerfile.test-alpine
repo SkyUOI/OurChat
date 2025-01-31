@@ -1,4 +1,4 @@
-FROM skyuoi/ourchat:aphine-base AS chef
+FROM skyuoi/ourchat:alpine-base AS chef
 WORKDIR /app
 
 FROM chef AS planner

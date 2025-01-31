@@ -9,7 +9,7 @@ extension = "latest"
 if len(sys.argv) == 2:
     extension = sys.argv[1]
 
-# build aphine image
+# build alpine image
 msg_system(
     f"docker buildx build -f Dockerfile --target ourchat-server -t skyuoi/ourchat:{extension} ."
 )
@@ -17,15 +17,15 @@ msg_system(
 msg_system(
     f"docker buildx build -f Dockerfile.debian --target ourchat-server -t skyuoi/ourchat:{extension}-debian ."
 )
-# build aphine base image
+# build alpine base image
 msg_system(
-    f"docker buildx build -f docker/Dockerfile.aphine-base -t skyuoi/ourchat:aphine-base ."
+    f"docker buildx build -f docker/Dockerfile.alpine-base -t skyuoi/ourchat:alpine-base ."
 )
 # build debian base image
 msg_system(
     f"docker buildx build -f docker/Dockerfile.debian-base -t skyuoi/ourchat:debian-base ."
 )
-# build aphine http image
+# build alpine http image
 msg_system(
     f"docker buildx build -f Dockerfile --target http-server -t skyuoi/ourchat:{extension}-http ."
 )
