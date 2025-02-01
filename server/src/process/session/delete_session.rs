@@ -7,7 +7,6 @@ use migration::m20241229_022701_add_role_for_session::PreDefinedPermissions;
 use pb::service::ourchat::session::delete_session::v1::{
     DeleteSessionRequest, DeleteSessionResponse,
 };
-use sea_orm::TransactionTrait;
 use tonic::{Request, Response, Status};
 
 pub async fn delete_session(

@@ -6,12 +6,14 @@ import "google/protobuf/timestamp.proto";
 import "service/ourchat/friends/accept_friend/v1/accept_friend.proto";
 import "service/ourchat/msg_delivery/recall/v1/recall.proto";
 import "service/ourchat/session/invite_session/v1/invite_session.proto";
+import "service/ourchat/session/join_in_session/v1/join_in_session.proto";
 
 // One piece of message
 message OneMsg {
   // Type of the message
   oneof data {
     string text = 2;
+    string image = 3;
   }
 }
 
@@ -36,6 +38,7 @@ message FetchMsgsResponse {
     session.invite_session.v1.InviteSession invite_session = 2;
     friends.accept_friend.v1.AcceptFriendNotification accept_friend = 3;
     recall.v1.RecallNotification recall = 4;
+    session.join_in_session.v1.JoinInSessionApproval join_in_session = 7;
   }
   // id of the message
   uint64 msg_id = 5;

@@ -74,11 +74,13 @@ pub use friends::{
 };
 pub use message::{fetch_user_msg::fetch_user_msg, recall::recall_msg, send_msg::send_msg};
 pub use session::{
+    accept_join_in_session::accept_join_in_session,
     accept_session::accept_session,
     add_role::add_role,
     ban::{ban_user, unban_user},
     delete_session::delete_session,
     get_session_info::get_session_info,
+    join_in_session::join_in_session,
     leave_session::leave_session,
     mute::{mute_user, unmute_user},
     new_session::new_session,
@@ -215,6 +217,5 @@ async fn transmit_msg(
             }
         }
     }
-
     Ok(())
 }

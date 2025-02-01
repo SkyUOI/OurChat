@@ -1,5 +1,6 @@
 mod ban;
 mod delete;
+mod join;
 mod leave;
 mod mute;
 mod role;

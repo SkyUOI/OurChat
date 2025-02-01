@@ -61,9 +61,12 @@ async fn mute_user() {
     let ClientErr::RpcStatus(ret) = a
         .lock()
         .await
-        .send_msg(session.session_id, vec![OneMsg {
-            data: Some(msg_delivery::v1::one_msg::Data::Text("hello".to_owned())),
-        }])
+        .send_msg(
+            session.session_id,
+            vec![OneMsg {
+                data: Some(msg_delivery::v1::one_msg::Data::Text("hello".to_owned())),
+            }],
+        )
         .await
         .unwrap_err()
     else {

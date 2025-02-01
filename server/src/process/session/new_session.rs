@@ -10,7 +10,6 @@ use base::database::DbPool;
 use base::time::to_google_timestamp;
 use entities::{friend, prelude::*, session};
 use invite_session::v1::InviteSession;
-use migration::m20241229_022701_add_role_for_session::PreDefinedRoles;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
 use pb::service::ourchat::session::invite_session;

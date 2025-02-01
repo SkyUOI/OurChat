@@ -22,6 +22,7 @@ import "service/ourchat/session/set_session_info/v1/set_session_info.proto";
 import "service/ourchat/set_account_info/v1/set_account_info.proto";
 import "service/ourchat/unregister/v1/unregister.proto";
 import "service/ourchat/upload/v1/upload.proto";
+import "service/ourchat/session/join_in_session/v1/join_in_session.proto";
 
 // Main service of the Ourchat
 // JWT is required.If token is missing or out-of-dated,please refer to
@@ -77,4 +78,8 @@ service OurChatService {
   rpc AddFriend(friends.add_friend.v1.AddFriendRequest) returns (friends.add_friend.v1.AddFriendResponse);
 
   rpc AcceptFriend(friends.accept_friend.v1.AcceptFriendRequest) returns (friends.accept_friend.v1.AcceptFriendResponse);
+
+  rpc JoinInSession(session.join_in_session.v1.JoinInSessionRequest) returns (session.join_in_session.v1.JoinInSessionResponse);
+
+  rpc AcceptJoinInSession(session.join_in_session.v1.AcceptJoinInSessionRequest) returns (session.join_in_session.v1.AcceptJoinInSessionResponse);
 }

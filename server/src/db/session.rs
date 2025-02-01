@@ -1,7 +1,6 @@
 use crate::db::redis::{
     map_ban_all_to_redis, map_ban_to_redis, map_mute_all_to_redis, map_mute_to_redis,
 };
-use anyhow::Context;
 use base::consts::{ID, SessionID};
 use deadpool_redis::redis::AsyncCommands;
 use entities::{role_permissions, session, session_relation, user_role_relation};

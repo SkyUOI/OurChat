@@ -39,6 +39,10 @@ use pb::service::ourchat::session::delete_session::v1::{
 use pb::service::ourchat::session::get_session_info::v1::{
     GetSessionInfoRequest, GetSessionInfoResponse,
 };
+use pb::service::ourchat::session::join_in_session::v1::{
+    AcceptJoinInSessionRequest, AcceptJoinInSessionResponse, JoinInSessionRequest,
+    JoinInSessionResponse,
+};
 use pb::service::ourchat::session::leave_session::v1::{LeaveSessionRequest, LeaveSessionResponse};
 use pb::service::ourchat::session::mute::v1::{
     MuteUserRequest, MuteUserResponse, UnmuteUserRequest, UnmuteUserResponse,
@@ -332,6 +336,22 @@ impl OurChatService for RpcServer {
         request: Request<AcceptFriendRequest>,
     ) -> Result<Response<AcceptFriendResponse>, Status> {
         process::accept_friend(self, request).await
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn join_in_session(
+        &self,
+        request: Request<JoinInSessionRequest>,
+    ) -> Result<Response<JoinInSessionResponse>, Status> {
+        process::join_in_session(self, request).await
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn accept_join_in_session(
+        &self,
+        request: Request<AcceptJoinInSessionRequest>,
+    ) -> Result<Response<AcceptJoinInSessionResponse>, Status> {
+        process::accept_join_in_session(self, request).await
     }
 }
 

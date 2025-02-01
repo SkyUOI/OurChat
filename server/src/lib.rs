@@ -238,19 +238,19 @@ const SECRET_LEN: usize = 32;
 
 static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
     let state = Path::new(SERVER_INFO_PATH).exists();
+    let server_name = || -> String {
+        #[cfg(feature = "meaningful_name")]
+        {
+            let faker = fake::faker::name::en::Name();
+            use fake::Fake;
+            faker.fake()
+        }
+        #[cfg(not(feature = "meaningful_name"))]
+        {
+            utils::generate_random_string(10)
+        }
+    };
     if state {
-        // let info = match serde_json::from_str(&fs::read_to_string(SERVER_INFO_PATH).unwrap()) {
-        //     Ok(info) => info,
-        //     Err(e) => {
-        //         tracing::error!(
-        //             "read server info error:{}.You can try modify the file \"{}\" to satisfy the requirement,or you can delete the file and rerun the server to generate a new file",
-        //             e,
-        //             SERVER_INFO_PATH
-        //         );
-        //         std::process::exit(1);
-        //     }
-        // };
-        // return info;
         let origin_info: serde_json::Value =
             serde_json::from_str(&fs::read_to_string(SERVER_INFO_PATH).unwrap())
                 .expect("read server info error");
@@ -258,38 +258,22 @@ static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
             let current_version = version.as_i64().unwrap() as u64;
             let info = if current_version < consts::SERVER_INFO_JSON_VERSION {
                 tracing::info!("server info is updating now");
-                let unique_id: uuid::Uuid = if let Some(unique_id) = origin_info.get("unique_id") {
-                    serde_json::from_str(&unique_id.to_string()).unwrap()
-                } else {
-                    uuid::Uuid::new_v4()
-                };
-                let machine_id: u64 = if let Some(machine_id) = origin_info.get("machine_id") {
-                    serde_json::from_str(&machine_id.to_string()).unwrap()
-                } else {
-                    rand::thread_rng().gen_range(0..(1024 - 1))
-                };
-                let secret: String = if let Some(secret) = origin_info.get("secret") {
-                    serde_json::from_str(&secret.to_string()).unwrap()
-                } else {
-                    utils::generate_random_string(SECRET_LEN)
-                };
-                let server_name: String = if let Some(server_name) = origin_info.get("server_name")
-                {
-                    serde_json::from_str(&server_name.to_string()).unwrap()
-                } else {
-                    let server_name;
-                    #[cfg(feature = "meaningful_name")]
-                    {
-                        let faker = fake::faker::name::en::Name();
-                        use fake::Fake;
-                        server_name = faker.fake();
-                    }
-                    #[cfg(not(feature = "meaningful_name"))]
-                    {
-                        server_name = utils::generate_random_string(10);
-                    }
-                    server_name
-                };
+                let unique_id: uuid::Uuid = origin_info.get("unique_id").map_or_else(
+                    || uuid::Uuid::new_v4(),
+                    |id| serde_json::from_str(&id.to_string()).unwrap(),
+                );
+                let machine_id: u64 = origin_info.get("machine_id").map_or_else(
+                    || rand::thread_rng().gen_range(0..(1024 - 1)),
+                    |machine_id| serde_json::from_str(&machine_id.to_string()).unwrap(),
+                );
+                let secret: String = origin_info.get("secret").map_or_else(
+                    || utils::generate_random_string(SECRET_LEN),
+                    |secret| serde_json::from_str(&secret.to_string()).unwrap(),
+                );
+                let server_name: String = origin_info.get("server_name").map_or_else(
+                    || server_name(),
+                    |server_name| serde_json::from_str(&server_name.to_string()).unwrap(),
+                );
                 let version = current_version;
                 ServerInfo {
                     unique_id,
@@ -312,17 +296,7 @@ static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
 
     let mut f = fs::File::create(SERVER_INFO_PATH).unwrap();
     let id: u64 = rand::thread_rng().gen_range(0..(1024 - 1));
-    let server_name;
-    #[cfg(feature = "meaningful_name")]
-    {
-        let faker = fake::faker::name::en::Name();
-        use fake::Fake;
-        server_name = faker.fake();
-    }
-    #[cfg(not(feature = "meaningful_name"))]
-    {
-        server_name = utils::generate_random_string(10);
-    }
+    let server_name = server_name();
     let info = ServerInfo {
         unique_id: uuid::Uuid::new_v4(),
         machine_id: id,

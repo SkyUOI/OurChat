@@ -1,10 +1,11 @@
+use std::env;
 use std::fs::{File, metadata, remove_file};
 use std::path::PathBuf;
 use std::time::SystemTime;
 use walkdir::WalkDir;
 
 fn main() -> anyhow::Result<()> {
-    let proto_files: Vec<_> = WalkDir::new("../../service")
+    let mut proto_files: Vec<_> = WalkDir::new("../../service")
         .into_iter()
         .filter_map(|e| e.ok())
         .filter(|e| {
@@ -29,6 +30,9 @@ fn main() -> anyhow::Result<()> {
     };
 
     let mut should_rebuilt = false;
+    let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR")?);
+    let build_rs_path = manifest_dir.join("build.rs");
+    proto_files.push(build_rs_path);
     for proto_file in &proto_files {
         let modified = metadata(proto_file)
             .and_then(|m| m.modified())
@@ -40,6 +44,7 @@ fn main() -> anyhow::Result<()> {
             break;
         }
     }
+    proto_files.pop();
     if !should_rebuilt {
         return Ok(());
     }
@@ -74,6 +79,10 @@ fn main() -> anyhow::Result<()> {
         )
         .type_attribute(
             "google.protobuf.Timestamp",
+            "#[derive(serde::Serialize, serde::Deserialize)]",
+        )
+        .type_attribute(
+            "service.ourchat.session.join_in_session.v1.JoinInSessionApproval",
             "#[derive(serde::Serialize, serde::Deserialize)]",
         )
         .compile_well_known_types(true)

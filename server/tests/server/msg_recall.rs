@@ -23,9 +23,12 @@ async fn test_recall() {
     let ret = a
         .lock()
         .await
-        .send_msg(session.session_id, vec![OneMsg {
-            data: Some(msg_delivery::v1::one_msg::Data::Text("hello".to_owned())),
-        }])
+        .send_msg(
+            session.session_id,
+            vec![OneMsg {
+                data: Some(msg_delivery::v1::one_msg::Data::Text("hello".to_owned())),
+            }],
+        )
         .await
         .unwrap();
     let msg_id = ret.into_inner().msg_id;
