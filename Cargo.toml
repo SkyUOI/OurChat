@@ -14,13 +14,17 @@ members = [
 ]
 resolver = "2"
 
-[profile.release]
-# lto = true
-# codegen-units = 1
-# strip = true
+[profile.release-opt]
+inherits = "release"
+lto = true
+codegen-units = 1
+strip = true
 # The following options can be used to generate an docker image faster
-lto = false
-opt-level = 0
+# export CARGO_PROFILE_RELEASE_LTO=false \
+#       CARGO_PROFILE_RELEASE_OPT_LEVEL=3 \
+#       CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16
+# lto = false
+# opt-level = 0
 
 [workspace.package]
 version = "0.1.0"
