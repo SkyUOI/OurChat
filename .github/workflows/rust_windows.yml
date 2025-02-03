@@ -2,9 +2,9 @@ name: ServerWindows
 
 on:
   push:
-    branches: ["main"]
+    branches: [ "main" ]
   pull_request:
-    branches: ["main"]
+    branches: [ "main" ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -20,6 +20,27 @@ jobs:
         uses: arduino/setup-protoc@v3
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+      #      - uses: ikalnytskyi/action-setup-postgres@v7
+      #        with:
+      #          password: 123456
+      #          postgres-version: "17"
+      #      - name: Set Up Rabbitmq
+      #        run: |
+      #          choco install rabbitmq
+      #          Import-Module $env:ChocolateyInstall\helpers\chocolateyProfile.psm1
+      #          refreshenv
+      #          & "C:\Program Files\RabbitMQ Server\rabbitmq_server-4.0.3\sbin\rabbitmq-server.bat"
+      #          & "C:\Program Files\RabbitMQ Server\rabbitmq_server-4.0.3\sbin\rabbitmqctl.bat" status
+      #          & "C:\Program Files\RabbitMQ Server\rabbitmq_server-4.0.3\sbin\rabbitmqctl.bat" change_password guest 123456
+      #      - name: Set Up Garnet
+      #        run: |
+      #          dotnet tool install --global garnet-server
+      #          Start-Process -WindowStyle Hidden -FilePath "garnet-server" -ArgumentList "--config-import-path docker/config/garnet.conf"
+      #      - name: Test
+      #        run: |
+      #          $env:OURCHAT_TEST_CONFIG_DIR = "$(Get-Location)\config\"
+      #          cargo test --package server --test server
+      #          cargo test --package http_server --test http_test
       - name: Build
         run: cargo check --bin server
       - name: Build Release
