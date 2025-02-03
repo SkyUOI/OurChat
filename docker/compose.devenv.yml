@@ -1,27 +1,6 @@
 # This template can set up an environment for testing or developing
 name: ourchat_server
 services:
-  OurChatServer:
-    init: true
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.test-alpine
-    image: test-ourchat-alpine:latest
-    environment:
-      - OURCHAT_TEST_CONFIG_DIR=/app/docker/config
-      - OURCHAT_LOG=trace,actix_web=off,actix_server=off,mio=off,h2=off,tonic=off,tower=off,tokio::task::waker=off,runtime::resource=off,actix_http=off,lapin=off,hyper_util=off,pinky_swear=off,async_io=off,polling=off
-    volumes:
-      - ../resource/:/app/docker/resource
-    command: tail -f /dev/null
-    working_dir: /app
-    ports:
-      - "7777:7777"
-      - "7778:7778"
-    networks:
-      - net
-    depends_on:
-      db:
-        condition: service_healthy
   db:
     image: postgres:17-alpine
     restart: always
@@ -44,7 +23,6 @@ services:
     ports:
       - "6379:6379"
     volumes:
-      - ./data/garnet-data:/data
       - ./config/garnet.conf:/usr/local/etc/garnet/garnet.conf
     networks:
       - net

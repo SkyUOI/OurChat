@@ -19,7 +19,7 @@ inherits = "release"
 lto = true
 codegen-units = 1
 strip = true
-# The following options can be used to generate an docker image faster
+# The following options can be used to generate a docker image faster
 # export CARGO_PROFILE_RELEASE_LTO=false \
 #       CARGO_PROFILE_RELEASE_OPT_LEVEL=3 \
 #       CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16
@@ -56,7 +56,7 @@ ring = "0"
 collection_literals = "1"
 colored = "3"
 strum = { version = "0", features = ["derive"] }
-size = { version = "0.5.0-preview2", features = ["serde"] }
+size = { version = "0", features = ["serde"] }
 
 num_enum = "0"
 mockall = "0"
