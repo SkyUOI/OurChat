@@ -2,7 +2,7 @@
 ip = "0.0.0.0"
 # The http server listening port
 port = 7778
-rediscfg = "garnet.toml"
+rediscfg = "redis_connect.toml"
 dbcfg = "database.toml"
 # If not set, the email will be disabled
 email_cfg = "email.toml"

@@ -46,15 +46,15 @@ services:
       interval: 10s
       timeout: 30s
       retries: 5
-  garnet:
-    image: 'ghcr.io/microsoft/garnet'
+  redis:
+    image: redis:7-alpine
     restart: always
-    command: GarnetServer --config-import-path /usr/local/etc/garnet/garnet.conf
+    command: redis-server /usr/local/etc/redis/redis.conf
     ports:
       - "6379:6379"
     volumes:
-      - ./data/garnet-data:/data
-      - ./config/garnet.conf:/usr/local/etc/garnet/garnet.conf
+      - ./data/redis-data:/opt/redis/data
+      - ./config/redis.conf:/usr/local/etc/redis/redis.conf
     networks:
       - net
   mq:

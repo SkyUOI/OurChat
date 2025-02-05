@@ -31,7 +31,6 @@ use rand::Rng;
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 use size::Size;
-use std::cmp::Ordering;
 use std::{
     fs,
     net::SocketAddr,
@@ -257,40 +256,36 @@ static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
                 .expect("read server info error");
         if let serde_json::Value::Number(version) = &origin_info["version"] {
             let current_version = version.as_i64().unwrap() as u64;
-            let info = match current_version.cmp(&consts::SERVER_INFO_JSON_VERSION) {
-                Ordering::Less => {
-                    tracing::info!("server info is updating now");
-                    let unique_id: uuid::Uuid = origin_info
-                        .get("unique_id")
-                        .map_or_else(uuid::Uuid::new_v4, |id| {
-                            serde_json::from_str(&id.to_string()).unwrap()
-                        });
-                    let machine_id: u64 = origin_info.get("machine_id").map_or_else(
-                        || rand::thread_rng().gen_range(0..(1024 - 1)),
-                        |machine_id| serde_json::from_str(&machine_id.to_string()).unwrap(),
-                    );
-                    let secret: String = origin_info.get("secret").map_or_else(
-                        || utils::generate_random_string(SECRET_LEN),
-                        |secret| serde_json::from_str(&secret.to_string()).unwrap(),
-                    );
-                    let server_name: String = origin_info
-                        .get("server_name")
-                        .map_or_else(server_name, |server_name| {
-                            serde_json::from_str(&server_name.to_string()).unwrap()
-                        });
-                    let version = current_version;
-                    ServerInfo {
-                        unique_id,
-                        machine_id,
-                        secret,
-                        server_name,
-                        version,
-                    }
+            let info = if current_version < consts::SERVER_INFO_JSON_VERSION {
+                tracing::info!("server info is updating now");
+                let unique_id: uuid::Uuid = origin_info.get("unique_id").map_or_else(
+                    || uuid::Uuid::new_v4(),
+                    |id| serde_json::from_str(&id.to_string()).unwrap(),
+                );
+                let machine_id: u64 = origin_info.get("machine_id").map_or_else(
+                    || rand::thread_rng().gen_range(0..(1024 - 1)),
+                    |machine_id| serde_json::from_str(&machine_id.to_string()).unwrap(),
+                );
+                let secret: String = origin_info.get("secret").map_or_else(
+                    || utils::generate_random_string(SECRET_LEN),
+                    |secret| serde_json::from_str(&secret.to_string()).unwrap(),
+                );
+                let server_name: String = origin_info.get("server_name").map_or_else(
+                    || server_name(),
+                    |server_name| serde_json::from_str(&server_name.to_string()).unwrap(),
+                );
+                let version = current_version;
+                ServerInfo {
+                    unique_id,
+                    machine_id,
+                    secret,
+                    server_name,
+                    version,
                 }
-                Ordering::Equal => serde_json::from_value(origin_info).unwrap(),
-                Ordering::Greater => {
-                    panic!("server info version is too high");
-                }
+            } else if current_version == consts::SERVER_INFO_JSON_VERSION {
+                serde_json::from_value(origin_info).unwrap()
+            } else {
+                panic!("server info version is too high");
             };
             return info;
         } else {
