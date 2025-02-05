@@ -37,7 +37,7 @@ serde_json = "1"
 # serde_repr = "0"
 # tokio-tungstenite = "0"
 futures-util = "0"
-rand = "0.8.5"
+rand = "0.9.0"
 snowdon = "0"
 
 thiserror = "2"
