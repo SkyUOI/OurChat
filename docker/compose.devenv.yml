@@ -7,8 +7,6 @@ services:
     environment:
       POSTGRES_DB: OurChat
       POSTGRES_PASSWORD: 123456
-    volumes:
-      - "./data/postgres-data:/var/lib/postgresql/data"
     ports:
       - "5432:5432"
     networks:
@@ -25,7 +23,6 @@ services:
     ports:
       - "6379:6379"
     volumes:
-      - ./data/redis-data:/opt/redis/data
       - ./config/redis.conf:/usr/local/etc/redis/redis.conf
     networks:
       - net
@@ -38,8 +35,6 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
-    volumes:
-      - ./data/rabbitmq-data:/var/lib/rabbitmq
     networks:
       - net
 
