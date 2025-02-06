@@ -6,7 +6,7 @@ use pb::service::ourchat::friends::accept_friend::v1::{AcceptFriendRequest, Acce
 use pb::service::ourchat::friends::add_friend::v1::AddFriendRequest;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
 use server::db::friend::query_friend;
-use server::db::session::{get_all_roles_of_session, get_members};
+use server::db::session::get_all_roles_of_session;
 use std::time::Duration;
 
 #[tokio::test]

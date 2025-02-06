@@ -85,7 +85,8 @@ async fn session_create() {
     check(user3_rec).await;
     notify.notify_waiters();
     tokio::join!(task).0.unwrap();
-    check(user2_rec.lock().clone().unwrap()).await;
+    let rec = user2_rec.lock().clone();
+    check(rec.unwrap()).await;
     // user2 reject, user3 accept
     user2
         .lock()
@@ -180,7 +181,7 @@ async fn get_session_info() {
 async fn set_session_info() {
     let mut app = TestApp::new_with_launching_instance().await.unwrap();
     let (session_user, session) = app.new_session_db_level(3, "session1").await.unwrap();
-    let (a, b, c) = (
+    let (a, b, _c) = (
         session_user[0].clone(),
         session_user[1].clone(),
         session_user[2].clone(),

@@ -79,11 +79,8 @@ async fn set_user_info() {
     let mut app = TestApp::new_with_launching_instance().await.unwrap();
     let user = app.new_user().await.unwrap();
 
-    let ocid = user.lock().await.ocid.clone();
-
     let new_name = "test_set_user_info".to_string();
-    let ret = user
-        .lock()
+    user.lock()
         .await
         .oc()
         .set_self_info(SetSelfInfoRequest {
@@ -130,8 +127,6 @@ async fn set_friend_info() {
     let mut app = TestApp::new_with_launching_instance().await.unwrap();
     let user = app.new_user().await.unwrap();
     let user2 = app.new_user().await.unwrap();
-    let user_ocid = user.lock().await.ocid.clone();
-    let user2_ocid = user2.lock().await.ocid.clone();
     let user2_id = user2.lock().await.id;
     let new_name = "xxx";
 

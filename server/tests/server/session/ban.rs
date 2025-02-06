@@ -42,9 +42,9 @@ async fn ban_user() {
         .await
         .unwrap();
     tokio::time::sleep(Duration::from_millis(200)).await;
-    for i in 1..4 {
+    for i in session_user.iter().take(4).skip(1) {
         assert_eq!(
-            get_all_session_relations(session_user[i].lock().await.id, app.get_db_connection())
+            get_all_session_relations(i.lock().await.id, app.get_db_connection())
                 .await
                 .unwrap(),
             vec![]
@@ -68,7 +68,7 @@ async fn ban_user_with_duration() {
     let a = session_user[0].clone();
     let b = session_user[1].clone();
     let c = session_user[2].clone();
-    let (aid, bid, cid) = (a.lock().await.id, b.lock().await.id, c.lock().await.id);
+    let (_aid, bid, cid) = (a.lock().await.id, b.lock().await.id, c.lock().await.id);
 
     // Test with 5 seconds
     a.lock()
@@ -93,7 +93,7 @@ async fn ban_user_with_lower_privilege() {
     let a = session_user[0].clone();
     let b = session_user[1].clone();
     let c = session_user[2].clone();
-    let (aid, bid, cid) = (a.lock().await.id, b.lock().await.id, c.lock().await.id);
+    let (aid, _bid, cid) = (a.lock().await.id, b.lock().await.id, c.lock().await.id);
     let e = b
         .lock()
         .await
@@ -112,7 +112,7 @@ async fn ban_already_banned_user() {
     let a = session_user[0].clone();
     let b = session_user[1].clone();
     let c = session_user[2].clone();
-    let (aid, bid, cid) = (a.lock().await.id, b.lock().await.id, c.lock().await.id);
+    let (_aid, bid, cid) = (a.lock().await.id, b.lock().await.id, c.lock().await.id);
     a.lock()
         .await
         .ban_user(vec![bid], session.session_id, Some(Duration::from_secs(10)))
@@ -147,7 +147,7 @@ async fn unban_user() {
     let a = session_user[0].clone();
     let b = session_user[1].clone();
     let c = session_user[2].clone();
-    let (aid, bid, cid) = (a.lock().await.id, b.lock().await.id, c.lock().await.id);
+    let (_aid, bid, cid) = (a.lock().await.id, b.lock().await.id, c.lock().await.id);
     a.lock()
         .await
         .ban_user(vec![bid], session.session_id, None)

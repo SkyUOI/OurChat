@@ -1,10 +1,9 @@
-use base::consts::{ID, SessionID};
 use client::TestApp;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
 use pb::service::ourchat::session::join_in_session::v1::{
     AcceptJoinInSessionRequest, JoinInSessionRequest,
 };
-use server::db::session::{get_members, in_session};
+use server::db::session::in_session;
 use std::time::Duration;
 
 #[tokio::test]
@@ -14,7 +13,7 @@ async fn join_in_session_success() {
     let a = session_user[0].clone();
     let b = session_user[1].clone();
     let c = app.new_user().await.unwrap();
-    let (aid, bid, cid) = (a.lock().await.id, b.lock().await.id, c.lock().await.id);
+    let (_aid, _bid, cid) = (a.lock().await.id, b.lock().await.id, c.lock().await.id);
     c.lock()
         .await
         .oc()
@@ -86,7 +85,7 @@ async fn join_in_session_reject() {
     let a = session_user[0].clone();
     let b = session_user[1].clone();
     let c = app.new_user().await.unwrap();
-    let (aid, bid, cid) = (a.lock().await.id, b.lock().await.id, c.lock().await.id);
+    let (_aid, _bid, cid) = (a.lock().await.id, b.lock().await.id, c.lock().await.id);
     c.lock()
         .await
         .oc()

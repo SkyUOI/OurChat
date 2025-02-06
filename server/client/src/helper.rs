@@ -17,13 +17,10 @@ pub fn generate_file(size: Size) -> anyhow::Result<impl Iterator<Item = Vec<u8>>
         .map(|i| (i % (u8::MAX as u64 + 1)) as u8)
         .collect();
     if size % (1024 * 1024) != 0 {
-        Ok(iter::repeat(ret.clone())
-            .take(size / 1024 / 1024)
+        Ok(std::iter::repeat_n(ret.clone(), size / 1024 / 1024)
             .chain(iter::once(ret[..size % (1024 * 1024)].to_vec())))
     } else {
-        Ok(iter::repeat(ret)
-            .take(size / 1024 / 1024)
-            .chain(iter::once(vec![])))
+        Ok(iter::repeat_n(ret, size / 1024 / 1024).chain(iter::once(vec![])))
     }
 }
 

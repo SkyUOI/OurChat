@@ -265,9 +265,9 @@ impl TestApp {
     }
 
     pub async fn change_role_db_level(
-        user_id: ID,
-        session_id: SessionID,
-        role_id: u64,
+        _user_id: ID,
+        _session_id: SessionID,
+        _role_id: u64,
     ) -> anyhow::Result<()> {
         Ok(())
     }

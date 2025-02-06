@@ -1,3 +1,5 @@
+use base::time::from_google_timestamp;
+use claims::assert_gt;
 use pb::service::ourchat::msg_delivery::{
     self,
     v1::{OneMsg, fetch_msgs_response},
@@ -9,7 +11,7 @@ async fn test_text_sent() {
         .await
         .unwrap();
     let (session_user, session) = app.new_session_db_level(3, "session1").await.unwrap();
-    let (a, b, c) = (
+    let (a, _b, _cc) = (
         session_user[0].clone(),
         session_user[1].clone(),
         session_user[2].clone(),
@@ -25,7 +27,7 @@ async fn test_text_sent() {
         )
         .await
         .unwrap();
-    let msg_id = ret.into_inner().msg_id;
+    let _msg_id = ret.into_inner().msg_id;
     app.async_drop().await;
 }
 
@@ -35,7 +37,7 @@ async fn test_text_get() {
         .await
         .unwrap();
     let (session_user, session) = app.new_session_db_level(3, "session1").await.unwrap();
-    let (a, b, c) = (
+    let (a, _b, c) = (
         session_user[0].clone(),
         session_user[1].clone(),
         session_user[2].clone(),
@@ -58,8 +60,9 @@ async fn test_text_get() {
         .await
         .send_msg(session.session_id, vec![msg_should_sent.clone()])
         .await
-        .unwrap();
-    msg_id.push(ret.into_inner().msg_id);
+        .unwrap()
+        .into_inner();
+    msg_id.push(ret.msg_id);
 
     let msgs = c
         .lock()
@@ -69,6 +72,7 @@ async fn test_text_get() {
         .unwrap();
     assert_eq!(msgs.len(), 2);
     for (i, msg_id) in msgs.into_iter().zip(msg_id.iter()) {
+        assert_gt!(from_google_timestamp(&i.time.unwrap()).unwrap(), base_time);
         if let fetch_msgs_response::RespondMsgType::Msg(ref item) = i.respond_msg_type.unwrap() {
             assert_eq!(item.session_id, u64::from(session.session_id));
             assert_eq!(item.bundle_msgs, vec![msg_should_sent.clone()]);

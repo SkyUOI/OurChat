@@ -235,7 +235,7 @@ pub async fn if_permission_exist(
 /// * `session_id` - The ID of the session to which the user is being added.
 /// * `id` - The ID of the user being added to the session.
 /// * `role` - The role ID to be assigned to the user within the session.
-/// If not specified, the default role will be set.
+///   If not specified, the default role will be set.
 /// * `db_conn` - A reference to the database connection implementing the `ConnectionTrait`.
 ///
 /// # Returns

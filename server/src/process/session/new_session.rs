@@ -8,7 +8,7 @@ use anyhow::Context;
 use base::consts::{ID, SessionID};
 use base::database::DbPool;
 use base::time::to_google_timestamp;
-use entities::{friend, prelude::*, session};
+use entities::{friend, prelude::*};
 use invite_session::v1::InviteSession;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
@@ -16,10 +16,7 @@ use pb::service::ourchat::session::invite_session;
 use pb::service::ourchat::session::new_session::v1::{
     FailedMember, FailedReason, NewSessionRequest, NewSessionResponse,
 };
-use sea_orm::{
-    ActiveModelTrait, ActiveValue, ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter,
-    TransactionTrait,
-};
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, TransactionTrait};
 use std::time::Duration;
 use tonic::{Request, Response};
 use tracing::error;

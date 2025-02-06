@@ -11,7 +11,7 @@ async fn delete_session() {
     let a = session_user[0].clone();
     let b = session_user[1].clone();
     let c = session_user[2].clone();
-    let (aid, bid, cid) = (a.lock().await.id, b.lock().await.id, c.lock().await.id);
+    let (_aid, _bid, _cid) = (a.lock().await.id, b.lock().await.id, c.lock().await.id);
     // delete it without permission
     let err = b
         .lock()

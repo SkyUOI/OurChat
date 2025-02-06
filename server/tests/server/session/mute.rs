@@ -19,7 +19,7 @@ async fn mute_user() {
         session_user[3].clone(),
         session_user[4].clone(),
     );
-    let (aid, bid, cid, did, eid) = (
+    let (_aid, bid, cid, did, _eid) = (
         a.lock().await.id,
         b.lock().await.id,
         c.lock().await.id,
@@ -47,9 +47,9 @@ async fn mute_user() {
         .mute_user(vec![], session.session_id, None)
         .await
         .unwrap();
-    for i in 0..5 {
+    for i in session_user.iter().take(5) {
         let MuteStatus::Permanent = app
-            .check_mute_status(session_user[i].lock().await.id, session.session_id)
+            .check_mute_status(i.lock().await.id, session.session_id)
             .await
             .unwrap()
             .unwrap()
@@ -84,7 +84,7 @@ async fn mute_user_with_duration() {
     let (session_user, session) = app.new_session_db_level(3, "session1").await.unwrap();
     let a = session_user[0].clone();
     let b = session_user[1].clone();
-    let (aid, bid) = (a.lock().await.id, b.lock().await.id);
+    let (_aid, bid) = (a.lock().await.id, b.lock().await.id);
 
     // Test with 5-second duration
     a.lock()
@@ -117,7 +117,7 @@ async fn mute_user_with_lower_privilege() {
     let a = session_user[0].clone();
     let b = session_user[1].clone();
     let c = session_user[2].clone();
-    let (aid, bid, cid) = (a.lock().await.id, b.lock().await.id, c.lock().await.id);
+    let (aid, _bid, cid) = (a.lock().await.id, b.lock().await.id, c.lock().await.id);
 
     let e = b
         .lock()
@@ -138,7 +138,7 @@ async fn mute_already_muted_user() {
     let a = session_user[0].clone();
     let b = session_user[1].clone();
     let c = session_user[2].clone();
-    let (aid, bid, cid) = (a.lock().await.id, b.lock().await.id, c.lock().await.id);
+    let (_aid, bid, cid) = (a.lock().await.id, b.lock().await.id, c.lock().await.id);
 
     a.lock()
         .await
@@ -175,7 +175,7 @@ async fn unmute_user() {
     let (session_user, session) = app.new_session_db_level(3, "session1").await.unwrap();
     let a = session_user[0].clone();
     let b = session_user[1].clone();
-    let (aid, bid) = (a.lock().await.id, b.lock().await.id);
+    let (_aid, bid) = (a.lock().await.id, b.lock().await.id);
 
     a.lock()
         .await
