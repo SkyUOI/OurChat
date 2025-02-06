@@ -32,7 +32,7 @@ async fn join_in_session_success() {
         .await
         .unwrap();
     assert_eq!(join_in_request.len(), 1);
-    let RespondMsgType::JoinInSession(join_in) = join_in_request
+    let RespondMsgType::JoinInSessionApproval(join_in) = join_in_request
         .into_iter()
         .next()
         .unwrap()
@@ -64,6 +64,18 @@ async fn join_in_session_success() {
             .await
             .unwrap()
     );
+    let ret = c
+        .lock()
+        .await
+        .fetch_msgs(Duration::from_millis(400))
+        .await
+        .unwrap();
+    assert_eq!(ret.len(), 2, "{:?}", ret);
+    let RespondMsgType::AcceptJoinInSession(ret) = ret[1].respond_msg_type.clone().unwrap() else {
+        panic!()
+    };
+    assert_eq!(ret.session_id, *session.session_id);
+    assert!(ret.accepted);
     app.async_drop().await
 }
 
@@ -92,7 +104,7 @@ async fn join_in_session_reject() {
         .await
         .unwrap();
     assert_eq!(join_in_request.len(), 1);
-    let RespondMsgType::JoinInSession(join_in) = join_in_request
+    let RespondMsgType::JoinInSessionApproval(join_in) = join_in_request
         .into_iter()
         .next()
         .unwrap()
@@ -124,5 +136,17 @@ async fn join_in_session_reject() {
             .await
             .unwrap()
     );
+    let ret = c
+        .lock()
+        .await
+        .fetch_msgs(Duration::from_millis(400))
+        .await
+        .unwrap();
+    assert_eq!(ret.len(), 2, "{:?}", ret);
+    let RespondMsgType::AcceptJoinInSession(ret) = ret[1].respond_msg_type.clone().unwrap() else {
+        panic!()
+    };
+    assert_eq!(ret.session_id, *session.session_id);
+    assert!(!ret.accepted);
     app.async_drop().await
 }

@@ -93,12 +93,15 @@ pub use unregister::unregister;
 pub use upload::upload;
 
 use crate::SERVER_INFO;
+use crate::db::messages::MsgError;
 use crate::db::session::get_members;
 use crate::rabbitmq::USER_MSG_EXCHANGE;
 use crate::rabbitmq::generate_route_key;
 use base::consts::ID;
+use base::time::to_google_timestamp;
 use entities::prelude::*;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
+use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
 use prost::Message;
 
 pub mod db {
@@ -178,7 +181,7 @@ pub async fn check_user_exist(
         .is_some())
 }
 
-enum Dest {
+pub enum Dest {
     User(ID),
     Session(SessionID),
 }
@@ -218,5 +221,54 @@ async fn transmit_msg(
             }
         }
     }
+    Ok(())
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum MsgInsTransmitErr {
+    #[error("db error:{0:?}")]
+    Db(#[from] sea_orm::DbErr),
+    #[error("unknown error:{0:?}")]
+    Unknown(#[from] anyhow::Error),
+    #[error("permission denied")]
+    PermissionDenied,
+    #[error("not found")]
+    NotFound,
+}
+
+impl From<MsgError> for MsgInsTransmitErr {
+    fn from(value: MsgError) -> Self {
+        match value {
+            MsgError::DbError(db_err) => Self::Db(db_err),
+            MsgError::UnknownError(error) => Self::Unknown(error),
+            MsgError::WithoutPrivilege => Self::PermissionDenied,
+            MsgError::NotFound => Self::NotFound,
+        }
+    }
+}
+
+pub async fn message_insert_and_transmit(
+    user_id: ID,
+    session_id: Option<ID>,
+    msg: RespondMsgType,
+    dest: Dest,
+    is_encrypted: bool,
+    db_conn: &impl ConnectionTrait,
+    rmq_chan: &mut deadpool_lapin::lapin::Channel,
+) -> Result<(), MsgInsTransmitErr> {
+    let msg_model = crate::db::messages::insert_msg_record(
+        user_id,
+        session_id,
+        msg.clone(),
+        is_encrypted,
+        db_conn,
+    )
+    .await?;
+    let fetch_response = FetchMsgsResponse {
+        msg_id: msg_model.chat_msg_id as u64,
+        time: Some(to_google_timestamp(msg_model.time.into())),
+        respond_msg_type: Some(msg),
+    };
+    transmit_msg(fetch_response, dest, rmq_chan, db_conn).await?;
     Ok(())
 }

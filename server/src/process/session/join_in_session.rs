@@ -69,7 +69,7 @@ async fn join_in_session_impl(
     let id = get_id_from_req(&request).unwrap();
     let req = request.into_inner();
     let session_id: SessionID = req.session_id.into();
-    let respond_msg = RespondMsgType::JoinInSession(JoinInSessionApproval {
+    let respond_msg = RespondMsgType::JoinInSessionApproval(JoinInSessionApproval {
         session_id: session_id.into(),
         user_id: id.into(),
         leave_message: req.leave_message,

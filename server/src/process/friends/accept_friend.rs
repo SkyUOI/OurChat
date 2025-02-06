@@ -32,5 +32,6 @@ async fn accept_friend_impl(
     server: &RpcServer,
     request: Request<AcceptFriendRequest>,
 ) -> Result<AcceptFriendResponse, AcceptFriendErr> {
-    todo!()
+    let ret = AcceptFriendResponse {};
+    Ok(ret)
 }

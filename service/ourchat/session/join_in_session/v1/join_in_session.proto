@@ -22,3 +22,8 @@ message AcceptJoinInSessionRequest {
 }
 
 message AcceptJoinInSessionResponse {}
+
+message AcceptJoinInSessionNotification {
+  uint64 session_id = 1;
+  bool accepted = 2;
+}

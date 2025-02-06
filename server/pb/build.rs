@@ -85,6 +85,18 @@ fn main() -> anyhow::Result<()> {
             "service.ourchat.session.join_in_session.v1.JoinInSessionApproval",
             "#[derive(serde::Serialize, serde::Deserialize)]",
         )
+        .type_attribute(
+            "service.ourchat.session.join_in_session.v1.AcceptJoinInSessionNotification",
+            "#[derive(serde::Serialize, serde::Deserialize)]",
+        )
+        .type_attribute(
+            "service.ourchat.friends.add_friend.v1.AddFriendApproval",
+            "#[derive(serde::Serialize, serde::Deserialize)]",
+        )
+        .type_attribute(
+            "service.ourchat.friends.add_friend.v1.AddFriendRequest",
+            "#[derive(serde::Serialize, serde::Deserialize)]",
+        )
         .compile_well_known_types(true)
         .bytes(["."])
         .out_dir("./src/generated/")

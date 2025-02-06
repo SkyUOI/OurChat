@@ -1,11 +1,13 @@
 use crate::db::session::{SessionError, if_permission_exist};
 use crate::process::error_msg::{PERMISSION_DENIED, not_found};
-use crate::process::get_id_from_req;
+use crate::process::{Dest, MsgInsTransmitErr, get_id_from_req};
 use crate::{db, process::error_msg::SERVER_ERROR, server::RpcServer};
+use anyhow::Context;
 use base::consts::SessionID;
 use migration::m20241229_022701_add_role_for_session::PreDefinedPermissions;
+use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
 use pb::service::ourchat::session::join_in_session::v1::{
-    AcceptJoinInSessionRequest, AcceptJoinInSessionResponse,
+    AcceptJoinInSessionNotification, AcceptJoinInSessionRequest, AcceptJoinInSessionResponse,
 };
 use sea_orm::TransactionTrait;
 use tonic::{Request, Response, Status};
@@ -34,6 +36,24 @@ enum AcceptJoinInSessionErr {
     Status(#[from] Status),
     #[error("internal error:{0:?}")]
     Internal(#[from] anyhow::Error),
+}
+
+impl From<MsgInsTransmitErr> for AcceptJoinInSessionErr {
+    fn from(value: MsgInsTransmitErr) -> Self {
+        match value {
+            MsgInsTransmitErr::Db(db_err) => Self::Db(db_err),
+            MsgInsTransmitErr::Unknown(error) => Self::Internal(error),
+            MsgInsTransmitErr::PermissionDenied => {
+                Self::Status(Status::permission_denied(PERMISSION_DENIED))
+            }
+            MsgInsTransmitErr::NotFound => {
+                tracing::error!(
+                    "Insert a new message record into the database, but a not found was returned."
+                );
+                Self::Status(Status::not_found(not_found::MSG))
+            }
+        }
+    }
 }
 
 async fn accept_join_in_session_impl(
@@ -74,6 +94,30 @@ async fn accept_join_in_session_impl(
             }
         }
     }
+    // send a notification to applicant
+    let respond_msg = RespondMsgType::AcceptJoinInSession(AcceptJoinInSessionNotification {
+        session_id: session_id.into(),
+        accepted: req.accepted,
+    });
+    let rmq_conn = server
+        .rabbitmq
+        .get()
+        .await
+        .context("cannot get rabbitmq connection")?;
+    let mut conn = rmq_conn
+        .create_channel()
+        .await
+        .context("cannot create rabbitmq channel")?;
+    super::super::message_insert_and_transmit(
+        req.user_id.into(),
+        Some(session_id),
+        respond_msg.clone(),
+        Dest::User(req.user_id.into()),
+        false,
+        &server.db.db_pool,
+        &mut conn,
+    )
+    .await?;
     let ret = AcceptJoinInSessionResponse {};
     Ok(ret)
 }

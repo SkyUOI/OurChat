@@ -91,7 +91,7 @@ pub async fn del_msg(
 ///
 /// Returns `MsgError::DbError` if a database error occurs.
 pub async fn insert_msg_record(
-    user_id: ID,
+    sender_id: ID,
     session_id: Option<ID>,
     msg: RespondMsgType,
     is_encrypted: bool,
@@ -99,7 +99,7 @@ pub async fn insert_msg_record(
 ) -> Result<user_chat_msg::Model, MsgError> {
     let msg = user_chat_msg::ActiveModel {
         msg_data: ActiveValue::Set(serde_json::to_value(msg).unwrap()),
-        sender_id: ActiveValue::Set(user_id.into()),
+        sender_id: ActiveValue::Set(sender_id.into()),
         session_id: ActiveValue::Set(session_id.map(i64::from)),
         is_encrypted: ActiveValue::Set(is_encrypted),
         ..Default::default()
