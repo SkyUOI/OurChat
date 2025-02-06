@@ -11,4 +11,5 @@ pub use super::session::Entity as Session;
 pub use super::session_relation::Entity as SessionRelation;
 pub use super::user::Entity as User;
 pub use super::user_chat_msg::Entity as UserChatMsg;
+pub use super::user_contact_info::Entity as UserContactInfo;
 pub use super::user_role_relation::Entity as UserRoleRelation;

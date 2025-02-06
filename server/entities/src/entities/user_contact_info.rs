@@ -3,19 +3,20 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "friend")]
+#[sea_orm(table_name = "user_contact_info")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub user_id: i64,
     #[sea_orm(primary_key, auto_increment = false)]
-    pub friend_id: i64,
+    pub contact_user_id: i64,
+    pub display_name: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(
         belongs_to = "super::user::Entity",
-        from = "Column::FriendId",
+        from = "Column::ContactUserId",
         to = "super::user::Column::Id",
         on_update = "Cascade",
         on_delete = "Cascade"

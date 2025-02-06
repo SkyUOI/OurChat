@@ -1,4 +1,3 @@
-use anyhow::Context;
 use entities::{friend, prelude::*, user};
 use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter};
 
@@ -12,8 +11,8 @@ use base::consts::ID;
 pub async fn get_account_info_db(
     id: ID,
     db_conn: &impl ConnectionTrait,
-) -> anyhow::Result<Option<user::Model>> {
-    Ok(User::find_by_id(id).one(db_conn).await?)
+) -> Result<Option<user::Model>, sea_orm::DbErr> {
+    User::find_by_id(id).one(db_conn).await
 }
 
 /// Get all the friends of a user.
@@ -24,7 +23,7 @@ pub async fn get_account_info_db(
 pub async fn get_friends(
     id: ID,
     db_conn: &impl ConnectionTrait,
-) -> anyhow::Result<Vec<friend::Model>> {
+) -> Result<Vec<friend::Model>, sea_orm::DbErr> {
     let friends = Friend::find()
         .filter(friend::Column::UserId.eq(id))
         .all(db_conn)
@@ -32,26 +31,13 @@ pub async fn get_friends(
     Ok(friends)
 }
 
-/// Get a specific friend of a user by user id and friend id.
-///
-/// # Errors
-///
-/// Fails if any error occurs in the database, or if the friend is not found.
-pub async fn get_one_friend(
+pub async fn query_contact_user_info(
     id: ID,
-    friend_id: ID,
+    contact_user: ID,
     db_conn: &impl ConnectionTrait,
-) -> anyhow::Result<Option<friend::Model>> {
-    let friend = Friend::find()
-        .filter(friend::Column::UserId.eq(id))
-        .filter(friend::Column::FriendId.eq(friend_id))
+) -> Result<Option<entities::user_contact_info::Model>, sea_orm::DbErr> {
+    let model = entities::user_contact_info::Entity::find_by_id((id.into(), contact_user.into()))
         .one(db_conn)
-        .await
-        .with_context(|| {
-            format!(
-                "Failed to get the friend of user {} and friend {}",
-                id, friend_id
-            )
-        })?;
-    Ok(friend)
+        .await?;
+    Ok(model)
 }

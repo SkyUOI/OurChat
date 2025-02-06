@@ -25,8 +25,6 @@ use tracing::error;
 pub enum NewSessionError {
     #[error("session not found")]
     SessionNotFound,
-    #[error("user not found")]
-    UserNotFound,
     #[error("database error:{0:?}")]
     DbError(#[from] sea_orm::DbErr),
     #[error("unknown error:{0:?}")]
@@ -128,7 +126,6 @@ pub async fn new_session(
     match new_session_impl(server, req).await {
         Ok(res) => Ok(Response::new(res)),
         Err(e) => match e {
-            NewSessionError::UserNotFound => Err(tonic::Status::not_found(not_found::USER)),
             NewSessionError::SessionNotFound => Err(tonic::Status::not_found(not_found::SESSION)),
             NewSessionError::DbError(_) | NewSessionError::UnknownError(_) => {
                 error!("{}", e);

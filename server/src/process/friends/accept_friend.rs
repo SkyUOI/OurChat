@@ -112,15 +112,21 @@ async fn accept_friend_impl(
         let model = entities::friend::ActiveModel {
             user_id: ActiveValue::Set(inviter_id.into()),
             friend_id: ActiveValue::Set(id.into()),
-            display_name: ActiveValue::Set(add_friend_req.display_name),
         };
         model.insert(&transaction).await?;
         let model = entities::friend::ActiveModel {
             user_id: ActiveValue::Set(id.into()),
             friend_id: ActiveValue::Set(inviter_id.into()),
-            display_name: ActiveValue::Set(None),
         };
         model.insert(&transaction).await?;
+        if let Some(display_name) = add_friend_req.display_name {
+            let model = entities::user_contact_info::ActiveModel {
+                user_id: ActiveValue::Set(inviter_id.into()),
+                contact_user_id: ActiveValue::Set(id.into()),
+                display_name: ActiveValue::Set(Some(display_name)),
+            };
+            model.insert(&transaction).await?;
+        }
         transaction.commit().await?;
     }
     // transmit to both

@@ -44,24 +44,24 @@ async fn get_account_info_impl(
     let request = request.into_inner();
     // query in the database
     // get id first
-    let requests_id = match request.id {
+    let request_id = match request.id {
         Some(id) => ID(id),
         None => id,
     };
-    let privilege = if id == requests_id {
+    let privilege = if id == request_id {
         Privilege::Owner
     } else {
         Privilege::Stranger
     };
 
-    let queried_user = match db::user::get_account_info_db(requests_id, &server.db.db_pool).await? {
+    let queried_user = match db::user::get_account_info_db(request_id, &server.db.db_pool).await? {
         Some(user) => user,
         None => return Err(GetInfoError::NotFound),
     };
     let data_cell = OnceLock::new();
     let friends = async || {
         if data_cell.get().is_none() {
-            let list = db::user::get_friends(requests_id, &server.db.db_pool).await?;
+            let list = db::user::get_friends(request_id, &server.db.db_pool).await?;
             data_cell.set(list).unwrap();
         }
         anyhow::Ok(data_cell.get().unwrap())
@@ -88,20 +88,21 @@ async fn get_account_info_impl(
                         // invalid for the owner, ignore
                     } else {
                         let friend =
-                            db::user::get_one_friend(id, requests_id, &server.db.db_pool).await?;
+                            db::user::query_contact_user_info(id, request_id, &server.db.db_pool)
+                                .await?;
+                        let get_origin_name = async || {
+                            let friend_info = entities::user::Entity::find_by_id(request_id)
+                                .one(&server.db.db_pool)
+                                .await?
+                                .unwrap();
+                            anyhow::Ok(Some(friend_info.name))
+                        };
                         ret.display_name = match friend {
                             Some(x) => match x.display_name {
                                 Some(name) => Some(name),
-                                None => {
-                                    let friend_info =
-                                        entities::user::Entity::find_by_id(x.friend_id)
-                                            .one(&server.db.db_pool)
-                                            .await?
-                                            .unwrap();
-                                    Some(friend_info.name)
-                                }
+                                None => get_origin_name().await?,
                             },
-                            None => None,
+                            None => get_origin_name().await?,
                         }
                     }
                 }

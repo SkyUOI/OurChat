@@ -13,4 +13,5 @@ pub mod session;
 pub mod session_relation;
 pub mod user;
 pub mod user_chat_msg;
+pub mod user_contact_info;
 pub mod user_role_relation;

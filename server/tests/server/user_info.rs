@@ -123,15 +123,25 @@ async fn set_user_info() {
 }
 
 #[tokio::test]
-async fn set_friend_info() {
-    let mut app = TestApp::new_with_launching_instance().await.unwrap();
-    let user = app.new_user().await.unwrap();
-    let user2 = app.new_user().await.unwrap();
+async fn set_friend_info() -> anyhow::Result<()> {
+    let mut app = TestApp::new_with_launching_instance().await?;
+    let user1 = app.new_user().await?;
+    let user2 = app.new_user().await?;
     let user2_id = user2.lock().await.id;
     let new_name = "xxx";
 
-    // now have privileges, but is no friends now
-    let ret = user
+    let ret = user1
+        .lock()
+        .await
+        .oc()
+        .get_account_info(GetAccountInfoRequest {
+            id: Some(user2_id.into()),
+            request_values: vec![RequestValues::DisplayName.into()],
+        })
+        .await?
+        .into_inner();
+    assert_eq!(ret.display_name.unwrap(), user2.lock().await.name);
+    user1
         .lock()
         .await
         .oc()
@@ -139,9 +149,18 @@ async fn set_friend_info() {
             id: *user2_id,
             display_name: Some(new_name.to_owned()),
         })
+        .await?;
+    let ret = user1
+        .lock()
         .await
-        .unwrap();
-    let ret = ret.into_inner();
-    // add a friend
+        .oc()
+        .get_account_info(GetAccountInfoRequest {
+            id: Some(user2_id.into()),
+            request_values: vec![RequestValues::DisplayName.into()],
+        })
+        .await?
+        .into_inner();
+    assert_eq!(ret.display_name.unwrap(), new_name);
     app.async_drop().await;
+    Ok(())
 }
