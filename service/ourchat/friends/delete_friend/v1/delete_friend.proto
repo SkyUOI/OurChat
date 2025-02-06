@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package service.ourchat.friends.delete_friend.v1;
+
+message DeleteFriendRequest {
+  uint64 friend_id = 1;
+}
+
+message DeleteFriendResponse {}

@@ -6,6 +6,7 @@ pub mod not_found {
     pub const NOT_BE_MUTED: &str = "User Not Be Muted";
     pub const NOT_BE_BANNED: &str = "User Not Be Banned";
     pub const SESSION_INVITATION: &str = "Session Invitation Not Found";
+    pub const FRIEND: &str = "Friend Not Found";
 }
 
 pub mod exist {

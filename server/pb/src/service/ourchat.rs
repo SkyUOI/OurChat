@@ -116,4 +116,10 @@ pub mod friends {
             include!("../generated/service.ourchat.friends.accept_friend.v1.rs");
         }
     }
+
+    pub mod delete_friend {
+        pub mod v1 {
+            include!("../generated/service.ourchat.friends.delete_friend.v1.rs");
+        }
+    }
 }

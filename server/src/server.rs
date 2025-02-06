@@ -18,6 +18,7 @@ use pb::service::basic::v1::{
 use pb::service::ourchat::download::v1::{DownloadRequest, DownloadResponse};
 use pb::service::ourchat::friends::accept_friend::v1::{AcceptFriendRequest, AcceptFriendResponse};
 use pb::service::ourchat::friends::add_friend::v1::{AddFriendRequest, AddFriendResponse};
+use pb::service::ourchat::friends::delete_friend::v1::{DeleteFriendRequest, DeleteFriendResponse};
 use pb::service::ourchat::friends::set_friend_info::v1::{
     SetFriendInfoRequest, SetFriendInfoResponse,
 };
@@ -336,6 +337,13 @@ impl OurChatService for RpcServer {
         request: Request<AcceptFriendRequest>,
     ) -> Result<Response<AcceptFriendResponse>, Status> {
         process::accept_friend(self, request).await
+    }
+
+    async fn delete_friend(
+        &self,
+        request: Request<DeleteFriendRequest>,
+    ) -> Result<Response<DeleteFriendResponse>, Status> {
+        process::delete_friend(self, request).await
     }
 
     #[tracing::instrument(skip(self))]

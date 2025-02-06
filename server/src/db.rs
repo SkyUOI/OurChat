@@ -1,6 +1,7 @@
 //! Database
 
 pub mod file_storage;
+pub mod friend;
 pub mod helper;
 pub mod messages;
 pub mod redis;

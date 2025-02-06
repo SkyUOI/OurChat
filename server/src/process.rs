@@ -70,7 +70,8 @@ use tonic::Request;
 
 pub use download::download;
 pub use friends::{
-    accept_friend::accept_friend, add_friend::add_friend, set_friend_info::set_friend_info,
+    accept_friend::accept_friend, add_friend::add_friend, delete_friend::delete_friend,
+    set_friend_info::set_friend_info,
 };
 pub use message::{fetch_user_msg::fetch_user_msg, recall::recall_msg, send_msg::send_msg};
 pub use session::{

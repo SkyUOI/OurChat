@@ -5,6 +5,7 @@ package service.ourchat.v1;
 import "service/ourchat/download/v1/download.proto";
 import "service/ourchat/friends/accept_friend/v1/accept_friend.proto";
 import "service/ourchat/friends/add_friend/v1/add_friend.proto";
+import "service/ourchat/friends/delete_friend/v1/delete_friend.proto";
 import "service/ourchat/friends/set_friend_info/v1/set_friend_info.proto";
 import "service/ourchat/get_account_info/v1/get_account_info.proto";
 import "service/ourchat/msg_delivery/recall/v1/recall.proto";
@@ -78,6 +79,8 @@ service OurChatService {
   rpc AddFriend(friends.add_friend.v1.AddFriendRequest) returns (friends.add_friend.v1.AddFriendResponse);
 
   rpc AcceptFriend(friends.accept_friend.v1.AcceptFriendRequest) returns (friends.accept_friend.v1.AcceptFriendResponse);
+
+  rpc DeleteFriend(friends.delete_friend.v1.DeleteFriendRequest) returns (friends.delete_friend.v1.DeleteFriendResponse);
 
   rpc JoinInSession(session.join_in_session.v1.JoinInSessionRequest) returns (session.join_in_session.v1.JoinInSessionResponse);
 
