@@ -56,7 +56,8 @@ async fn accept_join_in_session_impl(
     }
     if req.accepted {
         let transaction = server.db.db_pool.begin().await?;
-        match db::session::join_in_session(session_id, id, None, &transaction).await {
+        match db::session::join_in_session(session_id, req.user_id.into(), None, &transaction).await
+        {
             Ok(_) => {
                 transaction.commit().await?;
             }

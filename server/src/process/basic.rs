@@ -18,7 +18,7 @@ pub async fn get_id(ocid: &OCID, db_conn: &DbPool) -> anyhow::Result<ID> {
     }
     // query in database
     let user = User::find()
-        .filter(user::Column::Ocid.eq(ocid.to_string()))
+        .filter(user::Column::Ocid.eq(ocid))
         .one(&db_conn.db_pool)
         .await?;
     if let Some(user) = user {

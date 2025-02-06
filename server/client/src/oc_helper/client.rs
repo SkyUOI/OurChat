@@ -288,7 +288,7 @@ impl TestApp {
         from_google_timestamp(&ret).unwrap()
     }
 
-    pub async fn get_id(&mut self, ocid: OCID) -> anyhow::Result<ID> {
+    pub async fn get_id(&mut self, ocid: OCID) -> Result<ID, tonic::Status> {
         let id: ID = self
             .clients
             .basic

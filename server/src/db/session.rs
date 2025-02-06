@@ -355,3 +355,14 @@ pub async fn delete_session(
     }
     Ok(())
 }
+
+pub async fn in_session(
+    user_id: ID,
+    session_id: SessionID,
+    db_conn: &impl ConnectionTrait,
+) -> Result<bool, sea_orm::DbErr> {
+    let res = session_relation::Entity::find_by_id((session_id.into(), user_id.into()))
+        .one(db_conn)
+        .await?;
+    Ok(res.is_some())
+}
