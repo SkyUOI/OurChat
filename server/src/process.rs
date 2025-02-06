@@ -106,8 +106,8 @@ use prost::Message;
 
 pub mod db {
     pub use super::basic::get_id;
-    pub use super::session::new_session::create_session_db;
     pub use crate::db::session::batch_join_in_session;
+    pub use crate::db::session::create_session_db;
     pub use crate::db::session::join_in_session;
 }
 
@@ -241,7 +241,7 @@ impl From<MsgError> for MsgInsTransmitErr {
         match value {
             MsgError::DbError(db_err) => Self::Db(db_err),
             MsgError::UnknownError(error) => Self::Unknown(error),
-            MsgError::WithoutPrivilege => Self::PermissionDenied,
+            MsgError::PermissionDenied => Self::PermissionDenied,
             MsgError::NotFound => Self::NotFound,
         }
     }

@@ -48,7 +48,7 @@ impl From<db::messages::MsgError> for JoinInSessionErr {
     fn from(value: db::messages::MsgError) -> Self {
         match value {
             db::messages::MsgError::DbError(db_err) => Self::Db(db_err),
-            db::messages::MsgError::WithoutPrivilege => {
+            db::messages::MsgError::PermissionDenied => {
                 Self::Status(Status::permission_denied(PERMISSION_DENIED))
             }
             db::messages::MsgError::NotFound => {

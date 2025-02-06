@@ -17,7 +17,7 @@ pub enum MsgError {
     #[error("unknown error:{0:?}")]
     UnknownError(#[from] anyhow::Error),
     #[error("Don't have privilege")]
-    WithoutPrivilege,
+    PermissionDenied,
     #[error("not found")]
     NotFound,
 }
@@ -77,7 +77,7 @@ pub async fn del_msg(
             )
             .await?
         {
-            return Err(MsgError::WithoutPrivilege);
+            return Err(MsgError::PermissionDenied);
         }
     }
     msg.delete(db_conn).await?;

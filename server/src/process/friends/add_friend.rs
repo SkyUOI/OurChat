@@ -1,7 +1,7 @@
 use crate::db::messages::{MsgError, insert_msg_record};
 use crate::process::error_msg::exist::FRIEND;
 use crate::process::error_msg::{PERMISSION_DENIED, not_found};
-use crate::process::{Dest, get_id_from_req, transmit_msg};
+use crate::process::{Dest, friends, get_id_from_req, transmit_msg};
 use crate::{process::error_msg::SERVER_ERROR, server::RpcServer};
 use anyhow::Context;
 use base::consts::{ADD_FRIEND_REQUEST_EXPIRE, ID};
@@ -32,10 +32,6 @@ pub async fn add_friend(
     }
 }
 
-pub fn mapped_add_friend_to_redis(user_id: ID, friend_id: ID) -> String {
-    format!("add_friend:{}:{}", user_id, friend_id)
-}
-
 #[derive(thiserror::Error, Debug)]
 enum AddFriendErr {
     #[error("database error:{0:?}")]
@@ -53,7 +49,7 @@ impl From<MsgError> for AddFriendErr {
         match value {
             MsgError::DbError(db_err) => Self::Db(db_err),
             MsgError::UnknownError(error) => Self::Internal(error),
-            MsgError::WithoutPrivilege => {
+            MsgError::PermissionDenied => {
                 Self::Status(Status::permission_denied(PERMISSION_DENIED))
             }
             MsgError::NotFound => {
@@ -81,7 +77,7 @@ async fn add_friend_impl(
         Err(Status::already_exists(FRIEND))?;
     }
     // save invitation to redis
-    let key = mapped_add_friend_to_redis(id, friend_id);
+    let key = friends::mapped_add_friend_to_redis(id, friend_id);
     let mut conn = server
         .db
         .redis_pool
@@ -106,7 +102,7 @@ async fn add_friend_impl(
         insert_msg_record(friend_id, None, respond_msg.clone(), false, &transaction).await?;
     let msg_model = insert_msg_record(id, None, respond_msg.clone(), false, &transaction).await?;
     transaction.commit().await?;
-    // try to send the message directly
+    // send this message to the user who is invited
     let fetch_response = FetchMsgsResponse {
         msg_id: msg_model.chat_msg_id as u64,
         time: Some(to_google_timestamp(msg_model.time.into())),
@@ -128,7 +124,6 @@ async fn add_friend_impl(
         &server.db.db_pool,
     )
     .await?;
-    // send this message to the user who is invited
     let ret = AddFriendResponse {};
     Ok(ret)
 }

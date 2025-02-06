@@ -36,26 +36,6 @@ pub enum NewSessionError {
     UnknownError(#[from] anyhow::Error),
 }
 
-/// create a new session in the database
-pub async fn create_session_db(
-    session_id: SessionID,
-    people_num: usize,
-    session_name: String,
-    db_conn: &impl ConnectionTrait,
-) -> Result<(), NewSessionError> {
-    let time_now = chrono::Utc::now();
-    let session = session::ActiveModel {
-        session_id: ActiveValue::Set(session_id.into()),
-        name: ActiveValue::Set(session_name),
-        size: ActiveValue::Set(people_num.try_into().context("people num error")?),
-        created_time: ActiveValue::Set(time_now.into()),
-        updated_time: ActiveValue::Set(time_now.into()),
-        ..Default::default()
-    };
-    session.insert(db_conn).await?;
-    Ok(())
-}
-
 /// check the privilege and whether to send a verification request
 pub async fn whether_to_verify(
     sender: ID,
@@ -110,7 +90,7 @@ async fn new_session_impl(
     }
     let bundle = async {
         let transaction = server.db.db_pool.begin().await?;
-        create_session_db(
+        db::session::create_session_db(
             session_id,
             people_num,
             req.name.unwrap_or_default(),

@@ -366,3 +366,23 @@ pub async fn in_session(
         .await?;
     Ok(res.is_some())
 }
+
+/// create a new session in the database
+pub async fn create_session_db(
+    session_id: SessionID,
+    people_num: usize,
+    session_name: String,
+    db_conn: &impl ConnectionTrait,
+) -> Result<session::Model, sea_orm::DbErr> {
+    let time_now = chrono::Utc::now();
+    let session = session::ActiveModel {
+        session_id: ActiveValue::Set(session_id.into()),
+        name: ActiveValue::Set(session_name),
+        size: ActiveValue::Set(people_num as i32),
+        created_time: ActiveValue::Set(time_now.into()),
+        updated_time: ActiveValue::Set(time_now.into()),
+        ..Default::default()
+    };
+    let ret = session.insert(db_conn).await?;
+    Ok(ret)
+}
