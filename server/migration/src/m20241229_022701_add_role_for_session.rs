@@ -61,8 +61,8 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(UserRoleRelation::Table)
                     .if_not_exists()
-                    .col(big_unsigned(UserRoleRelation::UserId))
                     .col(big_unsigned(UserRoleRelation::SessionId))
+                    .col(big_unsigned(UserRoleRelation::UserId))
                     .col(big_unsigned(UserRoleRelation::RoleId))
                     .foreign_key(
                         ForeignKey::create()
@@ -87,8 +87,8 @@ impl MigrationTrait for Migration {
                     )
                     .primary_key(
                         Index::create()
-                            .col(UserRoleRelation::UserId)
-                            .col(UserRoleRelation::SessionId),
+                            .col(UserRoleRelation::SessionId)
+                            .col(UserRoleRelation::UserId),
                     )
                     .to_owned(),
             )

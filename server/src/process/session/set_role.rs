@@ -6,6 +6,7 @@ use crate::{
     },
     server::RpcServer,
 };
+use base::consts::ID;
 use migration::m20241229_022701_add_role_for_session::PreDefinedPermissions;
 use pb::service::ourchat::session::set_role::v1::{SetRoleRequest, SetRoleResponse};
 use sea_orm::{ActiveModelTrait, ActiveValue};
@@ -43,6 +44,7 @@ async fn set_role_impl(
 ) -> Result<SetRoleResponse, SetRoleErr> {
     let id = get_id_from_req(&request).unwrap();
     let req = request.into_inner();
+    let member_id: ID = req.member_id.into();
     // check the privilege
     if !if_permission_exist(
         id,
@@ -52,12 +54,10 @@ async fn set_role_impl(
     )
     .await?
     {
-        return Err(SetRoleErr::Status(Status::permission_denied(
-            PERMISSION_DENIED,
-        )));
+        Err(Status::permission_denied(PERMISSION_DENIED))?;
     }
     let model = entities::user_role_relation::ActiveModel {
-        user_id: ActiveValue::Set(id.into()),
+        user_id: ActiveValue::Set(member_id.into()),
         role_id: ActiveValue::Set(req.role_id as i64),
         session_id: ActiveValue::Set(req.session_id as i64),
     };
