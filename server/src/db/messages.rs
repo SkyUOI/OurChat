@@ -25,7 +25,7 @@ pub enum MsgError {
 /// Get the messages of the sessions which the user is a member of,
 /// where the time of the message is greater than `end_timestamp`.
 ///
-/// `page_size` is used to limit the number of messages returned in one query,
+/// The parameter `page_size` is used to limit the number of messages returned in one query,
 /// and the messages are returned in descending order of their timestamps.
 ///
 /// # Errors

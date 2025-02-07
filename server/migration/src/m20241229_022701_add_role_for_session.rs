@@ -170,9 +170,9 @@ pub enum PreDefinedRoles {
     Owner = 3,
 }
 
-impl From<PreDefinedRoles> for sea_orm::Value {
+impl From<PreDefinedRoles> for Value {
     fn from(value: PreDefinedRoles) -> Self {
-        sea_orm::Value::BigUnsigned(Some(value.into()))
+        Value::BigUnsigned(Some(value.into()))
     }
 }
 

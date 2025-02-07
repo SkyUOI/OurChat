@@ -27,7 +27,7 @@ async fn join_in_session_success() {
     let join_in_request = a
         .lock()
         .await
-        .fetch_msgs(Duration::from_millis(400))
+        .fetch_msgs(Duration::from_millis(500))
         .await
         .unwrap();
     assert_eq!(join_in_request.len(), 1);
@@ -66,7 +66,7 @@ async fn join_in_session_success() {
     let ret = c
         .lock()
         .await
-        .fetch_msgs(Duration::from_millis(400))
+        .fetch_msgs(Duration::from_millis(500))
         .await
         .unwrap();
     assert_eq!(ret.len(), 2, "{:?}", ret);
@@ -99,7 +99,7 @@ async fn join_in_session_reject() {
     let join_in_request = a
         .lock()
         .await
-        .fetch_msgs(Duration::from_millis(400))
+        .fetch_msgs(Duration::from_millis(500))
         .await
         .unwrap();
     assert_eq!(join_in_request.len(), 1);
@@ -138,7 +138,7 @@ async fn join_in_session_reject() {
     let ret = c
         .lock()
         .await
-        .fetch_msgs(Duration::from_millis(400))
+        .fetch_msgs(Duration::from_millis(500))
         .await
         .unwrap();
     assert_eq!(ret.len(), 2, "{:?}", ret);

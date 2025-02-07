@@ -5,7 +5,7 @@ use sqlx::migrate::MigrateDatabase;
 use std::{sync::Arc, thread, time::Duration};
 
 pub struct TestHttpApp {
-    pub app_config: Arc<http_server::Cfg>,
+    pub app_config: Arc<Cfg>,
     pub client: reqwest::Client,
     pub has_dropped: bool,
     handle: ShutdownSdr,

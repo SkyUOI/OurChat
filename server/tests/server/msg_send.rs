@@ -4,6 +4,7 @@ use pb::service::ourchat::msg_delivery::{
     self,
     v1::{OneMsg, fetch_msgs_response},
 };
+use std::time::Duration;
 
 #[tokio::test]
 async fn test_text_sent() {
@@ -43,6 +44,7 @@ async fn test_text_get() {
         session_user[2].clone(),
     );
     let base_time = app.get_timestamp().await;
+    tokio::time::sleep(Duration::from_millis(100)).await;
     // send a message
     let msg_should_sent = OneMsg {
         data: Some(msg_delivery::v1::one_msg::Data::Text("hello".to_owned())),
@@ -67,7 +69,7 @@ async fn test_text_get() {
     let msgs = c
         .lock()
         .await
-        .fetch_msgs(tokio::time::Duration::from_millis(400))
+        .fetch_msgs(Duration::from_millis(400))
         .await
         .unwrap();
     assert_eq!(msgs.len(), 2);

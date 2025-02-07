@@ -319,7 +319,7 @@ impl TestUser {
         let ret = self.oc().fetch_msgs(msg_get).await?;
         let mut ret_stream = ret.into_inner();
         let mut msgs = vec![];
-        while let Some(i) = tokio::select! {
+        while let Some(i) = select! {
             i = ret_stream.next() => i,
             _ = tokio::time::sleep(duration) => None
         } {
