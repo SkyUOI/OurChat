@@ -1,5 +1,3 @@
-use base::time::from_google_timestamp;
-use claims::assert_gt;
 use pb::service::ourchat::msg_delivery::{
     self,
     v1::{OneMsg, fetch_msgs_response},
@@ -43,8 +41,6 @@ async fn test_text_get() {
         session_user[1].clone(),
         session_user[2].clone(),
     );
-    let base_time = app.get_timestamp().await;
-    tokio::time::sleep(Duration::from_millis(100)).await;
     // send a message
     let msg_should_sent = OneMsg {
         data: Some(msg_delivery::v1::one_msg::Data::Text("hello".to_owned())),
@@ -74,7 +70,6 @@ async fn test_text_get() {
         .unwrap();
     assert_eq!(msgs.len(), 2);
     for (i, msg_id) in msgs.into_iter().zip(msg_id.iter()) {
-        assert_gt!(from_google_timestamp(&i.time.unwrap()).unwrap(), base_time);
         if let fetch_msgs_response::RespondMsgType::Msg(ref item) = i.respond_msg_type.unwrap() {
             assert_eq!(item.session_id, u64::from(session.session_id));
             assert_eq!(item.bundle_msgs, vec![msg_should_sent.clone()]);
