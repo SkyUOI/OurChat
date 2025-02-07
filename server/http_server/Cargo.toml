@@ -32,4 +32,8 @@ parking_lot.workspace = true
 tokio-stream.workspace = true
 reqwest.workspace = true
 linkify.workspace = true
-matrix-sdk = "0"
+
+[dev-dependencies.matrix-sdk]
+version = "0"
+default-features = false
+features = ["rustls-tls"]
