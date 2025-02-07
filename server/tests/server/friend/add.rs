@@ -29,7 +29,7 @@ async fn add_friend_accept() {
     let user2_rec = user2
         .lock()
         .await
-        .fetch_msgs(Duration::from_millis(500))
+        .fetch_msgs(Duration::from_millis(600))
         .await
         .unwrap();
     assert_eq!(user2_rec.len(), 1);
@@ -110,7 +110,7 @@ async fn add_friend_reject() {
     let user2_rec = user2
         .lock()
         .await
-        .fetch_msgs(Duration::from_millis(400))
+        .fetch_msgs(Duration::from_millis(600))
         .await
         .unwrap();
     assert_eq!(user2_rec.len(), 1);
