@@ -4,7 +4,7 @@ use reqwest::header::CONTENT_TYPE;
 async fn check(app: &mut TestHttpApp) {
     tracing::info!("sending request");
     let resp = app
-        .http_get("logo")
+        .ourchat_api_get("logo")
         .await
         .unwrap()
         .error_for_status()

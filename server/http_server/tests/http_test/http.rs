@@ -6,7 +6,7 @@ async fn http_status() {
     let mut app = TestHttpApp::new(None).await.unwrap();
     tracing::info!("sending request");
     let response = app
-        .http_get("status")
+        .ourchat_api_get("status")
         .await
         .expect("failed")
         .error_for_status()

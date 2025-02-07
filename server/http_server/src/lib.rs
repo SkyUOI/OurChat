@@ -11,6 +11,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 pub mod httpserver;
+pub mod matrix;
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct MainCfg {
