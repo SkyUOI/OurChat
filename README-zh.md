@@ -37,3 +37,7 @@ OurChat 是一个可以在 Linux，Windows 和 Macos 上运行的聊天软件。
 ## 贡献
 
 请见 [CONTRIBUTING](https://ourchat.readthedocs.io/zh-cn/latest/docs/development/contributing.html)
+
+## Community
+
+- [Matrix](https://matrix.to/#/#skyuoiourchat:matrix.org)

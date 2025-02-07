@@ -39,3 +39,7 @@ Refer to [Build Document](https://ourchat.readthedocs.io/en/latest/docs/run/buil
 ## Contribution
 
 Please see [CONTRIBUTING](https://ourchat.readthedocs.io/en/latest/docs/development/contributing.html)
+
+## Community
+
+- [Matrix](https://matrix.to/#/#skyuoiourchat:matrix.org)
