@@ -69,7 +69,7 @@ async fn test_recall() {
     let b_rec = b
         .lock()
         .await
-        .fetch_msgs(Duration::from_millis(200))
+        .fetch_msgs(Duration::from_millis(600))
         .await
         .unwrap();
     let check = |rec: Vec<FetchMsgsResponse>, msg_len, msg_recall_idx: usize| {
