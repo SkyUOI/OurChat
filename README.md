@@ -11,7 +11,7 @@
 ## [中文](./README-zh.md)
 
 | Platform | Status                                                                                                 |
-| :------- | :----------------------------------------------------------------------------------------------------- |
+|:---------|:-------------------------------------------------------------------------------------------------------|
 | Linux    | ![Linux Test](https://img.shields.io/github/actions/workflow/status/skyuoi/ourchat/rust_linux.yml)     |
 | Windows  | ![Windows Test](https://img.shields.io/github/actions/workflow/status/skyuoi/ourchat/rust_windows.yml) |
 | Macos    | ![Macos Test](https://img.shields.io/github/actions/workflow/status/skyuoi/ourchat/rust_macos.yml)     |
@@ -20,15 +20,20 @@ OurChat is a chat application for Linux, Windows and macOS. It supports all plat
 
 The project is under rapid development and there is also a lot of work to be done. It can not be used directly by now.
 
-In the past year of 2024, we have accomplished many outstanding tasks, and it is delightful that developers have devoted so much passion to this project in their spare time. Every developer deserves gratitude.
+In the past year of 2024, we have accomplished many outstanding tasks, and it is delightful that developers have devoted
+so much passion to this project in their spare time. Every developer deserves gratitude.
 
 ## Plan
 
-Provide a lightweight chat software that can easily run on devices like Raspberry Pi, allowing you to set up your own chat server for your company, family, etc. At the same time, it has the potential to scale up to a high-performance server capable of accommodating millions of users.
+Provide a lightweight chat software that can easily run on devices like Raspberry Pi, allowing you to set up your own
+chat server for your company, family, etc. At the same time, it has the potential to scale up to a high-performance
+server capable of accommodating millions of users.
 
-Freedom and openness are the principles of our design, and you will experience much more freedom than other chat software.
+Freedom and openness are the principles of our design, and you will experience much more freedom than other chat
+software.
 
-End-to-end encryption and other security guarantees make OurChat a service you can trust, and we absolutely protect your privacy!
+End-to-end encryption and other security guarantees make OurChat a service you can trust, and we absolutely protect your
+privacy!
 
 ## Build from source
 

@@ -11,13 +11,14 @@ mod shared_state;
 pub mod utils;
 
 use anyhow::bail;
-use base::configs::DebugCfg;
 use base::consts::{self, CONFIG_FILE_ENV_VAR, LOG_OUTPUT_DIR, STDIN_AVAILABLE};
 use base::database::DbPool;
 use base::database::postgres::PostgresDbCfg;
 use base::database::redis::RedisCfg;
 use base::log;
 use base::rabbitmq::RabbitMQCfg;
+use base::setting::debug::DebugCfg;
+use base::setting::{Setting, UserSetting};
 use base::shutdown::{ShutdownRev, ShutdownSdr};
 use clap::Parser;
 use cmd::CommandTransmitData;
@@ -57,9 +58,10 @@ pub struct ArgsParser {
 pub struct MainCfg {
     #[serde(default = "consts::default_ip")]
     pub ip: String,
-    pub rediscfg: PathBuf,
-    pub dbcfg: PathBuf,
-    pub rabbitmqcfg: PathBuf,
+    pub redis_cfg: PathBuf,
+    pub db_cfg: PathBuf,
+    pub rabbitmq_cfg: PathBuf,
+    pub user_setting: PathBuf,
     #[serde(default = "consts::default_port")]
     pub port: u16,
     #[serde(default = "consts::default_http_port")]
@@ -89,7 +91,7 @@ pub struct MainCfg {
     #[serde(default = "consts::default_leader_node")]
     pub leader_node: bool,
     pub password_hash: PasswordHash,
-    pub db: OCDbCfg,
+    pub db: DbArgCfg,
     pub debug: DebugCfg,
 
     #[serde(skip)]
@@ -109,7 +111,7 @@ pub struct PasswordHash {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct OCDbCfg {
+pub struct DbArgCfg {
     #[serde(default = "consts::default_fetch_msg_page_size")]
     pub fetch_msg_page_size: u64,
 }
@@ -170,18 +172,21 @@ pub struct Cfg {
     pub db_cfg: PostgresDbCfg,
     pub redis_cfg: RedisCfg,
     pub rabbitmq_cfg: RabbitMQCfg,
+    pub user_setting: UserSetting,
 }
 
 impl Cfg {
     pub fn new(main_cfg: MainCfg) -> anyhow::Result<Self> {
-        let db_cfg = PostgresDbCfg::build_from_path(&main_cfg.dbcfg)?;
-        let redis_cfg = RedisCfg::build_from_path(&main_cfg.rediscfg)?;
-        let rabbitmq_cfg = RabbitMQCfg::build_from_path(&main_cfg.rabbitmqcfg)?;
+        let db_cfg = PostgresDbCfg::build_from_path(&main_cfg.db_cfg)?;
+        let redis_cfg = RedisCfg::build_from_path(&main_cfg.redis_cfg)?;
+        let rabbitmq_cfg = RabbitMQCfg::build_from_path(&main_cfg.rabbitmq_cfg)?;
+        let user_setting = UserSetting::build_from_path(&main_cfg.user_setting)?;
         Ok(Self {
             main_cfg,
             db_cfg,
             redis_cfg,
             rabbitmq_cfg,
+            user_setting,
         })
     }
 }
@@ -216,10 +221,12 @@ impl MainCfg {
             .parent()
             .unwrap()
             .canonicalize()?;
-        self.rediscfg = base::resolve_relative_path(&full_basepath, Path::new(&self.rediscfg))?;
-        self.dbcfg = base::resolve_relative_path(&full_basepath, Path::new(&self.dbcfg))?;
-        self.rabbitmqcfg =
-            base::resolve_relative_path(&full_basepath, Path::new(&self.rabbitmqcfg))?;
+        self.redis_cfg = base::resolve_relative_path(&full_basepath, Path::new(&self.redis_cfg))?;
+        self.db_cfg = base::resolve_relative_path(&full_basepath, Path::new(&self.db_cfg))?;
+        self.rabbitmq_cfg =
+            base::resolve_relative_path(&full_basepath, Path::new(&self.rabbitmq_cfg))?;
+        self.user_setting =
+            base::resolve_relative_path(&full_basepath, Path::new(&self.user_setting))?;
         Ok(())
     }
 }

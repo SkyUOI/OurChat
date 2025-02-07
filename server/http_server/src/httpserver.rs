@@ -2,7 +2,7 @@ mod logo;
 mod status;
 pub mod verify;
 
-use crate::{EmailClientType, MainCfg};
+use crate::{Cfg, EmailClientType, MainCfg};
 use actix_web::{
     App,
     web::{self},
@@ -13,6 +13,7 @@ use base::{
     shutdown::{ShutdownRev, ShutdownSdr},
 };
 use deadpool_lapin::lapin::options::{BasicAckOptions, BasicRejectOptions};
+use std::sync::Arc;
 use std::time::Duration;
 use tokio::select;
 use tokio_stream::StreamExt;
@@ -29,17 +30,17 @@ impl HttpServer {
         &mut self,
         listener: tokio::net::TcpListener,
         email_client: Option<EmailClientType>,
-        cfg: MainCfg,
+        cfg: Arc<Cfg>,
         rabbitmq: deadpool_lapin::Pool,
         db_conn: DbPool,
         shutdown_sdr: ShutdownSdr,
     ) -> anyhow::Result<()> {
-        let cfg = web::Data::new(cfg);
+        let cfg = web::Data::from(cfg);
         let cfg_clone = cfg.clone();
         let rabbitmq_clone = rabbitmq.clone();
         let db_conn_clone = db_conn.clone();
         info!("Start building Server");
-        let enable_matrix = cfg.enable_matrix;
+        let enable_matrix = cfg.main_cfg.enable_matrix;
         let http_server = actix_web::HttpServer::new(move || {
             let v1 = web::scope("/v1")
                 .service(status::status)
@@ -92,7 +93,7 @@ impl HttpServer {
     async fn listen_rabbitmq(
         mq_channel: deadpool_lapin::lapin::Channel,
         db_pool: DbPool,
-        cfg: web::Data<MainCfg>,
+        cfg: web::Data<Cfg>,
         email_client: Option<EmailClientType>,
         mut shutdown_rev: ShutdownRev,
     ) -> anyhow::Result<()> {

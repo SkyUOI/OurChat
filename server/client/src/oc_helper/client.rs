@@ -292,7 +292,7 @@ impl TestApp {
         let id: ID = self
             .clients
             .basic
-            .get_id(GetIdRequest { ocid })
+            .get_id(GetIdRequest { ocid: ocid.0 })
             .await?
             .into_inner()
             .id

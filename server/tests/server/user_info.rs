@@ -57,7 +57,7 @@ async fn get_user_info() {
         .await
         .unwrap();
     let ret = ret.into_inner();
-    assert_eq!(ret.ocid, Some(user_ocid.clone()));
+    assert_eq!(ret.ocid, Some(user_ocid.clone().0));
     assert_eq!(ret.user_name, Some(user_name.clone()));
     assert_eq!(ret.email, Some(user_email.clone()));
     assert_eq!(ret.friends, Vec::<u64>::default());

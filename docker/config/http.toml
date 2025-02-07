@@ -2,8 +2,8 @@
 ip = "0.0.0.0"
 # The http server listening port
 port = 7778
-rediscfg = "redis.toml"
-dbcfg = "database.toml"
+redis_cfg = "redis.toml"
+db_cfg = "database.toml"
 # If not set, the email will be disabled
 email_cfg = "email.toml"
 rabbitmq_cfg = "rabbitmq.toml"

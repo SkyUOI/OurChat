@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package service.basic.support.v1;
+
+message Contact {}
+
+message SupportRequest {}
+
+message SupportResponse {}

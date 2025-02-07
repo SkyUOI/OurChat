@@ -46,6 +46,19 @@ macro_rules! impl_newtype_int {
     };
 }
 
+#[macro_export]
+macro_rules! impl_newtype_string {
+    ($name:ident, $($derive:tt)*) => {
+        $crate::impl_newtype!($name, String, #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Default, $($derive)*)]);
+
+        impl std::fmt::Display for $name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "{}", self.0)
+            }
+        }
+    }
+}
+
 /// Compute the SHA3-256 hash of the given data and return it as a lower-case
 /// hexadecimal string.
 pub fn sha3_256(data: &[u8]) -> String {
