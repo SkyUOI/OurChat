@@ -8,8 +8,8 @@
 </p>
 <!-- markdownlint-enable MD033 -->
 
-| 平台    | 状态                                                                                                   |
-| :------ | :----------------------------------------------------------------------------------------------------- |
+| 平台      | 状态                                                                                                     |
+|:--------|:-------------------------------------------------------------------------------------------------------|
 | Linux   | ![Linux Test](https://img.shields.io/github/actions/workflow/status/skyuoi/ourchat/rust_linux.yml)     |
 | Windows | ![Windows Test](https://img.shields.io/github/actions/workflow/status/skyuoi/ourchat/rust_windows.yml) |
 | Macos   | ![Macos Test](https://img.shields.io/github/actions/workflow/status/skyuoi/ourchat/rust_macos.yml)     |
@@ -28,11 +28,26 @@ OurChat 是一个可以在 Linux，Windows 和 Macos 上运行的聊天软件。
 
 端到端加密等安全保障让 OurChat 能够放心地被您使用，我们绝对保护您的隐私！
 
+## 快速开始
+
+**警告: 要在生产环境中使用还需要做设置数据库密码等一系列改进，具体参考文档**
+
+- 服务端
+
+```shell
+cd docker
+docker compose up -d
+```
+
+更多部署方式请参考 [部署文档](https://ourchat.readthedocs.io/zh-cn/latest/docs/deploy/server-deploy.html)
+
 ## 从源代码构建
 
 参见[构建文档](https://ourchat.readthedocs.io/zh-cn/latest/docs/run/build.html)
 
-## [项目文档](https://ourchat.readthedocs.io/zh-cn/latest/)
+## 项目文档
+
+请参考[Documentation](https://ourchat.readthedocs.io/zh-cn/latest/)，我们将它部署在了ReadTheDocs
 
 ## 贡献
 
