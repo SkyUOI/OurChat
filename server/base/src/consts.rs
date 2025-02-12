@@ -1,7 +1,7 @@
 //! Define constants
 //! TODO: use new type for roles and permissions
 
-use crate::impl_newtype_int;
+use crate::{impl_newtype_int, impl_newtype_string};
 use pb::service::basic::server::v1::ServerVersion;
 use size::Size;
 use std::{io::IsTerminal, path::PathBuf, sync::LazyLock, time::Duration};
@@ -60,8 +60,20 @@ impl From<ID> for sea_orm::Value {
     }
 }
 
-/// ocid type
-pub type OCID = String;
+// ocid type
+impl_newtype_string!(OCID, serde::Serialize, serde::Deserialize);
+
+impl From<OCID> for sea_orm::Value {
+    fn from(value: OCID) -> Self {
+        Self::String(Some(Box::new(value.0)))
+    }
+}
+
+impl From<&OCID> for sea_orm::Value {
+    fn from(value: &OCID) -> Self {
+        Self::String(Some(Box::new(value.0.clone())))
+    }
+}
 
 /// default clear interval
 pub const fn default_clear_interval() -> u64 {

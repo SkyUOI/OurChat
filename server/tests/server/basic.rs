@@ -39,7 +39,10 @@ async fn get_id_through_ocid() {
     assert_eq!(id, user1.lock().await.id);
     let id = app.get_id(user2.lock().await.ocid.clone()).await.unwrap();
     assert_eq!(id, user2.lock().await.id);
-    let err = app.get_id("wrong ocid".to_owned()).await.unwrap_err();
+    let err = app
+        .get_id(base::consts::OCID("wrong ocid".to_owned()))
+        .await
+        .unwrap_err();
     assert_eq!(err.code(), tonic::Code::NotFound);
     assert_eq!(err.message(), not_found::USER);
     app.async_drop().await;

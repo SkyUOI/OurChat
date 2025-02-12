@@ -16,7 +16,7 @@ pub async fn versions() -> impl Responder {
     HttpResponse::Ok().json(response)
 }
 
-pub fn configure_client(cfg: &mut web::ServiceConfig) {
+pub fn configure_route(cfg: &mut web::ServiceConfig) {
     let scope = web::scope("/client").service(versions);
     cfg.service(scope);
 }

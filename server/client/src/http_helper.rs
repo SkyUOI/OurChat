@@ -93,14 +93,9 @@ impl TestHttpApp {
         &self,
         url: impl AsRef<str>,
     ) -> Result<reqwest::Response, reqwest::Error> {
+        let base_url = self.app_config.main_cfg.base_url();
         self.client
-            .get(format!(
-                "{}://{}:{}/{}",
-                self.app_config.main_cfg.protocol_http(),
-                self.app_config.main_cfg.ip,
-                self.app_config.main_cfg.port,
-                url.as_ref()
-            ))
+            .get(format!("{}{}", base_url, url.as_ref()))
             .send()
             .await
     }

@@ -4,8 +4,10 @@ use crate::httpserver::HttpServer;
 use base::database::DbPool;
 use base::email_client::{EmailCfg, EmailSender};
 use base::rabbitmq::RabbitMQCfg;
+use base::setting::{Setting, UserSetting};
 use base::shutdown::ShutdownSdr;
 use clap::Parser;
+use http::Uri;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -21,8 +23,9 @@ pub struct MainCfg {
     pub port: u16,
     #[serde(default = "base::consts::default_ssl")]
     pub ssl: bool,
-    pub rediscfg: PathBuf,
-    pub dbcfg: PathBuf,
+    pub redis_cfg: PathBuf,
+    pub db_cfg: PathBuf,
+    pub user_setting: PathBuf,
     pub email_cfg: Option<PathBuf>,
     pub rabbitmq_cfg: PathBuf,
     pub logo_path: PathBuf,
@@ -39,11 +42,13 @@ impl MainCfg {
 
     pub fn fix_paths(&mut self, base_path: &Path) -> anyhow::Result<()> {
         let full_basepath = base_path.parent().unwrap().canonicalize()?;
-        self.rediscfg = base::resolve_relative_path(&full_basepath, Path::new(&self.rediscfg))?;
-        self.dbcfg = base::resolve_relative_path(&full_basepath, Path::new(&self.dbcfg))?;
+        self.redis_cfg = base::resolve_relative_path(&full_basepath, Path::new(&self.redis_cfg))?;
+        self.db_cfg = base::resolve_relative_path(&full_basepath, Path::new(&self.db_cfg))?;
         self.rabbitmq_cfg =
             base::resolve_relative_path(&full_basepath, Path::new(&self.rabbitmq_cfg))?;
         self.logo_path = base::resolve_relative_path(&full_basepath, Path::new(&self.logo_path))?;
+        self.user_setting =
+            base::resolve_relative_path(&full_basepath, Path::new(&self.user_setting))?;
         if let Some(email_cfg) = &self.email_cfg {
             self.email_cfg = Some(base::resolve_relative_path(
                 &full_basepath,
@@ -51,6 +56,16 @@ impl MainCfg {
             )?);
         }
         Ok(())
+    }
+
+    pub fn base_url(&self) -> Uri {
+        format!("{}://{}:{}", self.protocol_http(), self.ip, self.port)
+            .parse()
+            .unwrap()
+    }
+
+    pub fn domain(&self) -> String {
+        format!("{}:{}", self.ip, self.port)
     }
 }
 
@@ -66,6 +81,7 @@ pub struct Cfg {
     pub rabbitmq_cfg: RabbitMQCfg,
     pub db_cfg: base::database::postgres::PostgresDbCfg,
     pub redis_cfg: base::database::redis::RedisCfg,
+    pub user_setting: UserSetting,
 }
 
 #[derive(Debug)]
@@ -98,13 +114,15 @@ impl Launcher {
         let mut cfg: MainCfg = cfg.try_deserialize()?;
         cfg.fix_paths(&config_file_path)?;
         let rabbitmq_cfg = RabbitMQCfg::build_from_path(&cfg.rabbitmq_cfg)?;
-        let redis_cfg = base::database::redis::RedisCfg::build_from_path(&cfg.rediscfg)?;
-        let postgres_cfg = base::database::postgres::PostgresDbCfg::build_from_path(&cfg.dbcfg)?;
+        let redis_cfg = base::database::redis::RedisCfg::build_from_path(&cfg.redis_cfg)?;
+        let postgres_cfg = base::database::postgres::PostgresDbCfg::build_from_path(&cfg.db_cfg)?;
+        let user_setting = UserSetting::build_from_path(&cfg.user_setting)?;
         Ok(Cfg {
             main_cfg: cfg,
             rabbitmq_cfg,
             db_cfg: postgres_cfg,
             redis_cfg,
+            user_setting,
         })
     }
 
@@ -154,7 +172,7 @@ impl Launcher {
         let tcplistener = self.tcplistener.take().unwrap();
         let rabbitmq_pool_clone = rabbitmq_pool.clone();
         let email_client = self.email_client.take();
-        let main_cfg = self.shared_data.main_cfg.clone();
+        let main_cfg = self.shared_data.clone();
         let abort_sender_clone = self.abort_sender.clone();
         let http_server = tokio::spawn(async move {
             server

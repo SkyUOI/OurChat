@@ -31,6 +31,9 @@ tokio.workspace = true
 dashmap.workspace = true
 parking_lot.workspace = true
 rand.workspace = true
+email_address = "0"
+http = "1"
+http-serde = "2"
 
 [build-dependencies]
 shadow-rs = "0"

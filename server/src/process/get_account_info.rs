@@ -81,7 +81,7 @@ async fn get_account_info_impl(
         } else {
             // can access the info,get from the database
             match i {
-                RequestValues::Ocid => ret.ocid = Some(get_ocid(id, &server.db).await?),
+                RequestValues::Ocid => ret.ocid = Some(get_ocid(id, &server.db).await?.0),
                 RequestValues::Email => ret.email = Some(queried_user.email.clone()),
                 RequestValues::DisplayName => {
                     if let Privilege::Owner = privilege {

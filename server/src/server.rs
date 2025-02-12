@@ -1,9 +1,10 @@
 //! Ourchat Server
 
 use crate::process;
+use crate::process::basic::support::support;
 use crate::process::db::get_id;
 use crate::{SERVER_INFO, SharedData, ShutdownRev};
-use base::consts::VERSION_SPLIT;
+use base::consts::{OCID, VERSION_SPLIT};
 use base::database::DbPool;
 use base::time::to_google_timestamp;
 use pb::service::auth::authorize::v1::{AuthRequest, AuthResponse};
@@ -11,6 +12,7 @@ use pb::service::auth::email_verify::v1::{VerifyRequest, VerifyResponse};
 use pb::service::auth::register::v1::{RegisterRequest, RegisterResponse};
 use pb::service::auth::v1::auth_service_server::{self, AuthServiceServer};
 use pb::service::basic::server::v1::RunningStatus;
+use pb::service::basic::support::v1::{SupportRequest, SupportResponse};
 use pb::service::basic::v1::basic_service_server::{BasicService, BasicServiceServer};
 use pb::service::basic::v1::{
     GetIdRequest, GetIdResponse, GetServerInfoRequest, TimestampRequest, TimestampResponse,
@@ -400,7 +402,7 @@ impl auth_service_server::AuthService for AuthServiceProvider {
 }
 
 #[derive(Debug)]
-struct BasicServiceProvider {
+pub struct BasicServiceProvider {
     pub shared_data: Arc<SharedData>,
     pub db: DbPool,
 }
@@ -439,10 +441,17 @@ impl BasicService for BasicServiceProvider {
         request: Request<GetIdRequest>,
     ) -> Result<Response<GetIdResponse>, Status> {
         let req = request.into_inner();
-        match get_id(&req.ocid, &self.db).await {
+        match get_id(&OCID(req.ocid), &self.db).await {
             Ok(id) => Ok(Response::new(GetIdResponse { id: *id })),
             Err(_) => Err(Status::not_found(not_found::USER)),
         }
+    }
+
+    async fn support(
+        &self,
+        request: Request<SupportRequest>,
+    ) -> Result<Response<SupportResponse>, Status> {
+        support(self, request).await
     }
 }
 

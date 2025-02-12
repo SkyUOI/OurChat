@@ -2,7 +2,7 @@ use crate::oc_helper::FAKE_MANAGER;
 use crate::oc_helper::client::{OCClient, TestApp};
 use crate::oc_helper::{ClientErr, Clients};
 use anyhow::Context;
-use base::consts::{ID, SessionID};
+use base::consts::{ID, OCID, SessionID};
 use base::time::{
     TimeStampUtc, from_google_timestamp, std_duration_to_prost_duration, to_google_timestamp,
 };
@@ -33,7 +33,7 @@ pub struct TestUser {
     pub name: String,
     pub password: String,
     pub email: String,
-    pub ocid: String,
+    pub ocid: OCID,
     pub id: ID,
     pub port: u16,
     pub token: String,
@@ -64,7 +64,7 @@ impl TestUser {
             clients: app.clients.clone(),
             rpc_url: url,
             // reserved
-            ocid: String::default(),
+            ocid: OCID::default(),
             token: String::default(),
             oc_server: None,
             id: ID::default(),
@@ -79,7 +79,7 @@ impl TestUser {
             email: user.email.clone(),
         };
         let ret = user.clients.auth.register(request).await?.into_inner();
-        user.ocid = ret.ocid;
+        user.ocid = OCID(ret.ocid);
         user.id = ID(ret.id);
         user.token = ret.token;
         let channel =
@@ -140,7 +140,7 @@ impl TestUser {
 
     pub async fn ocid_auth(&mut self) -> Result<(), ClientErr> {
         let login_req = AuthRequest {
-            account: Some(auth_request::Account::Ocid(self.ocid.clone())),
+            account: Some(auth_request::Account::Ocid(self.ocid.0.clone())),
             password: self.password.clone(),
         };
         let ret = self.clients.auth.auth(login_req).await?.into_inner();
