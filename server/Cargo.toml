@@ -21,8 +21,6 @@ thiserror.workspace = true
 chrono.workspace = true
 base = { path = "base" }
 tracing.workspace = true
-tracing-appender.workspace = true
-tracing-subscriber.workspace = true
 migration = { path = "migration" }
 mimalloc.workspace = true
 parking_lot.workspace = true
@@ -31,12 +29,9 @@ dashmap.workspace = true
 sha3.workspace = true
 uuid.workspace = true
 config.workspace = true
-validator.workspace = true
 argon2.workspace = true
 deadpool-redis.workspace = true
-console-subscriber.workspace = true
 fake = { version = "3", optional = true }
-urlencoding.workspace = true
 
 # Useful crates
 collection_literals.workspace = true
@@ -45,7 +40,6 @@ strum.workspace = true
 size.workspace = true
 
 # num_enum = "0"
-mockall.workspace = true
 async-trait.workspace = true
 # serde_plain = "1"
 
@@ -60,11 +54,9 @@ jsonwebtoken.workspace = true
 tokio-stream.workspace = true
 scopeguard.workspace = true
 
-lettre.workspace = true
 deadpool-lapin.workspace = true
 
 [dev-dependencies]
-reqwest.workspace = true
 claims.workspace = true
 client = { path = "client" }
 

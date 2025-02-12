@@ -3,7 +3,7 @@ use parking_lot::RwLock;
 use std::{path::Path, sync::OnceLock, time::SystemTime};
 use tokio::fs::read;
 
-use crate::{Cfg, MainCfg};
+use crate::Cfg;
 
 struct LogoCache {
     data: Vec<u8>,

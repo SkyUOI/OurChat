@@ -1,4 +1,4 @@
-use crate::{Cfg, EmailClientType, MainCfg};
+use crate::{Cfg, EmailClientType};
 use actix_web::{HttpRequest, HttpResponse, Responder, get, web};
 use anyhow::Context;
 use base::consts;

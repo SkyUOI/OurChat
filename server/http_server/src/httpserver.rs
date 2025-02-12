@@ -2,7 +2,7 @@ mod logo;
 mod status;
 pub mod verify;
 
-use crate::{Cfg, EmailClientType, MainCfg};
+use crate::{Cfg, EmailClientType};
 use actix_web::{
     App,
     web::{self},

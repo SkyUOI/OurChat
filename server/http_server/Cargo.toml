@@ -12,20 +12,18 @@ serde.workspace = true
 deadpool-redis.workspace = true
 tracing.workspace = true
 clap.workspace = true
-config.workspace = true
-lettre.workspace = true
 deadpool-lapin.workspace = true
 serde_json.workspace = true
 tokio-stream.workspace = true
 imageinfo.workspace = true
 parking_lot.workspace = true
-chrono.workspace = true
 ctor.workspace = true
 rustls.workspace = true
 collection_literals.workspace = true
-http = "1"
-http-serde = "2"
-email_address = "0"
+http.workspace = true
+http-serde.workspace = true
+email_address.workspace = true
+config.workspace = true
 
 [dev-dependencies]
 client = { path = "../client" }

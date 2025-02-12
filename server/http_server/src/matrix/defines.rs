@@ -1,6 +1,5 @@
 use base::consts::OCID;
 use base::impl_newtype_string;
-use serde::{Deserialize, Serialize};
 
 impl_newtype_string!(MatrixUserId, serde::Serialize, serde::Deserialize);
 

@@ -5,12 +5,10 @@ version.workspace = true
 
 [dependencies]
 shadow-rs = "0"
-validator = "0"
 serde.workspace = true
 anyhow.workspace = true
 chrono.workspace = true
 sha3.workspace = true
-ring.workspace = true
 size.workspace = true
 sea-orm.workspace = true
 deadpool-redis.workspace = true
