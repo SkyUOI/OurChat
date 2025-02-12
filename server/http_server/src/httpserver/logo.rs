@@ -3,7 +3,7 @@ use parking_lot::RwLock;
 use std::{path::Path, sync::OnceLock, time::SystemTime};
 use tokio::fs::read;
 
-use crate::MainCfg;
+use crate::{Cfg, MainCfg};
 
 struct LogoCache {
     data: Vec<u8>,
@@ -40,10 +40,10 @@ impl LogoCache {
 }
 
 #[get("/logo")]
-pub async fn logo(config: web::Data<MainCfg>) -> Result<HttpResponse, actix_web::Error> {
+pub async fn logo(config: web::Data<Cfg>) -> Result<HttpResponse, actix_web::Error> {
     static TMP: OnceLock<RwLock<LogoCache>> = OnceLock::new();
     if TMP.get().is_none() {
-        let logo_data = read(&config.logo_path).await?;
+        let logo_data = read(&config.main_cfg.logo_path).await?;
         let logo_cache = match LogoCache::new(logo_data) {
             Ok(cache) => cache,
             Err(e) => {
@@ -56,10 +56,14 @@ pub async fn logo(config: web::Data<MainCfg>) -> Result<HttpResponse, actix_web:
     let tmp = TMP.get();
     let rw = tmp.as_ref().unwrap();
     let mut rlock = Some(rw.read());
-    if rlock.as_ref().unwrap().detect_update(&config.logo_path)? {
+    if rlock
+        .as_ref()
+        .unwrap()
+        .detect_update(&config.main_cfg.logo_path)?
+    {
         drop(rlock.take());
         let mut wlock = rw.write();
-        match wlock.update_logo(&config.logo_path) {
+        match wlock.update_logo(&config.main_cfg.logo_path) {
             Ok(_) => {}
             Err(e) => {
                 tracing::error!("Failed to update logo: {}", e);
