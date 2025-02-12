@@ -13,6 +13,7 @@ use base::{
     shutdown::{ShutdownRev, ShutdownSdr},
 };
 use deadpool_lapin::lapin::options::{BasicAckOptions, BasicRejectOptions};
+use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::select;
@@ -46,8 +47,18 @@ impl HttpServer {
                 .service(status::status)
                 .service(logo::logo)
                 .configure(verify::config);
+            let cors = actix_cors::Cors::default()
+                .allow_any_origin()
+                .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+                .allowed_headers(vec![
+                    actix_web::http::header::HeaderName::from_str("X-Requested-With").unwrap(),
+                    actix_web::http::header::CONTENT_TYPE,
+                    actix_web::http::header::AUTHORIZATION,
+                ]);
             let mut app = App::new()
                 .wrap(actix_web::middleware::Logger::default())
+                .wrap(actix_web::middleware::NormalizePath::default())
+                .wrap(cors)
                 .app_data(db_conn_clone.clone())
                 .app_data(cfg_clone.clone())
                 .app_data(rabbitmq_clone.clone())

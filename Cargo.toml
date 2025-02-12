@@ -80,6 +80,7 @@ tonic-build = "0"
 http = "1"
 http-serde = "2"
 email_address = "0"
+actix-cors = "0"
 
 [workspace.dependencies.lettre]
 version = "0"
