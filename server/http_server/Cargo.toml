@@ -25,6 +25,8 @@ http-serde.workspace = true
 email_address.workspace = true
 config.workspace = true
 actix-cors.workspace = true
+mimalloc.workspace = true
+actix-files.workspace = true
 
 [dev-dependencies]
 client = { path = "../client" }

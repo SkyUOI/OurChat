@@ -56,9 +56,9 @@ impl HttpServer {
                     actix_web::http::header::AUTHORIZATION,
                 ]);
             let mut app = App::new()
-                .wrap(actix_web::middleware::Logger::default())
                 .wrap(actix_web::middleware::NormalizePath::default())
                 .wrap(cors)
+                .wrap(actix_web::middleware::Logger::default())
                 .app_data(db_conn_clone.clone())
                 .app_data(cfg_clone.clone())
                 .app_data(rabbitmq_clone.clone())

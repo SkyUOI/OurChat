@@ -66,6 +66,8 @@ async fn join_in_session_impl(
     server: &RpcServer,
     request: Request<JoinInSessionRequest>,
 ) -> Result<JoinInSessionResponse, JoinInSessionErr> {
+    // TODO:check if be banned
+    // TODO:check if session exists
     let id = get_id_from_req(&request).unwrap();
     let req = request.into_inner();
     let session_id: SessionID = req.session_id.into();
