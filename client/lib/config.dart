@@ -8,9 +8,9 @@ class OurchatConfig {
   Map<String, dynamic> getDefaultConfig() {
     return {
       "servers": [
-        {"host": "localhost", "port": 7777}
+        {"host": "localhost", "port": 7777},
       ],
-      "color": 0xFF2196F3
+      "color": 0xFF2196F3,
     };
   }
 

@@ -11,7 +11,11 @@ class OurChatInterceptor extends ClientInterceptor {
 
   @override
   ResponseFuture<R> interceptUnary<Q, R>(
-      ClientMethod<Q, R> method, Q request, CallOptions options, invoker) {
+    ClientMethod<Q, R> method,
+    Q request,
+    CallOptions options,
+    invoker,
+  ) {
     var newOptions = CallOptions.from([options])
       ..metadata.putIfAbsent('token', () => token!);
     return invoker(method, request, newOptions);
@@ -29,10 +33,11 @@ class OurChatServer {
   OurChatInterceptor? interceptor;
 
   OurChatServer(this.host, this.port) {
-    channel = ClientChannel(host,
-        port: port,
-        options:
-            const ChannelOptions(credentials: ChannelCredentials.insecure()));
+    channel = ClientChannel(
+      host,
+      port: port,
+      options: const ChannelOptions(credentials: ChannelCredentials.insecure()),
+    );
   }
 
   Future getServerInfo() async {

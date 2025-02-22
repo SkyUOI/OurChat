@@ -6,9 +6,7 @@ import 'package:ourchat/setting.dart';
 import 'package:provider/provider.dart';
 
 class Home extends StatefulWidget {
-  const Home({
-    super.key,
-  });
+  const Home({super.key});
 
   @override
   State<Home> createState() => _HomeState();
@@ -26,60 +24,79 @@ class _HomeState extends State<Home> {
       page = const Setting();
     } else if (index == 2) {}
 
-    return Scaffold(body: LayoutBuilder(builder: (context, constraints) {
-      if (ourchatAppState.device == mobile) {
-        return Column(
-          children: [
-            Expanded(
-                child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: page,
-            )),
-            BottomNavigationBar(
-              items: const [
-                BottomNavigationBarItem(
-                    label: "Sessions", icon: Icon(Icons.chat)),
-                BottomNavigationBarItem(
-                    label: "Settings", icon: Icon(Icons.settings)),
-                BottomNavigationBarItem(label: "New", icon: Icon(Icons.add))
+    return Scaffold(
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          if (ourchatAppState.device == mobile) {
+            return Column(
+              children: [
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: page,
+                  ),
+                ),
+                BottomNavigationBar(
+                  items: const [
+                    BottomNavigationBarItem(
+                      label: "Sessions",
+                      icon: Icon(Icons.chat),
+                    ),
+                    BottomNavigationBarItem(
+                      label: "Settings",
+                      icon: Icon(Icons.settings),
+                    ),
+                    BottomNavigationBarItem(
+                      label: "New",
+                      icon: Icon(Icons.add),
+                    ),
+                  ],
+                  currentIndex: index,
+                  onTap: (value) {
+                    setState(() {
+                      index = value;
+                    });
+                  },
+                ),
               ],
-              currentIndex: index,
-              onTap: (value) {
-                setState(() {
-                  index = value;
-                });
-              },
-            )
-          ],
-        );
-      } else {
-        return Row(
-          children: [
-            NavigationRail(
-              destinations: const [
-                NavigationRailDestination(
-                    label: Text("Sessions"), icon: Icon(Icons.chat)),
-                NavigationRailDestination(
-                    label: Text("Settings"), icon: Icon(Icons.settings)),
-                NavigationRailDestination(
-                    label: Text("New"), icon: Icon(Icons.add))
+            );
+          } else {
+            return Row(
+              children: [
+                NavigationRail(
+                  destinations: const [
+                    NavigationRailDestination(
+                      label: Text("Sessions"),
+                      icon: Icon(Icons.chat),
+                    ),
+                    NavigationRailDestination(
+                      label: Text("Settings"),
+                      icon: Icon(Icons.settings),
+                    ),
+                    NavigationRailDestination(
+                      label: Text("New"),
+                      icon: Icon(Icons.add),
+                    ),
+                  ],
+                  selectedIndex: index,
+                  onDestinationSelected: (value) {
+                    setState(() {
+                      index = value;
+                    });
+                  },
+                  labelType: NavigationRailLabelType.selected,
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: page,
+                  ),
+                ),
               ],
-              selectedIndex: index,
-              onDestinationSelected: (value) {
-                setState(() {
-                  index = value;
-                });
-              },
-              labelType: NavigationRailLabelType.selected,
-            ),
-            Expanded(
-                child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: page,
-            )),
-          ],
-        );
-      }
-    }));
+            );
+          }
+        },
+      ),
+    );
   }
 }
