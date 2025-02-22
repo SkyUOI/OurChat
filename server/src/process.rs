@@ -88,7 +88,7 @@ pub use session::{
     set_role::set_role,
     set_session_info::set_session_info,
 };
-pub use set_account_info::set_account_info;
+pub use set_account_info::set_self_info;
 pub use unregister::unregister;
 pub use upload::upload;
 

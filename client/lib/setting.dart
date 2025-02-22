@@ -34,12 +34,11 @@ class Setting extends StatelessWidget {
                                   child: Container(
                                     decoration: BoxDecoration(
                                       border: Border.all(
-                                        color:
-                                            ColorScheme.fromSeed(
-                                              seedColor: Color(
-                                                appState.config!.data!["color"],
-                                              ),
-                                            ).secondary,
+                                        color: ColorScheme.fromSeed(
+                                          seedColor: Color(
+                                            appState.config!.data!["color"],
+                                          ),
+                                        ).secondary,
                                       ),
                                       color: Color(
                                         appState.config!.data!["color"],
@@ -51,10 +50,10 @@ class Setting extends StatelessWidget {
                               Expanded(
                                 child: TextFormField(
                                   decoration: InputDecoration(
-                                    labelText:
-                                        AppLocalizations.of(
-                                          context,
-                                        )!.themeColorSeed,
+                                    labelText: AppLocalizations.of(
+                                      context,
+                                    )!
+                                        .themeColorSeed,
                                   ),
                                   controller: TextEditingController(
                                     text:
@@ -64,7 +63,8 @@ class Setting extends StatelessWidget {
                                     if (value == null || value.isEmpty) {
                                       return AppLocalizations.of(
                                         context,
-                                      )!.cantBeEmpty;
+                                      )!
+                                          .cantBeEmpty;
                                     }
                                     return null;
                                   },

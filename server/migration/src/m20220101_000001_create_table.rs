@@ -4,6 +4,7 @@ use sea_orm_migration::{prelude::*, schema::*};
 pub struct Migration;
 
 pub const OCID_MAX_LEN: usize = 50;
+pub const USERNAME_MAX_LEN: usize = 60;
 
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
@@ -19,8 +20,8 @@ impl MigrationTrait for Migration {
                         OCID_MAX_LEN.try_into().unwrap(),
                     ))
                     .col(text(User::Passwd))
-                    .col(string_len(User::Name, 200))
-                    .col(string_len_uniq(User::Email, 120))
+                    .col(string_len(User::Name, USERNAME_MAX_LEN as u32))
+                    .col(string_uniq(User::Email))
                     .col(timestamp_with_time_zone(User::Time))
                     .col(big_unsigned(User::ResourceUsed))
                     .col(integer(User::FriendLimit))

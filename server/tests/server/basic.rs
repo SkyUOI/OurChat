@@ -71,7 +71,8 @@ async fn get_support_info() {
             .cfg
             .user_setting
             .support_page
-            .to_string()
+            .clone()
+            .map(|x| x.to_string())
     );
 
     // Verify contacts

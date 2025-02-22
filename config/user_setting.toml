@@ -1,4 +1,6 @@
 support_page = "https://skyuoi.org/support"
+# Control users' password strength, the bigger the number, the stricter the rcheck
+password_strength_limit = 1
 
 [[contacts]]
 # input admin or security

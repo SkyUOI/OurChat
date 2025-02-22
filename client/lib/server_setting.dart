@@ -199,10 +199,10 @@ class _ServerSettingState extends State<ServerSetting> {
                         serverStatusColor = Colors.red;
                         break;
                       case unavailableStatusCode:
-                        serverState =
-                            AppLocalizations.of(
-                              context,
-                            )!.serverStatusUnderMaintenance;
+                        serverState = AppLocalizations.of(
+                          context,
+                        )!
+                            .serverStatusUnderMaintenance;
                         serverStatusColor = Colors.orange;
                         break;
                       default:

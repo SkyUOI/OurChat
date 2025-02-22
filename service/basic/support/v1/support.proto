@@ -19,5 +19,5 @@ message SupportRequest {}
 
 message SupportResponse {
   repeated Contact contacts = 1;
-  string support_page = 2;
+  optional string support_page = 2;
 }

@@ -1,3 +1,4 @@
+use super::error_msg::{NOT_STRONG_PASSWORD, invalid};
 use super::generate_access_token;
 use crate::process::error_msg::{SERVER_ERROR, exist};
 use crate::{db, server::AuthServiceProvider, shared_state, utils};
@@ -6,6 +7,7 @@ use argon2::{Params, PasswordHasher, password_hash::SaltString};
 use base::consts::{self, ID};
 use base::database::DbPool;
 use entities::user;
+use migration::m20220101_000001_create_table::USERNAME_MAX_LEN;
 use pb::service::auth::register::v1::{RegisterRequest, RegisterResponse};
 use sea_orm::{ActiveModelTrait, ActiveValue, DbErr};
 use snowdon::ClassicLayoutSnowflakeExtension;
@@ -71,6 +73,12 @@ enum RegisterError {
     UnknownError(#[from] anyhow::Error),
     #[error("from int error")]
     FromIntError(#[from] TryFromIntError),
+    #[error("Password not Strong")]
+    PasswordNotStrong,
+    #[error("Invalid email format")]
+    InvalidEmail,
+    #[error("Invalid username format")]
+    InvalidUsername,
 }
 
 fn compute_password_hash(password: &str, params: Params) -> String {
@@ -87,9 +95,30 @@ async fn register_impl(
     server: &AuthServiceProvider,
     request: Request<RegisterRequest>,
 ) -> Result<RegisterResponse, RegisterError> {
+    let req = request.into_inner();
+
+    // Check strong password
+    if zxcvbn::zxcvbn(&req.password, &[&req.name, &req.email])
+        .context("zxcvbn error")?
+        .score()
+        < server.shared_data.cfg.user_setting.password_strength_limit
+    {
+        return Err(RegisterError::PasswordNotStrong);
+    }
+
+    // Check if email is valid
+    if !email_address::EmailAddress::is_valid(&req.email) {
+        return Err(RegisterError::InvalidEmail);
+    }
+
+    // User Name Check
+    if req.name.trim().is_empty() || req.name.len() > USERNAME_MAX_LEN {
+        return Err(RegisterError::InvalidUsername);
+    }
+
     let password_hash = &server.shared_data.cfg.main_cfg.password_hash;
     let response = add_new_user(
-        request.into_inner(),
+        req,
         &server.db,
         Params::new(
             password_hash.m_cost,
@@ -117,6 +146,9 @@ pub async fn register(
                 error!("{}", e);
                 Err(Status::internal(SERVER_ERROR))
             }
+            RegisterError::PasswordNotStrong => Err(Status::invalid_argument(NOT_STRONG_PASSWORD)),
+            RegisterError::InvalidEmail => Err(Status::invalid_argument(invalid::EMAIL_ADDRESS)),
+            RegisterError::InvalidUsername => Err(Status::invalid_argument(invalid::USERNAME)),
         },
     }
 }

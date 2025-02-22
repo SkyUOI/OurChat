@@ -31,10 +31,9 @@ class Session extends StatelessWidget {
             SessionState homeState = context.watch<SessionState>();
             Widget page = const Placeholder();
             if (appState.device == mobile) {
-              page =
-                  (homeState.currentSession == -1
-                      ? const SessionList()
-                      : const SessionWidget());
+              page = (homeState.currentSession == -1
+                  ? const SessionList()
+                  : const SessionWidget());
             } else if (appState.device == desktop) {
               page = const Row(
                 children: [
@@ -240,19 +239,18 @@ class SessionWidget extends StatelessWidget {
       children: [
         Flexible(
           flex: 1,
-          child:
-              (appState.device == mobile
-                  ? Row(
-                    children: [
-                      BackButton(
-                        onPressed: () {
-                          homeState.setCurrentSession(-1);
-                        },
-                      ),
-                      sessionTitle,
-                    ],
-                  )
-                  : Align(alignment: Alignment.center, child: sessionTitle)),
+          child: (appState.device == mobile
+              ? Row(
+                  children: [
+                    BackButton(
+                      onPressed: () {
+                        homeState.setCurrentSession(-1);
+                      },
+                    ),
+                    sessionTitle,
+                  ],
+                )
+              : Align(alignment: Alignment.center, child: sessionTitle)),
         ),
         const Flexible(flex: 10, child: SessionRecord()),
         const Flexible(

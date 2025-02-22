@@ -45,8 +45,8 @@ impl Contact {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SupportResponse {
     pub contacts: Vec<Contact>,
-    #[serde(with = "http_serde::uri")]
-    pub support_page: Uri,
+    #[serde(with = "http_serde::option::uri")]
+    pub support_page: Option<Uri>,
 }
 
 #[get("/matrix/support")]

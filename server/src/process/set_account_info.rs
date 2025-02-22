@@ -1,5 +1,8 @@
 use super::{
-    error_msg::{CONFLICT, OCID_TOO_LONG},
+    error_msg::{
+        CONFLICT,
+        invalid::{self, OCID_TOO_LONG, STATUS_TOO_LONG},
+    },
     get_id_from_req,
 };
 use crate::{
@@ -10,17 +13,34 @@ use crate::{
 use anyhow::Context;
 use base::consts::ID;
 use entities::user;
-use migration::m20220101_000001_create_table::OCID_MAX_LEN;
+use migration::m20220101_000001_create_table::{OCID_MAX_LEN, USERNAME_MAX_LEN};
 use pb::service::ourchat::set_account_info::v1::{SetSelfInfoRequest, SetSelfInfoResponse};
 use sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection, DbErr, TransactionTrait};
 use tonic::{Request, Response, Status};
 
-pub async fn set_account_info(
+pub const STATUS_LENGTH_MAX: usize = 128;
+
+pub async fn set_self_info(
     server: &RpcServer,
     request: Request<SetSelfInfoRequest>,
 ) -> Result<Response<SetSelfInfoResponse>, Status> {
     let id = get_id_from_req(&request).unwrap();
     let request_data = request.into_inner();
+
+    // Check username length
+    if let Some(name) = &request_data.user_name {
+        if name.len() > USERNAME_MAX_LEN || name.trim().is_empty() {
+            return Err(Status::invalid_argument(invalid::USERNAME));
+        }
+    }
+
+    // Check status length
+    if let Some(status) = &request_data.status {
+        if status.len() > STATUS_LENGTH_MAX {
+            return Err(Status::invalid_argument(STATUS_TOO_LONG));
+        }
+    }
+
     match update_account(id, request_data, &server.db.db_pool).await {
         Ok(_) => Ok(Response::new(SetSelfInfoResponse {})),
         Err(e) => match e {

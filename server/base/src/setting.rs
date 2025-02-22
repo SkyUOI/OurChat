@@ -37,8 +37,10 @@ pub struct Contact {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct UserSetting {
     pub contacts: Vec<Contact>,
-    #[serde(with = "http_serde::uri")]
-    pub support_page: http::Uri,
+    #[serde(with = "http_serde::option::uri")]
+    pub support_page: Option<http::Uri>,
+    #[serde(default = "crate::consts::default_password_strength_limit")]
+    pub password_strength_limit: u8,
 }
 
 impl Setting for UserSetting {}

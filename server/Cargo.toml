@@ -32,6 +32,8 @@ config.workspace = true
 argon2.workspace = true
 deadpool-redis.workspace = true
 fake = { workspace = true, optional = true }
+zxcvbn.workspace = true
+email_address.workspace = true
 
 # Useful crates
 collection_literals.workspace = true

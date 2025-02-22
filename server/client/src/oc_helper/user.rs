@@ -55,7 +55,7 @@ impl TestUser {
             name,
             password: rand::thread_rng()
                 .sample_iter(&rand::distributions::Alphanumeric)
-                .take(30)
+                .take(40)
                 .map(char::from)
                 .collect(),
             email,

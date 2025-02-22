@@ -1,12 +1,12 @@
 use base::time::from_google_timestamp;
-use claims::{assert_err, assert_gt, assert_lt};
+use claims::{assert_err, assert_gt, assert_lt, assert_ok};
 use client::TestApp;
 use pb::service::ourchat::{
     friends::set_friend_info::v1::SetFriendInfoRequest,
     get_account_info::v1::{GetAccountInfoRequest, RequestValues},
     set_account_info::v1::SetSelfInfoRequest,
 };
-use server::process::error_msg::OCID_TOO_LONG;
+use server::process::error_msg::invalid::{OCID_TOO_LONG, STATUS_TOO_LONG, USERNAME};
 
 #[tokio::test]
 async fn get_user_info() {
@@ -163,4 +163,64 @@ async fn set_friend_info() -> anyhow::Result<()> {
     assert_eq!(ret.display_name.unwrap(), new_name);
     app.async_drop().await;
     Ok(())
+}
+
+#[tokio::test]
+async fn set_user_info_validation() {
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
+    let user = app.new_user().await.unwrap();
+
+    // Test empty user
+    let err = user
+        .lock()
+        .await
+        .oc()
+        .set_self_info(SetSelfInfoRequest {
+            user_name: Some("".to_string()),
+            ..Default::default()
+        })
+        .await
+        .unwrap_err();
+    assert_eq!(err.message(), USERNAME);
+
+    // Test very long user
+    let err = user
+        .lock()
+        .await
+        .oc()
+        .set_self_info(SetSelfInfoRequest {
+            user_name: Some("a".repeat(65)),
+            ..Default::default()
+        })
+        .await
+        .unwrap_err();
+    assert_eq!(err.message(), USERNAME);
+
+    // Test very long status
+    let err = user
+        .lock()
+        .await
+        .oc()
+        .set_self_info(SetSelfInfoRequest {
+            status: Some("a".repeat(1000)),
+            ..Default::default()
+        })
+        .await
+        .unwrap_err();
+    assert_eq!(err.message(), STATUS_TOO_LONG);
+
+    // Test successful set process
+    assert_ok!(
+        user.lock()
+            .await
+            .oc()
+            .set_self_info(SetSelfInfoRequest {
+                user_name: Some("valid_name".to_string()),
+                status: Some("valid status".to_string()),
+                ..Default::default()
+            })
+            .await
+    );
+
+    app.async_drop().await;
 }

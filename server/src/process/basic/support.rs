@@ -30,7 +30,13 @@ pub async fn support(
 
     let ret = SupportResponse {
         contacts,
-        support_page: server.shared_data.cfg.user_setting.support_page.to_string(),
+        support_page: server
+            .shared_data
+            .cfg
+            .user_setting
+            .support_page
+            .clone()
+            .map(|x| x.to_string()),
     };
 
     Ok(Response::new(ret))

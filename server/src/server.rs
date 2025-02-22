@@ -174,7 +174,7 @@ impl OurChatService for RpcServer {
         &self,
         request: Request<SetSelfInfoRequest>,
     ) -> Result<Response<SetSelfInfoResponse>, Status> {
-        process::set_account_info(self, request).await
+        process::set_self_info(self, request).await
     }
 
     #[tracing::instrument(skip(self))]

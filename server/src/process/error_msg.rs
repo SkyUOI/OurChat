@@ -18,10 +18,16 @@ pub mod exist {
     pub const FRIEND: &str = "Friend Already Exists";
 }
 
+pub mod invalid {
+    pub const USERNAME: &str = "Username Is Invalid";
+    pub const EMAIL_ADDRESS: &str = "Email Address Is Invalid";
+    pub const STATUS_TOO_LONG: &str = "Status Too Long";
+    pub const OCID_TOO_LONG: &str = "Ocid Too Long";
+}
+
 pub const SERVER_ERROR: &str = "Server Error";
 pub const PERMISSION_DENIED: &str = "Permission Denied";
 pub const REQUEST_INVALID_VALUE: &str = "Request Invalid Value";
-pub const OCID_TOO_LONG: &str = "Ocid Too Long";
 pub const CONFLICT: &str = "Conflict";
 pub const MAINTAINING: &str = "Server Maintaining";
 pub const MUTE: &str = "User Muted";
@@ -51,3 +57,6 @@ pub const WRONG_PASSWORD: &str = "Wrong Password";
 
 // Role
 pub const ROLE_NAME_EMPTY: &str = "Role Name Empty";
+
+// Register
+pub const NOT_STRONG_PASSWORD: &str = "Password Is Not Strong Enough";
