@@ -1,6 +1,5 @@
-use config::File;
+use crate::setting::Setting;
 use serde::{Deserialize, Serialize};
-use std::path::Path;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RedisCfg {
@@ -19,19 +18,18 @@ impl RedisCfg {
         );
         Ok(path)
     }
-
-    pub fn build_from_path(path: &Path) -> anyhow::Result<Self> {
-        let cfg = config::Config::builder()
-            .add_source(File::with_name(path.to_str().unwrap()))
-            .build()?;
-        let cfg: RedisCfg = cfg.try_deserialize()?;
-        Ok(cfg)
-    }
 }
+
+impl Setting for RedisCfg {}
 
 /// connect to redis database according to url
 pub async fn connect_to_redis(url: &str) -> anyhow::Result<deadpool_redis::Pool> {
     let cfg = deadpool_redis::Config::from_url(url);
     let pool = cfg.create_pool(Some(deadpool_redis::Runtime::Tokio1))?;
+    #[cfg(debug_assertions)]
+    {
+        // try getting a connection
+        pool.get().await?;
+    }
     Ok(pool)
 }

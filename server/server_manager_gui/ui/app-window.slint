@@ -1,0 +1,147 @@
+import { Button, VerticalBox, HorizontalBox, GroupBox, StandardListView, LineEdit, ScrollView } from "std-widgets.slint";
+
+export component ServerManagerMainWindow inherits Window {
+    title: "服务器管理工具";
+    min-width: 800px;
+    min-height: 600px;
+
+    HorizontalLayout {
+        padding: 10px;
+
+        // 左侧服务器列表面板
+        Rectangle {
+            width: 200px;
+            background: #f5f5f5;
+            VerticalLayout {
+                padding: 5px;
+                spacing: 10px;
+
+                Text {
+                    text: "服务器列表";
+                    font-size: 16px;
+                    font-weight: 700;
+                }
+
+                StandardListView {
+                    model: [{ text: "服务器 1" }, { text: "服务器 2" }, { text: "服务器 3" }];
+                }
+
+                Button {
+                    text: "添加服务器";
+                }
+            }
+        }
+
+        // 右侧主要内容区
+        Rectangle {
+            background: white;
+            VerticalLayout {
+                padding: 20px;
+                spacing: 20px;
+
+                // 服务器信息
+                GroupBox {
+                    title: "服务器信息";
+                    VerticalLayout {
+                        spacing: 10px;
+                        HorizontalLayout {
+                            Text {
+                                text: "状态：";
+                            }
+
+                            Text {
+                                text: "运行中";
+                                color: #4CAF50;
+                            }
+                        }
+
+                        HorizontalLayout {
+                            Text {
+                                text: "IP地址：";
+                            }
+
+                            Text {
+                                text: "192.168.1.100";
+                            }
+                        }
+
+                        HorizontalLayout {
+                            Text {
+                                text: "端口：";
+                            }
+
+                            Text {
+                                text: "8080";
+                            }
+                        }
+                    }
+                }
+
+                // 性能监控
+                GroupBox {
+                    title: "性能监控";
+                    VerticalLayout {
+                        spacing: 10px;
+                        HorizontalLayout {
+                            Text {
+                                text: "CPU使用率：";
+                            }
+
+                            Text {
+                                text: "45%";
+                            }
+                        }
+
+                        HorizontalLayout {
+                            Text {
+                                text: "内存使用：";
+                            }
+
+                            Text {
+                                text: "2048MB / 4096MB";
+                            }
+                        }
+
+                        HorizontalLayout {
+                            Text {
+                                text: "网络流量：";
+                            }
+
+                            Text {
+                                text: "150MB/s";
+                            }
+                        }
+                    }
+                }
+
+                // 操作按钮
+                HorizontalLayout {
+                    spacing: 10px;
+                    Button {
+                        text: "启动服务器";
+                    }
+
+                    Button {
+                        text: "停止服务器";
+                    }
+
+                    Button {
+                        text: "重启服务器";
+                    }
+                }
+
+                // 日志查看
+                GroupBox {
+                    title: "服务器日志";
+                    height: 200px;
+                    ScrollView {
+                        Text {
+                            text: "[INFO] 服务器启动成功\n[INFO] 正在监听端口8080\n[WARN] 检测到高CPU使用率";
+                            wrap: word-wrap;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

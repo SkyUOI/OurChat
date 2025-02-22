@@ -1,4 +1,4 @@
-host = "db"
+host = "localhost"
 user = "postgres"
 passwd = "123456"
 db = "OurChat"

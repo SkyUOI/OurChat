@@ -90,7 +90,7 @@ async fn get_session_info_impl(
                     .into_iter()
                     .map(|i| RoleInfo {
                         user_id: i.user_id as u64,
-                        role: i.role_id as u64,
+                        role: i.role_id,
                     })
                     .collect();
             }

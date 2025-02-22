@@ -1,6 +1,6 @@
 use base::time::TimeStamp;
 use entities::{prelude::UserChatMsg, user_chat_msg};
-use migration::m20241229_022701_add_role_for_session::PreDefinedPermissions;
+use migration::m20241229_022701_add_role_for_session::PredefinedPermissions;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ConnectionTrait, DatabaseBackend, EntityTrait, ModelTrait,
     Paginator, PaginatorTrait, Statement,
@@ -17,7 +17,7 @@ pub enum MsgError {
     #[error("unknown error:{0:?}")]
     UnknownError(#[from] anyhow::Error),
     #[error("Don't have privilege")]
-    WithoutPrivilege,
+    PermissionDenied,
     #[error("not found")]
     NotFound,
 }
@@ -25,7 +25,7 @@ pub enum MsgError {
 /// Get the messages of the sessions which the user is a member of,
 /// where the time of the message is greater than `end_timestamp`.
 ///
-/// `page_size` is used to limit the number of messages returned in one query,
+/// The parameter `page_size` is used to limit the number of messages returned in one query,
 /// and the messages are returned in descending order of their timestamps.
 ///
 /// # Errors
@@ -72,12 +72,12 @@ pub async fn del_msg(
             && !if_permission_exist(
                 owner,
                 session_id,
-                PreDefinedPermissions::RecallMsg.into(),
+                PredefinedPermissions::RecallMsg.into(),
                 db_conn,
             )
             .await?
         {
-            return Err(MsgError::WithoutPrivilege);
+            return Err(MsgError::PermissionDenied);
         }
     }
     msg.delete(db_conn).await?;
@@ -91,7 +91,7 @@ pub async fn del_msg(
 ///
 /// Returns `MsgError::DbError` if a database error occurs.
 pub async fn insert_msg_record(
-    user_id: ID,
+    sender_id: ID,
     session_id: Option<ID>,
     msg: RespondMsgType,
     is_encrypted: bool,
@@ -99,7 +99,7 @@ pub async fn insert_msg_record(
 ) -> Result<user_chat_msg::Model, MsgError> {
     let msg = user_chat_msg::ActiveModel {
         msg_data: ActiveValue::Set(serde_json::to_value(msg).unwrap()),
-        sender_id: ActiveValue::Set(user_id.into()),
+        sender_id: ActiveValue::Set(sender_id.into()),
         session_id: ActiveValue::Set(session_id.map(i64::from)),
         is_encrypted: ActiveValue::Set(is_encrypted),
         ..Default::default()

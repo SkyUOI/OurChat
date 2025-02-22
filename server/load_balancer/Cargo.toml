@@ -4,11 +4,11 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-async-trait = "0"
+async-trait.workspace = true
 base = { path = "../base" }
-serde = { version = "1" }
+serde.workspace = true
 clap.workspace = true
-config = "0"
+config.workspace = true
 
 [dependencies.pingora]
 version = "0"

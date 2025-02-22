@@ -11,11 +11,17 @@ enum AcceptFriendResult {
 message AcceptFriendRequest {
   uint64 friend_id = 1;
   AcceptFriendResult status = 2;
+  optional string leave_message = 3;
 }
 
-message AcceptFriendResponse {}
+message AcceptFriendResponse {
+  optional uint64 session_id = 1;
+}
 
 message AcceptFriendNotification {
-  uint64 friend_id = 1;
+  uint64 inviter_id = 5;
+  uint64 invitee_id = 1;
   optional string leave_message = 2;
+  AcceptFriendResult status = 3;
+  optional uint64 session_id = 4;
 }

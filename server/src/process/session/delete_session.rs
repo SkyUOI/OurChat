@@ -3,11 +3,10 @@ use crate::process::error_msg::{PERMISSION_DENIED, not_found};
 use crate::process::get_id_from_req;
 use crate::{db, process::error_msg::SERVER_ERROR, server::RpcServer};
 use base::consts::SessionID;
-use migration::m20241229_022701_add_role_for_session::PreDefinedPermissions;
+use migration::m20241229_022701_add_role_for_session::PredefinedPermissions;
 use pb::service::ourchat::session::delete_session::v1::{
     DeleteSessionRequest, DeleteSessionResponse,
 };
-use sea_orm::TransactionTrait;
 use tonic::{Request, Response, Status};
 
 pub async fn delete_session(
@@ -54,7 +53,7 @@ async fn delete_session_impl(
     if !if_permission_exist(
         id,
         session_id,
-        PreDefinedPermissions::DeleteSession.into(),
+        PredefinedPermissions::DeleteSession.into(),
         &server.db.db_pool,
     )
     .await?

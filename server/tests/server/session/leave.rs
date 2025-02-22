@@ -10,7 +10,7 @@ async fn leave_session() {
     let a = session_user[0].clone();
     let b = session_user[1].clone();
     let c = session_user[2].clone();
-    let (aid, bid, cid) = (a.lock().await.id, b.lock().await.id, c.lock().await.id);
+    let (aid, _bid, _cid) = (a.lock().await.id, b.lock().await.id, c.lock().await.id);
     a.lock()
         .await
         .oc()

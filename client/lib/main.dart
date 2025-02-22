@@ -40,9 +40,7 @@ class OurchatAppState extends ChangeNotifier {
 }
 
 class MainApp extends StatelessWidget {
-  const MainApp({
-    super.key,
-  });
+  const MainApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -58,9 +56,7 @@ class MainApp extends StatelessWidget {
 }
 
 class Controller extends StatelessWidget {
-  const Controller({
-    super.key,
-  });
+  const Controller({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -76,15 +72,19 @@ class Controller extends StatelessWidget {
     return MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      home: LayoutBuilder(builder: (context, constraints) {
-        appState.device =
-            (constraints.maxHeight < constraints.maxWidth) ? desktop : mobile;
-        return window;
-      }),
+      home: LayoutBuilder(
+        builder: (context, constraints) {
+          appState.device =
+              (constraints.maxHeight < constraints.maxWidth) ? desktop : mobile;
+          return window;
+        },
+      ),
       theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(
-              seedColor: Color(appState.config!.data!["color"]))),
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Color(appState.config!.data!["color"]),
+        ),
+      ),
     );
   }
 }

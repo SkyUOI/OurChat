@@ -1,0 +1,4 @@
+host = "localhost"
+port = 6379
+passwd = "123456"
+user = "default"

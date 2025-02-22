@@ -1,0 +1,13 @@
+support_page = "https://skyuoi.org/support"
+
+[[contacts]]
+# input admin or security
+# If there is any problem about security, the client will contact the role "security"
+role = "admin"
+# optional
+email_address = "admin@ourchat.org"
+# optional
+phone_number = "1234567890"
+# optional
+# In matrix, it is the matrix id
+ocid = "limuy"

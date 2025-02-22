@@ -2,7 +2,6 @@ use crate::process::get_id_from_req;
 use crate::{process::error_msg::SERVER_ERROR, server::RpcServer};
 use base::consts::ID;
 use base::database::DbPool;
-use entities::friend;
 use pb::service::ourchat::friends::set_friend_info::v1::{
     SetFriendInfoRequest, SetFriendInfoResponse,
 };
@@ -42,9 +41,9 @@ async fn update_friend(
     request: SetFriendInfoRequest,
     db_conn: &DbPool,
 ) -> Result<(), SetError> {
-    let mut friend = friend::ActiveModel {
+    let mut friend = entities::user_contact_info::ActiveModel {
         user_id: ActiveValue::Set(id.into()),
-        friend_id: ActiveValue::Set(request.id as i64),
+        contact_user_id: ActiveValue::Set(request.id as i64),
         ..Default::default()
     };
     let mut modified = false;

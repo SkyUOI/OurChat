@@ -4,6 +4,9 @@ use sea_orm_migration::{prelude::*, schema::*};
 #[derive(DeriveMigrationName)]
 pub struct Migration;
 
+pub type RoleId = i64;
+pub type PermissionId = i64;
+
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
@@ -13,7 +16,8 @@ impl MigrationTrait for Migration {
                     .table(Role::Table)
                     .if_not_exists()
                     .col(big_integer(Role::Id).primary_key().auto_increment())
-                    .col(string(Role::Description).not_null())
+                    .col(string(Role::Name))
+                    .col(string_null(Role::Description))
                     .to_owned(),
             )
             .await?;
@@ -22,7 +26,7 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(Permission::Table)
                     .if_not_exists()
-                    .col(big_unsigned(Permission::Id).primary_key())
+                    .col(big_integer(Permission::Id).primary_key().auto_increment())
                     .col(string(Permission::Description).not_null())
                     .to_owned(),
             )
@@ -32,8 +36,8 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(RolePermissions::Table)
                     .if_not_exists()
-                    .col(big_unsigned(RolePermissions::RoleId))
-                    .col(big_unsigned(RolePermissions::PermissionId))
+                    .col(big_integer(RolePermissions::RoleId))
+                    .col(big_integer(RolePermissions::PermissionId))
                     .foreign_key(
                         ForeignKey::create()
                             .from(RolePermissions::Table, RolePermissions::RoleId)
@@ -61,8 +65,8 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(UserRoleRelation::Table)
                     .if_not_exists()
-                    .col(big_unsigned(UserRoleRelation::UserId))
                     .col(big_unsigned(UserRoleRelation::SessionId))
+                    .col(big_unsigned(UserRoleRelation::UserId))
                     .col(big_unsigned(UserRoleRelation::RoleId))
                     .foreign_key(
                         ForeignKey::create()
@@ -87,8 +91,8 @@ impl MigrationTrait for Migration {
                     )
                     .primary_key(
                         Index::create()
-                            .col(UserRoleRelation::UserId)
-                            .col(UserRoleRelation::SessionId),
+                            .col(UserRoleRelation::SessionId)
+                            .col(UserRoleRelation::UserId),
                     )
                     .to_owned(),
             )
@@ -127,6 +131,7 @@ pub enum Role {
     Table,
     Id,
     CreatorId,
+    Name,
     Description,
 }
 
@@ -145,8 +150,8 @@ enum RolePermissions {
 }
 
 #[derive(num_enum::TryFromPrimitive, num_enum::IntoPrimitive)]
-#[repr(u64)]
-pub enum PreDefinedPermissions {
+#[repr(i64)]
+pub enum PredefinedPermissions {
     SendMsg = 1,
     RecallMsg = 2,
     BanUser = 3,
@@ -159,19 +164,20 @@ pub enum PreDefinedPermissions {
     SetRole = 10,
     MuteUser = 11,
     UnmuteUser = 12,
+    AcceptJoinRequest = 13,
 }
 
 #[derive(num_enum::TryFromPrimitive, num_enum::IntoPrimitive)]
-#[repr(u64)]
-pub enum PreDefinedRoles {
+#[repr(i64)]
+pub enum PredefinedRoles {
     Member = 1,
     Admin = 2,
     Owner = 3,
 }
 
-impl From<PreDefinedRoles> for sea_orm::Value {
-    fn from(value: PreDefinedRoles) -> Self {
-        sea_orm::Value::BigUnsigned(Some(value.into()))
+impl From<PredefinedRoles> for Value {
+    fn from(value: PredefinedRoles) -> Self {
+        Value::BigInt(Some(value.into()))
     }
 }
 
@@ -180,17 +186,17 @@ async fn init_role_table(manager: &SchemaManager<'_>) -> Result<(), DbErr> {
 
     conn.execute_unprepared(
         r#"
-INSERT INTO role (description) VALUES ('member'), ('admin'), ('owner');
+INSERT INTO role (name, description) VALUES ('member', 'common member'), ('admin', 'have almost all permissions to manage the session'), ('owner', 'have all permissions to manage the session');
     "#,
     )
     .await?;
     conn.execute_unprepared(r#"
 INSERT INTO permission (id, description) VALUES (1, 'send msg'), (2, 'recall other msg'), (3, 'ban user'),
-(4, 'unban user'), (5, 'kick user'), (6, 'set title'), (7, 'set avatar'), (8, 'set description'), (9, 'delete session'), (10, 'set role'), (11, 'mute user'), (12, 'unmute user');
+(4, 'unban user'), (5, 'kick user'), (6, 'set title'), (7, 'set avatar'), (8, 'set description'), (9, 'delete session'), (10, 'set role'), (11, 'mute user'), (12, 'unmute user'), (13, 'accept join request');
     "#).await?;
     conn.execute_unprepared(r#"
-    INSERT INTO role_permissions (role_id, permission_id) VALUES (3, 1), (3, 2), (3, 3), (3, 4), (3, 5), (3, 6), (3, 7), (3, 8), (3, 9), (3, 10), (3, 11), (3, 12),
-(2, 1), (2, 2), (2, 3), (2, 4), (2, 5), (2, 11), (2, 12),
+    INSERT INTO role_permissions (role_id, permission_id) VALUES (3, 1), (3, 2), (3, 3), (3, 4), (3, 5), (3, 6), (3, 7), (3, 8), (3, 9), (3, 10), (3, 11), (3, 12), (3, 13),
+(2, 1), (2, 2), (2, 3), (2, 4), (2, 5), (2, 11), (2, 12), (2, 13),
 (1, 1), (1, 2);
 "#).await?;
     Ok(())

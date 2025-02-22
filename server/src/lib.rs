@@ -11,13 +11,14 @@ mod shared_state;
 pub mod utils;
 
 use anyhow::bail;
-use base::configs::DebugCfg;
 use base::consts::{self, CONFIG_FILE_ENV_VAR, LOG_OUTPUT_DIR, STDIN_AVAILABLE};
 use base::database::DbPool;
 use base::database::postgres::PostgresDbCfg;
 use base::database::redis::RedisCfg;
 use base::log;
 use base::rabbitmq::RabbitMQCfg;
+use base::setting::debug::DebugCfg;
+use base::setting::{Setting, UserSetting};
 use base::shutdown::{ShutdownRev, ShutdownSdr};
 use clap::Parser;
 use cmd::CommandTransmitData;
@@ -31,6 +32,7 @@ use rand::Rng;
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 use size::Size;
+use std::cmp::Ordering;
 use std::{
     fs,
     net::SocketAddr,
@@ -56,9 +58,10 @@ pub struct ArgsParser {
 pub struct MainCfg {
     #[serde(default = "consts::default_ip")]
     pub ip: String,
-    pub rediscfg: PathBuf,
-    pub dbcfg: PathBuf,
-    pub rabbitmqcfg: PathBuf,
+    pub redis_cfg: PathBuf,
+    pub db_cfg: PathBuf,
+    pub rabbitmq_cfg: PathBuf,
+    pub user_setting: PathBuf,
     #[serde(default = "consts::default_port")]
     pub port: u16,
     #[serde(default = "consts::default_http_port")]
@@ -88,7 +91,7 @@ pub struct MainCfg {
     #[serde(default = "consts::default_leader_node")]
     pub leader_node: bool,
     pub password_hash: PasswordHash,
-    pub db: OCDbCfg,
+    pub db: DbArgCfg,
     pub debug: DebugCfg,
 
     #[serde(skip)]
@@ -108,7 +111,7 @@ pub struct PasswordHash {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct OCDbCfg {
+pub struct DbArgCfg {
     #[serde(default = "consts::default_fetch_msg_page_size")]
     pub fetch_msg_page_size: u64,
 }
@@ -169,18 +172,21 @@ pub struct Cfg {
     pub db_cfg: PostgresDbCfg,
     pub redis_cfg: RedisCfg,
     pub rabbitmq_cfg: RabbitMQCfg,
+    pub user_setting: UserSetting,
 }
 
 impl Cfg {
     pub fn new(main_cfg: MainCfg) -> anyhow::Result<Self> {
-        let db_cfg = PostgresDbCfg::build_from_path(&main_cfg.dbcfg)?;
-        let redis_cfg = RedisCfg::build_from_path(&main_cfg.rediscfg)?;
-        let rabbitmq_cfg = RabbitMQCfg::build_from_path(&main_cfg.rabbitmqcfg)?;
+        let db_cfg = PostgresDbCfg::build_from_path(&main_cfg.db_cfg)?;
+        let redis_cfg = RedisCfg::build_from_path(&main_cfg.redis_cfg)?;
+        let rabbitmq_cfg = RabbitMQCfg::build_from_path(&main_cfg.rabbitmq_cfg)?;
+        let user_setting = UserSetting::build_from_path(&main_cfg.user_setting)?;
         Ok(Self {
             main_cfg,
             db_cfg,
             redis_cfg,
             rabbitmq_cfg,
+            user_setting,
         })
     }
 }
@@ -215,10 +221,12 @@ impl MainCfg {
             .parent()
             .unwrap()
             .canonicalize()?;
-        self.rediscfg = base::resolve_relative_path(&full_basepath, Path::new(&self.rediscfg))?;
-        self.dbcfg = base::resolve_relative_path(&full_basepath, Path::new(&self.dbcfg))?;
-        self.rabbitmqcfg =
-            base::resolve_relative_path(&full_basepath, Path::new(&self.rabbitmqcfg))?;
+        self.redis_cfg = base::resolve_relative_path(&full_basepath, Path::new(&self.redis_cfg))?;
+        self.db_cfg = base::resolve_relative_path(&full_basepath, Path::new(&self.db_cfg))?;
+        self.rabbitmq_cfg =
+            base::resolve_relative_path(&full_basepath, Path::new(&self.rabbitmq_cfg))?;
+        self.user_setting =
+            base::resolve_relative_path(&full_basepath, Path::new(&self.user_setting))?;
         Ok(())
     }
 }
@@ -231,46 +239,82 @@ struct ServerInfo {
     machine_id: u64,
     secret: String,
     server_name: String,
+    version: u64,
 }
 
 const SECRET_LEN: usize = 32;
 
 static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
     let state = Path::new(SERVER_INFO_PATH).exists();
+    let server_name = || -> String {
+        #[cfg(feature = "meaningful_name")]
+        {
+            let faker = fake::faker::name::en::Name();
+            use fake::Fake;
+            faker.fake()
+        }
+        #[cfg(not(feature = "meaningful_name"))]
+        {
+            utils::generate_random_string(10)
+        }
+    };
     if state {
-        let info = match serde_json::from_str(&fs::read_to_string(SERVER_INFO_PATH).unwrap()) {
-            Ok(info) => info,
-            Err(e) => {
-                tracing::error!(
-                    "read server info error:{}.You can try modify the file \"{}\" to satisfy the requirement,or you can delete the file and rerun the server to generate a new file",
-                    e,
-                    SERVER_INFO_PATH
-                );
-                std::process::exit(1);
-            }
-        };
-        return info;
+        let origin_info: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(SERVER_INFO_PATH).unwrap())
+                .expect("read server info error");
+        if let serde_json::Value::Number(version) = &origin_info["version"] {
+            let current_version = version.as_i64().unwrap() as u64;
+            let info = match current_version.cmp(&consts::SERVER_INFO_JSON_VERSION) {
+                Ordering::Less => {
+                    tracing::info!("server info is updating now");
+                    let unique_id: uuid::Uuid = origin_info
+                        .get("unique_id")
+                        .map_or_else(uuid::Uuid::new_v4, |id| {
+                            serde_json::from_str(&id.to_string()).unwrap()
+                        });
+                    let machine_id: u64 = origin_info.get("machine_id").map_or_else(
+                        || rand::thread_rng().gen_range(0..(1024 - 1)),
+                        |machine_id| serde_json::from_str(&machine_id.to_string()).unwrap(),
+                    );
+                    let secret: String = origin_info.get("secret").map_or_else(
+                        || utils::generate_random_string(SECRET_LEN),
+                        |secret| serde_json::from_str(&secret.to_string()).unwrap(),
+                    );
+                    let server_name: String = origin_info
+                        .get("server_name")
+                        .map_or_else(server_name, |server_name| {
+                            serde_json::from_str(&server_name.to_string()).unwrap()
+                        });
+                    let version = current_version;
+                    ServerInfo {
+                        unique_id,
+                        machine_id,
+                        secret,
+                        server_name,
+                        version,
+                    }
+                }
+                Ordering::Equal => serde_json::from_value(origin_info).unwrap(),
+                Ordering::Greater => {
+                    panic!("server info version is too high");
+                }
+            };
+            return info;
+        } else {
+            panic!("Format Error: cannot find version in \"server_info.json\"");
+        }
     }
     tracing::info!("Create server info file");
 
     let mut f = fs::File::create(SERVER_INFO_PATH).unwrap();
     let id: u64 = rand::thread_rng().gen_range(0..(1024 - 1));
-    let server_name;
-    #[cfg(feature = "meaningful_name")]
-    {
-        let faker = fake::faker::name::en::Name();
-        use fake::Fake;
-        server_name = faker.fake();
-    }
-    #[cfg(not(feature = "meaningful_name"))]
-    {
-        server_name = utils::generate_random_string(10);
-    }
+    let server_name = server_name();
     let info = ServerInfo {
         unique_id: uuid::Uuid::new_v4(),
         machine_id: id,
         secret: utils::generate_random_string(SECRET_LEN),
         server_name,
+        version: consts::SERVER_INFO_JSON_VERSION,
     };
     serde_json::to_writer(&mut f, &info).unwrap();
     info

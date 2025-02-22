@@ -14,7 +14,7 @@ services:
         condition: service_healthy
     volumes:
       - ./config/:/etc/ourchat
-      - ./resource/:/etc/resource
+      - ../resource/:/etc/resource
   HttpServer:
     init: true
     image: skyuoi/ourchat:latest-http
@@ -28,9 +28,9 @@ services:
         condition: service_healthy
     volumes:
       - ./config/:/etc/ourchat
-      - ./resource/:/etc/resource
+      - ../resource/:/etc/resource
   db:
-    image: postgres:17
+    image: postgres:17-alpine
     restart: always
     environment:
       POSTGRES_DB: OurChat
@@ -47,8 +47,9 @@ services:
       timeout: 30s
       retries: 5
   redis:
-    image: redis
+    image: redis:7-alpine
     restart: always
+    command: redis-server /usr/local/etc/redis/redis.conf
     ports:
       - "6379:6379"
     volumes:
@@ -57,7 +58,7 @@ services:
     networks:
       - net
   mq:
-    image: rabbitmq:4-management
+    image: rabbitmq:4-management-alpine
     restart: always
     environment:
       RABBITMQ_DEFAULT_USER: guest

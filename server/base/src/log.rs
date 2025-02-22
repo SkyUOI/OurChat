@@ -1,5 +1,5 @@
-use crate::configs::DebugCfg;
 use crate::consts::{LOG_ENV_VAR, LOG_OUTPUT_DIR};
+use crate::setting::debug::DebugCfg;
 use std::path::Path;
 use std::sync::OnceLock;
 use std::time::Duration;

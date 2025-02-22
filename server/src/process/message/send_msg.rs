@@ -44,7 +44,7 @@ impl From<MsgError> for SendMsgErr {
         match e {
             MsgError::DbError(e) => Self::Db(e),
             MsgError::UnknownError(error) => Self::Internal(error),
-            MsgError::WithoutPrivilege => {
+            MsgError::PermissionDenied => {
                 Self::Status(Status::permission_denied(PERMISSION_DENIED))
             }
             MsgError::NotFound => Self::Status(Status::not_found(not_found::MSG)),

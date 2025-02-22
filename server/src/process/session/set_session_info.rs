@@ -9,7 +9,7 @@ use crate::{
 };
 use base::consts::SessionID;
 use entities::{role_permissions, user_role_relation};
-use migration::m20241229_022701_add_role_for_session::PreDefinedPermissions;
+use migration::m20241229_022701_add_role_for_session::PredefinedPermissions;
 use pb::service::ourchat::session::set_session_info::v1::{
     SetSessionInfoRequest, SetSessionInfoResponse,
 };
@@ -78,7 +78,7 @@ async fn set_session_info_impl(
         }
     }
     if let Some(name) = request.name {
-        if !permissions_map.contains(&(PreDefinedPermissions::SetTitle as i64)) {
+        if !permissions_map.contains(&(PredefinedPermissions::SetTitle as i64)) {
             return Err(SetSessionErr::Status(Status::permission_denied(
                 CANNOT_SET_NAME,
             )));
@@ -86,7 +86,7 @@ async fn set_session_info_impl(
         model.name = ActiveValue::Set(name);
     }
     if let Some(description) = request.description {
-        if !permissions_map.contains(&(PreDefinedPermissions::SetDescription as i64)) {
+        if !permissions_map.contains(&(PredefinedPermissions::SetDescription as i64)) {
             return Err(SetSessionErr::Status(Status::permission_denied(
                 CANNOT_SET_DESCRIPTION,
             )));
@@ -94,7 +94,7 @@ async fn set_session_info_impl(
         model.description = ActiveValue::Set(description);
     }
     if let Some(avatar_key) = request.avatar_key {
-        if !permissions_map.contains(&(PreDefinedPermissions::SetAvatar as i64)) {
+        if !permissions_map.contains(&(PredefinedPermissions::SetAvatar as i64)) {
             return Err(SetSessionErr::Status(Status::permission_denied(
                 CANNOT_SET_AVATAR,
             )));

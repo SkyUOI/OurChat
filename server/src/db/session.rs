@@ -1,7 +1,6 @@
 use crate::db::redis::{
     map_ban_all_to_redis, map_ban_to_redis, map_mute_all_to_redis, map_mute_to_redis,
 };
-use anyhow::Context;
 use base::consts::{ID, SessionID};
 use deadpool_redis::redis::AsyncCommands;
 use entities::{role_permissions, session, session_relation, user_role_relation};
@@ -202,7 +201,7 @@ pub enum SessionError {
 pub async fn if_permission_exist(
     user_id: ID,
     session_id: SessionID,
-    permission_checked: u64,
+    permission_checked: i64,
     db_conn: &impl ConnectionTrait,
 ) -> Result<bool, sea_orm::DbErr> {
     // get all roles first
@@ -217,7 +216,7 @@ pub async fn if_permission_exist(
             .all(db_conn)
             .await?;
         for j in permissions_queried {
-            if j.permission_id == permission_checked as i64 {
+            if j.permission_id == permission_checked {
                 return Ok(true);
             }
         }
@@ -236,7 +235,7 @@ pub async fn if_permission_exist(
 /// * `session_id` - The ID of the session to which the user is being added.
 /// * `id` - The ID of the user being added to the session.
 /// * `role` - The role ID to be assigned to the user within the session.
-/// If not specified, the default role will be set.
+///   If not specified, the default role will be set.
 /// * `db_conn` - A reference to the database connection implementing the `ConnectionTrait`.
 ///
 /// # Returns
@@ -246,7 +245,7 @@ pub async fn if_permission_exist(
 pub async fn join_in_session(
     session_id: SessionID,
     id: ID,
-    role: Option<u64>,
+    role: Option<i64>,
     db_conn: &DatabaseTransaction,
 ) -> Result<(), SessionError> {
     // update the session info
@@ -269,7 +268,7 @@ pub async fn join_in_session(
     let role_relation = user_role_relation::ActiveModel {
         user_id: ActiveValue::Set(id.into()),
         session_id: ActiveValue::Set(session_id.into()),
-        role_id: ActiveValue::Set(role.unwrap_or(default_role as u64) as i64),
+        role_id: ActiveValue::Set(role.unwrap_or(default_role)),
     };
     role_relation.insert(db_conn).await?;
     Ok(())
@@ -294,7 +293,7 @@ pub async fn join_in_session(
 pub async fn batch_join_in_session(
     session_id: SessionID,
     ids: &[ID],
-    role: Option<u64>,
+    role: Option<i64>,
     db_conn: &DatabaseTransaction,
 ) -> Result<(), SessionError> {
     for id in ids {
@@ -355,4 +354,35 @@ pub async fn delete_session(
         return Err(SessionError::SessionNotFound);
     }
     Ok(())
+}
+
+pub async fn in_session(
+    user_id: ID,
+    session_id: SessionID,
+    db_conn: &impl ConnectionTrait,
+) -> Result<bool, sea_orm::DbErr> {
+    let res = session_relation::Entity::find_by_id((session_id.into(), user_id.into()))
+        .one(db_conn)
+        .await?;
+    Ok(res.is_some())
+}
+
+/// create a new session in the database
+pub async fn create_session_db(
+    session_id: SessionID,
+    people_num: usize,
+    session_name: String,
+    db_conn: &impl ConnectionTrait,
+) -> Result<session::Model, sea_orm::DbErr> {
+    let time_now = chrono::Utc::now();
+    let session = session::ActiveModel {
+        session_id: ActiveValue::Set(session_id.into()),
+        name: ActiveValue::Set(session_name),
+        size: ActiveValue::Set(people_num as i32),
+        created_time: ActiveValue::Set(time_now.into()),
+        updated_time: ActiveValue::Set(time_now.into()),
+        ..Default::default()
+    };
+    let ret = session.insert(db_conn).await?;
+    Ok(ret)
 }

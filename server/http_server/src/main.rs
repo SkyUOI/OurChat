@@ -1,5 +1,8 @@
 use http_server::Launcher;
 
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 #[actix_web::main]
 async fn main() -> anyhow::Result<()> {
     let mut app = Launcher::build().await?;

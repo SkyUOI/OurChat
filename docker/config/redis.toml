@@ -1,0 +1,4 @@
+host = "redis"
+port = 6379
+passwd = "123456"
+user = "default"

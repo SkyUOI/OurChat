@@ -65,7 +65,7 @@ pub async fn clean_files(db_conn: &mut DatabaseConnection) -> Result<(), FileSto
     Ok(())
 }
 
-/// auto clean files which is out-of-dated
+/// auto clean files that are out-of-dated
 #[tracing::instrument]
 pub async fn auto_clean_files(mut connection: DatabaseConnection) {
     loop {

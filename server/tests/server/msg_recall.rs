@@ -23,9 +23,12 @@ async fn test_recall() {
     let ret = a
         .lock()
         .await
-        .send_msg(session.session_id, vec![OneMsg {
-            data: Some(msg_delivery::v1::one_msg::Data::Text("hello".to_owned())),
-        }])
+        .send_msg(
+            session.session_id,
+            vec![OneMsg {
+                data: Some(msg_delivery::v1::one_msg::Data::Text("hello".to_owned())),
+            }],
+        )
         .await
         .unwrap();
     let msg_id = ret.into_inner().msg_id;
@@ -66,7 +69,7 @@ async fn test_recall() {
     let b_rec = b
         .lock()
         .await
-        .fetch_msgs(Duration::from_millis(200))
+        .fetch_msgs(Duration::from_millis(600))
         .await
         .unwrap();
     let check = |rec: Vec<FetchMsgsResponse>, msg_len, msg_recall_idx: usize| {

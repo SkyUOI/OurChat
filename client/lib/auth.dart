@@ -6,36 +6,30 @@ import 'ourchat/ourchat_account.dart';
 import 'package:provider/provider.dart';
 
 class Auth extends StatelessWidget {
-  const Auth({
-    super.key,
-  });
+  const Auth({super.key});
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: DefaultTabController(
-          length: 2,
-          child: Column(
-            children: [
-              TabBar(
-                tabs: [
-                  Tab(text: AppLocalizations.of(context)!.login),
-                  Tab(text: AppLocalizations.of(context)!.register)
-                ],
-              ),
-              const Expanded(
-                  child: TabBarView(
-                children: [Login(), Register()],
-              )),
-            ],
-          )),
+        length: 2,
+        child: Column(
+          children: [
+            TabBar(
+              tabs: [
+                Tab(text: AppLocalizations.of(context)!.login),
+                Tab(text: AppLocalizations.of(context)!.register),
+              ],
+            ),
+            const Expanded(child: TabBarView(children: [Login(), Register()])),
+          ],
+        ),
+      ),
     );
   }
 }
 
 class Login extends StatefulWidget {
-  const Login({
-    super.key,
-  });
+  const Login({super.key});
 
   @override
   State<Login> createState() => _LoginState();
@@ -162,9 +156,7 @@ class _LoginState extends State<Login> {
 }
 
 class Register extends StatefulWidget {
-  const Register({
-    super.key,
-  });
+  const Register({super.key});
 
   @override
   State<Register> createState() => _RegisterState();

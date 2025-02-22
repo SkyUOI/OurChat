@@ -4,6 +4,7 @@ members = [
     "server/migration",
     "server/derive",
     "server/server_manager",
+    "server/server_manager_gui",
     "server/base",
     "server/load_balancer",
     "server/client",
@@ -12,23 +13,28 @@ members = [
     "server/pb",
     "server/http_server",
 ]
-resolver = "2"
+resolver = "3"
 
-[profile.release]
+[profile.release-opt]
+inherits = "release"
 lto = true
 codegen-units = 1
 strip = true
+# The following options can be used to generate a docker image faster
+# export CARGO_PROFILE_RELEASE_LTO=false \
+#       CARGO_PROFILE_RELEASE_OPT_LEVEL=3 \
+#       CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16
+# lto = false
+# opt-level = 0
 
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.87"
 
 [workspace.dependencies]
 anyhow = "1"
 serde_json = "1"
-# serde_repr = "0"
-# tokio-tungstenite = "0"
 futures-util = "0"
 rand = "0.8.5"
 snowdon = "0"
@@ -49,7 +55,7 @@ ring = "0"
 collection_literals = "1"
 colored = "3"
 strum = { version = "0", features = ["derive"] }
-size = { version = "0.5.0-preview2", features = ["serde"] }
+size = { version = "0", features = ["serde"] }
 
 num_enum = "0"
 mockall = "0"
@@ -62,16 +68,21 @@ jsonwebtoken = "9"
 
 linkify = "0"
 claims = "0"
-cfg-if = "1"
 urlencoding = "2"
 dotenvy = "0"
 ctor = "0"
 scopeguard = "1"
 libc-print = "0"
 itertools = "0"
-fake = "3"
+fake = "4"
 imageinfo = "0"
 walkdir = "2"
+tonic-build = "0"
+http = "1"
+http-serde = "2"
+email_address = "0"
+actix-cors = "0"
+actix-files = "0.6"
 
 [workspace.dependencies.lettre]
 version = "0"

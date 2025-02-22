@@ -2,6 +2,7 @@
 
 mod framework;
 
+use base::consts::OCID;
 use clap::Parser;
 use client::helper;
 use dashmap::DashMap;
@@ -142,7 +143,7 @@ async fn test_get_info(users: &UsersGroup, report: &mut Report) {
 async fn test_upload(
     users: &UsersGroup,
     report: &mut Report,
-) -> anyhow::Result<Arc<DashMap<String, String>>> {
+) -> anyhow::Result<Arc<DashMap<OCID, String>>> {
     let mut stress_test = StressTest::builder()
         .set_concurrency(1000)
         .set_requests(1000);
@@ -173,11 +174,7 @@ async fn test_upload(
     Ok(keys_ret)
 }
 
-async fn test_download(
-    keys: Arc<DashMap<String, String>>,
-    users: &UsersGroup,
-    report: &mut Report,
-) {
+async fn test_download(keys: Arc<DashMap<OCID, String>>, users: &UsersGroup, report: &mut Report) {
     let mut stress_test = StressTest::builder()
         .set_concurrency(1000)
         .set_requests(1000);

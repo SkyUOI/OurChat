@@ -57,7 +57,7 @@ async fn get_user_info() {
         .await
         .unwrap();
     let ret = ret.into_inner();
-    assert_eq!(ret.ocid, Some(user_ocid.clone()));
+    assert_eq!(ret.ocid, Some(user_ocid.clone().0));
     assert_eq!(ret.user_name, Some(user_name.clone()));
     assert_eq!(ret.email, Some(user_email.clone()));
     assert_eq!(ret.friends, Vec::<u64>::default());
@@ -79,11 +79,8 @@ async fn set_user_info() {
     let mut app = TestApp::new_with_launching_instance().await.unwrap();
     let user = app.new_user().await.unwrap();
 
-    let ocid = user.lock().await.ocid.clone();
-
     let new_name = "test_set_user_info".to_string();
-    let ret = user
-        .lock()
+    user.lock()
         .await
         .oc()
         .set_self_info(SetSelfInfoRequest {
@@ -126,17 +123,25 @@ async fn set_user_info() {
 }
 
 #[tokio::test]
-async fn set_friend_info() {
-    let mut app = TestApp::new_with_launching_instance().await.unwrap();
-    let user = app.new_user().await.unwrap();
-    let user2 = app.new_user().await.unwrap();
-    let user_ocid = user.lock().await.ocid.clone();
-    let user2_ocid = user2.lock().await.ocid.clone();
+async fn set_friend_info() -> anyhow::Result<()> {
+    let mut app = TestApp::new_with_launching_instance().await?;
+    let user1 = app.new_user().await?;
+    let user2 = app.new_user().await?;
     let user2_id = user2.lock().await.id;
     let new_name = "xxx";
 
-    // now have privileges, but is no friends now
-    let ret = user
+    let ret = user1
+        .lock()
+        .await
+        .oc()
+        .get_account_info(GetAccountInfoRequest {
+            id: Some(user2_id.into()),
+            request_values: vec![RequestValues::DisplayName.into()],
+        })
+        .await?
+        .into_inner();
+    assert_eq!(ret.display_name.unwrap(), user2.lock().await.name);
+    user1
         .lock()
         .await
         .oc()
@@ -144,9 +149,18 @@ async fn set_friend_info() {
             id: *user2_id,
             display_name: Some(new_name.to_owned()),
         })
+        .await?;
+    let ret = user1
+        .lock()
         .await
-        .unwrap();
-    let ret = ret.into_inner();
-    // add a friend
+        .oc()
+        .get_account_info(GetAccountInfoRequest {
+            id: Some(user2_id.into()),
+            request_values: vec![RequestValues::DisplayName.into()],
+        })
+        .await?
+        .into_inner();
+    assert_eq!(ret.display_name.unwrap(), new_name);
     app.async_drop().await;
+    Ok(())
 }

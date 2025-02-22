@@ -4,7 +4,13 @@ package service.ourchat.friends.add_friend.v1;
 
 message AddFriendRequest {
   uint64 friend_id = 1;
+  optional string leave_message = 3;
   optional string display_name = 2;
 }
 
 message AddFriendResponse {}
+
+message AddFriendApproval {
+  uint64 inviter_id = 1;
+  optional string leave_message = 2;
+}

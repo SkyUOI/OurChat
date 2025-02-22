@@ -2,6 +2,7 @@ use pb::service::ourchat::msg_delivery::{
     self,
     v1::{OneMsg, fetch_msgs_response},
 };
+use std::time::Duration;
 
 #[tokio::test]
 async fn test_text_sent() {
@@ -9,7 +10,7 @@ async fn test_text_sent() {
         .await
         .unwrap();
     let (session_user, session) = app.new_session_db_level(3, "session1").await.unwrap();
-    let (a, b, c) = (
+    let (a, _b, _cc) = (
         session_user[0].clone(),
         session_user[1].clone(),
         session_user[2].clone(),
@@ -17,12 +18,15 @@ async fn test_text_sent() {
     let ret = a
         .lock()
         .await
-        .send_msg(session.session_id, vec![OneMsg {
-            data: Some(msg_delivery::v1::one_msg::Data::Text("hello".to_owned())),
-        }])
+        .send_msg(
+            session.session_id,
+            vec![OneMsg {
+                data: Some(msg_delivery::v1::one_msg::Data::Text("hello".to_owned())),
+            }],
+        )
         .await
         .unwrap();
-    let msg_id = ret.into_inner().msg_id;
+    let _msg_id = ret.into_inner().msg_id;
     app.async_drop().await;
 }
 
@@ -32,12 +36,11 @@ async fn test_text_get() {
         .await
         .unwrap();
     let (session_user, session) = app.new_session_db_level(3, "session1").await.unwrap();
-    let (a, b, c) = (
+    let (a, _b, c) = (
         session_user[0].clone(),
         session_user[1].clone(),
         session_user[2].clone(),
     );
-    let base_time = app.get_timestamp().await;
     // send a message
     let msg_should_sent = OneMsg {
         data: Some(msg_delivery::v1::one_msg::Data::Text("hello".to_owned())),
@@ -55,13 +58,14 @@ async fn test_text_get() {
         .await
         .send_msg(session.session_id, vec![msg_should_sent.clone()])
         .await
-        .unwrap();
-    msg_id.push(ret.into_inner().msg_id);
+        .unwrap()
+        .into_inner();
+    msg_id.push(ret.msg_id);
 
     let msgs = c
         .lock()
         .await
-        .fetch_msgs(tokio::time::Duration::from_millis(400))
+        .fetch_msgs(Duration::from_millis(400))
         .await
         .unwrap();
     assert_eq!(msgs.len(), 2);

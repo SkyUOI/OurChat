@@ -8,19 +8,15 @@ use anyhow::Context;
 use base::consts::{ID, SessionID};
 use base::database::DbPool;
 use base::time::to_google_timestamp;
-use entities::{friend, prelude::*, session};
+use entities::{friend, prelude::*};
 use invite_session::v1::InviteSession;
-use migration::m20241229_022701_add_role_for_session::PreDefinedRoles;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
 use pb::service::ourchat::session::invite_session;
 use pb::service::ourchat::session::new_session::v1::{
     FailedMember, FailedReason, NewSessionRequest, NewSessionResponse,
 };
-use sea_orm::{
-    ActiveModelTrait, ActiveValue, ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter,
-    TransactionTrait,
-};
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, TransactionTrait};
 use std::time::Duration;
 use tonic::{Request, Response};
 use tracing::error;
@@ -29,32 +25,10 @@ use tracing::error;
 pub enum NewSessionError {
     #[error("session not found")]
     SessionNotFound,
-    #[error("user not found")]
-    UserNotFound,
     #[error("database error:{0:?}")]
     DbError(#[from] sea_orm::DbErr),
     #[error("unknown error:{0:?}")]
     UnknownError(#[from] anyhow::Error),
-}
-
-/// create a new session in the database
-pub async fn create_session_db(
-    session_id: SessionID,
-    people_num: usize,
-    session_name: String,
-    db_conn: &impl ConnectionTrait,
-) -> Result<(), NewSessionError> {
-    let time_now = chrono::Utc::now();
-    let session = session::ActiveModel {
-        session_id: ActiveValue::Set(session_id.into()),
-        name: ActiveValue::Set(session_name),
-        size: ActiveValue::Set(people_num.try_into().context("people num error")?),
-        created_time: ActiveValue::Set(time_now.into()),
-        updated_time: ActiveValue::Set(time_now.into()),
-        ..Default::default()
-    };
-    session.insert(db_conn).await?;
-    Ok(())
 }
 
 /// check the privilege and whether to send a verification request
@@ -111,7 +85,7 @@ async fn new_session_impl(
     }
     let bundle = async {
         let transaction = server.db.db_pool.begin().await?;
-        create_session_db(
+        db::session::create_session_db(
             session_id,
             people_num,
             req.name.unwrap_or_default(),
@@ -152,7 +126,6 @@ pub async fn new_session(
     match new_session_impl(server, req).await {
         Ok(res) => Ok(Response::new(res)),
         Err(e) => match e {
-            NewSessionError::UserNotFound => Err(tonic::Status::not_found(not_found::USER)),
             NewSessionError::SessionNotFound => Err(tonic::Status::not_found(not_found::SESSION)),
             NewSessionError::DbError(_) | NewSessionError::UnknownError(_) => {
                 error!("{}", e);

@@ -1,4 +1,4 @@
-use crate::{EmailClientType, MainCfg};
+use crate::{Cfg, EmailClientType};
 use actix_web::{HttpRequest, HttpResponse, Responder, get, web};
 use anyhow::Context;
 use base::consts;
@@ -33,8 +33,8 @@ async fn verify_token(
     // check if the token is valid
     let ret = if match check_token_exist_and_del_token(&param.token, &pool.redis_pool).await {
         Ok(data) => data,
-        Err(_) => {
-            tracing::error!("check token error");
+        Err(e) => {
+            tracing::error!("Error while checking token:{:?}", e);
             return Ok(HttpResponse::InternalServerError());
         }
     } {
@@ -49,7 +49,7 @@ pub async fn verify_client(
     db: &DbPool,
     email_client: &Option<EmailClientType>,
     data: VerifyRecord,
-    cfg: &web::Data<MainCfg>,
+    cfg: &web::Data<Cfg>,
 ) -> anyhow::Result<()> {
     if let Some(email_client) = email_client {
         let user_mailbox = format!("User <{}>", data.email);
@@ -66,10 +66,8 @@ pub async fn verify_client(
                 user_mailbox,
                 format!("{} Verification", consts::APP_NAME),
                 format!(
-                    "please click \"{}://{}:{}/v1/verify/confirm?token={}\" to verify your email",
-                    cfg.protocol_http(),
-                    cfg.ip,
-                    cfg.port,
+                    "please click \"{}v1/verify/confirm?token={}\" to verify your email",
+                    cfg.main_cfg.base_url(),
                     data.token
                 ),
             )

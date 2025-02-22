@@ -11,6 +11,6 @@ prost.workspace = true
 serde.workspace = true
 
 [build-dependencies]
-tonic-build = { version = "0" }
+tonic-build.workspace = true
 anyhow.workspace = true
 walkdir.workspace = true

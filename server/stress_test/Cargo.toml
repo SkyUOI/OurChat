@@ -15,4 +15,4 @@ anyhow.workspace = true
 tracing.workspace = true
 pb = { path = "../pb" }
 size.workspace = true
-base ={ path = "../base" }
+base = { path = "../base" }

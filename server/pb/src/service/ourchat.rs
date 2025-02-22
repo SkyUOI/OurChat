@@ -78,6 +78,12 @@ pub mod session {
             include!("../generated/service.ourchat.session.leave_session.v1.rs");
         }
     }
+
+    pub mod join_in_session {
+        pub mod v1 {
+            include!("../generated/service.ourchat.session.join_in_session.v1.rs");
+        }
+    }
 }
 
 pub mod set_account_info {
@@ -108,6 +114,12 @@ pub mod friends {
     pub mod accept_friend {
         pub mod v1 {
             include!("../generated/service.ourchat.friends.accept_friend.v1.rs");
+        }
+    }
+
+    pub mod delete_friend {
+        pub mod v1 {
+            include!("../generated/service.ourchat.friends.delete_friend.v1.rs");
         }
     }
 }

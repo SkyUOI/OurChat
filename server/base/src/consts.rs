@@ -1,7 +1,7 @@
 //! Define constants
 //! TODO: use new type for roles and permissions
 
-use crate::impl_newtype_int;
+use crate::{impl_newtype_int, impl_newtype_string};
 use pb::service::basic::server::v1::ServerVersion;
 use size::Size;
 use std::{io::IsTerminal, path::PathBuf, sync::LazyLock, time::Duration};
@@ -26,6 +26,9 @@ pub const LOG_OUTPUT_DIR: &str = "log/";
 pub const CONFIG_FILE_ENV_VAR: &str = "OURCHAT_CONFIG_FILE";
 // TODO:add this to config file
 pub const VERIFY_EMAIL_EXPIRE: Duration = Duration::from_mins(5);
+pub const SERVER_INFO_JSON_VERSION: u64 = 1;
+// TODO:add this to config file
+pub const ADD_FRIEND_REQUEST_EXPIRE: Duration = Duration::from_days(3);
 
 // define ID type to fit many types of databases
 impl_newtype_int!(ID, u64, serde::Serialize, serde::Deserialize);
@@ -57,8 +60,20 @@ impl From<ID> for sea_orm::Value {
     }
 }
 
-/// ocid type
-pub type OCID = String;
+// ocid type
+impl_newtype_string!(OCID, serde::Serialize, serde::Deserialize);
+
+impl From<OCID> for sea_orm::Value {
+    fn from(value: OCID) -> Self {
+        Self::String(Some(Box::new(value.0)))
+    }
+}
+
+impl From<&OCID> for sea_orm::Value {
+    fn from(value: &OCID) -> Self {
+        Self::String(Some(Box::new(value.0.clone())))
+    }
+}
 
 /// default clear interval
 pub const fn default_clear_interval() -> u64 {

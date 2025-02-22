@@ -3,9 +3,10 @@ use base::{email_client::EmailSender, shutdown::ShutdownSdr};
 use http_server::{Cfg, Launcher};
 use sqlx::migrate::MigrateDatabase;
 use std::{sync::Arc, thread, time::Duration};
+use tracing::info;
 
 pub struct TestHttpApp {
-    pub app_config: Arc<http_server::Cfg>,
+    pub app_config: Arc<Cfg>,
     pub client: reqwest::Client,
     pub has_dropped: bool,
     handle: ShutdownSdr,
@@ -74,24 +75,33 @@ impl TestHttpApp {
         Self::setup(Self::build_server().await?, None, email_client).await
     }
 
-    pub async fn http_get(
+    pub async fn ourchat_api_get(
         &self,
         name: impl AsRef<str>,
     ) -> Result<reqwest::Response, reqwest::Error> {
+        self.http_get(format!("v1/{}", name.as_ref())).await
+    }
+
+    pub async fn matrix_api_get(
+        &self,
+        name: impl AsRef<str>,
+    ) -> Result<reqwest::Response, reqwest::Error> {
+        self.http_get(format!("_matrix/{}", name.as_ref())).await
+    }
+
+    pub async fn http_get(
+        &self,
+        url: impl AsRef<str>,
+    ) -> Result<reqwest::Response, reqwest::Error> {
+        let base_url = self.app_config.main_cfg.base_url();
         self.client
-            .get(format!(
-                "{}://{}:{}/v1/{}",
-                self.app_config.main_cfg.protocol_http(),
-                self.app_config.main_cfg.ip,
-                self.app_config.main_cfg.port,
-                name.as_ref()
-            ))
+            .get(format!("{}{}", base_url, url.as_ref()))
             .send()
             .await
     }
 
     pub async fn verify(&mut self, token: &str) -> Result<reqwest::Response, reqwest::Error> {
-        self.http_get(format!("verify/confirm?token={}", token))
+        self.ourchat_api_get(format!("verify/confirm?token={}", token))
             .await
     }
 
@@ -116,6 +126,7 @@ impl TestHttpApp {
             }
         }
         self.has_dropped = true;
+        info!("async drop done");
     }
 }
 

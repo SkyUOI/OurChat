@@ -2,12 +2,13 @@
 ip = "0.0.0.0"
 # The http server listening port
 port = 7778
-rediscfg = "redis_connect.toml"
-dbcfg = "database.toml"
+redis_cfg = "redis.toml"
+db_cfg = "database.toml"
+user_setting = "user_setting.toml"
 # If not set, the email will be disabled
 email_cfg = "email.toml"
 rabbitmq_cfg = "rabbitmq.toml"
 ssl = false
 # The logo of this server
-logo_path = "../../resource/logo.png"
+logo_path = "../resource/logo.png"
 run_migration = false

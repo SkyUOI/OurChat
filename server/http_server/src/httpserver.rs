@@ -2,7 +2,7 @@ mod logo;
 mod status;
 pub mod verify;
 
-use crate::{EmailClientType, MainCfg};
+use crate::{Cfg, EmailClientType};
 use actix_web::{
     App,
     web::{self},
@@ -13,9 +13,12 @@ use base::{
     shutdown::{ShutdownRev, ShutdownSdr},
 };
 use deadpool_lapin::lapin::options::{BasicAckOptions, BasicRejectOptions};
+use std::str::FromStr;
+use std::sync::Arc;
 use std::time::Duration;
 use tokio::select;
 use tokio_stream::StreamExt;
+use tracing::{debug, info};
 
 pub struct HttpServer {}
 
@@ -28,35 +31,51 @@ impl HttpServer {
         &mut self,
         listener: tokio::net::TcpListener,
         email_client: Option<EmailClientType>,
-        cfg: MainCfg,
+        cfg: Arc<Cfg>,
         rabbitmq: deadpool_lapin::Pool,
         db_conn: DbPool,
         shutdown_sdr: ShutdownSdr,
     ) -> anyhow::Result<()> {
-        let cfg = web::Data::new(cfg);
+        let cfg = web::Data::from(cfg);
         let cfg_clone = cfg.clone();
         let rabbitmq_clone = rabbitmq.clone();
         let db_conn_clone = db_conn.clone();
-        tracing::info!("Start building Server");
+        info!("Start building Server");
+        let enable_matrix = cfg.main_cfg.enable_matrix;
         let http_server = actix_web::HttpServer::new(move || {
             let v1 = web::scope("/v1")
                 .service(status::status)
                 .service(logo::logo)
                 .configure(verify::config);
-            App::new()
+            let cors = actix_cors::Cors::default()
+                .allow_any_origin()
+                .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+                .allowed_headers(vec![
+                    actix_web::http::header::HeaderName::from_str("X-Requested-With").unwrap(),
+                    actix_web::http::header::CONTENT_TYPE,
+                    actix_web::http::header::AUTHORIZATION,
+                ]);
+            let mut app = App::new()
+                .wrap(actix_web::middleware::NormalizePath::default())
+                .wrap(cors)
                 .wrap(actix_web::middleware::Logger::default())
                 .app_data(db_conn_clone.clone())
                 .app_data(cfg_clone.clone())
                 .app_data(rabbitmq_clone.clone())
-                .service(v1)
+                .service(v1);
+            if enable_matrix {
+                info!("matrix api enabled");
+                app = app.configure(crate::matrix::configure_matrix)
+            }
+            app
         })
         .listen(listener.into_std()?)?
         .run();
-        tracing::info!("Start creating rabbitmq consumer");
+        info!("Start creating rabbitmq consumer");
         let connection = rabbitmq.get().await?;
-        tracing::debug!("Get connection to rabbitmq");
+        debug!("Get connection to rabbitmq");
         let channel = connection.create_channel().await?;
-        tracing::debug!("Get channel to rabbitmq");
+        debug!("Get channel to rabbitmq");
         let rabbit_listen_rev =
             shutdown_sdr.new_receiver("rabbitmq verify", "listen to rabbitmq to get verify record");
         tokio::spawn(async move {
@@ -69,7 +88,7 @@ impl HttpServer {
                 }
             }
         });
-        tracing::info!("Http server setup done");
+        info!("Http server setup done");
         let mut rev = shutdown_sdr.new_receiver("http server", "http server");
         select! {
             _ = rev.wait_shutting_down() => {
@@ -85,12 +104,12 @@ impl HttpServer {
     async fn listen_rabbitmq(
         mq_channel: deadpool_lapin::lapin::Channel,
         db_pool: DbPool,
-        cfg: web::Data<MainCfg>,
+        cfg: web::Data<Cfg>,
         email_client: Option<EmailClientType>,
         mut shutdown_rev: ShutdownRev,
     ) -> anyhow::Result<()> {
         let logic = async {
-            tracing::debug!("Starting set channel");
+            debug!("Starting set channel");
             // TODO:add this to config file
             mq_channel
                 .basic_qos(
@@ -123,7 +142,7 @@ impl HttpServer {
                 tokio::time::sleep(Duration::from_secs(3)).await;
                 try_cnt += 1;
             };
-            tracing::debug!("Starting to consume verification");
+            debug!("Starting to consume verification");
             while let Some(data) = consumer.next().await {
                 let delivery = match data {
                     Ok(data) => data,

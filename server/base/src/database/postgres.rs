@@ -1,3 +1,4 @@
+use crate::setting::Setting;
 use migration::MigratorTrait;
 use sea_orm::{ConnectOptions, DatabaseConnection};
 use serde::{Deserialize, Serialize};
@@ -26,15 +27,9 @@ impl PostgresDbCfg {
             )
         }
     }
-
-    pub fn build_from_path(path: &std::path::Path) -> anyhow::Result<Self> {
-        let cfg = config::Config::builder()
-            .add_source(config::File::with_name(path.to_str().unwrap()))
-            .build()?;
-        let cfg: PostgresDbCfg = cfg.try_deserialize()?;
-        Ok(cfg)
-    }
 }
+
+impl Setting for PostgresDbCfg {}
 
 async fn try_create_postgres_db(
     url: &str,

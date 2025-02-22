@@ -6,9 +6,7 @@ import 'main.dart';
 import 'ourchat/ourchat_server.dart';
 
 class ServerSetting extends StatefulWidget {
-  const ServerSetting({
-    super.key,
-  });
+  const ServerSetting({super.key});
 
   @override
   State<ServerSetting> createState() => _ServerSettingState();
@@ -30,97 +28,71 @@ class _ServerSettingState extends State<ServerSetting> {
     port = ourchatAppState.config!.data!["servers"][0]["port"];
     var key = GlobalKey<FormState>();
     var serverInfoLabels = Expanded(
-      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        const Padding(
-          padding: EdgeInsets.all(10.0),
-          child: SizedBox(height: 100.0, width: 100.0, child: Placeholder()),
-          // child: Image(image: AssetImage("assets/images/logo.png"))
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              "${AppLocalizations.of(context)!.serverAddress}: ",
-            ),
-            Text(
-              address,
-              style: const TextStyle(color: Colors.grey),
-            )
-          ],
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              "${AppLocalizations.of(context)!.serverName}: ",
-            ),
-            Text(
-              serverName,
-              style: const TextStyle(color: Colors.grey),
-            )
-          ],
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              "${AppLocalizations.of(context)!.port}: ",
-            ),
-            Text(
-              port.toString(),
-              style: const TextStyle(color: Colors.grey),
-            )
-          ],
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              "${AppLocalizations.of(context)!.httpPort}: ",
-            ),
-            Text(
-              (httpPort == -1 ? "" : httpPort.toString()),
-              style: const TextStyle(color: Colors.grey),
-            )
-          ],
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              "${AppLocalizations.of(context)!.serverStatus}: ",
-            ),
-            Text(serverState,
-                style: TextStyle(
-                  color: serverStatusColor,
-                ))
-          ],
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              "${AppLocalizations.of(context)!.serverVersion}: ",
-            ),
-            Text(
-              serverVersion,
-              style: const TextStyle(color: Colors.grey),
-            )
-          ],
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              "${AppLocalizations.of(context)!.ping}: ",
-            ),
-            Text(
-              (ping == -1 ? "" : "$ping ms"),
-              style: const TextStyle(color: Colors.grey),
-            )
-          ],
-        ),
-      ]),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Padding(
+            padding: EdgeInsets.all(10.0),
+            child: SizedBox(height: 100.0, width: 100.0, child: Placeholder()),
+            // child: Image(image: AssetImage("assets/images/logo.png"))
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text("${AppLocalizations.of(context)!.serverAddress}: "),
+              Text(address, style: const TextStyle(color: Colors.grey)),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text("${AppLocalizations.of(context)!.serverName}: "),
+              Text(serverName, style: const TextStyle(color: Colors.grey)),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text("${AppLocalizations.of(context)!.port}: "),
+              Text(port.toString(), style: const TextStyle(color: Colors.grey)),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text("${AppLocalizations.of(context)!.httpPort}: "),
+              Text(
+                (httpPort == -1 ? "" : httpPort.toString()),
+                style: const TextStyle(color: Colors.grey),
+              ),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text("${AppLocalizations.of(context)!.serverStatus}: "),
+              Text(serverState, style: TextStyle(color: serverStatusColor)),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text("${AppLocalizations.of(context)!.serverVersion}: "),
+              Text(serverVersion, style: const TextStyle(color: Colors.grey)),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text("${AppLocalizations.of(context)!.ping}: "),
+              Text(
+                (ping == -1 ? "" : "$ping ms"),
+                style: const TextStyle(color: Colors.grey),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
     var serverForm = Padding(
       padding: const EdgeInsets.all(8.0),
@@ -132,7 +104,8 @@ class _ServerSettingState extends State<ServerSetting> {
             TextFormField(
               initialValue: address,
               decoration: InputDecoration(
-                  label: Text(AppLocalizations.of(context)!.serverAddress)),
+                label: Text(AppLocalizations.of(context)!.serverAddress),
+              ),
               validator: (value) {
                 if (value!.isEmpty) {
                   return AppLocalizations.of(context)!.cantBeEmpty;
@@ -148,7 +121,8 @@ class _ServerSettingState extends State<ServerSetting> {
             TextFormField(
               initialValue: port.toString(),
               decoration: InputDecoration(
-                  label: Text(AppLocalizations.of(context)!.port)),
+                label: Text(AppLocalizations.of(context)!.port),
+              ),
               validator: (value) {
                 if (value!.isEmpty) {
                   return AppLocalizations.of(context)!.cantBeEmpty;
@@ -170,9 +144,11 @@ class _ServerSettingState extends State<ServerSetting> {
             Padding(
               padding: const EdgeInsets.all(10.0),
               child: ElevatedButton(
-                child: Text(isOnline
-                    ? AppLocalizations.of(context)!.continue_
-                    : AppLocalizations.of(context)!.connect),
+                child: Text(
+                  isOnline
+                      ? AppLocalizations.of(context)!.continue_
+                      : AppLocalizations.of(context)!.connect,
+                ),
                 onPressed: () async {
                   if (!key.currentState!.validate()) {
                     return;
@@ -223,8 +199,10 @@ class _ServerSettingState extends State<ServerSetting> {
                         serverStatusColor = Colors.red;
                         break;
                       case unavailableStatusCode:
-                        serverState = AppLocalizations.of(context)!
-                            .serverStatusUnderMaintenance;
+                        serverState =
+                            AppLocalizations.of(
+                              context,
+                            )!.serverStatusUnderMaintenance;
                         serverStatusColor = Colors.orange;
                         break;
                       default:
@@ -246,24 +224,26 @@ class _ServerSettingState extends State<ServerSetting> {
       ),
     );
 
-    return Scaffold(body: LayoutBuilder(builder: (context, constraints) {
-      if (ourchatAppState.device == mobile) {
-        return Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            children: [serverInfoLabels, serverForm],
-          ),
-        );
-      }
-      return Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Row(
-          children: [
-            Flexible(flex: 1, child: serverInfoLabels),
-            Flexible(flex: 2, child: serverForm)
-          ],
-        ),
-      );
-    }));
+    return Scaffold(
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          if (ourchatAppState.device == mobile) {
+            return Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(children: [serverInfoLabels, serverForm]),
+            );
+          }
+          return Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Row(
+              children: [
+                Flexible(flex: 1, child: serverInfoLabels),
+                Flexible(flex: 2, child: serverForm),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 }

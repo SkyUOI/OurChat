@@ -47,7 +47,7 @@ impl From<MsgError> for RecallErr {
     fn from(value: MsgError) -> Self {
         match value {
             MsgError::DbError(db_err) => Self::Db(db_err),
-            MsgError::WithoutPrivilege => {
+            MsgError::PermissionDenied => {
                 Self::Status(Status::permission_denied(PERMISSION_DENIED))
             }
             MsgError::NotFound => Self::Status(Status::not_found(not_found::MSG)),

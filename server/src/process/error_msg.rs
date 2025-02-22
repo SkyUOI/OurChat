@@ -6,6 +6,8 @@ pub mod not_found {
     pub const NOT_BE_MUTED: &str = "User Not Be Muted";
     pub const NOT_BE_BANNED: &str = "User Not Be Banned";
     pub const SESSION_INVITATION: &str = "Session Invitation Not Found";
+    pub const FRIEND: &str = "Friend Not Found";
+    pub const FRIEND_INVITATION: &str = "Friend Invitation Not Found";
 }
 
 pub mod exist {
@@ -46,3 +48,6 @@ pub const CANNOT_SET_AVATAR: &str = "Cannot Set Avatar";
 // Auth
 pub const MISSING_AUTH_TYPE: &str = "Missing AuthType";
 pub const WRONG_PASSWORD: &str = "Wrong Password";
+
+// Role
+pub const ROLE_NAME_EMPTY: &str = "Role Name Empty";

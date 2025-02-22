@@ -1,0 +1,12 @@
+[package]
+name = "server_manager_gui"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+slint = "1.9"
+anyhow.workspace = true
+
+[build-dependencies]
+slint-build = "1.9"
+anyhow.workspace = true

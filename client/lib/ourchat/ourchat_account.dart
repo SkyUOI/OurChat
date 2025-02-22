@@ -34,10 +34,13 @@ class OurchatAccount {
   Future login(String password, String? ocid, String? email) async {
     AuthServiceClient authStub = AuthServiceClient(server.channel!);
     try {
-      var res = await authStub.auth(AuthRequest(
+      var res = await authStub.auth(
+        AuthRequest(
           email: email,
           ocid: ocid,
-          password: sha256.convert(ascii.encode(password)).toString()));
+          password: sha256.convert(ascii.encode(password)).toString(),
+        ),
+      );
       email = email;
       id = res.id;
       ocid = res.ocid;
@@ -54,10 +57,13 @@ class OurchatAccount {
     AuthServiceClient authStub = AuthServiceClient(server.channel!);
 
     try {
-      var res = await authStub.register(RegisterRequest(
+      var res = await authStub.register(
+        RegisterRequest(
           email: email,
           password: sha256.convert(ascii.encode(password)).toString(),
-          name: name));
+          name: name,
+        ),
+      );
       email = email;
       username = name;
       id = res.id;
@@ -87,13 +93,16 @@ class OurchatAccount {
     ocid = res.ocid;
     if (isMe) {
       res = await stub!.getAccountInfo(
-        GetAccountInfoRequest(id: id, requestValues: [
-          RequestValues.REQUEST_VALUES_UPDATE_TIME,
-          RequestValues.REQUEST_VALUES_SESSIONS,
-          RequestValues.REQUEST_VALUES_FRIENDS,
-          RequestValues.REQUEST_VALUES_EMAIL,
-          RequestValues.REQUEST_VALUES_REGISTER_TIME,
-        ]),
+        GetAccountInfoRequest(
+          id: id,
+          requestValues: [
+            RequestValues.REQUEST_VALUES_UPDATE_TIME,
+            RequestValues.REQUEST_VALUES_SESSIONS,
+            RequestValues.REQUEST_VALUES_FRIENDS,
+            RequestValues.REQUEST_VALUES_EMAIL,
+            RequestValues.REQUEST_VALUES_REGISTER_TIME,
+          ],
+        ),
       );
       updateTime = res.updateTime;
       email = res.email;
@@ -103,7 +112,9 @@ class OurchatAccount {
     } else {
       res = await stub!.getAccountInfo(
         GetAccountInfoRequest(
-            id: id, requestValues: [RequestValues.REQUEST_VALUES_DISPLAY_NAME]),
+          id: id,
+          requestValues: [RequestValues.REQUEST_VALUES_DISPLAY_NAME],
+        ),
       );
       displayName = res.displayName;
     }

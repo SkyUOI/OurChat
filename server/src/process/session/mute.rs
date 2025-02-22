@@ -8,7 +8,7 @@ use crate::{process::error_msg::SERVER_ERROR, server::RpcServer};
 use anyhow::Context;
 use base::consts::ID;
 use deadpool_redis::redis::AsyncCommands;
-use migration::m20241229_022701_add_role_for_session::PreDefinedPermissions;
+use migration::m20241229_022701_add_role_for_session::PredefinedPermissions;
 use pb::service::ourchat::session::mute::v1::{
     MuteUserRequest, MuteUserResponse, UnmuteUserRequest, UnmuteUserResponse,
 };
@@ -51,7 +51,7 @@ async fn mute_user_impl(
     if !if_permission_exist(
         id,
         req.session_id.into(),
-        PreDefinedPermissions::MuteUser.into(),
+        PredefinedPermissions::MuteUser.into(),
         &server.db.db_pool,
     )
     .await?
@@ -115,7 +115,7 @@ async fn unmute_user_impl(
     if !if_permission_exist(
         id,
         req.session_id.into(),
-        PreDefinedPermissions::UnmuteUser.into(),
+        PredefinedPermissions::UnmuteUser.into(),
         &server.db.db_pool,
     )
     .await?

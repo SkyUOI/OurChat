@@ -1,8 +1,9 @@
 # OurChat Config
 
-There are some predefined configs. In the `gh_test` folder, there is a config for github action and for deployment out of docker.
+There are some predefined configs. In this folder, there is a config for deployment out of docker.
+The config used in docker container is in `docker/config`
 
-In the current folder there is a config for docker deployment.
+In the current folder, there is a config for docker deployment.
 
 Each set of config contains the following files:
 

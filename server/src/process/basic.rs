@@ -1,3 +1,5 @@
+pub mod support;
+
 use anyhow::bail;
 use base::consts::{ID, OCID};
 use base::database::DbPool;
@@ -18,7 +20,7 @@ pub async fn get_id(ocid: &OCID, db_conn: &DbPool) -> anyhow::Result<ID> {
     }
     // query in database
     let user = User::find()
-        .filter(user::Column::Ocid.eq(ocid.to_string()))
+        .filter(user::Column::Ocid.eq(ocid))
         .one(&db_conn.db_pool)
         .await?;
     if let Some(user) = user {
@@ -32,7 +34,7 @@ pub async fn get_id(ocid: &OCID, db_conn: &DbPool) -> anyhow::Result<ID> {
 pub async fn get_ocid(id: ID, db_conn: &DbPool) -> anyhow::Result<OCID> {
     let user = User::find_by_id(id).one(&db_conn.db_pool).await?;
     if let Some(user) = user {
-        return Ok(user.ocid);
+        return Ok(OCID(user.ocid));
     }
     bail!("id not found")
 }

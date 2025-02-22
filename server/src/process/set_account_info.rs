@@ -68,12 +68,12 @@ async fn update_account(
         };
     }
     let txn = db_conn.begin().await?;
-    if let Some(avater_key) = request_data.avatar_key {
-        let avater_previous = user.avatar.clone().unwrap();
+    if let Some(avatar_key) = request_data.avatar_key {
+        let avatar_previous = user.avatar.clone().unwrap();
         let mut should_modified = true;
-        // check whether the avatar is different from previous one
-        if let Some(avatar) = avater_previous {
-            if avatar == avater_key {
+        // check whether the avatar is different from the previous one
+        if let Some(avatar) = avatar_previous {
+            if avatar == avatar_key {
                 should_modified = false;
             }
             // reduce the refcount
@@ -81,10 +81,10 @@ async fn update_account(
                 .await
                 .context("cannot reduce the refcount of file")?;
         } else {
-            should_modified = avater_key.is_empty();
+            should_modified = avatar_key.is_empty();
         }
         if should_modified {
-            user.avatar = ActiveValue::Set(Some(avater_key));
+            user.avatar = ActiveValue::Set(Some(avatar_key));
             public_updated = true;
         }
     }
