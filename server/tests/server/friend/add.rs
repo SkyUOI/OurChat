@@ -1,7 +1,7 @@
 use base::consts::SessionID;
 use claims::{assert_none, assert_some};
 use client::TestApp;
-use migration::m20241229_022701_add_role_for_session::PreDefinedRoles;
+use migration::m20241229_022701_add_role_for_session::PredefinedRoles;
 use pb::service::ourchat::friends::accept_friend::v1::{AcceptFriendRequest, AcceptFriendResult};
 use pb::service::ourchat::friends::add_friend::v1::AddFriendRequest;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
@@ -85,7 +85,7 @@ async fn add_friend_accept() {
         .unwrap();
     assert_eq!(members.len(), 2);
     for i in &members {
-        assert_eq!(i.role_id, PreDefinedRoles::Owner as i64);
+        assert_eq!(i.role_id, PredefinedRoles::Owner as i64);
     }
     app.async_drop().await;
 }

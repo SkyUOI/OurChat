@@ -9,7 +9,7 @@ use base::consts::{ID, SessionID};
 use base::time::from_google_timestamp;
 use claims::assert_lt;
 use client::TestApp;
-use migration::m20241229_022701_add_role_for_session::PreDefinedRoles;
+use migration::m20241229_022701_add_role_for_session::{PredefinedRoles, RoleId};
 use parking_lot::Mutex;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
@@ -161,7 +161,7 @@ async fn get_session_info() {
         members,
         HashSet::from_iter([a.lock().await.id, b.lock().await.id, c.lock().await.id,].into_iter())
     );
-    let roles: HashSet<(ID, u64)> = info
+    let roles: HashSet<(ID, RoleId)> = info
         .roles
         .into_iter()
         .map(|x| (x.user_id.into(), x.role))
@@ -169,9 +169,9 @@ async fn get_session_info() {
     assert_eq!(
         roles,
         HashSet::from_iter([
-            (a.lock().await.id, PreDefinedRoles::Owner.into()),
-            (b.lock().await.id, PreDefinedRoles::Member.into()),
-            (c.lock().await.id, PreDefinedRoles::Member.into())
+            (a.lock().await.id, PredefinedRoles::Owner.into()),
+            (b.lock().await.id, PredefinedRoles::Member.into()),
+            (c.lock().await.id, PredefinedRoles::Member.into())
         ])
     );
     app.async_drop().await;

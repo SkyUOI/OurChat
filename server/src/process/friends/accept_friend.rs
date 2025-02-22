@@ -8,7 +8,7 @@ use anyhow::Context;
 use base::consts::ID;
 use base::time::to_google_timestamp;
 use deadpool_redis::redis::AsyncCommands;
-use migration::m20241229_022701_add_role_for_session::PreDefinedRoles;
+use migration::m20241229_022701_add_role_for_session::PredefinedRoles;
 use pb::service::ourchat::friends::accept_friend::v1::{
     AcceptFriendNotification, AcceptFriendRequest, AcceptFriendResponse, AcceptFriendResult,
 };
@@ -106,7 +106,7 @@ async fn accept_friend_impl(
         db::session::batch_join_in_session(
             session_id.unwrap(),
             &[id, inviter_id],
-            Some(PreDefinedRoles::Owner.into()),
+            Some(PredefinedRoles::Owner.into()),
             &transaction,
         )
         .await?;

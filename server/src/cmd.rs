@@ -18,7 +18,8 @@ use tokio::{
     sync::{mpsc, oneshot},
 };
 
-type CheckFunc = fn(&InstManager, Vec<String>) -> Result<Option<String>, String>;
+type CmdProcessFuncRet = Result<Option<String>, String>;
+type CmdProcessFunc = fn(&InstManager, Vec<String>) -> CmdProcessFuncRet;
 
 /// Store the information of a command
 struct Inst {
@@ -26,7 +27,7 @@ struct Inst {
     name_internal: &'static str,
     short_help: String,
     details_help: String,
-    pub command_process: CheckFunc,
+    pub command_process: CmdProcessFunc,
 }
 
 #[derive(strum::EnumString, PartialEq, Eq, PartialOrd, Ord)]
@@ -56,14 +57,14 @@ impl InstManager {
                 _name: InstName::Exit,
                 name_internal: "exit",
                 short_help: "Exit the server".to_string(),
-                details_help: "Exit the server.Usage: exit".to_string(),
+                details_help: "Exit the server. Usage: exit".to_string(),
                 command_process: exit_process,
             }),
             InstName::Help => Arc::new(Inst {
                 _name: InstName::Help,
                 name_internal: "help",
                 short_help: "Display the Help information".to_string(),
-                details_help: "Display the help information Help.Usage: help command1 command2".to_string(),
+                details_help: "Display the help information Help. Usage: help command1 command2".to_string(),
                 command_process: help_process,
             }),
             InstName::Set => Arc::new(Inst {
@@ -101,7 +102,6 @@ FileSaveDays(How long the files will be kept): Number of day".to_string(),
                 details_help: "Clean the file system. Usage: cleanfs".to_string(),
                 command_process: cleanfs_process,
             }),
-
         }));
         Self { insts, shared_data }
     }
@@ -115,7 +115,7 @@ FileSaveDays(How long the files will be kept): Number of day".to_string(),
     }
 }
 
-fn exit_process(_: &InstManager, argvs: Vec<String>) -> Result<Option<String>, String> {
+fn exit_process(_: &InstManager, argvs: Vec<String>) -> CmdProcessFuncRet {
     if argvs.is_empty() {
         tracing::info!("Exiting now...");
         return Ok(None);
@@ -123,14 +123,14 @@ fn exit_process(_: &InstManager, argvs: Vec<String>) -> Result<Option<String>, S
     Err("exit accept 0 args".to_string())
 }
 
-fn cleanfs_process(_: &InstManager, argvs: Vec<String>) -> Result<Option<String>, String> {
+fn cleanfs_process(_: &InstManager, argvs: Vec<String>) -> CmdProcessFuncRet {
     if !argvs.is_empty() {
         return Err("cleanfs accept 0 args".to_string());
     }
     Ok(None)
 }
 
-fn help_process(insts: &InstManager, argvs: Vec<String>) -> Result<Option<String>, String> {
+fn help_process(insts: &InstManager, argvs: Vec<String>) -> CmdProcessFuncRet {
     let mut ret = String::new();
     if argvs.is_empty() {
         // Output general information
@@ -187,7 +187,7 @@ fn gen_error_msg_template(help_msg: &str) -> String {
     )
 }
 
-fn set_process(manager: &InstManager, argvs: Vec<String>) -> Result<Option<String>, String> {
+fn set_process(manager: &InstManager, argvs: Vec<String>) -> CmdProcessFuncRet {
     if argvs.len() != 2 {
         return Err("status accept 2 args".to_string());
     }
@@ -242,7 +242,7 @@ fn set_process(manager: &InstManager, argvs: Vec<String>) -> Result<Option<Strin
     Ok(Some(ret))
 }
 
-fn get_process(manager: &InstManager, argvs: Vec<String>) -> Result<Option<String>, String> {
+fn get_process(manager: &InstManager, argvs: Vec<String>) -> CmdProcessFuncRet {
     if argvs.len() != 1 {
         return Err("getstatus accept 1 args".to_string());
     }

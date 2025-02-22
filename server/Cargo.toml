@@ -31,7 +31,7 @@ uuid.workspace = true
 config.workspace = true
 argon2.workspace = true
 deadpool-redis.workspace = true
-fake = { version = "3", optional = true }
+fake = { workspace = true, optional = true }
 
 # Useful crates
 collection_literals.workspace = true

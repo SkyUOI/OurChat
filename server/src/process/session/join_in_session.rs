@@ -6,7 +6,7 @@ use crate::{db, process::error_msg::SERVER_ERROR, server::RpcServer};
 use anyhow::Context;
 use base::consts::SessionID;
 use base::time::to_google_timestamp;
-use migration::m20241229_022701_add_role_for_session::PreDefinedPermissions;
+use migration::m20241229_022701_add_role_for_session::PredefinedPermissions;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
 use pb::service::ourchat::session::join_in_session::v1::{
@@ -105,7 +105,7 @@ async fn join_in_session_impl(
         if !if_permission_exist(
             i.user_id.into(),
             session_id,
-            PreDefinedPermissions::AcceptJoinRequest.into(),
+            PredefinedPermissions::AcceptJoinRequest.into(),
             &server.db.db_pool,
         )
         .await?

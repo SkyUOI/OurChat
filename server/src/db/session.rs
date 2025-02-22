@@ -201,7 +201,7 @@ pub enum SessionError {
 pub async fn if_permission_exist(
     user_id: ID,
     session_id: SessionID,
-    permission_checked: u64,
+    permission_checked: i64,
     db_conn: &impl ConnectionTrait,
 ) -> Result<bool, sea_orm::DbErr> {
     // get all roles first
@@ -216,7 +216,7 @@ pub async fn if_permission_exist(
             .all(db_conn)
             .await?;
         for j in permissions_queried {
-            if j.permission_id == permission_checked as i64 {
+            if j.permission_id == permission_checked {
                 return Ok(true);
             }
         }
@@ -245,7 +245,7 @@ pub async fn if_permission_exist(
 pub async fn join_in_session(
     session_id: SessionID,
     id: ID,
-    role: Option<u64>,
+    role: Option<i64>,
     db_conn: &DatabaseTransaction,
 ) -> Result<(), SessionError> {
     // update the session info
@@ -268,7 +268,7 @@ pub async fn join_in_session(
     let role_relation = user_role_relation::ActiveModel {
         user_id: ActiveValue::Set(id.into()),
         session_id: ActiveValue::Set(session_id.into()),
-        role_id: ActiveValue::Set(role.unwrap_or(default_role as u64) as i64),
+        role_id: ActiveValue::Set(role.unwrap_or(default_role)),
     };
     role_relation.insert(db_conn).await?;
     Ok(())
@@ -293,7 +293,7 @@ pub async fn join_in_session(
 pub async fn batch_join_in_session(
     session_id: SessionID,
     ids: &[ID],
-    role: Option<u64>,
+    role: Option<i64>,
     db_conn: &DatabaseTransaction,
 ) -> Result<(), SessionError> {
     for id in ids {

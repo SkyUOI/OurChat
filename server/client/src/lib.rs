@@ -1,5 +1,3 @@
-#![feature(os_str_display)]
-
 //! A client for test
 
 pub mod helper;

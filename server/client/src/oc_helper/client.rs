@@ -6,7 +6,7 @@ use base::consts::{ID, OCID, SessionID};
 use base::database::DbPool;
 use base::shutdown::ShutdownSdr;
 use base::time::{TimeStampUtc, from_google_timestamp};
-use migration::m20241229_022701_add_role_for_session::PreDefinedRoles;
+use migration::m20241229_022701_add_role_for_session::PredefinedRoles;
 use pb::service::auth::v1::auth_service_client::AuthServiceClient;
 use pb::service::basic::v1::basic_service_client::BasicServiceClient;
 use pb::service::basic::v1::{GetIdRequest, TimestampRequest};
@@ -249,14 +249,14 @@ impl TestApp {
         process::db::join_in_session(
             session_id,
             id_vec[0],
-            Some(PreDefinedRoles::Owner.into()),
+            Some(PredefinedRoles::Owner.into()),
             &transaction,
         )
         .await?;
         process::db::batch_join_in_session(
             session_id,
             &id_vec[1..],
-            Some(PreDefinedRoles::Member.into()),
+            Some(PredefinedRoles::Member.into()),
             &transaction,
         )
         .await?;

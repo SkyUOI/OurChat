@@ -4,6 +4,9 @@ use sea_orm_migration::{prelude::*, schema::*};
 #[derive(DeriveMigrationName)]
 pub struct Migration;
 
+pub type RoleId = i64;
+pub type PermissionId = i64;
+
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
@@ -13,7 +16,8 @@ impl MigrationTrait for Migration {
                     .table(Role::Table)
                     .if_not_exists()
                     .col(big_integer(Role::Id).primary_key().auto_increment())
-                    .col(string(Role::Description).not_null())
+                    .col(string(Role::Name))
+                    .col(string_null(Role::Description))
                     .to_owned(),
             )
             .await?;
@@ -22,7 +26,7 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(Permission::Table)
                     .if_not_exists()
-                    .col(big_unsigned(Permission::Id).primary_key())
+                    .col(big_integer(Permission::Id).primary_key().auto_increment())
                     .col(string(Permission::Description).not_null())
                     .to_owned(),
             )
@@ -32,8 +36,8 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(RolePermissions::Table)
                     .if_not_exists()
-                    .col(big_unsigned(RolePermissions::RoleId))
-                    .col(big_unsigned(RolePermissions::PermissionId))
+                    .col(big_integer(RolePermissions::RoleId))
+                    .col(big_integer(RolePermissions::PermissionId))
                     .foreign_key(
                         ForeignKey::create()
                             .from(RolePermissions::Table, RolePermissions::RoleId)
@@ -127,6 +131,7 @@ pub enum Role {
     Table,
     Id,
     CreatorId,
+    Name,
     Description,
 }
 
@@ -145,8 +150,8 @@ enum RolePermissions {
 }
 
 #[derive(num_enum::TryFromPrimitive, num_enum::IntoPrimitive)]
-#[repr(u64)]
-pub enum PreDefinedPermissions {
+#[repr(i64)]
+pub enum PredefinedPermissions {
     SendMsg = 1,
     RecallMsg = 2,
     BanUser = 3,
@@ -163,16 +168,16 @@ pub enum PreDefinedPermissions {
 }
 
 #[derive(num_enum::TryFromPrimitive, num_enum::IntoPrimitive)]
-#[repr(u64)]
-pub enum PreDefinedRoles {
+#[repr(i64)]
+pub enum PredefinedRoles {
     Member = 1,
     Admin = 2,
     Owner = 3,
 }
 
-impl From<PreDefinedRoles> for Value {
-    fn from(value: PreDefinedRoles) -> Self {
-        Value::BigUnsigned(Some(value.into()))
+impl From<PredefinedRoles> for Value {
+    fn from(value: PredefinedRoles) -> Self {
+        Value::BigInt(Some(value.into()))
     }
 }
 
@@ -181,7 +186,7 @@ async fn init_role_table(manager: &SchemaManager<'_>) -> Result<(), DbErr> {
 
     conn.execute_unprepared(
         r#"
-INSERT INTO role (description) VALUES ('member'), ('admin'), ('owner');
+INSERT INTO role (name, description) VALUES ('member', 'common member'), ('admin', 'have almost all permissions to manage the session'), ('owner', 'have all permissions to manage the session');
     "#,
     )
     .await?;

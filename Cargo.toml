@@ -4,6 +4,7 @@ members = [
     "server/migration",
     "server/derive",
     "server/server_manager",
+    "server/server_manager_gui",
     "server/base",
     "server/load_balancer",
     "server/client",
@@ -29,7 +30,7 @@ strip = true
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.87"
 
 [workspace.dependencies]
 anyhow = "1"
@@ -73,7 +74,7 @@ ctor = "0"
 scopeguard = "1"
 libc-print = "0"
 itertools = "0"
-fake = "3"
+fake = "4"
 imageinfo = "0"
 walkdir = "2"
 tonic-build = "0"

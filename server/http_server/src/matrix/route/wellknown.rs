@@ -67,21 +67,21 @@ pub async fn support(cfg: web::Data<Cfg>) -> impl Responder {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct HomeserverInfo {
     #[serde(with = "http_serde::uri")]
-    base_url: Uri,
+    pub base_url: Uri,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct IdentityServerInfo {
     #[serde(with = "http_serde::uri")]
-    base_url: Uri,
+    pub base_url: Uri,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ClientResponse {
     #[serde(rename = "m.homeserver")]
-    m_homeserver: HomeserverInfo,
+    pub m_homeserver: HomeserverInfo,
     #[serde(rename = "m.identity_server")]
-    m_identity_server: Option<IdentityServerInfo>,
+    pub m_identity_server: Option<IdentityServerInfo>,
 }
 
 #[get("/matrix/client")]

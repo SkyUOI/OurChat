@@ -34,5 +34,17 @@ async fn wellknown_client() {
     let res = app.http_get(".well-known/matrix/client").await.unwrap();
     // dbg!(&res);
     let client: ClientResponse = res.json().await.unwrap();
+
+    // Verify the homeserver URL matches our domain
+    assert_eq!(
+        client.m_homeserver.base_url.to_string(),
+        format!("http://{}/", app.app_config.main_cfg.domain())
+    );
+
+    // Verify the identity server URL if it's configured
+    if let Some(identity_server) = client.m_identity_server {
+        assert!(!identity_server.base_url.to_string().is_empty());
+    }
+
     app.async_drop().await;
 }

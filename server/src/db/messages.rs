@@ -1,6 +1,6 @@
 use base::time::TimeStamp;
 use entities::{prelude::UserChatMsg, user_chat_msg};
-use migration::m20241229_022701_add_role_for_session::PreDefinedPermissions;
+use migration::m20241229_022701_add_role_for_session::PredefinedPermissions;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ConnectionTrait, DatabaseBackend, EntityTrait, ModelTrait,
     Paginator, PaginatorTrait, Statement,
@@ -72,7 +72,7 @@ pub async fn del_msg(
             && !if_permission_exist(
                 owner,
                 session_id,
-                PreDefinedPermissions::RecallMsg.into(),
+                PredefinedPermissions::RecallMsg.into(),
                 db_conn,
             )
             .await?

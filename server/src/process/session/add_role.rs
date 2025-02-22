@@ -1,7 +1,8 @@
+use crate::process::error_msg::ROLE_NAME_EMPTY;
 use crate::process::{error_msg::SERVER_ERROR, get_id_from_req};
 use crate::server::RpcServer;
 use pb::service::ourchat::session::add_role::v1::{AddRoleRequest, AddRoleResponse};
-use sea_orm::{ActiveModelTrait, ActiveValue};
+use sea_orm::{ActiveModelTrait, ActiveValue, TransactionTrait};
 use tonic::{Request, Response, Status};
 
 pub async fn add_role(
@@ -35,14 +36,40 @@ async fn add_role_impl(
     request: Request<AddRoleRequest>,
 ) -> Result<AddRoleResponse, AddRoleErr> {
     let id = get_id_from_req(&request).unwrap();
+    let req = request.into_inner();
+
+    // validate name
+    if req.name.trim().is_empty() {
+        return Err(AddRoleErr::Status(Status::invalid_argument(
+            ROLE_NAME_EMPTY,
+        )));
+    }
+
+    // begin transaction
+    let txn = server.db.db_pool.begin().await?;
+
+    // create role
     let model = entities::role::ActiveModel {
         creator_id: ActiveValue::Set(Some(id.into())),
-        description: ActiveValue::Set(request.into_inner().description),
+        description: ActiveValue::Set(req.description),
+        name: ActiveValue::Set(req.name),
         ..Default::default()
     };
-    let model = model.insert(&server.db.db_pool).await?;
-    let res = AddRoleResponse {
-        role_id: model.id as u64,
-    };
+
+    let role = model.insert(&txn).await?;
+
+    // add permissions
+    for permission_id in req.permissions {
+        let permission = entities::role_permissions::ActiveModel {
+            role_id: ActiveValue::Set(role.id),
+            permission_id: ActiveValue::Set(permission_id),
+        };
+        permission.insert(&txn).await?;
+    }
+
+    // commit transaction
+    txn.commit().await?;
+
+    let res = AddRoleResponse { role_id: role.id };
     Ok(res)
 }

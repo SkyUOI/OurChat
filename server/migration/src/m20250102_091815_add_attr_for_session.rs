@@ -2,7 +2,7 @@ use sea_orm_migration::{prelude::*, schema::*};
 
 use crate::{
     m20220101_000001_create_table::Session,
-    m20241229_022701_add_role_for_session::{PreDefinedRoles, Role},
+    m20241229_022701_add_role_for_session::{PredefinedRoles, Role},
 };
 
 #[derive(DeriveMigrationName)]
@@ -18,7 +18,7 @@ impl MigrationTrait for Migration {
                 Table::alter()
                     .table(Session::Table)
                     .add_column(string(Session::Description).default(""))
-                    .add_column(big_unsigned(Session::DefaultRole).default(PreDefinedRoles::Member))
+                    .add_column(big_unsigned(Session::DefaultRole).default(PredefinedRoles::Member))
                     .add_foreign_key(
                         TableForeignKey::new()
                             .name(FK_NAME)
