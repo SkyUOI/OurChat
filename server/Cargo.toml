@@ -42,6 +42,7 @@ size.workspace = true
 # num_enum = "0"
 async-trait.workspace = true
 # serde_plain = "1"
+dotenvy.workspace = true
 
 # Protobuf definitions
 pb = { path = "pb" }
