@@ -1,6 +1,7 @@
 use base::consts::VERSION_SPLIT;
 use claims::assert_lt;
 use client::TestApp;
+use pb::service::basic::support::v1::{ContactRole, SupportRequest};
 use pb::service::basic::v1::GetServerInfoRequest;
 use server::process::error_msg::not_found;
 
@@ -45,5 +46,57 @@ async fn get_id_through_ocid() {
         .unwrap_err();
     assert_eq!(err.code(), tonic::Code::NotFound);
     assert_eq!(err.message(), not_found::USER);
+    app.async_drop().await;
+}
+
+#[tokio::test]
+async fn get_support_info() {
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
+
+    // Get support information
+    let response = app
+        .clients
+        .basic
+        .support(SupportRequest {})
+        .await
+        .unwrap()
+        .into_inner();
+
+    // Verify support page URL
+    assert_eq!(
+        response.support_page,
+        app.app_shared
+            .as_ref()
+            .unwrap()
+            .cfg
+            .user_setting
+            .support_page
+            .to_string()
+    );
+
+    // Verify contacts
+    let cfg_contacts = &app.app_shared.as_ref().unwrap().cfg.user_setting.contacts;
+    assert_eq!(response.contacts.len(), cfg_contacts.len());
+
+    for (resp_contact, cfg_contact) in response.contacts.iter().zip(cfg_contacts.iter()) {
+        // Verify role conversion
+        match cfg_contact.role {
+            base::setting::ContactRole::Admin => {
+                assert_eq!(resp_contact.role, ContactRole::Admin as i32)
+            }
+            base::setting::ContactRole::Security => {
+                assert_eq!(resp_contact.role, ContactRole::Security as i32)
+            }
+        }
+
+        // Verify optional fields
+        assert_eq!(
+            resp_contact.email_address,
+            cfg_contact.email_address.as_ref().map(|e| e.to_string())
+        );
+        assert_eq!(resp_contact.ocid, cfg_contact.ocid);
+        assert_eq!(resp_contact.phone_number, cfg_contact.phone_number);
+    }
+
     app.async_drop().await;
 }

@@ -2,8 +2,22 @@ syntax = "proto3";
 
 package service.basic.support.v1;
 
-message Contact {}
+enum ContactRole {
+  CONTACT_ROLE_UNSPECIFIED = 0;
+  CONTACT_ROLE_ADMIN = 1;
+  CONTACT_ROLE_SECURITY = 2;
+}
+
+message Contact {
+  optional string email_address = 1;
+  optional string ocid = 2;
+  ContactRole role = 3;
+  optional string phone_number = 4;
+}
 
 message SupportRequest {}
 
-message SupportResponse {}
+message SupportResponse {
+  repeated Contact contacts = 1;
+  string support_page = 2;
+}
