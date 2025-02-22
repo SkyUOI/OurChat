@@ -1,5 +1,5 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'ourchat/ourchat_account.dart';
 import 'package:provider/provider.dart';
 import 'package:localstorage/localstorage.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -11,7 +11,6 @@ import 'auth.dart';
 import 'server_setting.dart';
 import 'ourchat/ourchat_server.dart';
 import 'dart:core';
-import 'dart:io';
 
 void main() async {
   await initLocalStorage();
@@ -21,22 +20,16 @@ void main() async {
 class OurchatAppState extends ChangeNotifier {
   int where = serverSettingUi;
   int device = desktop;
-  bool isWeb = kIsWeb;
   OurchatConfig? config;
   Logger logger = Logger();
   OurChatServer? server;
+  OurchatAccount? thisAccount;
 
   void init() async {
     logger.i("init Ourchat");
     config = OurchatConfig();
     config!.loadConfig();
 
-    if (!isWeb) {
-      if (!await Directory("./cache").exists()) {
-        await Directory("./cache").create();
-      }
-    }
-    logger.d("IsWeb: $isWeb");
     notifyListeners();
     logger.i("init Ourchat done");
   }

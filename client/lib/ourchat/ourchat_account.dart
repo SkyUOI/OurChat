@@ -15,7 +15,7 @@ import 'package:crypto/crypto.dart';
 class OurchatAccount {
   Int64? id;
   String? username, avatarKey, displayName, status, email, ocid, token;
-  bool? isMe;
+  bool isMe = false, gotInfo = false;
   Timestamp? publicUpdateTime, updateTime, registerTime;
   OurChatServer server;
   List<Int64>? friends, sessions;
@@ -23,6 +23,12 @@ class OurchatAccount {
 
   OurchatAccount(this.server) {
     stub = OurChatServiceClient(server.channel!);
+  }
+
+  void recreateStub() {
+    var interceptor = AuthInterceptor();
+    interceptor.setToken(token!);
+    stub = OurChatServiceClient(server.channel!, interceptors: [interceptor]);
   }
 
   Future login(String password, String? ocid, String? email) async {
@@ -37,6 +43,7 @@ class OurchatAccount {
       ocid = res.ocid;
       token = res.token;
       isMe = true;
+      recreateStub();
       return okStatusCode;
     } on GrpcError catch (e) {
       return e.code;
@@ -57,26 +64,28 @@ class OurchatAccount {
       ocid = res.ocid;
       token = res.token;
       isMe = true;
+      recreateStub();
       return okStatusCode;
     } on GrpcError catch (e) {
       return e.code;
     }
   }
 
-  void getAccountInfo(Int64? id_) async {
-    id_ = id_ ?? id;
+  Future getAccountInfo() async {
     GetAccountInfoResponse res = await stub!
-        .getAccountInfo(GetAccountInfoRequest(id: id_!, requestValues: [
+        .getAccountInfo(GetAccountInfoRequest(id: id, requestValues: [
       RequestValues.REQUEST_VALUES_AVATAR_KEY,
       RequestValues.REQUEST_VALUES_USER_NAME,
       RequestValues.REQUEST_VALUES_PUBLIC_UPDATE_TIME,
-      RequestValues.REQUEST_VALUES_STATUS
+      RequestValues.REQUEST_VALUES_STATUS,
+      RequestValues.REQUEST_VALUES_OCID
     ]));
     avatarKey = res.avatarKey;
     username = res.userName;
     publicUpdateTime = res.publicUpdateTime;
     status = res.status;
-    if (isMe!) {
+    ocid = res.ocid;
+    if (isMe) {
       res = await stub!.getAccountInfo(
         GetAccountInfoRequest(id: id, requestValues: [
           RequestValues.REQUEST_VALUES_UPDATE_TIME,
@@ -98,5 +107,6 @@ class OurchatAccount {
       );
       displayName = res.displayName;
     }
+    gotInfo = true;
   }
 }

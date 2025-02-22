@@ -25,3 +25,7 @@ const homeUi = 2;
 // Device
 const mobile = 0;
 const desktop = 1;
+
+// PopupMenuValue
+const addFriendAndSession = "Add Friend/Session";
+const createSession = "Create Session";

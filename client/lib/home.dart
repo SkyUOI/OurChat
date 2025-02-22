@@ -4,6 +4,7 @@ import 'package:ourchat/main.dart';
 import 'package:ourchat/session.dart';
 import 'package:ourchat/setting.dart';
 import 'package:provider/provider.dart';
+import 'friends.dart';
 
 class Home extends StatefulWidget {
   const Home({
@@ -20,11 +21,17 @@ class _HomeState extends State<Home> {
   Widget build(BuildContext context) {
     OurchatAppState ourchatAppState = context.watch<OurchatAppState>();
     Widget page = const Placeholder();
-    if (index == 0) {
-      page = const Session();
-    } else if (index == 1) {
-      page = const Setting();
-    } else if (index == 2) {}
+    switch (index) {
+      case 0:
+        page = const Session();
+        break;
+      case 1:
+        page = const Setting();
+        break;
+      case 2:
+        page = const Friends();
+        break;
+    }
 
     return Scaffold(body: LayoutBuilder(builder: (context, constraints) {
       if (ourchatAppState.device == mobile) {
@@ -41,7 +48,8 @@ class _HomeState extends State<Home> {
                     label: "Sessions", icon: Icon(Icons.chat)),
                 BottomNavigationBarItem(
                     label: "Settings", icon: Icon(Icons.settings)),
-                BottomNavigationBarItem(label: "New", icon: Icon(Icons.add))
+                BottomNavigationBarItem(
+                    label: "Friends", icon: Icon(Icons.people)),
               ],
               currentIndex: index,
               onTap: (value) {
@@ -62,7 +70,7 @@ class _HomeState extends State<Home> {
                 NavigationRailDestination(
                     label: Text("Settings"), icon: Icon(Icons.settings)),
                 NavigationRailDestination(
-                    label: Text("New"), icon: Icon(Icons.add))
+                    label: Text("Friends"), icon: Icon(Icons.people))
               ],
               selectedIndex: index,
               onDestinationSelected: (value) {

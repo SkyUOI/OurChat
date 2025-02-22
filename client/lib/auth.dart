@@ -116,6 +116,8 @@ class _LoginState extends State<Login> {
                                 await ocAccount.login(password, ocid, email);
                             if (res == okStatusCode) {
                               ourchatAppState.where = homeUi;
+                              ourchatAppState.thisAccount = ocAccount;
+                              ourchatAppState.thisAccount!.getAccountInfo();
                               ourchatAppState.update();
                             } else {
                               setState(() {
@@ -241,6 +243,8 @@ class _RegisterState extends State<Register> {
                                 password, username, email);
                             if (res == okStatusCode) {
                               ourchatAppState.where = homeUi;
+                              ourchatAppState.thisAccount = ocAccount;
+                              ourchatAppState.thisAccount!.getAccountInfo();
                               ourchatAppState.update();
                             } else {
                               setState(() {
