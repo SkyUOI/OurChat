@@ -66,7 +66,6 @@ async fn add_friend_impl(
     server: &RpcServer,
     request: Request<AddFriendRequest>,
 ) -> Result<AddFriendResponse, AddFriendErr> {
-    // TODO:check friend exist
     let id = get_id_from_req(&request).unwrap();
     let req = request.into_inner();
     let friend_id: ID = req.friend_id.into();

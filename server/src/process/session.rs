@@ -12,7 +12,7 @@ pub mod leave_session;
 pub mod mute;
 pub mod new_session;
 pub mod set_role;
-pub mod set_session_info;
+pub mod set_self_info;
 
 async fn query_session(
     id: SessionID,

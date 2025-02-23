@@ -1,7 +1,8 @@
 use claims::{assert_gt, assert_none};
 use client::TestApp;
+use pb::service::ourchat::session::join_in_session::v1::JoinInSessionRequest;
 use server::db::session::{BanStatus, get_all_session_relations};
-use server::process::error_msg::PERMISSION_DENIED;
+use server::process::error_msg::{BAN, PERMISSION_DENIED};
 use std::time::Duration;
 
 #[tokio::test]
@@ -57,7 +58,22 @@ async fn ban_user() {
             .len(),
         1
     );
-    // TODO: try joining the session
+
+    // Try joining the session after being banned
+    let result = b
+        .lock()
+        .await
+        .oc()
+        .join_in_session(JoinInSessionRequest {
+            session_id: session.session_id.into(),
+            ..Default::default()
+        })
+        .await
+        .unwrap_err();
+
+    assert_eq!(result.code(), tonic::Code::PermissionDenied);
+    assert_eq!(result.message(), BAN);
+
     app.async_drop().await;
 }
 

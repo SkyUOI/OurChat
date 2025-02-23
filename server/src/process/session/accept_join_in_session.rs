@@ -61,7 +61,6 @@ async fn accept_join_in_session_impl(
     request: Request<AcceptJoinInSessionRequest>,
 ) -> Result<AcceptJoinInSessionResponse, AcceptJoinInSessionErr> {
     let id = get_id_from_req(&request).unwrap();
-    // TODO: reply a failed response to the person
     let req = request.into_inner();
     let session_id: SessionID = req.session_id.into();
     if !if_permission_exist(

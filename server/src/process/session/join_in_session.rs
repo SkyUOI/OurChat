@@ -1,6 +1,8 @@
 use crate::db::messages::insert_msg_record;
-use crate::db::session::{get_all_session_relations, if_permission_exist};
-use crate::process::error_msg::{PERMISSION_DENIED, not_found};
+use crate::db::session::{
+    get_all_session_relations, get_session_by_id, if_permission_exist, user_banned_status,
+};
+use crate::process::error_msg::{BAN, PERMISSION_DENIED, not_found};
 use crate::process::{Dest, get_id_from_req, transmit_msg};
 use crate::{db, process::error_msg::SERVER_ERROR, server::RpcServer};
 use anyhow::Context;
@@ -66,11 +68,34 @@ async fn join_in_session_impl(
     server: &RpcServer,
     request: Request<JoinInSessionRequest>,
 ) -> Result<JoinInSessionResponse, JoinInSessionErr> {
-    // TODO:check if be banned
-    // TODO:check if session exists
     let id = get_id_from_req(&request).unwrap();
     let req = request.into_inner();
     let session_id: SessionID = req.session_id.into();
+
+    // Check if session exists
+    if get_session_by_id(session_id, &server.db.db_pool)
+        .await?
+        .is_none()
+    {
+        return Err(JoinInSessionErr::Status(Status::not_found(
+            not_found::SESSION,
+        )));
+    }
+
+    // Check if user is banned
+    let mut conn = server
+        .db
+        .redis_pool
+        .get()
+        .await
+        .context("cannot get redis connection")?;
+    if user_banned_status(id, session_id, &mut conn)
+        .await?
+        .is_some()
+    {
+        return Err(JoinInSessionErr::Status(Status::permission_denied(BAN)));
+    }
+
     let respond_msg = RespondMsgType::JoinInSessionApproval(JoinInSessionApproval {
         session_id: session_id.into(),
         user_id: id.into(),
