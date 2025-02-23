@@ -15,11 +15,11 @@ use base::consts::{self, CONFIG_FILE_ENV_VAR, LOG_OUTPUT_DIR, STDIN_AVAILABLE};
 use base::database::DbPool;
 use base::database::postgres::PostgresDbCfg;
 use base::database::redis::RedisCfg;
-use base::log;
 use base::rabbitmq::RabbitMQCfg;
 use base::setting::debug::DebugCfg;
 use base::setting::{Setting, UserSetting};
 use base::shutdown::{ShutdownRev, ShutdownSdr};
+use base::{log, merge_json};
 use clap::Parser;
 use cmd::CommandTransmitData;
 use config::{ConfigError, File};
@@ -138,15 +138,21 @@ impl MainCfg {
             iter.next().unwrap().into()
         };
         // read a config file
-        let mut cfg: MainCfg = read_a_config(&cfg_path)
+        let mut cfg: serde_json::Value = read_a_config(&cfg_path)
             .expect("Failed to build config")
             .try_deserialize()
             .expect("Wrong config file structure");
         let mut configs_list = vec![cfg_path];
         for i in iter {
-            configs_list.push(i.into());
-            // TODO: Merge
+            let i = i.into();
+            let merge_cfg: serde_json::Value = read_a_config(&i)
+                .expect("Failed to build config")
+                .try_deserialize()
+                .expect("Wrong config file structure");
+            cfg = merge_json(cfg, merge_cfg);
+            configs_list.push(i);
         }
+        let mut cfg: MainCfg = serde_json::from_value(cfg).expect("Failed to deserialize config");
         cfg.cmd_args.config = configs_list;
         // convert the path relevant to the config file to a path relevant to the directory
         cfg.convert_to_abs_path()?;

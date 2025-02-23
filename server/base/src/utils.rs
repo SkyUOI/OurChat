@@ -69,6 +69,31 @@ pub fn sha3_256(data: &[u8]) -> String {
     format!("{:x}", result)
 }
 
+pub fn merge_json(origin: serde_json::Value, new: serde_json::Value) -> serde_json::Value {
+    match (origin, new) {
+        // If both are objects, merge them recursively
+        (serde_json::Value::Object(mut origin_map), serde_json::Value::Object(new_map)) => {
+            for (key, new_value) in new_map {
+                match origin_map.get_mut(&key) {
+                    Some(origin_value) => {
+                        // Recursively merge values with the same key
+                        *origin_value = merge_json(origin_value.clone(), new_value);
+                    }
+                    None => {
+                        // If the key doesn't exist in original object, insert it
+                        origin_map.insert(key, new_value);
+                    }
+                }
+            }
+            serde_json::Value::Object(origin_map)
+        }
+        // If both are arrays, keep the original array
+        (origin @ serde_json::Value::Array(_), _) => origin,
+        // For all other cases, use the new value
+        (_, new) => new,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -94,5 +119,66 @@ mod tests {
         let relative_path = Path::new("a/b/c");
         let path = resolve_relative_path(base_path, relative_path).unwrap();
         assert_eq!(path, Path::new("/home/limuy/a/b/c"));
+    }
+
+    #[test]
+    fn test_merge_json() {
+        use serde_json::json;
+
+        // Test basic merging
+        let origin = json!({
+            "name": "Alice",
+            "age": 30,
+            "address": {
+                "city": "Beijing",
+                "street": "Main St"
+            }
+        });
+
+        let new = json!({
+            "age": 31,
+            "address": {
+                "street": "Second St",
+                "zip": "100000"
+            },
+            "phone": "123456"
+        });
+
+        let merged = merge_json(origin, new);
+
+        assert_eq!(
+            merged,
+            json!({
+                "name": "Alice",
+                "age": 31,
+                "address": {
+                    "city": "Beijing",
+                    "street": "Second St",
+                    "zip": "100000"
+                },
+                "phone": "123456"
+            })
+        );
+
+        // Test array handling
+        let origin = json!({
+            "tags": ["a", "b", "c"],
+            "data": 1
+        });
+
+        let new = json!({
+            "tags": ["d", "e"],
+            "data": 2
+        });
+
+        let merged = merge_json(origin, new);
+
+        assert_eq!(
+            merged,
+            json!({
+                "tags": ["a", "b", "c"],
+                "data": 2
+            })
+        );
     }
 }

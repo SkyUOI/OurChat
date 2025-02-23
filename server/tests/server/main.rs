@@ -1,5 +1,6 @@
 mod auth_register;
 mod basic;
+mod chores;
 mod db;
 mod files;
 mod friend;

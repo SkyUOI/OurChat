@@ -62,6 +62,7 @@ deadpool-lapin.workspace = true
 [dev-dependencies]
 claims.workspace = true
 client = { path = "client" }
+tempfile = "3"
 
 [build-dependencies]
 anyhow.workspace = true
