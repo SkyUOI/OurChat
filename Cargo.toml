@@ -38,7 +38,7 @@ serde_json = "1"
 futures-util = "0"
 rand = "0.8.5"
 snowdon = "0"
-zxcvbn = "2"
+zxcvbn = { version = "3", features = ["ser"] }
 
 thiserror = "2"
 tracing = { version = "0" }

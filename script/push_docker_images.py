@@ -13,7 +13,7 @@ def main():
 
     basic.msg_system(f"docker push skyuoi/ourchat:{tag}")
     basic.msg_system(f"docker push skyuoi/ourchat:{tag}-debian")
-    
+
     if not skip_base:
         basic.msg_system("docker push skyuoi/ourchat:alpine-base")
         basic.msg_system("docker push skyuoi/ourchat:debian-base")

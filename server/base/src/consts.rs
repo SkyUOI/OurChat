@@ -171,8 +171,8 @@ pub const fn default_enable_matrix() -> bool {
     false
 }
 
-pub const fn default_password_strength_limit() -> u8 {
-    1
+pub const fn default_password_strength_limit() -> zxcvbn::Score {
+    zxcvbn::Score::One
 }
 
 pub static STDIN_AVAILABLE: LazyLock<bool> = LazyLock::new(|| std::io::stdin().is_terminal());

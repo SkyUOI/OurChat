@@ -40,7 +40,7 @@ pub struct UserSetting {
     #[serde(with = "http_serde::option::uri")]
     pub support_page: Option<http::Uri>,
     #[serde(default = "crate::consts::default_password_strength_limit")]
-    pub password_strength_limit: u8,
+    pub password_strength_limit: zxcvbn::Score,
 }
 
 impl Setting for UserSetting {}

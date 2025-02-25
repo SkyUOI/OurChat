@@ -4,7 +4,7 @@ edition.workspace = true
 version.workspace = true
 
 [dependencies]
-shadow-rs = "0"
+shadow-rs = "1"
 serde.workspace = true
 anyhow.workspace = true
 chrono.workspace = true
@@ -33,7 +33,8 @@ email_address.workspace = true
 http.workspace = true
 http-serde.workspace = true
 serde_json.workspace = true
+zxcvbn.workspace = true
 
 [build-dependencies]
-shadow-rs = "0"
+shadow-rs = "1"
 anyhow.workspace = true

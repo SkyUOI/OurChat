@@ -98,9 +98,7 @@ async fn register_impl(
     let req = request.into_inner();
 
     // Check strong password
-    if zxcvbn::zxcvbn(&req.password, &[&req.name, &req.email])
-        .context("zxcvbn error")?
-        .score()
+    if zxcvbn::zxcvbn(&req.password, &[&req.name, &req.email]).score()
         < server.shared_data.cfg.user_setting.password_strength_limit
     {
         return Err(RegisterError::PasswordNotStrong);
