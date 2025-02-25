@@ -4,18 +4,23 @@ from basic import msg_system
 import sys
 
 extension = "latest"
+skip_base = False
 
-if len(sys.argv) == 2:
+if len(sys.argv) >= 2:
     extension = sys.argv[1]
+    if len(sys.argv) >= 3:
+        if sys.argv[2] == "skip_base":
+            skip_base = True
 
-# build alpine base image
-msg_system(
-    "docker buildx build -f docker/Dockerfile.alpine-base -t skyuoi/ourchat:alpine-base ."
-)
-# build debian base image
-msg_system(
-    "docker buildx build -f docker/Dockerfile.debian-base -t skyuoi/ourchat:debian-base ."
-)
+if not skip_base:
+    # build alpine base image
+    msg_system(
+        "docker buildx build -f docker/Dockerfile.alpine-base -t skyuoi/ourchat:alpine-base ."
+    )
+    # build debian base image
+    msg_system(
+        "docker buildx build -f docker/Dockerfile.debian-base -t skyuoi/ourchat:debian-base ."
+    )
 # build alpine image
 msg_system(
     f"docker buildx build -f Dockerfile --target ourchat-server -t skyuoi/ourchat:{extension} ."
