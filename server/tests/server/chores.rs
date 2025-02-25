@@ -1,6 +1,9 @@
 use base::consts::CONFIG_FILE_ENV_VAR;
 use server::get_configuration;
-use std::{fs, path::PathBuf};
+use std::{
+    fs::{self, File},
+    path::PathBuf,
+};
 
 #[tokio::test]
 async fn test_merge_config() -> anyhow::Result<()> {
@@ -15,7 +18,8 @@ async fn test_merge_config() -> anyhow::Result<()> {
     let override_config_path = temp_dir.path().join("override.json");
 
     // Override configuration
-    let override_config = r#"{
+    let override_config = serde_json::json! ({
+        "ip": "127.0.0.1",
         "port": 9090,
         "http_port": 9091,
         "password_hash": {
@@ -24,10 +28,10 @@ async fn test_merge_config() -> anyhow::Result<()> {
         "debug": {
             "log_level": "debug"
         }
-    }"#;
+    });
 
     // Write config files
-    fs::write(&override_config_path, override_config)?;
+    serde_json::to_writer(File::create(&override_config_path)?, &override_config)?;
 
     // Create required files
     let required_files = [
@@ -47,7 +51,7 @@ async fn test_merge_config() -> anyhow::Result<()> {
     // Verify merge results
     assert_eq!(config.main_cfg.port, 9090); // Should use override value
     assert_eq!(config.main_cfg.http_port, 9091); // Should use override value
-    assert_eq!(config.main_cfg.ip, "127.0.0.1"); // Should keep base value
+    assert_eq!(config.main_cfg.ip, "127.0.0.1"); // Should use override value
     assert_eq!(config.main_cfg.password_hash.m_cost, 4096); // Should use override value
     assert_eq!(config.main_cfg.password_hash.t_cost, 2); // Should keep base value
     assert_eq!(config.main_cfg.password_hash.p_cost, 1); // Should keep base value
