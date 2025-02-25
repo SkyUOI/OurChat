@@ -10,5 +10,6 @@ RUN cargo chef prepare  --recipe-path recipe.json
 
 FROM chef AS builder
 COPY --from=planner /app/recipe.json recipe.json
+COPY .cargo /app/.cargo
 RUN cargo chef cook --tests --recipe-path recipe.json
 COPY . .

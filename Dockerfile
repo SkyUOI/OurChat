@@ -6,21 +6,21 @@ FROM chef AS planner
 COPY server /app/server
 COPY Cargo.toml /app/Cargo.toml
 COPY Cargo.lock /app/Cargo.lock
-RUN cargo chef prepare  --recipe-path recipe.json
+RUN cargo chef prepare --recipe-path recipe.json
 
 FROM chef AS builder
 
 COPY --from=planner /app/recipe.json recipe.json
 
-RUN cargo chef cook --release --recipe-path recipe.json
+COPY .cargo /app/.cargo
+RUN cargo chef cook --release --recipe-path recipe.json --bin server --bin http_server
 
 COPY server /app/server
 COPY Cargo.toml /app/Cargo.toml
 COPY Cargo.lock /app/Cargo.lock
 COPY service /app/service
-COPY .cargo /app/.cargo
 
-RUN cargo build --release
+RUN cargo build --release --bin server --bin http_server
 
 FROM alpine:latest AS ourchat-server
 
