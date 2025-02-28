@@ -21,8 +21,12 @@ jobs:
         with:
           path: /tmp/.buildx-cache
           key: ${{ runner.os }}-buildx-cache
-          
-      # Build Alpine image
+
+      # Setup Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+        # Build Alpine image
       - name: Build Alpine Image
         uses: docker/build-push-action@v5
         with:
