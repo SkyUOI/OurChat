@@ -175,6 +175,8 @@ pub const fn default_password_strength_limit() -> zxcvbn::Score {
     zxcvbn::Score::One
 }
 
+pub static SERVER_INFO_PATH: &str = "server_info.json";
+
 pub static STDIN_AVAILABLE: LazyLock<bool> = LazyLock::new(|| std::io::stdin().is_terminal());
 
 pub static VERSION_SPLIT: LazyLock<ServerVersion> = LazyLock::new(|| {

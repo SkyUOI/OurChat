@@ -35,8 +35,8 @@ jobs:
           file: docker/Dockerfile.test-alpine
           tags: test-ourchat-alpine:latest
           load: true
-          cache-from: type=local,src=/tmp/.buildx-cache/alpine
-          cache-to: type=local,dest=/tmp/.buildx-cache-new/alpine,mode=max
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
           build-args: |
             BUILDKIT_INLINE_CACHE=1
           
@@ -48,10 +48,6 @@ jobs:
           file: docker/Dockerfile.test-debian
           tags: test-ourchat-debian:latest
           load: true
-          cache-from: type=local,src=/tmp/.buildx-cache/debian
-          cache-to: type=local,dest=/tmp/.buildx-cache-new/debian,mode=max
-          build-args: |
-            BUILDKIT_INLINE_CACHE=1
 
       # Move cache
       - name: Move cache

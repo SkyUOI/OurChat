@@ -11,7 +11,7 @@ mod shared_state;
 pub mod utils;
 
 use anyhow::bail;
-use base::consts::{self, CONFIG_FILE_ENV_VAR, LOG_OUTPUT_DIR, STDIN_AVAILABLE};
+use base::consts::{self, CONFIG_FILE_ENV_VAR, LOG_OUTPUT_DIR, SERVER_INFO_PATH, STDIN_AVAILABLE};
 use base::database::DbPool;
 use base::database::postgres::PostgresDbCfg;
 use base::database::redis::RedisCfg;
@@ -52,6 +52,8 @@ pub struct ArgsParser {
     pub shared_cfg: ParserCfg,
     #[arg(long, help = "whether to enable cmd")]
     pub enable_cmd: Option<bool>,
+    #[arg(long, help = "server info file path", default_value = SERVER_INFO_PATH)]
+    pub server_info: PathBuf,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -237,8 +239,6 @@ impl MainCfg {
     }
 }
 
-static SERVER_INFO_PATH: &str = "server_info.json";
-
 #[derive(Debug, Serialize, Deserialize)]
 struct ServerInfo {
     unique_id: uuid::Uuid,
@@ -251,7 +251,10 @@ struct ServerInfo {
 const SECRET_LEN: usize = 32;
 
 static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
-    let state = Path::new(SERVER_INFO_PATH).exists();
+    let args = ArgsParser::parse();
+    let path = args.server_info;
+
+    let state = path.exists();
     let server_name = || -> String {
         #[cfg(feature = "meaningful_name")]
         {
@@ -266,7 +269,7 @@ static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
     };
     if state {
         let origin_info: serde_json::Value =
-            serde_json::from_str(&fs::read_to_string(SERVER_INFO_PATH).unwrap())
+            serde_json::from_str(&fs::read_to_string(path).unwrap())
                 .expect("read server info error");
         if let serde_json::Value::Number(version) = &origin_info["version"] {
             let current_version = version.as_i64().unwrap() as u64;
@@ -312,7 +315,7 @@ static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
     }
     tracing::info!("Create server info file");
 
-    let mut f = fs::File::create(SERVER_INFO_PATH).unwrap();
+    let mut f = fs::File::create(path).unwrap();
     let id: u64 = rand::thread_rng().gen_range(0..(1024 - 1));
     let server_name = server_name();
     let info = ServerInfo {

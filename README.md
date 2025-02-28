@@ -38,11 +38,12 @@ privacy!
 
 ## Quick Start
 
-**Warning: If you want to use it in the product environment, you should do a series of improvements, such as changing
-the password of database.
-More information please refer to document**
+### Security Notice
 
-- Server
+If you want to use it in the product environment, you should do a series of improvements, such as changing
+the password of database. More information please refer to document
+
+### Server Deployment
 
 ```shell
 cd docker

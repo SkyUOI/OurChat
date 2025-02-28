@@ -1,6 +1,7 @@
 #![feature(duration_constructors)]
 
 use crate::httpserver::HttpServer;
+use base::consts::SERVER_INFO_PATH;
 use base::database::DbPool;
 use base::email_client::{EmailCfg, EmailSender};
 use base::rabbitmq::RabbitMQCfg;
@@ -73,6 +74,8 @@ impl MainCfg {
 pub struct ArgParser {
     #[clap(short, long, help = "Path to the config file")]
     config: Option<PathBuf>,
+    #[clap(long, help = "server info file path", default_value = SERVER_INFO_PATH)]
+    server_info: Option<PathBuf>,
 }
 
 #[derive(Debug)]
