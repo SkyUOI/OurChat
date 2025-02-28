@@ -271,7 +271,7 @@ static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
     };
     if state {
         let origin_info: serde_json::Value =
-            serde_json::from_str(&fs::read_to_string(&path).unwrap())
+            serde_json::from_reader(&fs::File::open(&path).unwrap())
                 .expect("read server info error");
         if let serde_json::Value::Number(version) = &origin_info["version"] {
             let current_version = version.as_i64().unwrap() as u64;
@@ -297,24 +297,32 @@ static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
                             serde_json::from_str(&server_name.to_string()).unwrap()
                         });
                     let version = current_version;
-                    ServerInfo {
+                    let info = ServerInfo {
                         unique_id,
                         machine_id,
                         secret,
                         server_name,
                         version,
-                    }
+                    };
+                    // first backup the old server info
+                    let backup_path = path.with_extension("old");
+                    fs::rename(&path, &backup_path).unwrap();
+                    info!("backup server info to {}", backup_path.display());
+                    let mut f = fs::File::create(&path).unwrap();
+                    serde_json::to_writer_pretty(&mut f, &info).unwrap();
+                    info
                 }
                 Ordering::Equal => serde_json::from_value(origin_info).unwrap(),
                 Ordering::Greater => {
                     panic!("server info version is too high");
                 }
             };
-            let mut f = fs::File::create(&path).unwrap();
-            serde_json::to_writer_pretty(&mut f, &info).unwrap();
             return info;
         } else {
-            panic!("Format Error: cannot find version in \"server_info.json\"");
+            panic!(
+                "Format Error: cannot find version in \"{}\"",
+                path.display()
+            );
         }
     }
     tracing::info!("Create server info file");
