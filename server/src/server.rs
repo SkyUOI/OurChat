@@ -120,11 +120,13 @@ impl RpcServer {
         });
         select! {
             _ = shutdown_rev.wait_shutting_down() => {}
-            _ = tonic::transport::Server::builder()
+            err = tonic::transport::Server::builder()
                 .add_service(main_svc)
                 .add_service(basic_svc)
                 .add_service(auth_svc)
-                .serve(addr) => {}
+                .serve(addr) => {
+                    err?
+                }
         }
         Ok(())
     }

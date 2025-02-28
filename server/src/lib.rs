@@ -40,6 +40,7 @@ use std::{
     sync::{Arc, LazyLock},
 };
 use tokio::{sync::mpsc, task::JoinHandle};
+use tracing::info;
 
 #[derive(Debug, Parser, Default)]
 #[command(author = "SkyUOI", version = base::build::VERSION, about = "The Server of OurChat")]
@@ -253,6 +254,7 @@ const SECRET_LEN: usize = 32;
 static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
     let args = ArgsParser::parse();
     let path = args.server_info;
+    info!("server info path: {}", path.display());
 
     let state = path.exists();
     let server_name = || -> String {
@@ -269,7 +271,7 @@ static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
     };
     if state {
         let origin_info: serde_json::Value =
-            serde_json::from_str(&fs::read_to_string(path).unwrap())
+            serde_json::from_str(&fs::read_to_string(&path).unwrap())
                 .expect("read server info error");
         if let serde_json::Value::Number(version) = &origin_info["version"] {
             let current_version = version.as_i64().unwrap() as u64;
@@ -308,6 +310,8 @@ static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
                     panic!("server info version is too high");
                 }
             };
+            let mut f = fs::File::create(&path).unwrap();
+            serde_json::to_writer_pretty(&mut f, &info).unwrap();
             return info;
         } else {
             panic!("Format Error: cannot find version in \"server_info.json\"");
@@ -315,7 +319,7 @@ static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
     }
     tracing::info!("Create server info file");
 
-    let mut f = fs::File::create(path).unwrap();
+    let mut f = fs::File::create(&path).unwrap();
     let id: u64 = rand::thread_rng().gen_range(0..(1024 - 1));
     let server_name = server_name();
     let info = ServerInfo {
@@ -325,7 +329,7 @@ static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
         server_name,
         version: consts::SERVER_INFO_JSON_VERSION,
     };
-    serde_json::to_writer(&mut f, &info).unwrap();
+    serde_json::to_writer_pretty(&mut f, &info).unwrap();
     info
 });
 
@@ -408,7 +412,9 @@ async fn start_server(
 /// global init can be called many times,but only the first time will be effective
 fn global_init() {
     static INIT: Once = Once::new();
-    INIT.call_once(|| {})
+    INIT.call_once(|| {
+        println!("Machine ID: {}", SERVER_INFO.machine_id);
+    })
 }
 
 pub struct Application {
@@ -658,9 +664,15 @@ impl Application {
         tracing::info!("Start to register service to registry");
         tracing::info!("Server started");
         self.started_notify.notify_waiters();
-        join_all(handles).await.iter().for_each(|x| {
-            if let Err(e) = x {
-                tracing::error!("server error:{}", e);
+        join_all(handles).await.iter().for_each(|x| match x {
+            Ok(result) => match result {
+                Ok(_) => {}
+                Err(e) => {
+                    tracing::error!("server error:{:?}", e);
+                }
+            },
+            Err(e) => {
+                tracing::error!("server error when joining:{:?}", e);
             }
         });
         self.pool.close().await?;

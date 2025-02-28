@@ -14,6 +14,7 @@ services:
         condition: service_healthy
     volumes:
       - ./config/:/etc/ourchat
+      - ./log:/root/log
       - ../resource/:/etc/resource
   HttpServer:
     init: true
@@ -28,6 +29,7 @@ services:
         condition: service_healthy
     volumes:
       - ./config/:/etc/ourchat
+      - ./log:/root/log
       - ../resource/:/etc/resource
   db:
     image: postgres:17-alpine

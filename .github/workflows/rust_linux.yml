@@ -39,15 +39,6 @@ jobs:
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
           build-args: |
             BUILDKIT_INLINE_CACHE=1
-          
-      # Build Debian image
-      - name: Build Debian Image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: docker/Dockerfile.test-debian
-          tags: test-ourchat-debian:latest
-          load: true
 
       # Move cache
       - name: Move cache
@@ -59,6 +50,16 @@ jobs:
         run: |
           docker compose -f docker/compose.dev-alpine.yml up -d
           docker compose -f docker/compose.dev-alpine.yml exec OurChatServer sh -c "cd /app && cargo test"
+          
+      # Build Debian image
+      - name: Build Debian Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile.test-debian
+          tags: test-ourchat-debian:latest
+          load: true
+
       - name: Test-Debian
         run: |
           docker compose -f docker/compose.dev-debian.yml up -d
