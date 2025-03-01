@@ -23,5 +23,3 @@ jobs:
           lint: false
           breaking: true
           format: false
-          # The 'main' branch of the GitHub repository that defines the module
-          breaking_against: "https://github.com/${GITHUB_REPOSITORY}.git#branch=main"
