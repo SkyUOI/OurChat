@@ -1,6 +1,5 @@
 use crate::db::friend::query_friend;
 use crate::process::error_msg::not_found;
-use crate::process::get_id_from_req;
 use crate::{db, process::error_msg::SERVER_ERROR, server::RpcServer};
 use base::consts::ID;
 use pb::service::ourchat::friends::delete_friend::v1::{DeleteFriendRequest, DeleteFriendResponse};
@@ -8,9 +7,10 @@ use tonic::{Request, Response, Status};
 
 pub async fn delete_friend(
     server: &RpcServer,
+    id: ID,
     request: Request<DeleteFriendRequest>,
 ) -> Result<Response<DeleteFriendResponse>, Status> {
-    match delete_friend_impl(server, request).await {
+    match delete_friend_impl(server, id, request).await {
         Ok(res) => Ok(Response::new(res)),
         Err(e) => match e {
             DeleteFriendErr::Db(_) | DeleteFriendErr::Internal(_) => {
@@ -34,10 +34,10 @@ enum DeleteFriendErr {
 
 async fn delete_friend_impl(
     server: &RpcServer,
+    id: ID,
     request: Request<DeleteFriendRequest>,
 ) -> Result<DeleteFriendResponse, DeleteFriendErr> {
     // check friendship exist
-    let id = get_id_from_req(&request).unwrap();
     let req = request.into_inner();
     let friend_id: ID = req.friend_id.into();
     let friend_info = query_friend(id, friend_id, &server.db.db_pool).await?;

@@ -105,6 +105,7 @@ fn main() -> anyhow::Result<()> {
                 "../../service/ourchat/v1/ourchat.proto",
                 "../../service/auth/v1/auth.proto",
                 "../../service/basic/v1/basic.proto",
+                "../../service/server_manage/v1/server_manage.proto",
             ],
             &["../.."],
         )?;

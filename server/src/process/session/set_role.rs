@@ -1,9 +1,6 @@
 use crate::db::session::if_permission_exist;
 use crate::{
-    process::{
-        error_msg::{PERMISSION_DENIED, SERVER_ERROR, not_found::USER_IN_SESSION},
-        get_id_from_req,
-    },
+    process::error_msg::{PERMISSION_DENIED, SERVER_ERROR, not_found::USER_IN_SESSION},
     server::RpcServer,
 };
 use base::consts::ID;
@@ -14,9 +11,10 @@ use tonic::{Request, Response, Status};
 
 pub async fn set_role(
     server: &RpcServer,
+    id: ID,
     request: Request<SetRoleRequest>,
 ) -> Result<Response<SetRoleResponse>, Status> {
-    match set_role_impl(server, request).await {
+    match set_role_impl(server, id, request).await {
         Ok(res) => Ok(Response::new(res)),
         Err(e) => match e {
             SetRoleErr::Db(_) | SetRoleErr::Internal(_) => {
@@ -40,9 +38,9 @@ enum SetRoleErr {
 
 async fn set_role_impl(
     server: &RpcServer,
+    id: ID,
     request: Request<SetRoleRequest>,
 ) -> Result<SetRoleResponse, SetRoleErr> {
-    let id = get_id_from_req(&request).unwrap();
     let req = request.into_inner();
     let member_id: ID = req.member_id.into();
     // check the privilege

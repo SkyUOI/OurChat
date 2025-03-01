@@ -1,12 +1,15 @@
-//! Ourchat Server
+//! OurChat Server
 
-use crate::process;
+use crate::db::user::get_account_info_db;
 use crate::process::basic::support::support;
 use crate::process::db::get_id;
+use crate::process::error_msg::{ACCOUNT_DELETED, SERVER_ERROR};
+use crate::process::{self, get_id_from_req};
 use crate::{SERVER_INFO, SharedData, ShutdownRev};
-use base::consts::{OCID, VERSION_SPLIT};
+use base::consts::{ID, OCID, VERSION_SPLIT};
 use base::database::DbPool;
 use base::time::to_google_timestamp;
+use migration::m20250301_005919_add_soft_delete_columns::AccountStatus;
 use pb::service::auth::authorize::v1::{AuthRequest, AuthResponse};
 use pb::service::auth::email_verify::v1::{VerifyRequest, VerifyResponse};
 use pb::service::auth::register::v1::{RegisterRequest, RegisterResponse};
@@ -59,6 +62,10 @@ use pb::service::ourchat::set_account_info::v1::{SetSelfInfoRequest, SetSelfInfo
 use pb::service::ourchat::unregister::v1::{UnregisterRequest, UnregisterResponse};
 use pb::service::ourchat::upload::v1::{UploadRequest, UploadResponse};
 use pb::service::ourchat::v1::our_chat_service_server::{OurChatService, OurChatServiceServer};
+use pb::service::server_manage::delete_account::v1::{DeleteAccountRequest, DeleteAccountResponse};
+use pb::service::server_manage::v1::server_manage_service_server::{
+    ServerManageService, ServerManageServiceServer,
+};
 use process::error_msg::not_found;
 use std::net::SocketAddr;
 use std::pin::Pin;
@@ -73,6 +80,10 @@ pub struct RpcServer {
     pub shared_data: Arc<SharedData>,
     pub addr: SocketAddr,
     pub rabbitmq: deadpool_lapin::Pool,
+}
+
+pub struct ServerManageServiceProvider {
+    pub db: DbPool,
 }
 
 impl RpcServer {
@@ -102,28 +113,42 @@ impl RpcServer {
             db: self.db.clone(),
             rabbitmq: self.rabbitmq.clone(),
         };
+        let server_manage_service = ServerManageServiceProvider {
+            db: self.db.clone(),
+        };
         let shared_data = self.shared_data.clone();
         let shared_data1 = self.shared_data.clone();
         let shared_data2 = self.shared_data.clone();
+        let shared_data3 = self.shared_data.clone();
         let main_svc = OurChatServiceServer::with_interceptor(self, move |mut req| {
             shared_data.convert_maintaining_into_grpc_status()?;
             Self::check_auth(&mut req)?;
             Ok(req)
         });
+
         let basic_svc = BasicServiceServer::with_interceptor(basic_service, move |req| {
             shared_data1.convert_maintaining_into_grpc_status()?;
             Ok(req)
         });
+
         let auth_svc = AuthServiceServer::with_interceptor(auth_service, move |req| {
             shared_data2.convert_maintaining_into_grpc_status()?;
             Ok(req)
         });
+
+        let server_manage_svc =
+            ServerManageServiceServer::with_interceptor(server_manage_service, move |req| {
+                shared_data3.convert_maintaining_into_grpc_status()?;
+                Ok(req)
+            });
+
         select! {
             _ = shutdown_rev.wait_shutting_down() => {}
             err = tonic::transport::Server::builder()
                 .add_service(main_svc)
                 .add_service(basic_svc)
                 .add_service(auth_svc)
+                .add_service(server_manage_svc)
                 .serve(addr) => {
                     err?
                 }
@@ -131,20 +156,37 @@ impl RpcServer {
         Ok(())
     }
 
-    fn check_auth(req: &mut Request<()>) -> Result<(), Status> {
+    fn check_auth(req: &mut Request<()>) -> Result<ID, Status> {
         // check token
         match req.metadata().get("token") {
             Some(token) => {
                 if let Some(jwt) = process::check_token(token.to_str().unwrap()) {
+                    let ret = jwt.id;
                     req.metadata_mut()
                         .insert("id", jwt.id.to_string().parse().unwrap());
-                    Ok(())
+                    Ok(ret)
                 } else {
                     Err(Status::unauthenticated("Invalid token"))
                 }
             }
             None => Err(Status::unauthenticated("Missing token")),
         }
+    }
+
+    async fn check_account_status(&self, id: ID) -> Result<(), Status> {
+        let account = match get_account_info_db(id, &self.db.db_pool)
+            .await
+            .map_err(|_| Status::internal(SERVER_ERROR))?
+        {
+            Some(account) => account,
+            None => return Err(Status::unauthenticated(not_found::USER)),
+        };
+
+        if account.account_status == AccountStatus::Deleted as i32 {
+            return Err(Status::unauthenticated(ACCOUNT_DELETED));
+        }
+
+        Ok(())
     }
 }
 
@@ -160,7 +202,9 @@ impl OurChatService for RpcServer {
         &self,
         request: Request<UnregisterRequest>,
     ) -> Result<Response<UnregisterResponse>, Status> {
-        process::unregister::unregister(self, request).await
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::unregister::unregister(self, id, request).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -168,7 +212,9 @@ impl OurChatService for RpcServer {
         &self,
         request: Request<GetAccountInfoRequest>,
     ) -> Result<Response<GetAccountInfoResponse>, Status> {
-        process::get_account_info::get_account_info(self, request).await
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::get_account_info::get_account_info(self, id, request).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -176,7 +222,9 @@ impl OurChatService for RpcServer {
         &self,
         request: Request<SetSelfInfoRequest>,
     ) -> Result<Response<SetSelfInfoResponse>, Status> {
-        process::set_self_info(self, request).await
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::set_self_info(self, id, request).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -184,7 +232,9 @@ impl OurChatService for RpcServer {
         &self,
         request: Request<SetFriendInfoRequest>,
     ) -> Result<Response<SetFriendInfoResponse>, Status> {
-        process::set_friend_info(self, request).await
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::set_friend_info(self, id, request).await
     }
 
     type FetchMsgsStream = FetchMsgsStream;
@@ -194,7 +244,9 @@ impl OurChatService for RpcServer {
         &self,
         request: Request<FetchMsgsRequest>,
     ) -> Result<Response<Self::FetchMsgsStream>, Status> {
-        process::fetch_user_msg(self, request).await
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::fetch_user_msg(self, id, request).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -202,7 +254,9 @@ impl OurChatService for RpcServer {
         &self,
         request: Request<SendMsgRequest>,
     ) -> Result<Response<SendMsgResponse>, Status> {
-        process::send_msg(self, request).await
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::send_msg(self, id, request).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -210,7 +264,9 @@ impl OurChatService for RpcServer {
         &self,
         request: Request<tonic::Streaming<UploadRequest>>,
     ) -> Result<Response<UploadResponse>, Status> {
-        process::upload(self, request).await
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::upload(self, id, request).await
     }
 
     type DownloadStream = DownloadStream;
@@ -220,7 +276,9 @@ impl OurChatService for RpcServer {
         &self,
         request: Request<DownloadRequest>,
     ) -> Result<Response<Self::DownloadStream>, Status> {
-        process::download(self, request).await
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::download(self, id, request).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -228,7 +286,9 @@ impl OurChatService for RpcServer {
         &self,
         request: Request<AcceptSessionRequest>,
     ) -> Result<Response<AcceptSessionResponse>, Status> {
-        process::accept_session(self, request).await
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::accept_session(self, id, request).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -236,7 +296,9 @@ impl OurChatService for RpcServer {
         &self,
         request: Request<NewSessionRequest>,
     ) -> Result<Response<NewSessionResponse>, Status> {
-        process::new_session(self, request).await
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::new_session(self, id, request).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -244,7 +306,9 @@ impl OurChatService for RpcServer {
         &self,
         request: Request<GetSessionInfoRequest>,
     ) -> Result<Response<GetSessionInfoResponse>, Status> {
-        process::get_session_info(self, request).await
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::get_session_info(self, id, request).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -252,7 +316,9 @@ impl OurChatService for RpcServer {
         &self,
         request: Request<SetSessionInfoRequest>,
     ) -> Result<Response<SetSessionInfoResponse>, Status> {
-        process::set_session_info(self, request).await
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::set_session_info(self, id, request).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -260,7 +326,9 @@ impl OurChatService for RpcServer {
         &self,
         request: Request<DeleteSessionRequest>,
     ) -> Result<Response<DeleteSessionResponse>, Status> {
-        process::delete_session(self, request).await
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::delete_session(self, id, request).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -268,7 +336,9 @@ impl OurChatService for RpcServer {
         &self,
         request: Request<LeaveSessionRequest>,
     ) -> Result<Response<LeaveSessionResponse>, Status> {
-        process::leave_session(self, request).await
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::leave_session(self, id, request).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -276,7 +346,9 @@ impl OurChatService for RpcServer {
         &self,
         request: Request<RecallMsgRequest>,
     ) -> Result<Response<RecallMsgResponse>, Status> {
-        process::recall_msg(self, request).await
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::recall_msg(self, id, request).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -284,7 +356,9 @@ impl OurChatService for RpcServer {
         &self,
         request: Request<SetRoleRequest>,
     ) -> Result<Response<SetRoleResponse>, Status> {
-        process::set_role(self, request).await
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::set_role(self, id, request).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -292,7 +366,9 @@ impl OurChatService for RpcServer {
         &self,
         request: Request<AddRoleRequest>,
     ) -> Result<Response<AddRoleResponse>, Status> {
-        process::add_role(self, request).await
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::add_role(self, id, request).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -300,7 +376,9 @@ impl OurChatService for RpcServer {
         &self,
         request: Request<MuteUserRequest>,
     ) -> Result<Response<MuteUserResponse>, Status> {
-        process::mute_user(self, request).await
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::mute_user(self, id, request).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -308,7 +386,9 @@ impl OurChatService for RpcServer {
         &self,
         request: Request<UnmuteUserRequest>,
     ) -> Result<Response<UnmuteUserResponse>, Status> {
-        process::unmute_user(self, request).await
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::unmute_user(self, id, request).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -316,7 +396,9 @@ impl OurChatService for RpcServer {
         &self,
         request: Request<BanUserRequest>,
     ) -> Result<Response<BanUserResponse>, Status> {
-        process::ban_user(self, request).await
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::ban_user(self, id, request).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -324,7 +406,9 @@ impl OurChatService for RpcServer {
         &self,
         request: Request<UnbanUserRequest>,
     ) -> Result<Response<UnbanUserResponse>, Status> {
-        process::unban_user(self, request).await
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::unban_user(self, id, request).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -332,7 +416,9 @@ impl OurChatService for RpcServer {
         &self,
         request: Request<AddFriendRequest>,
     ) -> Result<Response<AddFriendResponse>, Status> {
-        process::add_friend(self, request).await
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::add_friend(self, id, request).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -340,14 +426,18 @@ impl OurChatService for RpcServer {
         &self,
         request: Request<AcceptFriendRequest>,
     ) -> Result<Response<AcceptFriendResponse>, Status> {
-        process::accept_friend(self, request).await
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::accept_friend(self, id, request).await
     }
 
     async fn delete_friend(
         &self,
         request: Request<DeleteFriendRequest>,
     ) -> Result<Response<DeleteFriendResponse>, Status> {
-        process::delete_friend(self, request).await
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::delete_friend(self, id, request).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -355,7 +445,9 @@ impl OurChatService for RpcServer {
         &self,
         request: Request<JoinInSessionRequest>,
     ) -> Result<Response<JoinInSessionResponse>, Status> {
-        process::join_in_session(self, request).await
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::join_in_session(self, id, request).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -363,7 +455,9 @@ impl OurChatService for RpcServer {
         &self,
         request: Request<AcceptJoinInSessionRequest>,
     ) -> Result<Response<AcceptJoinInSessionResponse>, Status> {
-        process::accept_join_in_session(self, request).await
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::accept_join_in_session(self, id, request).await
     }
 }
 
@@ -465,6 +559,17 @@ static SERVER_INFO_RPC: LazyLock<pb::service::basic::server::v1::GetServerInfoRe
         unique_identifier: SERVER_INFO.unique_id.to_string(),
         server_name: SERVER_INFO.server_name.to_string(),
     });
+
+#[tonic::async_trait]
+impl ServerManageService for ServerManageServiceProvider {
+    #[tracing::instrument(skip(self))]
+    async fn delete_account(
+        &self,
+        request: Request<DeleteAccountRequest>,
+    ) -> Result<Response<DeleteAccountResponse>, Status> {
+        process::delete_account(self, request).await
+    }
+}
 
 #[cfg(test)]
 mod tests {

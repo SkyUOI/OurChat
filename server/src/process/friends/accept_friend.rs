@@ -2,7 +2,7 @@ use crate::db::messages::{MsgError, insert_msg_record};
 use crate::db::session::SessionError;
 use crate::process::error_msg::{PERMISSION_DENIED, not_found};
 use crate::process::friends::mapped_add_friend_to_redis;
-use crate::process::{Dest, get_id_from_req, transmit_msg};
+use crate::process::{Dest, transmit_msg};
 use crate::{db, process::error_msg::SERVER_ERROR, server::RpcServer, utils};
 use anyhow::Context;
 use base::consts::ID;
@@ -20,9 +20,10 @@ use tonic::{Request, Response, Status};
 
 pub async fn accept_friend(
     server: &RpcServer,
+    id: ID,
     request: Request<AcceptFriendRequest>,
 ) -> Result<Response<AcceptFriendResponse>, Status> {
-    match accept_friend_impl(server, request).await {
+    match accept_friend_impl(server, id, request).await {
         Ok(res) => Ok(Response::new(res)),
         Err(e) => match e {
             AcceptFriendErr::Db(_) | AcceptFriendErr::Internal(_) | AcceptFriendErr::Redis(_) => {
@@ -78,9 +79,9 @@ impl From<MsgError> for AcceptFriendErr {
 
 async fn accept_friend_impl(
     server: &RpcServer,
+    id: ID,
     request: Request<AcceptFriendRequest>,
 ) -> Result<AcceptFriendResponse, AcceptFriendErr> {
-    let id = get_id_from_req(&request).unwrap();
     let req = request.into_inner();
     let inviter_id: ID = req.friend_id.into();
     let mut redis_conn = server

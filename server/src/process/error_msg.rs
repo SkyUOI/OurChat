@@ -32,6 +32,7 @@ pub const CONFLICT: &str = "Conflict";
 pub const MAINTAINING: &str = "Server Maintaining";
 pub const MUTE: &str = "User Muted";
 pub const BAN: &str = "User Banned";
+pub const ACCOUNT_DELETED: &str = "Account Deleted";
 
 // fetch msg
 

@@ -1,4 +1,3 @@
-use super::get_id_from_req;
 use crate::{
     process::error_msg::{
         FILE_HASH_ERROR, FILE_SIZE_ERROR, INCORRECT_ORDER, METADATA_ERROR, SERVER_ERROR,
@@ -142,9 +141,9 @@ pub enum UploadError {
 
 async fn upload_impl(
     server: &RpcServer,
+    id: ID,
     request: tonic::Request<tonic::Streaming<UploadRequest>>,
 ) -> Result<UploadResponse, UploadError> {
-    let id = get_id_from_req(&request).unwrap();
     let mut stream_req = request.into_inner();
     let metadata = match stream_req.next().await {
         None => {
@@ -205,9 +204,10 @@ async fn upload_impl(
 
 pub async fn upload(
     server: &RpcServer,
+    id: ID,
     request: tonic::Request<tonic::Streaming<UploadRequest>>,
 ) -> Result<Response<UploadResponse>, Status> {
-    match upload_impl(server, request).await {
+    match upload_impl(server, id, request).await {
         Ok(ok_resp) => Ok(Response::new(ok_resp)),
         Err(e) => {
             tracing::error!("{}", e);

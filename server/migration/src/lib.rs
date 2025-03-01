@@ -12,6 +12,7 @@ mod m20250102_091815_add_attr_for_session;
 mod m20250107_153037_record_who_created_role;
 mod m20250206_160318_add_user_contact_info;
 pub mod m20250218_093632_server_manage_permission;
+pub mod m20250301_005919_add_soft_delete_columns;
 
 pub struct Migrator;
 
@@ -31,6 +32,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20250107_153037_record_who_created_role::Migration),
             Box::new(m20250206_160318_add_user_contact_info::Migration),
             Box::new(m20250218_093632_server_manage_permission::Migration),
+            Box::new(m20250301_005919_add_soft_delete_columns::Migration),
         ]
     }
 }

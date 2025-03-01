@@ -14,8 +14,6 @@ use std::cmp::PartialEq;
 use std::sync::OnceLock;
 use tonic::Request;
 
-use super::get_id_from_req;
-
 #[derive(PartialEq, Copy, Clone)]
 enum Privilege {
     Stranger,
@@ -38,9 +36,9 @@ enum GetInfoError {
 
 async fn get_account_info_impl(
     server: &RpcServer,
+    id: ID,
     request: Request<GetAccountInfoRequest>,
 ) -> Result<GetAccountInfoResponse, GetInfoError> {
-    let id = get_id_from_req(&request).unwrap();
     let request = request.into_inner();
     // query in the database
     // get id first
@@ -153,9 +151,10 @@ async fn get_account_info_impl(
 
 pub async fn get_account_info(
     server: &RpcServer,
+    id: ID,
     request: Request<GetAccountInfoRequest>,
 ) -> Result<tonic::Response<GetAccountInfoResponse>, tonic::Status> {
-    match get_account_info_impl(server, request).await {
+    match get_account_info_impl(server, id, request).await {
         Ok(d) => Ok(tonic::Response::new(d)),
         Err(e) => match e {
             GetInfoError::DbError(_) | GetInfoError::InternalError(_) => {

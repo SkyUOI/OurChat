@@ -3,10 +3,10 @@ use crate::db::session::{
     get_all_session_relations, get_session_by_id, if_permission_exist, user_banned_status,
 };
 use crate::process::error_msg::{BAN, PERMISSION_DENIED, not_found};
-use crate::process::{Dest, get_id_from_req, transmit_msg};
+use crate::process::{Dest, transmit_msg};
 use crate::{db, process::error_msg::SERVER_ERROR, server::RpcServer};
 use anyhow::Context;
-use base::consts::SessionID;
+use base::consts::{ID, SessionID};
 use base::time::to_google_timestamp;
 use migration::m20241229_022701_add_role_for_session::PredefinedPermissions;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
@@ -18,9 +18,10 @@ use tonic::{Request, Response, Status};
 
 pub async fn join_in_session(
     server: &RpcServer,
+    id: ID,
     request: Request<JoinInSessionRequest>,
 ) -> Result<Response<JoinInSessionResponse>, Status> {
-    match join_in_session_impl(server, request).await {
+    match join_in_session_impl(server, id, request).await {
         Ok(res) => Ok(Response::new(res)),
         Err(e) => match e {
             JoinInSessionErr::Db(_)
@@ -66,9 +67,9 @@ impl From<db::messages::MsgError> for JoinInSessionErr {
 
 async fn join_in_session_impl(
     server: &RpcServer,
+    id: ID,
     request: Request<JoinInSessionRequest>,
 ) -> Result<JoinInSessionResponse, JoinInSessionErr> {
-    let id = get_id_from_req(&request).unwrap();
     let req = request.into_inner();
     let session_id: SessionID = req.session_id.into();
 

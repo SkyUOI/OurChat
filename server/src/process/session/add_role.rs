@@ -1,15 +1,16 @@
-use crate::process::error_msg::ROLE_NAME_EMPTY;
-use crate::process::{error_msg::SERVER_ERROR, get_id_from_req};
+use crate::process::error_msg::{ROLE_NAME_EMPTY, SERVER_ERROR};
 use crate::server::RpcServer;
+use base::consts::ID;
 use pb::service::ourchat::session::add_role::v1::{AddRoleRequest, AddRoleResponse};
 use sea_orm::{ActiveModelTrait, ActiveValue, TransactionTrait};
 use tonic::{Request, Response, Status};
 
 pub async fn add_role(
     server: &RpcServer,
+    id: ID,
     request: Request<AddRoleRequest>,
 ) -> Result<Response<AddRoleResponse>, Status> {
-    match add_role_impl(server, request).await {
+    match add_role_impl(server, id, request).await {
         Ok(res) => Ok(Response::new(res)),
         Err(e) => match e {
             AddRoleErr::Db(_) | AddRoleErr::Internal(_) => {
@@ -33,9 +34,9 @@ enum AddRoleErr {
 
 async fn add_role_impl(
     server: &RpcServer,
+    id: ID,
     request: Request<AddRoleRequest>,
 ) -> Result<AddRoleResponse, AddRoleErr> {
-    let id = get_id_from_req(&request).unwrap();
     let req = request.into_inner();
 
     // validate name

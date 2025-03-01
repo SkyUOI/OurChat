@@ -1,4 +1,3 @@
-use crate::process::get_id_from_req;
 use crate::{process::error_msg::SERVER_ERROR, server::RpcServer};
 use base::consts::ID;
 use base::database::DbPool;
@@ -8,32 +7,36 @@ use pb::service::ourchat::friends::set_friend_info::v1::{
 use sea_orm::{ActiveModelTrait, ActiveValue, DbErr};
 use tonic::{Response, Status};
 
-pub async fn set_friend_info(
-    server: &RpcServer,
-    request: tonic::Request<SetFriendInfoRequest>,
-) -> Result<Response<SetFriendInfoResponse>, Status> {
-    let id = get_id_from_req(&request).unwrap();
-    let request = request.into_inner();
-    match update_friend(id, request, &server.db).await {
-        Ok(_) => {}
-        Err(e) => {
-            return match e {
-                SetError::Db(_) | SetError::Unknown(_) => {
-                    tracing::error!("{}", e);
-                    Err(Status::internal(SERVER_ERROR))
-                }
-            };
-        }
-    };
-    Ok(Response::new(SetFriendInfoResponse {}))
-}
-
 #[derive(Debug, thiserror::Error)]
 enum SetError {
     #[error("db error:{0:?}")]
     Db(#[from] DbErr),
     #[error("unknown error:{0:?}")]
     Unknown(#[from] anyhow::Error),
+}
+
+pub async fn set_friend_info(
+    server: &RpcServer,
+    id: ID,
+    request: tonic::Request<SetFriendInfoRequest>,
+) -> Result<Response<SetFriendInfoResponse>, Status> {
+    match set_friend_info_impl(server, id, request).await {
+        Ok(d) => Ok(Response::new(d)),
+        Err(e) => {
+            tracing::error!("{}", e);
+            Err(Status::internal(SERVER_ERROR))
+        }
+    }
+}
+
+async fn set_friend_info_impl(
+    server: &RpcServer,
+    id: ID,
+    request: tonic::Request<SetFriendInfoRequest>,
+) -> Result<SetFriendInfoResponse, SetError> {
+    let request = request.into_inner();
+    update_friend(id, request, &server.db).await?;
+    Ok(SetFriendInfoResponse {})
 }
 
 async fn update_friend(

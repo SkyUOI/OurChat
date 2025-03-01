@@ -4,11 +4,12 @@ use crate::{
     db::messages::{MsgError, del_msg},
     process::{
         error_msg::{PERMISSION_DENIED, SERVER_ERROR, not_found},
-        get_id_from_req, transmit_msg,
+        transmit_msg,
     },
     server::RpcServer,
 };
 use anyhow::Context;
+use base::consts::ID;
 use base::time::to_google_timestamp;
 use pb::service::ourchat::msg_delivery::recall::v1::{
     RecallMsgRequest, RecallMsgResponse, RecallNotification,
@@ -19,9 +20,10 @@ use tonic::{Request, Response, Status};
 
 pub async fn recall_msg(
     server: &RpcServer,
+    id: ID,
     request: Request<RecallMsgRequest>,
 ) -> Result<Response<RecallMsgResponse>, Status> {
-    match recall_msg_internal(server, request).await {
+    match recall_msg_internal(server, id, request).await {
         Ok(res) => Ok(Response::new(res)),
         Err(e) => Err(match e {
             RecallErr::Db(_) | RecallErr::Unknown(_) => {
@@ -58,9 +60,9 @@ impl From<MsgError> for RecallErr {
 
 async fn recall_msg_internal(
     server: &RpcServer,
+    id: ID,
     request: Request<RecallMsgRequest>,
 ) -> Result<RecallMsgResponse, RecallErr> {
-    let id = get_id_from_req(&request).unwrap();
     let req = request.into_inner();
     // delete it from the database first
     del_msg(

@@ -1,11 +1,13 @@
-use super::super::get_id_from_req;
 use crate::{
     db,
     process::error_msg::{SERVER_ERROR, TIME_FORMAT_ERROR, TIME_MISSING},
     server::{FetchMsgsStream, RpcServer},
 };
 use anyhow::{Context, bail};
-use base::time::{from_google_timestamp, to_google_timestamp};
+use base::{
+    consts::ID,
+    time::{from_google_timestamp, to_google_timestamp},
+};
 use deadpool_lapin::lapin::options::{QueueBindOptions, QueueDeclareOptions, QueueDeleteOptions};
 use deadpool_lapin::lapin::types::FieldTable;
 use pb::service::ourchat::msg_delivery::v1::{
@@ -19,9 +21,10 @@ use tonic::{Response, Status};
 
 pub async fn fetch_user_msg(
     server: &RpcServer,
+    id: ID,
     request: tonic::Request<FetchMsgsRequest>,
 ) -> Result<Response<FetchMsgsStream>, Status> {
-    match fetch_user_msg_impl(server, request).await {
+    match fetch_user_msg_impl(server, id, request).await {
         Ok(d) => Ok(d),
         Err(e) => match e {
             FetchMsgError::Db(_) | FetchMsgError::Internal(_) => {
@@ -45,9 +48,9 @@ enum FetchMsgError {
 
 async fn fetch_user_msg_impl(
     server: &RpcServer,
+    id: ID,
     request: tonic::Request<FetchMsgsRequest>,
 ) -> Result<Response<FetchMsgsStream>, FetchMsgError> {
-    let id = get_id_from_req(&request).unwrap();
     let request = request.into_inner();
     let time = match from_google_timestamp(&match request.time {
         Some(t) => t,

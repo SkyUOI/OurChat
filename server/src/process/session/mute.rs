@@ -1,10 +1,8 @@
 use crate::db::redis;
 use crate::db::redis::map_mute_all_to_redis;
 use crate::db::session::if_permission_exist;
-use crate::process::error_msg::PERMISSION_DENIED;
-use crate::process::error_msg::not_found::NOT_BE_MUTED;
-use crate::process::get_id_from_req;
-use crate::{process::error_msg::SERVER_ERROR, server::RpcServer};
+use crate::process::error_msg::{PERMISSION_DENIED, SERVER_ERROR, not_found::NOT_BE_MUTED};
+use crate::server::RpcServer;
 use anyhow::Context;
 use base::consts::ID;
 use deadpool_redis::redis::AsyncCommands;
@@ -16,9 +14,10 @@ use tonic::{Request, Response, Status};
 
 pub async fn mute_user(
     server: &RpcServer,
+    id: ID,
     request: Request<MuteUserRequest>,
 ) -> Result<Response<MuteUserResponse>, Status> {
-    match mute_user_impl(server, request).await {
+    match mute_user_impl(server, id, request).await {
         Ok(res) => Ok(Response::new(res)),
         Err(e) => match e {
             MuteUserErr::Db(_) | MuteUserErr::Internal(_) | MuteUserErr::Redis(_) => {
@@ -44,9 +43,9 @@ enum MuteUserErr {
 
 async fn mute_user_impl(
     server: &RpcServer,
+    id: ID,
     request: Request<MuteUserRequest>,
 ) -> Result<MuteUserResponse, MuteUserErr> {
-    let id = get_id_from_req(&request).unwrap();
     let req = request.into_inner();
     if !if_permission_exist(
         id,
@@ -92,9 +91,10 @@ async fn mute_user_impl(
 
 pub async fn unmute_user(
     server: &RpcServer,
+    id: ID,
     request: Request<UnmuteUserRequest>,
 ) -> Result<Response<UnmuteUserResponse>, Status> {
-    match unmute_user_impl(server, request).await {
+    match unmute_user_impl(server, id, request).await {
         Ok(res) => Ok(Response::new(res)),
         Err(e) => match e {
             MuteUserErr::Db(_) | MuteUserErr::Internal(_) | MuteUserErr::Redis(_) => {
@@ -108,9 +108,9 @@ pub async fn unmute_user(
 
 async fn unmute_user_impl(
     server: &RpcServer,
+    id: ID,
     request: Request<UnmuteUserRequest>,
 ) -> Result<UnmuteUserResponse, MuteUserErr> {
-    let id = get_id_from_req(&request).unwrap();
     let req = request.into_inner();
     if !if_permission_exist(
         id,

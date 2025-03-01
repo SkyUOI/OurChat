@@ -1,9 +1,6 @@
-use super::{
-    error_msg::{
-        CONFLICT,
-        invalid::{self, OCID_TOO_LONG, STATUS_TOO_LONG},
-    },
-    get_id_from_req,
+use super::error_msg::{
+    CONFLICT,
+    invalid::{self, OCID_TOO_LONG, STATUS_TOO_LONG},
 };
 use crate::{
     db::{self, file_storage},
@@ -22,9 +19,9 @@ pub const STATUS_LENGTH_MAX: usize = 128;
 
 pub async fn set_self_info(
     server: &RpcServer,
+    id: ID,
     request: Request<SetSelfInfoRequest>,
 ) -> Result<Response<SetSelfInfoResponse>, Status> {
-    let id = get_id_from_req(&request).unwrap();
     let request_data = request.into_inner();
 
     // Check username length

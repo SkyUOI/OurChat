@@ -1,8 +1,7 @@
 use crate::db::session::{SessionError, get_session_by_id, if_permission_exist};
 use crate::process::error_msg::{PERMISSION_DENIED, not_found};
-use crate::process::get_id_from_req;
 use crate::{db, process::error_msg::SERVER_ERROR, server::RpcServer};
-use base::consts::SessionID;
+use base::consts::{ID, SessionID};
 use migration::m20241229_022701_add_role_for_session::PredefinedPermissions;
 use pb::service::ourchat::session::delete_session::v1::{
     DeleteSessionRequest, DeleteSessionResponse,
@@ -11,9 +10,10 @@ use tonic::{Request, Response, Status};
 
 pub async fn delete_session(
     server: &RpcServer,
+    id: ID,
     request: Request<DeleteSessionRequest>,
 ) -> Result<Response<DeleteSessionResponse>, Status> {
-    match delete_session_impl(server, request).await {
+    match delete_session_impl(server, id, request).await {
         Ok(res) => Ok(Response::new(res)),
         Err(e) => match e {
             DeleteSessionErr::Db(_) | DeleteSessionErr::Internal(_) => {
@@ -37,9 +37,9 @@ enum DeleteSessionErr {
 
 async fn delete_session_impl(
     server: &RpcServer,
+    id: ID,
     request: Request<DeleteSessionRequest>,
 ) -> Result<DeleteSessionResponse, DeleteSessionErr> {
-    let id = get_id_from_req(&request).unwrap();
     let req = request.into_inner();
     let session_id: SessionID = req.session_id.into();
     // check if session exists

@@ -1,6 +1,7 @@
 use super::query_session;
 use crate::process::error_msg::{REQUEST_INVALID_VALUE, SERVER_ERROR, not_found};
 use crate::{db, server::RpcServer};
+use base::consts::ID;
 use base::time::to_google_timestamp;
 use pb::service::ourchat::session::get_session_info::v1::RoleInfo;
 use pb::service::ourchat::session::get_session_info::v1::{
@@ -10,9 +11,10 @@ use tonic::{Request, Response, Status};
 
 pub async fn get_session_info(
     server: &RpcServer,
+    id: ID,
     request: Request<GetSessionInfoRequest>,
 ) -> Result<Response<GetSessionInfoResponse>, Status> {
-    match get_session_info_impl(server, request).await {
+    match get_session_info_impl(server, id, request).await {
         Ok(d) => Ok(Response::new(d)),
         Err(e) => {
             let status = match e {
@@ -39,6 +41,7 @@ enum GetSessionErr {
 
 async fn get_session_info_impl(
     server: &RpcServer,
+    _id: ID,
     request: Request<GetSessionInfoRequest>,
 ) -> Result<GetSessionInfoResponse, GetSessionErr> {
     let mut res = GetSessionInfoResponse::default();

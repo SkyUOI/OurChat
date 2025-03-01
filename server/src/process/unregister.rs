@@ -1,10 +1,10 @@
-use super::get_id_from_req;
 use crate::{process::error_msg::SERVER_ERROR, server::RpcServer};
 use base::consts::ID;
 use entities::user;
+use migration::m20250301_005919_add_soft_delete_columns::AccountStatus;
 use pb::service::ourchat::unregister::v1::{UnregisterRequest, UnregisterResponse};
 use sea_orm::{ActiveModelTrait, ActiveValue, ConnectionTrait};
-use tonic::{Response, Status};
+use tonic::{Request, Response, Status};
 
 #[derive(Debug, thiserror::Error)]
 enum UnregisterError {
@@ -14,27 +14,28 @@ enum UnregisterError {
     UnknownError(#[from] anyhow::Error),
 }
 
-/// Remove user from database
-async fn remove_account(
+/// Set user account status to deleted
+async fn set_account_deleted(
     id: ID,
     db_connection: &impl ConnectionTrait,
 ) -> Result<(), UnregisterError> {
     let user = user::ActiveModel {
         id: ActiveValue::Set(id.into()),
+        account_status: ActiveValue::Set(AccountStatus::Deleted.into()), // Deleted
         ..Default::default()
     };
-    user.delete(db_connection).await?;
+    user.update(db_connection).await?;
     Ok(())
 }
 
 async fn unregister_impl(
     server: &RpcServer,
-    request: tonic::Request<UnregisterRequest>,
+    id: ID,
+    _request: Request<UnregisterRequest>,
 ) -> Result<UnregisterResponse, UnregisterError> {
     let db_conn = &server.db;
-    let id = get_id_from_req(&request).unwrap();
     let batch = async {
-        remove_account(id, &db_conn.db_pool).await?;
+        set_account_deleted(id, &db_conn.db_pool).await?;
         Ok(())
     };
     match batch.await {
@@ -45,9 +46,10 @@ async fn unregister_impl(
 
 pub async fn unregister(
     server: &RpcServer,
-    request: tonic::Request<UnregisterRequest>,
+    id: ID,
+    request: Request<UnregisterRequest>,
 ) -> Result<Response<UnregisterResponse>, Status> {
-    match unregister_impl(server, request).await {
+    match unregister_impl(server, id, request).await {
         Ok(d) => Ok(Response::new(d)),
         Err(e) => {
             tracing::error!("{}", e);

@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use super::{Files, error_msg::PERMISSION_DENIED, get_id_from_req};
+use super::{Files, error_msg::PERMISSION_DENIED};
 use crate::{
     process::error_msg::SERVER_ERROR,
     server::{DownloadStream, RpcServer},
@@ -72,9 +72,9 @@ async fn download_impl(
 
 pub async fn download(
     server: &RpcServer,
+    id: ID,
     request: Request<DownloadRequest>,
 ) -> Result<Response<DownloadStream>, Status> {
-    let id = get_id_from_req(&request).unwrap();
     let req = request.into_inner();
     let (tx, rx) = mpsc::channel(16);
     let db_conn = server.db.clone();

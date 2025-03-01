@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package service.server_manage.delete_account.v1;
+
+message DeleteAccountRequest {
+  uint64 user_id = 1;
+}
+
+message DeleteAccountResponse {}

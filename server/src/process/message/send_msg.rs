@@ -1,4 +1,3 @@
-use super::super::get_id_from_req;
 use crate::db::session::user_muted_status;
 use crate::process::error_msg;
 use crate::{
@@ -7,15 +6,17 @@ use crate::{
     server::RpcServer,
 };
 use anyhow::Context;
+use base::consts::ID;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
 use pb::service::ourchat::msg_delivery::v1::{Msg, SendMsgRequest, SendMsgResponse};
 use tonic::{Request, Response, Status};
 
 pub async fn send_msg(
     server: &RpcServer,
+    id: ID,
     request: Request<SendMsgRequest>,
 ) -> Result<Response<SendMsgResponse>, Status> {
-    match send_msg_impl(server, request).await {
+    match send_msg_impl(server, id, request).await {
         Ok(res) => Ok(Response::new(res)),
         Err(e) => Err(match e {
             SendMsgErr::Db(_) | SendMsgErr::Internal(_) | SendMsgErr::Redis(_) => {
@@ -54,9 +55,9 @@ impl From<MsgError> for SendMsgErr {
 
 async fn send_msg_impl(
     server: &RpcServer,
+    id: ID,
     request: Request<SendMsgRequest>,
 ) -> Result<SendMsgResponse, SendMsgErr> {
-    let id = get_id_from_req(&request).unwrap();
     let req = request.into_inner();
     let db_conn = server.db.clone();
     // check

@@ -1,9 +1,9 @@
 use crate::db::session::{SessionError, join_in_session, user_banned_status};
+use crate::process::error_msg;
 use crate::process::error_msg::not_found;
-use crate::process::{error_msg, get_id_from_req};
 use crate::{process::error_msg::SERVER_ERROR, server::RpcServer};
 use anyhow::Context;
-use base::consts::SessionID;
+use base::consts::{ID, SessionID};
 use entities::user_chat_msg;
 use pb::service::ourchat::session::accept_session::v1::{
     AcceptSessionRequest, AcceptSessionResponse,
@@ -25,9 +25,9 @@ enum AcceptSessionError {
 
 async fn accept_impl(
     server: &RpcServer,
+    id: ID,
     request: tonic::Request<AcceptSessionRequest>,
 ) -> Result<AcceptSessionResponse, AcceptSessionError> {
-    let id = get_id_from_req(&request).unwrap();
     let req = request.into_inner();
     let session_id: SessionID = req.session_id.into();
     // check if banned from the session
@@ -81,9 +81,10 @@ async fn accept_impl(
 
 pub async fn accept_session(
     server: &RpcServer,
+    id: ID,
     request: tonic::Request<AcceptSessionRequest>,
 ) -> Result<Response<AcceptSessionResponse>, Status> {
-    match accept_impl(server, request).await {
+    match accept_impl(server, id, request).await {
         Ok(d) => Ok(Response::new(d)),
         Err(e) => match e {
             AcceptSessionError::DbError(_)

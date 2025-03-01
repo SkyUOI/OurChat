@@ -1,9 +1,9 @@
 use crate::db::session::{SessionError, if_permission_exist};
 use crate::process::error_msg::{PERMISSION_DENIED, not_found};
-use crate::process::{Dest, MsgInsTransmitErr, get_id_from_req};
+use crate::process::{Dest, MsgInsTransmitErr};
 use crate::{db, process::error_msg::SERVER_ERROR, server::RpcServer};
 use anyhow::Context;
-use base::consts::SessionID;
+use base::consts::{ID, SessionID};
 use migration::m20241229_022701_add_role_for_session::PredefinedPermissions;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
 use pb::service::ourchat::session::join_in_session::v1::{
@@ -14,9 +14,10 @@ use tonic::{Request, Response, Status};
 
 pub async fn accept_join_in_session(
     server: &RpcServer,
+    id: ID,
     request: Request<AcceptJoinInSessionRequest>,
 ) -> Result<Response<AcceptJoinInSessionResponse>, Status> {
-    match accept_join_in_session_impl(server, request).await {
+    match accept_join_in_session_impl(server, id, request).await {
         Ok(res) => Ok(Response::new(res)),
         Err(e) => match e {
             AcceptJoinInSessionErr::Db(_) | AcceptJoinInSessionErr::Internal(_) => {
@@ -58,9 +59,9 @@ impl From<MsgInsTransmitErr> for AcceptJoinInSessionErr {
 
 async fn accept_join_in_session_impl(
     server: &RpcServer,
+    id: ID,
     request: Request<AcceptJoinInSessionRequest>,
 ) -> Result<AcceptJoinInSessionResponse, AcceptJoinInSessionErr> {
-    let id = get_id_from_req(&request).unwrap();
     let req = request.into_inner();
     let session_id: SessionID = req.session_id.into();
     if !if_permission_exist(

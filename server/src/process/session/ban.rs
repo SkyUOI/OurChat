@@ -2,7 +2,6 @@ use crate::db::redis;
 use crate::db::session::{get_members, if_permission_exist, leave_session};
 use crate::process::error_msg::PERMISSION_DENIED;
 use crate::process::error_msg::not_found::NOT_BE_BANNED;
-use crate::process::get_id_from_req;
 use crate::{process::error_msg::SERVER_ERROR, server::RpcServer};
 use anyhow::Context;
 use base::consts::{ID, SessionID};
@@ -16,9 +15,10 @@ use tonic::{Request, Response, Status};
 
 pub async fn ban_user(
     server: &RpcServer,
+    id: ID,
     request: Request<BanUserRequest>,
 ) -> Result<Response<BanUserResponse>, Status> {
-    match ban_user_impl(server, request).await {
+    match ban_user_impl(server, id, request).await {
         Ok(res) => Ok(Response::new(res)),
         Err(e) => match e {
             BanUserErr::Db(_) | BanUserErr::Internal(_) | BanUserErr::Redis(_) => {
@@ -44,9 +44,9 @@ enum BanUserErr {
 
 async fn ban_user_impl(
     server: &RpcServer,
+    id: ID,
     request: Request<BanUserRequest>,
 ) -> Result<BanUserResponse, BanUserErr> {
-    let id = get_id_from_req(&request).unwrap();
     let req = request.into_inner();
     let session_id: SessionID = req.session_id.into();
     if !if_permission_exist(
@@ -114,9 +114,10 @@ async fn ban_user_impl(
 
 pub async fn unban_user(
     server: &RpcServer,
+    id: ID,
     request: Request<UnbanUserRequest>,
 ) -> Result<Response<UnbanUserResponse>, Status> {
-    match unban_user_impl(server, request).await {
+    match unban_user_impl(server, id, request).await {
         Ok(res) => Ok(Response::new(res)),
         Err(e) => match e {
             BanUserErr::Db(_) | BanUserErr::Internal(_) | BanUserErr::Redis(_) => {
@@ -130,9 +131,9 @@ pub async fn unban_user(
 
 async fn unban_user_impl(
     server: &RpcServer,
+    id: ID,
     request: Request<UnbanUserRequest>,
 ) -> Result<UnbanUserResponse, BanUserErr> {
-    let id = get_id_from_req(&request).unwrap();
     let req = request.into_inner();
     if !if_permission_exist(
         id,

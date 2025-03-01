@@ -8,9 +8,10 @@
 //!
 //! pub async fn set_role(
 //!     server: &RpcServer,
+//!     id: ID,
 //!     request: Request<SetRoleRequest>,
 //! ) -> Result<Response<SetRoleResponse>, Status> {
-//!     match set_role_impl(server, request).await {
+//!     match set_role_impl(server, id, request).await {
 //!         Ok(res) => Ok(Response::new(res)),
 //!         Err(e) => match e {
 //!             SetRoleErr::Db(_) | SetRoleErr::Internal(_) => {
@@ -34,6 +35,7 @@
 //!
 //! async fn set_role_impl(
 //!     server: &RpcServer,
+//!     id: ID,
 //!     request: Request<SetRoleRequest>,
 //! ) -> Result<SetRoleResponse, SetRoleErr> {
 //!     todo!()
@@ -48,8 +50,9 @@ mod friends;
 pub mod get_account_info;
 mod message;
 pub mod register;
+mod server_manage;
 mod session;
-mod set_account_info;
+mod set_self_info;
 pub mod unregister;
 mod upload;
 pub mod verify;
@@ -74,6 +77,7 @@ pub use friends::{
     set_friend_info::set_friend_info,
 };
 pub use message::{fetch_user_msg::fetch_user_msg, recall::recall_msg, send_msg::send_msg};
+pub use server_manage::delete_account::delete_account;
 pub use session::{
     accept_join_in_session::accept_join_in_session,
     accept_session::accept_session,
@@ -88,7 +92,7 @@ pub use session::{
     set_role::set_role,
     set_self_info::set_session_info,
 };
-pub use set_account_info::set_self_info;
+pub use set_self_info::set_self_info;
 pub use unregister::unregister;
 pub use upload::upload;
 

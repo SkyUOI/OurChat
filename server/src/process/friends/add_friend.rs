@@ -1,7 +1,7 @@
 use crate::db::messages::{MsgError, insert_msg_record};
 use crate::process::error_msg::exist::FRIEND;
 use crate::process::error_msg::{PERMISSION_DENIED, not_found};
-use crate::process::{Dest, friends, get_id_from_req, transmit_msg};
+use crate::process::{Dest, friends, transmit_msg};
 use crate::{process::error_msg::SERVER_ERROR, server::RpcServer};
 use anyhow::Context;
 use base::consts::{ADD_FRIEND_REQUEST_EXPIRE, ID};
@@ -18,9 +18,10 @@ use tonic::{Request, Response, Status};
 
 pub async fn add_friend(
     server: &RpcServer,
+    id: ID,
     request: Request<AddFriendRequest>,
 ) -> Result<Response<AddFriendResponse>, Status> {
-    match add_friend_impl(server, request).await {
+    match add_friend_impl(server, id, request).await {
         Ok(res) => Ok(Response::new(res)),
         Err(e) => match e {
             AddFriendErr::Db(_) | AddFriendErr::Internal(_) | AddFriendErr::Redis(_) => {
@@ -64,9 +65,9 @@ impl From<MsgError> for AddFriendErr {
 
 async fn add_friend_impl(
     server: &RpcServer,
+    id: ID,
     request: Request<AddFriendRequest>,
 ) -> Result<AddFriendResponse, AddFriendErr> {
-    let id = get_id_from_req(&request).unwrap();
     let req = request.into_inner();
     let friend_id: ID = req.friend_id.into();
     let exist = Friend::find_by_id((id.into(), friend_id.into()))

@@ -252,8 +252,20 @@ struct ServerInfo {
 const SECRET_LEN: usize = 32;
 
 static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
-    let args = ArgsParser::parse();
-    let path = args.server_info;
+    // Extract only server-info argument
+    let path = clap::Command::new("ourchat")
+        .arg(
+            clap::Arg::new("server-info")
+                .long("server-info")
+                .help("server info file path")
+                .default_value(SERVER_INFO_PATH),
+        )
+        .ignore_errors(true)
+        .get_matches()
+        .get_one::<String>("server-info")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from(SERVER_INFO_PATH));
+
     info!("server info path: {}", path.display());
 
     let state = path.exists();

@@ -1,4 +1,3 @@
-use super::super::get_id_from_req;
 use crate::db::messages::insert_msg_record;
 use crate::db::session::SessionError;
 use crate::process::error_msg::{SERVER_ERROR, not_found};
@@ -52,10 +51,10 @@ pub async fn whether_to_verify(
 
 async fn new_session_impl(
     server: &RpcServer,
+    id: ID,
     req: Request<NewSessionRequest>,
 ) -> Result<NewSessionResponse, NewSessionError> {
     let session_id = utils::generate_session_id()?;
-    let id = get_id_from_req(&req).unwrap();
     let mut failed_members = vec![];
     let req = req.into_inner();
     // check whether to send a verification request
@@ -121,9 +120,10 @@ async fn new_session_impl(
 
 pub async fn new_session(
     server: &RpcServer,
+    id: ID,
     req: Request<NewSessionRequest>,
 ) -> Result<Response<NewSessionResponse>, tonic::Status> {
-    match new_session_impl(server, req).await {
+    match new_session_impl(server, id, req).await {
         Ok(res) => Ok(Response::new(res)),
         Err(e) => match e {
             NewSessionError::SessionNotFound => Err(tonic::Status::not_found(not_found::SESSION)),

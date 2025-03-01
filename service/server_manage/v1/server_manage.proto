@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package service.server_manage.v1;
+
+import "service/server_manage/delete_account/v1/delete_account.proto";
+
+service ServerManageService {
+  rpc DeleteAccount(delete_account.v1.DeleteAccountRequest) returns (delete_account.v1.DeleteAccountResponse);
+}

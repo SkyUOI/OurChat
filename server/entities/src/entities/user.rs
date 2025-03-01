@@ -22,6 +22,8 @@ pub struct Model {
     pub public_update_time: DateTimeWithTimeZone,
     pub update_time: DateTimeWithTimeZone,
     pub status: Option<String>,
+    pub account_status: i32,
+    pub deleted_at: Option<DateTimeWithTimeZone>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

@@ -1,13 +1,10 @@
 use crate::process::error_msg::{CANNOT_SET_AVATAR, CANNOT_SET_DESCRIPTION, CANNOT_SET_NAME};
 use crate::{
     db,
-    process::{
-        error_msg::{CONFLICT, SERVER_ERROR},
-        get_id_from_req,
-    },
+    process::error_msg::{CONFLICT, SERVER_ERROR},
     server::RpcServer,
 };
-use base::consts::SessionID;
+use base::consts::{ID, SessionID};
 use entities::{role_permissions, user_role_relation};
 use migration::m20241229_022701_add_role_for_session::PredefinedPermissions;
 use pb::service::ourchat::session::set_session_info::v1::{
@@ -19,9 +16,10 @@ use tonic::{Request, Response, Status};
 
 pub async fn set_session_info(
     server: &RpcServer,
+    id: ID,
     request: Request<SetSessionInfoRequest>,
 ) -> Result<Response<SetSessionInfoResponse>, Status> {
-    match set_session_info_impl(server, request).await {
+    match set_session_info_impl(server, id, request).await {
         Ok(d) => Ok(Response::new(d)),
         Err(e) => {
             let status = match e {
@@ -51,9 +49,9 @@ enum SetSessionErr {
 
 async fn set_session_info_impl(
     server: &RpcServer,
+    id: ID,
     request: Request<SetSessionInfoRequest>,
 ) -> Result<SetSessionInfoResponse, SetSessionErr> {
-    let id = get_id_from_req(&request).unwrap();
     let request = request.into_inner();
     let res = SetSessionInfoResponse {};
     let session_id: SessionID = request.session_id.into();

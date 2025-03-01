@@ -43,6 +43,7 @@ pub struct TestUser {
     pub timestamp_receive_msg: TimeStampUtc,
 
     has_dropped: bool,
+    has_unregistered: bool,
 }
 
 // Utils functions implemented
@@ -69,6 +70,7 @@ impl TestUser {
             oc_server: None,
             id: ID::default(),
             timestamp_receive_msg: chrono::Utc::now(),
+            has_unregistered: false,
         }
     }
 
@@ -103,8 +105,10 @@ impl TestUser {
     }
 
     pub(crate) async fn async_drop(&mut self) {
-        claims::assert_ok!(self.unregister().await);
-        tracing::info!("unregister done");
+        if !self.has_unregistered {
+            claims::assert_ok!(self.unregister().await);
+            tracing::info!("unregister done");
+        }
         self.has_dropped = true;
     }
 }
@@ -128,9 +132,10 @@ impl TestUser {
         Self::register_internal(self).await
     }
 
-    pub async fn unregister(&mut self) -> anyhow::Result<()> {
+    pub async fn unregister(&mut self) -> tonic::Result<()> {
         let req = UnregisterRequest {};
         self.oc().unregister(req).await?;
+        self.has_unregistered = true;
         Ok(())
     }
 

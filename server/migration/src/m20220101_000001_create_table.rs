@@ -180,6 +180,8 @@ pub enum User {
     UpdateTime,
     Avatar,
     Status,
+    AccountStatus,
+    DeletedAt,
 }
 
 #[derive(DeriveIden)]
