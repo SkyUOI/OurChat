@@ -5,6 +5,9 @@ on:
     branches: ["main", "dev"]
   pull_request:
     branches: ["main", "dev"]
+permissions:
+  contents: read
+  pull-requests: write
 
 env:
   CARGO_TERM_COLOR: always
@@ -37,10 +40,12 @@ jobs:
         run: dart pub global activate protoc_plugin && python script/generate.pb.dart.py
       - name: Flutter Check
         run: cd client && flutter analyze
-      - uses: bufbuild/buf-setup-action@v0.6.0
+      - uses: bufbuild/buf-action@v1
         with:
+          token: ${{ secrets.BUF_TOKEN }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
-      # Lint
-      - uses: bufbuild/buf-lint-action@v0.3.0
+          lint: true
+          breaking: false
+          format: false
       - name: Buf Fmt
         run: buf format --exit-code
