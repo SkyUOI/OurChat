@@ -37,7 +37,9 @@ jobs:
         run: dart pub global activate protoc_plugin && python script/generate.pb.dart.py
       - name: Flutter Check
         run: cd client && flutter analyze
-      - uses: bufbuild/buf-setup-action@v0.3.1
+      - uses: bufbuild/buf-setup-action@v0.6.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
       # Lint
       - uses: bufbuild/buf-lint-action@v0.3.0
       - name: Buf Fmt
