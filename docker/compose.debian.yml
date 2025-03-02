@@ -5,8 +5,9 @@ services:
     init: true
     image: skyuoi/ourchat:latest-debian
     working_dir: /root
-    ports:
-      - "7777:7777"
+    # If you want to expose the ourchat server port, uncomment the following lines
+    # ports:
+    # - "7777:7777"
     networks:
       - net
     depends_on:
@@ -39,8 +40,9 @@ services:
       POSTGRES_PASSWORD: 123456
     volumes:
       - "./data/postgres-data:/var/lib/postgresql/data"
-    ports:
-      - "5432:5432"
+    # If you want to expose the postgres port, uncomment the following lines
+    # ports:
+    # - "5432:5432"
     networks:
       - net
     healthcheck:
@@ -63,12 +65,13 @@ services:
   mq:
     image: rabbitmq:4-management
     restart: always
+    # If you want to expose the rabbitmq management port, uncomment the following lines
+    # ports:
+    # - "5672:5672"
+    # - "15672:15672"
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: 123456
-    ports:
-      - "5672:5672"
-      - "15672:15672"
     volumes:
       - ./data/rabbitmq-data:/var/lib/rabbitmq
     networks:

@@ -39,8 +39,9 @@ services:
       POSTGRES_PASSWORD: 123456
     volumes:
       - "./data/postgres-data:/var/lib/postgresql/data"
-    ports:
-      - "5432:5432"
+      # If you want to expose the postgres port, uncomment the following lines
+      # ports:
+      # - "5432:5432"
     networks:
       - net
     healthcheck:
@@ -52,8 +53,9 @@ services:
     image: redis:7-alpine
     restart: always
     command: redis-server /usr/local/etc/redis/redis.conf
-    ports:
-      - "6379:6379"
+    # If you want to expose the redis port, uncomment the following lines
+    # ports:
+    # - "6379:6379"
     volumes:
       - ./data/redis-data:/opt/redis/data
       - ./config/redis.conf:/usr/local/etc/redis/redis.conf
@@ -62,12 +64,13 @@ services:
   mq:
     image: rabbitmq:4-management-alpine
     restart: always
+    # If you want to expose the rabbitmq management port, uncomment the following lines
+    # ports:
+    # - "5672:5672"
+    # - "15672:15672"
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: 123456
-    ports:
-      - "5672:5672"
-      - "15672:15672"
     volumes:
       - ./data/rabbitmq-data:/var/lib/rabbitmq
     networks:
