@@ -43,6 +43,7 @@ pub struct TestUser {
     pub timestamp_receive_msg: TimeStampUtc,
 
     has_dropped: bool,
+    has_registered: bool,
     has_unregistered: bool,
 }
 
@@ -71,6 +72,7 @@ impl TestUser {
             id: ID::default(),
             timestamp_receive_msg: chrono::Utc::now(),
             has_unregistered: false,
+            has_registered: false,
         }
     }
 
@@ -101,6 +103,7 @@ impl TestUser {
                 Ok(req)
             }),
         ));
+        user.has_registered = true;
         Ok(())
     }
 
@@ -362,7 +365,7 @@ impl TestUser {
 
 impl Drop for TestUser {
     fn drop(&mut self) {
-        if !self.has_dropped && !thread::panicking() {
+        if !self.has_dropped && !thread::panicking() && self.has_registered {
             panic!("async_drop is not called to drop this user");
         }
     }

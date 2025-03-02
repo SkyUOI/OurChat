@@ -66,6 +66,11 @@ async-trait = { version = "0" }
 # Grpc
 prost = { version = "0" }
 jsonwebtoken = "9"
+tower = { version = "0" }
+tower-http = { version = "0" }
+hyper = { version = "1", features = ["full"] }
+hyper-util = { version = "0" }
+http-body-util = "0"
 
 linkify = "0"
 claims = "0"
@@ -98,7 +103,7 @@ features = ["json", "rustls-tls"]
 [workspace.dependencies.tonic]
 version = "0"
 default-features = false
-features = ["tls", "codegen", "prost", "channel"]
+features = ["tls", "codegen", "prost", "channel", "transport"]
 
 [workspace.dependencies.sqlx]
 version = "0"

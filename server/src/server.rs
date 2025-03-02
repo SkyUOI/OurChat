@@ -9,6 +9,12 @@ use crate::{SERVER_INFO, SharedData, ShutdownRev};
 use base::consts::{ID, OCID, VERSION_SPLIT};
 use base::database::DbPool;
 use base::time::to_google_timestamp;
+use http_body_util::BodyExt;
+use http_body_util::Full;
+use http_body_util::combinators::UnsyncBoxBody;
+use hyper::body::Bytes;
+use hyper::server::conn::http2;
+use hyper_util::rt::TokioIo;
 use migration::m20250301_005919_add_soft_delete_columns::AccountStatus;
 use pb::service::auth::authorize::v1::{AuthRequest, AuthResponse};
 use pb::service::auth::email_verify::v1::{VerifyRequest, VerifyResponse};
@@ -70,8 +76,11 @@ use process::error_msg::not_found;
 use std::net::SocketAddr;
 use std::pin::Pin;
 use std::sync::{Arc, LazyLock};
+use tokio::net::TcpListener;
 use tokio::select;
 use tonic::{Request, Response, Status};
+use tower::Service;
+use tower::ServiceExt;
 use tracing::info;
 
 #[derive(Debug)]
@@ -84,6 +93,13 @@ pub struct RpcServer {
 
 pub struct ServerManageServiceProvider {
     pub db: DbPool,
+}
+
+fn is_grpc_request(req: &hyper::Request<impl hyper::body::Body>) -> bool {
+    req.headers()
+        .get("content-type")
+        .map(|v| v.as_bytes().starts_with(b"application/grpc"))
+        .unwrap_or(false)
 }
 
 impl RpcServer {
@@ -141,17 +157,90 @@ impl RpcServer {
                 shared_data3.convert_maintaining_into_grpc_status()?;
                 Ok(req)
             });
+        let grpc_server = tonic::transport::Server::builder()
+            .add_service(main_svc)
+            .add_service(basic_svc)
+            .add_service(auth_svc)
+            .add_service(server_manage_svc)
+            .into_service();
+        let server = async move {
+            let listener = TcpListener::bind(addr).await?;
+            loop {
+                let (socket, _) = listener.accept().await?;
+                let io = TokioIo::new(socket);
+                let svc = grpc_server.clone();
+                tokio::spawn(async move {
+                    let service = hyper::service::service_fn(
+                        move |req: hyper::Request<hyper::body::Incoming>| {
+                            let svc = svc.clone();
+                            async move {
+                                let (parts, body) = req.into_parts();
+                                let body = UnsyncBoxBody::<Bytes, tonic::Status>::new(
+                                    body.map_err(|_| Status::internal("Body error")),
+                                );
+                                let converted_req = hyper::Request::from_parts(parts, body);
 
+                                if is_grpc_request(&converted_req) {
+                                    let mut svc = svc.clone();
+                                    match svc.ready().await {
+                                        Ok(service) => match service.call(converted_req).await {
+                                            Ok(res) => Ok::<_, Status>(res),
+                                            Err(e) => {
+                                                let body =
+                                                    Full::new(Bytes::from(format!("Error: {}", e)))
+                                                        .map_err(|_| Status::internal("Body error"))
+                                                        .boxed_unsync();
+                                                Ok::<_, Status>(
+                                                    hyper::Response::builder()
+                                                        .status(500)
+                                                        .header("content-type", "text/plain")
+                                                        .body(body)
+                                                        .unwrap(),
+                                                )
+                                            }
+                                        },
+                                        Err(_) => {
+                                            let body =
+                                                Full::new(Bytes::from("Service unavailable"))
+                                                    .map_err(|_| Status::internal("Body error"))
+                                                    .boxed_unsync();
+                                            Ok::<_, Status>(
+                                                hyper::Response::builder()
+                                                    .status(503)
+                                                    .body(body)
+                                                    .unwrap(),
+                                            )
+                                        }
+                                    }
+                                } else {
+                                    let body = Full::new(Bytes::from("Not implemented"))
+                                        .map_err(|_| Status::internal("Body error"))
+                                        .boxed_unsync();
+                                    Ok::<_, Status>(
+                                        hyper::Response::builder().status(404).body(body).unwrap(),
+                                    )
+                                }
+                            }
+                        },
+                    );
+
+                    if let Err(err) = http2::Builder::new(hyper_util::rt::TokioExecutor::default())
+                        .serve_connection(io, service)
+                        .await
+                    {
+                        tracing::error!("Connection error: {:?}", err);
+                    }
+                });
+            }
+            #[allow(unreachable_code)]
+            Ok::<(), anyhow::Error>(())
+        };
         select! {
             _ = shutdown_rev.wait_shutting_down() => {}
-            err = tonic::transport::Server::builder()
-                .add_service(main_svc)
-                .add_service(basic_svc)
-                .add_service(auth_svc)
-                .add_service(server_manage_svc)
-                .serve(addr) => {
-                    err?
-                }
+            err = server => {
+                tracing::error!("Server main loop error: {:?}", err);
+                err?
+            }
         }
         Ok(())
     }
