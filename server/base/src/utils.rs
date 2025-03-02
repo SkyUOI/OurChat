@@ -80,7 +80,7 @@ pub fn merge_json(origin: serde_json::Value, new: serde_json::Value) -> serde_js
                         *origin_value = merge_json(origin_value.clone(), new_value);
                     }
                     None => {
-                        // If the key doesn't exist in original object, insert it
+                        // If the key doesn't exist in the original object, insert it
                         origin_map.insert(key, new_value);
                     }
                 }

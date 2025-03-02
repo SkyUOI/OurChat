@@ -20,7 +20,7 @@ impl TestHttpApp {
         let mut config = Launcher::get_config(None)?;
         config.main_cfg.port = 0;
         config.main_cfg.run_migration = true;
-        tracing::info!("modify the config opts");
+        info!("modify the config opts");
         Ok(config)
     }
 
@@ -47,18 +47,18 @@ impl TestHttpApp {
         cfg.db_cfg.db = db_name;
 
         let mut app = Launcher::build_from_config(cfg).await?;
-        tracing::info!("Server is built");
+        info!("Server is built");
         let handle = app.get_abort_handle();
         app.email_client = email_client;
         let notify = app.started_notify.clone();
         let app_config = app.shared_data.clone();
-        tracing::info!("starting http server");
+        info!("starting http server");
         tokio::spawn(async move {
             app.run_forever().await.unwrap();
         });
-        tracing::info!("Waiting for http server to start");
+        info!("Waiting for http server to start");
         notify.notified().await;
-        tracing::info!("http server started. Build TestHttpApp done");
+        info!("http server started. Build TestHttpApp done");
         Ok(TestHttpApp {
             client: reqwest::Client::builder()
                 .timeout(Duration::from_secs(2))
@@ -115,7 +115,7 @@ impl TestHttpApp {
             )
             .await
             .unwrap();
-            tracing::info!("vhost was deleted");
+            info!("vhost was deleted");
         }
         if self.should_drop_db {
             match sqlx::Postgres::drop_database(&self.app_config.db_cfg.url()).await {

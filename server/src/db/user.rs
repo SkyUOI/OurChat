@@ -31,6 +31,17 @@ pub async fn get_friends(
     Ok(friends)
 }
 
+/// Query the contact user info of a user.
+///
+/// # Arguments
+///
+/// * `id` - The id of the user.
+/// * `contact_user` - The id of the contact user.
+/// * `db_conn` - The database connection.
+///
+/// # Errors
+///
+/// Fails if any error occurs in the database.
 pub async fn query_contact_user_info(
     id: ID,
     contact_user: ID,

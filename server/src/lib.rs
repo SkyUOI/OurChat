@@ -119,6 +119,10 @@ pub struct DbArgCfg {
     pub fetch_msg_page_size: u64,
 }
 
+/// Read a config file from the given path
+///
+/// This function returns Ok(config::Config) if the file is valid, or
+/// Err(ConfigError) if it is invalid.
 fn read_a_config(path: impl AsRef<Path>) -> Result<config::Config, ConfigError> {
     config::Config::builder()
         .add_source(File::with_name(path.as_ref().to_str().unwrap()))
@@ -162,6 +166,7 @@ impl MainCfg {
         Ok(cfg)
     }
 
+    /// Return the protocol used for HTTP requests, either "http" or "https", based on the ssl field.
     pub fn protocol_http(&self) -> String {
         if self.ssl {
             "https".to_string()
@@ -221,6 +226,16 @@ pub struct ParserCfg {
 }
 
 impl MainCfg {
+    /// convert config paths to absolute path
+    ///
+    /// the base path is the first config file's parent directory
+    ///
+    /// the paths to be converted:
+    ///
+    /// - `redis_cfg`
+    /// - `db_cfg`
+    /// - `rabbitmq_cfg`
+    /// - `user_setting`
     fn convert_to_abs_path(&mut self) -> anyhow::Result<()> {
         let full_basepath = self
             .cmd_args
@@ -387,6 +402,8 @@ async fn cmd_start(
     Ok(())
 }
 
+/// This function listen to sigterm and ctrl-c signal. When the signal is received, it will call
+/// `shutdown_all_tasks` to shut down all tasks and exit the process.
 fn exit_signal(#[allow(unused_mut)] mut shutdown_sender: ShutdownSdr) -> anyhow::Result<()> {
     let mut shutdown_sender_clone = shutdown_sender.clone();
     #[cfg(not(windows))]
@@ -395,7 +412,7 @@ fn exit_signal(#[allow(unused_mut)] mut shutdown_sender: ShutdownSdr) -> anyhow:
             .recv()
             .await
         {
-            tracing::info!("Exit because of sigterm signal");
+            info!("Exit because of sigterm signal");
             shutdown_sender.shutdown_all_tasks().await?;
         }
         anyhow::Ok(())
@@ -403,7 +420,7 @@ fn exit_signal(#[allow(unused_mut)] mut shutdown_sender: ShutdownSdr) -> anyhow:
     tokio::spawn(async move {
         match tokio::signal::ctrl_c().await {
             Ok(()) => {
-                tracing::info!("Exit because of ctrl-c signal");
+                info!("Exit because of ctrl-c signal");
                 shutdown_sender_clone.shutdown_all_tasks().await?;
             }
             Err(err) => {
@@ -458,7 +475,7 @@ pub struct SharedData {
 impl SharedData {
     pub fn set_maintaining(&self, maintaining: bool) {
         *self.maintaining.lock() = maintaining;
-        tracing::info!("set maintaining:{}", maintaining);
+        info!("set maintaining:{}", maintaining);
     }
 
     pub fn get_maintaining(&self) -> bool {
@@ -610,7 +627,7 @@ impl Application {
     ///
     /// The server will not exit until all the tasks are finished.
     pub async fn run_forever(&mut self) -> anyhow::Result<()> {
-        tracing::info!("Starting server");
+        info!("Starting server");
         let cfg = &self.shared.cfg.main_cfg;
 
         if cfg.cmd_args.clear {
@@ -681,8 +698,8 @@ impl Application {
                 cfg.cmd_args.test_mode,
             ));
         }
-        tracing::info!("Start to register service to registry");
-        tracing::info!("Server started");
+        info!("Start to register service to registry");
+        info!("Server started");
         self.started_notify.notify_waiters();
         join_all(handles).await.iter().for_each(|x| match x {
             Ok(result) => match result {
@@ -697,7 +714,7 @@ impl Application {
         });
         self.pool.close().await?;
         self.rabbitmq.close();
-        tracing::info!("Server exited");
+        info!("Server exited");
         Ok(())
     }
 }

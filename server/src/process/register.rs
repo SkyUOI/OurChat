@@ -15,6 +15,18 @@ use std::num::TryFromIntError;
 use tonic::{Request, Response, Status};
 use tracing::error;
 
+/// Register a new user
+///
+/// The function takes a `RegisterRequest`, a database connection, and an argon2 parameters
+/// object. It generates a snowflake id and a random ocid, computes the password hash, and
+/// inserts the user into the database. If the insertion fails due to a conflict (i.e., the
+/// user already exists), it returns a `RegisterError::UserExists` error. Otherwise, it
+/// returns a `RegisterResponse` containing the id, the generated token, and the ocid.
+///
+/// # Errors
+///
+/// - `RegisterError::UserExists`: The user already exists in the database.
+/// - `RegisterError::InternalError`: An internal error occurred.
 async fn add_new_user(
     request: RegisterRequest,
     db_connection: &DbPool,
@@ -81,6 +93,14 @@ enum RegisterError {
     InvalidUsername,
 }
 
+/// Computes the password hash using the given argon2 parameters
+///
+/// It generates a random salt, and uses the given parameters to compute the hash.
+/// The function returns the computed hash as a string.
+///
+/// # Panics
+///
+/// Panics if the password is too long or if the salt generation fails.
 fn compute_password_hash(password: &str, params: Params) -> String {
     let salt = SaltString::generate(&mut rand::thread_rng());
     let password_hash =
@@ -91,6 +111,16 @@ fn compute_password_hash(password: &str, params: Params) -> String {
     password_hash
 }
 
+/// Internal implementation of the register process
+///
+/// Checks the strength of the password, validity of the email and username
+/// and generates a new user if all checks pass.
+///
+/// # Errors
+///
+/// Returns a `RegisterError` if the password is not strong enough,
+/// if the email is invalid, or if the username is invalid.
+///
 async fn register_impl(
     server: &AuthServiceProvider,
     request: Request<RegisterRequest>,

@@ -28,11 +28,23 @@ const PREFIX_LEN: usize = 20;
 /// Generate a unique key name which refers to the file
 /// # Details
 /// Generate a 20-character random string, and then add the file's sha256 hash value
+/// This ensures uniqueness while maintaining traceability through the hash
 fn generate_key_name(hash: &str) -> String {
     let prefix: String = generate_random_string(PREFIX_LEN);
     format!("{}{}", prefix, hash)
 }
 
+/// Add a new file record to the database and create the file on disk
+///
+/// # Arguments
+///
+/// * `id` - User ID who uploads the file
+/// * `sz` - Size of the file being uploaded
+/// * `key` - Unique identifier for the file
+/// * `auto_clean` - Whether this file should be automatically cleaned when storage is full
+/// * `db_connection` - Database connection handle
+/// * `files_storage_path` - Base path where files are stored
+/// * `limit_size` - Maximum allowed storage size for the user
 pub async fn add_file_record(
     id: ID,
     sz: Size,
@@ -87,6 +99,14 @@ pub async fn add_file_record(
     Ok(f)
 }
 
+/// Clean up files to free up storage space
+/// # Arguments
+/// * `need_to_delete` - Amount of space that needs to be freed
+/// * `db_connection` - Database connection handle
+/// * `user_id` - ID of the user whose files need to be cleaned
+///
+/// # Details
+/// Files are deleted in order of creation date (oldest first) until sufficient space is freed
 pub async fn clean_files(
     need_to_delete: Size,
     db_connection: &impl ConnectionTrait,
@@ -113,6 +133,7 @@ pub async fn clean_files(
     Ok(())
 }
 
+/// Error types that can occur during file upload process
 #[derive(Debug, thiserror::Error)]
 pub enum UploadError {
     #[error("Metadata error")]
@@ -139,6 +160,17 @@ pub enum UploadError {
     FileSizeOverflow,
 }
 
+/// Internal implementation of the file upload process
+/// # Arguments
+/// * `server` - Server instance containing shared state
+/// * `id` - User ID performing the upload
+/// * `request` - Streaming request containing file data
+///
+/// # Flow
+/// 1. Receives metadata in first message
+/// 2. Creates file record and opens file handle
+/// 3. Streams content while validating size
+/// 4. Verifies file hash matches expected value
 async fn upload_impl(
     server: &RpcServer,
     id: ID,
@@ -202,6 +234,8 @@ async fn upload_impl(
     Ok(UploadResponse { key })
 }
 
+/// Public API endpoint for file uploads
+/// Wraps the implementation with proper error handling and status codes
 pub async fn upload(
     server: &RpcServer,
     id: ID,

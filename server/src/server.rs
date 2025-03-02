@@ -83,6 +83,8 @@ use tower::Service;
 use tower::ServiceExt;
 use tracing::info;
 
+/// RPC Server implementation for OurChat
+/// Handles all service requests and manages connections
 #[derive(Debug)]
 pub struct RpcServer {
     pub db: DbPool,
@@ -91,10 +93,12 @@ pub struct RpcServer {
     pub rabbitmq: deadpool_lapin::Pool,
 }
 
+/// Server management service provider
 pub struct ServerManageServiceProvider {
     pub db: DbPool,
 }
 
+/// Check if the request is a gRPC request by examining the content-type header
 fn is_grpc_request(req: &hyper::Request<impl hyper::body::Body>) -> bool {
     req.headers()
         .get("content-type")
@@ -103,6 +107,13 @@ fn is_grpc_request(req: &hyper::Request<impl hyper::body::Body>) -> bool {
 }
 
 impl RpcServer {
+    /// Create a new RPC server instance
+    ///
+    /// # Arguments
+    /// * `ip` - Server address to bind to
+    /// * `db` - Database connection pool
+    /// * `shared_data` - Shared server data
+    /// * `rabbitmq` - RabbitMQ connection pool
     pub fn new(
         ip: impl Into<SocketAddr>,
         db: DbPool,
@@ -117,6 +128,13 @@ impl RpcServer {
         }
     }
 
+    /// Start the RPC server and listen for connections
+    ///
+    /// # Arguments
+    /// * `shutdown_rev` - Shutdown receiver to gracefully stop the server
+    ///
+    /// # Returns
+    /// Result indicating success or failure
     pub async fn run(self, mut shutdown_rev: ShutdownRev) -> anyhow::Result<()> {
         info!("starting rpc server, connecting to {}", self.addr);
         let addr = self.addr;
@@ -137,6 +155,7 @@ impl RpcServer {
         let shared_data2 = self.shared_data.clone();
         let shared_data3 = self.shared_data.clone();
         let main_svc = OurChatServiceServer::with_interceptor(self, move |mut req| {
+            // Check if server is in maintenance mode
             shared_data.convert_maintaining_into_grpc_status()?;
             Self::check_auth(&mut req)?;
             Ok(req)
@@ -166,16 +185,19 @@ impl RpcServer {
         let server = async move {
             let listener = TcpListener::bind(addr).await?;
             loop {
+                // Accept incoming connections
                 let (socket, _) = listener.accept().await?;
                 let io = TokioIo::new(socket);
                 let svc = grpc_server.clone();
+
+                // Spawn a new task for each connection
                 tokio::spawn(async move {
                     let service = hyper::service::service_fn(
                         move |req: hyper::Request<hyper::body::Incoming>| {
                             let svc = svc.clone();
                             async move {
                                 let (parts, body) = req.into_parts();
-                                let body = UnsyncBoxBody::<Bytes, tonic::Status>::new(
+                                let body = UnsyncBoxBody::<Bytes, Status>::new(
                                     body.map_err(|_| Status::internal("Body error")),
                                 );
                                 let converted_req = hyper::Request::from_parts(parts, body);
@@ -245,12 +267,21 @@ impl RpcServer {
         Ok(())
     }
 
+    /// Verify authentication token from request metadata and extract user ID
+    ///
+    /// # Arguments
+    /// * `req` - The request to check authentication for
+    ///
+    /// # Returns
+    /// * `Ok(ID)` - The authenticated user's ID
+    /// * `Err(Status)` - Authentication error status
     fn check_auth(req: &mut Request<()>) -> Result<ID, Status> {
-        // check token
+        // Check if token exists in metadata
         match req.metadata().get("token") {
             Some(token) => {
                 if let Some(jwt) = process::check_token(token.to_str().unwrap()) {
                     let ret = jwt.id;
+                    // Store user ID in request metadata for later use
                     req.metadata_mut()
                         .insert("id", jwt.id.to_string().parse().unwrap());
                     Ok(ret)
@@ -262,6 +293,14 @@ impl RpcServer {
         }
     }
 
+    /// Check if the user account exists and is not deleted
+    ///
+    /// # Arguments
+    /// * `id` - User ID to check
+    ///
+    /// # Returns
+    /// * `Ok(())` - Account exists and is active
+    /// * `Err(Status)` - Account not found or deleted
     async fn check_account_status(&self, id: ID) -> Result<(), Status> {
         let account = match get_account_info_db(id, &self.db.db_pool)
             .await
@@ -271,6 +310,7 @@ impl RpcServer {
             None => return Err(Status::unauthenticated(not_found::USER)),
         };
 
+        // Return error if the account has been deleted
         if account.account_status == AccountStatus::Deleted as i32 {
             return Err(Status::unauthenticated(ACCOUNT_DELETED));
         }
@@ -279,13 +319,17 @@ impl RpcServer {
     }
 }
 
+// Define stream types for streaming responses
 pub type FetchMsgsStream =
     Pin<Box<dyn tokio_stream::Stream<Item = Result<FetchMsgsResponse, Status>> + Send>>;
 pub type DownloadStream =
     Pin<Box<dyn tokio_stream::Stream<Item = Result<DownloadResponse, Status>> + Send>>;
 
+/// Implementation of the main OurChat service
 #[tonic::async_trait]
 impl OurChatService for RpcServer {
+    /// Unregister (delete) a user account
+    /// Sets account status to deleted
     #[tracing::instrument(skip(self))]
     async fn unregister(
         &self,
@@ -460,6 +504,8 @@ impl OurChatService for RpcServer {
         process::add_role(self, id, request).await
     }
 
+    /// Mute a user in a session
+    /// Prevents user from sending messages in the session
     #[tracing::instrument(skip(self))]
     async fn mute_user(
         &self,
@@ -470,6 +516,8 @@ impl OurChatService for RpcServer {
         process::mute_user(self, id, request).await
     }
 
+    /// Unmute a previously muted user in a session
+    /// Restores user's ability to send messages
     #[tracing::instrument(skip(self))]
     async fn unmute_user(
         &self,
@@ -480,6 +528,8 @@ impl OurChatService for RpcServer {
         process::unmute_user(self, id, request).await
     }
 
+    /// Ban a user from a session
+    /// Removes user from session and prevents rejoining
     #[tracing::instrument(skip(self))]
     async fn ban_user(
         &self,
@@ -490,6 +540,8 @@ impl OurChatService for RpcServer {
         process::ban_user(self, id, request).await
     }
 
+    /// Unban a previously banned user from a session
+    /// Allows user to rejoin the session
     #[tracing::instrument(skip(self))]
     async fn unban_user(
         &self,
@@ -500,6 +552,7 @@ impl OurChatService for RpcServer {
         process::unban_user(self, id, request).await
     }
 
+    /// Send a friend request to another user
     #[tracing::instrument(skip(self))]
     async fn add_friend(
         &self,
@@ -510,6 +563,7 @@ impl OurChatService for RpcServer {
         process::add_friend(self, id, request).await
     }
 
+    /// Accept a pending friend request
     #[tracing::instrument(skip(self))]
     async fn accept_friend(
         &self,
@@ -520,6 +574,7 @@ impl OurChatService for RpcServer {
         process::accept_friend(self, id, request).await
     }
 
+    /// Remove a user from friends list
     async fn delete_friend(
         &self,
         request: Request<DeleteFriendRequest>,
@@ -529,6 +584,7 @@ impl OurChatService for RpcServer {
         process::delete_friend(self, id, request).await
     }
 
+    /// Request to join a session
     #[tracing::instrument(skip(self))]
     async fn join_in_session(
         &self,
@@ -539,6 +595,7 @@ impl OurChatService for RpcServer {
         process::join_in_session(self, id, request).await
     }
 
+    /// Accept a pending session join request
     #[tracing::instrument(skip(self))]
     async fn accept_join_in_session(
         &self,
@@ -550,6 +607,7 @@ impl OurChatService for RpcServer {
     }
 }
 
+/// Authentication service provider
 #[derive(Debug)]
 pub struct AuthServiceProvider {
     pub shared_data: Arc<SharedData>,
@@ -557,9 +615,11 @@ pub struct AuthServiceProvider {
     pub rabbitmq: deadpool_lapin::Pool,
 }
 
+/// Stream type for verification responses
 pub type VerifyStream =
     Pin<Box<dyn tokio_stream::Stream<Item = Result<VerifyResponse, Status>> + Send>>;
 
+/// Implementation of Authentication service methods
 #[tonic::async_trait]
 impl auth_service_server::AuthService for AuthServiceProvider {
     #[tracing::instrument(skip(self))]
@@ -586,19 +646,23 @@ impl auth_service_server::AuthService for AuthServiceProvider {
     }
 }
 
+/// Basic service implementation providing server information and utilities
 #[derive(Debug)]
 pub struct BasicServiceProvider {
     pub shared_data: Arc<SharedData>,
     pub db: DbPool,
 }
 
+/// Implementation of Basic service methods
 #[tonic::async_trait]
 impl BasicService for BasicServiceProvider {
+    /// Get current server timestamp in UTC
     #[tracing::instrument(skip(self))]
     async fn timestamp(
         &self,
         _request: Request<TimestampRequest>,
     ) -> Result<Response<TimestampResponse>, Status> {
+        // Return current UTC timestamp
         let time = chrono::Utc::now();
         let res = TimestampResponse {
             timestamp: Some(to_google_timestamp(time)),
@@ -606,6 +670,7 @@ impl BasicService for BasicServiceProvider {
         Ok(Response::new(res))
     }
 
+    /// Get server information including version, status and configuration
     #[tracing::instrument(skip(self))]
     async fn get_server_info(
         &self,
@@ -620,6 +685,7 @@ impl BasicService for BasicServiceProvider {
         ))
     }
 
+    /// Convert OCID to internal user ID
     #[tracing::instrument(skip(self))]
     async fn get_id(
         &self,
@@ -632,6 +698,7 @@ impl BasicService for BasicServiceProvider {
         }
     }
 
+    /// Handle support requests
     async fn support(
         &self,
         request: Request<SupportRequest>,
@@ -640,17 +707,22 @@ impl BasicService for BasicServiceProvider {
     }
 }
 
+// Static server information initialized at startup
+// Contains version, name, and other immutable server properties
 static SERVER_INFO_RPC: LazyLock<pb::service::basic::server::v1::GetServerInfoResponse> =
     LazyLock::new(|| pb::service::basic::server::v1::GetServerInfoResponse {
         server_version: Some(*VERSION_SPLIT),
-        http_port: 0,
+        http_port: 0, // Port number set dynamically at runtime
         status: RunningStatus::Normal as i32,
         unique_identifier: SERVER_INFO.unique_id.to_string(),
         server_name: SERVER_INFO.server_name.to_string(),
     });
 
+/// Server management service implementation
+/// Provides administrative functions like account deletion
 #[tonic::async_trait]
 impl ServerManageService for ServerManageServiceProvider {
+    /// Permanently delete a user account
     #[tracing::instrument(skip(self))]
     async fn delete_account(
         &self,

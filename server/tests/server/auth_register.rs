@@ -66,7 +66,7 @@ async fn register_validation() {
 
     // Test username
     let user = app.new_user().await.unwrap();
-    user.lock().await.name = "".to_string(); // empty usename
+    user.lock().await.name = "".to_string(); // empty username
     let err = user.lock().await.register().await.unwrap_err();
     assert_status_message(err, USERNAME);
 
@@ -107,7 +107,7 @@ async fn unregister_account() {
     assert_eq!(status.code(), tonic::Code::Unauthenticated);
     assert_eq!(status.message(), ACCOUNT_DELETED);
 
-    // Try to set self info, should be failed
+    // Try to set self-info, should be failed
     let status = user
         .lock()
         .await
@@ -125,7 +125,7 @@ async fn unregister_account() {
     app.async_drop().await;
 }
 
-// Helper function to check error message
+// Helper function to check the error message
 fn assert_status_message(err: ClientErr, expected_msg: &str) {
     let err = err.unwrap_rpc_status();
     assert_eq!(err.message(), expected_msg);

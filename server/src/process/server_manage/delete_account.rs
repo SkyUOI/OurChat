@@ -14,7 +14,7 @@ enum DeleteAccountError {
     UnknownError(#[from] anyhow::Error),
 }
 
-/// Set user account status to deleted
+/// Set user account status to "deleted"
 async fn remove_account(
     id: ID,
     db_connection: &impl ConnectionTrait,
