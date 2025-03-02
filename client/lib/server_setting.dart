@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:ourchat/const.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'main.dart';
-import 'ourchat/ourchat_server.dart';
+import 'package:ourchat/main.dart';
+import 'package:ourchat/auth.dart';
+import 'package:ourchat/ourchat/ourchat_server.dart';
 
 class ServerSetting extends StatefulWidget {
   const ServerSetting({super.key});
@@ -158,8 +159,14 @@ class _ServerSettingState extends State<ServerSetting> {
                   key.currentState!.save();
                   if (lastAddress == address && lastPort == port && isOnline) {
                     ourchatAppState.server = server;
-                    ourchatAppState.where = authUi;
                     ourchatAppState.update();
+                    Navigator.pop(context);
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (context) {
+                      return const Scaffold(
+                        body: Auth(),
+                      );
+                    }));
                     return;
                   }
                   ourchatAppState.config!.data!["servers"][0]["host"] = address;

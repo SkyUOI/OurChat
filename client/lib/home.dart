@@ -58,34 +58,33 @@ class _HomeState extends State<Home> {
             )
           ],
         );
-      } else {
-        return Row(
-          children: [
-            NavigationRail(
-              destinations: const [
-                NavigationRailDestination(
-                    label: Text("Sessions"), icon: Icon(Icons.chat)),
-                NavigationRailDestination(
-                    label: Text("Settings"), icon: Icon(Icons.settings)),
-                NavigationRailDestination(
-                    label: Text("Friends"), icon: Icon(Icons.people))
-              ],
-              selectedIndex: index,
-              onDestinationSelected: (value) {
-                setState(() {
-                  index = value;
-                });
-              },
-              labelType: NavigationRailLabelType.selected,
-            ),
-            Expanded(
-                child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: page,
-            )),
-          ],
-        );
       }
+      return Row(
+        children: [
+          NavigationRail(
+            destinations: const [
+              NavigationRailDestination(
+                  label: Text("Sessions"), icon: Icon(Icons.chat)),
+              NavigationRailDestination(
+                  label: Text("Settings"), icon: Icon(Icons.settings)),
+              NavigationRailDestination(
+                  label: Text("Friends"), icon: Icon(Icons.people))
+            ],
+            selectedIndex: index,
+            onDestinationSelected: (value) {
+              setState(() {
+                index = value;
+              });
+            },
+            labelType: NavigationRailLabelType.selected,
+          ),
+          Expanded(
+              child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: page,
+          )),
+        ],
+      );
     }));
   }
 }

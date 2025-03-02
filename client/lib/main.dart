@@ -4,12 +4,10 @@ import 'package:provider/provider.dart';
 import 'package:localstorage/localstorage.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:logger/logger.dart';
-import 'const.dart';
-import 'home.dart';
-import 'config.dart';
-import 'auth.dart';
-import 'server_setting.dart';
-import 'ourchat/ourchat_server.dart';
+import 'package:ourchat/const.dart';
+import 'package:ourchat/config.dart';
+import 'package:ourchat/server_setting.dart';
+import 'package:ourchat/ourchat/ourchat_server.dart';
 import 'dart:core';
 
 void main() async {
@@ -18,7 +16,6 @@ void main() async {
 }
 
 class OurchatAppState extends ChangeNotifier {
-  int where = serverSettingUi;
   int device = desktop;
   OurchatConfig? config;
   Logger logger = Logger();
@@ -61,14 +58,6 @@ class Controller extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var appState = context.watch<OurchatAppState>();
-    Widget window = const Placeholder();
-    if (appState.where == serverSettingUi) {
-      window = const ServerSetting();
-    } else if (appState.where == authUi) {
-      window = const Auth();
-    } else if (appState.where == homeUi) {
-      window = const Home();
-    }
     return MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
@@ -76,7 +65,7 @@ class Controller extends StatelessWidget {
         builder: (context, constraints) {
           appState.device =
               (constraints.maxHeight < constraints.maxWidth) ? desktop : mobile;
-          return window;
+          return const Navigator(pages: [MaterialPage(child: ServerSetting())]);
         },
       ),
       theme: ThemeData(

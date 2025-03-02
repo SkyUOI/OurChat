@@ -3,6 +3,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:ourchat/const.dart';
 import 'package:ourchat/main.dart';
 import 'ourchat/ourchat_account.dart';
+import 'package:ourchat/home.dart';
 import 'package:provider/provider.dart';
 
 class Auth extends StatelessWidget {
@@ -36,7 +37,7 @@ class Login extends StatefulWidget {
 }
 
 class _LoginState extends State<Login> {
-  String account = "", password = "", errorText = "";
+  String account = "", password = "";
   bool showPassword = false;
   @override
   Widget build(BuildContext context) {
@@ -96,7 +97,6 @@ class _LoginState extends State<Login> {
                       padding: const EdgeInsets.all(10.0),
                       child: ElevatedButton(
                           onPressed: () async {
-                            errorText = "";
                             key.currentState!.save();
                             OurchatAccount ocAccount =
                                 OurchatAccount(ourchatAppState.server!);
@@ -109,44 +109,70 @@ class _LoginState extends State<Login> {
                             var res =
                                 await ocAccount.login(password, ocid, email);
                             if (res == okStatusCode) {
-                              ourchatAppState.where = homeUi;
                               ourchatAppState.thisAccount = ocAccount;
                               ourchatAppState.thisAccount!.getAccountInfo();
                               ourchatAppState.update();
+                              if (context.mounted) {
+                                Navigator.pop(context);
+                                Navigator.push(context, MaterialPageRoute(
+                                  builder: (context) {
+                                    return const Scaffold(
+                                      body: Home(),
+                                    );
+                                  },
+                                ));
+                              }
                             } else {
                               setState(() {
                                 switch (res) {
                                   case internalStatusCode:
-                                    errorText = AppLocalizations.of(context)!
-                                        .serverError;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                            content: Text(
+                                                AppLocalizations.of(context)!
+                                                    .serverError)));
                                     break;
                                   case unavailableStatusCode:
-                                    errorText = AppLocalizations.of(context)!
-                                        .serverStatusUnderMaintenance;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                            content: Text(AppLocalizations.of(
+                                                    context)!
+                                                .serverStatusUnderMaintenance)));
                                     break;
                                   case notFoundStatusCode:
-                                    errorText = AppLocalizations.of(context)!
-                                        .userNotFound;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                            content: Text(
+                                                AppLocalizations.of(context)!
+                                                    .userNotFound)));
                                     break;
                                   case invalidArgumentStatusCode:
-                                    errorText = AppLocalizations.of(context)!
-                                        .internalError;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                            content: Text(
+                                                AppLocalizations.of(context)!
+                                                    .internalError)));
                                     break;
                                   case unauthenticatedStatusCode:
-                                    errorText = AppLocalizations.of(context)!
-                                        .incorrectPassword;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                            content: Text(
+                                                AppLocalizations.of(context)!
+                                                    .incorrectPassword)));
                                     break;
                                   default:
-                                    errorText = AppLocalizations.of(context)!
-                                        .unknownError;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                            content: Text(
+                                                AppLocalizations.of(context)!
+                                                    .unknownError)));
                                     break;
                                 }
                               });
                             }
                           },
                           child: Text(AppLocalizations.of(context)!.login)),
-                    ),
-                    Text(errorText, style: const TextStyle(color: Colors.red))
+                    )
                   ],
                 )),
             Flexible(flex: 1, child: Container())
@@ -163,7 +189,7 @@ class Register extends StatefulWidget {
 }
 
 class _RegisterState extends State<Register> {
-  String email = "", password = "", username = "", errorText = "";
+  String email = "", password = "", username = "";
   bool showPassword = false;
   @override
   Widget build(BuildContext context) {
@@ -227,14 +253,12 @@ class _RegisterState extends State<Register> {
                       padding: const EdgeInsets.all(10.0),
                       child: ElevatedButton(
                           onPressed: () async {
-                            errorText = "";
                             key.currentState!.save();
                             OurchatAccount ocAccount =
                                 OurchatAccount(ourchatAppState.server!);
                             var res = await ocAccount.register(
                                 password, username, email);
                             if (res == okStatusCode) {
-                              ourchatAppState.where = homeUi;
                               ourchatAppState.thisAccount = ocAccount;
                               ourchatAppState.thisAccount!.getAccountInfo();
                               ourchatAppState.update();
@@ -242,20 +266,36 @@ class _RegisterState extends State<Register> {
                               setState(() {
                                 switch (res) {
                                   case internalStatusCode:
-                                    errorText = AppLocalizations.of(context)!
-                                        .serverError;
+                                    ScaffoldMessenger.of(context)
+                                        .showSnackBar(SnackBar(
+                                      content: Text(
+                                          AppLocalizations.of(context)!
+                                              .internalError),
+                                    ));
                                     break;
                                   case unavailableStatusCode:
-                                    errorText = AppLocalizations.of(context)!
-                                        .serverStatusUnderMaintenance;
+                                    ScaffoldMessenger.of(context)
+                                        .showSnackBar(SnackBar(
+                                      content: Text(
+                                          AppLocalizations.of(context)!
+                                              .serverStatusUnderMaintenance),
+                                    ));
                                     break;
                                   case alreadyExistsStatusCode:
-                                    errorText = AppLocalizations.of(context)!
-                                        .emailExists;
+                                    ScaffoldMessenger.of(context)
+                                        .showSnackBar(SnackBar(
+                                      content: Text(
+                                          AppLocalizations.of(context)!
+                                              .emailExists),
+                                    ));
                                     break;
                                   default:
-                                    errorText = AppLocalizations.of(context)!
-                                        .unknownError;
+                                    ScaffoldMessenger.of(context)
+                                        .showSnackBar(SnackBar(
+                                      content: Text(
+                                          AppLocalizations.of(context)!
+                                              .unknownError),
+                                    ));
                                     break;
                                 }
                               });
@@ -263,7 +303,6 @@ class _RegisterState extends State<Register> {
                           },
                           child: Text(AppLocalizations.of(context)!.register)),
                     ),
-                    Text(errorText, style: const TextStyle(color: Colors.red))
                   ],
                 )),
             Flexible(flex: 1, child: Container())

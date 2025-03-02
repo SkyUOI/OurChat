@@ -7,6 +7,7 @@ import 'package:ourchat/service/basic/v1/basic.pbgrpc.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'dart:async';
+import 'package:ourchat/ourchat/ourchat_ui.dart';
 
 class SessionState extends ChangeNotifier {
   int currentSession = -1;
@@ -35,14 +36,14 @@ class Session extends StatelessWidget {
                   ? const SessionList()
                   : const SessionWidget());
             } else if (appState.device == desktop) {
-              page = const Row(
+              page = Row(
                 children: [
-                  Flexible(flex: 1, child: SessionList()),
-                  Flexible(flex: 3, child: SessionWidget()),
+                  Flexible(
+                      flex: 1, child: cardWithPadding(const SessionList())),
+                  const Flexible(flex: 3, child: SessionWidget()),
                 ],
               );
             }
-
             return page;
           },
         ),
@@ -59,18 +60,6 @@ class SessionList extends StatefulWidget {
 }
 
 class _SessionListState extends State<SessionList> {
-  List<Map<String, String>> sessions = [
-    // {"name": "username1", "image": "assets/images/logo.png"},
-    // {"name": "username2", "image": "assets/images/logo.png"},
-    // {"name": "username3", "image": "assets/images/logo.png"},
-    // {"name": "username4", "image": "assets/images/logo.png"},
-    // {"name": "username5", "image": "assets/images/logo.png"},
-    // {"name": "username6", "image": "assets/images/logo.png"},
-    // {"name": "username7", "image": "assets/images/logo.png"},
-    // {"name": "username8", "image": "assets/images/logo.png"},
-    // {"name": "username9", "image": "assets/images/logo.png"},
-    // {"name": "username10", "image": "assets/images/logo.png"}
-  ];
   var hoverIndex = -1;
   Timer? _debounceTimer = Timer(Duration.zero, () {});
   bool showSearchResults = false, search = false;
@@ -114,10 +103,12 @@ class _SessionListState extends State<SessionList> {
             const Align(alignment: Alignment.centerLeft, child: Text("OCID")),
           if (showSearchResults && search)
             FutureBuilder(
-                future: getAccountInfo(ourchatAppState, searchKeyword),
+                future: getAccountInfo(ourchatAppState, searchKeyword, context),
                 builder: (BuildContext context, AsyncSnapshot snapshot) {
                   if (snapshot.connectionState != ConnectionState.done) {
-                    return Container();
+                    return CircularProgressIndicator(
+                      color: Theme.of(context).primaryColor,
+                    );
                   }
                   OurchatAccount? account = snapshot.data;
                   if (account == null) {
@@ -138,6 +129,7 @@ class _SessionListState extends State<SessionList> {
                                             BorderRadius.circular(10.0)))),
                             onPressed: () {},
                             child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
                                 const SizedBox(
                                     width: 40.0,
@@ -195,7 +187,8 @@ class _SessionListState extends State<SessionList> {
     });
   }
 
-  Future getAccountInfo(OurchatAppState ourchatAppState, String ocid) async {
+  Future getAccountInfo(
+      OurchatAppState ourchatAppState, String ocid, context) async {
     BasicServiceClient stub =
         BasicServiceClient(ourchatAppState.server!.channel!, interceptors: []);
     try {
@@ -209,14 +202,22 @@ class _SessionListState extends State<SessionList> {
     } on grpc.GrpcError catch (e) {
       if (context.mounted) {
         switch (e.code) {
-          // TODO: deal with error
           case internalStatusCode:
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(AppLocalizations.of(context)!.serverError)));
             break;
           case unavailableStatusCode:
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(
+                  AppLocalizations.of(context)!.serverStatusUnderMaintenance),
+            ));
             break;
           case notFoundStatusCode:
             break;
           default:
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(AppLocalizations.of(context)!.unknownError),
+            ));
             break;
         }
       }
@@ -252,10 +253,10 @@ class SessionWidget extends StatelessWidget {
                 )
               : Align(alignment: Alignment.center, child: sessionTitle)),
         ),
-        const Flexible(flex: 10, child: SessionRecord()),
-        const Flexible(
+        Flexible(flex: 10, child: cardWithPadding(const SessionRecord())),
+        Flexible(
           flex: 2,
-          child: Align(
+          child: cardWithPadding(const Align(
             alignment: Alignment.bottomCenter,
             child: SingleChildScrollView(
               child: TextField(
@@ -263,7 +264,7 @@ class SessionWidget extends StatelessWidget {
                 maxLines: null,
               ),
             ),
-          ),
+          )),
         ),
       ],
     );
