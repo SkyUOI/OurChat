@@ -87,6 +87,8 @@ pub struct MainCfg {
     pub files_storage_path: PathBuf,
     #[serde(default = "consts::default_verification_expire_days")]
     pub verification_expire_days: u64,
+    #[serde(default = "consts::default_user_defined_status_expire_hours")]
+    pub user_defined_status_expire_hours: u64,
     #[serde(default = "consts::default_ssl")]
     pub ssl: bool,
     #[serde(default = "consts::default_single_instance")]

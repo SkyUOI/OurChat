@@ -122,6 +122,10 @@ pub const fn default_verification_expire_days() -> u64 {
     3
 }
 
+pub const fn default_user_defined_status_expire_hours() -> u64 {
+    24
+}
+
 pub const fn default_t_cost() -> u32 {
     2
 }

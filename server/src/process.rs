@@ -68,6 +68,7 @@ use sea_orm::EntityTrait;
 use sea_orm::QueryFilter;
 use serde::Deserialize;
 use serde::Serialize;
+use std::fmt::Display;
 use std::time::Duration;
 use tonic::Request;
 
@@ -275,4 +276,8 @@ pub async fn message_insert_and_transmit(
     };
     transmit_msg(fetch_response, dest, rmq_chan, db_conn).await?;
     Ok(())
+}
+
+fn mapped_to_user_defined_status(user_id: impl Display) -> String {
+    format!("user_defined_status:{user_id}")
 }
