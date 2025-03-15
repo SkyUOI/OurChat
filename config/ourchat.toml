@@ -25,6 +25,8 @@ enable_cmd_stdin = true
 cmd_network_port = 7779
 # The expiry time in days of the verification request
 verification_expire_days = 3
+# The expiry time in hours of the user defined status
+user_defined_status_expire_hours = 24
 # The path of the users' files storage
 files_storage_path = "files_storage/"
 # Enable ssl encryption

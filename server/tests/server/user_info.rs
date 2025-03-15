@@ -202,7 +202,7 @@ async fn set_user_info_validation() {
         .await
         .oc()
         .set_self_info(SetSelfInfoRequest {
-            status: Some("a".repeat(1000)),
+            user_defined_status: Some("a".repeat(1000)),
             ..Default::default()
         })
         .await
@@ -216,7 +216,7 @@ async fn set_user_info_validation() {
             .oc()
             .set_self_info(SetSelfInfoRequest {
                 user_name: Some("valid_name".to_string()),
-                status: Some("valid status".to_string()),
+                user_defined_status: Some("valid status".to_string()),
                 ..Default::default()
             })
             .await
