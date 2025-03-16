@@ -24,7 +24,9 @@ enable_cmd_stdin = true
 # Assign the network terminal listening port,note,it will enable the network terminal mode by default
 cmd_network_port = 7779
 # The expiry time in days of the verification request
-verification_expire_days = 3
+verification_expire_time = "3d"
+# The expiry time in hours of the user defined status
+user_defined_status_expire_time = "24h"
 # The path of the users' files storage
 files_storage_path = "files_storage/"
 # Enable ssl encryption

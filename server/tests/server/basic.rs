@@ -1,9 +1,12 @@
 use base::consts::VERSION_SPLIT;
 use claims::assert_lt;
 use client::TestApp;
+use pb::service::basic::preset_user_status::v1::GetPresetUserStatusRequest;
 use pb::service::basic::support::v1::{ContactRole, SupportRequest};
 use pb::service::basic::v1::GetServerInfoRequest;
+use server::process::basic::get_preset_user_status::add_preset_user_status;
 use server::process::error_msg::not_found;
+use tonic::Request;
 
 #[tokio::test]
 async fn get_datetime() {
@@ -99,5 +102,24 @@ async fn get_support_info() {
         assert_eq!(resp_contact.phone_number, cfg_contact.phone_number);
     }
 
+    app.async_drop().await;
+}
+
+#[tokio::test]
+async fn get_preset_user_status() {
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
+    add_preset_user_status(app.db_pool.as_ref().unwrap().db_pool.clone(), "I am good").await;
+    add_preset_user_status(app.db_pool.as_ref().unwrap().db_pool.clone(), "I am bad").await;
+    let statuses = app
+        .clients
+        .basic
+        .get_preset_user_status(Request::new(GetPresetUserStatusRequest {}))
+        .await
+        .unwrap()
+        .into_inner();
+    let statuses: Vec<String> = statuses.contents;
+    assert_eq!(statuses.len(), 2);
+    assert!(statuses.contains(&"I am good".to_string()));
+    assert!(statuses.contains(&"I am bad".to_string()));
     app.async_drop().await;
 }

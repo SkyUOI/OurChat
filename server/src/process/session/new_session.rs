@@ -16,7 +16,6 @@ use pb::service::ourchat::session::new_session::v1::{
     FailedMember, FailedReason, NewSessionRequest, NewSessionResponse,
 };
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, TransactionTrait};
-use std::time::Duration;
 use tonic::{Request, Response};
 use tracing::error;
 
@@ -142,8 +141,7 @@ pub async fn send_verification_request(
     session_id: SessionID,
     leave_message: String,
 ) -> anyhow::Result<()> {
-    let expire_at = chrono::Utc::now()
-        + Duration::from_days(server.shared_data.cfg.main_cfg.verification_expire_days);
+    let expire_at = chrono::Utc::now() + server.shared_data.cfg.main_cfg.verification_expire_time;
     let expire_at_google = to_google_timestamp(expire_at);
     // save to the database
     let respond_msg = InviteSession {

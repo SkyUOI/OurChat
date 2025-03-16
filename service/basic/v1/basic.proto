@@ -3,6 +3,7 @@ syntax = "proto3";
 package service.basic.v1;
 
 import "google/protobuf/timestamp.proto";
+import "service/basic/preset_user_status/v1/preset_user_status.proto";
 import "service/basic/server/v1/server.proto";
 import "service/basic/support/v1/support.proto";
 
@@ -35,4 +36,6 @@ service BasicService {
   rpc GetId(GetIdRequest) returns (GetIdResponse);
 
   rpc Support(support.v1.SupportRequest) returns (support.v1.SupportResponse);
+
+  rpc GetPresetUserStatus(preset_user_status.v1.GetPresetUserStatusRequest) returns (preset_user_status.v1.GetPresetUserStatusResponse);
 }

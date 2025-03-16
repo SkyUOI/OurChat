@@ -1,11 +1,14 @@
 use super::basic::get_ocid;
 use super::error_msg::{PERMISSION_DENIED, REQUEST_INVALID_VALUE, not_found};
+use super::mapped_to_user_defined_status;
 use crate::db;
 use crate::db::session::get_all_session_relations;
 use crate::process::error_msg::SERVER_ERROR;
 use crate::server::RpcServer;
+use anyhow::Context;
 use base::consts::ID;
 use base::time::to_google_timestamp;
+use deadpool_redis::redis::AsyncCommands;
 use pb::service::ourchat::get_account_info::v1::{
     GetAccountInfoRequest, GetAccountInfoResponse, OWNER_PRIVILEGE, RequestValues,
 };
@@ -105,7 +108,17 @@ async fn get_account_info_impl(
                     }
                 }
                 RequestValues::Status => {
-                    ret.status = Some(queried_user.status.clone().unwrap_or_default());
+                    // ret.status = Some(queried_user.status.clone().unwrap_or_default());
+                    let mut redis_conn = server
+                        .db
+                        .redis_pool
+                        .get()
+                        .await
+                        .context("Cannot get redis' connection")?;
+                    ret.status = redis_conn
+                        .get(mapped_to_user_defined_status(queried_user.id))
+                        .await
+                        .context("Cannot get redis' information")?;
                 }
                 RequestValues::AvatarKey => {
                     ret.avatar_key = Some(queried_user.avatar.clone().unwrap_or_default());

@@ -16,3 +16,4 @@ pub use super::user::Entity as User;
 pub use super::user_chat_msg::Entity as UserChatMsg;
 pub use super::user_contact_info::Entity as UserContactInfo;
 pub use super::user_role_relation::Entity as UserRoleRelation;
+pub use super::user_status::Entity as UserStatus;

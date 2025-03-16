@@ -26,6 +26,7 @@ use config::{ConfigError, File};
 use dashmap::DashMap;
 use db::file_storage;
 use futures_util::future::join_all;
+use humantime_serde;
 use parking_lot::{Mutex, Once};
 use process::error_msg::MAINTAINING;
 use rand::Rng;
@@ -33,6 +34,7 @@ use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 use size::Size;
 use std::cmp::Ordering;
+use std::time::Duration;
 use std::{
     fs,
     net::SocketAddr,
@@ -71,8 +73,8 @@ pub struct MainCfg {
     pub http_port: u16,
     #[serde(default = "consts::default_clear_interval")]
     pub auto_clean_duration: u64,
-    #[serde(default = "consts::default_file_save_days")]
-    pub file_save_days: u64,
+    #[serde(default = "consts::default_file_save_time")]
+    pub file_save_time: Duration,
     #[serde(default = "consts::default_enable_cmd")]
     pub enable_cmd: bool,
     #[serde(default = "consts::default_enable_cmd_stdin")]
@@ -85,8 +87,16 @@ pub struct MainCfg {
     pub friends_number_limit: u32,
     #[serde(default = "consts::default_files_storage_path")]
     pub files_storage_path: PathBuf,
-    #[serde(default = "consts::default_verification_expire_days")]
-    pub verification_expire_days: u64,
+    #[serde(
+        default = "consts::default_verification_expire_time",
+        with = "humantime_serde"
+    )]
+    pub verification_expire_time: Duration,
+    #[serde(
+        default = "consts::default_user_defined_status_expire_time",
+        with = "humantime_serde"
+    )]
+    pub user_defined_status_expire_time: Duration,
     #[serde(default = "consts::default_ssl")]
     pub ssl: bool,
     #[serde(default = "consts::default_single_instance")]
@@ -562,7 +572,11 @@ impl Application {
         let maintaining = main_cfg.cmd_args.maintaining;
         // Set up shared state
         shared_state::set_auto_clean_duration(main_cfg.auto_clean_duration);
-        shared_state::set_file_save_days(main_cfg.file_save_days);
+        shared_state::set_file_save_days(
+            chrono::Duration::from_std(main_cfg.file_save_time)
+                .unwrap()
+                .num_days() as u64,
+        );
         shared_state::set_friends_number_limit(main_cfg.friends_number_limit);
 
         if let Some(new_ip) = parser.ip {

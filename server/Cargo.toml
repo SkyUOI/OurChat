@@ -64,6 +64,9 @@ scopeguard.workspace = true
 
 deadpool-lapin.workspace = true
 
+humantime.workspace = true
+humantime-serde.workspace = true
+
 [dev-dependencies]
 claims.workspace = true
 client = { path = "client" }

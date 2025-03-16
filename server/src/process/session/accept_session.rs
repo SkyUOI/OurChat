@@ -48,7 +48,8 @@ async fn accept_impl(
     }
     // check if the invitation is valid
     let time_limit = chrono::Utc::now()
-        - chrono::Duration::days(server.shared_data.cfg.main_cfg.verification_expire_days as i64);
+        - chrono::Duration::from_std(server.shared_data.cfg.main_cfg.verification_expire_time)
+            .unwrap();
     let model = entities::user_chat_msg::Entity::find()
         .filter(user_chat_msg::Column::SessionId.eq(req.session_id))
         .filter(user_chat_msg::Column::SenderId.eq(id))

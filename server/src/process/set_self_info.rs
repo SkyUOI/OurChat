@@ -1,6 +1,9 @@
-use super::error_msg::{
-    CONFLICT,
-    invalid::{self, OCID_TOO_LONG, STATUS_TOO_LONG},
+use super::{
+    error_msg::{
+        CONFLICT,
+        invalid::{self, OCID_TOO_LONG, STATUS_TOO_LONG},
+    },
+    mapped_to_user_defined_status,
 };
 use crate::{
     db::{self, file_storage},
@@ -9,6 +12,8 @@ use crate::{
 };
 use anyhow::Context;
 use base::consts::ID;
+use chrono::Duration;
+use deadpool_redis::redis::AsyncCommands;
 use entities::user;
 use migration::m20220101_000001_create_table::{OCID_MAX_LEN, USERNAME_MAX_LEN};
 use pb::service::ourchat::set_account_info::v1::{SetSelfInfoRequest, SetSelfInfoResponse};
@@ -16,6 +21,8 @@ use sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection, DbErr, Transact
 use tonic::{Request, Response, Status};
 
 pub const STATUS_LENGTH_MAX: usize = 128;
+
+type RedisConnection = deadpool_redis::Connection;
 
 pub async fn set_self_info(
     server: &RpcServer,
@@ -32,13 +39,28 @@ pub async fn set_self_info(
     }
 
     // Check status length
-    if let Some(status) = &request_data.status {
+    if let Some(status) = &request_data.user_defined_status {
         if status.len() > STATUS_LENGTH_MAX {
             return Err(Status::invalid_argument(STATUS_TOO_LONG));
         }
     }
 
-    match update_account(id, request_data, &server.db.db_pool).await {
+    match update_account(
+        id,
+        request_data,
+        &server.db.db_pool,
+        server.db.redis_pool.get().await.unwrap(),
+        Duration::from_std(
+            server
+                .shared_data
+                .cfg
+                .main_cfg
+                .user_defined_status_expire_time,
+        )
+        .unwrap(),
+    )
+    .await
+    {
         Ok(_) => Ok(Response::new(SetSelfInfoResponse {})),
         Err(e) => match e {
             SetError::Db(_) | SetError::Unknown(_) => {
@@ -67,6 +89,8 @@ async fn update_account(
     id: ID,
     request_data: SetSelfInfoRequest,
     db_conn: &DatabaseConnection,
+    mut redis_conn: RedisConnection,
+    user_defined_status_expire_time: Duration,
 ) -> Result<(), SetError> {
     let mut user = user::ActiveModel {
         id: ActiveValue::Set(id.into()),
@@ -77,12 +101,16 @@ async fn update_account(
         user.name = ActiveValue::Set(name);
         public_updated = true;
     }
-    if let Some(status) = request_data.status {
-        user.status = if status.is_empty() {
-            ActiveValue::Set(None)
-        } else {
-            ActiveValue::Set(Some(status))
-        };
+    if let Some(status) = request_data.user_defined_status {
+        let key = mapped_to_user_defined_status(user.id.as_ref());
+        let _: () = redis_conn
+            .set_ex(
+                key,
+                status,
+                user_defined_status_expire_time.num_seconds() as u64,
+            )
+            .await
+            .context("Cannot set user defined status to redis")?;
     }
     let txn = db_conn.begin().await?;
     if let Some(avatar_key) = request_data.avatar_key {
