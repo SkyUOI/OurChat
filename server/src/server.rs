@@ -279,6 +279,7 @@ impl RpcServer {
     /// # Returns
     /// * `Ok(ID)` - The authenticated user's ID
     /// * `Err(Status)` - Authentication error status
+    #[allow(clippy::result_large_err)]
     fn check_auth(req: &mut Request<()>) -> Result<ID, Status> {
         // Check if token exists in metadata
         match req.metadata().get("token") {

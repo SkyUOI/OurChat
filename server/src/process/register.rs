@@ -103,12 +103,11 @@ enum RegisterError {
 /// Panics if the password is too long or if the salt generation fails.
 fn compute_password_hash(password: &str, params: Params) -> String {
     let salt = SaltString::generate(&mut rand::thread_rng());
-    let password_hash =
-        argon2::Argon2::new(argon2::Algorithm::Argon2id, argon2::Version::V0x13, params)
+    
+    argon2::Argon2::new(argon2::Algorithm::Argon2id, argon2::Version::V0x13, params)
             .hash_password(password.as_bytes(), &salt)
             .unwrap()
-            .to_string();
-    password_hash
+            .to_string()
 }
 
 /// Internal implementation of the register process

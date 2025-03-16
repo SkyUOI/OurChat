@@ -26,7 +26,6 @@ use config::{ConfigError, File};
 use dashmap::DashMap;
 use db::file_storage;
 use futures_util::future::join_all;
-use humantime_serde;
 use parking_lot::{Mutex, Once};
 use process::error_msg::MAINTAINING;
 use rand::Rng;
@@ -492,6 +491,7 @@ impl SharedData {
         *self.maintaining.lock()
     }
 
+    #[allow(clippy::result_large_err)]
     pub fn convert_maintaining_into_grpc_status(&self) -> Result<(), tonic::Status> {
         if self.get_maintaining() {
             Err(tonic::Status::unavailable(MAINTAINING))

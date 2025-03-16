@@ -1,4 +1,4 @@
-name: ci
+name: Client CI
 
 on:
   push:
@@ -23,6 +23,7 @@ jobs:
         uses: fkirc/skip-duplicate-actions@v5
         with:
           concurrent_skipping: 'always'
+          paths_ignore: '["server/**"]'
 
   common-ci:
     needs: pre_job
@@ -31,16 +32,19 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: typos-action
-        uses: crate-ci/typos@master
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
         with:
-          files: .
-      - uses: bufbuild/buf-action@v1
+          channel: stable
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
         with:
-          token: ${{ secrets.BUF_TOKEN }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          lint: true
-          breaking: false
-          format: false
-      - name: Buf Fmt
-        run: buf format --exit-code
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Flutter Init
+        run: cd client && flutter pub get
+      - name: FLutter Fmt
+        run: cd client && dart format ./ --set-exit-if-changed
+      - name: Grpc generate
+        run: dart pub global activate protoc_plugin && python script/generate.pb.dart.py
+      - name: Flutter Check
+        run: cd client && flutter analyze

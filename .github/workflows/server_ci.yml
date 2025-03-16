@@ -1,4 +1,4 @@
-name: ci
+name: Server CI
 
 on:
   push:
@@ -23,6 +23,7 @@ jobs:
         uses: fkirc/skip-duplicate-actions@v5
         with:
           concurrent_skipping: 'always'
+          paths_ignore: '["client/**"]'
 
   common-ci:
     needs: pre_job
@@ -31,16 +32,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: typos-action
-        uses: crate-ci/typos@master
+      - name: Rust Fmt
+        run: cargo fmt --check
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
         with:
-          files: .
-      - uses: bufbuild/buf-action@v1
-        with:
-          token: ${{ secrets.BUF_TOKEN }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          lint: true
-          breaking: false
-          format: false
-      - name: Buf Fmt
-        run: buf format --exit-code
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
