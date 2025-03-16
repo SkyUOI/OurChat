@@ -1,4 +1,3 @@
-use chrono::Utc;
 use pb::service::basic::preset_user_status::v1::{
     GetPresetUserStatusRequest, GetPresetUserStatusResponse,
 };
@@ -21,7 +20,7 @@ pub async fn impl_get_preset_user_status(
     let contents = match UserStatus::find()
         .select_only()
         .column(user_status::Column::Name)
-        .order_by_asc(user_status::Column::Time)
+        .order_by_asc(user_status::Column::Name)
         .into_tuple::<String>()
         .all(&server.db.db_pool)
         .await
@@ -48,7 +47,6 @@ pub async fn get_preset_user_status(
 pub async fn add_preset_user_status(dbpool: DatabaseConnection, name: &str) {
     let new_status = user_status::ActiveModel {
         name: ActiveValue::Set(name.to_string()),
-        time: ActiveValue::Set(Utc::now().time()),
     };
     Insert::one(new_status)
         .exec(&dbpool)

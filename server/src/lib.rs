@@ -8,7 +8,6 @@ pub mod process;
 pub mod rabbitmq;
 mod server;
 mod shared_state;
-mod time_format;
 pub mod utils;
 
 use anyhow::bail;
@@ -27,6 +26,7 @@ use config::{ConfigError, File};
 use dashmap::DashMap;
 use db::file_storage;
 use futures_util::future::join_all;
+use humantime_serde;
 use parking_lot::{Mutex, Once};
 use process::error_msg::MAINTAINING;
 use rand::Rng;
@@ -89,12 +89,12 @@ pub struct MainCfg {
     pub files_storage_path: PathBuf,
     #[serde(
         default = "consts::default_verification_expire_time",
-        with = "time_format"
+        with = "humantime_serde"
     )]
     pub verification_expire_time: Duration,
     #[serde(
         default = "consts::default_user_defined_status_expire_time",
-        with = "time_format"
+        with = "humantime_serde"
     )]
     pub user_defined_status_expire_time: Duration,
     #[serde(default = "consts::default_ssl")]

@@ -10,8 +10,7 @@ impl MigrationTrait for Migration {
             .create_table(
                 Table::create()
                     .table(UserStatus::Table)
-                    .col(string(UserStatus::Name))
-                    .col(time(UserStatus::Time).primary_key())
+                    .col(string(UserStatus::Name).primary_key())
                     .to_owned(),
             )
             .await
@@ -28,5 +27,4 @@ impl MigrationTrait for Migration {
 pub enum UserStatus {
     Table,
     Name,
-    Time,
 }

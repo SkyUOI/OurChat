@@ -3,20 +3,26 @@ syntax = "proto3";
 package service.basic.v1;
 
 import "google/protobuf/timestamp.proto";
+import "service/basic/preset_user_status/v1/preset_user_status.proto";
 import "service/basic/server/v1/server.proto";
 import "service/basic/support/v1/support.proto";
-import "service/basic/preset_user_status/v1/preset_user_status.proto";
 
 message TimestampRequest {}
 
-message TimestampResponse { google.protobuf.Timestamp timestamp = 1; }
+message TimestampResponse {
+  google.protobuf.Timestamp timestamp = 1;
+}
 
 // Get some basic information of server
 message GetServerInfoRequest {}
 
-message GetIdRequest { string ocid = 1; }
+message GetIdRequest {
+  string ocid = 1;
+}
 
-message GetIdResponse { uint64 id = 1; }
+message GetIdResponse {
+  uint64 id = 1;
+}
 
 // Some basic service,jwt is not required
 service BasicService {
@@ -24,16 +30,12 @@ service BasicService {
   rpc Timestamp(TimestampRequest) returns (TimestampResponse);
 
   // Get server info
-  rpc GetServerInfo(GetServerInfoRequest)
-      returns (server.v1.GetServerInfoResponse);
+  rpc GetServerInfo(GetServerInfoRequest) returns (server.v1.GetServerInfoResponse);
 
   // Get id from ocid
   rpc GetId(GetIdRequest) returns (GetIdResponse);
 
   rpc Support(support.v1.SupportRequest) returns (support.v1.SupportResponse);
 
-  rpc GetPresetUserStatus(preset_user_status.v1.GetPresetUserStatusRequest)
-      returns (preset_user_status.v1.GetPresetUserStatusResponse);
-  //   rpc GetPresetUserStatus(preset_user_status.v1.PresetUserStatusRequest)
-  //       returns (preset_user_status.v1.PresetUserStatusResponse);
+  rpc GetPresetUserStatus(preset_user_status.v1.GetPresetUserStatusRequest) returns (preset_user_status.v1.GetPresetUserStatusResponse);
 }

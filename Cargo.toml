@@ -90,6 +90,7 @@ email_address = "0"
 actix-cors = "0"
 actix-files = "0.6"
 humantime = "2"
+humantime-serde = "1"
 
 [workspace.dependencies.lettre]
 version = "0"

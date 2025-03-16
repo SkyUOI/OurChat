@@ -4,4 +4,6 @@ package service.basic.preset_user_status.v1;
 
 message GetPresetUserStatusRequest {}
 
-message GetPresetUserStatusResponse { repeated string contents = 1; }
+message GetPresetUserStatusResponse {
+  repeated string contents = 1;
+}
