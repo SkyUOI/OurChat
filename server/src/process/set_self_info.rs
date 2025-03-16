@@ -50,11 +50,14 @@ pub async fn set_self_info(
         request_data,
         &server.db.db_pool,
         server.db.redis_pool.get().await.unwrap(),
-        server
-            .shared_data
-            .cfg
-            .main_cfg
-            .user_defined_status_expire_hours,
+        Duration::from_std(
+            server
+                .shared_data
+                .cfg
+                .main_cfg
+                .user_defined_status_expire_time,
+        )
+        .unwrap(),
     )
     .await
     {
@@ -87,7 +90,7 @@ async fn update_account(
     request_data: SetSelfInfoRequest,
     db_conn: &DatabaseConnection,
     mut redis_conn: RedisConnection,
-    user_defined_status_expire_hours: u64,
+    user_defined_status_expire_time: Duration,
 ) -> Result<(), SetError> {
     let mut user = user::ActiveModel {
         id: ActiveValue::Set(id.into()),
@@ -101,16 +104,13 @@ async fn update_account(
     if let Some(status) = request_data.user_defined_status {
         let key = mapped_to_user_defined_status(user.id.as_ref());
         let _: () = redis_conn
-            .set(&key, status)
-            .await
-            .context("Cannot set user defined user's defined status")?;
-        let _: () = redis_conn
-            .expire(
+            .set_ex(
                 key,
-                Duration::hours(user_defined_status_expire_hours as i64).num_seconds(),
+                status,
+                user_defined_status_expire_time.num_seconds() as u64,
             )
             .await
-            .context("Cannot set user defined user's defined status expire")?;
+            .context("Cannot set user defined status to redis")?;
     }
     let txn = db_conn.begin().await?;
     if let Some(avatar_key) = request_data.avatar_key {

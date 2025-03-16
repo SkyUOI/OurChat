@@ -118,8 +118,7 @@ async fn get_account_info_impl(
                     ret.status = redis_conn
                         .get(mapped_to_user_defined_status(queried_user.id))
                         .await
-                        .context("Cannot get redis' information")
-                        .unwrap();
+                        .context("Cannot get redis' information")?;
                 }
                 RequestValues::AvatarKey => {
                     ret.avatar_key = Some(queried_user.avatar.clone().unwrap_or_default());

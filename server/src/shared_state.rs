@@ -2,10 +2,12 @@
 //! TODO: remove all of these and add test cases
 
 use base::consts::{self};
+use chrono::Duration;
 use parking_lot::Mutex;
 
 static AUTO_CLEAN_DURATION: Mutex<u64> = Mutex::new(consts::default_clear_interval());
-static FILE_SAVE_DAYS: Mutex<u64> = Mutex::new(consts::default_file_save_days());
+static FILE_SAVE_DAYS: Mutex<u64> =
+    Mutex::new(consts::default_file_save_time().as_secs() / Duration::days(1).num_seconds() as u64);
 static FRIENDS_NUMBER_LIMIT: Mutex<u32> = Mutex::new(consts::default_friends_number_limit());
 
 pub fn get_auto_clean_duration() -> u64 {

@@ -1,6 +1,7 @@
 //! OurChat Server
 
 use crate::db::user::get_account_info_db;
+use crate::process::basic::get_preset_user_status::get_preset_user_status;
 use crate::process::basic::support::support;
 use crate::process::db::get_id;
 use crate::process::error_msg::{ACCOUNT_DELETED, SERVER_ERROR};
@@ -20,6 +21,9 @@ use pb::service::auth::authorize::v1::{AuthRequest, AuthResponse};
 use pb::service::auth::email_verify::v1::{VerifyRequest, VerifyResponse};
 use pb::service::auth::register::v1::{RegisterRequest, RegisterResponse};
 use pb::service::auth::v1::auth_service_server::{self, AuthServiceServer};
+use pb::service::basic::preset_user_status::v1::{
+    GetPresetUserStatusRequest, GetPresetUserStatusResponse,
+};
 use pb::service::basic::server::v1::RunningStatus;
 use pb::service::basic::support::v1::{SupportRequest, SupportResponse};
 use pb::service::basic::v1::basic_service_server::{BasicService, BasicServiceServer};
@@ -704,6 +708,13 @@ impl BasicService for BasicServiceProvider {
         request: Request<SupportRequest>,
     ) -> Result<Response<SupportResponse>, Status> {
         support(self, request).await
+    }
+
+    async fn get_preset_user_status(
+        &self,
+        request: Request<GetPresetUserStatusRequest>,
+    ) -> Result<Response<GetPresetUserStatusResponse>, Status> {
+        get_preset_user_status(self, request).await
     }
 }
 

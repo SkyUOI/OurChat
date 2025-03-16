@@ -81,8 +81,8 @@ pub const fn default_clear_interval() -> u64 {
 }
 
 /// default file save days
-pub const fn default_file_save_days() -> u64 {
-    10
+pub const fn default_file_save_time() -> Duration {
+    Duration::from_days(10)
 }
 
 /// whether to enable cmd
@@ -118,12 +118,12 @@ pub const fn default_fetch_msg_page_size() -> u64 {
     2000
 }
 
-pub const fn default_verification_expire_days() -> u64 {
-    3
+pub const fn default_verification_expire_time() -> Duration {
+    Duration::from_days(3)
 }
 
-pub const fn default_user_defined_status_expire_hours() -> u64 {
-    24
+pub const fn default_user_defined_status_expire_time() -> Duration {
+    Duration::from_hours(24)
 }
 
 pub const fn default_t_cost() -> u32 {
