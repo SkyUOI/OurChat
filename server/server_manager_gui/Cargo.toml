@@ -4,9 +4,9 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-slint = "1.9"
+slint = "1.10"
 anyhow.workspace = true
 
 [build-dependencies]
-slint-build = "1.9"
+slint-build = "1.10"
 anyhow.workspace = true
