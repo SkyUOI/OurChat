@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use base::time::from_google_timestamp;
 use claims::{assert_err, assert_gt, assert_lt, assert_ok};
 use client::TestApp;
@@ -7,6 +9,7 @@ use pb::service::ourchat::{
     set_account_info::v1::SetSelfInfoRequest,
 };
 use server::process::error_msg::invalid::{OCID_TOO_LONG, STATUS_TOO_LONG, USERNAME};
+use tokio::time::sleep;
 
 #[tokio::test]
 async fn get_user_info() {
@@ -167,7 +170,11 @@ async fn set_friend_info() -> anyhow::Result<()> {
 
 #[tokio::test]
 async fn set_user_info_validation() {
-    let mut app = TestApp::new_with_launching_instance().await.unwrap();
+    let (mut config, args) = TestApp::get_test_config().unwrap();
+    config.main_cfg.user_defined_status_expire_time = Duration::from_secs(5);
+    let mut app = TestApp::new_with_launching_instance_custom_cfg((config, args))
+        .await
+        .unwrap();
     let user = app.new_user().await.unwrap();
 
     // Test empty user
@@ -221,6 +228,20 @@ async fn set_user_info_validation() {
             })
             .await
     );
+
+    // Test that the status' expire time is set correctly
+    sleep(Duration::from_secs(6)).await;
+    let mut ret = user
+        .lock()
+        .await
+        .oc()
+        .get_account_info(GetAccountInfoRequest {
+            id: None,
+            request_values: vec![RequestValues::Status.into()],
+        })
+        .await
+        .unwrap();
+    assert!(ret.get_mut().status.is_none());
 
     app.async_drop().await;
 }
