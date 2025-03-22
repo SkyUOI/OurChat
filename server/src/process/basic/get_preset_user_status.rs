@@ -1,9 +1,7 @@
 use pb::service::basic::preset_user_status::v1::{
     GetPresetUserStatusRequest, GetPresetUserStatusResponse,
 };
-use sea_orm::{
-    ActiveValue, ConnectionTrait, DatabaseConnection, EntityTrait, Insert, QueryOrder, QuerySelect,
-};
+use sea_orm::{ActiveValue, ConnectionTrait, EntityTrait, Insert, QueryOrder, QuerySelect};
 use tonic::{Request, Response, Status};
 
 use crate::{process::error_msg::SERVER_ERROR, server::BasicServiceProvider};
@@ -36,7 +34,7 @@ pub async fn get_preset_user_status(
     match impl_get_preset_user_status(server, _request).await {
         Ok(x) => Ok(Response::new(x)),
         Err(e) => match e {
-            GetPresetUserStatusErr::DbError => Err(Status::internal(SERVER_ERROR)),
+            GetPresetUserStatusErr::DbError(_) => Err(Status::internal(SERVER_ERROR)),
         },
     }
 }
