@@ -108,8 +108,8 @@ async fn get_support_info() {
 #[tokio::test]
 async fn get_preset_user_status() {
     let mut app = TestApp::new_with_launching_instance().await.unwrap();
-    add_preset_user_status(app.db_pool.as_ref().unwrap().db_pool.clone(), "I am good").await;
-    add_preset_user_status(app.db_pool.as_ref().unwrap().db_pool.clone(), "I am bad").await;
+    add_preset_user_status(&app.db_pool.as_ref().unwrap().db_pool, "I am good").await;
+    add_preset_user_status(&app.db_pool.as_ref().unwrap().db_pool, "I am bad").await;
     let statuses = app
         .clients
         .basic
