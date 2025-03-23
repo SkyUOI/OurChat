@@ -136,19 +136,12 @@ pub fn generate_access_token(id: ID) -> String {
     .unwrap()
 }
 
-pub fn check_token(token: &str) -> Option<JWTdata> {
-    match access_token(token) {
-        Ok(data) => {
-            if chrono::offset::Utc::now().timestamp() < data.exp {
-                Some(data)
-            } else {
-                None
-            }
-        }
-        Err(_) => {
-            tracing::trace!("jwt format wrong");
-            None
-        }
+pub fn check_token(token: &str) -> Result<JWTdata, ErrAuth> {
+    let data = decode_token(token)?;
+    if chrono::offset::Utc::now().timestamp() < data.exp {
+        Ok(data)
+    } else {
+        Err(ErrAuth::Expire)
     }
 }
 
@@ -160,7 +153,15 @@ pub enum ErrAuth {
     JWT(#[from] jsonwebtoken::errors::Error),
 }
 
-pub fn access_token(token: &str) -> Result<JWTdata, ErrAuth> {
+/// Decodes a JWT token and returns the contained claims as `JWTdata`.
+///
+/// # Arguments
+/// * `token` - A string slice that holds the JWT token to be decoded.
+///
+/// # Returns
+/// * `Ok(JWTdata)` - The decoded claims if the token is valid.
+/// * `Err(ErrAuth)` - An error if the token is invalid or the decoding process fails.
+pub fn decode_token(token: &str) -> Result<JWTdata, ErrAuth> {
     let token = jsonwebtoken::decode(
         token,
         &DecodingKey::from_secret(SERVER_INFO.secret.as_bytes()),

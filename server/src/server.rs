@@ -4,8 +4,8 @@ use crate::db::user::get_account_info_db;
 use crate::process::basic::get_preset_user_status::get_preset_user_status;
 use crate::process::basic::support::support;
 use crate::process::db::get_id;
-use crate::process::error_msg::{ACCOUNT_DELETED, SERVER_ERROR};
-use crate::process::{self, get_id_from_req};
+use crate::process::error_msg::{self, ACCOUNT_DELETED, SERVER_ERROR};
+use crate::process::{self, ErrAuth, get_id_from_req};
 use crate::{SERVER_INFO, SharedData, ShutdownRev};
 use base::consts::{ID, OCID, VERSION_SPLIT};
 use base::database::DbPool;
@@ -284,17 +284,21 @@ impl RpcServer {
         // Check if token exists in metadata
         match req.metadata().get("token") {
             Some(token) => {
-                if let Some(jwt) = process::check_token(token.to_str().unwrap()) {
-                    let ret = jwt.id;
-                    // Store user ID in request metadata for later use
-                    req.metadata_mut()
-                        .insert("id", jwt.id.to_string().parse().unwrap());
-                    Ok(ret)
-                } else {
-                    Err(Status::unauthenticated("Invalid token"))
+                match process::check_token(token.to_str().unwrap()) {
+                    Ok(jwt) => {
+                        let ret = jwt.id;
+                        // Store user ID in request metadata for later use
+                        req.metadata_mut()
+                            .insert("id", jwt.id.to_string().parse().unwrap());
+                        Ok(ret)
+                    }
+                    Err(e) => match e {
+                        ErrAuth::JWT(_) => Err(Status::unauthenticated(error_msg::token::INVALID)),
+                        ErrAuth::Expire => Err(Status::unauthenticated(error_msg::token::EXPIRED)),
+                    },
                 }
             }
-            None => Err(Status::unauthenticated("Missing token")),
+            None => Err(Status::unauthenticated(error_msg::token::MISSING)),
         }
     }
 

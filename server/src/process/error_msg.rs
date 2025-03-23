@@ -61,3 +61,9 @@ pub const ROLE_NAME_EMPTY: &str = "Role Name Empty";
 
 // Register
 pub const NOT_STRONG_PASSWORD: &str = "Password Is Not Strong Enough";
+
+pub mod token {
+    pub const INVALID: &str = "Token Invalid";
+    pub const EXPIRED: &str = "Token Expired";
+    pub const MISSING: &str = "Token Missing";
+}

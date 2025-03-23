@@ -60,14 +60,6 @@ pub fn generate_random_string(len: usize) -> String {
         .collect()
 }
 
-pub fn error_chain(e: anyhow::Error) -> String {
-    let mut msg = String::new();
-    for i in e.chain() {
-        msg = format!("{msg}\nCaused by {}", i.to_string().as_str());
-    }
-    msg
-}
-
 pub fn spawn_blocking_with_tracing<F, R>(f: F) -> JoinHandle<R>
 where
     F: FnOnce() -> R + Send + 'static,
