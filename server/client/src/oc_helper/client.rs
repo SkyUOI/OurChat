@@ -63,7 +63,6 @@ impl TestAppTrait for ArgsParser {
     fn test() -> Self {
         Self {
             port: Some(get_available_port()),
-            enable_cmd: Some(false),
             shared_cfg: ParserCfg {
                 test_mode: true,
                 ..Default::default()

@@ -6,28 +6,8 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager
-            .create_table(
-                Table::create()
-                    .table(ServerManager::Table)
-                    .if_not_exists()
-                    .col(string_uniq(ServerManager::Id))
-                    .col(big_unsigned(ServerManager::IdToUser))
-                    .col(string(ServerManager::Passwd))
-                    .primary_key(Index::create().col(ServerManager::Id))
-                    .to_owned(),
-            )
-            .await?;
-        manager
-            .create_table(
-                Table::create()
-                    .table(Authority::Table)
-                    .if_not_exists()
-                    .col(pk_auto(Authority::Id))
-                    .col(string(Authority::Description))
-                    .to_owned(),
-            )
-            .await?;
+        create_server_manager_table(manager).await?;
+        create_authority_table(manager).await?;
         Ok(())
     }
 
@@ -43,7 +23,7 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(DeriveIden)]
-enum ServerManager {
+pub enum ServerManager {
     Table,
     Id,
     IdToUser,
@@ -51,8 +31,39 @@ enum ServerManager {
 }
 
 #[derive(DeriveIden)]
-enum Authority {
+pub enum Authority {
     Table,
     Id,
     Description,
+}
+
+pub async fn create_authority_table(manager: &SchemaManager<'_>) -> Result<(), DbErr> {
+    manager
+        .create_table(
+            Table::create()
+                .table(Authority::Table)
+                .if_not_exists()
+                .col(pk_auto(Authority::Id))
+                .col(string(Authority::Description))
+                .to_owned(),
+        )
+        .await?;
+    Ok(())
+}
+
+pub async fn create_server_manager_table(manager: &SchemaManager<'_>) -> Result<(), DbErr> {
+    manager
+        .create_table(
+            Table::create()
+                .table(ServerManager::Table)
+                .if_not_exists()
+                .col(string_uniq(ServerManager::Id))
+                .col(big_unsigned(ServerManager::IdToUser))
+                .col(string(ServerManager::Passwd))
+                .primary_key(Index::create().col(ServerManager::Id))
+                .to_owned(),
+        )
+        .await?;
+    create_authority_table(manager).await?;
+    Ok(())
 }

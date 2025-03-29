@@ -1,4 +1,4 @@
-use config::File;
+use config::{ConfigError, File};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
@@ -10,11 +10,7 @@ pub trait Setting {
         Self: Sized,
         Self: serde::Deserialize<'de>,
     {
-        let cfg = config::Config::builder()
-            .add_source(File::with_name(path.as_ref().to_str().unwrap()))
-            .build()?;
-        let cfg = cfg.try_deserialize()?;
-        Ok(cfg)
+        Ok(read_a_config(path)?.try_deserialize()?)
     }
 }
 
@@ -44,3 +40,13 @@ pub struct UserSetting {
 }
 
 impl Setting for UserSetting {}
+
+/// Read a config file from the given path
+///
+/// This function returns Ok(config::Config) if the file is valid, or
+/// Err(ConfigError) if it is invalid.
+pub fn read_a_config(path: impl AsRef<Path>) -> Result<config::Config, ConfigError> {
+    config::Config::builder()
+        .add_source(File::with_name(path.as_ref().to_str().unwrap()))
+        .build()
+}

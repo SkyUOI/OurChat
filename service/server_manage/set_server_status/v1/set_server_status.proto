@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package service.server_manage.set_server_status.v1;
+
+enum ServerStatus {
+  SERVER_STATUS_UNSPECIFIED = 0;
+  SERVER_STATUS_NORMAL = 1;
+  SERVER_STATUS_MAINTAINING = 2;
+}
+
+message SetServerStatusRequest {
+  ServerStatus server_status = 1;
+  string reason = 2;
+}
+
+message SetServerStatusResponse {}

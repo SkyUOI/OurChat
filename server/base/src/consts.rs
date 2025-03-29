@@ -179,6 +179,16 @@ pub const fn default_password_strength_limit() -> zxcvbn::Score {
     zxcvbn::Score::One
 }
 
+pub const fn default_network_cmd_port() -> u16 {
+    7779
+}
+
+pub mod option {
+    pub const fn default_network_cmd_port() -> Option<u16> {
+        Some(super::default_network_cmd_port())
+    }
+}
+
 pub static SERVER_INFO_PATH: &str = "server_info.json";
 
 pub static STDIN_AVAILABLE: LazyLock<bool> = LazyLock::new(|| std::io::stdin().is_terminal());

@@ -4,6 +4,12 @@ pub mod delete_account {
     }
 }
 
+pub mod set_server_status {
+    pub mod v1 {
+        include!("../generated/service.server_manage.set_server_status.v1.rs");
+    }
+}
+
 pub mod v1 {
     include!("../generated/service.server_manage.v1.rs");
 }

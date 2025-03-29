@@ -35,10 +35,10 @@ fake = { workspace = true, optional = true }
 zxcvbn.workspace = true
 email_address.workspace = true
 tower.workspace = true
-tower-http.workspace = true
 hyper.workspace = true
 hyper-util.workspace = true
 http-body-util.workspace = true
+secrecy.workspace = true
 
 # Useful crates
 collection_literals.workspace = true

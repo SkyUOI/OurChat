@@ -3,6 +3,7 @@
 pub mod file_storage;
 pub mod friend;
 pub mod helper;
+mod manager;
 pub mod messages;
 pub mod redis;
 pub mod session;

@@ -78,7 +78,7 @@ pub use friends::{
     set_friend_info::set_friend_info,
 };
 pub use message::{fetch_user_msg::fetch_user_msg, recall::recall_msg, send_msg::send_msg};
-pub use server_manage::delete_account::delete_account;
+pub use server_manage::{delete_account::delete_account, set_server_status::set_server_status};
 pub use session::{
     accept_join_in_session::accept_join_in_session,
     accept_session::accept_session,

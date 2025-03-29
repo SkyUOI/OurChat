@@ -17,12 +17,6 @@ auto_clean_duration = 1
 user_files_limit = "100MiB"
 # A single user's The number of the friend's limit
 friends_number_limit = 5000
-# Whether enabling the terminal
-enable_cmd = true
-# Whether enabling the stdin source of the terminal
-enable_cmd_stdin = true
-# Assign the network terminal listening port,note,it will enable the network terminal mode by default
-cmd_network_port = 7779
 # The expiry time in days of the verification request
 verification_expire_time = "3d"
 # The expiry time in hours of the user defined status
