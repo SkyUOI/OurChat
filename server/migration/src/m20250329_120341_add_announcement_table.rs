@@ -1,4 +1,7 @@
-use sea_orm_migration::prelude::*;
+use sea_orm_migration::{
+    prelude::*,
+    schema::{big_unsigned, string, text, timestamp},
+};
 
 use crate::m20220101_000001_create_table::User;
 
@@ -13,25 +16,15 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(Announcement::Table)
                     .if_not_exists()
+                    .col(big_unsigned(Announcement::Id).not_null().primary_key())
+                    .col(string(Announcement::Title).not_null())
+                    .col(text(Announcement::Content).not_null())
                     .col(
-                        ColumnDef::new(Announcement::Id)
-                            .big_unsigned()
-                            .not_null()
-                            .primary_key(),
-                    )
-                    .col(ColumnDef::new(Announcement::Title).string().not_null())
-                    .col(ColumnDef::new(Announcement::Content).text().not_null())
-                    .col(
-                        ColumnDef::new(Announcement::CreatedAt)
-                            .timestamp()
+                        timestamp(Announcement::CreatedAt)
                             .not_null()
                             .default(Expr::current_timestamp()),
                     )
-                    .col(
-                        ColumnDef::new(Announcement::PublisherID)
-                            .big_unsigned()
-                            .not_null(),
-                    )
+                    .col(big_unsigned(Announcement::PublisherID).not_null())
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk-announcement-publisher")
