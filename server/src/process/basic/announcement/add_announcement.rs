@@ -1,6 +1,6 @@
 use entities::announcement;
 use pb::service::ourchat::msg_delivery::announcement::v1::Announcement;
-use sea_orm::{ActiveValue, ConnectionTrait, Insert};
+use sea_orm::{ActiveModelTrait, ActiveValue, ConnectionTrait};
 
 #[derive(Debug, thiserror::Error)]
 pub enum AddAnnouncementErr {
@@ -24,8 +24,7 @@ pub async fn add_announcement(
         ..Default::default()
     };
     tracing::trace!("Announcement starts to be added");
-
-    Insert::one(active_model).exec(dbpool).await?;
+    active_model.insert(dbpool).await?;
     tracing::trace!("Announcement added successfully");
 
     Ok(())

@@ -21,7 +21,7 @@ pub async fn get_announcement_by_id(
         .await?
         .ok_or(GetAnnouncementErr::NotFound)?;
     tracing::info!("crated_at found: {:?}", announcement.created_at);
-    let created_at = to_google_timestamp(announcement.created_at.and_utc());
+    let created_at = to_google_timestamp(announcement.created_at.to_utc());
     tracing::info!("crated_at: {:?}", created_at);
     Ok(AnnouncementResponse {
         announcement: Some(Announcement {
