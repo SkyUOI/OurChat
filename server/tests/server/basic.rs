@@ -4,6 +4,9 @@ use client::TestApp;
 use pb::service::basic::preset_user_status::v1::GetPresetUserStatusRequest;
 use pb::service::basic::support::v1::{ContactRole, SupportRequest};
 use pb::service::basic::v1::GetServerInfoRequest;
+use pb::service::ourchat::msg_delivery::announcement::v1::Announcement;
+use server::process::basic::announcement::add_announcement::add_announcement;
+use server::process::basic::announcement::get_announcement::get_announcement_by_id;
 use server::process::basic::get_preset_user_status::add_preset_user_status;
 use server::process::error_msg::not_found;
 use tonic::Request;
@@ -108,8 +111,8 @@ async fn get_support_info() {
 #[tokio::test]
 async fn get_preset_user_status() {
     let mut app = TestApp::new_with_launching_instance().await.unwrap();
-    add_preset_user_status(&app.db_pool.as_ref().unwrap().db_pool, "I am good").await;
-    add_preset_user_status(&app.db_pool.as_ref().unwrap().db_pool, "I am bad").await;
+    add_preset_user_status(app.get_db_connection(), "I am good").await;
+    add_preset_user_status(app.get_db_connection(), "I am bad").await;
     let statuses = app
         .clients
         .basic
@@ -121,5 +124,29 @@ async fn get_preset_user_status() {
     assert_eq!(statuses.len(), 2);
     assert!(statuses.contains(&"I am good".to_string()));
     assert!(statuses.contains(&"I am bad".to_string()));
+    app.async_drop().await;
+}
+
+#[tokio::test]
+async fn add_and_get_announcement() {
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
+    let user = app.new_user().await.unwrap();
+    let announcement = Announcement {
+        id: 0,
+        title: "test".to_string(),
+        content: "test".to_string(),
+        publisher_id: user.as_ref().lock().await.id.into(),
+    };
+    match add_announcement(app.get_db_connection(), announcement.clone()).await {
+        Ok(_) => {}
+        Err(e) => {
+            tracing::error!("add announcement failed: {}", e);
+            panic!("add announcement failed")
+        }
+    };
+    let announcement_res = get_announcement_by_id(app.get_db_connection(), 0)
+        .await
+        .unwrap();
+    assert_eq!(announcement_res.announcement.unwrap(), announcement);
     app.async_drop().await;
 }
