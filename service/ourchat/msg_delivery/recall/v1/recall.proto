@@ -8,7 +8,8 @@ message RecallMsgRequest {
 }
 
 message RecallMsgResponse {
-  // warning: not equal to the message you want to recall, it is a new message which is representative of the recall behavior
+  // warning: not equal to the message you want to recall, it is a new message
+  // which is representative of the recall behavior
   uint64 msg_id = 1;
 }
 

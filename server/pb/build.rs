@@ -97,6 +97,10 @@ fn main() -> anyhow::Result<()> {
             "service.ourchat.friends.add_friend.v1.AddFriendRequest",
             "#[derive(serde::Serialize, serde::Deserialize)]",
         )
+        .type_attribute(
+            "service.ourchat.msg_delivery.announcement.v1.Announcement",
+            "#[derive(serde::Serialize, serde::Deserialize)]",
+        )
         .compile_well_known_types(true)
         .bytes(["."])
         .out_dir("./src/generated/")

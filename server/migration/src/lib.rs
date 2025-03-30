@@ -15,6 +15,7 @@ pub mod m20250218_093632_server_manage_permission;
 pub mod m20250301_005919_add_soft_delete_columns;
 mod m20250315_073350_delete_status_for_users;
 mod m20250316_015417_add_preset_user_status;
+mod m20250329_120341_add_announcement_table;
 
 pub struct Migrator;
 
@@ -37,6 +38,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20250301_005919_add_soft_delete_columns::Migration),
             Box::new(m20250315_073350_delete_status_for_users::Migration),
             Box::new(m20250316_015417_add_preset_user_status::Migration),
+            Box::new(m20250329_120341_add_announcement_table::Migration),
         ]
     }
 }

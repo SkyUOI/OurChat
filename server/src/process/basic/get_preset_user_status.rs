@@ -1,7 +1,9 @@
 use pb::service::basic::preset_user_status::v1::{
     GetPresetUserStatusRequest, GetPresetUserStatusResponse,
 };
-use sea_orm::{ActiveValue, ConnectionTrait, EntityTrait, Insert, QueryOrder, QuerySelect};
+use sea_orm::{
+    ActiveModelTrait, ActiveValue, ConnectionTrait, EntityTrait, QueryOrder, QuerySelect,
+};
 use tonic::{Request, Response, Status};
 
 use crate::{process::error_msg::SERVER_ERROR, server::BasicServiceProvider};
@@ -47,8 +49,8 @@ pub async fn add_preset_user_status(dbpool: &impl ConnectionTrait, name: &str) {
     let new_status = user_status::ActiveModel {
         name: ActiveValue::Set(name.to_string()),
     };
-    Insert::one(new_status)
-        .exec(dbpool)
+    new_status
+        .insert(dbpool)
         .await
         .expect("Failed to add preset user status");
 }

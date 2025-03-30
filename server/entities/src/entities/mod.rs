@@ -2,6 +2,7 @@
 
 pub mod prelude;
 
+pub mod announcement;
 pub mod authority;
 pub mod files;
 pub mod friend;
