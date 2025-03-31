@@ -1774,9 +1774,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.5.32"
+version = "4.5.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6088f3ae8c3608d19260cd7445411865a485688711b78b5be70d78cd96136f83"
+checksum = "e958897981290da2a852763fe9cdb89cd36977a5d729023127095fa94d95e2ff"
 dependencies = [
  "clap_builder",
  "clap_derive 4.5.32",
@@ -1784,9 +1784,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.5.32"
+version = "4.5.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22a7ef7f676155edfb82daa97f99441f3ebf4a58d5e32f295a56259f1b6facc8"
+checksum = "83b0f35019843db2160b5bb19ae09b4e6411ac33fc6a712003c33e03090e2489"
 dependencies = [
  "anstream",
  "anstyle",
@@ -2985,7 +2985,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "33d852cb9b869c2a9b3df2f71a3074817f01e1844f839a144f5fcef059a4eb5d"
 dependencies = [
  "libc",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -4116,7 +4116,7 @@ dependencies = [
  "anyhow",
  "base",
  "claims",
- "clap 4.5.32",
+ "clap 4.5.34",
  "client",
  "collection_literals",
  "config",
@@ -5373,7 +5373,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "base",
- "clap 4.5.32",
+ "clap 4.5.34",
  "config",
  "pingora",
  "serde",
@@ -7363,7 +7363,7 @@ version = "0.13.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be769465445e8c1474e9c5dac2018218498557af32d9ed057325ec9a41ae81bf"
 dependencies = [
- "heck 0.5.0",
+ "heck 0.4.1",
  "itertools 0.14.0",
  "log",
  "multimap",
@@ -7510,7 +7510,7 @@ dependencies = [
  "once_cell",
  "socket2 0.5.8",
  "tracing",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -8195,7 +8195,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.4.15",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -8208,7 +8208,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.9.3",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -8447,7 +8447,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bf2a390d6528f8e5c9ecd327bbb1a4c6cd7ab8333ef0da97010d5dc8f83f01c4"
 dependencies = [
  "chrono",
- "clap 4.5.32",
+ "clap 4.5.34",
  "dotenvy",
  "glob",
  "regex",
@@ -8478,7 +8478,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2c38451d5112e3a518a02251b5e6d3bc72e626957a44a79264716808a4c28ee0"
 dependencies = [
  "async-trait",
- "clap 4.5.32",
+ "clap 4.5.34",
  "dotenvy",
  "sea-orm",
  "sea-orm-cli",
@@ -8687,7 +8687,7 @@ dependencies = [
  "bytes",
  "chrono",
  "claims",
- "clap 4.5.32",
+ "clap 4.5.34",
  "client",
  "collection_literals",
  "colored",
@@ -9350,7 +9350,7 @@ dependencies = [
  "cfg-if",
  "libc",
  "psm",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -9365,7 +9365,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "base",
- "clap 4.5.32",
+ "clap 4.5.34",
  "client",
  "dashmap",
  "mimalloc",
@@ -9569,7 +9569,7 @@ dependencies = [
  "getrandom 0.3.2",
  "once_cell",
  "rustix 1.0.3",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
