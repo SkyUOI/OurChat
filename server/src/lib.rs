@@ -1,7 +1,6 @@
 #![feature(decl_macro)]
 #![feature(duration_constructors)]
 
-mod cmd;
 mod cryption;
 pub mod db;
 pub mod process;
@@ -11,7 +10,7 @@ mod shared_state;
 pub mod utils;
 
 use anyhow::bail;
-use base::consts::{self, CONFIG_FILE_ENV_VAR, LOG_OUTPUT_DIR, SERVER_INFO_PATH, STDIN_AVAILABLE};
+use base::consts::{self, CONFIG_FILE_ENV_VAR, LOG_OUTPUT_DIR, SERVER_INFO_PATH};
 use base::database::DbPool;
 use base::database::postgres::PostgresDbCfg;
 use base::database::redis::RedisCfg;
@@ -19,17 +18,14 @@ use base::rabbitmq::RabbitMQCfg;
 use base::setting::debug::DebugCfg;
 use base::setting::{Setting, UserSetting};
 use base::shutdown::{ShutdownRev, ShutdownSdr};
-use base::{log, merge_json};
+use base::{log, merge_json, setting};
 use clap::Parser;
-use cmd::CommandTransmitData;
-use config::{ConfigError, File};
 use dashmap::DashMap;
 use db::file_storage;
 use futures_util::future::join_all;
 use parking_lot::{Mutex, Once};
 use process::error_msg::MAINTAINING;
 use rand::Rng;
-use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 use size::Size;
 use std::cmp::Ordering;
@@ -40,7 +36,7 @@ use std::{
     path::{Path, PathBuf},
     sync::{Arc, LazyLock},
 };
-use tokio::{sync::mpsc, task::JoinHandle};
+use tokio::task::JoinHandle;
 use tracing::info;
 
 #[derive(Debug, Parser, Default)]
@@ -52,8 +48,6 @@ pub struct ArgsParser {
     pub ip: Option<String>,
     #[command(flatten)]
     pub shared_cfg: ParserCfg,
-    #[arg(long, help = "whether to enable cmd")]
-    pub enable_cmd: Option<bool>,
     #[arg(long, help = "server info file path", default_value = SERVER_INFO_PATH)]
     pub server_info: PathBuf,
 }
@@ -74,12 +68,6 @@ pub struct MainCfg {
     pub auto_clean_duration: u64,
     #[serde(default = "consts::default_file_save_time")]
     pub file_save_time: Duration,
-    #[serde(default = "consts::default_enable_cmd")]
-    pub enable_cmd: bool,
-    #[serde(default = "consts::default_enable_cmd_stdin")]
-    pub enable_cmd_stdin: bool,
-    #[serde(default)]
-    pub cmd_network_port: Option<u16>,
     #[serde(default = "consts::default_user_files_store_limit")]
     pub user_files_limit: Size,
     #[serde(default = "consts::default_friends_number_limit")]
@@ -128,16 +116,6 @@ pub struct DbArgCfg {
     pub fetch_msg_page_size: u64,
 }
 
-/// Read a config file from the given path
-///
-/// This function returns Ok(config::Config) if the file is valid, or
-/// Err(ConfigError) if it is invalid.
-fn read_a_config(path: impl AsRef<Path>) -> Result<config::Config, ConfigError> {
-    config::Config::builder()
-        .add_source(File::with_name(path.as_ref().to_str().unwrap()))
-        .build()
-}
-
 impl MainCfg {
     pub fn new(config_path: Vec<impl Into<PathBuf>>) -> anyhow::Result<Self> {
         let len = config_path.len();
@@ -154,14 +132,14 @@ impl MainCfg {
             iter.next().unwrap().into()
         };
         // read a config file
-        let mut cfg: serde_json::Value = read_a_config(&cfg_path)
+        let mut cfg: serde_json::Value = setting::read_a_config(&cfg_path)
             .expect("Failed to build config")
             .try_deserialize()
             .expect("Wrong config file structure");
         let mut configs_list = vec![cfg_path];
         for i in iter {
             let i = i.into();
-            let merge_cfg: serde_json::Value = read_a_config(&i)
+            let merge_cfg: serde_json::Value = setting::read_a_config(&i)
                 .expect("Failed to build config")
                 .try_deserialize()
                 .expect("Wrong config file structure");
@@ -388,29 +366,6 @@ fn clear() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn cmd_start(
-    shared_data: Arc<SharedData>,
-    command_rev: mpsc::Receiver<CommandTransmitData>,
-    shutdown_sender: ShutdownSdr,
-    db_conn: DatabaseConnection,
-    test_mode: bool,
-) -> anyhow::Result<()> {
-    if !test_mode {
-        match cmd::cmd_process_loop(shared_data, db_conn, command_rev, shutdown_sender.clone())
-            .await
-        {
-            Ok(()) => {}
-            Err(e) => {
-                tracing::error!("cmd error:{}", e);
-            }
-        };
-    } else {
-        let mut shutdown_receiver = shutdown_sender.new_receiver("cmd process loop", "cmd loop");
-        shutdown_receiver.wait_shutting_down().await;
-    }
-    Ok(())
-}
-
 /// This function listen to sigterm and ctrl-c signal. When the signal is received, it will call
 /// `shutdown_all_tasks` to shut down all tasks and exit the process.
 fn exit_signal(#[allow(unused_mut)] mut shutdown_sender: ShutdownSdr) -> anyhow::Result<()> {
@@ -573,9 +528,7 @@ impl Application {
         // Set up shared state
         shared_state::set_auto_clean_duration(main_cfg.auto_clean_duration);
         shared_state::set_file_save_days(
-            chrono::Duration::from_std(main_cfg.file_save_time)
-                .unwrap()
-                .num_days() as u64,
+            chrono::Duration::from_std(main_cfg.file_save_time)?.num_days() as u64,
         );
         shared_state::set_friends_number_limit(main_cfg.friends_number_limit);
 
@@ -591,12 +544,6 @@ impl Application {
         let addr: SocketAddr = format!("{}:{}", &main_cfg.ip, port).parse()?;
         main_cfg.port = addr.port();
 
-        // enable cmd
-        let enable_cmd = match parser.enable_cmd {
-            None => main_cfg.enable_cmd,
-            Some(enable_cmd) => enable_cmd,
-        };
-        main_cfg.enable_cmd = enable_cmd;
         let abort_sender = ShutdownSdr::new(None);
         db::init_db_system();
         // connect to db
@@ -665,53 +612,6 @@ impl Application {
             .start(self.abort_sender.new_receiver("file system", "file system"));
         // Start the shutdown signal listener
         exit_signal(self.abort_sender.clone())?;
-        // Start the cmd
-        if cfg.enable_cmd {
-            let (command_sdr, command_rev) = mpsc::channel(50);
-            match cfg.cmd_network_port {
-                None => {
-                    // not start network cmd
-                }
-                Some(port) => {
-                    let command_sdr = command_sdr.clone();
-                    let shutdown_rev = self
-                        .abort_sender
-                        .new_receiver("network cmd", "network source");
-                    tokio::spawn(async move {
-                        match cmd::setup_network(port, command_sdr, shutdown_rev).await {
-                            Ok(_) => {}
-                            Err(e) => {
-                                tracing::error!("network cmd error:{}", e);
-                            }
-                        }
-                    });
-                }
-            }
-            // Start the cmd from stdin
-            if cfg.enable_cmd_stdin && *STDIN_AVAILABLE {
-                let shutdown_sender = self.abort_sender.clone();
-                tokio::spawn(async move {
-                    match cmd::setup_stdin(
-                        command_sdr,
-                        shutdown_sender.new_receiver("stdin cmd", "stdin source"),
-                    )
-                    .await
-                    {
-                        Ok(_) => {}
-                        Err(e) => {
-                            tracing::error!("cmd error:{}", e);
-                        }
-                    }
-                });
-            }
-            tokio::spawn(cmd_start(
-                self.shared.clone(),
-                command_rev,
-                self.abort_sender.clone(),
-                self.pool.db_pool.clone(),
-                cfg.cmd_args.test_mode,
-            ));
-        }
         info!("Start to register service to registry");
         info!("Server started");
         self.started_notify.notify_waiters();

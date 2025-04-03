@@ -3,11 +3,8 @@ use crate::db::redis::{
 };
 use base::consts::{ID, SessionID};
 use deadpool_redis::redis::AsyncCommands;
-use entities::{role_permissions, session, session_relation, user_role_relation};
-use sea_orm::{
-    ActiveModelTrait, ActiveValue, ColumnTrait, ConnectionTrait, DatabaseTransaction, EntityTrait,
-    QueryFilter,
-};
+use entities::{role, role_permissions, session, session_relation, user_role_relation};
+use sea_orm::{ActiveValue, DatabaseTransaction, QuerySelect, prelude::*};
 use std::time::Duration;
 
 /// Retrieves all session relations associated with the given user ID.
@@ -204,24 +201,21 @@ pub async fn if_permission_exist(
     permission_checked: i64,
     db_conn: &impl ConnectionTrait,
 ) -> Result<bool, sea_orm::DbErr> {
-    // get all roles first
-    let roles = user_role_relation::Entity::find()
+    let exists = user_role_relation::Entity::find()
+        .join(
+            sea_orm::JoinType::InnerJoin,
+            user_role_relation::Relation::Role.def(),
+        )
+        .join(
+            sea_orm::JoinType::InnerJoin,
+            role::Relation::RolePermissions.def(),
+        )
         .filter(user_role_relation::Column::UserId.eq(user_id))
         .filter(user_role_relation::Column::SessionId.eq(session_id))
-        .all(db_conn)
+        .filter(role_permissions::Column::PermissionId.eq(permission_checked))
+        .count(db_conn)
         .await?;
-    for i in &roles {
-        let permissions_queried = role_permissions::Entity::find()
-            .filter(role_permissions::Column::RoleId.eq(i.role_id))
-            .all(db_conn)
-            .await?;
-        for j in permissions_queried {
-            if j.permission_id == permission_checked {
-                return Ok(true);
-            }
-        }
-    }
-    Ok(false)
+    Ok(exists > 0)
 }
 
 /// Adds a user to a session with a specified role.

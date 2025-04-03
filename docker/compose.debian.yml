@@ -5,9 +5,9 @@ services:
     init: true
     image: skyuoi/ourchat:latest-debian
     working_dir: /root
-    # If you want to expose the ourchat server port, uncomment the following lines
-    # ports:
-    # - "7777:7777"
+    ports:
+      - "7777:7777"
+      - "7779:7779"
     networks:
       - net
     depends_on:

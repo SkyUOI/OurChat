@@ -3,8 +3,6 @@ members = [
     "server",
     "server/migration",
     "server/derive",
-    "server/server_manager",
-    "server/server_manager_gui",
     "server/base",
     "server/load_balancer",
     "server/client",
@@ -67,7 +65,6 @@ async-trait = { version = "0" }
 prost = { version = "0" }
 jsonwebtoken = "9"
 tower = { version = "0" }
-tower-http = { version = "0" }
 hyper = { version = "1", features = ["full"] }
 hyper-util = { version = "0" }
 http-body-util = "0"
@@ -91,6 +88,7 @@ actix-cors = "0"
 actix-files = "0.6"
 humantime = "2"
 humantime-serde = "1"
+secrecy = "0"
 
 [workspace.dependencies.lettre]
 version = "0"
@@ -103,9 +101,9 @@ default-features = false
 features = ["json", "rustls-tls"]
 
 [workspace.dependencies.tonic]
-version = "0"
+version = "0.13"
 default-features = false
-features = ["tls", "codegen", "prost", "channel", "transport"]
+features = ["codegen", "prost", "channel", "transport", "router", "server"]
 
 [workspace.dependencies.sqlx]
 version = "0"

@@ -4,7 +4,7 @@
 use crate::{impl_newtype_int, impl_newtype_string};
 use pb::service::basic::server::v1::ServerVersion;
 use size::Size;
-use std::{io::IsTerminal, path::PathBuf, sync::LazyLock, time::Duration};
+use std::{path::PathBuf, sync::LazyLock, time::Duration};
 
 /// OCID Length
 pub const OCID_LEN: usize = 10;
@@ -179,9 +179,17 @@ pub const fn default_password_strength_limit() -> zxcvbn::Score {
     zxcvbn::Score::One
 }
 
-pub static SERVER_INFO_PATH: &str = "server_info.json";
+pub const fn default_network_cmd_port() -> u16 {
+    7779
+}
 
-pub static STDIN_AVAILABLE: LazyLock<bool> = LazyLock::new(|| std::io::stdin().is_terminal());
+pub mod option {
+    pub const fn default_network_cmd_port() -> Option<u16> {
+        Some(super::default_network_cmd_port())
+    }
+}
+
+pub static SERVER_INFO_PATH: &str = "server_info.json";
 
 pub static VERSION_SPLIT: LazyLock<ServerVersion> = LazyLock::new(|| {
     let ver = crate::build::PKG_VERSION.split('.').collect::<Vec<_>>();

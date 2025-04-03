@@ -73,6 +73,9 @@ use pb::service::ourchat::unregister::v1::{UnregisterRequest, UnregisterResponse
 use pb::service::ourchat::upload::v1::{UploadRequest, UploadResponse};
 use pb::service::ourchat::v1::our_chat_service_server::{OurChatService, OurChatServiceServer};
 use pb::service::server_manage::delete_account::v1::{DeleteAccountRequest, DeleteAccountResponse};
+use pb::service::server_manage::set_server_status::v1::{
+    SetServerStatusRequest, SetServerStatusResponse,
+};
 use pb::service::server_manage::v1::server_manage_service_server::{
     ServerManageService, ServerManageServiceServer,
 };
@@ -82,6 +85,7 @@ use std::pin::Pin;
 use std::sync::{Arc, LazyLock};
 use tokio::net::TcpListener;
 use tokio::select;
+use tonic::service::Routes;
 use tonic::{Request, Response, Status};
 use tower::Service;
 use tower::ServiceExt;
@@ -99,6 +103,7 @@ pub struct RpcServer {
 
 /// Server management service provider
 pub struct ServerManageServiceProvider {
+    pub shared_data: Arc<SharedData>,
     pub db: DbPool,
 }
 
@@ -140,8 +145,11 @@ impl RpcServer {
     /// # Returns
     /// Result indicating success or failure
     pub async fn run(self, mut shutdown_rev: ShutdownRev) -> anyhow::Result<()> {
+        // Log server startup
         info!("starting rpc server, connecting to {}", self.addr);
         let addr = self.addr;
+
+        // Initialize service providers with shared resources
         let basic_service = BasicServiceProvider {
             shared_data: self.shared_data.clone(),
             db: self.db.clone(),
@@ -152,12 +160,17 @@ impl RpcServer {
             rabbitmq: self.rabbitmq.clone(),
         };
         let server_manage_service = ServerManageServiceProvider {
+            shared_data: self.shared_data.clone(),
             db: self.db.clone(),
         };
+
+        // Clone shared data for service interceptors
         let shared_data = self.shared_data.clone();
         let shared_data1 = self.shared_data.clone();
         let shared_data2 = self.shared_data.clone();
         let shared_data3 = self.shared_data.clone();
+
+        // Create service instances with interceptors for authentication and maintenance checks
         let main_svc = OurChatServiceServer::with_interceptor(self, move |mut req| {
             // Check if server is in maintenance mode
             shared_data.convert_maintaining_into_grpc_status()?;
@@ -176,16 +189,23 @@ impl RpcServer {
         });
 
         let server_manage_svc =
-            ServerManageServiceServer::with_interceptor(server_manage_service, move |req| {
+            ServerManageServiceServer::with_interceptor(server_manage_service, move |mut req| {
                 shared_data3.convert_maintaining_into_grpc_status()?;
+                Self::check_auth(&mut req)?;
                 Ok(req)
             });
-        let grpc_server = tonic::transport::Server::builder()
-            .add_service(main_svc)
-            .add_service(basic_svc)
-            .add_service(auth_svc)
-            .add_service(server_manage_svc)
-            .into_service();
+
+        // Build the gRPC router with all services
+        let mut builder = Routes::builder();
+        builder.add_service(main_svc);
+        builder.add_service(basic_svc);
+        builder.add_service(auth_svc);
+        builder.add_service(server_manage_svc);
+        let routes = builder.routes();
+        let test = routes.prepare();
+        let grpc_server = tower::ServiceBuilder::new().service(test);
+
+        // Main server loop
         let server = async move {
             let listener = TcpListener::bind(addr).await?;
             loop {
@@ -200,32 +220,56 @@ impl RpcServer {
                         move |req: hyper::Request<hyper::body::Incoming>| {
                             let svc = svc.clone();
                             async move {
+                                // Convert incoming request to appropriate format
                                 let (parts, body) = req.into_parts();
                                 let body = UnsyncBoxBody::<Bytes, Status>::new(
                                     body.map_err(|_| Status::internal("Body error")),
                                 );
-                                let converted_req = hyper::Request::from_parts(parts, body);
+                                let converted_req =
+                                    hyper::Request::from_parts(parts, tonic::body::Body::new(body));
 
+                                // Handle gRPC and non-gRPC requests differently
                                 if is_grpc_request(&converted_req) {
-                                    let mut svc = svc.clone();
+                                    // Process gRPC request
+                                    let mut svc = tower::util::MapRequest::new(
+                                        svc.clone(),
+                                        |req: hyper::Request<tonic::body::Body>| req,
+                                    );
                                     match svc.ready().await {
-                                        Ok(service) => match service.call(converted_req).await {
-                                            Ok(res) => Ok::<_, Status>(res),
-                                            Err(e) => {
-                                                let body =
-                                                    Full::new(Bytes::from(format!("Error: {}", e)))
-                                                        .map_err(|_| Status::internal("Body error"))
-                                                        .boxed_unsync();
-                                                Ok::<_, Status>(
-                                                    hyper::Response::builder()
-                                                        .status(500)
-                                                        .header("content-type", "text/plain")
-                                                        .body(body)
-                                                        .unwrap(),
-                                                )
+                                        Ok(service) => {
+                                            // Handle successful service call
+                                            let resp = service.call(converted_req).await;
+                                            match resp {
+                                                Ok(res) => {
+                                                    let (parts, body) = res.into_parts();
+                                                    let mapped_body = body.map_err(|e| {
+                                                        Status::internal(format!("Error: {:?}", e))
+                                                    });
+                                                    let boxed_body =
+                                                        UnsyncBoxBody::new(mapped_body);
+                                                    Ok::<_, Status>(hyper::Response::from_parts(
+                                                        parts, boxed_body,
+                                                    ))
+                                                }
+                                                Err(e) => {
+                                                    let body = Full::new(Bytes::from(format!(
+                                                        "Error: {}",
+                                                        e
+                                                    )))
+                                                    .map_err(|_| Status::internal("Body error"))
+                                                    .boxed_unsync();
+                                                    Ok::<_, Status>(
+                                                        hyper::Response::builder()
+                                                            .status(500)
+                                                            .header("content-type", "text/plain")
+                                                            .body(body)
+                                                            .unwrap(),
+                                                    )
+                                                }
                                             }
-                                        },
+                                        }
                                         Err(_) => {
+                                            // Handle service unavailable
                                             let body =
                                                 Full::new(Bytes::from("Service unavailable"))
                                                     .map_err(|_| Status::internal("Body error"))
@@ -239,6 +283,7 @@ impl RpcServer {
                                         }
                                     }
                                 } else {
+                                    // Handle non-gRPC request with 404
                                     let body = Full::new(Bytes::from("Not implemented"))
                                         .map_err(|_| Status::internal("Body error"))
                                         .boxed_unsync();
@@ -250,6 +295,7 @@ impl RpcServer {
                         },
                     );
 
+                    // Serve HTTP/2 connection
                     if let Err(err) = http2::Builder::new(hyper_util::rt::TokioExecutor::default())
                         .serve_connection(io, service)
                         .await
@@ -261,6 +307,8 @@ impl RpcServer {
             #[allow(unreachable_code)]
             Ok::<(), anyhow::Error>(())
         };
+
+        // Handle shutdown signal or server error
         select! {
             _ = shutdown_rev.wait_shutting_down() => {}
             err = server => {
@@ -549,7 +597,7 @@ impl OurChatService for RpcServer {
         process::ban_user(self, id, request).await
     }
 
-    /// Unban a previously banned user from a session
+    /// Unban a previous banned user from a session
     /// Allows user to rejoin the session
     #[tracing::instrument(skip(self))]
     async fn unban_user(
@@ -583,7 +631,7 @@ impl OurChatService for RpcServer {
         process::accept_friend(self, id, request).await
     }
 
-    /// Remove a user from friends list
+    /// Remove a user from the list of friends
     async fn delete_friend(
         &self,
         request: Request<DeleteFriendRequest>,
@@ -679,7 +727,7 @@ impl BasicService for BasicServiceProvider {
         Ok(Response::new(res))
     }
 
-    /// Get server information including version, status and configuration
+    /// Get server information including a version, status and configuration
     #[tracing::instrument(skip(self))]
     async fn get_server_info(
         &self,
@@ -745,6 +793,14 @@ impl ServerManageService for ServerManageServiceProvider {
         request: Request<DeleteAccountRequest>,
     ) -> Result<Response<DeleteAccountResponse>, Status> {
         process::delete_account(self, request).await
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn set_server_status(
+        &self,
+        request: Request<SetServerStatusRequest>,
+    ) -> Result<Response<SetServerStatusResponse>, Status> {
+        process::set_server_status(self, request).await
     }
 }
 
