@@ -5,6 +5,7 @@ package service.ourchat.msg_delivery.v1;
 import "google/protobuf/timestamp.proto";
 import "service/ourchat/friends/accept_friend/v1/accept_friend.proto";
 import "service/ourchat/friends/add_friend/v1/add_friend.proto";
+import "service/ourchat/msg_delivery/announcement/v1/announcement.proto";
 import "service/ourchat/msg_delivery/recall/v1/recall.proto";
 import "service/ourchat/session/invite_session/v1/invite_session.proto";
 import "service/ourchat/session/join_in_session/v1/join_in_session.proto";
@@ -42,6 +43,7 @@ message FetchMsgsResponse {
     session.join_in_session.v1.JoinInSessionApproval join_in_session_approval = 7;
     session.join_in_session.v1.AcceptJoinInSessionNotification accept_join_in_session = 9;
     friends.add_friend.v1.AddFriendApproval add_friend_approval = 8;
+    announcement.v1.Announcement announcement = 10;
   }
   // id of the message
   uint64 msg_id = 5;

@@ -2,6 +2,7 @@
 
 pub mod prelude;
 
+pub mod announcement;
 pub mod files;
 pub mod friend;
 pub mod manager_role_relation;
