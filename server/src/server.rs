@@ -804,12 +804,6 @@ impl ServerManageService for ServerManageServiceProvider {
     }
 }
 
-impl ServerManageServiceProvider {
-    pub fn check_admin(&self, id: ID) -> Result<bool, Status> {
-        Ok(true)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

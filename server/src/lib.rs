@@ -10,7 +10,7 @@ mod shared_state;
 pub mod utils;
 
 use anyhow::bail;
-use base::consts::{self, CONFIG_FILE_ENV_VAR, LOG_OUTPUT_DIR, SERVER_INFO_PATH, STDIN_AVAILABLE};
+use base::consts::{self, CONFIG_FILE_ENV_VAR, LOG_OUTPUT_DIR, SERVER_INFO_PATH};
 use base::database::DbPool;
 use base::database::postgres::PostgresDbCfg;
 use base::database::redis::RedisCfg;
@@ -20,7 +20,6 @@ use base::setting::{Setting, UserSetting};
 use base::shutdown::{ShutdownRev, ShutdownSdr};
 use base::{log, merge_json, setting};
 use clap::Parser;
-use config::File;
 use dashmap::DashMap;
 use db::file_storage;
 use futures_util::future::join_all;

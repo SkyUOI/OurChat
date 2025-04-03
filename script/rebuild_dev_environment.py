@@ -8,7 +8,8 @@ import basic
 
 def main():
     input(
-        "This is a dangerous operation, which will delete your database. Press enter to continue or ctrl+c to cancel.")
+        "This is a dangerous operation, which will delete your database. Press enter to continue or ctrl+c to cancel."
+    )
     if len(sys.argv) < 2:
         compose_file = "docker/compose.yml"
     else:
