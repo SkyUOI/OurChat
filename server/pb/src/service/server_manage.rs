@@ -4,6 +4,12 @@ pub mod delete_account {
     }
 }
 
+pub mod publish_announcement {
+    pub mod v1 {
+        include!("../generated/service.server_manage.publish_announcement.v1.rs");
+    }
+}
+
 pub mod v1 {
     include!("../generated/service.server_manage.v1.rs");
 }

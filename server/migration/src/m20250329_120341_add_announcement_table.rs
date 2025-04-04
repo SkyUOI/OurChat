@@ -24,10 +24,10 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .default(Expr::current_timestamp()),
                     )
-                    .col(big_unsigned(Announcement::PublisherID).not_null())
+                    .col(big_unsigned(Announcement::PublisherId).not_null())
                     .foreign_key(
                         ForeignKey::create()
-                            .from(Announcement::Table, Announcement::PublisherID)
+                            .from(Announcement::Table, Announcement::PublisherId)
                             .to(User::Table, User::Id)
                             .on_delete(ForeignKeyAction::Cascade)
                             .on_update(ForeignKeyAction::Cascade),
@@ -51,5 +51,5 @@ pub enum Announcement {
     Title,
     Content,
     CreatedAt,
-    PublisherID,
+    PublisherId,
 }

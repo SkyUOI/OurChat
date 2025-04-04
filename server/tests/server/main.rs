@@ -1,3 +1,4 @@
+mod announcement;
 mod auth_register;
 mod basic;
 mod chores;

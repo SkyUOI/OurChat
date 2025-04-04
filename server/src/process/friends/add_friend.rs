@@ -99,13 +99,21 @@ async fn add_friend_impl(
     });
     // TODO: is_encrypted
     let transaction = server.db.db_pool.begin().await?;
-    let _msg_model =
-        insert_msg_record(friend_id, None, respond_msg.clone(), false, &transaction).await?;
-    let msg_model = insert_msg_record(id, None, respond_msg.clone(), false, &transaction).await?;
+    let _msg_model = insert_msg_record(
+        friend_id,
+        None,
+        respond_msg.clone(),
+        false,
+        &transaction,
+        false,
+    )
+    .await?;
+    let msg_model =
+        insert_msg_record(id, None, respond_msg.clone(), false, &transaction, false).await?;
     transaction.commit().await?;
     // send this message to the user who is invited
     let fetch_response = FetchMsgsResponse {
-        msg_id: msg_model.chat_msg_id as u64,
+        msg_id: msg_model.msg_id as u64,
         time: Some(to_google_timestamp(msg_model.time.into())),
         respond_msg_type: Some(respond_msg),
     };

@@ -89,9 +89,10 @@ async fn send_msg_impl(
         respond_msg,
         req.is_encrypted,
         &db_conn.db_pool,
+        false,
     )
     .await?;
     Ok(SendMsgResponse {
-        msg_id: msg_id.chat_msg_id as u64,
+        msg_id: msg_id.msg_id as u64,
     })
 }

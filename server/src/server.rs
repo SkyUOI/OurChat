@@ -73,6 +73,9 @@ use pb::service::ourchat::unregister::v1::{UnregisterRequest, UnregisterResponse
 use pb::service::ourchat::upload::v1::{UploadRequest, UploadResponse};
 use pb::service::ourchat::v1::our_chat_service_server::{OurChatService, OurChatServiceServer};
 use pb::service::server_manage::delete_account::v1::{DeleteAccountRequest, DeleteAccountResponse};
+use pb::service::server_manage::publish_announcement::v1::{
+    PublishAnnouncementRequest, PublishAnnouncementResponse,
+};
 use pb::service::server_manage::v1::server_manage_service_server::{
     ServerManageService, ServerManageServiceServer,
 };
@@ -100,6 +103,7 @@ pub struct RpcServer {
 /// Server management service provider
 pub struct ServerManageServiceProvider {
     pub db: DbPool,
+    pub rabbitmq: deadpool_lapin::Pool,
 }
 
 /// Check if the request is a gRPC request by examining the content-type header
@@ -153,9 +157,10 @@ impl RpcServer {
         };
         let server_manage_service = ServerManageServiceProvider {
             db: self.db.clone(),
+            rabbitmq: self.rabbitmq.clone(),
         };
         let shared_data = self.shared_data.clone();
-        let shared_data1 = self.shared_data.clone();
+        let shared_data1: Arc<SharedData> = self.shared_data.clone();
         let shared_data2 = self.shared_data.clone();
         let shared_data3 = self.shared_data.clone();
         let main_svc = OurChatServiceServer::with_interceptor(self, move |mut req| {
@@ -745,6 +750,12 @@ impl ServerManageService for ServerManageServiceProvider {
         request: Request<DeleteAccountRequest>,
     ) -> Result<Response<DeleteAccountResponse>, Status> {
         process::delete_account(self, request).await
+    }
+    async fn publish_announcement(
+        &self,
+        request: Request<PublishAnnouncementRequest>,
+    ) -> Result<Response<PublishAnnouncementResponse>, Status> {
+        process::publish_announcement(self, request).await
     }
 }
 

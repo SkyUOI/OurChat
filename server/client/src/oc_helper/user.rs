@@ -324,6 +324,7 @@ impl TestUser {
         let msg_get = FetchMsgsRequest {
             time: Some(to_google_timestamp(self.timestamp_receive_msg)),
         };
+        tracing::info!("timestamp_receive_msg: {}", self.timestamp_receive_msg);
         let ret = self.oc().fetch_msgs(msg_get).await?;
         let mut ret_stream = ret.into_inner();
         let mut msgs = vec![];

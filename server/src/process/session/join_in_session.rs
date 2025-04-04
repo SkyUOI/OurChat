@@ -109,11 +109,12 @@ async fn join_in_session_impl(
         respond_msg.clone(),
         false,
         &server.db.db_pool,
+        false,
     )
     .await?;
     // try to send the message directly
     let fetch_response = FetchMsgsResponse {
-        msg_id: msg_model.chat_msg_id as u64,
+        msg_id: msg_model.msg_id as u64,
         time: Some(to_google_timestamp(msg_model.time.into())),
         respond_msg_type: Some(respond_msg),
     };

@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package service.server_manage.publish_announcement.v1;
+
+import "service/ourchat/msg_delivery/announcement/v1/announcement.proto";
+
+message PublishAnnouncementRequest {
+  ourchat.msg_delivery.announcement.v1.Announcement announcement = 1;
+}
+
+message PublishAnnouncementResponse {
+  ourchat.msg_delivery.announcement.v1.AnnouncementResponse announcement = 1;
+}

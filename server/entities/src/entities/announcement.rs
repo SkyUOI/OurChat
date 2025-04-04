@@ -5,17 +5,19 @@ use sea_orm::entity::prelude::*;
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
 #[sea_orm(table_name = "announcement")]
 pub struct Model {
-    #[sea_orm(primary_key, auto_increment = false)]
-    pub id: i64,
     pub title: String,
     #[sea_orm(column_type = "Text")]
     pub content: String,
     pub created_at: DateTimeWithTimeZone,
     pub publisher_id: i64,
+    #[sea_orm(primary_key)]
+    pub id: i64,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+    #[sea_orm(has_one = "super::announcement_msg::Entity")]
+    AnnouncementMsg,
     #[sea_orm(
         belongs_to = "super::user::Entity",
         from = "Column::PublisherId",
@@ -24,6 +26,12 @@ pub enum Relation {
         on_delete = "Cascade"
     )]
     User,
+}
+
+impl Related<super::announcement_msg::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::AnnouncementMsg.def()
+    }
 }
 
 impl Related<super::user::Entity> for Entity {

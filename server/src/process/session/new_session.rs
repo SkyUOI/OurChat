@@ -158,11 +158,12 @@ pub async fn send_verification_request(
         respond_msg.clone(),
         false,
         &server.db.db_pool,
+        false,
     )
     .await?;
     // try to send the message directly
     let fetch_response = FetchMsgsResponse {
-        msg_id: msg_model.chat_msg_id as u64,
+        msg_id: msg_model.msg_id as u64,
         time: Some(expire_at_google),
         respond_msg_type: Some(respond_msg),
     };

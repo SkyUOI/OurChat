@@ -96,7 +96,7 @@ async fn fetch_user_msg_impl(
                                 };
                             send_to_client(Ok(FetchMsgsResponse {
                                 respond_msg_type: Some(msg),
-                                msg_id: msg_model.chat_msg_id as u64,
+                                msg_id: msg_model.msg_id as u64,
                                 time: Some(to_google_timestamp(msg_model.time.into())),
                             }))
                             .await?;
@@ -125,6 +125,7 @@ async fn fetch_user_msg_impl(
             .await
             .context("cannot create channel")?;
         let queue_name = crate::rabbitmq::generate_client_name(id);
+        tracing::info!("queue name: {}", queue_name);
         channel
             .queue_declare(
                 &queue_name,
@@ -143,7 +144,18 @@ async fn fetch_user_msg_impl(
             )
             .await
             .context("failed to bind queue")?;
+        channel
+            .queue_bind(
+                &queue_name,
+                crate::rabbitmq::USER_MSG_EXCHANGE,
+                "",
+                QueueBindOptions::default(),
+                FieldTable::default(),
+            )
+            .await
+            .context("failed to bind queue")?;
         let batch = async move {
+            tracing::trace!("starting to consume");
             let mut consumer = channel
                 .basic_consume(
                     &queue_name,
@@ -168,7 +180,9 @@ async fn fetch_user_msg_impl(
                     }
                 });
             });
+            tracing::trace!("starting consumer");
             while let Some(delivery) = consumer.next().await {
+                tracing::trace!("deliver by rabbitmq");
                 let delivery = delivery?;
                 let msg = match FetchMsgsResponse::decode(delivery.data.as_slice()) {
                     Ok(m) => m,

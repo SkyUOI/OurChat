@@ -5,12 +5,12 @@ package service.ourchat.msg_delivery.announcement.v1;
 import "google/protobuf/timestamp.proto";
 
 message Announcement {
-  uint64 id = 2;
   string content = 1;
-  string title = 3;
-  uint64 publisher_id = 4;
+  string title = 2;
+  uint64 publisher_id = 3;
 }
 message AnnouncementResponse {
   Announcement announcement = 1;
   google.protobuf.Timestamp created_at = 2;
+  uint64 id = 3;
 }

@@ -224,4 +224,5 @@ pub enum UserChatMsg {
     SessionId,
     Time,
     IsEncrypted,
+    MsgId,
 }
