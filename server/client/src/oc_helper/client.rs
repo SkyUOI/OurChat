@@ -63,7 +63,6 @@ impl TestAppTrait for ArgsParser {
     fn test() -> Self {
         Self {
             port: Some(get_available_port()),
-            enable_cmd: Some(false),
             shared_cfg: ParserCfg {
                 test_mode: true,
                 ..Default::default()
@@ -175,7 +174,7 @@ impl TestApp {
             match sqlx::Postgres::drop_database(&self.db_url).await {
                 Ok(_) => {}
                 Err(e) => {
-                    tracing::error!("failed to drop database: {}", e);
+                    tracing::error!("failed to drop the database: {}", e);
                 }
             }
         }

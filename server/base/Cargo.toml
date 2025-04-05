@@ -34,6 +34,7 @@ http.workspace = true
 http-serde.workspace = true
 serde_json.workspace = true
 zxcvbn.workspace = true
+secrecy.workspace = true
 utils = { path = "../utils" }
 
 [build-dependencies]

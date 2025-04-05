@@ -101,7 +101,7 @@ impl MigrationTrait for Migration {
 #[derive(num_enum::TryFromPrimitive, num_enum::IntoPrimitive)]
 #[repr(i64)]
 pub enum PredefinedServerManagementPermission {
-    AccessCmd = 1,
+    PublishAnnouncement = 1,
     BanUser = 2,
     MuteUser = 3,
 }
@@ -113,16 +113,18 @@ pub enum PredefinedServerManagementRole {
 }
 
 #[derive(DeriveIden)]
-enum ServerManagementPermission {
+pub enum ServerManagementPermission {
     Table,
     Id,
+    Name,
     Description,
 }
 
 #[derive(DeriveIden)]
-enum ServerManagementRole {
+pub enum ServerManagementRole {
     Table,
     Id,
+    Name,
     Description,
 }
 
@@ -143,7 +145,7 @@ INSERT INTO server_management_role (description) VALUES ('admin');
     )
     .await?;
     conn.execute_unprepared(r#"
-INSERT INTO server_management_permission (id, description) VALUES (1, 'access cmd'), (2, 'ban user'), (3, 'mute user');
+INSERT INTO server_management_permission (id, description) VALUES (1, 'publish announcement'), (2, 'ban user'), (3, 'mute user');
     "#).await?;
     conn.execute_unprepared(
         r#"

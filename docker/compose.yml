@@ -7,6 +7,7 @@ services:
     working_dir: /root
     ports:
       - "7777:7777"
+      - "7779:7779"
     networks:
       - net
     depends_on:

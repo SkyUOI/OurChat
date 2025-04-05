@@ -11,7 +11,7 @@ impl MigrationTrait for Migration {
         manager
             .rename_table(
                 Table::rename()
-                    .table(MessageRecords::Table, MessageRecords::Table)
+                    .table(UserChatMsg::Table, MessageRecords::Table)
                     .to_owned(),
             )
             .await?;
@@ -38,7 +38,7 @@ impl MigrationTrait for Migration {
         manager
             .rename_table(
                 Table::rename()
-                    .table(MessageRecords::Table, MessageRecords::Table)
+                    .table(MessageRecords::Table, UserChatMsg::Table)
                     .to_owned(),
             )
             .await?;

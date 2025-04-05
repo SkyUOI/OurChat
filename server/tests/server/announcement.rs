@@ -1,21 +1,18 @@
 use std::{sync::Arc, time::Duration};
 
-use anyhow::Context;
 use client::TestApp;
-use hyper::Uri;
+use client::oc_helper::server_manager::TestServerManager;
+use migration::m20250218_093632_server_manage_permission::PredefinedServerManagementRole;
 use pb::service::{
     ourchat::msg_delivery::{
         announcement::v1::{Announcement, AnnouncementResponse},
         v1::fetch_msgs_response::RespondMsgType,
     },
-    server_manage::{
-        publish_announcement::v1::PublishAnnouncementRequest,
-        v1::server_manage_service_client::ServerManageServiceClient,
-    },
+    server_manage::publish_announcement::v1::PublishAnnouncementRequest,
 };
 use server::process::{add_announcement, get_announcement_by_id, get_announcements_by_time};
 use tokio::{join, sync::Mutex, time::sleep};
-use tonic::{Request, service::interceptor::InterceptedService, transport::Channel};
+use tonic::Request;
 
 #[tokio::test]
 async fn add_and_get_announcement() {
@@ -29,8 +26,7 @@ async fn add_and_get_announcement() {
     let id = match add_announcement(app.get_db_connection(), announcement.clone()).await {
         Ok(announcement) => announcement.id,
         Err(e) => {
-            tracing::error!("add announcement failed: {}", e);
-            panic!("add announcement failed")
+            panic!("add an announcement failed: {e}")
         }
     };
     let announcement_res = get_announcement_by_id(app.get_db_connection(), id)
@@ -48,8 +44,7 @@ async fn add_and_get_announcement() {
         match add_announcement(app.get_db_connection(), announcement.clone()).await {
             Ok(_) => {}
             Err(e) => {
-                tracing::error!("add announcement failed: {}", e);
-                panic!("add announcement failed")
+                panic!("add an announcement failed: {e}")
             }
         };
     }
@@ -79,36 +74,20 @@ async fn add_and_get_announcement() {
 async fn publish_and_fetch_announcement() {
     let mut app = TestApp::new_with_launching_instance().await.unwrap();
     let user = app.new_user().await.unwrap();
+    let user_id = user.lock().await.id;
     tracing::info!("user id: {}", user.lock().await.id);
-    type ServerManagerClient = ServerManageServiceClient<
-        InterceptedService<
-            Channel,
-            Box<
-                dyn Fn(tonic::Request<()>) -> Result<tonic::Request<()>, tonic::Status>
-                    + Send
-                    + Sync,
-            >,
-        >,
-    >;
-    struct TestServerManager {
-        client: Option<ServerManagerClient>,
-    }
-    impl TestServerManager {
-        pub async fn new(app: &TestApp) -> anyhow::Result<Self> {
-            let channel =
-                Channel::builder(Uri::from_maybe_shared(app.rpc_url.clone()).context("Uri Error")?)
-                    .connect()
-                    .await
-                    .context("Connect Error")?;
-            let client: Option<ServerManagerClient> =
-                Some(ServerManageServiceClient::with_interceptor(
-                    channel,
-                    Box::new(move |req: tonic::Request<()>| Ok(req)),
-                ));
-            Ok(Self { client })
-        }
-    }
-    let server_manager = Arc::new(Mutex::new(TestServerManager::new(&app).await.unwrap()));
+
+    let server_manager = Arc::new(Mutex::new(
+        TestServerManager::new(&app, user_id, user.lock().await.token.clone())
+            .await
+            .unwrap(),
+    ));
+    server_manager
+        .lock()
+        .await
+        .assign_role(PredefinedServerManagementRole::Admin as i64)
+        .await
+        .unwrap();
     let announcement = Announcement {
         title: "test".to_string(),
         content: "test".to_string(),
@@ -127,20 +106,19 @@ async fn publish_and_fetch_announcement() {
             .lock()
             .await
             .client
-            .as_mut()
-            .unwrap()
             .publish_announcement(Request::new(PublishAnnouncementRequest {
                 announcement: Some(announcement_bef.clone()),
             }))
             .await
             .unwrap();
+        sleep(Duration::from_millis(200)).await;
         let receive = user
             .lock()
             .await
-            .fetch_msgs(Duration::from_millis(1000))
+            .fetch_msgs(Duration::from_millis(1200))
             .await
             .unwrap();
-        assert_eq!(receive.len(), 2);
+        assert_eq!(receive.len(), 2, "{:?}", receive);
         match receive[0].to_owned().respond_msg_type.unwrap() {
             RespondMsgType::AnnouncementResponse(announcement) => {
                 assert_eq!(announcement.announcement.unwrap(), announcement_bef);
@@ -157,13 +135,11 @@ async fn publish_and_fetch_announcement() {
             _ => panic!("Wrong message type"),
         };
     });
-    sleep(Duration::from_millis(300)).await;
+    sleep(Duration::from_millis(400)).await;
     server_manager
         .lock()
         .await
         .client
-        .as_mut()
-        .unwrap()
         .publish_announcement(Request::new(PublishAnnouncementRequest {
             announcement: Some(announcement),
         }))

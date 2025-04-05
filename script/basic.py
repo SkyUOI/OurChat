@@ -11,13 +11,13 @@ def msg_system(cmd: str, msg=None):
         sys.exit(1)
 
 
-VERSION = "1.1.7"
+VERSION = "1.1.8"
 
 
 def version_check():
-    # get sea version
+    # get the sea version
     sea_version = subprocess.getoutput("sea --version").split()[1]
-    # check version
+    # check the version
     if VERSION != sea_version:
         return False
     return True

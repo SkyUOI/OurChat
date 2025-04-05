@@ -85,6 +85,7 @@ pub use server_manage::{
         publish_announcement::publish_announcement,
     },
     delete_account::delete_account,
+    set_server_status::set_server_status,
 };
 pub use session::{
     accept_join_in_session::accept_join_in_session,
