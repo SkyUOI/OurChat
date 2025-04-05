@@ -12,6 +12,7 @@ use std::sync::LazyLock;
 use tonic::transport::Channel;
 
 pub mod client;
+pub mod server_manager;
 pub mod user;
 
 #[derive(Debug, thiserror::Error)]

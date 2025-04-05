@@ -1,6 +1,6 @@
-use base::time::TimeStamp;
-use entities::{prelude::UserChatMsg, user_chat_msg};
+use entities::{message_records, prelude::MessageRecords};
 use migration::m20241229_022701_add_role_for_session::PredefinedPermissions;
+use pb::time::TimeStamp;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ConnectionTrait, DatabaseBackend, EntityTrait, ModelTrait,
     Paginator, PaginatorTrait, Statement,
@@ -36,16 +36,16 @@ pub async fn get_session_msgs<T: ConnectionTrait>(
     end_timestamp: TimeStamp,
     db_conn: &T,
     page_size: u64,
-) -> Result<Paginator<'_, T, sea_orm::SelectModel<user_chat_msg::Model>>, MsgError> {
-    let msgs = user_chat_msg::Entity::find()
-            .from_raw_sql(Statement::from_sql_and_values(
-                DatabaseBackend::Postgres,
-                r#"SELECT * FROM user_chat_msg
+) -> Result<Paginator<'_, T, sea_orm::SelectModel<message_records::Model>>, MsgError> {
+    let msgs = message_records::Entity::find()
+        .from_raw_sql(Statement::from_sql_and_values(
+            DatabaseBackend::Postgres,
+            r#"SELECT * FROM message_records
         WHERE time > $1 AND
-        (sender_id = $2 OR EXISTS (SELECT * FROM session_relation WHERE user_id = $2 AND session_id = user_chat_msg.session_id))"#,
-                [end_timestamp.into(), user_id.into()],
-            ))
-            .paginate(db_conn, page_size);
+        (sender_id = $2 OR EXISTS (SELECT * FROM session_relation WHERE user_id = $2 AND session_id = message_records.session_id)) OR (is_all_user = true)"#,
+            [end_timestamp.into(), user_id.into()],
+        ))
+        .paginate(db_conn, page_size);
     Ok(msgs)
 }
 
@@ -63,7 +63,7 @@ pub async fn del_msg(
     db_conn: &impl ConnectionTrait,
 ) -> Result<(), MsgError> {
     let msg_id = msg_id as i64;
-    let msg = match UserChatMsg::find_by_id(msg_id).one(db_conn).await? {
+    let msg = match MessageRecords::find_by_id(msg_id).one(db_conn).await? {
         None => return Err(MsgError::NotFound),
         Some(d) => d,
     };
@@ -96,12 +96,14 @@ pub async fn insert_msg_record(
     msg: RespondMsgType,
     is_encrypted: bool,
     db_conn: &impl ConnectionTrait,
-) -> Result<user_chat_msg::Model, MsgError> {
-    let msg = user_chat_msg::ActiveModel {
+    is_all_user: bool,
+) -> Result<message_records::Model, MsgError> {
+    let msg = message_records::ActiveModel {
         msg_data: ActiveValue::Set(serde_json::to_value(msg).unwrap()),
         sender_id: ActiveValue::Set(sender_id.into()),
         session_id: ActiveValue::Set(session_id.map(i64::from)),
         is_encrypted: ActiveValue::Set(is_encrypted),
+        is_all_user: ActiveValue::Set(is_all_user),
         ..Default::default()
     };
     let msg = msg.insert(db_conn).await?;

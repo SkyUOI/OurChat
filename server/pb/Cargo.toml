@@ -9,6 +9,8 @@ anyhow.workspace = true
 collection_literals.workspace = true
 prost.workspace = true
 serde.workspace = true
+entities = { path = "../entities" }
+chrono.workspace = true
 
 [build-dependencies]
 tonic-build.workspace = true

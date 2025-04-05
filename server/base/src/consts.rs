@@ -1,10 +1,10 @@
 //! Define constants
 //! TODO: use new type for roles and permissions
 
-use crate::{impl_newtype_int, impl_newtype_string};
 use pb::service::basic::server::v1::ServerVersion;
 use size::Size;
 use std::{path::PathBuf, sync::LazyLock, time::Duration};
+use utils::{impl_newtype_int, impl_newtype_string};
 
 /// OCID Length
 pub const OCID_LEN: usize = 10;

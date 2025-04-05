@@ -113,9 +113,10 @@ pub enum PredefinedServerManagementRole {
 }
 
 #[derive(DeriveIden)]
-enum ServerManagementPermission {
+pub enum ServerManagementPermission {
     Table,
     Id,
+    Name,
     Description,
 }
 
@@ -123,6 +124,7 @@ enum ServerManagementPermission {
 pub enum ServerManagementRole {
     Table,
     Id,
+    Name,
     Description,
 }
 

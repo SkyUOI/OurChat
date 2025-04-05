@@ -2,7 +2,7 @@ use crate::process::error_msg::{ROLE_NAME_EMPTY, SERVER_ERROR};
 use crate::server::RpcServer;
 use base::consts::ID;
 use pb::service::ourchat::session::add_role::v1::{AddRoleRequest, AddRoleResponse};
-use sea_orm::{ActiveModelTrait, ActiveValue, TransactionTrait};
+use sea_orm::{ActiveModelTrait, ActiveValue, EntityTrait, TransactionTrait};
 use tonic::{Request, Response, Status};
 
 pub async fn add_role(
@@ -60,13 +60,14 @@ async fn add_role_impl(
     let role = model.insert(&txn).await?;
 
     // add permissions
-    for permission_id in req.permissions {
-        let permission = entities::role_permissions::ActiveModel {
+    entities::role_permissions::Entity::insert_many(req.permissions.into_iter().map(|x| {
+        entities::role_permissions::ActiveModel {
             role_id: ActiveValue::Set(role.id),
-            permission_id: ActiveValue::Set(permission_id),
-        };
-        permission.insert(&txn).await?;
-    }
+            permission_id: ActiveValue::Set(x),
+        }
+    }))
+    .exec(&txn)
+    .await?;
 
     // commit transaction
     txn.commit().await?;

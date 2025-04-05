@@ -3,10 +3,12 @@ syntax = "proto3";
 package service.server_manage.v1;
 
 import "service/server_manage/delete_account/v1/delete_account.proto";
+import "service/server_manage/publish_announcement/v1/publish_announcement.proto";
 import "service/server_manage/set_server_status/v1/set_server_status.proto";
 
 service ServerManageService {
   rpc DeleteAccount(delete_account.v1.DeleteAccountRequest) returns (delete_account.v1.DeleteAccountResponse);
 
   rpc SetServerStatus(set_server_status.v1.SetServerStatusRequest) returns (set_server_status.v1.SetServerStatusResponse);
+  rpc PublishAnnouncement(publish_announcement.v1.PublishAnnouncementRequest) returns (publish_announcement.v1.PublishAnnouncementResponse);
 }

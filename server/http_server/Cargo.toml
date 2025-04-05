@@ -28,6 +28,7 @@ actix-cors.workspace = true
 mimalloc.workspace = true
 actix-files.workspace = true
 dotenvy.workspace = true
+utils = { path = "../utils" }
 
 [dev-dependencies]
 client = { path = "../client" }

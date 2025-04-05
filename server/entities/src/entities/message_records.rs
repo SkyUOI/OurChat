@@ -3,20 +3,23 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "user_chat_msg")]
+#[sea_orm(table_name = "message_records")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    pub chat_msg_id: i64,
+    pub msg_id: i64,
     #[sea_orm(column_type = "JsonBinary")]
     pub msg_data: Json,
     pub sender_id: i64,
     pub session_id: Option<i64>,
     pub time: DateTimeWithTimeZone,
     pub is_encrypted: bool,
+    pub is_all_user: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+    #[sea_orm(has_many = "super::announcement_msg::Entity")]
+    AnnouncementMsg,
     #[sea_orm(
         belongs_to = "super::session::Entity",
         from = "Column::SessionId",
@@ -33,6 +36,12 @@ pub enum Relation {
         on_delete = "Cascade"
     )]
     User,
+}
+
+impl Related<super::announcement_msg::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::AnnouncementMsg.def()
+    }
 }
 
 impl Related<super::session::Entity> for Entity {

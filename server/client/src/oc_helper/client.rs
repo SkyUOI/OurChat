@@ -5,16 +5,16 @@ use crate::oc_helper::user::{TestUser, TestUserShared};
 use base::consts::{ID, OCID, SessionID};
 use base::database::DbPool;
 use base::shutdown::ShutdownSdr;
-use base::time::{TimeStampUtc, from_google_timestamp};
 use migration::m20241229_022701_add_role_for_session::PredefinedRoles;
 use pb::service::auth::v1::auth_service_client::AuthServiceClient;
 use pb::service::basic::v1::basic_service_client::BasicServiceClient;
 use pb::service::basic::v1::{GetIdRequest, TimestampRequest};
 use pb::service::ourchat::v1::our_chat_service_client::OurChatServiceClient;
+use pb::time::{TimeStampUtc, from_google_timestamp};
 use sea_orm::TransactionTrait;
 use server::db::session::{BanStatus, MuteStatus, user_banned_status, user_muted_status};
-use server::utils::get_available_port;
-use server::{Application, ArgsParser, Cfg, ParserCfg, SharedData, process, utils};
+use server::helper::get_available_port;
+use server::{Application, ArgsParser, Cfg, ParserCfg, SharedData, helper, process};
 use sqlx::migrate::MigrateDatabase;
 use std::sync::Arc;
 use std::thread;
@@ -174,7 +174,7 @@ impl TestApp {
             match sqlx::Postgres::drop_database(&self.db_url).await {
                 Ok(_) => {}
                 Err(e) => {
-                    tracing::error!("failed to drop database: {}", e);
+                    tracing::error!("failed to drop the database: {}", e);
                 }
             }
         }
@@ -228,7 +228,7 @@ impl TestApp {
             users.push(self.new_user().await?);
         }
         // create a group in database level
-        let session_id = utils::generate_session_id()?;
+        let session_id = helper::generate_session_id()?;
         // then will join to session and add size column
         process::db::create_session_db(
             session_id,

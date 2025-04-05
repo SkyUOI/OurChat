@@ -1,7 +1,7 @@
 use super::error_msg::{NOT_STRONG_PASSWORD, invalid};
 use super::generate_access_token;
 use crate::process::error_msg::{SERVER_ERROR, exist};
-use crate::{db, server::AuthServiceProvider, shared_state, utils};
+use crate::{db, helper, server::AuthServiceProvider, shared_state};
 use anyhow::Context;
 use argon2::{Params, PasswordHasher, password_hash::SaltString};
 use base::consts::{self, ID};
@@ -33,17 +33,18 @@ async fn add_new_user(
     params: Params,
 ) -> Result<RegisterResponse, RegisterError> {
     // Generate snowflake id
-    let id = ID(utils::GENERATOR
+    let id = ID(helper::GENERATOR
         .generate()
         .context("failed to generate snowflake id")?
         .into_i64()
         .try_into()?);
     // Generate ocid by random
-    let ocid = utils::generate_ocid(consts::OCID_LEN);
+    let ocid = helper::generate_ocid(consts::OCID_LEN);
     let passwd = request.password;
-    let passwd = utils::spawn_blocking_with_tracing(move || compute_password_hash(&passwd, params))
-        .await
-        .context("compute hash error")?;
+    let passwd =
+        helper::spawn_blocking_with_tracing(move || compute_password_hash(&passwd, params))
+            .await
+            .context("compute hash error")?;
     let user = user::ActiveModel {
         id: ActiveValue::Set(id.into()),
         ocid: ActiveValue::Set(ocid),

@@ -78,7 +78,15 @@ pub use friends::{
     set_friend_info::set_friend_info,
 };
 pub use message::{fetch_user_msg::fetch_user_msg, recall::recall_msg, send_msg::send_msg};
-pub use server_manage::{delete_account::delete_account, set_server_status::set_server_status};
+pub use server_manage::{
+    announcement::{
+        add_announcement::add_announcement,
+        get_announcement::{get_announcement_by_id, get_announcements_by_time},
+        publish_announcement::publish_announcement,
+    },
+    delete_account::delete_account,
+    set_server_status::set_server_status,
+};
 pub use session::{
     accept_join_in_session::accept_join_in_session,
     accept_session::accept_session,
@@ -103,10 +111,10 @@ use crate::db::session::get_members;
 use crate::rabbitmq::USER_MSG_EXCHANGE;
 use crate::rabbitmq::generate_route_key;
 use base::consts::ID;
-use base::time::to_google_timestamp;
 use entities::prelude::*;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
+use pb::time::to_google_timestamp;
 use prost::Message;
 
 pub mod db {
@@ -190,6 +198,7 @@ pub async fn check_user_exist(
 pub enum Dest {
     User(ID),
     Session(SessionID),
+    All,
 }
 
 async fn transmit_msg(
@@ -225,6 +234,17 @@ async fn transmit_msg(
                     )
                     .await?;
             }
+        }
+        Dest::All => {
+            rabbitmq_connection
+                .basic_publish(
+                    USER_MSG_EXCHANGE,
+                    "",
+                    BasicPublishOptions::default(),
+                    buf.as_ref(),
+                    Default::default(),
+                )
+                .await?;
         }
     }
     Ok(())
@@ -268,10 +288,11 @@ pub async fn message_insert_and_transmit(
         msg.clone(),
         is_encrypted,
         db_conn,
+        false,
     )
     .await?;
     let fetch_response = FetchMsgsResponse {
-        msg_id: msg_model.chat_msg_id as u64,
+        msg_id: msg_model.msg_id as u64,
         time: Some(to_google_timestamp(msg_model.time.into())),
         respond_msg_type: Some(msg),
     };

@@ -2,11 +2,10 @@ use crate::db::messages::insert_msg_record;
 use crate::db::session::SessionError;
 use crate::process::error_msg::{SERVER_ERROR, not_found};
 use crate::process::{Dest, check_user_exist, transmit_msg};
-use crate::{db, server::RpcServer, utils};
+use crate::{db, helper, server::RpcServer};
 use anyhow::Context;
 use base::consts::{ID, SessionID};
 use base::database::DbPool;
-use base::time::to_google_timestamp;
 use entities::{friend, prelude::*};
 use invite_session::v1::InviteSession;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
@@ -15,6 +14,7 @@ use pb::service::ourchat::session::invite_session;
 use pb::service::ourchat::session::new_session::v1::{
     FailedMember, FailedReason, NewSessionRequest, NewSessionResponse,
 };
+use pb::time::to_google_timestamp;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, TransactionTrait};
 use tonic::{Request, Response};
 use tracing::error;
@@ -53,7 +53,7 @@ async fn new_session_impl(
     id: ID,
     req: Request<NewSessionRequest>,
 ) -> Result<NewSessionResponse, NewSessionError> {
-    let session_id = utils::generate_session_id()?;
+    let session_id = helper::generate_session_id()?;
     let mut failed_members = vec![];
     let req = req.into_inner();
     // check whether to send a verification request
@@ -158,11 +158,12 @@ pub async fn send_verification_request(
         respond_msg.clone(),
         false,
         &server.db.db_pool,
+        false,
     )
     .await?;
     // try to send the message directly
     let fetch_response = FetchMsgsResponse {
-        msg_id: msg_model.chat_msg_id as u64,
+        msg_id: msg_model.msg_id as u64,
         time: Some(expire_at_google),
         respond_msg_type: Some(respond_msg),
     };

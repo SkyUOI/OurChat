@@ -4,7 +4,7 @@ use crate::process::error_msg::not_found;
 use crate::{process::error_msg::SERVER_ERROR, server::RpcServer};
 use anyhow::Context;
 use base::consts::{ID, SessionID};
-use entities::user_chat_msg;
+use entities::message_records;
 use pb::service::ourchat::session::accept_session::v1::{
     AcceptSessionRequest, AcceptSessionResponse,
 };
@@ -50,10 +50,10 @@ async fn accept_impl(
     let time_limit = chrono::Utc::now()
         - chrono::Duration::from_std(server.shared_data.cfg.main_cfg.verification_expire_time)
             .unwrap();
-    let model = entities::user_chat_msg::Entity::find()
-        .filter(user_chat_msg::Column::SessionId.eq(req.session_id))
-        .filter(user_chat_msg::Column::SenderId.eq(id))
-        .filter(user_chat_msg::Column::Time.gt(time_limit))
+    let model = entities::message_records::Entity::find()
+        .filter(message_records::Column::SessionId.eq(req.session_id))
+        .filter(message_records::Column::SenderId.eq(id))
+        .filter(message_records::Column::Time.gt(time_limit))
         .one(&server.db.db_pool)
         .await?;
     if model.is_none() {

@@ -43,15 +43,15 @@ impl MainCfg {
 
     pub fn fix_paths(&mut self, base_path: &Path) -> anyhow::Result<()> {
         let full_basepath = base_path.parent().unwrap().canonicalize()?;
-        self.redis_cfg = base::resolve_relative_path(&full_basepath, Path::new(&self.redis_cfg))?;
-        self.db_cfg = base::resolve_relative_path(&full_basepath, Path::new(&self.db_cfg))?;
+        self.redis_cfg = utils::resolve_relative_path(&full_basepath, Path::new(&self.redis_cfg))?;
+        self.db_cfg = utils::resolve_relative_path(&full_basepath, Path::new(&self.db_cfg))?;
         self.rabbitmq_cfg =
-            base::resolve_relative_path(&full_basepath, Path::new(&self.rabbitmq_cfg))?;
-        self.logo_path = base::resolve_relative_path(&full_basepath, Path::new(&self.logo_path))?;
+            utils::resolve_relative_path(&full_basepath, Path::new(&self.rabbitmq_cfg))?;
+        self.logo_path = utils::resolve_relative_path(&full_basepath, Path::new(&self.logo_path))?;
         self.user_setting =
-            base::resolve_relative_path(&full_basepath, Path::new(&self.user_setting))?;
+            utils::resolve_relative_path(&full_basepath, Path::new(&self.user_setting))?;
         if let Some(email_cfg) = &self.email_cfg {
-            self.email_cfg = Some(base::resolve_relative_path(
+            self.email_cfg = Some(utils::resolve_relative_path(
                 &full_basepath,
                 Path::new(email_cfg),
             )?);

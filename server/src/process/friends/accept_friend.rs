@@ -3,10 +3,9 @@ use crate::db::session::SessionError;
 use crate::process::error_msg::{PERMISSION_DENIED, not_found};
 use crate::process::friends::mapped_add_friend_to_redis;
 use crate::process::{Dest, transmit_msg};
-use crate::{db, process::error_msg::SERVER_ERROR, server::RpcServer, utils};
+use crate::{db, helper, process::error_msg::SERVER_ERROR, server::RpcServer};
 use anyhow::Context;
 use base::consts::ID;
-use base::time::to_google_timestamp;
 use deadpool_redis::redis::AsyncCommands;
 use migration::m20241229_022701_add_role_for_session::PredefinedRoles;
 use pb::service::ourchat::friends::accept_friend::v1::{
@@ -15,6 +14,7 @@ use pb::service::ourchat::friends::accept_friend::v1::{
 use pb::service::ourchat::friends::add_friend::v1::AddFriendRequest;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
+use pb::time::to_google_timestamp;
 use sea_orm::{ActiveModelTrait, ActiveValue, TransactionTrait};
 use tonic::{Request, Response, Status};
 
@@ -100,7 +100,7 @@ async fn accept_friend_impl(
     let mut session_id = None;
     if req.status == AcceptFriendResult::Success as i32 {
         // create a session
-        session_id = Some(utils::generate_session_id()?);
+        session_id = Some(helper::generate_session_id()?);
         db::session::create_session_db(session_id.unwrap(), 0, "".to_owned(), &server.db.db_pool)
             .await?;
         let transaction = server.db.db_pool.begin().await?;
@@ -154,12 +154,20 @@ async fn accept_friend_impl(
     });
     // TODO: is_encrypted
     let transaction = server.db.db_pool.begin().await?;
-    let _msg_model =
-        insert_msg_record(inviter_id, None, respond_msg.clone(), false, &transaction).await?;
-    let msg_model = insert_msg_record(id, None, respond_msg.clone(), false, &transaction).await?;
+    let _msg_model = insert_msg_record(
+        inviter_id,
+        None,
+        respond_msg.clone(),
+        false,
+        &transaction,
+        false,
+    )
+    .await?;
+    let msg_model =
+        insert_msg_record(id, None, respond_msg.clone(), false, &transaction, false).await?;
     transaction.commit().await?;
     let fetch_response = FetchMsgsResponse {
-        msg_id: msg_model.chat_msg_id as u64,
+        msg_id: msg_model.msg_id as u64,
         time: Some(to_google_timestamp(msg_model.time.into())),
         respond_msg_type: Some(respond_msg),
     };

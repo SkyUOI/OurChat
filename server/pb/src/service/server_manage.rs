@@ -10,6 +10,12 @@ pub mod set_server_status {
     }
 }
 
+pub mod publish_announcement {
+    pub mod v1 {
+        include!("../generated/service.server_manage.publish_announcement.v1.rs");
+    }
+}
+
 pub mod v1 {
     include!("../generated/service.server_manage.v1.rs");
 }

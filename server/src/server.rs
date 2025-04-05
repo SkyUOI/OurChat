@@ -9,7 +9,6 @@ use crate::process::{self, ErrAuth, get_id_from_req};
 use crate::{SERVER_INFO, SharedData, ShutdownRev};
 use base::consts::{ID, OCID, VERSION_SPLIT};
 use base::database::DbPool;
-use base::time::to_google_timestamp;
 use http_body_util::BodyExt;
 use http_body_util::Full;
 use http_body_util::combinators::UnsyncBoxBody;
@@ -73,12 +72,16 @@ use pb::service::ourchat::unregister::v1::{UnregisterRequest, UnregisterResponse
 use pb::service::ourchat::upload::v1::{UploadRequest, UploadResponse};
 use pb::service::ourchat::v1::our_chat_service_server::{OurChatService, OurChatServiceServer};
 use pb::service::server_manage::delete_account::v1::{DeleteAccountRequest, DeleteAccountResponse};
+use pb::service::server_manage::publish_announcement::v1::{
+    PublishAnnouncementRequest, PublishAnnouncementResponse,
+};
 use pb::service::server_manage::set_server_status::v1::{
     SetServerStatusRequest, SetServerStatusResponse,
 };
 use pb::service::server_manage::v1::server_manage_service_server::{
     ServerManageService, ServerManageServiceServer,
 };
+use pb::time::to_google_timestamp;
 use process::error_msg::not_found;
 use std::net::SocketAddr;
 use std::pin::Pin;
@@ -105,6 +108,7 @@ pub struct RpcServer {
 pub struct ServerManageServiceProvider {
     pub shared_data: Arc<SharedData>,
     pub db: DbPool,
+    pub rabbitmq: deadpool_lapin::Pool,
 }
 
 /// Check if the request is a gRPC request by examining the content-type header
@@ -162,6 +166,7 @@ impl RpcServer {
         let server_manage_service = ServerManageServiceProvider {
             shared_data: self.shared_data.clone(),
             db: self.db.clone(),
+            rabbitmq: self.rabbitmq.clone(),
         };
 
         // Clone shared data for service interceptors
@@ -727,7 +732,7 @@ impl BasicService for BasicServiceProvider {
         Ok(Response::new(res))
     }
 
-    /// Get server information including a version, status and configuration
+    /// Get server information including the version, status and configuration
     #[tracing::instrument(skip(self))]
     async fn get_server_info(
         &self,
@@ -801,6 +806,12 @@ impl ServerManageService for ServerManageServiceProvider {
         request: Request<SetServerStatusRequest>,
     ) -> Result<Response<SetServerStatusResponse>, Status> {
         process::set_server_status(self, request).await
+    }
+    async fn publish_announcement(
+        &self,
+        request: Request<PublishAnnouncementRequest>,
+    ) -> Result<Response<PublishAnnouncementResponse>, Status> {
+        process::publish_announcement(self, request).await
     }
 }
 

@@ -1,7 +1,7 @@
 //! Helper functions for RabbitMQ management
 
 use reqwest::Client;
-use server::utils::generate_random_string;
+use server::helper::generate_random_string;
 
 pub const USER: &str = "guest";
 pub const PASSWORD: &str = "123456";

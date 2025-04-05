@@ -1,10 +1,10 @@
 use crate::{
+    helper::{create_file_with_dirs_if_not_exist, generate_random_string},
     process::error_msg::{
         FILE_HASH_ERROR, FILE_SIZE_ERROR, INCORRECT_ORDER, METADATA_ERROR, SERVER_ERROR,
         STORAGE_FULL,
     },
     server::RpcServer,
-    utils::{create_file_with_dirs_if_not_exist, generate_random_string},
 };
 use base::consts::ID;
 use entities::{files, prelude::*, user};

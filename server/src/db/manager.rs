@@ -1,5 +1,8 @@
 use base::consts::ID;
-use entities::{manager_role_relation, server_management_role, server_management_role_permissions};
+use entities::{
+    manager_role_relation, prelude::ServerManagementRolePermissions, server_management_role,
+    server_management_role_permissions,
+};
 use sea_orm::{QuerySelect, prelude::*};
 
 /// Checks if the manager has the given permission.
@@ -32,4 +35,68 @@ pub async fn manage_permission_existed(
         .count(db_conn)
         .await?;
     Ok(num > 0)
+}
+
+/// Adds a role for server management.
+///
+/// # Arguments
+///
+/// * `name` - The name of the role.
+/// * `description` - The description of the role.
+/// * `permissions` - The permissions of the role.
+/// * `db_conn` - A reference to the database connection implementing the `ConnectionTrait`.
+///
+/// # Warnings
+///
+/// Please use transaction
+///
+/// # Returns
+///
+/// * `Result<server_management_role::Model, sea_orm::DbErr>` - The created role model if the operation is successful, or a `DbErr` if the operation fails.
+pub async fn add_role(
+    name: String,
+    description: Option<String>,
+    permissions: impl IntoIterator<Item = i64>,
+    db_conn: &impl ConnectionTrait,
+) -> Result<server_management_role::Model, sea_orm::DbErr> {
+    let role = server_management_role::ActiveModel {
+        name: sea_orm::ActiveValue::Set(name),
+        description: sea_orm::ActiveValue::Set(description),
+        ..Default::default()
+    };
+    let model = role.insert(db_conn).await?;
+    ServerManagementRolePermissions::insert_many(permissions.into_iter().map(|x| {
+        server_management_role_permissions::ActiveModel {
+            permission_id: sea_orm::ActiveValue::Set(x),
+            role_id: sea_orm::ActiveValue::Set(model.id),
+        }
+    }))
+    .exec(db_conn)
+    .await?;
+    Ok(model)
+}
+
+/// Sets the role for a user.
+///
+/// # Arguments
+///
+/// * `user_id` - The ID of the user to set the role for.
+/// * `role_id` - The ID of the role to set for the user.
+/// * `db_conn` - A reference to the database connection implementing the `ConnectionTrait`.
+///
+/// # Returns
+///
+/// * `Result<(), sea_orm::DbErr>` - An empty result if the operation is successful, or a `DbErr` if the operation fails.
+pub async fn set_role(
+    user_id: ID,
+    role_id: i64,
+    db_conn: &impl ConnectionTrait,
+) -> Result<(), sea_orm::DbErr> {
+    manager_role_relation::ActiveModel {
+        user_id: sea_orm::ActiveValue::Set(user_id.into()),
+        role_id: sea_orm::ActiveValue::Set(role_id),
+    }
+    .insert(db_conn)
+    .await?;
+    Ok(())
 }

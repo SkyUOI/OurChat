@@ -10,12 +10,12 @@ use crate::{
 };
 use anyhow::Context;
 use base::consts::ID;
-use base::time::to_google_timestamp;
 use pb::service::ourchat::msg_delivery::recall::v1::{
     RecallMsgRequest, RecallMsgResponse, RecallNotification,
 };
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
+use pb::time::to_google_timestamp;
 use tonic::{Request, Response, Status};
 
 pub async fn recall_msg(
@@ -80,6 +80,7 @@ async fn recall_msg_internal(
         respond_msg.clone(),
         false,
         &server.db.db_pool,
+        false,
     )
     .await?;
     let connection = server
@@ -93,7 +94,7 @@ async fn recall_msg_internal(
         .context("cannot create channel")?;
     transmit_msg(
         FetchMsgsResponse {
-            msg_id: msg.chat_msg_id as u64,
+            msg_id: msg.msg_id as u64,
             respond_msg_type: Some(respond_msg),
             time: Some(to_google_timestamp(msg.time.into())),
         },
@@ -103,6 +104,6 @@ async fn recall_msg_internal(
     )
     .await?;
     Ok(RecallMsgResponse {
-        msg_id: msg.chat_msg_id as u64,
+        msg_id: msg.msg_id as u64,
     })
 }

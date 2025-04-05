@@ -1,7 +1,7 @@
 use super::{error_msg::not_found, generate_access_token};
 use crate::process::error_msg::{MISSING_AUTH_TYPE, WRONG_PASSWORD};
 use crate::{
-    db::helper::is_conflict, process::error_msg::SERVER_ERROR, server::AuthServiceProvider, utils,
+    db::helper::is_conflict, helper, process::error_msg::SERVER_ERROR, server::AuthServiceProvider,
 };
 use anyhow::Context;
 use argon2::{PasswordHash, PasswordVerifier};
@@ -57,7 +57,7 @@ async fn auth_db(request: AuthRequest, db_connection: &DbPool) -> Result<AuthRes
         Ok(data) => match data {
             Some(user) => {
                 let passwd = user.passwd;
-                if utils::spawn_blocking_with_tracing(move || {
+                if helper::spawn_blocking_with_tracing(move || {
                     verify_password_hash(&request.password, &passwd)
                 })
                 .await

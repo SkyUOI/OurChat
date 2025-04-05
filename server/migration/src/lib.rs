@@ -17,6 +17,11 @@ mod m20250315_073350_delete_status_for_users;
 mod m20250316_015417_add_preset_user_status;
 mod m20250329_120341_add_announcement_table;
 mod m20250329_153038_add_permission_link;
+mod m20250403_113515_alter_announcement_id;
+mod m20250404_114543_rename_user_chat_msg_to_message_records;
+mod m20250404_135851_add_is_all_user_in_message_records;
+mod m20250404_153258_add_announcement_message_table;
+mod m20250405_081542_add_name_for_server_manager_role;
 
 pub struct Migrator;
 
@@ -40,7 +45,12 @@ impl MigratorTrait for Migrator {
             Box::new(m20250315_073350_delete_status_for_users::Migration),
             Box::new(m20250316_015417_add_preset_user_status::Migration),
             Box::new(m20250329_120341_add_announcement_table::Migration),
+            Box::new(m20250403_113515_alter_announcement_id::Migration),
+            Box::new(m20250404_114543_rename_user_chat_msg_to_message_records::Migration),
+            Box::new(m20250404_135851_add_is_all_user_in_message_records::Migration),
+            Box::new(m20250404_153258_add_announcement_message_table::Migration),
             Box::new(m20250329_153038_add_permission_link::Migration),
+            Box::new(m20250405_081542_add_name_for_server_manager_role::Migration),
         ]
     }
 }

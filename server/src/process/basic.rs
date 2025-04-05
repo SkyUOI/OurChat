@@ -1,4 +1,3 @@
-pub mod announcement;
 pub mod get_preset_user_status;
 pub mod support;
 

@@ -33,12 +33,12 @@ pub enum Relation {
     Files,
     #[sea_orm(has_one = "super::manager_role_relation::Entity")]
     ManagerRoleRelation,
+    #[sea_orm(has_many = "super::message_records::Entity")]
+    MessageRecords,
     #[sea_orm(has_many = "super::role::Entity")]
     Role,
     #[sea_orm(has_many = "super::session_relation::Entity")]
     SessionRelation,
-    #[sea_orm(has_many = "super::user_chat_msg::Entity")]
-    UserChatMsg,
     #[sea_orm(has_many = "super::user_role_relation::Entity")]
     UserRoleRelation,
 }
@@ -61,6 +61,12 @@ impl Related<super::manager_role_relation::Entity> for Entity {
     }
 }
 
+impl Related<super::message_records::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::MessageRecords.def()
+    }
+}
+
 impl Related<super::role::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Role.def()
@@ -70,12 +76,6 @@ impl Related<super::role::Entity> for Entity {
 impl Related<super::session_relation::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::SessionRelation.def()
-    }
-}
-
-impl Related<super::user_chat_msg::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::UserChatMsg.def()
     }
 }
 
