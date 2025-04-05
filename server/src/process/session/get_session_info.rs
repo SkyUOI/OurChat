@@ -2,11 +2,11 @@ use super::query_session;
 use crate::process::error_msg::{REQUEST_INVALID_VALUE, SERVER_ERROR, not_found};
 use crate::{db, server::RpcServer};
 use base::consts::ID;
-use base::time::to_google_timestamp;
 use pb::service::ourchat::session::get_session_info::v1::RoleInfo;
 use pb::service::ourchat::session::get_session_info::v1::{
     GetSessionInfoRequest, GetSessionInfoResponse, QueryValues,
 };
+use pb::time::to_google_timestamp;
 use tonic::{Request, Response, Status};
 
 pub async fn get_session_info(

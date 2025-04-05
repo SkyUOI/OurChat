@@ -5,7 +5,6 @@ use crate::process::{Dest, friends, transmit_msg};
 use crate::{process::error_msg::SERVER_ERROR, server::RpcServer};
 use anyhow::Context;
 use base::consts::{ADD_FRIEND_REQUEST_EXPIRE, ID};
-use base::time::to_google_timestamp;
 use deadpool_redis::redis::AsyncCommands;
 use entities::prelude::Friend;
 use pb::service::ourchat::friends::add_friend::v1::{
@@ -13,6 +12,7 @@ use pb::service::ourchat::friends::add_friend::v1::{
 };
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
+use pb::time::to_google_timestamp;
 use sea_orm::{EntityTrait, TransactionTrait};
 use tonic::{Request, Response, Status};
 

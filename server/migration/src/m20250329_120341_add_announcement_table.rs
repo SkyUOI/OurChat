@@ -16,15 +16,14 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .if_not_exists()
                     .table(Announcement::Table)
-                    .col(big_unsigned(Announcement::Id).not_null().primary_key())
-                    .col(string(Announcement::Title).not_null())
-                    .col(text(Announcement::Content).not_null())
+                    .col(big_unsigned(Announcement::Id).primary_key())
+                    .col(string(Announcement::Title))
+                    .col(text(Announcement::Content))
                     .col(
                         timestamp_with_time_zone(Announcement::CreatedAt)
-                            .not_null()
                             .default(Expr::current_timestamp()),
                     )
-                    .col(big_unsigned(Announcement::PublisherId).not_null())
+                    .col(big_unsigned(Announcement::PublisherId))
                     .foreign_key(
                         ForeignKey::create()
                             .from(Announcement::Table, Announcement::PublisherId)

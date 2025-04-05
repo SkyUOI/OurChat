@@ -11,7 +11,7 @@ impl MigrationTrait for Migration {
         manager
             .rename_table(
                 Table::rename()
-                    .table(UserChatMsg::Table, MessageRecords::Table)
+                    .table(MessageRecords::Table, MessageRecords::Table)
                     .to_owned(),
             )
             .await?;
@@ -19,7 +19,7 @@ impl MigrationTrait for Migration {
             .alter_table(
                 Table::alter()
                     .table(MessageRecords::Table)
-                    .rename_column(Alias::new("chat_msg_id"), Alias::new("msg_id"))
+                    .rename_column(UserChatMsg::ChatMsgId, MessageRecords::MsgId)
                     .to_owned(),
             )
             .await?;
@@ -27,18 +27,18 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        // manager
-        //     .alter_table(
-        //         Table::alter()
-        //             .table(MessageRecords::Table)
-        //             .rename_column(Alias::new("msg_id"), Alias::new("chat_msg_id"))
-        //             .to_owned(),
-        //     )
-        //     .await?;
+        manager
+            .alter_table(
+                Table::alter()
+                    .table(MessageRecords::Table)
+                    .rename_column(MessageRecords::MsgId, UserChatMsg::ChatMsgId)
+                    .to_owned(),
+            )
+            .await?;
         manager
             .rename_table(
                 Table::rename()
-                    .table(MessageRecords::Table, UserChatMsg::Table)
+                    .table(MessageRecords::Table, MessageRecords::Table)
                     .to_owned(),
             )
             .await?;

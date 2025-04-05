@@ -1,7 +1,7 @@
 use crate::{
+    helper,
     process::error_msg::SERVER_ERROR,
     server::{AuthServiceProvider, VerifyStream},
-    utils,
 };
 use anyhow::Context;
 use base::rabbitmq::http_server::VerifyRecord;
@@ -14,7 +14,7 @@ use tonic::{Request, Response, Status};
 const TOKEN_LEN: usize = 20;
 
 pub fn generate_token() -> String {
-    utils::generate_random_string(TOKEN_LEN)
+    helper::generate_random_string(TOKEN_LEN)
 }
 
 pub async fn email_verify(

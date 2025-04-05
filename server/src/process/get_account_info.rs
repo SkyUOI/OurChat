@@ -7,11 +7,11 @@ use crate::process::error_msg::SERVER_ERROR;
 use crate::server::RpcServer;
 use anyhow::Context;
 use base::consts::ID;
-use base::time::to_google_timestamp;
 use deadpool_redis::redis::AsyncCommands;
 use pb::service::ourchat::get_account_info::v1::{
     GetAccountInfoRequest, GetAccountInfoResponse, OWNER_PRIVILEGE, RequestValues,
 };
+use pb::time::to_google_timestamp;
 use sea_orm::EntityTrait;
 use std::cmp::PartialEq;
 use std::sync::OnceLock;

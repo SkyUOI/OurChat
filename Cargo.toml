@@ -12,6 +12,7 @@ members = [
     "server/entities",
     "server/pb",
     "server/http_server",
+    "server/utils"
 ]
 resolver = "3"
 

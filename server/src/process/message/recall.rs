@@ -10,12 +10,12 @@ use crate::{
 };
 use anyhow::Context;
 use base::consts::ID;
-use base::time::to_google_timestamp;
 use pb::service::ourchat::msg_delivery::recall::v1::{
     RecallMsgRequest, RecallMsgResponse, RecallNotification,
 };
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
+use pb::time::to_google_timestamp;
 use tonic::{Request, Response, Status};
 
 pub async fn recall_msg(

@@ -4,22 +4,22 @@
 mod cmd;
 mod cryption;
 pub mod db;
+pub mod helper;
 pub mod process;
 pub mod rabbitmq;
 mod server;
 mod shared_state;
-pub mod utils;
 
 use anyhow::bail;
 use base::consts::{self, CONFIG_FILE_ENV_VAR, LOG_OUTPUT_DIR, SERVER_INFO_PATH, STDIN_AVAILABLE};
 use base::database::DbPool;
 use base::database::postgres::PostgresDbCfg;
 use base::database::redis::RedisCfg;
+use base::log;
 use base::rabbitmq::RabbitMQCfg;
 use base::setting::debug::DebugCfg;
 use base::setting::{Setting, UserSetting};
 use base::shutdown::{ShutdownRev, ShutdownSdr};
-use base::{log, merge_json};
 use clap::Parser;
 use cmd::CommandTransmitData;
 use config::{ConfigError, File};
@@ -42,6 +42,7 @@ use std::{
 };
 use tokio::{sync::mpsc, task::JoinHandle};
 use tracing::info;
+use utils::merge_json;
 
 #[derive(Debug, Parser, Default)]
 #[command(author = "SkyUOI", version = base::build::VERSION, about = "The Server of OurChat")]
@@ -254,12 +255,12 @@ impl MainCfg {
             .parent()
             .unwrap()
             .canonicalize()?;
-        self.redis_cfg = base::resolve_relative_path(&full_basepath, Path::new(&self.redis_cfg))?;
-        self.db_cfg = base::resolve_relative_path(&full_basepath, Path::new(&self.db_cfg))?;
+        self.redis_cfg = utils::resolve_relative_path(&full_basepath, Path::new(&self.redis_cfg))?;
+        self.db_cfg = utils::resolve_relative_path(&full_basepath, Path::new(&self.db_cfg))?;
         self.rabbitmq_cfg =
-            base::resolve_relative_path(&full_basepath, Path::new(&self.rabbitmq_cfg))?;
+            utils::resolve_relative_path(&full_basepath, Path::new(&self.rabbitmq_cfg))?;
         self.user_setting =
-            base::resolve_relative_path(&full_basepath, Path::new(&self.user_setting))?;
+            utils::resolve_relative_path(&full_basepath, Path::new(&self.user_setting))?;
         Ok(())
     }
 }
@@ -302,7 +303,7 @@ static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
         }
         #[cfg(not(feature = "meaningful_name"))]
         {
-            utils::generate_random_string(10)
+            helper::generate_random_string(10)
         }
     };
     if state {
@@ -324,7 +325,7 @@ static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
                         |machine_id| serde_json::from_str(&machine_id.to_string()).unwrap(),
                     );
                     let secret: String = origin_info.get("secret").map_or_else(
-                        || utils::generate_random_string(SECRET_LEN),
+                        || helper::generate_random_string(SECRET_LEN),
                         |secret| serde_json::from_str(&secret.to_string()).unwrap(),
                     );
                     let server_name: String = origin_info
@@ -369,7 +370,7 @@ static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
     let info = ServerInfo {
         unique_id: uuid::Uuid::new_v4(),
         machine_id: id,
-        secret: utils::generate_random_string(SECRET_LEN),
+        secret: helper::generate_random_string(SECRET_LEN),
         server_name,
         version: consts::SERVER_INFO_JSON_VERSION,
     };

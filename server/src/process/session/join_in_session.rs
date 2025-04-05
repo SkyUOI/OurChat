@@ -7,13 +7,13 @@ use crate::process::{Dest, transmit_msg};
 use crate::{db, process::error_msg::SERVER_ERROR, server::RpcServer};
 use anyhow::Context;
 use base::consts::{ID, SessionID};
-use base::time::to_google_timestamp;
 use migration::m20241229_022701_add_role_for_session::PredefinedPermissions;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
 use pb::service::ourchat::session::join_in_session::v1::{
     JoinInSessionApproval, JoinInSessionRequest, JoinInSessionResponse,
 };
+use pb::time::to_google_timestamp;
 use tonic::{Request, Response, Status};
 
 pub async fn join_in_session(

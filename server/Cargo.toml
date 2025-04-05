@@ -39,6 +39,7 @@ tower-http.workspace = true
 hyper.workspace = true
 hyper-util.workspace = true
 http-body-util.workspace = true
+utils = { path = "utils" }
 
 # Useful crates
 collection_literals.workspace = true

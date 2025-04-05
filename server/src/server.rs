@@ -9,7 +9,6 @@ use crate::process::{self, ErrAuth, get_id_from_req};
 use crate::{SERVER_INFO, SharedData, ShutdownRev};
 use base::consts::{ID, OCID, VERSION_SPLIT};
 use base::database::DbPool;
-use base::time::to_google_timestamp;
 use http_body_util::BodyExt;
 use http_body_util::Full;
 use http_body_util::combinators::UnsyncBoxBody;
@@ -79,6 +78,7 @@ use pb::service::server_manage::publish_announcement::v1::{
 use pb::service::server_manage::v1::server_manage_service_server::{
     ServerManageService, ServerManageServiceServer,
 };
+use pb::time::to_google_timestamp;
 use process::error_msg::not_found;
 use std::net::SocketAddr;
 use std::pin::Pin;
@@ -160,7 +160,7 @@ impl RpcServer {
             rabbitmq: self.rabbitmq.clone(),
         };
         let shared_data = self.shared_data.clone();
-        let shared_data1: Arc<SharedData> = self.shared_data.clone();
+        let shared_data1 = self.shared_data.clone();
         let shared_data2 = self.shared_data.clone();
         let shared_data3 = self.shared_data.clone();
         let main_svc = OurChatServiceServer::with_interceptor(self, move |mut req| {
@@ -684,7 +684,7 @@ impl BasicService for BasicServiceProvider {
         Ok(Response::new(res))
     }
 
-    /// Get server information including version, status and configuration
+    /// Get server information including the version, status and configuration
     #[tracing::instrument(skip(self))]
     async fn get_server_info(
         &self,

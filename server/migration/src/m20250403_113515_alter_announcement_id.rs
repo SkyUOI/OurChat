@@ -25,7 +25,7 @@ impl MigrationTrait for Migration {
                 Table::alter()
                     .table(Announcement::Table)
                     .drop_column(Announcement::Id)
-                    .add_column(big_unsigned(Announcement::Id).not_null().primary_key())
+                    .add_column(big_unsigned(Announcement::Id).primary_key())
                     .to_owned(),
             )
             .await

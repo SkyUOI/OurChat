@@ -110,10 +110,10 @@ use crate::db::session::get_members;
 use crate::rabbitmq::USER_MSG_EXCHANGE;
 use crate::rabbitmq::generate_route_key;
 use base::consts::ID;
-use base::time::to_google_timestamp;
 use entities::prelude::*;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
+use pb::time::to_google_timestamp;
 use prost::Message;
 
 pub mod db {

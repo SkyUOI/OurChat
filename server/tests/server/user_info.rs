@@ -1,6 +1,5 @@
 use std::time::Duration;
 
-use base::time::from_google_timestamp;
 use claims::{assert_err, assert_gt, assert_lt, assert_ok};
 use client::TestApp;
 use pb::service::ourchat::{
@@ -8,6 +7,7 @@ use pb::service::ourchat::{
     get_account_info::v1::{GetAccountInfoRequest, RequestValues},
     set_account_info::v1::SetSelfInfoRequest,
 };
+use pb::time::from_google_timestamp;
 use server::process::error_msg::invalid::{OCID_TOO_LONG, STATUS_TOO_LONG, USERNAME};
 use tokio::time::sleep;
 

@@ -47,7 +47,6 @@ async fn publish_announcement_internal(
             .into_inner()
             .announcement
             .clone()
-            .take()
             .ok_or_else(|| anyhow::anyhow!("announcement is none"))?,
     )
     .await?

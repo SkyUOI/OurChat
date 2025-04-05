@@ -1,0 +1,10 @@
+[package]
+name = "utils"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+sha3.workspace = true
+chrono.workspace = true
+serde.workspace = true
+serde_json.workspace = true

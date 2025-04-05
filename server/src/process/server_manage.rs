@@ -1,3 +1,2 @@
-pub mod delete_account;
-
 pub mod announcement;
+pub mod delete_account;

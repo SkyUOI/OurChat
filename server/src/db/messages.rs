@@ -1,6 +1,6 @@
-use base::time::TimeStamp;
 use entities::{message_records, prelude::MessageRecords};
 use migration::m20241229_022701_add_role_for_session::PredefinedPermissions;
+use pb::time::TimeStamp;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ConnectionTrait, DatabaseBackend, EntityTrait, ModelTrait,
     Paginator, PaginatorTrait, Statement,
@@ -38,14 +38,14 @@ pub async fn get_session_msgs<T: ConnectionTrait>(
     page_size: u64,
 ) -> Result<Paginator<'_, T, sea_orm::SelectModel<message_records::Model>>, MsgError> {
     let msgs = message_records::Entity::find()
-            .from_raw_sql(Statement::from_sql_and_values(
-                DatabaseBackend::Postgres,
-                r#"SELECT * FROM message_records 
+        .from_raw_sql(Statement::from_sql_and_values(
+            DatabaseBackend::Postgres,
+            r#"SELECT * FROM message_records
         WHERE time > $1 AND
         (sender_id = $2 OR EXISTS (SELECT * FROM session_relation WHERE user_id = $2 AND session_id = message_records.session_id)) OR (is_all_user = true)"#,
-                [end_timestamp.into(), user_id.into()],
-            ))
-            .paginate(db_conn, page_size);
+            [end_timestamp.into(), user_id.into()],
+        ))
+        .paginate(db_conn, page_size);
     Ok(msgs)
 }
 

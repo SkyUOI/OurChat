@@ -4,15 +4,13 @@ use crate::{
     server::{FetchMsgsStream, RpcServer},
 };
 use anyhow::{Context, bail};
-use base::{
-    consts::ID,
-    time::{from_google_timestamp, to_google_timestamp},
-};
+use base::consts::ID;
 use deadpool_lapin::lapin::options::{QueueBindOptions, QueueDeclareOptions, QueueDeleteOptions};
 use deadpool_lapin::lapin::types::FieldTable;
 use pb::service::ourchat::msg_delivery::v1::{
     FetchMsgsRequest, FetchMsgsResponse, fetch_msgs_response::RespondMsgType,
 };
+use pb::time::{from_google_timestamp, to_google_timestamp};
 use prost::Message;
 use tokio::sync::mpsc;
 use tokio_stream::StreamExt;

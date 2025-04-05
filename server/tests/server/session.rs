@@ -6,7 +6,6 @@ mod mute;
 mod role;
 
 use base::consts::{ID, SessionID};
-use base::time::from_google_timestamp;
 use claims::assert_lt;
 use client::TestApp;
 use migration::m20241229_022701_add_role_for_session::{PredefinedRoles, RoleId};
@@ -18,6 +17,7 @@ use pb::service::ourchat::session::{
     new_session::v1::NewSessionRequest,
     set_session_info::v1::SetSessionInfoRequest,
 };
+use pb::time::from_google_timestamp;
 use server::db::session::get_all_session_relations;
 use server::process::error_msg;
 use std::collections::HashSet;
