@@ -9,6 +9,7 @@ use crate::process::{self, ErrAuth, get_id_from_req};
 use crate::{SERVER_INFO, SharedData, ShutdownRev};
 use base::consts::{ID, OCID, VERSION_SPLIT};
 use base::database::DbPool;
+use base::setting::debug;
 use http_body_util::BodyExt;
 use http_body_util::Full;
 use http_body_util::combinators::UnsyncBoxBody;
@@ -88,12 +89,15 @@ use std::pin::Pin;
 use std::sync::{Arc, LazyLock};
 use tokio::net::TcpListener;
 use tokio::select;
+use tokio_rustls::TlsAcceptor;
+use tokio_rustls::rustls::ServerConfig;
+use tokio_rustls::rustls::pki_types::PrivateKeyDer;
+use tokio_rustls::rustls::pki_types::{CertificateDer, pem::PemObject as _};
 use tonic::service::Routes;
 use tonic::{Request, Response, Status};
 use tower::Service;
 use tower::ServiceExt;
-use tracing::info;
-
+use tracing::{debug, info};
 /// RPC Server implementation for OurChat
 /// Handles all service requests and manages connections
 #[derive(Debug)]
@@ -174,6 +178,7 @@ impl RpcServer {
         let shared_data1 = self.shared_data.clone();
         let shared_data2 = self.shared_data.clone();
         let shared_data3 = self.shared_data.clone();
+        let shared_data_for_tls = self.shared_data.clone();
 
         // Create service instances with interceptors for authentication and maintenance checks
         let main_svc = OurChatServiceServer::with_interceptor(self, move |mut req| {
@@ -210,13 +215,56 @@ impl RpcServer {
         let test = routes.prepare();
         let grpc_server = tower::ServiceBuilder::new().service(test);
 
+        let cert_path = shared_data_for_tls.cfg.main_cfg.tls_cert_path.clone();
+        let key_path = shared_data_for_tls.cfg.main_cfg.key_cert_path.clone();
+        let is_tls_on = cert_path.is_some() && key_path.is_some();
+
+        let mut tls_acceptor = None;
+        if is_tls_on {
+            let cert_path = cert_path.unwrap();
+            let key_path = key_path.unwrap();
+            tracing::trace!(
+                "TLS on: cert_path = {}, {}, key_path = {}, {}",
+                cert_path.display(),
+                cert_path.exists(),
+                key_path.display(),
+                key_path.exists()
+            );
+            let certs = {
+                let fd = std::fs::File::open(cert_path)?;
+                let mut buf = std::io::BufReader::new(&fd);
+                CertificateDer::pem_reader_iter(&mut buf).collect::<Result<Vec<_>, _>>()?
+            };
+            let key = {
+                let fd = std::fs::File::open(key_path)?;
+                let mut buf = std::io::BufReader::new(&fd);
+                PrivateKeyDer::from_pem_reader(&mut buf)?
+            };
+            let mut tls = ServerConfig::builder()
+                .with_no_client_auth()
+                .with_single_cert(certs, key)?;
+            tls.alpn_protocols = vec![b"h2".to_vec()];
+            tls_acceptor = Some(TlsAcceptor::from(Arc::new(tls)));
+            debug!("TLS enabled: {}", tls_acceptor.is_some());
+        }
         // Main server loop
         let server = async move {
-            let listener = TcpListener::bind(addr).await?;
+            let listener: TcpListener = TcpListener::bind(addr).await?;
             loop {
                 // Accept incoming connections
                 let (socket, _) = listener.accept().await?;
-                let io = TokioIo::new(socket);
+                //
+                let mut tls_io = None;
+                let mut io = None;
+                let tls_acceptor = tls_acceptor.clone();
+                if is_tls_on {
+                    debug!("tls_io getting");
+                    tls_io = Some(TokioIo::new(tls_acceptor.unwrap().accept(socket).await?));
+                    // tls_io = Some(TokioIo::new(socket));
+                } else {
+                    io = Some(TokioIo::new(socket));
+                }
+                debug!("execute after accept");
                 let svc = grpc_server.clone();
 
                 // Spawn a new task for each connection
@@ -301,11 +349,24 @@ impl RpcServer {
                     );
 
                     // Serve HTTP/2 connection
-                    if let Err(err) = http2::Builder::new(hyper_util::rt::TokioExecutor::default())
-                        .serve_connection(io, service)
-                        .await
-                    {
-                        tracing::error!("Connection error: {:?}", err);
+                    if is_tls_on {
+                        // Handle TLS connection
+                        if let Err(err) =
+                            http2::Builder::new(hyper_util::rt::TokioExecutor::default())
+                                .serve_connection(tls_io.unwrap(), service)
+                                .await
+                        {
+                            tracing::error!("TLS connection error: {:?}", err);
+                        }
+                    } else {
+                        // Handle non-TLS connection
+                        if let Err(err) =
+                            http2::Builder::new(hyper_util::rt::TokioExecutor::default())
+                                .serve_connection(io.unwrap(), service)
+                                .await
+                        {
+                            tracing::error!("Non-TLS connection error: {:?}", err);
+                        }
                     }
                 });
             }

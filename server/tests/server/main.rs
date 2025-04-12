@@ -8,4 +8,5 @@ mod friend;
 mod msg_recall;
 mod msg_send;
 mod session;
+mod tls;
 mod user_info;

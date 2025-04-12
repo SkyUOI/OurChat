@@ -10,7 +10,7 @@ members = [
     "server/entities",
     "server/pb",
     "server/http_server",
-    "server/utils"
+    "server/utils",
 ]
 resolver = "3"
 
@@ -65,7 +65,7 @@ async-trait = { version = "0" }
 # Grpc
 prost = { version = "0" }
 jsonwebtoken = "9"
-tower = { version = "0" }
+tower = { version = "0", features = ["full"] }
 hyper = { version = "1", features = ["full"] }
 hyper-util = { version = "0" }
 http-body-util = "0"
@@ -90,6 +90,7 @@ actix-files = "0.6"
 humantime = "2"
 humantime-serde = "1"
 secrecy = "0"
+tower-http = { version = "0", features = ["full"] }
 
 [workspace.dependencies.lettre]
 version = "0"

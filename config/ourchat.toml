@@ -7,6 +7,9 @@ redis_cfg = "redis.toml"
 # Assign the config file of a rabbitmq, relative to this config file
 rabbitmq_cfg = "rabbitmq.toml"
 user_setting = "user_setting.toml"
+# The address of the tsl certificate
+# tls_cert_path = ""
+# tls_key_path = ""
 # Ourchat Listening Port
 port = 7777
 # Just for showing, will not use this port

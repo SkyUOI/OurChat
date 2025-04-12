@@ -61,6 +61,8 @@ pub struct MainCfg {
     pub db_cfg: PathBuf,
     pub rabbitmq_cfg: PathBuf,
     pub user_setting: PathBuf,
+    pub tls_cert_path: Option<PathBuf>,
+    pub key_cert_path: Option<PathBuf>,
     #[serde(default = "consts::default_port")]
     pub port: u16,
     #[serde(default = "consts::default_http_port")]
