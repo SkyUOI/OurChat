@@ -10,7 +10,7 @@ members = [
     "server/entities",
     "server/pb",
     "server/http_server",
-    "server/utils"
+    "server/utils",
 ]
 resolver = "3"
 
@@ -53,8 +53,6 @@ ring = "0"
 
 # Useful crates
 collection_literals = "1"
-colored = "3"
-strum = { version = "0", features = ["derive"] }
 size = { version = "0", features = ["serde"] }
 
 num_enum = "0"
@@ -65,7 +63,7 @@ async-trait = { version = "0" }
 # Grpc
 prost = { version = "0" }
 jsonwebtoken = "9"
-tower = { version = "0" }
+tower = { version = "0", features = ["full"] }
 hyper = { version = "1", features = ["full"] }
 hyper-util = { version = "0" }
 http-body-util = "0"
@@ -77,7 +75,6 @@ dotenvy = "0"
 ctor = "0"
 scopeguard = "1"
 libc-print = "0"
-itertools = "0"
 fake = "4"
 imageinfo = "0"
 walkdir = "2"
@@ -90,6 +87,8 @@ actix-files = "0.6"
 humantime = "2"
 humantime-serde = "1"
 secrecy = "0"
+tower-http = { version = "0", features = ["full"] }
+color-eyre = "0"
 
 [workspace.dependencies.lettre]
 version = "0"
@@ -104,7 +103,7 @@ features = ["json", "rustls-tls"]
 [workspace.dependencies.tonic]
 version = "0.13"
 default-features = false
-features = ["codegen", "prost", "channel", "transport", "router", "server"]
+features = ["codegen", "prost", "channel", "transport", "router", "server", "_tls-any"]
 
 [workspace.dependencies.sqlx]
 version = "0"

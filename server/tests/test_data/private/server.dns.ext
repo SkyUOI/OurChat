@@ -1,0 +1,7 @@
+keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth, clientAuth
+subjectAltName=@SubjectAlternativeName
+ 
+[ SubjectAlternativeName ]
+DNS.1=localhost
+IP.1=127.0.0.1

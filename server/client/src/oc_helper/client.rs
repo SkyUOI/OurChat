@@ -20,7 +20,7 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 use tonic::codegen::InterceptedService;
-use tonic::transport::Channel;
+use tonic::transport::{Certificate, Channel, ClientTlsConfig, Endpoint, Identity};
 
 pub type OCClient = OurChatServiceClient<
     InterceptedService<
@@ -107,8 +107,42 @@ impl TestApp {
         tokio::spawn(async move {
             application.run_forever().await.unwrap();
         });
+
         notifier.notified().await;
-        let rpc_url = format!("http://localhost:{}", port);
+        let rpc_url = format!(
+            "{}://localhost:{}",
+            server_config.main_cfg.protocol_http(),
+            port
+        );
+        let mut connected_channel = Endpoint::from_shared(rpc_url.clone())?;
+        if server_config.main_cfg.tls.is_tls_on()? {
+            let client_cert = std::fs::read_to_string(
+                server_config
+                    .main_cfg
+                    .tls
+                    .client_tls_cert_path
+                    .clone()
+                    .unwrap(),
+            )?;
+            let client_key = std::fs::read_to_string(
+                server_config
+                    .main_cfg
+                    .tls
+                    .client_key_cert_path
+                    .clone()
+                    .unwrap(),
+            )?;
+            let client_identity = Identity::from_pem(client_cert.clone(), client_key);
+            let server_ca_cert = std::fs::read_to_string(
+                server_config.main_cfg.tls.ca_tls_cert_path.clone().unwrap(),
+            )?;
+            let server_root_ca = Certificate::from_pem(server_ca_cert);
+            let tls = ClientTlsConfig::new()
+                .ca_certificate(server_root_ca)
+                .identity(client_identity);
+            connected_channel = Endpoint::from_shared(rpc_url.clone())?.tls_config(tls)?;
+        }
+        let connected_channel = connected_channel.connect().await?;
         let obj = TestApp {
             port,
             db_url,
@@ -119,14 +153,15 @@ impl TestApp {
             db_pool: Some(db_pool),
             rpc_url: rpc_url.clone(),
             clients: Clients {
-                auth: AuthServiceClient::connect(rpc_url.clone()).await?,
-                basic: BasicServiceClient::connect(rpc_url.clone()).await?,
+                auth: AuthServiceClient::new(connected_channel.clone()),
+                basic: BasicServiceClient::new(connected_channel),
             },
             should_drop_db: true,
             app_config: server_config,
             rmq_vhost: vhost,
             should_drop_vhost: true,
         };
+
         Ok(obj)
     }
 
