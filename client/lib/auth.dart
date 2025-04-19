@@ -261,6 +261,16 @@ class _RegisterState extends State<Register> {
                             if (res == okStatusCode) {
                               ourchatAppState.thisAccount = ocAccount;
                               ourchatAppState.thisAccount!.getAccountInfo();
+                              if (context.mounted) {
+                                Navigator.pop(context);
+                                Navigator.push(context, MaterialPageRoute(
+                                  builder: (context) {
+                                    return const Scaffold(
+                                      body: Home(),
+                                    );
+                                  },
+                                ));
+                              }
                               ourchatAppState.update();
                             } else {
                               setState(() {
