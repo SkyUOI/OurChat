@@ -66,9 +66,9 @@ class _HomeState extends State<Home> {
               NavigationRailDestination(
                   label: Text("Sessions"), icon: Icon(Icons.chat)),
               NavigationRailDestination(
-                  label: Text("Settings"), icon: Icon(Icons.settings)),
+                  label: Text("Friends"), icon: Icon(Icons.people)),
               NavigationRailDestination(
-                  label: Text("Friends"), icon: Icon(Icons.people))
+                  label: Text("Settings"), icon: Icon(Icons.settings)),
             ],
             selectedIndex: index,
             onDestinationSelected: (value) {
