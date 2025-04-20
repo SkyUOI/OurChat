@@ -33,7 +33,7 @@ Future<void> constructLogger() async {
   logger = Logger(
       output: MultiOutput([FileOutput(file: file), ConsoleOutput()]),
       level: level);
-  logger.i("Logger has been initilized successfully, File ${path.path}");
+  logger.i("Logger has been initialized successfully, File ${path.path}");
 }
 
 const logLevels = ["debug", "info", "warning", "error", "trace", "fatal"];
