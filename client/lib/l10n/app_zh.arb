@@ -42,5 +42,6 @@
     "reset": "重置",
     "userNotFound": "用户不存在",
     "internalError": "内部错误",
-    "serverStatusUnknown": "未知"
+    "serverStatusUnknown": "未知",
+    "logLevel": "日志级别"
 }

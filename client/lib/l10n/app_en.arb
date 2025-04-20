@@ -178,5 +178,9 @@
     "serverStatusUnknown": "Unknown",
     "@serverStatusUnknown": {
         "description": "server status:Unknown"
+    },
+    "logLevel": "Log Level",
+    "@logLevel": {
+        "description": "Log Level"
     }
 }
