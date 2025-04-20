@@ -7,9 +7,6 @@ redis_cfg = "redis.toml"
 # Assign the config file of a rabbitmq, relative to this config file
 rabbitmq_cfg = "rabbitmq.toml"
 user_setting = "user_setting.toml"
-# The address of the tsl certificate
-# tls_cert_path = ""
-# tls_key_path = ""
 # Ourchat Listening Port
 port = 7777
 # Just for showing, will not use this port
@@ -26,8 +23,6 @@ verification_expire_time = "3d"
 user_defined_status_expire_time = "24h"
 # The path of the users' files storage
 files_storage_path = "files_storage/"
-# Enable ssl encryption
-ssl = false
 # Whether this is started in Single Instance Mode. If true, some actions like cleaning up files will be performed regularly
 # You can set it when you have only one server instance, or you can set this option in only one instance(not recommended)
 single_instance = true
@@ -52,3 +47,10 @@ fetch_msg_page_size = 2000
 debug_console = true
 # Warning: don't expose it to the world
 debug_console_port = 7776
+
+[tls]
+# Enable tls encryption
+enable = false
+# The address of the tsl certificate, if not specified, the tls will be disabled
+# tls_cert_path = ""
+# tls_key_path = ""

@@ -22,8 +22,8 @@ pub struct MainCfg {
     pub ip: String,
     #[serde(default = "base::consts::default_http_port")]
     pub port: u16,
-    #[serde(default = "base::consts::default_ssl")]
-    pub ssl: bool,
+    #[serde(default = "base::consts::default_tls")]
+    pub tls: bool,
     pub redis_cfg: PathBuf,
     pub db_cfg: PathBuf,
     pub user_setting: PathBuf,
@@ -38,7 +38,7 @@ pub struct MainCfg {
 
 impl MainCfg {
     pub fn protocol_http(&self) -> &'static str {
-        if self.ssl { "https" } else { "http" }
+        if self.tls { "https" } else { "http" }
     }
 
     pub fn fix_paths(&mut self, base_path: &Path) -> anyhow::Result<()> {
@@ -167,7 +167,7 @@ impl Launcher {
             &self.shared_data.redis_cfg,
             self.shared_data.main_cfg.run_migration,
         )
-        .await?;
+            .await?;
         tracing::info!("Get database pool");
         let rabbitmq_pool = self.shared_data.rabbitmq_cfg.build().await?;
         tracing::info!("Connected to RabbitMQ");

@@ -38,6 +38,7 @@ use std::{
 };
 use tokio::task::JoinHandle;
 use tracing::info;
+use base::setting::tls::TlsConfig;
 use utils::merge_json;
 
 #[derive(Debug, Parser, Default)]
@@ -61,8 +62,6 @@ pub struct MainCfg {
     pub db_cfg: PathBuf,
     pub rabbitmq_cfg: PathBuf,
     pub user_setting: PathBuf,
-    pub tls_cert_path: Option<PathBuf>,
-    pub key_cert_path: Option<PathBuf>,
     #[serde(default = "consts::default_port")]
     pub port: u16,
     #[serde(default = "consts::default_http_port")]
@@ -87,8 +86,6 @@ pub struct MainCfg {
         with = "humantime_serde"
     )]
     pub user_defined_status_expire_time: Duration,
-    #[serde(default = "consts::default_ssl")]
-    pub ssl: bool,
     #[serde(default = "consts::default_single_instance")]
     pub single_instance: bool,
     #[serde(default = "consts::default_leader_node")]
@@ -96,6 +93,7 @@ pub struct MainCfg {
     pub password_hash: PasswordHash,
     pub db: DbArgCfg,
     pub debug: DebugCfg,
+    pub tls: TlsConfig,
 
     #[serde(skip)]
     pub cmd_args: ParserCfg,
@@ -130,7 +128,7 @@ impl MainCfg {
                 tracing::error!("Please specify config file");
                 bail!("Please specify config file");
             }
-            .into()
+                .into()
         } else {
             iter.next().unwrap().into()
         };
@@ -158,7 +156,7 @@ impl MainCfg {
 
     /// Return the protocol used for HTTP requests, either "http" or "https", based on the ssl field.
     pub fn protocol_http(&self) -> String {
-        if self.ssl {
+        if self.tls.enable {
             "https".to_string()
         } else {
             "http".to_string()
@@ -418,6 +416,7 @@ fn global_init() {
     static INIT: Once = Once::new();
     INIT.call_once(|| {
         println!("Machine ID: {}", SERVER_INFO.machine_id);
+        color_eyre::install().ok();
     })
 }
 
@@ -607,7 +606,7 @@ impl Application {
             self.rabbitmq.clone(),
             self.abort_sender.new_receiver("rpc server", "rpc server"),
         )
-        .await?;
+            .await?;
         handles.push(handle);
 
         // Start the database file system

@@ -9,11 +9,11 @@ use crate::process::{self, ErrAuth, get_id_from_req};
 use crate::{SERVER_INFO, SharedData, ShutdownRev};
 use base::consts::{ID, OCID, VERSION_SPLIT};
 use base::database::DbPool;
-use base::setting::debug;
+use futures_util::future::BoxFuture;
 use http_body_util::BodyExt;
 use http_body_util::Full;
-use http_body_util::combinators::UnsyncBoxBody;
 use hyper::body::Bytes;
+use hyper::rt::{Read, Write};
 use hyper::server::conn::http2;
 use hyper_util::rt::TokioIo;
 use migration::m20250301_005919_add_soft_delete_columns::AccountStatus;
@@ -96,8 +96,9 @@ use tokio_rustls::rustls::pki_types::{CertificateDer, pem::PemObject as _};
 use tonic::service::Routes;
 use tonic::{Request, Response, Status};
 use tower::Service;
-use tower::ServiceExt;
-use tracing::{debug, info};
+use tower_http::ServiceBuilderExt;
+use tracing::{debug, info, warn};
+
 /// RPC Server implementation for OurChat
 /// Handles all service requests and manages connections
 #[derive(Debug)]
@@ -121,6 +122,50 @@ fn is_grpc_request(req: &hyper::Request<impl hyper::body::Body>) -> bool {
         .get("content-type")
         .map(|v| v.as_bytes().starts_with(b"application/grpc"))
         .unwrap_or(false)
+}
+
+fn launch_connection<B>(svc: B, io: impl Read + Write + Unpin + Send + 'static)
+where
+    B: Service<
+        hyper::Request<hyper::body::Incoming>,
+        Response=hyper::Response<tonic::body::Body>,
+        Error=std::convert::Infallible,
+    > + Clone
+    + Send
+    + 'static,
+    B::Future: Send,
+{
+    tokio::spawn(async move {
+        if let Err(err) = http2::Builder::new(hyper_util::rt::TokioExecutor::default())
+            .serve_connection(
+                io,
+                hyper::service::service_fn(
+                    move |req| -> BoxFuture<
+                        'static,
+                        Result<hyper::Response<tonic::body::Body>, std::convert::Infallible>,
+                    > {
+                        let mut inner_svc = svc.clone();
+                        Box::pin(async move {
+                            if is_grpc_request(&req) {
+                                inner_svc.call(req).await
+                            } else {
+                                let body = Full::new(Bytes::from("Not implemented"))
+                                    .map_err(|_| Status::internal("Body error"))
+                                    .boxed_unsync();
+                                Ok(hyper::Response::builder()
+                                    .status(404)
+                                    .body(tonic::body::Body::new(body))
+                                    .unwrap())
+                            }
+                        })
+                    },
+                ),
+            )
+            .await
+        {
+            tracing::error!("Connection error: {:?}", err);
+        }
+    });
 }
 
 impl RpcServer {
@@ -212,23 +257,20 @@ impl RpcServer {
         builder.add_service(auth_svc);
         builder.add_service(server_manage_svc);
         let routes = builder.routes();
-        let test = routes.prepare();
-        let grpc_server = tower::ServiceBuilder::new().service(test);
+        let svc = routes.prepare();
 
-        let cert_path = shared_data_for_tls.cfg.main_cfg.tls_cert_path.clone();
-        let key_path = shared_data_for_tls.cfg.main_cfg.key_cert_path.clone();
-        let is_tls_on = cert_path.is_some() && key_path.is_some();
+        let cert_path = shared_data_for_tls.cfg.main_cfg.tls.tls_cert_path.clone();
+        let key_path = shared_data_for_tls.cfg.main_cfg.tls.key_cert_path.clone();
+        let is_tls_on = shared_data_for_tls.cfg.main_cfg.tls.is_tls_on()?;
 
         let mut tls_acceptor = None;
         if is_tls_on {
             let cert_path = cert_path.unwrap();
             let key_path = key_path.unwrap();
-            tracing::trace!(
-                "TLS on: cert_path = {}, {}, key_path = {}, {}",
+            info!(
+                "TLS on: cert_path = {}, key_path = {}",
                 cert_path.display(),
-                cert_path.exists(),
                 key_path.display(),
-                key_path.exists()
             );
             let certs = {
                 let fd = std::fs::File::open(cert_path)?;
@@ -246,129 +288,39 @@ impl RpcServer {
             tls.alpn_protocols = vec![b"h2".to_vec()];
             tls_acceptor = Some(TlsAcceptor::from(Arc::new(tls)));
             debug!("TLS enabled: {}", tls_acceptor.is_some());
+        } else {
+            warn!("TLS disabled, this is insecure.");
         }
+
         // Main server loop
         let server = async move {
-            let listener: TcpListener = TcpListener::bind(addr).await?;
+            let listener = TcpListener::bind(addr).await?;
             loop {
                 // Accept incoming connections
-                let (socket, _) = listener.accept().await?;
-                //
-                let mut tls_io = None;
-                let mut io = None;
+                let (socket, addr) = listener.accept().await?;
+
+                let tls_io;
+                let io;
                 let tls_acceptor = tls_acceptor.clone();
+                let svc_routes = svc.clone();
+
                 if is_tls_on {
                     debug!("tls_io getting");
-                    tls_io = Some(TokioIo::new(tls_acceptor.unwrap().accept(socket).await?));
-                    // tls_io = Some(TokioIo::new(socket));
-                } else {
-                    io = Some(TokioIo::new(socket));
-                }
-                debug!("execute after accept");
-                let svc = grpc_server.clone();
-
-                // Spawn a new task for each connection
-                tokio::spawn(async move {
-                    let service = hyper::service::service_fn(
-                        move |req: hyper::Request<hyper::body::Incoming>| {
-                            let svc = svc.clone();
-                            async move {
-                                // Convert incoming request to appropriate format
-                                let (parts, body) = req.into_parts();
-                                let body = UnsyncBoxBody::<Bytes, Status>::new(
-                                    body.map_err(|_| Status::internal("Body error")),
-                                );
-                                let converted_req =
-                                    hyper::Request::from_parts(parts, tonic::body::Body::new(body));
-
-                                // Handle gRPC and non-gRPC requests differently
-                                if is_grpc_request(&converted_req) {
-                                    // Process gRPC request
-                                    let mut svc = tower::util::MapRequest::new(
-                                        svc.clone(),
-                                        |req: hyper::Request<tonic::body::Body>| req,
-                                    );
-                                    match svc.ready().await {
-                                        Ok(service) => {
-                                            // Handle successful service call
-                                            let resp = service.call(converted_req).await;
-                                            match resp {
-                                                Ok(res) => {
-                                                    let (parts, body) = res.into_parts();
-                                                    let mapped_body = body.map_err(|e| {
-                                                        Status::internal(format!("Error: {:?}", e))
-                                                    });
-                                                    let boxed_body =
-                                                        UnsyncBoxBody::new(mapped_body);
-                                                    Ok::<_, Status>(hyper::Response::from_parts(
-                                                        parts, boxed_body,
-                                                    ))
-                                                }
-                                                Err(e) => {
-                                                    let body = Full::new(Bytes::from(format!(
-                                                        "Error: {}",
-                                                        e
-                                                    )))
-                                                    .map_err(|_| Status::internal("Body error"))
-                                                    .boxed_unsync();
-                                                    Ok::<_, Status>(
-                                                        hyper::Response::builder()
-                                                            .status(500)
-                                                            .header("content-type", "text/plain")
-                                                            .body(body)
-                                                            .unwrap(),
-                                                    )
-                                                }
-                                            }
-                                        }
-                                        Err(_) => {
-                                            // Handle service unavailable
-                                            let body =
-                                                Full::new(Bytes::from("Service unavailable"))
-                                                    .map_err(|_| Status::internal("Body error"))
-                                                    .boxed_unsync();
-                                            Ok::<_, Status>(
-                                                hyper::Response::builder()
-                                                    .status(503)
-                                                    .body(body)
-                                                    .unwrap(),
-                                            )
-                                        }
-                                    }
-                                } else {
-                                    // Handle non-gRPC request with 404
-                                    let body = Full::new(Bytes::from("Not implemented"))
-                                        .map_err(|_| Status::internal("Body error"))
-                                        .boxed_unsync();
-                                    Ok::<_, Status>(
-                                        hyper::Response::builder().status(404).body(body).unwrap(),
-                                    )
-                                }
-                            }
-                        },
+                    tls_io = TokioIo::new(
+                        tls_acceptor
+                            .unwrap()
+                            .accept(socket)
+                            .await?,
                     );
-
-                    // Serve HTTP/2 connection
-                    if is_tls_on {
-                        // Handle TLS connection
-                        if let Err(err) =
-                            http2::Builder::new(hyper_util::rt::TokioExecutor::default())
-                                .serve_connection(tls_io.unwrap(), service)
-                                .await
-                        {
-                            tracing::error!("TLS connection error: {:?}", err);
-                        }
-                    } else {
-                        // Handle non-TLS connection
-                        if let Err(err) =
-                            http2::Builder::new(hyper_util::rt::TokioExecutor::default())
-                                .serve_connection(io.unwrap(), service)
-                                .await
-                        {
-                            tracing::error!("Non-TLS connection error: {:?}", err);
-                        }
-                    }
-                });
+                    let svc = tower::ServiceBuilder::new()
+                        .service(svc_routes.clone());
+                    launch_connection(svc, tls_io);
+                } else {
+                    io = TokioIo::new(socket);
+                    let svc = tower::ServiceBuilder::new().service(svc_routes);
+                    launch_connection(svc, io);
+                }
+                debug!("execute after accepting");
             }
             #[allow(unreachable_code)]
             Ok::<(), anyhow::Error>(())
@@ -444,9 +396,9 @@ impl RpcServer {
 
 // Define stream types for streaming responses
 pub type FetchMsgsStream =
-    Pin<Box<dyn tokio_stream::Stream<Item = Result<FetchMsgsResponse, Status>> + Send>>;
+Pin<Box<dyn tokio_stream::Stream<Item=Result<FetchMsgsResponse, Status>> + Send>>;
 pub type DownloadStream =
-    Pin<Box<dyn tokio_stream::Stream<Item = Result<DownloadResponse, Status>> + Send>>;
+Pin<Box<dyn tokio_stream::Stream<Item=Result<DownloadResponse, Status>> + Send>>;
 
 /// Implementation of the main OurChat service
 #[tonic::async_trait]
@@ -740,7 +692,7 @@ pub struct AuthServiceProvider {
 
 /// Stream type for verification responses
 pub type VerifyStream =
-    Pin<Box<dyn tokio_stream::Stream<Item = Result<VerifyResponse, Status>> + Send>>;
+Pin<Box<dyn tokio_stream::Stream<Item=Result<VerifyResponse, Status>> + Send>>;
 
 /// Implementation of Authentication service methods
 #[tonic::async_trait]

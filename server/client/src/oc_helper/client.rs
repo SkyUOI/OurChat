@@ -20,15 +20,15 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 use tonic::codegen::InterceptedService;
-use tonic::transport::Channel;
+use tonic::transport::{Certificate, Channel, ClientTlsConfig, Identity};
 
 pub type OCClient = OurChatServiceClient<
     InterceptedService<
         Channel,
         Box<
             dyn FnMut(tonic::Request<()>) -> Result<tonic::Request<()>, tonic::Status>
-                + Send
-                + Sync,
+            + Send
+            + Sync,
         >,
     >,
 >;
@@ -94,7 +94,7 @@ impl TestApp {
             &reqwest::Client::new(),
             &server_config.rabbitmq_cfg.manage_url().unwrap(),
         )
-        .await?;
+            .await?;
         server_config.rabbitmq_cfg.vhost = vhost.clone();
         let db_url = server_config.db_cfg.url();
         let mut application = Application::build(args, server_config.clone()).await?;
@@ -108,7 +108,14 @@ impl TestApp {
             application.run_forever().await.unwrap();
         });
         notifier.notified().await;
-        let rpc_url = format!("http://localhost:{}", port);
+        let rpc_url = format!("{}://localhost:{}", server_config.main_cfg.protocol_http(), port);
+        if server_config.main_cfg.tls.is_tls_on()? {
+            let client_cert = std::fs::read_to_string(server_config.main_cfg.tls.tls_cert_path.clone().unwrap())?;
+            let client_key = std::fs::read_to_string(server_config.main_cfg.tls.key_cert_path.clone().unwrap())?;
+            let client_identity = Identity::from_pem(client_cert.clone(), client_key);
+            let server_root_ca = Certificate::from_pem(client_cert);
+            let tls = ClientTlsConfig::new().domain_name("localhost").ca_certificate(server_root_ca).identity(client_identity);
+        }
         let obj = TestApp {
             port,
             db_url,
@@ -185,8 +192,8 @@ impl TestApp {
                 &self.app_config.rabbitmq_cfg.manage_url().unwrap(),
                 &self.rmq_vhost,
             )
-            .await
-            .unwrap();
+                .await
+                .unwrap();
         }
         self.has_dropped = true;
     }
@@ -236,7 +243,7 @@ impl TestApp {
             name.into(),
             &self.db_pool.as_ref().unwrap().db_pool,
         )
-        .await?;
+            .await?;
         tracing::info!("create session:{}", session_id);
         let mut id_vec = vec![];
         for i in &users {
@@ -251,14 +258,14 @@ impl TestApp {
             Some(PredefinedRoles::Owner.into()),
             &transaction,
         )
-        .await?;
+            .await?;
         process::db::batch_join_in_session(
             session_id,
             &id_vec[1..],
             Some(PredefinedRoles::Member.into()),
             &transaction,
         )
-        .await?;
+            .await?;
         transaction.commit().await?;
         Ok((users, TestSession::new(session_id)))
     }
