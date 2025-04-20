@@ -178,5 +178,9 @@
     "serverStatusUnknown": "Unknown",
     "@serverStatusUnknown": {
         "description": "server status:Unknown"
+    },
+    "permissionDenied": "Permission denied",
+    "@permissionDenied": {
+        "description": "Permission denied"
     }
 }

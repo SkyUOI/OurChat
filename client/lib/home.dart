@@ -24,10 +24,10 @@ class _HomeState extends State<Home> {
         page = const Session();
         break;
       case 1:
-        page = const Setting();
+        page = const Friends();
         break;
       case 2:
-        page = const Friends();
+        page = const Setting();
         break;
     }
 
@@ -45,9 +45,9 @@ class _HomeState extends State<Home> {
                 BottomNavigationBarItem(
                     label: "Sessions", icon: Icon(Icons.chat)),
                 BottomNavigationBarItem(
-                    label: "Settings", icon: Icon(Icons.settings)),
-                BottomNavigationBarItem(
                     label: "Friends", icon: Icon(Icons.people)),
+                BottomNavigationBarItem(
+                    label: "Settings", icon: Icon(Icons.settings)),
               ],
               currentIndex: index,
               onTap: (value) {

@@ -17,70 +17,66 @@ class Setting extends StatelessWidget {
           child: Column(
             children: [
               Expanded(
-                child: ListView(
-                  children: [
-                    Form(
-                      key: formKey,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Row(
                         children: [
-                          Row(
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.all(5.0),
-                                child: SizedBox(
-                                  width: 30.0,
-                                  height: 30.0,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      border: Border.all(
-                                        color: ColorScheme.fromSeed(
-                                          seedColor: Color(
-                                            appState.config!.data!["color"],
-                                          ),
-                                        ).secondary,
-                                      ),
-                                      color: Color(
+                          Padding(
+                            padding: const EdgeInsets.all(5.0),
+                            child: SizedBox(
+                              width: 30.0,
+                              height: 30.0,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: ColorScheme.fromSeed(
+                                      seedColor: Color(
                                         appState.config!.data!["color"],
                                       ),
-                                    ),
+                                    ).secondary,
+                                  ),
+                                  color: Color(
+                                    appState.config!.data!["color"],
                                   ),
                                 ),
                               ),
-                              Expanded(
-                                child: TextFormField(
-                                  decoration: InputDecoration(
-                                    labelText: AppLocalizations.of(
-                                      context,
-                                    )!
-                                        .themeColorSeed,
-                                  ),
-                                  controller: TextEditingController(
-                                    text:
-                                        "0x${appState.config!.data!["color"].toRadixString(16)}",
-                                  ),
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return AppLocalizations.of(
-                                        context,
-                                      )!
-                                          .cantBeEmpty;
-                                    }
-                                    return null;
-                                  },
-                                  onSaved: (value) {
-                                    appState.config!.data!["color"] = int.parse(
-                                      value!,
-                                    );
-                                  },
-                                ),
+                            ),
+                          ),
+                          Expanded(
+                            child: TextFormField(
+                              decoration: InputDecoration(
+                                labelText: AppLocalizations.of(
+                                  context,
+                                )!
+                                    .themeColorSeed,
                               ),
-                            ],
+                              controller: TextEditingController(
+                                text:
+                                    "0x${appState.config!.data!["color"].toRadixString(16)}",
+                              ),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return AppLocalizations.of(
+                                    context,
+                                  )!
+                                      .cantBeEmpty;
+                                }
+                                return null;
+                              },
+                              onSaved: (value) {
+                                appState.config!.data!["color"] = int.parse(
+                                  value!,
+                                );
+                              },
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               Row(
@@ -90,6 +86,7 @@ class Setting extends StatelessWidget {
                     padding: const EdgeInsets.all(5.0),
                     child: ElevatedButton(
                       onPressed: () {
+                        // 在保留服务端配置的情况下，重置配置
                         var servers = appState.config!.data!["servers"];
                         appState.config!.data =
                             appState.config!.getDefaultConfig();
@@ -101,6 +98,7 @@ class Setting extends StatelessWidget {
                     ),
                   ),
                   Padding(
+                    // 保存配置
                     padding: const EdgeInsets.all(5.0),
                     child: ElevatedButton(
                       child: Text(AppLocalizations.of(context)!.save),

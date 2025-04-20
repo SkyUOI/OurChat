@@ -6,6 +6,7 @@ class OurchatConfig {
   Map<String, dynamic>? data;
 
   Map<String, dynamic> getDefaultConfig() {
+    // 默认配置
     return {
       "servers": [
         {"host": "localhost", "port": 7777},
