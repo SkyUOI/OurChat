@@ -9,47 +9,35 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'dart:async';
 import 'package:ourchat/ourchat/ourchat_ui.dart';
 
-class SessionState extends ChangeNotifier {
-  int currentSession = -1;
-
-  void setCurrentSession(int index) {
-    currentSession = index;
-    notifyListeners();
-  }
-}
-
-class Session extends StatelessWidget {
+class Session extends StatefulWidget {
   const Session({super.key});
 
   @override
+  State<Session> createState() => _SessionState();
+}
+
+class _SessionState extends State<Session> {
+  int currentSession = -1;
+  @override
   Widget build(BuildContext context) {
     OurchatAppState appState = context.watch<OurchatAppState>();
-    return Scaffold(
-      body: ChangeNotifierProvider(
-        create: (_) => SessionState(),
-        child: LayoutBuilder(
-          // 此builder可以在尺寸发生变化时重新构建
-          builder: (context, constraints) {
-            SessionState homeState = context.watch<SessionState>();
-            Widget page = const Placeholder();
-            // 匹配不同设备类型
-            if (appState.device == mobile) {
-              page = (homeState.currentSession == -1
-                  ? const SessionList()
-                  : const SessionWidget());
-            } else if (appState.device == desktop) {
-              page = Row(
-                children: [
-                  Flexible(
-                      flex: 1, child: cardWithPadding(const SessionList())),
-                  const Flexible(flex: 3, child: SessionWidget()),
-                ],
-              );
-            }
-            return page;
-          },
-        ),
-      ),
+    return LayoutBuilder(
+      // 此builder可以在尺寸发生变化时重新构建
+      builder: (context, constraints) {
+        Widget page = const Placeholder();
+        // 匹配不同设备类型
+        if (appState.device == mobile) {
+          page = SessionList();
+        } else if (appState.device == desktop) {
+          page = Row(
+            children: [
+              Flexible(flex: 1, child: cardWithPadding(const SessionList())),
+              const Flexible(flex: 3, child: SessionWidget()),
+            ],
+          );
+        }
+        return page;
+      },
     );
   }
 }
@@ -183,7 +171,15 @@ class _SessionListState extends State<SessionList> {
                                   RoundedRectangleBorder(
                                       borderRadius:
                                           BorderRadius.circular(10.0)))),
-                          onPressed: () {},
+                          onPressed: () {
+                            setState(() {
+                              hoverIndex = index;
+                              Navigator.push(context,
+                                  MaterialPageRoute(builder: (context) {
+                                return Placeholder();
+                              }));
+                            });
+                          },
                           child: const Placeholder()),
                     ));
               },
@@ -250,7 +246,6 @@ class SessionWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     OurchatAppState appState = context.watch<OurchatAppState>();
-    SessionState homeState = context.watch<SessionState>();
     Widget sessionTitle = const Text("Session", style: TextStyle(fontSize: 30));
     return Column(
       mainAxisSize: MainAxisSize.max,
@@ -264,7 +259,7 @@ class SessionWidget extends StatelessWidget {
                   children: [
                     BackButton(
                       onPressed: () {
-                        homeState.setCurrentSession(-1);
+                        Navigator.pop(context);
                       },
                     ),
                     sessionTitle,
