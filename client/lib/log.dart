@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:logger/logger.dart';
-import 'package:ourchat/config.dart';
 import 'package:path_provider/path_provider.dart';
 
 Logger logger = Logger();
@@ -25,14 +24,13 @@ Level convertStrIntoLevel(String level) {
   }
 }
 
-Future<void> constructLogger() async {
+Future<void> constructLogger(Level logLevel) async {
   var path = await getApplicationDocumentsDirectory();
   var file = File('${path.path}/ourchat.log');
   file.openWrite(mode: FileMode.writeOnlyAppend);
-  var level = convertStrIntoLevel(ourchatConfig["log_level"]);
   logger = Logger(
       output: MultiOutput([FileOutput(file: file), ConsoleOutput()]),
-      level: level);
+      level: logLevel);
   logger.i("Logger has been initialized successfully, File ${path.path}");
 }
 

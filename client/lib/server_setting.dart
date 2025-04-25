@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:ourchat/config.dart';
 import 'package:ourchat/const.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -26,8 +25,8 @@ class _ServerSettingState extends State<ServerSetting> {
   @override
   Widget build(BuildContext context) {
     var ourchatAppState = context.watch<OurchatAppState>();
-    address = ourchatConfig["servers"][0]["host"];
-    port = ourchatConfig["servers"][0]["port"];
+    address = ourchatAppState.config["servers"][0]["host"];
+    port = ourchatAppState.config["servers"][0]["port"];
     var key = GlobalKey<FormState>();
     var serverInfoLabels = Expanded(
       child: Column(
@@ -170,8 +169,8 @@ class _ServerSettingState extends State<ServerSetting> {
                     }));
                     return;
                   }
-                  ourchatConfig["servers"][0]["host"] = address;
-                  ourchatConfig["servers"][0]["port"] = port;
+                  ourchatAppState.config["servers"][0]["host"] = address;
+                  ourchatAppState.config["servers"][0]["port"] = port;
                   server = OurChatServer(address, port);
                   setState(() {
                     isOnline = false;

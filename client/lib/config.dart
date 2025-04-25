@@ -1,4 +1,3 @@
-import 'package:flutter/widgets.dart';
 import 'package:localstorage/localstorage.dart';
 import 'dart:convert';
 
@@ -19,6 +18,11 @@ class OurchatConfig {
       "color": 0xFF2196F3,
       "log_level": defaultLogLevel
     };
+  }
+
+  void reset() {
+    data = getDefaultConfig();
+    saveConfig();
   }
 
   void checkConfig() {
@@ -57,29 +61,11 @@ class OurchatConfig {
     localStorage.setItem("config", jsonEncode(data));
     logger.i("save config done");
   }
-}
 
-late OurchatConfig _ourchatConfigInternal;
-OurchatConfigState ourchatConfig = OurchatConfigState();
+  operator [](key) => data[key];
 
-void initConfig() {
-  _ourchatConfigInternal = OurchatConfig();
-}
-
-class OurchatConfigState extends ChangeNotifier {
-  OurchatConfig get data => _ourchatConfigInternal;
-
-  operator [](String key) => _ourchatConfigInternal.data[key];
-
-  operator []=(String key, dynamic value) {
-    _ourchatConfigInternal.data[key] = value;
-    _ourchatConfigInternal.saveConfig();
-    notifyListeners();
-  }
-
-  void set(Map<String, dynamic> value) {
-    _ourchatConfigInternal.data = value;
-    _ourchatConfigInternal.saveConfig();
-    notifyListeners();
+  operator []=(key, value) {
+    data[key] = value;
+    saveConfig();
   }
 }

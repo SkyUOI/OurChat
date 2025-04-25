@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:ourchat/config.dart';
 import 'package:ourchat/log.dart';
 import 'main.dart';
 import 'package:provider/provider.dart';
@@ -13,7 +12,7 @@ class Setting extends StatelessWidget {
     var appState = context.watch<OurchatAppState>();
     final formKey = GlobalKey<FormState>();
     var i18n = AppLocalizations.of(context)!;
-    var originalColor = ourchatConfig["color"];
+    var seedColor = appState.config["color"];
 
     return Scaffold(
       body: Center(
@@ -40,10 +39,10 @@ class Setting extends StatelessWidget {
                                     decoration: BoxDecoration(
                                       border: Border.all(
                                         color: ColorScheme.fromSeed(
-                                          seedColor: Color(originalColor),
+                                          seedColor: Color(seedColor),
                                         ).secondary,
                                       ),
-                                      color: Color(originalColor),
+                                      color: Color(seedColor),
                                     ),
                                   ),
                                 ),
@@ -55,7 +54,7 @@ class Setting extends StatelessWidget {
                                   ),
                                   controller: TextEditingController(
                                     text:
-                                        "0x${ourchatConfig["color"].toRadixString(16)}",
+                                        "0x${appState.config["color"].toRadixString(16)}",
                                   ),
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
@@ -64,9 +63,11 @@ class Setting extends StatelessWidget {
                                     return null;
                                   },
                                   onSaved: (value) {
-                                    ourchatConfig["color"] = int.parse(
+                                    appState.config["color"] = int.parse(
                                       value!,
                                     );
+                                    seedColor = appState.config["color"];
+                                    appState.update();
                                   },
                                 ),
                               ),
@@ -86,10 +87,9 @@ class Setting extends StatelessWidget {
                     padding: const EdgeInsets.all(5.0),
                     child: ElevatedButton(
                       onPressed: () {
-                        var servers = ourchatConfig["servers"];
-                        ourchatConfig
-                            .set(ourchatConfig.data.getDefaultConfig());
-                        ourchatConfig["servers"] = servers;
+                        var servers = appState.config["servers"];
+                        appState.config.reset();
+                        appState.config["servers"] = servers;
                         appState.update();
                       },
                       child: Text(i18n.reset),
@@ -123,10 +123,12 @@ class _LogLevelSelector extends StatefulWidget {
 }
 
 class _LogLevelSelectorState extends State<_LogLevelSelector> {
-  String _selectedLevel = ourchatConfig["log_level"];
+  late String _selectedLevel;
 
   @override
   Widget build(BuildContext context) {
+    var appState = context.watch<OurchatAppState>();
+    _selectedLevel = appState.config["log_level"];
     var i18n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12.0),
@@ -160,31 +162,32 @@ class _LogLevelSelectorState extends State<_LogLevelSelector> {
               child: Padding(
                 padding: const EdgeInsets.only(top: 8.0),
                 child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    isExpanded: true,
-                    value: _selectedLevel,
-                    icon: const Icon(Icons.arrow_drop_down, size: 24),
-                    style: Theme.of(context).textTheme.bodyLarge,
-                    onChanged: (String? newValue) {
+                  child: DropdownMenu<String>(
+                    width: MediaQuery.of(context).size.width - 100,
+                    initialSelection: appState.config["log_level"],
+                    onSelected: (String? newValue) {
+                      appState.config["log_level"] = newValue!;
                       setState(() {
-                        _selectedLevel = newValue!;
+                        _selectedLevel = newValue;
                       });
-                      ourchatConfig["log_level"] = _selectedLevel;
-                      constructLogger();
+                      constructLogger(convertStrIntoLevel(_selectedLevel));
                       logger.i('Selected log level: $_selectedLevel');
+                      appState.update();
                     },
-                    items:
-                        logLevels.map<DropdownMenuItem<String>>((String value) {
-                      return DropdownMenuItem<String>(
+                    dropdownMenuEntries: logLevels
+                        .map<DropdownMenuEntry<String>>((String value) {
+                      return DropdownMenuEntry<String>(
                         value: value,
-                        child: Row(
-                          children: [
-                            SizedBox(width: 8),
-                            Text(value),
-                          ],
+                        label: value,
+                        leadingIcon: SizedBox(
+                          width: 40,
+                          child: _getLevelIcon(value),
                         ),
                       );
                     }).toList(),
+                    inputDecorationTheme: InputDecorationTheme(
+                        border:
+                            UnderlineInputBorder(borderSide: BorderSide.none)),
                   ),
                 ),
               ),

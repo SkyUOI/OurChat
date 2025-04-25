@@ -12,8 +12,6 @@ import 'dart:core';
 
 void main() async {
   await initLocalStorage();
-  initConfig();
-  await constructLogger();
   runApp(const MainApp());
 }
 
@@ -21,10 +19,11 @@ class OurchatAppState extends ChangeNotifier {
   int device = desktop;
   OurChatServer? server;
   OurchatAccount? thisAccount;
+  OurchatConfig config;
 
-  OurchatAppState() {
+  OurchatAppState() : config = OurchatConfig() {
     logger.i("init Ourchat");
-
+    constructLogger(convertStrIntoLevel(config["log_level"]));
     notifyListeners();
     logger.i("init Ourchat done");
   }
@@ -68,7 +67,7 @@ class Controller extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Color(ourchatConfig["color"]),
+          seedColor: Color(appState.config["color"]),
         ),
       ),
     );
