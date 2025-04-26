@@ -26,8 +26,8 @@ class _ServerSettingState extends State<ServerSetting> {
   Widget build(BuildContext context) {
     var ourchatAppState = context.watch<OurchatAppState>();
     // 从配置中读取地址和端口
-    address = ourchatAppState.config!.data!["servers"][0]["host"];
-    port = ourchatAppState.config!.data!["servers"][0]["port"];
+    address = ourchatAppState.config["servers"][0]["host"];
+    port = ourchatAppState.config["servers"][0]["port"];
     var key = GlobalKey<FormState>();
     var serverInfoLabels = Expanded(
       child: Column(
@@ -183,9 +183,8 @@ class _ServerSettingState extends State<ServerSetting> {
                     return;
                   }
                   // 连接新的服务端地址
-                  ourchatAppState.config!.data!["servers"][0]["host"] = address;
-                  ourchatAppState.config!.data!["servers"][0]["port"] = port;
-                  ourchatAppState.config!.saveConfig();
+                  ourchatAppState.config["servers"][0]["host"] = address;
+                  ourchatAppState.config["servers"][0]["port"] = port;
                   server = OurChatServer(address, port);
                   setState(() {
                     isOnline = false;
@@ -196,7 +195,8 @@ class _ServerSettingState extends State<ServerSetting> {
                     ping = -1;
                     serverStatusColor = Colors.grey;
                   });
-                  var resCode = await server!.getServerInfo();
+                  var resCode = unavailableStatusCode;
+                  resCode = await server!.getServerInfo();
                   if (resCode == unavailableStatusCode) {
                     // 连接失败
                     setState(() {
@@ -210,6 +210,7 @@ class _ServerSettingState extends State<ServerSetting> {
                   if (!context.mounted) return;
                   setState(() {
                     isOnline = true;
+                    // FIXME: use try-catch to avoid panicking when the server is down or network is broken
                     httpPort = server!.httpPort!;
                     switch (server!.serverStatus!.value) {
                       case okStatusCode:

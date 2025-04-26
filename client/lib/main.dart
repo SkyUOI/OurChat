@@ -7,6 +7,7 @@ import 'package:ourchat/const.dart';
 import 'package:ourchat/config.dart';
 import 'package:ourchat/server_setting.dart';
 import 'package:ourchat/ourchat/ourchat_server.dart';
+import 'log.dart';
 import 'dart:core';
 
 void main() async {
@@ -16,14 +17,15 @@ void main() async {
 
 class OurchatAppState extends ChangeNotifier {
   int device = desktop;
-  OurchatConfig? config;
   OurChatServer? server;
   OurchatAccount? thisAccount;
+  OurchatConfig config;
 
-  void init() async {
-    config = OurchatConfig();
-    config!.loadConfig();
-    notifyListeners(); // 初始化完毕 刷新ui
+  OurchatAppState() : config = OurchatConfig() {
+    logger.i("init Ourchat");
+    constructLogger(convertStrIntoLevel(config["log_level"]));
+    notifyListeners();
+    logger.i("init Ourchat done");
   }
 
   void update() {
@@ -39,7 +41,6 @@ class MainApp extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (context) {
         var appState = OurchatAppState();
-        appState.init();
         return appState;
       },
       child: const Controller(),
@@ -67,7 +68,7 @@ class Controller extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Color(appState.config!.data!["color"]), // 从配置中获取主题色种子
+          seedColor: Color(appState.config["color"]),
         ),
       ),
     );

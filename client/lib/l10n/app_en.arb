@@ -179,6 +179,10 @@
     "@serverStatusUnknown": {
         "description": "server status:Unknown"
     },
+    "logLevel": "Log Level",
+    "@logLevel": {
+        "description": "Log Level"
+    },
     "permissionDenied": "Permission denied",
     "@permissionDenied": {
         "description": "Permission denied"
