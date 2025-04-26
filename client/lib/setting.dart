@@ -9,110 +9,140 @@ class Setting extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var appState = context.watch<OurchatAppState>();
     final formKey = GlobalKey<FormState>();
-    var i18n = AppLocalizations.of(context)!;
-    var seedColor = appState.config["color"];
-
-    return Scaffold(
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.only(top: 20.0, bottom: 20.0),
-          child: Column(
-            children: [
-              Expanded(
-                child: ListView(
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.only(top: 20.0, bottom: 20.0),
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                // 可滚动
+                child: Column(
                   children: [
-                    Form(
-                      key: formKey,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Row(
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.all(5.0),
-                                child: SizedBox(
-                                  width: 30.0,
-                                  height: 30.0,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      border: Border.all(
-                                        color: ColorScheme.fromSeed(
-                                          seedColor: Color(seedColor),
-                                        ).secondary,
-                                      ),
-                                      color: Color(seedColor),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Expanded(
-                                child: TextFormField(
-                                  decoration: InputDecoration(
-                                    labelText: i18n.themeColorSeed,
-                                  ),
-                                  controller: TextEditingController(
-                                    text:
-                                        "0x${appState.config["color"].toRadixString(16)}",
-                                  ),
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return i18n.cantBeEmpty;
-                                    }
-                                    return null;
-                                  },
-                                  onSaved: (value) {
-                                    appState.config["color"] = int.parse(
-                                      value!,
-                                    );
-                                    seedColor = appState.config["color"];
-                                    appState.update();
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    _LogLevelSelector()
+                    _SeedColorEditor(formKey: formKey),
+                    _LogLevelSelector(),
                   ],
                 ),
               ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(5.0),
-                    child: ElevatedButton(
-                      onPressed: () {
-                        var servers = appState.config["servers"];
-                        appState.config.reset();
-                        appState.config["servers"] = servers;
-                        appState.update();
-                      },
-                      child: Text(i18n.reset),
+            ),
+            _DialogButtons(formKey: formKey) // 确定/重置
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SeedColorEditor extends StatelessWidget {
+  const _SeedColorEditor({required this.formKey});
+
+  final GlobalKey<FormState> formKey;
+
+  @override
+  Widget build(BuildContext context) {
+    var appState = context.watch<OurchatAppState>();
+    var i18n = AppLocalizations.of(context)!;
+    var seedColor = appState.config["color"];
+    return Form(
+      key: formKey,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(5.0),
+                child: SizedBox(
+                  width: 30.0,
+                  height: 30.0,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: ColorScheme.fromSeed(
+                          seedColor: Color(seedColor),
+                        ).secondary,
+                      ),
+                      color: Color(
+                        appState.config["color"],
+                      ),
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.all(5.0),
-                    child: ElevatedButton(
-                      child: Text(i18n.save),
-                      onPressed: () {
-                        if (formKey.currentState!.validate()) {
-                          formKey.currentState!.save();
-                          appState.update();
-                        }
-                      },
-                    ),
+                ),
+              ),
+              Expanded(
+                child: TextFormField(
+                  decoration: InputDecoration(
+                    labelText: i18n.themeColorSeed,
                   ),
-                ],
+                  controller: TextEditingController(
+                    text: "0x${appState.config["color"].toRadixString(16)}",
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return AppLocalizations.of(
+                        context,
+                      )!
+                          .cantBeEmpty;
+                    }
+                    return null;
+                  },
+                  onSaved: (value) {
+                    appState.config["color"] = int.parse(
+                      value!,
+                    );
+                  },
+                ),
               ),
             ],
           ),
-        ),
+        ],
       ),
+    );
+  }
+}
+
+class _DialogButtons extends StatelessWidget {
+  const _DialogButtons({
+    required this.formKey,
+  });
+
+  final GlobalKey<FormState> formKey;
+
+  @override
+  Widget build(BuildContext context) {
+    var appState = context.watch<OurchatAppState>();
+    var i18n = AppLocalizations.of(context)!;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(5.0),
+          child: ElevatedButton(
+            onPressed: () {
+              var servers = appState.config["servers"];
+              appState.config.reset();
+              appState.config["servers"] = servers;
+              appState.update();
+              appState.config.saveConfig();
+            },
+            child: Text(i18n.reset),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(5.0),
+          child: ElevatedButton(
+            child: Text(i18n.save),
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                formKey.currentState!.save();
+                appState.update();
+                appState.config.saveConfig();
+              }
+            },
+          ),
+        ),
+      ],
     );
   }
 }

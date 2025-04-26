@@ -9,45 +9,35 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'dart:async';
 import 'package:ourchat/ourchat/ourchat_ui.dart';
 
-class SessionState extends ChangeNotifier {
-  int currentSession = -1;
-
-  void setCurrentSession(int index) {
-    currentSession = index;
-    notifyListeners();
-  }
-}
-
-class Session extends StatelessWidget {
+class Session extends StatefulWidget {
   const Session({super.key});
 
   @override
+  State<Session> createState() => _SessionState();
+}
+
+class _SessionState extends State<Session> {
+  int currentSession = -1;
+  @override
   Widget build(BuildContext context) {
     OurchatAppState appState = context.watch<OurchatAppState>();
-    return Scaffold(
-      body: ChangeNotifierProvider(
-        create: (_) => SessionState(),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            SessionState homeState = context.watch<SessionState>();
-            Widget page = const Placeholder();
-            if (appState.device == mobile) {
-              page = (homeState.currentSession == -1
-                  ? const SessionList()
-                  : const SessionWidget());
-            } else if (appState.device == desktop) {
-              page = Row(
-                children: [
-                  Flexible(
-                      flex: 1, child: cardWithPadding(const SessionList())),
-                  const Flexible(flex: 3, child: SessionWidget()),
-                ],
-              );
-            }
-            return page;
-          },
-        ),
-      ),
+    return LayoutBuilder(
+      // 此builder可以在尺寸发生变化时重新构建
+      builder: (context, constraints) {
+        Widget page = const Placeholder();
+        // 匹配不同设备类型
+        if (appState.device == mobile) {
+          page = SessionList();
+        } else if (appState.device == desktop) {
+          page = Row(
+            children: [
+              Flexible(flex: 1, child: cardWithPadding(const SessionList())),
+              const Flexible(flex: 3, child: SessionWidget()),
+            ],
+          );
+        }
+        return page;
+      },
     );
   }
 }
@@ -60,9 +50,10 @@ class SessionList extends StatefulWidget {
 }
 
 class _SessionListState extends State<SessionList> {
-  var hoverIndex = -1;
-  Timer? _debounceTimer = Timer(Duration.zero, () {});
-  bool showSearchResults = false, search = false;
+  var hoverIndex = -1; // 当前选中的session
+  Timer? _debounceTimer = Timer(Duration.zero, () {}); // 搜索timer
+  bool showSearchResults = false; // 正在显示搜索结果
+  bool search = false; // 搜索中
   String searchKeyword = "";
 
   @override
@@ -81,6 +72,7 @@ class _SessionListState extends State<SessionList> {
             children: [
               Expanded(
                   child: TextFormField(
+                // 搜索框
                 decoration: const InputDecoration(hintText: "Search"),
                 onChanged: (value) {
                   setState(() {
@@ -92,11 +84,11 @@ class _SessionListState extends State<SessionList> {
                   _debounceTimer = Timer(
                       const Duration(seconds: 1),
                       () => setState(() {
-                            search = true;
+                            search = true; // 一秒内没输入，搜索
                           }));
                 },
               )),
-              IconButton(onPressed: () {}, icon: const Icon(Icons.add))
+              IconButton(onPressed: () {}, icon: const Icon(Icons.add)) // 创建会话
             ],
           ),
           if (showSearchResults)
@@ -106,18 +98,22 @@ class _SessionListState extends State<SessionList> {
                 future: getAccountInfo(ourchatAppState, searchKeyword, context),
                 builder: (BuildContext context, AsyncSnapshot snapshot) {
                   if (snapshot.connectionState != ConnectionState.done) {
+                    // 未完成
                     return CircularProgressIndicator(
+                      // 显示加载图标
                       color: Theme.of(context).primaryColor,
                     );
                   }
-                  OurchatAccount? account = snapshot.data;
+                  OurchatAccount? account = snapshot.data; // 获取搜索到的账号
                   if (account == null) {
+                    // 查无此人
                     return Padding(
                         padding: const EdgeInsets.only(top: 5.0),
                         child:
                             Text(AppLocalizations.of(context)!.userNotFound));
                   }
                   return SizedBox(
+                      // 显示匹配账号
                       height: 50.0,
                       child: Padding(
                         padding: const EdgeInsets.only(top: 5.0),
@@ -175,7 +171,15 @@ class _SessionListState extends State<SessionList> {
                                   RoundedRectangleBorder(
                                       borderRadius:
                                           BorderRadius.circular(10.0)))),
-                          onPressed: () {},
+                          onPressed: () {
+                            setState(() {
+                              hoverIndex = index;
+                              Navigator.push(context,
+                                  MaterialPageRoute(builder: (context) {
+                                return Placeholder();
+                              }));
+                            });
+                          },
                           child: const Placeholder()),
                     ));
               },
@@ -202,19 +206,29 @@ class _SessionListState extends State<SessionList> {
     } on grpc.GrpcError catch (e) {
       if (context.mounted) {
         switch (e.code) {
-          case internalStatusCode:
+          case internalStatusCode: // 服务端内部错误
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                 content: Text(AppLocalizations.of(context)!.serverError)));
             break;
-          case unavailableStatusCode:
+          case unavailableStatusCode: // 服务端维护中
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
               content: Text(
                   AppLocalizations.of(context)!.serverStatusUnderMaintenance),
             ));
             break;
-          case notFoundStatusCode:
+          case permissionDeniedStatusCode: // 权限不足，理论上不会出现
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(AppLocalizations.of(context)!.permissionDenied),
+            ));
             break;
-          default:
+          case invalidArgumentStatusCode: // 请求字段错误，理论上不会出现
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(AppLocalizations.of(context)!.internalError),
+            ));
+            break;
+          case notFoundStatusCode: // 查无此人
+            break;
+          default: // 未知错误
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
               content: Text(AppLocalizations.of(context)!.unknownError),
             ));
@@ -232,7 +246,6 @@ class SessionWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     OurchatAppState appState = context.watch<OurchatAppState>();
-    SessionState homeState = context.watch<SessionState>();
     Widget sessionTitle = const Text("Session", style: TextStyle(fontSize: 30));
     return Column(
       mainAxisSize: MainAxisSize.max,
@@ -240,12 +253,13 @@ class SessionWidget extends StatelessWidget {
       children: [
         Flexible(
           flex: 1,
+          // 若设备为移动端,显示一个返回按钮
           child: (appState.device == mobile
               ? Row(
                   children: [
                     BackButton(
                       onPressed: () {
-                        homeState.setCurrentSession(-1);
+                        Navigator.pop(context);
                       },
                     ),
                     sessionTitle,
@@ -253,8 +267,10 @@ class SessionWidget extends StatelessWidget {
                 )
               : Align(alignment: Alignment.center, child: sessionTitle)),
         ),
-        Flexible(flex: 10, child: cardWithPadding(const SessionRecord())),
         Flexible(
+            flex: 10, child: cardWithPadding(const SessionRecord())), //聊天记录
+        Flexible(
+          // 输入框
           flex: 2,
           child: cardWithPadding(const Align(
             alignment: Alignment.bottomCenter,
@@ -334,7 +350,7 @@ class _SessionRecordState extends State<SessionRecord> {
           margin: const EdgeInsets.all(5.0),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment:
+            mainAxisAlignment: // 根据是否为本账号的发言决定左右对齐
                 (isMe ? MainAxisAlignment.end : MainAxisAlignment.start),
             children: [(isMe ? message : avatar), (isMe ? avatar : message)],
           ),

@@ -59,8 +59,9 @@ class Controller extends StatelessWidget {
       supportedLocales: AppLocalizations.supportedLocales,
       home: LayoutBuilder(
         builder: (context, constraints) {
-          appState.device =
-              (constraints.maxHeight < constraints.maxWidth) ? desktop : mobile;
+          appState.device = (constraints.maxHeight < constraints.maxWidth)
+              ? desktop
+              : mobile; // 通过屏幕比例判断桌面端/移动端
           return const Navigator(pages: [MaterialPage(child: ServerSetting())]);
         },
       ),
