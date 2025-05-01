@@ -23,8 +23,6 @@ verification_expire_time = "3d"
 user_defined_status_expire_time = "24h"
 # The path of the users' files storage
 files_storage_path = "files_storage/"
-# Enable ssl encryption
-ssl = false
 # Whether this is started in Single Instance Mode. If true, some actions like cleaning up files will be performed regularly
 # You can set it when you have only one server instance, or you can set this option in only one instance(not recommended)
 single_instance = true
@@ -49,3 +47,14 @@ fetch_msg_page_size = 2000
 debug_console = true
 # Warning: don't expose it to the world
 debug_console_port = 7776
+
+[tls]
+# Enable tls encryption
+enable = false
+# The address of the tsl certificate, if not specified, the tls will be disabled
+# server_tls_cert_path = ""
+# server_key_cert_path = ""
+# client_tls_cert_path = ""
+# client_key_cert_path = ""
+# ca_tls_cert_path = ""
+# client_ca_tls_cert_path = ""
