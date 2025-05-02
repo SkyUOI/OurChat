@@ -278,6 +278,11 @@ impl RpcServer {
             .client_ca_tls_cert_path
             .clone();
         let is_tls_on = shared_data_for_tls.cfg.main_cfg.tls.is_tls_on()?;
+        let client_certificate_required = shared_data_for_tls
+            .cfg
+            .main_cfg
+            .tls
+            .client_certificate_required;
 
         let mut tls_acceptor = None;
         if is_tls_on {
@@ -314,9 +319,12 @@ impl RpcServer {
 
             let client_cert = WebPkiClientVerifier::builder(Arc::new(client_root_store));
 
-            let mut tls = ServerConfig::builder()
-                .with_client_cert_verifier(client_cert.build()?)
-                .with_single_cert(certs, key)?;
+            let mut tls = if client_certificate_required {
+                ServerConfig::builder().with_client_cert_verifier(client_cert.build()?)
+            } else {
+                ServerConfig::builder().with_no_client_auth()
+            }
+            .with_single_cert(certs, key)?;
 
             tls.alpn_protocols = vec![b"h2".to_vec()];
             tls_acceptor = Some(TlsAcceptor::from(Arc::new(tls)));

@@ -1,5 +1,5 @@
 # The http server listening ip
-ip = "127.0.0.1"
+ip = "localhost"
 # The http server listening port
 port = 7778
 redis_cfg = "redis.toml"
@@ -8,7 +8,9 @@ user_setting = "user_setting.toml"
 # If not set, the email will be disabled
 email_cfg = "email.toml"
 rabbitmq_cfg = "rabbitmq.toml"
-ssl = false
 # The logo of this server
 logo_path = "../resource/logo.png"
 run_migration = false
+
+[tls]
+enable = false

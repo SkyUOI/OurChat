@@ -146,6 +146,10 @@ pub const fn default_tls() -> bool {
     false
 }
 
+pub const fn default_client_certificate_required() -> bool {
+    false
+}
+
 pub const fn default_enable_email() -> bool {
     false
 }

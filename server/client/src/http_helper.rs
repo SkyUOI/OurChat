@@ -46,6 +46,13 @@ impl TestHttpApp {
         let db_name = uuid::Uuid::new_v4().to_string();
         cfg.db_cfg.db = db_name;
 
+        let mut client = reqwest::Client::builder().timeout(Duration::from_secs(2));
+        if cfg.main_cfg.tls.is_tls_on()? {
+            let pem = tokio::fs::read(cfg.main_cfg.tls.ca_tls_cert_path.as_ref().unwrap()).await?;
+            let cert = reqwest::Certificate::from_pem(&pem)?;
+            client = client.add_root_certificate(cert)
+        }
+
         let mut app = Launcher::build_from_config(cfg).await?;
         info!("Server is built");
         let handle = app.get_abort_handle();
@@ -59,10 +66,10 @@ impl TestHttpApp {
         info!("Waiting for http server to start");
         notify.notified().await;
         info!("http server started. Build TestHttpApp done");
+
+        let client = client.build()?;
         Ok(TestHttpApp {
-            client: reqwest::Client::builder()
-                .timeout(Duration::from_secs(2))
-                .build()?,
+            client,
             app_config,
             has_dropped: false,
             handle,
