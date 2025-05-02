@@ -168,6 +168,7 @@ impl Launcher {
             self.shared_data.main_cfg.run_migration,
         )
             .await?;
+            .await?;
         tracing::info!("Get database pool");
         let rabbitmq_pool = self.shared_data.rabbitmq_cfg.build().await?;
         tracing::info!("Connected to RabbitMQ");

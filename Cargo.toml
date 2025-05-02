@@ -11,6 +11,7 @@ members = [
     "server/pb",
     "server/http_server",
     "server/utils",
+    "server/utils",
 ]
 resolver = "3"
 
@@ -63,6 +64,7 @@ async-trait = { version = "0" }
 # Grpc
 prost = { version = "0" }
 jsonwebtoken = "9"
+tower = { version = "0", features = ["full"] }
 tower = { version = "0", features = ["full"] }
 hyper = { version = "1", features = ["full"] }
 hyper-util = { version = "0" }
