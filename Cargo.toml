@@ -65,7 +65,6 @@ async-trait = { version = "0" }
 prost = { version = "0" }
 jsonwebtoken = "9"
 tower = { version = "0", features = ["full"] }
-tower = { version = "0", features = ["full"] }
 hyper = { version = "1", features = ["full"] }
 hyper-util = { version = "0" }
 http-body-util = "0"

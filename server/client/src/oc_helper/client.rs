@@ -20,17 +20,15 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 use tonic::codegen::InterceptedService;
-use tonic::transport::{Certificate, {Certificate, Channel, ClientTlsConfig, Endpoint, Identity}, ClientTlsConfig, Identity};
+use tonic::transport::{Certificate, Channel, ClientTlsConfig, Endpoint, Identity};
 
 pub type OCClient = OurChatServiceClient<
     InterceptedService<
         Channel,
         Box<
             dyn FnMut(tonic::Request<()>) -> Result<tonic::Request<()>, tonic::Status>
-            + Send
-            + Sync,
-            + Send
-            + Sync,
+                + Send
+                + Sync,
         >,
     >,
 >;
@@ -96,8 +94,7 @@ impl TestApp {
             &reqwest::Client::new(),
             &server_config.rabbitmq_cfg.manage_url().unwrap(),
         )
-            .await?;
-            .await?;
+        .await?;
         server_config.rabbitmq_cfg.vhost = vhost.clone();
         let db_url = server_config.db_cfg.url();
         let mut application = Application::build(args, server_config.clone()).await?;
@@ -223,10 +220,8 @@ impl TestApp {
                 &self.app_config.rabbitmq_cfg.manage_url().unwrap(),
                 &self.rmq_vhost,
             )
-                .await
-                .unwrap();
-                .await
-                .unwrap();
+            .await
+            .unwrap();
         }
         self.has_dropped = true;
     }
@@ -279,8 +274,7 @@ impl TestApp {
             name.into(),
             &self.db_pool.as_ref().unwrap().db_pool,
         )
-            .await?;
-            .await?;
+        .await?;
         tracing::info!("create session:{}", session_id);
         let mut id_vec = vec![];
         for i in &users {
@@ -295,16 +289,14 @@ impl TestApp {
             Some(PredefinedRoles::Owner.into()),
             &transaction,
         )
-            .await?;
-            .await?;
+        .await?;
         process::db::batch_join_in_session(
             session_id,
             &id_vec[1..],
             Some(PredefinedRoles::Member.into()),
             &transaction,
         )
-            .await?;
-            .await?;
+        .await?;
         transaction.commit().await?;
         Ok((users, TestSession::new(session_id)))
     }

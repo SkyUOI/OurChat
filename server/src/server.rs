@@ -10,11 +10,9 @@ use crate::{SERVER_INFO, SharedData, ShutdownRev};
 use base::consts::{ID, OCID, VERSION_SPLIT};
 use base::database::DbPool;
 use futures_util::future::BoxFuture;
-use futures_util::future::BoxFuture;
 use http_body_util::BodyExt;
 use http_body_util::Full;
 use hyper::body::Bytes;
-use hyper::rt::{Read, Write};
 use hyper::rt::{Read, Write};
 use hyper::server::conn::http2;
 use hyper_util::rt::TokioIo;
@@ -92,19 +90,13 @@ use std::sync::{Arc, LazyLock};
 use tokio::net::TcpListener;
 use tokio::select;
 use tokio_rustls::TlsAcceptor;
-use tokio_rustls::TlsAcceptor;
-use tokio_rustls::rustls::ServerConfig;
 use tokio_rustls::rustls::pki_types::PrivateKeyDer;
-use tokio_rustls::rustls::pki_types::PrivateKeyDer;
-use tokio_rustls::rustls::pki_types::{CertificateDer, pem::PemObject as _};
 use tokio_rustls::rustls::pki_types::{CertificateDer, pem::PemObject as _};
 use tokio_rustls::rustls::server::WebPkiClientVerifier;
 use tokio_rustls::rustls::{RootCertStore, ServerConfig};
 use tonic::service::Routes;
 use tonic::{Request, Response, Status};
 use tower::Service;
-use tower_http::ServiceBuilderExt;
-use tracing::{debug, info, warn};
 use tracing::{debug, info, warn};
 
 /// RPC Server implementation for OurChat
@@ -130,50 +122,6 @@ fn is_grpc_request(req: &hyper::Request<impl hyper::body::Body>) -> bool {
         .get("content-type")
         .map(|v| v.as_bytes().starts_with(b"application/grpc"))
         .unwrap_or(false)
-}
-
-fn launch_connection<B>(svc: B, io: impl Read + Write + Unpin + Send + 'static)
-where
-    B: Service<
-            hyper::Request<hyper::body::Incoming>,
-            Response = hyper::Response<tonic::body::Body>,
-            Error = std::convert::Infallible,
-        > + Clone
-        + Send
-        + 'static,
-    B::Future: Send,
-{
-    tokio::spawn(async move {
-        if let Err(err) = http2::Builder::new(hyper_util::rt::TokioExecutor::default())
-            .serve_connection(
-                io,
-                hyper::service::service_fn(
-                    move |req| -> BoxFuture<
-                        'static,
-                        Result<hyper::Response<tonic::body::Body>, std::convert::Infallible>,
-                    > {
-                        let mut inner_svc = svc.clone();
-                        Box::pin(async move {
-                            if is_grpc_request(&req) {
-                                inner_svc.call(req).await
-                            } else {
-                                let body = Full::new(Bytes::from("Not implemented"))
-                                    .map_err(|_| Status::internal("Body error"))
-                                    .boxed_unsync();
-                                Ok(hyper::Response::builder()
-                                    .status(404)
-                                    .body(tonic::body::Body::new(body))
-                                    .unwrap())
-                            }
-                        })
-                    },
-                ),
-            )
-            .await
-        {
-            tracing::error!("Connection error: {:?}", err);
-        }
-    });
 }
 
 fn launch_connection<B>(svc: B, io: impl Read + Write + Unpin + Send + 'static)
@@ -276,7 +224,6 @@ impl RpcServer {
         let shared_data2 = self.shared_data.clone();
         let shared_data3 = self.shared_data.clone();
         let shared_data_for_tls = self.shared_data.clone();
-        let shared_data_for_tls = self.shared_data.clone();
 
         // Create service instances with interceptors for authentication and maintenance checks
         let main_svc = OurChatServiceServer::with_interceptor(self, move |mut req| {
@@ -310,40 +257,6 @@ impl RpcServer {
         builder.add_service(auth_svc);
         builder.add_service(server_manage_svc);
         let routes = builder.routes();
-        let svc = routes.prepare();
-
-        let cert_path = shared_data_for_tls.cfg.main_cfg.tls.tls_cert_path.clone();
-        let key_path = shared_data_for_tls.cfg.main_cfg.tls.key_cert_path.clone();
-        let is_tls_on = shared_data_for_tls.cfg.main_cfg.tls.is_tls_on()?;
-
-        let mut tls_acceptor = None;
-        if is_tls_on {
-            let cert_path = cert_path.unwrap();
-            let key_path = key_path.unwrap();
-            info!(
-                "TLS on: cert_path = {}, key_path = {}",
-                cert_path.display(),
-                key_path.display(),
-            );
-            let certs = {
-                let fd = std::fs::File::open(cert_path)?;
-                let mut buf = std::io::BufReader::new(&fd);
-                CertificateDer::pem_reader_iter(&mut buf).collect::<Result<Vec<_>, _>>()?
-            };
-            let key = {
-                let fd = std::fs::File::open(key_path)?;
-                let mut buf = std::io::BufReader::new(&fd);
-                PrivateKeyDer::from_pem_reader(&mut buf)?
-            };
-            let mut tls = ServerConfig::builder()
-                .with_no_client_auth()
-                .with_single_cert(certs, key)?;
-            tls.alpn_protocols = vec![b"h2".to_vec()];
-            tls_acceptor = Some(TlsAcceptor::from(Arc::new(tls)));
-            debug!("TLS enabled: {}", tls_acceptor.is_some());
-        } else {
-            warn!("TLS disabled, this is insecure.");
-        }
         let svc = routes.prepare();
 
         let cert_path = shared_data_for_tls
@@ -417,24 +330,6 @@ impl RpcServer {
             let listener = TcpListener::bind(addr).await?;
             loop {
                 // Accept incoming connections
-                let (socket, addr) = listener.accept().await?;
-
-                let tls_io;
-                let io;
-                let tls_acceptor = tls_acceptor.clone();
-                let svc_routes = svc.clone();
-
-                if is_tls_on {
-                    debug!("tls_io getting");
-                    tls_io = TokioIo::new(tls_acceptor.unwrap().accept(socket).await?);
-                    let svc = tower::ServiceBuilder::new().service(svc_routes.clone());
-                    launch_connection(svc, tls_io);
-                } else {
-                    io = TokioIo::new(socket);
-                    let svc = tower::ServiceBuilder::new().service(svc_routes);
-                    launch_connection(svc, io);
-                }
-                debug!("execute after accepting");
                 let (socket, _) = listener.accept().await?;
 
                 let tls_io;
