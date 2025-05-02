@@ -89,6 +89,7 @@ humantime-serde = "1"
 secrecy = "0"
 tower-http = { version = "0", features = ["full"] }
 color-eyre = "0"
+actix-tls = "3"
 
 [workspace.dependencies.lettre]
 version = "0"
@@ -103,7 +104,15 @@ features = ["json", "rustls-tls"]
 [workspace.dependencies.tonic]
 version = "0.13"
 default-features = false
-features = ["codegen", "prost", "channel", "transport", "router", "server", "_tls-any"]
+features = [
+    "codegen",
+    "prost",
+    "channel",
+    "transport",
+    "router",
+    "server",
+    "_tls-any",
+]
 
 [workspace.dependencies.sqlx]
 version = "0"
@@ -124,7 +133,7 @@ features = [
 [workspace.dependencies.actix-web]
 version = "4"
 default-features = false
-features = ["rustls", "macros"]
+features = ["rustls-0_23", "macros"]
 
 [workspace.dependencies.uuid]
 version = "1"
@@ -178,6 +187,6 @@ default-features = false
 features = ["rt_tokio_1"]
 
 [workspace.dependencies.rustls]
-version = "0.23"
+version = "0"
 default-features = false
-features = ["ring"]
+features = ["ring", "aws_lc_rs"]

@@ -13,6 +13,11 @@ use base::{
     shutdown::{ShutdownRev, ShutdownSdr},
 };
 use deadpool_lapin::lapin::options::{BasicAckOptions, BasicRejectOptions};
+use rustls::{
+    RootCertStore, ServerConfig,
+    pki_types::{CertificateDer, PrivateKeyDer, pem::PemObject},
+    server::WebPkiClientVerifier,
+};
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
@@ -42,6 +47,14 @@ impl HttpServer {
         let db_conn_clone = db_conn.clone();
         info!("Start building Server");
         let enable_matrix = cfg.main_cfg.enable_matrix;
+        let mut tls_config = None;
+        if cfg.main_cfg.tls.enable {
+            tls_config = Some(self.load_rustls_config(cfg.clone().into_inner())?);
+        }
+        //TODO there is some position tags, which need removing after debug
+        info!("position5");
+        // let addr = listener.local_addr()?;
+        info!("position4");
         let http_server = actix_web::HttpServer::new(move || {
             let v1 = web::scope("/v1")
                 .service(status::status)
@@ -69,8 +82,15 @@ impl HttpServer {
             }
             app
         })
-        .listen(listener.into_std()?)?
+        .listen(listener.into_std()?)?;
+        let http_server = if cfg.main_cfg.tls.enable {
+            debug!("position2");
+            http_server.bind_rustls_0_23(("localhost", 8443), tls_config.unwrap())?
+        } else {
+            http_server
+        }
         .run();
+        debug!("position3");
         info!("Start creating rabbitmq consumer");
         let connection = rabbitmq.get().await?;
         debug!("Get connection to rabbitmq");
@@ -99,6 +119,30 @@ impl HttpServer {
                 Ok(())
             }
         }
+    }
+
+    fn load_rustls_config(&self, cfg: Arc<Cfg>) -> anyhow::Result<rustls::ServerConfig> {
+        rustls::crypto::ring::default_provider()
+            .install_default()
+            .unwrap();
+
+        let mut cert_store = RootCertStore::empty();
+        CertificateDer::pem_file_iter(cfg.main_cfg.tls.client_ca_tls_cert_path.as_ref().unwrap())?
+            .flatten()
+            .for_each(|der| cert_store.add(der).unwrap());
+
+        let client_auth = WebPkiClientVerifier::builder(Arc::new(cert_store)).build()?;
+
+        let key_der =
+            PrivateKeyDer::from_pem_file(cfg.main_cfg.tls.server_key_cert_path.as_ref().unwrap())?;
+        let cert_chain =
+            CertificateDer::pem_file_iter(cfg.main_cfg.tls.server_tls_cert_path.as_ref().unwrap())
+                .unwrap()
+                .flatten()
+                .collect();
+        Ok(ServerConfig::builder()
+            .with_client_cert_verifier(client_auth)
+            .with_single_cert(cert_chain, key_der)?)
     }
 
     async fn listen_rabbitmq(

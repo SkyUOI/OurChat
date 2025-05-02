@@ -3,6 +3,7 @@ use crate::oc_helper::client::{OCClient, TestApp};
 use crate::oc_helper::{ClientErr, Clients};
 use anyhow::Context;
 use base::consts::{ID, OCID, SessionID};
+use base::setting::tls::TlsConfig;
 use pb::service::auth::authorize::v1::{AuthRequest, auth_request};
 use pb::service::auth::register::v1::RegisterRequest;
 use pb::service::basic::v1::TimestampRequest;
@@ -26,7 +27,7 @@ use tokio::select;
 use tokio::sync::Notify;
 use tokio_stream::StreamExt;
 use tonic::metadata::MetadataValue;
-use tonic::transport::{Channel, Uri};
+use tonic::transport::{Certificate, Channel, ClientTlsConfig, Identity, Uri};
 use tonic::{Response, Streaming};
 
 pub struct TestUser {
@@ -41,6 +42,7 @@ pub struct TestUser {
     pub rpc_url: String,
     pub oc_server: Option<OCClient>,
     pub timestamp_receive_msg: TimeStampUtc,
+    pub tls: TlsConfig,
 
     has_dropped: bool,
     has_registered: bool,
@@ -73,6 +75,7 @@ impl TestUser {
             timestamp_receive_msg: chrono::Utc::now(),
             has_unregistered: false,
             has_registered: false,
+            tls: TlsConfig::default(),
         }
     }
 
@@ -86,11 +89,34 @@ impl TestUser {
         user.ocid = OCID(ret.ocid);
         user.id = ID(ret.id);
         user.token = ret.token;
+        let mut tls_config = None;
+        if user.tls.is_tls_on()? {
+            let client_cert =
+                std::fs::read_to_string(user.tls.client_tls_cert_path.clone().unwrap())?;
+            let client_key =
+                std::fs::read_to_string(user.tls.client_key_cert_path.clone().unwrap())?;
+            let client_identity = Identity::from_pem(client_cert.clone(), client_key);
+            let server_ca_cert =
+                std::fs::read_to_string(user.tls.ca_tls_cert_path.clone().unwrap())?;
+            let server_root_ca = Certificate::from_pem(server_ca_cert);
+            tls_config = Some(
+                ClientTlsConfig::new()
+                    .ca_certificate(server_root_ca)
+                    .identity(client_identity),
+            );
+        }
         let channel =
-            Channel::builder(Uri::from_maybe_shared(user.rpc_url.clone()).context("Uri error")?)
-                .connect()
-                .await
-                .context("connect error")?;
+            Channel::builder(Uri::from_maybe_shared(user.rpc_url.clone()).context("Uri error")?);
+        let channel = if user.tls.is_tls_on()? {
+            channel
+                .tls_config(tls_config.unwrap())
+                .context("tls config error")?
+        } else {
+            channel
+        }
+        .connect()
+        .await
+        .context("connect error")?;
         let token: MetadataValue<_> = user
             .token
             .to_string()

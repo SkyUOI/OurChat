@@ -29,6 +29,7 @@ mimalloc.workspace = true
 actix-files.workspace = true
 dotenvy.workspace = true
 utils = { path = "../utils" }
+actix-tls.workspace = true
 
 [dev-dependencies]
 client = { path = "../client" }
@@ -38,6 +39,7 @@ parking_lot.workspace = true
 tokio-stream.workspace = true
 reqwest.workspace = true
 linkify.workspace = true
+rustls.workspace = true
 
 [dependencies.matrix-sdk]
 version = "0"
