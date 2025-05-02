@@ -88,6 +88,7 @@ async fn get_account_info_impl(
                     if let Privilege::Owner = privilege {
                         // invalid for the owner, ignore
                     } else {
+                        // TODO: use join to optimize this query
                         let friend =
                             db::user::query_contact_user_info(id, request_id, &server.db.db_pool)
                                 .await?;
@@ -98,13 +99,12 @@ async fn get_account_info_impl(
                                 .unwrap();
                             anyhow::Ok(Some(friend_info.name))
                         };
-                        ret.display_name = match friend {
-                            Some(x) => match x.display_name {
-                                Some(name) => Some(name),
-                                None => get_origin_name().await?,
-                            },
-                            None => get_origin_name().await?,
-                        }
+                        ret.display_name = Some(
+                            friend
+                                .unwrap_or_else(|| String::default())
+                                .display_name
+                                .unwrap_or_else(|| String::default()),
+                        );
                     }
                 }
                 RequestValues::Status => {
