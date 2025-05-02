@@ -186,5 +186,33 @@
     "permissionDenied": "Permission denied",
     "@permissionDenied": {
         "description": "Permission denied"
+    },
+    "logout": "Log Out",
+    "@logout": {
+        "description": "Log Out"
+    },
+    "displayName": "Display Name",
+    "@displayName": {
+        "description": "Display Name"
+    },
+    "addFriend": "Add Friend",
+    "@addFriend": {
+        "description": "Add Friend"
+    },
+    "cancel": "Cancel",
+    "@cancel": {
+        "description": "Cancel"
+    },
+    "ok": "OK",
+    "@ok": {
+        "description": "OK"
+    },
+    "send": "Send",
+    "@send": {
+        "description": "Send"
+    },
+    "friendAddMessage": "Friend Add Message",
+    "@friendAddMessage": {
+        "description": "friendAddMessage"
     }
 }

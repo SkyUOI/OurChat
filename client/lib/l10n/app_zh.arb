@@ -44,5 +44,12 @@
     "internalError": "内部错误",
     "serverStatusUnknown": "未知",
     "permissionDenied": "权限不足",
-    "logLevel": "日志级别"
+    "logLevel": "日志级别",
+    "logout": "退出登录",
+    "displayName": "备注",
+    "addFriend": "添加好友",
+    "cancel": "取消",
+    "ok": "确定",
+    "send": "发送",
+    "friendAddMessage": "申请信息"
 }
