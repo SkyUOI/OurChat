@@ -46,10 +46,7 @@ impl HttpServer {
         let db_conn_clone = db_conn.clone();
         info!("Start building Server");
         let enable_matrix = cfg.main_cfg.enable_matrix;
-        let mut tls_config = None;
-        if cfg.main_cfg.tls.is_tls_on()? {
-            tls_config = Some(self.load_rustls_config(cfg.clone().into_inner())?);
-        }
+
         let http_server = actix_web::HttpServer::new(move || {
             let v1 = web::scope("/v1")
                 .service(status::status)
@@ -81,7 +78,7 @@ impl HttpServer {
             drop(listener);
             http_server.bind_rustls_0_23(
                 (cfg.main_cfg.ip.clone(), cfg.main_cfg.port),
-                tls_config.unwrap(),
+                self.load_rustls_config(cfg.clone().into_inner())?,
             )?
         } else {
             http_server.listen(listener.into_std()?)?

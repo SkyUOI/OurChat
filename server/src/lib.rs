@@ -16,6 +16,7 @@ use base::database::postgres::PostgresDbCfg;
 use base::database::redis::RedisCfg;
 use base::rabbitmq::RabbitMQCfg;
 use base::setting::debug::DebugCfg;
+use base::setting::tls::TlsConfig;
 use base::setting::{Setting, UserSetting};
 use base::shutdown::{ShutdownRev, ShutdownSdr};
 use base::{log, setting};
@@ -38,7 +39,6 @@ use std::{
 };
 use tokio::task::JoinHandle;
 use tracing::info;
-use base::setting::tls::TlsConfig;
 use utils::merge_json;
 
 #[derive(Debug, Parser, Default)]
@@ -128,7 +128,7 @@ impl MainCfg {
                 tracing::error!("Please specify config file");
                 bail!("Please specify config file");
             }
-                .into()
+            .into()
         } else {
             iter.next().unwrap().into()
         };
@@ -606,7 +606,7 @@ impl Application {
             self.rabbitmq.clone(),
             self.abort_sender.new_receiver("rpc server", "rpc server"),
         )
-            .await?;
+        .await?;
         handles.push(handle);
 
         // Start the database file system

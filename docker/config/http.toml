@@ -12,3 +12,6 @@ ssl = false
 # The logo of this server
 logo_path = "../resource/logo.png"
 run_migration = false
+
+[tls]
+enable = false
