@@ -42,4 +42,6 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
+        run: |
+          rustup component add clippy
+          cargo clippy --all-targets --all-features -- -D warnings
