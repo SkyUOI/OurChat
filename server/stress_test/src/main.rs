@@ -202,7 +202,7 @@ async fn test_endpoint(app: &mut client::TestApp) -> anyhow::Result<()> {
     test_get_info(&users, &mut report).await;
     let keys = test_upload(&users, &mut report).await?;
     test_download(keys.clone(), &users, &mut report).await;
-    println!("{}", report);
+    println!("{report}");
     Ok(())
 }
 

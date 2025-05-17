@@ -143,7 +143,7 @@ async fn set_friend_info() -> anyhow::Result<()> {
         })
         .await?
         .into_inner();
-    assert_eq!(ret.display_name.unwrap(), user2.lock().await.name);
+    assert_eq!(ret.display_name.unwrap(), "");
     user1
         .lock()
         .await

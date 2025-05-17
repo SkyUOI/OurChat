@@ -65,7 +65,7 @@ async fn add_friend_accept() {
         .fetch_msgs(Duration::from_millis(600))
         .await
         .unwrap();
-    assert_eq!(user1_rec.len(), 2, "{:?}", user1_rec);
+    assert_eq!(user1_rec.len(), 2, "{user1_rec:?}");
     let RespondMsgType::AcceptFriend(accept_friend_notification) =
         user1_rec[1].respond_msg_type.clone().unwrap()
     else {
@@ -146,7 +146,7 @@ async fn add_friend_reject() {
         .fetch_msgs(Duration::from_millis(600))
         .await
         .unwrap();
-    assert_eq!(user1_rec.len(), 2, "{:?}", user1_rec);
+    assert_eq!(user1_rec.len(), 2, "{user1_rec:?}");
     let RespondMsgType::AcceptFriend(accept_friend_notification) =
         user1_rec[1].respond_msg_type.clone().unwrap()
     else {

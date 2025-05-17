@@ -25,8 +25,9 @@ class _ServerSettingState extends State<ServerSetting> {
   @override
   Widget build(BuildContext context) {
     var ourchatAppState = context.watch<OurchatAppState>();
-    address = ourchatAppState.config!.data!["servers"][0]["host"];
-    port = ourchatAppState.config!.data!["servers"][0]["port"];
+    // 从配置中读取地址和端口
+    address = ourchatAppState.config["servers"][0]["host"];
+    port = ourchatAppState.config["servers"][0]["port"];
     var key = GlobalKey<FormState>();
     var serverInfoLabels = Expanded(
       child: Column(
@@ -38,6 +39,7 @@ class _ServerSettingState extends State<ServerSetting> {
             // child: Image(image: AssetImage("assets/images/logo.png"))
           ),
           Row(
+            // 展示服务端ip
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text("${AppLocalizations.of(context)!.serverAddress}: "),
@@ -45,6 +47,7 @@ class _ServerSettingState extends State<ServerSetting> {
             ],
           ),
           Row(
+            // 展示服务端名称
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text("${AppLocalizations.of(context)!.serverName}: "),
@@ -52,6 +55,7 @@ class _ServerSettingState extends State<ServerSetting> {
             ],
           ),
           Row(
+            // 展示服务端端口
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text("${AppLocalizations.of(context)!.port}: "),
@@ -59,6 +63,7 @@ class _ServerSettingState extends State<ServerSetting> {
             ],
           ),
           Row(
+            // 展示服务端http端口
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text("${AppLocalizations.of(context)!.httpPort}: "),
@@ -69,6 +74,7 @@ class _ServerSettingState extends State<ServerSetting> {
             ],
           ),
           Row(
+            // 展示服务端状态
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text("${AppLocalizations.of(context)!.serverStatus}: "),
@@ -76,6 +82,7 @@ class _ServerSettingState extends State<ServerSetting> {
             ],
           ),
           Row(
+            // 展示服务端版本
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text("${AppLocalizations.of(context)!.serverVersion}: "),
@@ -83,6 +90,7 @@ class _ServerSettingState extends State<ServerSetting> {
             ],
           ),
           Row(
+            // 展示连接延迟
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text("${AppLocalizations.of(context)!.ping}: "),
@@ -103,6 +111,7 @@ class _ServerSettingState extends State<ServerSetting> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             TextFormField(
+              // 地址输入框
               initialValue: address,
               decoration: InputDecoration(
                 label: Text(AppLocalizations.of(context)!.serverAddress),
@@ -120,6 +129,7 @@ class _ServerSettingState extends State<ServerSetting> {
               },
             ),
             TextFormField(
+              // 端口输入框
               initialValue: port.toString(),
               decoration: InputDecoration(
                 label: Text(AppLocalizations.of(context)!.port),
@@ -146,18 +156,21 @@ class _ServerSettingState extends State<ServerSetting> {
               padding: const EdgeInsets.all(10.0),
               child: ElevatedButton(
                 child: Text(
+                  // 如果服务端在线(尝试连接成功)，则显示"继续"
                   isOnline
                       ? AppLocalizations.of(context)!.continue_
                       : AppLocalizations.of(context)!.connect,
                 ),
                 onPressed: () async {
                   if (!key.currentState!.validate()) {
+                    // 检查服务端信息是否合法
                     return;
                   }
-                  var lastAddress = address;
-                  var lastPort = port;
+                  var prevAddress = address;
+                  var prevPort = port;
                   key.currentState!.save();
-                  if (lastAddress == address && lastPort == port && isOnline) {
+                  if (prevAddress == address && prevPort == port && isOnline) {
+                    // 进入Auth界面
                     ourchatAppState.server = server;
                     ourchatAppState.update();
                     Navigator.pop(context);
@@ -169,9 +182,9 @@ class _ServerSettingState extends State<ServerSetting> {
                     }));
                     return;
                   }
-                  ourchatAppState.config!.data!["servers"][0]["host"] = address;
-                  ourchatAppState.config!.data!["servers"][0]["port"] = port;
-                  ourchatAppState.config!.saveConfig();
+                  // 连接新的服务端地址
+                  ourchatAppState.config["servers"][0]["host"] = address;
+                  ourchatAppState.config["servers"][0]["port"] = port;
                   server = OurChatServer(address, port);
                   setState(() {
                     isOnline = false;
@@ -182,8 +195,10 @@ class _ServerSettingState extends State<ServerSetting> {
                     ping = -1;
                     serverStatusColor = Colors.grey;
                   });
-                  var resCode = await server!.getServerInfo();
+                  var resCode = unavailableStatusCode;
+                  resCode = await server!.getServerInfo();
                   if (resCode == unavailableStatusCode) {
+                    // 连接失败
                     setState(() {
                       serverState =
                           AppLocalizations.of(context)!.serverStatusOffline;
@@ -191,9 +206,11 @@ class _ServerSettingState extends State<ServerSetting> {
                     });
                     return;
                   }
+                  // 连接成功
                   if (!context.mounted) return;
                   setState(() {
                     isOnline = true;
+                    // FIXME: use try-catch to avoid panicking when the server is down or network is broken
                     httpPort = server!.httpPort!;
                     switch (server!.serverStatus!.value) {
                       case okStatusCode:
@@ -235,12 +252,14 @@ class _ServerSettingState extends State<ServerSetting> {
       body: LayoutBuilder(
         builder: (context, constraints) {
           if (ourchatAppState.device == mobile) {
+            // 移动端，纵向展示
             return Padding(
               padding: const EdgeInsets.all(20.0),
               child: Column(children: [serverInfoLabels, serverForm]),
             );
           }
           return Padding(
+            // 桌面端，横向展示
             padding: const EdgeInsets.all(20.0),
             child: Row(
               children: [

@@ -6,6 +6,7 @@ import 'ourchat/ourchat_account.dart';
 import 'package:ourchat/home.dart';
 import 'package:provider/provider.dart';
 
+// Auth界面
 class Auth extends StatelessWidget {
   const Auth({super.key});
   @override
@@ -59,6 +60,7 @@ class _LoginState extends State<Login> {
                           height: 100.0, width: 100.0, child: Placeholder()),
                     ),
                     TextFormField(
+                      // 账号输入框
                       initialValue: account,
                       decoration: InputDecoration(
                           label: Text(
@@ -70,6 +72,7 @@ class _LoginState extends State<Login> {
                       },
                     ),
                     TextFormField(
+                      // 密码输入框
                       initialValue: password,
                       decoration: InputDecoration(
                         label: Text(AppLocalizations.of(context)!.password),
@@ -82,6 +85,7 @@ class _LoginState extends State<Login> {
                       obscureText: !showPassword,
                     ),
                     CheckboxListTile(
+                        // 显示密码checkbox
                         dense: true,
                         contentPadding: const EdgeInsets.all(0.0),
                         controlAffinity: ListTileControlAffinity.leading,
@@ -97,11 +101,13 @@ class _LoginState extends State<Login> {
                       padding: const EdgeInsets.all(10.0),
                       child: ElevatedButton(
                           onPressed: () async {
-                            key.currentState!.save();
+                            key.currentState!.save(); // 保存表单信息
+                            // 创建ocAccount对象并登录
                             OurchatAccount ocAccount =
                                 OurchatAccount(ourchatAppState.server!);
                             String? email, ocid;
                             if (account.contains('@')) {
+                              // 判断邮箱/ocid登录
                               email = account;
                             } else {
                               ocid = account;
@@ -113,6 +119,7 @@ class _LoginState extends State<Login> {
                               ourchatAppState.thisAccount!.getAccountInfo();
                               ourchatAppState.update();
                               if (context.mounted) {
+                                // 跳转主界面
                                 Navigator.pop(context);
                                 Navigator.push(context, MaterialPageRoute(
                                   builder: (context) {
@@ -123,9 +130,11 @@ class _LoginState extends State<Login> {
                                 ));
                               }
                             } else {
+                              // 处理报错
                               setState(() {
                                 switch (res) {
                                   case internalStatusCode:
+                                    // 服务端内部错误
                                     ScaffoldMessenger.of(context).showSnackBar(
                                         SnackBar(
                                             content: Text(
@@ -133,6 +142,7 @@ class _LoginState extends State<Login> {
                                                     .serverError)));
                                     break;
                                   case unavailableStatusCode:
+                                    // 服务端维护中
                                     ScaffoldMessenger.of(context).showSnackBar(
                                         SnackBar(
                                             content: Text(AppLocalizations.of(
@@ -140,6 +150,7 @@ class _LoginState extends State<Login> {
                                                 .serverStatusUnderMaintenance)));
                                     break;
                                   case notFoundStatusCode:
+                                    // 用户不存在
                                     ScaffoldMessenger.of(context).showSnackBar(
                                         SnackBar(
                                             content: Text(
@@ -147,6 +158,7 @@ class _LoginState extends State<Login> {
                                                     .userNotFound)));
                                     break;
                                   case invalidArgumentStatusCode:
+                                    // 缺少AuthType 理论上不会出现该报错
                                     ScaffoldMessenger.of(context).showSnackBar(
                                         SnackBar(
                                             content: Text(
@@ -154,6 +166,7 @@ class _LoginState extends State<Login> {
                                                     .internalError)));
                                     break;
                                   case unauthenticatedStatusCode:
+                                    // 密码错误
                                     ScaffoldMessenger.of(context).showSnackBar(
                                         SnackBar(
                                             content: Text(
@@ -161,6 +174,7 @@ class _LoginState extends State<Login> {
                                                     .incorrectPassword)));
                                     break;
                                   default:
+                                    // 未知错误
                                     ScaffoldMessenger.of(context).showSnackBar(
                                         SnackBar(
                                             content: Text(
@@ -181,6 +195,7 @@ class _LoginState extends State<Login> {
   }
 }
 
+// 注册
 class Register extends StatefulWidget {
   const Register({super.key});
 
@@ -206,6 +221,7 @@ class _RegisterState extends State<Register> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     TextFormField(
+                      // 用户名输入框
                       initialValue: username,
                       decoration: InputDecoration(
                           label: Text(AppLocalizations.of(context)!.username)),
@@ -216,6 +232,7 @@ class _RegisterState extends State<Register> {
                       },
                     ),
                     TextFormField(
+                      // 邮箱输入框
                       initialValue: email,
                       decoration: InputDecoration(
                           label: Text(AppLocalizations.of(context)!.email)),
@@ -226,6 +243,7 @@ class _RegisterState extends State<Register> {
                       },
                     ),
                     TextFormField(
+                      // 密码输入框
                       initialValue: password,
                       decoration: InputDecoration(
                         label: Text(AppLocalizations.of(context)!.password),
@@ -238,6 +256,7 @@ class _RegisterState extends State<Register> {
                       obscureText: !showPassword,
                     ),
                     CheckboxListTile(
+                        // 显示密码checkbox
                         dense: true,
                         contentPadding: const EdgeInsets.all(0.0),
                         controlAffinity: ListTileControlAffinity.leading,
@@ -253,27 +272,43 @@ class _RegisterState extends State<Register> {
                       padding: const EdgeInsets.all(10.0),
                       child: ElevatedButton(
                           onPressed: () async {
-                            key.currentState!.save();
+                            key.currentState!.save(); // 保存表单信息
+                            // 创建ocAccount对象并注册
                             OurchatAccount ocAccount =
                                 OurchatAccount(ourchatAppState.server!);
                             var res = await ocAccount.register(
                                 password, username, email);
                             if (res == okStatusCode) {
+                              // 注册成功
                               ourchatAppState.thisAccount = ocAccount;
                               ourchatAppState.thisAccount!.getAccountInfo();
                               ourchatAppState.update();
+                              if (context.mounted) {
+                                // 注册成功后跳转到主页
+                                Navigator.pop(context);
+                                Navigator.push(context, MaterialPageRoute(
+                                  builder: (context) {
+                                    return const Scaffold(
+                                      body: Home(),
+                                    );
+                                  },
+                                ));
+                              }
                             } else {
+                              // 处理报错
                               setState(() {
                                 switch (res) {
                                   case internalStatusCode:
+                                    // 服务端内部错误
                                     ScaffoldMessenger.of(context)
                                         .showSnackBar(SnackBar(
                                       content: Text(
                                           AppLocalizations.of(context)!
-                                              .internalError),
+                                              .serverError),
                                     ));
                                     break;
                                   case unavailableStatusCode:
+                                    // 服务端维护中
                                     ScaffoldMessenger.of(context)
                                         .showSnackBar(SnackBar(
                                       content: Text(
@@ -282,6 +317,7 @@ class _RegisterState extends State<Register> {
                                     ));
                                     break;
                                   case alreadyExistsStatusCode:
+                                    // 邮箱已存在
                                     ScaffoldMessenger.of(context)
                                         .showSnackBar(SnackBar(
                                       content: Text(
@@ -290,6 +326,7 @@ class _RegisterState extends State<Register> {
                                     ));
                                     break;
                                   default:
+                                    // 未知错误
                                     ScaffoldMessenger.of(context)
                                         .showSnackBar(SnackBar(
                                       content: Text(

@@ -108,7 +108,7 @@ impl TestHttpApp {
     }
 
     pub async fn verify(&mut self, token: &str) -> Result<reqwest::Response, reqwest::Error> {
-        self.ourchat_api_get(format!("verify/confirm?token={}", token))
+        self.ourchat_api_get(format!("verify/confirm?token={token}"))
             .await
     }
 

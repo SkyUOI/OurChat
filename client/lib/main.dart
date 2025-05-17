@@ -3,11 +3,11 @@ import 'ourchat/ourchat_account.dart';
 import 'package:provider/provider.dart';
 import 'package:localstorage/localstorage.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:logger/logger.dart';
 import 'package:ourchat/const.dart';
 import 'package:ourchat/config.dart';
 import 'package:ourchat/server_setting.dart';
 import 'package:ourchat/ourchat/ourchat_server.dart';
+import 'log.dart';
 import 'dart:core';
 
 void main() async {
@@ -17,16 +17,13 @@ void main() async {
 
 class OurchatAppState extends ChangeNotifier {
   int device = desktop;
-  OurchatConfig? config;
-  Logger logger = Logger();
   OurChatServer? server;
   OurchatAccount? thisAccount;
+  OurchatConfig config;
 
-  void init() async {
+  OurchatAppState() : config = OurchatConfig() {
     logger.i("init Ourchat");
-    config = OurchatConfig();
-    config!.loadConfig();
-
+    constructLogger(convertStrIntoLevel(config["log_level"]));
     notifyListeners();
     logger.i("init Ourchat done");
   }
@@ -44,7 +41,6 @@ class MainApp extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (context) {
         var appState = OurchatAppState();
-        appState.init();
         return appState;
       },
       child: const Controller(),
@@ -63,15 +59,16 @@ class Controller extends StatelessWidget {
       supportedLocales: AppLocalizations.supportedLocales,
       home: LayoutBuilder(
         builder: (context, constraints) {
-          appState.device =
-              (constraints.maxHeight < constraints.maxWidth) ? desktop : mobile;
+          appState.device = (constraints.maxHeight < constraints.maxWidth)
+              ? desktop
+              : mobile; // 通过屏幕比例判断桌面端/移动端
           return const Navigator(pages: [MaterialPage(child: ServerSetting())]);
         },
       ),
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Color(appState.config!.data!["color"]),
+          seedColor: Color(appState.config["color"]),
         ),
       ),
     );

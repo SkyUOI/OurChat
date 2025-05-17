@@ -55,7 +55,7 @@ pub async fn verify_client(
         let user_mailbox = format!("User <{}>", data.email);
         let user_mailbox = match user_mailbox
             .parse()
-            .with_context(|| format!("email {} parse failed", user_mailbox))
+            .with_context(|| format!("email {user_mailbox} parse failed"))
         {
             Ok(mailbox) => mailbox,
             Err(e) => Err(e)?,
@@ -81,7 +81,7 @@ pub async fn verify_client(
 }
 
 fn mapped_to_redis(key: &str) -> String {
-    format!("verify:{}", key)
+    format!("verify:{key}")
 }
 
 pub async fn check_token_exist_and_del_token(

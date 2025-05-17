@@ -31,7 +31,7 @@ const PREFIX_LEN: usize = 20;
 /// This ensures uniqueness while maintaining traceability through the hash
 fn generate_key_name(hash: &str) -> String {
     let prefix: String = generate_random_string(PREFIX_LEN);
-    format!("{}{}", prefix, hash)
+    format!("{prefix}{hash}")
 }
 
 /// Add a new file record to the database and create the file on disk
@@ -223,7 +223,7 @@ async fn upload_impl(
         tracing::trace!("received size:{}, expected size {}", metadata.size, sz);
         return Err(UploadError::FileSizeError);
     }
-    if format!("{:x}", hash) != metadata.hash {
+    if format!("{hash:x}") != metadata.hash {
         tracing::trace!(
             "received hash:{:?}, expected hash {:?}",
             metadata.hash,

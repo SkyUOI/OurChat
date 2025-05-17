@@ -13,13 +13,13 @@ import 'package:grpc/grpc.dart';
 import 'package:crypto/crypto.dart';
 
 class OurchatAccount {
-  Int64? id;
-  String? username, avatarKey, displayName, status, email, ocid, token;
+  late Int64 id;
+  late String username, avatarKey, displayName, status, email, ocid, token;
   bool isMe = false, gotInfo = false;
-  Timestamp? publicUpdateTime, updateTime, registerTime;
+  late Timestamp publicUpdateTime, updateTime, registerTime;
   OurChatServer server;
-  List<Int64>? friends, sessions;
-  OurChatServiceClient? stub;
+  late List<Int64> friends, sessions;
+  late OurChatServiceClient stub;
 
   OurchatAccount(this.server) {
     stub = OurChatServiceClient(server.channel!);
@@ -27,7 +27,7 @@ class OurchatAccount {
 
   void recreateStub() {
     var interceptor = AuthInterceptor();
-    interceptor.setToken(token!);
+    interceptor.setToken(token);
     stub = OurChatServiceClient(server.channel!, interceptors: [interceptor]);
   }
 
@@ -78,8 +78,8 @@ class OurchatAccount {
   }
 
   Future getAccountInfo() async {
-    GetAccountInfoResponse res = await stub!
-        .getAccountInfo(GetAccountInfoRequest(id: id, requestValues: [
+    GetAccountInfoResponse res =
+        await stub.getAccountInfo(GetAccountInfoRequest(id: id, requestValues: [
       RequestValues.REQUEST_VALUES_AVATAR_KEY,
       RequestValues.REQUEST_VALUES_USER_NAME,
       RequestValues.REQUEST_VALUES_PUBLIC_UPDATE_TIME,
@@ -92,7 +92,7 @@ class OurchatAccount {
     status = res.status;
     ocid = res.ocid;
     if (isMe) {
-      res = await stub!.getAccountInfo(
+      res = await stub.getAccountInfo(
         GetAccountInfoRequest(
           id: id,
           requestValues: [
@@ -110,7 +110,7 @@ class OurchatAccount {
       sessions = res.sessions;
       registerTime = res.registerTime;
     } else {
-      res = await stub!.getAccountInfo(
+      res = await stub.getAccountInfo(
         GetAccountInfoRequest(
           id: id,
           requestValues: [RequestValues.REQUEST_VALUES_DISPLAY_NAME],

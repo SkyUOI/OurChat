@@ -10,21 +10,22 @@ dependencies:
   flutter:
     sdk: flutter
   provider: ^6.0.5
-  web_socket_channel: ^2.2.0
+  web_socket_channel: ^3.0.3
   crypto: ^3.0.2
-  localstorage: ^5.0.0
+  localstorage: ^6.0.0
   flutter_localizations:
     sdk: flutter
   intl: any
   logger: ^2.4.0
-  protobuf: ^3.1.0
+  protobuf: ^4.0.0
   grpc: ^4.0.1
   fixnum: ^1.1.1
+  path_provider: ^2.1.5
 
 dev_dependencies:
   # flutter_test:
   #   sdk: flutter
-  flutter_lints: ^4.0.0
+  flutter_lints: ^5.0.0
 
 flutter:
   uses-material-design: true

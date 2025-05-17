@@ -14,9 +14,9 @@ class Friends extends StatelessWidget {
         itemBuilder: (context, index) {
           return ElevatedButton(
               onPressed: () {},
-              child: Text(
-                  ourchatAppState.thisAccount!.friends![index].toString()));
+              child:
+                  Text(ourchatAppState.thisAccount!.friends[index].toString()));
         },
-        itemCount: ourchatAppState.thisAccount!.friends!.length);
+        itemCount: ourchatAppState.thisAccount!.friends.length);
   }
 }

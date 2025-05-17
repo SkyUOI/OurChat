@@ -36,8 +36,8 @@ async fn add_and_get_announcement() {
     let mut original_announcement = Vec::new();
     for idx in 0..10 {
         let announcement = Announcement {
-            title: format!("test{}", idx),
-            content: format!("test{}", idx),
+            title: format!("test{idx}"),
+            content: format!("test{idx}"),
             publisher_id: user.as_ref().lock().await.id.into(),
         };
         original_announcement.push(announcement.clone());
@@ -118,7 +118,7 @@ async fn publish_and_fetch_announcement() {
             .fetch_msgs(Duration::from_millis(1200))
             .await
             .unwrap();
-        assert_eq!(receive.len(), 2, "{:?}", receive);
+        assert_eq!(receive.len(), 2, "{receive:?}");
         match receive[0].to_owned().respond_msg_type.unwrap() {
             RespondMsgType::AnnouncementResponse(announcement) => {
                 assert_eq!(announcement.announcement.unwrap(), announcement_bef);
