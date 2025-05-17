@@ -1,8 +1,9 @@
+use std::time::Duration;
+
 use crate::{Cfg, EmailClientType};
 use actix_web::{HttpRequest, HttpResponse, Responder, get, web};
 use anyhow::Context;
 use base::consts;
-use base::consts::VERIFY_EMAIL_EXPIRE;
 use base::database::DbPool;
 use base::rabbitmq::http_server::VerifyRecord;
 use deadpool_redis::redis::AsyncCommands;
@@ -76,7 +77,12 @@ pub async fn verify_client(
             Err(e)?
         };
     }
-    add_token(&data.token, &db.redis_pool).await?;
+    add_token(
+        &data.token,
+        cfg.user_setting.verify_email_expiry,
+        &db.redis_pool,
+    )
+    .await?;
     Ok(())
 }
 
@@ -94,10 +100,14 @@ pub async fn check_token_exist_and_del_token(
     Ok(ret)
 }
 
-async fn add_token(token: &str, conn: &deadpool_redis::Pool) -> anyhow::Result<()> {
+async fn add_token(
+    token: &str,
+    ex_time: Duration,
+    conn: &deadpool_redis::Pool,
+) -> anyhow::Result<()> {
     let mut conn = conn.get().await?;
     let _: () = conn
-        .set_ex(mapped_to_redis(token), 1, VERIFY_EMAIL_EXPIRE.as_secs())
+        .set_ex(mapped_to_redis(token), 1, ex_time.as_secs())
         .await?;
     Ok(())
 }
