@@ -1,5 +1,6 @@
 #![feature(decl_macro)]
 #![feature(duration_constructors)]
+#![feature(duration_constructors_lite)]
 
 pub mod consts;
 pub mod cryption;
