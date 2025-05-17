@@ -35,7 +35,7 @@ rust-version = "1.87"
 anyhow = "1"
 serde_json = "1"
 futures-util = "0"
-rand = "0.8.5"
+rand = "0.9.1"
 snowdon = "0"
 zxcvbn = { version = "3", features = ["ser"] }
 
