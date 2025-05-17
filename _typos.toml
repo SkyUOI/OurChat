@@ -1,2 +1,2 @@
 [files]
-extend-exclude = ["*.pbxproj", "*.xib", "*.storyboard"]
+extend-exclude = ["*.pbxproj", "*.xib", "*.storyboard", "*.csr"]
