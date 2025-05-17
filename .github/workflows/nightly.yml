@@ -3,8 +3,8 @@ name: Nightly Docker Build
 on:
   schedule:
     # Run at 00:00 UTC (midnight) every day
-    - cron: '0 0 * * *'
-  
+    - cron: "0 0 * * *"
+
   # Allow manual trigger
   workflow_dispatch:
 
@@ -22,14 +22,14 @@ jobs:
       - id: skip_check
         uses: fkirc/skip-duplicate-actions@v5
         with:
-          concurrent_skipping: 'always'
+          concurrent_skipping: "always"
           paths_ignore: '["client/**"]'
 
   check_and_build:
     needs: pre_job
     if: needs.pre_job.outputs.should_skip != 'true'
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -55,5 +55,4 @@ jobs:
       - name: Build and push Docker images
         if: steps.check_changes.outputs.changes != '0'
         run: |
-          python3 script/build_production_container.py nightly skip_base --push
-    
+          python3 script/build_production_container.py --extension nightly --skip_base --push
