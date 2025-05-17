@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::path::Path;
 
 pub mod debug;
+pub mod tls;
 
 pub trait Setting {
     fn build_from_path<'de>(path: impl AsRef<Path>) -> anyhow::Result<Self>

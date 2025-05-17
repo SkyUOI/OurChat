@@ -43,9 +43,8 @@ utils = { path = "utils" }
 
 # Useful crates
 collection_literals.workspace = true
-colored.workspace = true
-strum.workspace = true
 size.workspace = true
+color-eyre.workspace = true
 
 # num_enum = "0"
 async-trait.workspace = true
@@ -67,6 +66,13 @@ deadpool-lapin.workspace = true
 
 humantime.workspace = true
 humantime-serde.workspace = true
+
+tokio-rustls = { version = "0.26.1", features = [
+    "ring",
+    "tls12",
+], default-features = false }
+tower-http.workspace = true
+http-body = "1.0.1"
 
 [dev-dependencies]
 claims.workspace = true

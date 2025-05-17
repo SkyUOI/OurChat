@@ -142,7 +142,11 @@ pub const fn default_output_len() -> Option<usize> {
     None
 }
 
-pub const fn default_ssl() -> bool {
+pub const fn default_tls() -> bool {
+    false
+}
+
+pub const fn default_client_certificate_required() -> bool {
     false
 }
 

@@ -5,6 +5,7 @@ use base::consts::SERVER_INFO_PATH;
 use base::database::DbPool;
 use base::email_client::{EmailCfg, EmailSender};
 use base::rabbitmq::RabbitMQCfg;
+use base::setting::tls::TlsConfig;
 use base::setting::{Setting, UserSetting};
 use base::shutdown::ShutdownSdr;
 use clap::Parser;
@@ -22,8 +23,6 @@ pub struct MainCfg {
     pub ip: String,
     #[serde(default = "base::consts::default_http_port")]
     pub port: u16,
-    #[serde(default = "base::consts::default_ssl")]
-    pub ssl: bool,
     pub redis_cfg: PathBuf,
     pub db_cfg: PathBuf,
     pub user_setting: PathBuf,
@@ -34,11 +33,12 @@ pub struct MainCfg {
     pub run_migration: bool,
     #[serde(default = "base::consts::default_enable_matrix")]
     pub enable_matrix: bool,
+    pub tls: TlsConfig,
 }
 
 impl MainCfg {
     pub fn protocol_http(&self) -> &'static str {
-        if self.ssl { "https" } else { "http" }
+        if self.tls.enable { "https" } else { "http" }
     }
 
     pub fn fix_paths(&mut self, base_path: &Path) -> anyhow::Result<()> {
@@ -174,7 +174,7 @@ impl Launcher {
         tracing::info!("Starting http server");
         let tcplistener = self.tcplistener.take().unwrap();
         let rabbitmq_pool_clone = rabbitmq_pool.clone();
-        let email_client = self.email_client.take();
+        let email_client: Option<Box<dyn EmailSender>> = self.email_client.take();
         let main_cfg = self.shared_data.clone();
         let abort_sender_clone = self.abort_sender.clone();
         let http_server = tokio::spawn(async move {

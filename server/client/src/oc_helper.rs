@@ -19,6 +19,8 @@ pub mod user;
 pub enum ClientErr {
     #[error("rpc status:{0}")]
     RpcStatus(#[from] tonic::Status),
+    #[error("io error:{0}")]
+    IoError(#[from] std::io::Error),
     #[error("unknown error:{0}")]
     Unknown(#[from] anyhow::Error),
 }
@@ -27,6 +29,7 @@ impl ClientErr {
     pub fn unwrap_rpc_status(self) -> tonic::Status {
         match self {
             Self::RpcStatus(status) => status,
+            Self::IoError(e) => panic!("expect rpc status, but got io error: {e}"),
             Self::Unknown(e) => panic!("expect rpc status, but got unknown error: {e}"),
         }
     }
