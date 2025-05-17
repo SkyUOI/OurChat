@@ -31,7 +31,7 @@ pub fn get_hash_from_file(content: impl Iterator<Item = Vec<u8>> + Clone) -> Str
         hasher.update(&chunks);
     }
     let hash = hasher.finalize();
-    format!("{:x}", hash)
+    format!("{hash:x}")
 }
 
 pub async fn get_hash_from_download(

@@ -69,7 +69,7 @@ async fn join_in_session_success() {
         .fetch_msgs(Duration::from_millis(500))
         .await
         .unwrap();
-    assert_eq!(ret.len(), 2, "{:?}", ret);
+    assert_eq!(ret.len(), 2, "{ret:?}");
     let RespondMsgType::AcceptJoinInSession(ret) = ret[1].respond_msg_type.clone().unwrap() else {
         panic!()
     };
@@ -141,7 +141,7 @@ async fn join_in_session_reject() {
         .fetch_msgs(Duration::from_millis(500))
         .await
         .unwrap();
-    assert_eq!(ret.len(), 2, "{:?}", ret);
+    assert_eq!(ret.len(), 2, "{ret:?}");
     let RespondMsgType::AcceptJoinInSession(ret) = ret[1].respond_msg_type.clone().unwrap() else {
         panic!()
     };

@@ -9,7 +9,7 @@ use entities::{prelude::*, user};
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 
 fn mapped_to_ocid(key: &str) -> String {
-    format!("ocid:{}", key)
+    format!("ocid:{key}")
 }
 
 pub async fn get_id(ocid: &OCID, db_conn: &DbPool) -> anyhow::Result<ID> {

@@ -12,7 +12,6 @@ use pb::service::ourchat::get_account_info::v1::{
     GetAccountInfoRequest, GetAccountInfoResponse, OWNER_PRIVILEGE, RequestValues,
 };
 use pb::time::to_google_timestamp;
-use sea_orm::EntityTrait;
 use std::cmp::PartialEq;
 use std::sync::OnceLock;
 use tonic::Request;
@@ -92,18 +91,14 @@ async fn get_account_info_impl(
                         let friend =
                             db::user::query_contact_user_info(id, request_id, &server.db.db_pool)
                                 .await?;
-                        let get_origin_name = async || {
-                            let friend_info = entities::user::Entity::find_by_id(request_id)
-                                .one(&server.db.db_pool)
-                                .await?
-                                .unwrap();
-                            anyhow::Ok(Some(friend_info.name))
-                        };
                         ret.display_name = Some(
-                            friend
-                                .unwrap_or_else(|| String::default())
-                                .display_name
-                                .unwrap_or_else(|| String::default()),
+                            if let Some(friend) = friend
+                                && let Some(name) = friend.display_name
+                            {
+                                name
+                            } else {
+                                String::default()
+                            },
                         );
                     }
                 }

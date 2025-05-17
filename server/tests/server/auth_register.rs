@@ -36,7 +36,7 @@ async fn auth_token() {
         .await
         .unwrap_err()
         .unwrap_rpc_status();
-    assert_eq!(e.code(), tonic::Code::NotFound, "{:?}", e);
+    assert_eq!(e.code(), tonic::Code::NotFound, "{e:?}");
     app.async_drop().await;
 }
 

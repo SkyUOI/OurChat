@@ -211,8 +211,7 @@ impl RpcServer {
                                                 Ok(res) => Ok(res),
                                                 Err(e) => {
                                                     let body = Full::new(Bytes::from(format!(
-                                                        "Error: {}",
-                                                        e
+                                                        "Error: {e}"
                                                     )))
                                                     .map_err(|_| Status::internal("Body error"))
                                                     .boxed_unsync();

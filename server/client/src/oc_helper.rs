@@ -27,7 +27,7 @@ impl ClientErr {
     pub fn unwrap_rpc_status(self) -> tonic::Status {
         match self {
             Self::RpcStatus(status) => status,
-            Self::Unknown(e) => panic!("expect rpc status, but got unknown error: {}", e),
+            Self::Unknown(e) => panic!("expect rpc status, but got unknown error: {e}"),
         }
     }
 }

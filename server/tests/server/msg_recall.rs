@@ -73,7 +73,7 @@ async fn test_recall() {
         .await
         .unwrap();
     let check = |rec: Vec<FetchMsgsResponse>, msg_len, msg_recall_idx: usize| {
-        assert_eq!(rec.len(), msg_len, "{:?}", rec);
+        assert_eq!(rec.len(), msg_len, "{rec:?}");
         assert_lt!(
             from_google_timestamp(&rec[msg_recall_idx].time.unwrap()).unwrap(),
             chrono::Utc::now()

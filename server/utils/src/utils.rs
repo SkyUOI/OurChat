@@ -66,7 +66,7 @@ pub fn sha3_256(data: &[u8]) -> String {
     let mut hasher = Sha3_256::new();
     hasher.update(data);
     let result = hasher.finalize();
-    format!("{:x}", result)
+    format!("{result:x}")
 }
 
 pub fn merge_json(origin: serde_json::Value, new: serde_json::Value) -> serde_json::Value {

@@ -197,7 +197,7 @@ impl TestUser {
             size += chunks.len();
         }
         let hash = hasher.finalize();
-        let hash = format!("{:x}", hash);
+        let hash = format!("{hash:x}");
         let mut files_content = vec![UploadRequest::new_header(size, hash, false)];
         for chunks in content {
             chunks.chunks(1024 * 1024).for_each(|chunk| {
