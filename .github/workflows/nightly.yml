@@ -55,4 +55,4 @@ jobs:
       - name: Build and push Docker images
         if: steps.check_changes.outputs.changes != '0'
         run: |
-          python3 script/build_production_container.py --extension nightly --skip_base --push
+          python3 script/build_production_container.py --extension nightly --skip-base --push
