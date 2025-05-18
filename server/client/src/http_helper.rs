@@ -101,8 +101,13 @@ impl TestHttpApp {
         url: impl AsRef<str>,
     ) -> Result<reqwest::Response, reqwest::Error> {
         let mut base_url = self.app_config.main_cfg.base_url();
-        if base_url == "0.0.0.0" || base_url == "127.0.0.1" {
-            base_url = "localhost".parse().unwrap();
+        if let Some(host) = base_url.host()
+            && (host == "0.0.0.0" || host == "127.0.0.1")
+        {
+            let port = base_url.port_u16().unwrap_or(80);
+            let mut parts = base_url.into_parts();
+            parts.authority = Some(format!("localhost:{port}").parse().unwrap());
+            base_url = http::Uri::from_parts(parts).unwrap();
         }
         self.client
             .get(format!("{}{}", base_url, url.as_ref()))
