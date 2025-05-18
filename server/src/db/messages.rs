@@ -92,7 +92,7 @@ pub async fn del_msg(
 /// Returns `MsgError::DbError` if a database error occurs.
 pub async fn insert_msg_record(
     sender_id: ID,
-    session_id: Option<ID>,
+    session_id: Option<SessionID>,
     msg: RespondMsgType,
     is_encrypted: bool,
     db_conn: &impl ConnectionTrait,

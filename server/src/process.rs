@@ -275,7 +275,7 @@ impl From<MsgError> for MsgInsTransmitErr {
 
 pub async fn message_insert_and_transmit(
     user_id: ID,
-    session_id: Option<ID>,
+    session_id: Option<SessionID>,
     msg: RespondMsgType,
     dest: Dest,
     is_encrypted: bool,

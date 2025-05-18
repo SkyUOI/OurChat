@@ -1,5 +1,4 @@
 //! Define constants
-//! TODO: use new type for roles and permissions
 
 use pb::service::basic::server::v1::ServerVersion;
 use size::Size;
@@ -37,30 +36,41 @@ pub const fn default_add_friend_request_expiry() -> Duration {
 
 // define ID type to fit many types of databases
 impl_newtype_int!(ID, u64, serde::Serialize, serde::Deserialize);
-pub type SessionID = ID;
-pub type MsgID = ID;
+impl_newtype_int!(SessionID, u64, serde::Serialize, serde::Deserialize);
+impl_newtype_int!(MsgID, u64, serde::Serialize, serde::Deserialize);
 
-macro impl_from($ty:ty) {
-    impl From<$ty> for ID {
+macro impl_from($from:path, $ty:ty) {
+    impl From<$ty> for $from {
         fn from(value: $ty) -> Self {
-            ID(value.try_into().unwrap())
+            $from(value.try_into().unwrap())
         }
     }
 
-    impl From<ID> for $ty {
-        fn from(value: ID) -> Self {
+    impl From<$from> for $ty {
+        fn from(value: $from) -> Self {
             value.0 as $ty
         }
     }
 }
 
-impl_from!(i32);
-impl_from!(i64);
-impl_from!(u32);
-impl_from!(u64);
+macro impl_from_all_ints($from:path) {
+    impl_from!($from, i32);
+    impl_from!($from, i64);
+    impl_from!($from, u32);
+    impl_from!($from, u64);
+}
+
+impl_from_all_ints!(ID);
+impl_from_all_ints!(SessionID);
 
 impl From<ID> for sea_orm::Value {
     fn from(value: ID) -> Self {
+        Self::BigUnsigned(Some(*value))
+    }
+}
+
+impl From<SessionID> for sea_orm::Value {
+    fn from(value: SessionID) -> Self {
         Self::BigUnsigned(Some(*value))
     }
 }

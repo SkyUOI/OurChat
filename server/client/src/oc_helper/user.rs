@@ -259,7 +259,7 @@ impl TestUser {
 
     pub async fn send_msg(
         &mut self,
-        session_id: ID,
+        session_id: SessionID,
         msg: BundleMsgs,
     ) -> Result<Response<SendMsgResponse>, ClientErr> {
         let req = SendMsgRequest {

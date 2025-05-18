@@ -14,7 +14,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "--skip-base",
-    default=True,
+    default=False,
     action="store_true",
     help="Skip building the base images.",
 )

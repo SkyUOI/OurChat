@@ -1,7 +1,10 @@
 use crate::db::redis::{
     map_ban_all_to_redis, map_ban_to_redis, map_mute_all_to_redis, map_mute_to_redis,
 };
-use base::consts::{ID, SessionID};
+use base::{
+    consts::{ID, SessionID},
+    types::{PermissionId, RoleId},
+};
 use deadpool_redis::redis::AsyncCommands;
 use entities::{role, role_permissions, session, session_relation, user_role_relation};
 use sea_orm::{ActiveValue, DatabaseTransaction, QuerySelect, prelude::*};
@@ -68,7 +71,7 @@ pub async fn get_members(
 ///   fails.
 pub async fn query_session_role(
     session_id: SessionID,
-    role: u64,
+    role: RoleId,
     db_conn: &impl ConnectionTrait,
 ) -> Result<Vec<user_role_relation::Model>, sea_orm::DbErr> {
     let ret = user_role_relation::Entity::find()
@@ -198,7 +201,7 @@ pub enum SessionError {
 pub async fn if_permission_exist(
     user_id: ID,
     session_id: SessionID,
-    permission_checked: i64,
+    permission_checked: PermissionId,
     db_conn: &impl ConnectionTrait,
 ) -> Result<bool, sea_orm::DbErr> {
     let exists = user_role_relation::Entity::find()
@@ -239,7 +242,7 @@ pub async fn if_permission_exist(
 pub async fn join_in_session(
     session_id: SessionID,
     id: ID,
-    role: Option<i64>,
+    role: Option<RoleId>,
     db_conn: &DatabaseTransaction,
 ) -> Result<(), SessionError> {
     // update the session info
@@ -247,7 +250,7 @@ pub async fn join_in_session(
         return Err(SessionError::SessionNotFound);
     };
     let size = session_info.size;
-    let default_role = session_info.default_role;
+    let default_role = RoleId(session_info.default_role);
     let mut session_info: session::ActiveModel = session_info.into();
     session_info.size = ActiveValue::Set(size + 1);
     session_info.update(db_conn).await?;
@@ -262,7 +265,7 @@ pub async fn join_in_session(
     let role_relation = user_role_relation::ActiveModel {
         user_id: ActiveValue::Set(id.into()),
         session_id: ActiveValue::Set(session_id.into()),
-        role_id: ActiveValue::Set(role.unwrap_or(default_role)),
+        role_id: ActiveValue::Set(role.unwrap_or(default_role).0),
     };
     role_relation.insert(db_conn).await?;
     Ok(())
@@ -287,7 +290,7 @@ pub async fn join_in_session(
 pub async fn batch_join_in_session(
     session_id: SessionID,
     ids: &[ID],
-    role: Option<i64>,
+    role: Option<RoleId>,
     db_conn: &DatabaseTransaction,
 ) -> Result<(), SessionError> {
     for id in ids {
