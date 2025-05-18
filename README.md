@@ -29,6 +29,10 @@ Every developer deserves gratitude. 💖
 - 🚀 High performance, low latency
 - 🛠️ Self-hostable
 
+## Official Server
+
+Server Address: `skyuoi.org:7777`. If you want to develop the client, you can also use it as your development server to work with. The docker image version it uses is `nightly` (It will be updated regularly but not nightly).
+
 ## 🚀 Vision & Plan
 
 Provides a lightweight chat software that can easily run on devices like Raspberry Pi, allowing you to set up your own
