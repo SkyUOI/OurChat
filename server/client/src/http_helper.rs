@@ -100,7 +100,10 @@ impl TestHttpApp {
         &self,
         url: impl AsRef<str>,
     ) -> Result<reqwest::Response, reqwest::Error> {
-        let base_url = self.app_config.main_cfg.base_url();
+        let mut base_url = self.app_config.main_cfg.base_url();
+        if base_url == "0.0.0.0" || base_url == "127.0.0.1" {
+            base_url = "localhost".parse().unwrap();
+        }
         self.client
             .get(format!("{}{}", base_url, url.as_ref()))
             .send()
