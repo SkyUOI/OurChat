@@ -24,6 +24,7 @@ import "service/ourchat/session/set_session_info/v1/set_session_info.proto";
 import "service/ourchat/set_account_info/v1/set_account_info.proto";
 import "service/ourchat/unregister/v1/unregister.proto";
 import "service/ourchat/upload/v1/upload.proto";
+import "service/ourchat/webrtc/room/create_room/v1/create_room.proto";
 
 // Main service of the Ourchat
 // JWT is required.If token is missing or out-of-dated,please refer to
@@ -85,4 +86,8 @@ service OurChatService {
   rpc JoinInSession(session.join_in_session.v1.JoinInSessionRequest) returns (session.join_in_session.v1.JoinInSessionResponse);
 
   rpc AcceptJoinInSession(session.join_in_session.v1.AcceptJoinInSessionRequest) returns (session.join_in_session.v1.AcceptJoinInSessionResponse);
+
+  // Webrtc operations
+
+  rpc CreateRoom(webrtc.room.create_room.v1.CreateRoomRequest) returns (webrtc.room.create_room.v1.CreateRoomResponse);
 }

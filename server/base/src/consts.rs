@@ -91,8 +91,8 @@ impl From<&OCID> for sea_orm::Value {
 }
 
 /// default clear interval
-pub const fn default_clear_interval() -> u64 {
-    1
+pub fn default_clear_interval() -> croner::Cron {
+    croner::Cron::new("0 0 0 * *")
 }
 
 /// default file save days

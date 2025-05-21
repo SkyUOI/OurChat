@@ -8,4 +8,4 @@ edition.workspace = true
 [dependencies.sea-orm]
 version = "1"
 default-features = false
-features = ["macros", "with-json", "with-chrono"]
+features = ["macros", "with-json", "with-chrono", "with-uuid"]

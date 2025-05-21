@@ -30,6 +30,7 @@ actix-files.workspace = true
 dotenvy.workspace = true
 utils = { path = "../utils" }
 actix-tls.workspace = true
+color-eyre.workspace = true
 
 [dev-dependencies]
 client = { path = "../client" }

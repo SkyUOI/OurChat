@@ -1,26 +1,26 @@
 //! Manage the file storage
 
-use crate::{ShutdownRev, shared_state};
+use crate::SharedData;
 use entities::{files, prelude::*};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseConnection, EntityTrait, ModelTrait,
     QueryFilter,
 };
-use std::{fs::exists, time::Duration};
-use tokio::{
-    fs::remove_file,
-    select,
-    time::{Instant, sleep_until},
-};
+use std::{fs::exists, sync::Arc};
+use tokio::fs::remove_file;
+use tokio_cron_scheduler::Job;
+use tracing::trace;
 
 pub struct FileSys {
     db_conn: Option<DatabaseConnection>,
+    shared_data: Arc<SharedData>,
 }
 
 impl FileSys {
-    pub fn new(db_conn: DatabaseConnection) -> Self {
+    pub fn new(db_conn: DatabaseConnection, shared_data: Arc<SharedData>) -> Self {
         Self {
             db_conn: Some(db_conn),
+            shared_data,
         }
     }
 
@@ -30,23 +30,41 @@ impl FileSys {
         }
     }
 
-    pub fn start(&mut self, mut shutdown_receiver: ShutdownRev) {
+    pub async fn start(&mut self) -> anyhow::Result<()> {
         let db_conn = self.db_conn.take().unwrap();
-        let db_conn_clone = db_conn.clone();
+        let shared = self.shared_data.clone();
         Self::init();
-        tokio::spawn(async move {
-            select! {
-                _ = auto_clean_files(db_conn_clone) => {}
-                _ = shutdown_receiver.wait_shutting_down() => {}
-            }
-        });
+        let cron = self
+            .shared_data
+            .cfg
+            .main_cfg
+            .auto_clean_duration
+            .to_string();
+        trace!("Clean Cron: {}", cron);
+        // add seconds
+        let cron = format!("0 {cron}");
+        self.shared_data
+            .sched
+            .lock()
+            .await
+            .add(Job::new_async(cron, move |_uuid, mut _l| {
+                let db_conn = db_conn.clone();
+                let shared = shared.clone();
+                Box::pin(async move {
+                    auto_clean_files(&shared, db_conn).await;
+                })
+            })?)
+            .await?;
+        Ok(())
     }
 }
 
-pub async fn clean_files(db_conn: &mut DatabaseConnection) -> Result<(), FileStorageError> {
+pub async fn clean_files(
+    shared: &Arc<SharedData>,
+    db_conn: &mut DatabaseConnection,
+) -> Result<(), FileStorageError> {
     // Query the file first
-    let del_time =
-        chrono::Utc::now() - chrono::Duration::days(shared_state::get_file_save_days() as i64);
+    let del_time = chrono::Utc::now() - shared.cfg.main_cfg.file_save_time;
     let cond = files::Column::Date.lt(del_time.timestamp());
     let files = Files::find().filter(cond.clone()).all(db_conn).await?;
     for i in files {
@@ -67,15 +85,11 @@ pub async fn clean_files(db_conn: &mut DatabaseConnection) -> Result<(), FileSto
 
 /// auto clean files that are out-of-dated
 #[tracing::instrument]
-pub async fn auto_clean_files(mut connection: DatabaseConnection) {
-    loop {
-        let days = shared_state::get_auto_clean_duration();
-        sleep_until(Instant::now() + Duration::from_days(days)).await;
-        match clean_files(&mut connection).await {
-            Ok(_) => {}
-            Err(e) => {
-                tracing::error!("clean files error:{e}");
-            }
+pub async fn auto_clean_files(shared: &Arc<SharedData>, mut connection: DatabaseConnection) {
+    match clean_files(shared, &mut connection).await {
+        Ok(_) => {}
+        Err(e) => {
+            tracing::error!("clean files error:{e}");
         }
     }
 }

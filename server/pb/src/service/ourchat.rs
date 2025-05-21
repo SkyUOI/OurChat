@@ -123,3 +123,13 @@ pub mod friends {
         }
     }
 }
+
+pub mod webrtc {
+    pub mod room {
+        pub mod create_room {
+            pub mod v1 {
+                include!("../generated/service.ourchat.webrtc.room.create_room.v1.rs");
+            }
+        }
+    }
+}

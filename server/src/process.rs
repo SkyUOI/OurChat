@@ -2,7 +2,8 @@
 //!
 //! For grpc development, a template of unary calling is provided as follows:
 //! ```ignore
-//! use crate::{process::{error_msg::SERVER_ERROR}, server::RpcServer};
+//! use crate::{process::error_msg::SERVER_ERROR, server::RpcServer};
+//! use base::consts::ID;
 //! use pb::service::ourchat::session::set_role::v1::{SetRoleRequest, SetRoleResponse};
 //! use tonic::{Request, Response, Status};
 //!
@@ -56,6 +57,7 @@ mod set_self_info;
 pub mod unregister;
 mod upload;
 pub mod verify;
+mod webrtc;
 
 use base::consts::SessionID;
 use deadpool_lapin::lapin::options::BasicPublishOptions;
@@ -104,6 +106,7 @@ pub use session::{
 pub use set_self_info::set_self_info;
 pub use unregister::unregister;
 pub use upload::upload;
+pub use webrtc::create_room::create_room;
 
 use crate::SERVER_INFO;
 use crate::db::messages::MsgError;

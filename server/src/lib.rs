@@ -8,6 +8,7 @@ pub mod process;
 pub mod rabbitmq;
 mod server;
 mod shared_state;
+mod webrtc;
 
 use anyhow::bail;
 use base::consts::{self, CONFIG_FILE_ENV_VAR, LOG_OUTPUT_DIR, SERVER_INFO_PATH};
@@ -30,6 +31,8 @@ use rand::Rng;
 use serde::{Deserialize, Serialize};
 use size::Size;
 use std::cmp::Ordering;
+use std::fmt;
+use std::ops::{Deref, DerefMut};
 use std::time::Duration;
 use std::{
     fs,
@@ -67,8 +70,8 @@ pub struct MainCfg {
     #[serde(default = "consts::default_http_port")]
     pub http_port: u16,
     #[serde(default = "consts::default_clear_interval")]
-    pub auto_clean_duration: u64,
-    #[serde(default = "consts::default_file_save_time")]
+    pub auto_clean_duration: croner::Cron,
+    #[serde(default = "consts::default_file_save_time", with = "humantime_serde")]
     pub file_save_time: Duration,
     #[serde(default = "consts::default_user_files_store_limit")]
     pub user_files_limit: Size,
@@ -430,12 +433,36 @@ pub struct Application {
     pub started_notify: Arc<tokio::sync::Notify>,
 }
 
+struct JobSchedulerWrapper(tokio_cron_scheduler::JobScheduler);
+
+impl fmt::Debug for JobSchedulerWrapper {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("JobScheduler's data cannot be printed.")
+            .finish()
+    }
+}
+
+impl Deref for JobSchedulerWrapper {
+    type Target = tokio_cron_scheduler::JobScheduler;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for JobSchedulerWrapper {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
 /// shared data along the whole application
 #[derive(Debug)]
 pub struct SharedData {
     pub cfg: Cfg,
     pub verify_record: DashMap<String, Arc<tokio::sync::Notify>>,
     maintaining: Mutex<bool>,
+    sched: tokio::sync::Mutex<JobSchedulerWrapper>,
 }
 
 impl SharedData {
@@ -528,10 +555,6 @@ impl Application {
         }
         let maintaining = main_cfg.cmd_args.maintaining;
         // Set up shared state
-        shared_state::set_auto_clean_duration(main_cfg.auto_clean_duration);
-        shared_state::set_file_save_days(
-            chrono::Duration::from_std(main_cfg.file_save_time)?.num_days() as u64,
-        );
         shared_state::set_friends_number_limit(main_cfg.friends_number_limit);
 
         if let Some(new_ip) = parser.ip {
@@ -557,11 +580,16 @@ impl Application {
             rabbitmq::init(&rmq_pool).await?;
         }
 
+        let sched = tokio::sync::Mutex::new(JobSchedulerWrapper(
+            tokio_cron_scheduler::JobScheduler::new().await?,
+        ));
+
         Ok(Self {
             shared: Arc::new(SharedData {
                 cfg,
                 verify_record: DashMap::new(),
                 maintaining: Mutex::new(maintaining),
+                sched,
             }),
             pool: db_pool,
             server_addr: addr,
@@ -610,10 +638,12 @@ impl Application {
         handles.push(handle);
 
         // Start the database file system
-        file_storage::FileSys::new(self.pool.db_pool.clone())
-            .start(self.abort_sender.new_receiver("file system", "file system"));
+        file_storage::FileSys::new(self.pool.db_pool.clone(), self.shared.clone())
+            .start()
+            .await?;
         // Start the shutdown signal listener
         exit_signal(self.abort_sender.clone())?;
+        self.shared.sched.lock().await.start().await?;
         info!("Start to register service to registry");
         info!("Server started");
         self.started_notify.notify_waiters();
@@ -630,6 +660,7 @@ impl Application {
         });
         self.pool.close().await?;
         self.rabbitmq.close();
+        self.shared.sched.lock().await.shutdown().await?;
         info!("Server exited");
         Ok(())
     }

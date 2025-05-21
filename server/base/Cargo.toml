@@ -38,6 +38,7 @@ secrecy.workspace = true
 utils = { path = "../utils" }
 humantime.workspace = true
 humantime-serde.workspace = true
+croner.workspace = true
 
 [build-dependencies]
 shadow-rs = "1"
