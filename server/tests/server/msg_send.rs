@@ -2,7 +2,6 @@ use pb::service::ourchat::msg_delivery::{
     self,
     v1::{OneMsg, fetch_msgs_response},
 };
-use std::time::Duration;
 
 #[tokio::test]
 async fn test_text_sent() {
@@ -62,13 +61,7 @@ async fn test_text_get() {
         .into_inner();
     msg_id.push(ret.msg_id);
 
-    let msgs = c
-        .lock()
-        .await
-        .fetch_msgs(Duration::from_millis(400))
-        .await
-        .unwrap();
-    assert_eq!(msgs.len(), 2);
+    let msgs = c.lock().await.fetch_msgs(2).await.unwrap();
     for (i, msg_id) in msgs.into_iter().zip(msg_id.iter()) {
         if let fetch_msgs_response::RespondMsgType::Msg(ref item) = i.respond_msg_type.unwrap() {
             assert_eq!(item.session_id, u64::from(session.session_id));

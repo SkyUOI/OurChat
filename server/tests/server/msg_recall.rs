@@ -66,12 +66,7 @@ async fn test_recall() {
         .into_inner();
     let recall_msg_id = recall_msg.msg_id;
     // receive the recall signal
-    let b_rec = b
-        .lock()
-        .await
-        .fetch_msgs(Duration::from_millis(600))
-        .await
-        .unwrap();
+    let b_rec = b.lock().await.fetch_msgs(1).await.unwrap();
     let check = |rec: Vec<FetchMsgsResponse>, msg_len, msg_recall_idx: usize| {
         assert_eq!(rec.len(), msg_len, "{rec:?}");
         assert_lt!(
