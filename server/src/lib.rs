@@ -20,6 +20,7 @@ use base::setting::debug::DebugCfg;
 use base::setting::tls::TlsConfig;
 use base::setting::{Setting, UserSetting};
 use base::shutdown::{ShutdownRev, ShutdownSdr};
+use base::wrapper::JobSchedulerWrapper;
 use base::{log, setting};
 use clap::Parser;
 use dashmap::DashMap;
@@ -31,8 +32,6 @@ use rand::Rng;
 use serde::{Deserialize, Serialize};
 use size::Size;
 use std::cmp::Ordering;
-use std::fmt;
-use std::ops::{Deref, DerefMut};
 use std::time::Duration;
 use std::{
     fs,
@@ -89,6 +88,13 @@ pub struct MainCfg {
         with = "humantime_serde"
     )]
     pub user_defined_status_expire_time: Duration,
+    #[serde(
+        default = "consts::default_log_clean_duration",
+        with = "humantime_serde"
+    )]
+    pub log_clean_duration: Duration,
+    #[serde(default = "consts::default_log_keep", with = "humantime_serde")]
+    pub lop_keep: Duration,
     #[serde(default = "consts::default_single_instance")]
     pub single_instance: bool,
     #[serde(default = "consts::default_leader_node")]
@@ -433,29 +439,6 @@ pub struct Application {
     pub started_notify: Arc<tokio::sync::Notify>,
 }
 
-struct JobSchedulerWrapper(tokio_cron_scheduler::JobScheduler);
-
-impl fmt::Debug for JobSchedulerWrapper {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_tuple("JobScheduler's data cannot be printed.")
-            .finish()
-    }
-}
-
-impl Deref for JobSchedulerWrapper {
-    type Target = tokio_cron_scheduler::JobScheduler;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl DerefMut for JobSchedulerWrapper {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
 /// shared data along the whole application
 #[derive(Debug)]
 pub struct SharedData {
@@ -543,14 +526,14 @@ impl Application {
                 main_cfg.cmd_args.test_mode,
                 Some(&main_cfg.debug),
                 std::io::sink,
-                "ourchat",
+                consts::OURCHAT_LOG_PREFIX,
             );
         } else {
             log::logger_init(
                 main_cfg.cmd_args.test_mode,
                 Some(&main_cfg.debug),
                 std::io::stdout,
-                "ourchat",
+                consts::OURCHAT_LOG_PREFIX,
             );
         }
         let maintaining = main_cfg.cmd_args.maintaining;
@@ -580,9 +563,16 @@ impl Application {
             rabbitmq::init(&rmq_pool).await?;
         }
 
-        let sched = tokio::sync::Mutex::new(JobSchedulerWrapper(
+        let sched = tokio::sync::Mutex::new(JobSchedulerWrapper::new(
             tokio_cron_scheduler::JobScheduler::new().await?,
         ));
+        base::log::add_clean_to_scheduler(
+            consts::OURCHAT_LOG_PREFIX,
+            cfg.main_cfg.lop_keep,
+            cfg.main_cfg.log_clean_duration,
+            sched.lock().await,
+        )
+        .await?;
 
         Ok(Self {
             shared: Arc::new(SharedData {

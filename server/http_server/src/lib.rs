@@ -1,18 +1,21 @@
 #![feature(duration_constructors)]
 
 use crate::httpserver::HttpServer;
-use base::consts::SERVER_INFO_PATH;
+use base::consts::{self, SERVER_INFO_PATH};
 use base::database::DbPool;
 use base::email_client::{EmailCfg, EmailSender};
 use base::rabbitmq::RabbitMQCfg;
 use base::setting::tls::TlsConfig;
 use base::setting::{Setting, UserSetting};
 use base::shutdown::ShutdownSdr;
+use base::wrapper::JobSchedulerWrapper;
 use clap::Parser;
 use http::Uri;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::time::Duration;
+use tokio::sync::Mutex;
 
 pub mod httpserver;
 pub mod matrix;
@@ -33,6 +36,13 @@ pub struct MainCfg {
     pub run_migration: bool,
     #[serde(default = "base::consts::default_enable_matrix")]
     pub enable_matrix: bool,
+    #[serde(
+        default = "base::consts::default_log_clean_duration",
+        with = "humantime_serde"
+    )]
+    pub log_clean_duration: Duration,
+    #[serde(default = "base::consts::default_log_keep", with = "humantime_serde")]
+    pub lop_keep: Duration,
     pub tls: TlsConfig,
 }
 
@@ -94,6 +104,7 @@ pub struct Launcher {
     pub started_notify: Arc<tokio::sync::Notify>,
     pub shared_data: Arc<Cfg>,
     pub abort_sender: ShutdownSdr,
+    pub sched: Mutex<JobSchedulerWrapper>,
 }
 
 pub type EmailClientType = Box<dyn EmailSender>;
@@ -130,7 +141,7 @@ impl Launcher {
     }
 
     pub async fn build_from_config(mut cfg: Cfg) -> anyhow::Result<Self> {
-        base::log::logger_init(false, None, std::io::stdout, "http_server");
+        base::log::logger_init(false, None, std::io::stdout, consts::HTTP_SERVER_LOG_PREFIX);
         let email_client: Option<Box<dyn EmailSender>> = match &cfg.main_cfg.email_cfg {
             Some(email_cfg) => {
                 let email_cfg = EmailCfg::build_from_path(email_cfg)?;
@@ -145,7 +156,11 @@ impl Launcher {
         // deal with port 0
         cfg.main_cfg.port = http_listener.local_addr()?.port();
         let started_notify = Arc::new(tokio::sync::Notify::new());
+        let sched = Mutex::new(JobSchedulerWrapper::new(
+            tokio_cron_scheduler::JobScheduler::new().await?,
+        ));
         Ok(Self {
+            sched,
             email_client,
             tcplistener: Some(http_listener),
             started_notify,
@@ -189,6 +204,15 @@ impl Launcher {
                 )
                 .await
         });
+        base::log::add_clean_to_scheduler(
+            consts::HTTP_SERVER_LOG_PREFIX,
+            self.shared_data.main_cfg.lop_keep,
+            self.shared_data.main_cfg.log_clean_duration,
+            self.sched.lock().await,
+        )
+        .await?;
+        tracing::info!("Log clean loop started");
+        self.sched.lock().await.start().await?;
         tracing::info!("Started http server");
         tracing::info!("Sending started notification");
         self.started_notify.notify_waiters();

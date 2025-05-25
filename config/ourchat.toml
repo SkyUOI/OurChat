@@ -30,6 +30,8 @@ files_save_time = "10d"
 single_instance = true
 # In multiple instance mode, choose a node to be the leader node
 leader_node = true
+# Log clean duration
+log_clean_duration = "30d"
 
 [password_hash]
 # The memory size in 1 KiB blocks. Between 8*`p_cost` and (2^32)-1

@@ -31,6 +31,9 @@ dotenvy.workspace = true
 utils = { path = "../utils" }
 actix-tls.workspace = true
 color-eyre.workspace = true
+humantime.workspace = true
+humantime-serde.workspace = true
+tokio-cron-scheduler.workspace = true
 
 [dev-dependencies]
 client = { path = "../client" }
