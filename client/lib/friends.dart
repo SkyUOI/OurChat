@@ -10,13 +10,23 @@ class Friends extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     OurchatAppState ourchatAppState = context.watch<OurchatAppState>();
-    return ListView.builder(
-        itemBuilder: (context, index) {
-          return ElevatedButton(
-              onPressed: () {},
-              child:
-                  Text(ourchatAppState.thisAccount!.friends[index].toString()));
-        },
-        itemCount: ourchatAppState.thisAccount!.friends.length);
+    return Column(
+      children: [
+        ListView.builder(
+          itemBuilder: (context, index) {
+            return ElevatedButton(onPressed: () {}, child: Text("好友请求"));
+          },
+          itemCount: 1,
+        ),
+        ListView.builder(
+            itemBuilder: (context, index) {
+              return ElevatedButton(
+                  onPressed: () {},
+                  child: Text(
+                      ourchatAppState.thisAccount!.friends[index].toString()));
+            },
+            itemCount: ourchatAppState.thisAccount!.friends.length)
+      ],
+    );
   }
 }

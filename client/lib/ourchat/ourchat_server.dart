@@ -3,22 +3,31 @@ import 'package:ourchat/const.dart';
 import 'package:ourchat/service/basic/server/v1/server.pb.dart';
 import 'package:ourchat/service/basic/v1/basic.pbgrpc.dart';
 
-class OurChatInterceptor extends ClientInterceptor {
-  String? token;
+class OurchatInterceptor implements ClientInterceptor {
+  String token = "";
   void setToken(String t) {
     token = t;
   }
 
   @override
-  ResponseFuture<R> interceptUnary<Q, R>(
-    ClientMethod<Q, R> method,
-    Q request,
-    CallOptions options,
-    invoker,
-  ) {
-    var newOptions = CallOptions.from([options])
-      ..metadata.putIfAbsent('token', () => token!);
+  ResponseFuture<R> interceptUnary<Q, R>(ClientMethod<Q, R> method, Q request,
+      CallOptions options, ClientUnaryInvoker<Q, R> invoker) {
+    var newOptions = options.mergedWith(
+      CallOptions(metadata: {'token': token}),
+    );
     return invoker(method, request, newOptions);
+  }
+
+  @override
+  ResponseStream<R> interceptStreaming<Q, R>(
+      ClientMethod<Q, R> method,
+      Stream<Q> requests,
+      CallOptions options,
+      ClientStreamingInvoker<Q, R> invoker) {
+    var newOptions = options.mergedWith(
+      CallOptions(metadata: {'token': token}),
+    );
+    return invoker(method, requests, newOptions);
   }
 }
 
@@ -30,7 +39,7 @@ class OurChatServer {
   RunningStatus? serverStatus;
   ClientChannel? channel;
   ServerVersion? serverVersion;
-  OurChatInterceptor? interceptor;
+  OurchatInterceptor? interceptor;
 
   OurChatServer(this.host, this.port) {
     channel = ClientChannel(
@@ -58,33 +67,5 @@ class OurChatServer {
     } catch (e) {
       return unknownStatusCode;
     }
-  }
-}
-
-class AuthInterceptor implements ClientInterceptor {
-  String token = "";
-  void setToken(String t) {
-    token = t;
-  }
-
-  @override
-  ResponseFuture<R> interceptUnary<Q, R>(ClientMethod<Q, R> method, Q request,
-      CallOptions options, ClientUnaryInvoker<Q, R> invoker) {
-    var newOptions = options.mergedWith(
-      CallOptions(metadata: {'token': token}),
-    );
-    return invoker(method, request, newOptions);
-  }
-
-  @override
-  ResponseStream<R> interceptStreaming<Q, R>(
-      ClientMethod<Q, R> method,
-      Stream<Q> requests,
-      CallOptions options,
-      ClientStreamingInvoker<Q, R> invoker) {
-    var newOptions = options.mergedWith(
-      CallOptions(metadata: {'token': 'your-auth-token'}),
-    );
-    return invoker(method, requests, newOptions);
   }
 }

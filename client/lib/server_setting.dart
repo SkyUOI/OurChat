@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ourchat/const.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:ourchat/l10n/app_localizations.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/auth.dart';
 import 'package:ourchat/ourchat/ourchat_server.dart';
@@ -19,7 +19,7 @@ class _ServerSettingState extends State<ServerSetting> {
   int httpPort = -1, ping = -1;
   String serverName = "", serverState = "", serverVersion = "";
   bool isOnline = false;
-  OurChatServer? server;
+  late OurChatServer server;
   Color serverStatusColor = Colors.grey;
 
   @override
@@ -196,7 +196,7 @@ class _ServerSettingState extends State<ServerSetting> {
                     serverStatusColor = Colors.grey;
                   });
                   var resCode = unavailableStatusCode;
-                  resCode = await server!.getServerInfo();
+                  resCode = await server.getServerInfo();
                   if (resCode == unavailableStatusCode) {
                     // 连接失败
                     setState(() {
@@ -211,8 +211,8 @@ class _ServerSettingState extends State<ServerSetting> {
                   setState(() {
                     isOnline = true;
                     // FIXME: use try-catch to avoid panicking when the server is down or network is broken
-                    httpPort = server!.httpPort!;
-                    switch (server!.serverStatus!.value) {
+                    httpPort = server.httpPort!;
+                    switch (server.serverStatus!.value) {
                       case okStatusCode:
                         serverState =
                             AppLocalizations.of(context)!.serverStatusOnline;
@@ -236,9 +236,9 @@ class _ServerSettingState extends State<ServerSetting> {
                         break;
                     }
                     serverVersion =
-                        "${server!.serverVersion!.major}.${server!.serverVersion!.minor}.${server!.serverVersion!.patch}";
-                    serverName = server!.serverName!;
-                    ping = server!.ping!;
+                        "${server.serverVersion!.major}.${server.serverVersion!.minor}.${server.serverVersion!.patch}";
+                    serverName = server.serverName!;
+                    ping = server.ping!;
                   });
                 },
               ),

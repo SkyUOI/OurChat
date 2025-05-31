@@ -139,3 +139,9 @@ app.*.symbols
 # grpc
 lib/google
 lib/service
+
+# orm 
+lib/ourchat/*.g.dart
+
+# l10n
+lib/l10n/*.dart

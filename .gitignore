@@ -48,3 +48,6 @@ server/files_storage/*
 # pref
 perf.data*
 flamegraph.svg
+
+# vscode
+*.code-workspace

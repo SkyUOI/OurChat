@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:ourchat/l10n/app_localizations.dart';
 import 'package:ourchat/const.dart';
 import 'package:ourchat/main.dart';
+import 'package:ourchat/ourchat/ourchat_database.dart';
 import 'ourchat/ourchat_account.dart';
 import 'package:ourchat/home.dart';
 import 'package:provider/provider.dart';
@@ -104,7 +105,7 @@ class _LoginState extends State<Login> {
                             key.currentState!.save(); // 保存表单信息
                             // 创建ocAccount对象并登录
                             OurchatAccount ocAccount =
-                                OurchatAccount(ourchatAppState.server!);
+                                OurchatAccount(ourchatAppState);
                             String? email, ocid;
                             if (account.contains('@')) {
                               // 判断邮箱/ocid登录
@@ -116,7 +117,11 @@ class _LoginState extends State<Login> {
                                 await ocAccount.login(password, ocid, email);
                             if (res == okStatusCode) {
                               ourchatAppState.thisAccount = ocAccount;
-                              ourchatAppState.thisAccount!.getAccountInfo();
+                              ourchatAppState.pdb =
+                                  OurchatDatabase(ocAccount.id);
+                              await ourchatAppState.thisAccount!
+                                  .getAccountInfo();
+                              ourchatAppState.listenMsgs();
                               ourchatAppState.update();
                               if (context.mounted) {
                                 // 跳转主界面
@@ -275,13 +280,18 @@ class _RegisterState extends State<Register> {
                             key.currentState!.save(); // 保存表单信息
                             // 创建ocAccount对象并注册
                             OurchatAccount ocAccount =
-                                OurchatAccount(ourchatAppState.server!);
+                                OurchatAccount(ourchatAppState);
                             var res = await ocAccount.register(
                                 password, username, email);
                             if (res == okStatusCode) {
                               // 注册成功
                               ourchatAppState.thisAccount = ocAccount;
-                              ourchatAppState.thisAccount!.getAccountInfo();
+                              ourchatAppState.pdb =
+                                  OurchatDatabase(ocAccount.id);
+                              await ourchatAppState.thisAccount!
+                                  .getAccountInfo();
+
+                              ourchatAppState.listenMsgs();
                               ourchatAppState.update();
                               if (context.mounted) {
                                 // 注册成功后跳转到主页

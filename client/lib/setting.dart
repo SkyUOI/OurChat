@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:ourchat/log.dart';
 import 'main.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:ourchat/l10n/app_localizations.dart';
 
 class Setting extends StatelessWidget {
   const Setting({super.key});

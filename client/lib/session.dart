@@ -3,12 +3,11 @@ import 'package:grpc/grpc.dart' as grpc;
 import 'package:ourchat/const.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/ourchat/ourchat_account.dart';
-import 'package:ourchat/ourchat/ourchat_server.dart';
 import 'package:ourchat/service/basic/v1/basic.pbgrpc.dart';
 import 'package:ourchat/service/ourchat/friends/add_friend/v1/add_friend.pb.dart';
 import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:ourchat/l10n/app_localizations.dart';
 import 'dart:async';
 import 'package:ourchat/ourchat/ourchat_ui.dart';
 import 'package:fixnum/fixnum.dart';
@@ -19,8 +18,9 @@ const userTab = 2;
 
 class SessionState extends ChangeNotifier {
   int tabIndex = emptyTab;
-  late int currentSessionId;
-  late Int64 currentUserId;
+  int? currentSessionId;
+  Int64? currentUserId;
+  String tabTitle = "";
   void update() {
     notifyListeners();
   }
@@ -34,7 +34,6 @@ class Session extends StatefulWidget {
 }
 
 class _SessionState extends State<Session> {
-  int currentSession = -1;
   @override
   Widget build(BuildContext context) {
     OurchatAppState appState = context.watch<OurchatAppState>();
@@ -61,13 +60,44 @@ class _SessionState extends State<Session> {
             Widget page = const Placeholder();
             // 匹配不同设备类型
             if (appState.device == mobile) {
-              page = SessionList();
+              if (sessionState.currentSessionId != null ||
+                  sessionState.currentUserId != null) {
+                page = Column(
+                  children: [
+                    Row(
+                      children: [
+                        BackButton(
+                          onPressed: () {
+                            sessionState.tabTitle = "";
+                            sessionState.currentUserId = null;
+                            sessionState.currentSessionId = null;
+                            sessionState.update();
+                          },
+                        ),
+                        Text(sessionState.tabTitle,
+                            style: TextStyle(fontSize: 20))
+                      ],
+                    ),
+                    Expanded(child: tab)
+                  ],
+                );
+              } else {
+                page = SessionList();
+              }
             } else if (appState.device == desktop) {
               page = Row(
                 children: [
                   Flexible(
                       flex: 1, child: cardWithPadding(const SessionList())),
-                  Flexible(flex: 3, child: tab),
+                  Flexible(
+                      flex: 3,
+                      child: Column(
+                        children: [
+                          Text(sessionState.tabTitle,
+                              style: TextStyle(fontSize: 30)),
+                          Expanded(child: tab)
+                        ],
+                      )),
                 ],
               );
             }
@@ -94,13 +124,20 @@ class EmptyTab extends StatelessWidget {
   }
 }
 
-class UserTab extends StatelessWidget {
+class UserTab extends StatefulWidget {
   const UserTab({
     super.key,
   });
 
+  @override
+  State<UserTab> createState() => _UserTabState();
+}
+
+class _UserTabState extends State<UserTab> {
+  String addFriendLeaveMessage = "", addFriendDisplayName = "";
+
   Future getAccountInfo(OurchatAppState ourchatAppState, Int64 id) async {
-    OurchatAccount account = OurchatAccount(ourchatAppState.server!);
+    OurchatAccount account = OurchatAccount(ourchatAppState);
     account.id = id;
     account.token = ourchatAppState.thisAccount!.token;
     account.recreateStub();
@@ -125,12 +162,117 @@ class UserTab extends StatelessWidget {
     ]);
   }
 
+  void showAddFriendDialog(BuildContext context,
+      OurchatAppState ourchatAppState, OurchatAccount account) {
+    var i10n = AppLocalizations.of(context);
+    showDialog(
+        context: context,
+        builder: (context) {
+          var formKey = GlobalKey<FormState>();
+          return AlertDialog(
+            content: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      decoration:
+                          InputDecoration(label: Text(i10n!.addFriendMessage)),
+                      onSaved: (newValue) {
+                        addFriendLeaveMessage = newValue!;
+                      },
+                    ),
+                    TextFormField(
+                      decoration:
+                          InputDecoration(label: Text(i10n.displayName)),
+                      onSaved: (newValue) {
+                        addFriendDisplayName = newValue!;
+                      },
+                    )
+                  ],
+                )),
+            actions: [
+              ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: Text(i10n.cancel)),
+              ElevatedButton(
+                  onPressed: () async {
+                    formKey.currentState!.save();
+                    var stub = OurChatServiceClient(
+                        ourchatAppState.server!.channel!,
+                        interceptors: [ourchatAppState.server!.interceptor!]);
+                    Navigator.pop(context);
+                    try {
+                      await stub.addFriend(AddFriendRequest(
+                          friendId: account.id,
+                          displayName: addFriendDisplayName,
+                          leaveMessage: addFriendLeaveMessage));
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          content:
+                              Text(AppLocalizations.of(context)!.succeeded),
+                        ));
+                      }
+                    } on grpc.GrpcError catch (e) {
+                      if (context.mounted) {
+                        switch (e.code) {
+                          case internalStatusCode:
+                            // 服务端内部错误
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: Text(
+                                  AppLocalizations.of(context)!.serverError),
+                            ));
+                            break;
+                          case unavailableStatusCode:
+                            // 服务端维护中
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: Text(AppLocalizations.of(context)!
+                                  .serverStatusUnderMaintenance),
+                            ));
+                            break;
+                          case permissionDeniedStatusCode:
+                            // 没有权限
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: Text(AppLocalizations.of(context)!
+                                  .permissionDenied),
+                            ));
+                          case alreadyExistsStatusCode:
+                            // 好友关系已存在
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: Text(AppLocalizations.of(context)!
+                                  .friendAlreadyExists),
+                            ));
+                          case notFoundStatusCode:
+                            // 用户不存在
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: Text(
+                                  AppLocalizations.of(context)!.userNotFound),
+                            ));
+                          default:
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: Text(
+                                  AppLocalizations.of(context)!.unknownError),
+                            ));
+                        }
+                        ScaffoldMessenger.of(context)
+                            .showSnackBar(SnackBar(content: Text("ERROR")));
+                      }
+                    }
+                  },
+                  child: Text(i10n.send))
+            ],
+          );
+        });
+  }
+
   @override
   Widget build(BuildContext context) {
     var ourchatAppState = context.watch<OurchatAppState>();
     var sessionState = context.watch<SessionState>();
     return FutureBuilder(
-        future: getAccountInfo(ourchatAppState, sessionState.currentUserId),
+        future: getAccountInfo(ourchatAppState, sessionState.currentUserId!),
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
             // 尚未成功获取账号信息
@@ -172,52 +314,8 @@ class UserTab extends StatelessWidget {
                 ),
                 if (!isFriend)
                   ElevatedButton(
-                      onPressed: () {
-                        showDialog(
-                            context: context,
-                            builder: (context) {
-                              var formKey = GlobalKey<FormState>();
-                              return AlertDialog(
-                                content: Form(
-                                    key: formKey,
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        TextFormField(
-                                          decoration: InputDecoration(
-                                              label:
-                                                  Text(i10n.friendAddMessage)),
-                                          onSaved: (newValue) {
-                                            var interceptor = AuthInterceptor();
-                                            interceptor.setToken(ourchatAppState
-                                                .thisAccount!.token);
-                                            var stub = OurChatServiceClient(
-                                                ourchatAppState
-                                                    .server!.channel!,
-                                                interceptors: [interceptor]);
-                                            stub.addFriend(AddFriendRequest(
-                                                friendId: account.id,
-                                                leaveMessage: newValue));
-                                          },
-                                        )
-                                      ],
-                                    )),
-                                actions: [
-                                  ElevatedButton(
-                                      onPressed: () {
-                                        Navigator.pop(context);
-                                      },
-                                      child: Text(i10n.cancel)),
-                                  ElevatedButton(
-                                      onPressed: () {
-                                        formKey.currentState!.save();
-                                        Navigator.pop(context);
-                                      },
-                                      child: Text(i10n.send))
-                                ],
-                              );
-                            });
-                      },
+                      onPressed: () => showAddFriendDialog(
+                          context, ourchatAppState, account),
                       child: Text(i10n.addFriend)),
               ],
             ),
@@ -296,6 +394,8 @@ class _SessionListState extends State<SessionList> {
                         child:
                             Text(AppLocalizations.of(context)!.userNotFound));
                   }
+                  bool isFriend =
+                      ourchatAppState.thisAccount!.friends.contains(account.id);
                   return SizedBox(
                       // 显示匹配账号
                       height: 50.0,
@@ -310,6 +410,8 @@ class _SessionListState extends State<SessionList> {
                             onPressed: () {
                               sessionState.currentUserId = account.id;
                               sessionState.tabIndex = userTab;
+                              sessionState.tabTitle =
+                                  AppLocalizations.of(context)!.userInfo;
                               sessionState.update();
                             },
                             child: Row(
@@ -319,7 +421,11 @@ class _SessionListState extends State<SessionList> {
                                     width: 40.0,
                                     height: 40.0,
                                     child: Placeholder()),
-                                Text(account.displayName)
+                                if (isFriend)
+                                  Text(
+                                      "${account.displayName} (${account.username})")
+                                else
+                                  Text(account.username)
                               ],
                             )),
                       ));
@@ -377,7 +483,7 @@ class _SessionListState extends State<SessionList> {
         BasicServiceClient(ourchatAppState.server!.channel!, interceptors: []);
     try {
       var res = await stub.getId(GetIdRequest(ocid: ocid));
-      OurchatAccount account = OurchatAccount(ourchatAppState.server!);
+      OurchatAccount account = OurchatAccount(ourchatAppState);
       account.id = res.id;
       account.token = ourchatAppState.thisAccount!.token;
       account.recreateStub();
@@ -425,28 +531,12 @@ class SessionWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    OurchatAppState appState = context.watch<OurchatAppState>();
-    Widget sessionTitle = const Text("Session", style: TextStyle(fontSize: 30));
+    SessionState sessionState = context.watch<SessionState>();
+    sessionState.tabTitle = "Title";
     return Column(
       mainAxisSize: MainAxisSize.max,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Flexible(
-          flex: 1,
-          // 若设备为移动端,显示一个返回按钮
-          child: (appState.device == mobile
-              ? Row(
-                  children: [
-                    BackButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                    ),
-                    sessionTitle,
-                  ],
-                )
-              : Align(alignment: Alignment.center, child: sessionTitle)),
-        ),
         Flexible(
             flex: 10, child: cardWithPadding(const SessionRecord())), //聊天记录
         Flexible(

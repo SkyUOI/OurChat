@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:ourchat/ourchat/ourchat_chore.dart';
+import 'package:ourchat/ourchat/ourchat_database.dart' as database;
+import 'package:ourchat/service/ourchat/msg_delivery/v1/msg_delivery.pb.dart';
+import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
 import 'ourchat/ourchat_account.dart';
 import 'package:provider/provider.dart';
 import 'package:localstorage/localstorage.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:ourchat/l10n/app_localizations.dart';
 import 'package:ourchat/const.dart';
 import 'package:ourchat/config.dart';
 import 'package:ourchat/server_setting.dart';
@@ -19,17 +23,34 @@ class OurchatAppState extends ChangeNotifier {
   int device = desktop;
   OurChatServer? server;
   OurchatAccount? thisAccount;
+  late database.PublicOurchatDatabase db;
+  database.OurchatDatabase? pdb;
   OurchatConfig config;
 
   OurchatAppState() : config = OurchatConfig() {
     logger.i("init Ourchat");
     constructLogger(convertStrIntoLevel(config["log_level"]));
+    db = database.PublicOurchatDatabase();
     notifyListeners();
     logger.i("init Ourchat done");
   }
 
   void update() {
     notifyListeners();
+  }
+
+  void listenMsgs() async {
+    var stub = OurChatServiceClient(server!.channel!,
+        interceptors: [server!.interceptor!]);
+    var res = stub.fetchMsgs(
+        FetchMsgsRequest(time: thisAccount!.latestMsgTime.timestamp));
+    res.listen((res) {
+      thisAccount!.latestMsgTime = OurchatTime(inputTimestamp: res.time);
+      // print(thisAccount!.latestMsgTime.timestamp);
+      thisAccount!.updateLatestMsgTime();
+      // print(res);
+      // TODO: 管理消息
+    });
   }
 }
 
