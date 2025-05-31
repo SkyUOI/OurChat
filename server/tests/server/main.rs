@@ -7,6 +7,7 @@ mod chores;
 mod db;
 mod files;
 mod friend;
+mod log;
 mod msg_recall;
 mod msg_send;
 mod session;

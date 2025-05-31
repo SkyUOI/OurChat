@@ -34,6 +34,7 @@ color-eyre.workspace = true
 humantime.workspace = true
 humantime-serde.workspace = true
 tokio-cron-scheduler.workspace = true
+chrono.workspace = true
 
 [dev-dependencies]
 client = { path = "../client" }

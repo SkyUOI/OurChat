@@ -97,7 +97,10 @@ pub async fn add_clean_to_scheduler<'a>(
                             let mut date = date
                                 .to_str()
                                 .ok_or_else(|| anyhow!("no date info"))?
-                                .split(".");
+                                .split(".")
+                                .next()
+                                .ok_or_else(|| anyhow!("no date info"))?
+                                .split('-');
                             let date = chrono::NaiveDate::from_ymd_opt(
                                 date.next()
                                     .ok_or_else(|| anyhow!("missing year"))?

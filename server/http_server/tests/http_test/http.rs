@@ -20,7 +20,7 @@ async fn http_status() {
 
 #[tokio::test]
 async fn http_tls() {
-    let mut config = TestHttpApp::build_server().await.unwrap();
+    let mut config = TestHttpApp::get_config().await.unwrap();
     config.main_cfg.tls.server_tls_cert_path = Some(PathBuf::from("../test_data/certs/server.pem"));
     config.main_cfg.tls.server_key_cert_path = Some(PathBuf::from("../test_data/certs/server.key"));
     config.main_cfg.tls.client_tls_cert_path = Some(PathBuf::from("../test_data/certs/client.pem"));

@@ -83,6 +83,16 @@ impl TestApp {
         Self::new_with_launching_instance_custom_cfg(Self::get_test_config()?).await
     }
 
+    /// # Example
+    ///
+    /// ```ignore
+    /// let (mut config, args) = TestApp::get_test_config().unwrap();
+    /// let user_files_limit = Size::from_mebibytes(10);
+    /// config.main_cfg.user_files_limit = user_files_limit;
+    /// let mut app = TestApp::new_with_launching_instance_custom_cfg((config, args))
+    ///     .await
+    ///     .unwrap();
+    /// ```
     pub async fn new_with_launching_instance_custom_cfg(
         (mut server_config, args): ConfigWithArgs,
     ) -> anyhow::Result<Self> {
