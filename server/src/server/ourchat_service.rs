@@ -1,6 +1,7 @@
 use std::pin::Pin;
 
 use pb::service::ourchat::download::v1::{DownloadRequest, DownloadResponse};
+use pb::service::ourchat::webrtc::room::create_room::v1::{CreateRoomRequest, CreateRoomResponse};
 use tonic::{Request, Response, Status};
 
 use super::RpcServer;
@@ -332,5 +333,16 @@ impl OurChatService for RpcServer {
         let id = get_id_from_req(&request).unwrap();
         self.check_account_status(id).await?;
         process::accept_join_in_session(self, id, request).await
+    }
+
+    /// Rpc create room
+    #[tracing::instrument(skip(self))]
+    async fn create_room(
+        &self,
+        request: Request<CreateRoomRequest>,
+    ) -> Result<Response<CreateRoomResponse>, Status> {
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::create_room(self, id, request).await
     }
 }

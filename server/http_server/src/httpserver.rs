@@ -197,8 +197,9 @@ impl HttpServer {
                     }
                 }
                 let redis_conn = db_pool.redis_pool.clone();
+                let verify_email_expiry = cfg.user_setting.verify_email_expiry;
                 tokio::spawn(async move {
-                    tokio::time::sleep(base::consts::VERIFY_EMAIL_EXPIRE).await;
+                    tokio::time::sleep(verify_email_expiry).await;
                     let reject = async {
                         match delivery.reject(BasicRejectOptions { requeue: false }).await {
                             Ok(_) => {}

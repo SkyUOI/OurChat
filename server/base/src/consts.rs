@@ -1,5 +1,4 @@
 //! Define constants
-//! TODO: use new type for roles and permissions
 
 use pb::service::basic::server::v1::ServerVersion;
 use size::Size;
@@ -24,38 +23,60 @@ pub const APP_NAME: &str = "OurChat";
 pub const LOG_ENV_VAR: &str = "OURCHAT_LOG";
 pub const LOG_OUTPUT_DIR: &str = "log/";
 pub const CONFIG_FILE_ENV_VAR: &str = "OURCHAT_CONFIG_FILE";
-// TODO:add this to config file
-pub const VERIFY_EMAIL_EXPIRE: Duration = Duration::from_mins(5);
+
+// Log file name
+// Main Server
+pub static OURCHAT_LOG_PREFIX: &str = "ourchat";
+// Http Server
+pub static HTTP_SERVER_LOG_PREFIX: &str = "http_server";
+
+pub const fn default_verify_email_expiry() -> Duration {
+    Duration::from_mins(5)
+}
+
 pub const SERVER_INFO_JSON_VERSION: u64 = 1;
-// TODO:add this to config file
-pub const ADD_FRIEND_REQUEST_EXPIRE: Duration = Duration::from_days(3);
+
+pub const fn default_add_friend_request_expiry() -> Duration {
+    Duration::from_days(3)
+}
 
 // define ID type to fit many types of databases
 impl_newtype_int!(ID, u64, serde::Serialize, serde::Deserialize);
-pub type SessionID = ID;
-pub type MsgID = ID;
+impl_newtype_int!(SessionID, u64, serde::Serialize, serde::Deserialize);
+impl_newtype_int!(MsgID, u64, serde::Serialize, serde::Deserialize);
 
-macro impl_from($ty:ty) {
-    impl From<$ty> for ID {
+macro impl_from($from:path, $ty:ty) {
+    impl From<$ty> for $from {
         fn from(value: $ty) -> Self {
-            ID(value.try_into().unwrap())
+            $from(value.try_into().unwrap())
         }
     }
 
-    impl From<ID> for $ty {
-        fn from(value: ID) -> Self {
+    impl From<$from> for $ty {
+        fn from(value: $from) -> Self {
             value.0 as $ty
         }
     }
 }
 
-impl_from!(i32);
-impl_from!(i64);
-impl_from!(u32);
-impl_from!(u64);
+macro impl_from_all_ints($from:path) {
+    impl_from!($from, i32);
+    impl_from!($from, i64);
+    impl_from!($from, u32);
+    impl_from!($from, u64);
+}
+
+impl_from_all_ints!(ID);
+impl_from_all_ints!(SessionID);
 
 impl From<ID> for sea_orm::Value {
     fn from(value: ID) -> Self {
+        Self::BigUnsigned(Some(*value))
+    }
+}
+
+impl From<SessionID> for sea_orm::Value {
+    fn from(value: SessionID) -> Self {
         Self::BigUnsigned(Some(*value))
     }
 }
@@ -76,13 +97,22 @@ impl From<&OCID> for sea_orm::Value {
 }
 
 /// default clear interval
-pub const fn default_clear_interval() -> u64 {
-    1
+pub fn default_clear_interval() -> croner::Cron {
+    croner::Cron::new("0 0 0 * *")
 }
 
 /// default file save days
 pub const fn default_file_save_time() -> Duration {
     Duration::from_days(10)
+}
+
+/// default log clean duration
+pub const fn default_log_clean_duration() -> Duration {
+    Duration::from_days(30)
+}
+
+pub const fn default_log_keep() -> Duration {
+    Duration::from_days(3)
 }
 
 /// whether to enable cmd

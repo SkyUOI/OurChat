@@ -31,3 +31,4 @@ ctor.workspace = true
 urlencoding.workspace = true
 libc-print.workspace = true
 chrono.workspace = true
+http.workspace = true

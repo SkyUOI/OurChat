@@ -11,6 +11,8 @@ rabbitmq_cfg = "rabbitmq.toml"
 # The logo of this server
 logo_path = "../resource/logo.png"
 run_migration = false
+# Log clean duration
+log_clean_duration = "30d"
 
 [tls]
 enable = false

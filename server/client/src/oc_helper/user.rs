@@ -43,6 +43,8 @@ pub struct TestUser {
     pub oc_server: Option<OCClient>,
     pub timestamp_receive_msg: TimeStampUtc,
     pub tls: TlsConfig,
+    // Check whether message == 0 in the end
+    pub ensure_no_message_left: bool,
 
     has_dropped: bool,
     has_registered: bool,
@@ -76,6 +78,7 @@ impl TestUser {
             has_unregistered: false,
             has_registered: false,
             tls: TlsConfig::default(),
+            ensure_no_message_left: false,
         }
     }
 
@@ -135,6 +138,9 @@ impl TestUser {
 
     pub(crate) async fn async_drop(&mut self) {
         if !self.has_unregistered {
+            if self.ensure_no_message_left {
+                claims::assert_err!(self.fetch_msgs(1).await);
+            }
             claims::assert_ok!(self.unregister().await);
             tracing::info!("unregister done");
         }
@@ -259,7 +265,7 @@ impl TestUser {
 
     pub async fn send_msg(
         &mut self,
-        session_id: ID,
+        session_id: SessionID,
         msg: BundleMsgs,
     ) -> Result<Response<SendMsgResponse>, ClientErr> {
         let req = SendMsgRequest {
@@ -345,24 +351,34 @@ impl TestUser {
 
     pub async fn fetch_msgs(
         &mut self,
-        duration: Duration,
-    ) -> Result<Vec<FetchMsgsResponse>, tonic::Status> {
+        nums_limit: usize,
+    ) -> anyhow::Result<Vec<FetchMsgsResponse>> {
         let msg_get = FetchMsgsRequest {
             time: Some(to_google_timestamp(self.timestamp_receive_msg)),
         };
         tracing::info!("timestamp_receive_msg: {}", self.timestamp_receive_msg);
         let ret = self.oc().fetch_msgs(msg_get).await?;
         let mut ret_stream = ret.into_inner();
-        let mut msgs = vec![];
-        while let Some(i) = select! {
-            i = ret_stream.next() => i,
-            _ = tokio::time::sleep(duration) => None
-        } {
-            let i = i?;
-            self.timestamp_receive_msg = from_google_timestamp(&i.time.unwrap()).unwrap();
-            msgs.push(i);
+        let logic = async {
+            let mut msgs = vec![];
+            while let Some(i) = ret_stream.next().await {
+                let i = i?;
+                self.timestamp_receive_msg = from_google_timestamp(&i.time.unwrap()).unwrap();
+                msgs.push(i);
+                if msgs.len() == nums_limit {
+                    break;
+                }
+            }
+            anyhow::Ok(msgs)
+        };
+        select! {
+            msgs = logic => {
+                Ok(msgs?)
+            }
+            _ = tokio::time::sleep(Duration::from_secs(20)) => {
+                Err(anyhow::anyhow!("Time Limit Exceeded"))
+            }
         }
-        Ok(msgs)
     }
     pub async fn fetch_msgs_notify(
         &mut self,

@@ -87,7 +87,6 @@ async fn get_account_info_impl(
                     if let Privilege::Owner = privilege {
                         // invalid for the owner, ignore
                     } else {
-                        // TODO: use join to optimize this query
                         let friend =
                             db::user::query_contact_user_info(id, request_id, &server.db.db_pool)
                                 .await?;

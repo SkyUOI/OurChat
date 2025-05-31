@@ -3,32 +3,31 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "friend")]
+#[sea_orm(table_name = "webrtc_room_member")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
-    pub user_id: i64,
+    pub room_id: Uuid,
     #[sea_orm(primary_key, auto_increment = false)]
-    pub friend_id: i64,
+    pub user_id: i64,
+    pub name: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(
-        belongs_to = "super::user::Entity",
-        from = "Column::FriendId",
-        to = "super::user::Column::Id",
+        belongs_to = "super::webrtc_room::Entity",
+        from = "Column::RoomId",
+        to = "super::webrtc_room::Column::Id",
         on_update = "Cascade",
         on_delete = "Cascade"
     )]
-    User2,
-    #[sea_orm(
-        belongs_to = "super::user::Entity",
-        from = "Column::UserId",
-        to = "super::user::Column::Id",
-        on_update = "Cascade",
-        on_delete = "Cascade"
-    )]
-    User1,
+    WebrtcRoom,
+}
+
+impl Related<super::webrtc_room::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::WebrtcRoom.def()
+    }
 }
 
 impl ActiveModelBehavior for ActiveModel {}

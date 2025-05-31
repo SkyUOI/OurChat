@@ -1,6 +1,6 @@
 use config::{ConfigError, File};
 use serde::{Deserialize, Serialize};
-use std::path::Path;
+use std::{path::Path, time::Duration};
 
 pub mod debug;
 pub mod tls;
@@ -38,6 +38,16 @@ pub struct UserSetting {
     pub support_page: Option<http::Uri>,
     #[serde(default = "crate::consts::default_password_strength_limit")]
     pub password_strength_limit: zxcvbn::Score,
+    #[serde(
+        with = "humantime_serde",
+        default = "crate::consts::default_verify_email_expiry"
+    )]
+    pub verify_email_expiry: Duration,
+    #[serde(
+        with = "humantime_serde",
+        default = "crate::consts::default_add_friend_request_expiry"
+    )]
+    pub add_friend_request_expiry: Duration,
 }
 
 impl Setting for UserSetting {}

@@ -4,7 +4,7 @@ use crate::process::error_msg::{PERMISSION_DENIED, not_found};
 use crate::process::{Dest, friends, transmit_msg};
 use crate::{process::error_msg::SERVER_ERROR, server::RpcServer};
 use anyhow::Context;
-use base::consts::{ADD_FRIEND_REQUEST_EXPIRE, ID};
+use base::consts::ID;
 use deadpool_redis::redis::AsyncCommands;
 use entities::prelude::Friend;
 use pb::service::ourchat::friends::add_friend::v1::{
@@ -89,7 +89,12 @@ async fn add_friend_impl(
         .set_ex(
             &key,
             serde_json::to_string(&req).unwrap(),
-            ADD_FRIEND_REQUEST_EXPIRE.as_secs(),
+            server
+                .shared_data
+                .cfg
+                .user_setting
+                .add_friend_request_expiry
+                .as_secs(),
         )
         .await?;
     // insert 2 messages

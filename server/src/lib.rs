@@ -8,6 +8,7 @@ pub mod process;
 pub mod rabbitmq;
 mod server;
 mod shared_state;
+mod webrtc;
 
 use anyhow::bail;
 use base::consts::{self, CONFIG_FILE_ENV_VAR, LOG_OUTPUT_DIR, SERVER_INFO_PATH};
@@ -19,6 +20,7 @@ use base::setting::debug::DebugCfg;
 use base::setting::tls::TlsConfig;
 use base::setting::{Setting, UserSetting};
 use base::shutdown::{ShutdownRev, ShutdownSdr};
+use base::wrapper::JobSchedulerWrapper;
 use base::{log, setting};
 use clap::Parser;
 use dashmap::DashMap;
@@ -67,8 +69,8 @@ pub struct MainCfg {
     #[serde(default = "consts::default_http_port")]
     pub http_port: u16,
     #[serde(default = "consts::default_clear_interval")]
-    pub auto_clean_duration: u64,
-    #[serde(default = "consts::default_file_save_time")]
+    pub auto_clean_duration: croner::Cron,
+    #[serde(default = "consts::default_file_save_time", with = "humantime_serde")]
     pub file_save_time: Duration,
     #[serde(default = "consts::default_user_files_store_limit")]
     pub user_files_limit: Size,
@@ -86,6 +88,13 @@ pub struct MainCfg {
         with = "humantime_serde"
     )]
     pub user_defined_status_expire_time: Duration,
+    #[serde(
+        default = "consts::default_log_clean_duration",
+        with = "humantime_serde"
+    )]
+    pub log_clean_duration: Duration,
+    #[serde(default = "consts::default_log_keep", with = "humantime_serde")]
+    pub lop_keep: Duration,
     #[serde(default = "consts::default_single_instance")]
     pub single_instance: bool,
     #[serde(default = "consts::default_leader_node")]
@@ -436,6 +445,7 @@ pub struct SharedData {
     pub cfg: Cfg,
     pub verify_record: DashMap<String, Arc<tokio::sync::Notify>>,
     maintaining: Mutex<bool>,
+    sched: tokio::sync::Mutex<JobSchedulerWrapper>,
 }
 
 impl SharedData {
@@ -516,22 +526,18 @@ impl Application {
                 main_cfg.cmd_args.test_mode,
                 Some(&main_cfg.debug),
                 std::io::sink,
-                "ourchat",
+                consts::OURCHAT_LOG_PREFIX,
             );
         } else {
             log::logger_init(
                 main_cfg.cmd_args.test_mode,
                 Some(&main_cfg.debug),
                 std::io::stdout,
-                "ourchat",
+                consts::OURCHAT_LOG_PREFIX,
             );
         }
         let maintaining = main_cfg.cmd_args.maintaining;
         // Set up shared state
-        shared_state::set_auto_clean_duration(main_cfg.auto_clean_duration);
-        shared_state::set_file_save_days(
-            chrono::Duration::from_std(main_cfg.file_save_time)?.num_days() as u64,
-        );
         shared_state::set_friends_number_limit(main_cfg.friends_number_limit);
 
         if let Some(new_ip) = parser.ip {
@@ -557,11 +563,23 @@ impl Application {
             rabbitmq::init(&rmq_pool).await?;
         }
 
+        let sched = tokio::sync::Mutex::new(JobSchedulerWrapper::new(
+            tokio_cron_scheduler::JobScheduler::new().await?,
+        ));
+        base::log::add_clean_to_scheduler(
+            consts::OURCHAT_LOG_PREFIX,
+            cfg.main_cfg.lop_keep,
+            cfg.main_cfg.log_clean_duration,
+            sched.lock().await,
+        )
+        .await?;
+
         Ok(Self {
             shared: Arc::new(SharedData {
                 cfg,
                 verify_record: DashMap::new(),
                 maintaining: Mutex::new(maintaining),
+                sched,
             }),
             pool: db_pool,
             server_addr: addr,
@@ -610,10 +628,12 @@ impl Application {
         handles.push(handle);
 
         // Start the database file system
-        file_storage::FileSys::new(self.pool.db_pool.clone())
-            .start(self.abort_sender.new_receiver("file system", "file system"));
+        file_storage::FileSys::new(self.pool.db_pool.clone(), self.shared.clone())
+            .start()
+            .await?;
         // Start the shutdown signal listener
         exit_signal(self.abort_sender.clone())?;
+        self.shared.sched.lock().await.start().await?;
         info!("Start to register service to registry");
         info!("Server started");
         self.started_notify.notify_waiters();
@@ -630,6 +650,7 @@ impl Application {
         });
         self.pool.close().await?;
         self.rabbitmq.close();
+        self.shared.sched.lock().await.shutdown().await?;
         info!("Server exited");
         Ok(())
     }

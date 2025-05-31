@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package service.ourchat.webrtc.room.create_room.v1;
+
+message CreateRoomRequest {
+  optional string title = 1;
+}
+
+message CreateRoomResponse {
+  uint64 room_id = 1;
+}

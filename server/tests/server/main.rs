@@ -1,3 +1,5 @@
+#![feature(duration_constructors_lite)]
+
 mod announcement;
 mod auth_register;
 mod basic;

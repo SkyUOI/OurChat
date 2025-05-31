@@ -1,8 +1,16 @@
 use crate::consts::{LOG_ENV_VAR, LOG_OUTPUT_DIR};
 use crate::setting::debug::DebugCfg;
+use crate::wrapper::JobSchedulerWrapper;
+use anyhow::anyhow;
+use chrono::TimeDelta;
+use std::ffi::OsStr;
 use std::path::Path;
 use std::sync::OnceLock;
 use std::time::Duration;
+use tokio::fs;
+use tokio::sync::MutexGuard;
+use tokio_cron_scheduler::Job;
+use tracing::error;
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::fmt::writer::MakeWriter;
 use tracing_subscriber::layer::SubscriberExt;
@@ -64,4 +72,60 @@ pub fn logger_init<Sink>(
         }
         Some(file_guard)
     });
+}
+
+pub async fn add_clean_to_scheduler<'a>(
+    log_file_prefix: impl Into<String>,
+    log_keep: Duration,
+    duration: Duration,
+    sched: MutexGuard<'a, JobSchedulerWrapper>,
+) -> anyhow::Result<()> {
+    let log_file_prefix = log_file_prefix.into();
+    let job = Job::new_repeated_async(duration, move |_uuid, _l| {
+        let log_file_prefix = log_file_prefix.clone();
+        Box::pin(async move {
+            let now = chrono::Local::now().date_naive();
+            let logic = async {
+                let mut tmp = fs::read_dir(LOG_OUTPUT_DIR).await?;
+                while let Some(i) = tmp.next_entry().await? {
+                    let path = i.path();
+                    if path.is_file()
+                        && path.file_prefix() == Some(OsStr::new(&log_file_prefix))
+                        && let Some(date) = path.clone().extension()
+                    {
+                        let remove_logic = async {
+                            let mut date = date
+                                .to_str()
+                                .ok_or_else(|| anyhow!("no date info"))?
+                                .split(".");
+                            let date = chrono::NaiveDate::from_ymd_opt(
+                                date.next()
+                                    .ok_or_else(|| anyhow!("missing year"))?
+                                    .parse()?,
+                                date.next()
+                                    .ok_or_else(|| anyhow!("missing month"))?
+                                    .parse()?,
+                                date.next().ok_or_else(|| anyhow!("missing day"))?.parse()?,
+                            )
+                            .ok_or_else(|| anyhow!("date invalid"))?;
+                            let date_diff = now.signed_duration_since(date);
+                            if date_diff >= TimeDelta::from_std(log_keep)? {
+                                fs::remove_file(path).await?;
+                            }
+                            anyhow::Ok(())
+                        };
+                        if let Err(e) = remove_logic.await {
+                            error!("Error when delete log file: {e}")
+                        }
+                    }
+                }
+                anyhow::Ok(())
+            };
+            if let Err(e) = logic.await {
+                error!("Error when cleaning log: {e}")
+            }
+        })
+    })?;
+    sched.add(job).await?;
+    Ok(())
 }

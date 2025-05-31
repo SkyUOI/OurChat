@@ -40,6 +40,9 @@ hyper-util.workspace = true
 http-body-util.workspace = true
 secrecy.workspace = true
 utils = { path = "utils" }
+webrtc.workspace = true
+tokio-cron-scheduler.workspace = true
+croner.workspace = true
 
 # Useful crates
 collection_literals.workspace = true

@@ -6,9 +6,10 @@ mod mute;
 mod role;
 
 use base::consts::{ID, SessionID};
+use base::types::RoleId;
 use claims::assert_lt;
 use client::TestApp;
-use migration::m20241229_022701_add_role_for_session::{PredefinedRoles, RoleId};
+use migration::m20241229_022701_add_role_for_session::PredefinedRoles;
 use parking_lot::Mutex;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
@@ -67,12 +68,7 @@ async fn session_create() {
     let new_session = ret.into_inner();
     let session_id: SessionID = new_session.session_id.into();
     assert_eq!(new_session.failed_members, vec![]);
-    let user3_rec = user3
-        .lock()
-        .await
-        .fetch_msgs(Duration::from_millis(400))
-        .await
-        .unwrap();
+    let user3_rec = user3.lock().await.fetch_msgs(1).await.unwrap();
     let check = async |rec: Vec<FetchMsgsResponse>| {
         assert_eq!(rec.len(), 1);
         let RespondMsgType::InviteSession(rec) = rec[0].respond_msg_type.clone().unwrap() else {
@@ -154,7 +150,7 @@ async fn get_session_info() {
         time_now
     );
     assert_eq!(info.avatar_key.unwrap(), "");
-    let session_id_get: ID = info.session_id.unwrap().into();
+    let session_id_get: SessionID = info.session_id.unwrap().into();
     assert_eq!(session_id_get, session.session_id);
     let members: HashSet<ID> = info.members.into_iter().map(|x| x.into()).collect();
     assert_eq!(
@@ -164,7 +160,7 @@ async fn get_session_info() {
     let roles: HashSet<(ID, RoleId)> = info
         .roles
         .into_iter()
-        .map(|x| (x.user_id.into(), x.role))
+        .map(|x| (x.user_id.into(), RoleId(x.role)))
         .collect();
     assert_eq!(
         roles,

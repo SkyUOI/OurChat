@@ -3,7 +3,7 @@ name: ourchat_server
 services:
   OurChatServer:
     init: true
-    image: skyuoi/ourchat:latest
+    image: skyuoi/ourchat:nightly
     working_dir: /root
     ports:
       - "7777:7777"
@@ -19,7 +19,7 @@ services:
       - ../resource/:/etc/resource
   HttpServer:
     init: true
-    image: skyuoi/ourchat:latest-http
+    image: skyuoi/ourchat:nightly-http
     working_dir: /root
     ports:
       - "7778:7778"
@@ -46,7 +46,7 @@ services:
     networks:
       - net
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 30s
       retries: 5

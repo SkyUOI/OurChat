@@ -4,7 +4,6 @@ use pb::service::ourchat::session::join_in_session::v1::{
     AcceptJoinInSessionRequest, JoinInSessionRequest,
 };
 use server::db::session::in_session;
-use std::time::Duration;
 
 #[tokio::test]
 async fn join_in_session_success() {
@@ -24,12 +23,7 @@ async fn join_in_session_success() {
         .await
         .unwrap();
     // will receive
-    let join_in_request = a
-        .lock()
-        .await
-        .fetch_msgs(Duration::from_millis(500))
-        .await
-        .unwrap();
+    let join_in_request = a.lock().await.fetch_msgs(1).await.unwrap();
     assert_eq!(join_in_request.len(), 1);
     let RespondMsgType::JoinInSessionApproval(join_in) = join_in_request
         .into_iter()
@@ -63,12 +57,7 @@ async fn join_in_session_success() {
             .await
             .unwrap()
     );
-    let ret = c
-        .lock()
-        .await
-        .fetch_msgs(Duration::from_millis(500))
-        .await
-        .unwrap();
+    let ret = c.lock().await.fetch_msgs(2).await.unwrap();
     assert_eq!(ret.len(), 2, "{ret:?}");
     let RespondMsgType::AcceptJoinInSession(ret) = ret[1].respond_msg_type.clone().unwrap() else {
         panic!()
@@ -96,12 +85,7 @@ async fn join_in_session_reject() {
         .await
         .unwrap();
     // will receive
-    let join_in_request = a
-        .lock()
-        .await
-        .fetch_msgs(Duration::from_millis(500))
-        .await
-        .unwrap();
+    let join_in_request = a.lock().await.fetch_msgs(1).await.unwrap();
     assert_eq!(join_in_request.len(), 1);
     let RespondMsgType::JoinInSessionApproval(join_in) = join_in_request
         .into_iter()
@@ -135,12 +119,7 @@ async fn join_in_session_reject() {
             .await
             .unwrap()
     );
-    let ret = c
-        .lock()
-        .await
-        .fetch_msgs(Duration::from_millis(500))
-        .await
-        .unwrap();
+    let ret = c.lock().await.fetch_msgs(2).await.unwrap();
     assert_eq!(ret.len(), 2, "{ret:?}");
     let RespondMsgType::AcceptJoinInSession(ret) = ret[1].respond_msg_type.clone().unwrap() else {
         panic!()

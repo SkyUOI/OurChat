@@ -36,6 +36,10 @@ serde_json.workspace = true
 zxcvbn.workspace = true
 secrecy.workspace = true
 utils = { path = "../utils" }
+humantime.workspace = true
+humantime-serde.workspace = true
+croner.workspace = true
+tokio-cron-scheduler.workspace = true
 
 [build-dependencies]
 shadow-rs = "1"

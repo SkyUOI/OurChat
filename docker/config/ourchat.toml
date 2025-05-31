@@ -12,7 +12,7 @@ port = 7777
 # Just for showing, will not use this port
 http_port = 7778
 # The duration of cleaning the files which are out-of-date
-auto_clean_duration = 1
+auto_clean_duration = "0 0 * * *"
 # The total file size limit of a single user
 user_files_limit = "100MiB"
 # A single user's The number of the friend's limit
@@ -23,11 +23,17 @@ verification_expire_time = "3d"
 user_defined_status_expire_time = "24h"
 # The path of the users' files storage
 files_storage_path = "files_storage/"
+# How long will the files be kept
+files_save_time = "10d"
 # Whether this is started in Single Instance Mode. If true, some actions like cleaning up files will be performed regularly
 # You can set it when you have only one server instance, or you can set this option in only one instance(not recommended)
 single_instance = true
 # In multiple instance mode, choose a node to be the leader node
 leader_node = true
+# Log clean duration
+log_clean_duration = "30d"
+# Keep Log Duration when cleaning
+log_keep = "3d"
 
 [password_hash]
 # The memory size in 1 KiB blocks. Between 8*`p_cost` and (2^32)-1
