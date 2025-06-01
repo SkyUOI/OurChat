@@ -6,12 +6,15 @@ import 'package:path_provider/path_provider.dart';
 part 'ourchat_database.g.dart';
 
 class PublicAccount extends Table {
-  Int64Column get id => int64().autoIncrement()();
+  Int64Column get id => int64()();
   TextColumn get username => text()();
   TextColumn get status => text()();
   TextColumn get avatarKey => text()();
   TextColumn get ocid => text()();
   DateTimeColumn get publicUpdateTime => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
 }
 
 @DriftDatabase(tables: [PublicAccount])
@@ -33,7 +36,7 @@ class PublicOurchatDatabase extends _$PublicOurchatDatabase {
 }
 
 class Account extends Table {
-  Int64Column get id => int64().autoIncrement()();
+  Int64Column get id => int64()();
   TextColumn get email => text()();
   DateTimeColumn get registerTime => dateTime()();
   DateTimeColumn get updateTime => dateTime()();
@@ -42,6 +45,9 @@ class Account extends Table {
 
   // 客户端独有字段
   DateTimeColumn get latestMsgTime => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
 }
 
 @DriftDatabase(tables: [Account])
