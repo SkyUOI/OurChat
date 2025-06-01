@@ -50,7 +50,8 @@ async fn session_create() {
         let ret = user2_clone
             .lock()
             .await
-            .fetch_msgs_notify(notify_clone)
+            .fetch_msgs()
+            .fetch_with_notify(notify_clone)
             .await
             .unwrap();
         *user2_rec_clone.lock() = Some(ret);
@@ -68,7 +69,7 @@ async fn session_create() {
     let new_session = ret.into_inner();
     let session_id: SessionID = new_session.session_id.into();
     assert_eq!(new_session.failed_members, vec![]);
-    let user3_rec = user3.lock().await.fetch_msgs(1).await.unwrap();
+    let user3_rec = user3.lock().await.fetch_msgs().fetch(1).await.unwrap();
     let check = async |rec: Vec<FetchMsgsResponse>| {
         assert_eq!(rec.len(), 1);
         let RespondMsgType::InviteSession(rec) = rec[0].respond_msg_type.clone().unwrap() else {

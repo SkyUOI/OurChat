@@ -139,7 +139,7 @@ impl TestUser {
     pub(crate) async fn async_drop(&mut self) {
         if !self.has_unregistered {
             if self.ensure_no_message_left {
-                claims::assert_err!(self.fetch_msgs(1).await);
+                claims::assert_err!(self.fetch_msgs().fetch(1).await);
             }
             claims::assert_ok!(self.unregister().await);
             tracing::info!("unregister done");
@@ -349,21 +349,43 @@ impl TestUser {
         Ok(())
     }
 
-    pub async fn fetch_msgs(
-        &mut self,
-        nums_limit: usize,
-    ) -> anyhow::Result<Vec<FetchMsgsResponse>> {
+    pub fn fetch_msgs(&mut self) -> FetchMsgBuilder {
+        let tmp = self.timestamp_receive_msg;
+        FetchMsgBuilder {
+            user: self,
+            timestamp: tmp,
+        }
+    }
+}
+
+impl Drop for TestUser {
+    fn drop(&mut self) {
+        if !self.has_dropped && !thread::panicking() && self.has_registered {
+            panic!("async_drop is not called to drop this user");
+        }
+    }
+}
+
+pub type TestUserShared = Arc<tokio::sync::Mutex<TestUser>>;
+
+pub struct FetchMsgBuilder<'a> {
+    pub timestamp: TimeStampUtc,
+    user: &'a mut TestUser,
+}
+
+impl<'a> FetchMsgBuilder<'a> {
+    pub async fn fetch(&mut self, nums_limit: usize) -> anyhow::Result<Vec<FetchMsgsResponse>> {
         let msg_get = FetchMsgsRequest {
-            time: Some(to_google_timestamp(self.timestamp_receive_msg)),
+            time: Some(to_google_timestamp(self.timestamp)),
         };
-        tracing::info!("timestamp_receive_msg: {}", self.timestamp_receive_msg);
-        let ret = self.oc().fetch_msgs(msg_get).await?;
+        tracing::info!("timestamp_receive_msg: {}", self.timestamp);
+        let ret = self.user.oc().fetch_msgs(msg_get).await?;
         let mut ret_stream = ret.into_inner();
         let logic = async {
             let mut msgs = vec![];
             while let Some(i) = ret_stream.next().await {
                 let i = i?;
-                self.timestamp_receive_msg = from_google_timestamp(&i.time.unwrap()).unwrap();
+                self.user.timestamp_receive_msg = from_google_timestamp(&i.time.unwrap()).unwrap();
                 msgs.push(i);
                 if msgs.len() == nums_limit {
                     break;
@@ -380,20 +402,21 @@ impl TestUser {
             }
         }
     }
-    pub async fn fetch_msgs_notify(
+
+    pub async fn fetch_with_notify(
         &mut self,
         notify: Arc<Notify>,
     ) -> Result<Vec<FetchMsgsResponse>, tonic::Status> {
         let msg_get = FetchMsgsRequest {
-            time: Some(to_google_timestamp(self.timestamp_receive_msg)),
+            time: Some(to_google_timestamp(self.timestamp)),
         };
-        let ret = self.oc().fetch_msgs(msg_get).await?;
+        let ret = self.user.oc().fetch_msgs(msg_get).await?;
         let mut ret_stream = ret.into_inner();
         let mut msgs = vec![];
         let logic = async {
             while let Some(i) = ret_stream.next().await {
                 let i = i?;
-                self.timestamp_receive_msg = from_google_timestamp(&i.time.unwrap()).unwrap();
+                self.user.timestamp_receive_msg = from_google_timestamp(&i.time.unwrap()).unwrap();
                 msgs.push(i);
             }
             Result::<_, tonic::Status>::Ok(())
@@ -404,14 +427,9 @@ impl TestUser {
         }
         Ok(msgs)
     }
-}
 
-impl Drop for TestUser {
-    fn drop(&mut self) {
-        if !self.has_dropped && !thread::panicking() && self.has_registered {
-            panic!("async_drop is not called to drop this user");
-        }
+    pub fn set_timestamp(mut self, timestamp: TimeStampUtc) -> Self {
+        self.timestamp = timestamp;
+        self
     }
 }
-
-pub type TestUserShared = Arc<tokio::sync::Mutex<TestUser>>;

@@ -112,7 +112,7 @@ async fn publish_and_fetch_announcement() {
             .await
             .unwrap();
         sleep(Duration::from_millis(200)).await;
-        let receive = user.lock().await.fetch_msgs(2).await.unwrap();
+        let receive = user.lock().await.fetch_msgs().fetch(2).await.unwrap();
         assert_eq!(receive.len(), 2, "{receive:?}");
         match receive[0].to_owned().respond_msg_type.unwrap() {
             RespondMsgType::AnnouncementResponse(announcement) => {

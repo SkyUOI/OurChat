@@ -45,7 +45,8 @@ async fn test_recall() {
         let ret = c_clone
             .lock()
             .await
-            .fetch_msgs_notify(notify_clone)
+            .fetch_msgs()
+            .fetch_with_notify(notify_clone)
             .await
             .unwrap();
         *res_clone.lock() = Some(ret);
@@ -66,7 +67,7 @@ async fn test_recall() {
         .into_inner();
     let recall_msg_id = recall_msg.msg_id;
     // receive the recall signal
-    let b_rec = b.lock().await.fetch_msgs(1).await.unwrap();
+    let b_rec = b.lock().await.fetch_msgs().fetch(1).await.unwrap();
     let check = |rec: Vec<FetchMsgsResponse>, msg_len, msg_recall_idx: usize| {
         assert_eq!(rec.len(), msg_len, "{rec:?}");
         assert_lt!(

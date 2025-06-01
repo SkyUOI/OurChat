@@ -26,7 +26,7 @@ async fn add_friend_accept() {
         })
         .await
         .unwrap();
-    let user2_rec = user2.lock().await.fetch_msgs(1).await.unwrap();
+    let user2_rec = user2.lock().await.fetch_msgs().fetch(1).await.unwrap();
     let RespondMsgType::AddFriendApproval(add_friend) =
         user2_rec[0].respond_msg_type.clone().unwrap()
     else {
@@ -53,7 +53,7 @@ async fn add_friend_accept() {
             .await
             .unwrap()
     );
-    let user1_rec = user1.lock().await.fetch_msgs(2).await.unwrap();
+    let user1_rec = user1.lock().await.fetch_msgs().fetch(2).await.unwrap();
     let RespondMsgType::AcceptFriend(accept_friend_notification) =
         user1_rec[1].respond_msg_type.clone().unwrap()
     else {
@@ -95,7 +95,7 @@ async fn add_friend_reject() {
         })
         .await
         .unwrap();
-    let user2_rec = user2.lock().await.fetch_msgs(1).await.unwrap();
+    let user2_rec = user2.lock().await.fetch_msgs().fetch(1).await.unwrap();
     assert_eq!(user2_rec.len(), 1);
     let RespondMsgType::AddFriendApproval(add_friend) =
         user2_rec[0].respond_msg_type.clone().unwrap()
@@ -123,7 +123,7 @@ async fn add_friend_reject() {
             .await
             .unwrap()
     );
-    let user1_rec = user1.lock().await.fetch_msgs(2).await.unwrap();
+    let user1_rec = user1.lock().await.fetch_msgs().fetch(2).await.unwrap();
     assert_eq!(user1_rec.len(), 2, "{user1_rec:?}");
     let RespondMsgType::AcceptFriend(accept_friend_notification) =
         user1_rec[1].respond_msg_type.clone().unwrap()

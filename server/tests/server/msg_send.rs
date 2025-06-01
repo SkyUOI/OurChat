@@ -2,6 +2,7 @@ use pb::service::ourchat::msg_delivery::{
     self,
     v1::{OneMsg, fetch_msgs_response},
 };
+use sea_orm::prelude::DateTimeUtc;
 
 #[tokio::test]
 async fn test_text_sent() {
@@ -61,7 +62,7 @@ async fn test_text_get() {
         .into_inner();
     msg_id.push(ret.msg_id);
 
-    let msgs = c.lock().await.fetch_msgs(2).await.unwrap();
+    let msgs = c.lock().await.fetch_msgs().fetch(2).await.unwrap();
     for (i, msg_id) in msgs.into_iter().zip(msg_id.iter()) {
         if let fetch_msgs_response::RespondMsgType::Msg(ref item) = i.respond_msg_type.unwrap() {
             assert_eq!(item.session_id, u64::from(session.session_id));
@@ -69,5 +70,12 @@ async fn test_text_get() {
             assert_eq!(i.msg_id, *msg_id);
         }
     }
+    c.lock()
+        .await
+        .fetch_msgs()
+        .set_timestamp(DateTimeUtc::from_timestamp_nanos(0))
+        .fetch(2)
+        .await
+        .unwrap();
     app.async_drop().await;
 }
