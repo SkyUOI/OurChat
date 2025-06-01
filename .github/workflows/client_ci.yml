@@ -49,5 +49,7 @@ jobs:
           dart format ./ --set-exit-if-changed
       - name: Grpc generate
         run: dart pub global activate protoc_plugin && python script/generate.pb.dart.py
+      - name: Drift generate
+        run: cd client && dart run build_runner build
       - name: Flutter Check
         run: cd client && flutter analyze
