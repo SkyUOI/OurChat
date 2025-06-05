@@ -41,9 +41,11 @@ pub async fn get_session_msgs<T: ConnectionTrait>(
         .from_raw_sql(Statement::from_sql_and_values(
             DatabaseBackend::Postgres,
             r#"SELECT * FROM message_records
-        WHERE time > $1 AND
-        (sender_id = $2 OR EXISTS (SELECT * FROM session_relation WHERE user_id = $2 AND session_id = message_records.session_id)) OR (is_all_user = true)"#,
-            [end_timestamp.into(), user_id.into()],
+WHERE time > $1 AND
+((sender_id = $2 OR EXISTS (SELECT * FROM session_relation WHERE user_id = $2 AND session_id = message_records.session_id)) OR (is_all_user = true))"#,
+                [end_timestamp.into(), user_id.into()],
+            // r#"SELECT * FROM message_records"#,
+            // [],
         ))
         .paginate(db_conn, page_size);
     Ok(msgs)

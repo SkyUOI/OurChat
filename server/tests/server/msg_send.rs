@@ -1,6 +1,8 @@
+use std::collections::HashSet;
+
 use pb::service::ourchat::msg_delivery::{
     self,
-    v1::{OneMsg, fetch_msgs_response},
+    v1::{OneMsg, fetch_msgs_response, one_msg},
 };
 use sea_orm::prelude::DateTimeUtc;
 
@@ -77,5 +79,102 @@ async fn test_text_get() {
         .fetch(2)
         .await
         .unwrap();
+    app.async_drop().await;
+}
+
+#[tokio::test]
+async fn test_repeated_msg() {
+    let mut app = client::TestApp::new_with_launching_instance()
+        .await
+        .unwrap();
+    let (session_user, session) = app.new_session_db_level(3, "session1").await.unwrap();
+    let (a, b, c) = (
+        session_user[0].clone(),
+        session_user[1].clone(),
+        session_user[2].clone(),
+    );
+    a.lock()
+        .await
+        .send_msg(
+            session.session_id,
+            vec![OneMsg {
+                data: Some(one_msg::Data::Text("hello".to_owned())),
+            }],
+        )
+        .await
+        .unwrap();
+    b.lock()
+        .await
+        .send_msg(
+            session.session_id,
+            vec![OneMsg {
+                data: Some(one_msg::Data::Text("hello".to_owned())),
+            }],
+        )
+        .await
+        .unwrap();
+    let check = async |msgs: Vec<msg_delivery::v1::FetchMsgsResponse>| {
+        let mut users = HashSet::from([b.lock().await.id, a.lock().await.id]);
+        for i in msgs {
+            if let fetch_msgs_response::RespondMsgType::Msg(ref item) = i.respond_msg_type.unwrap()
+            {
+                assert!(users.contains(&item.sender_id.into()));
+                users.remove(&item.sender_id.into());
+            }
+        }
+    };
+    for _ in 0..10 {
+        let msgs = c
+            .lock()
+            .await
+            .fetch_msgs()
+            .set_timestamp(DateTimeUtc::from_timestamp_nanos(0))
+            .fetch(2)
+            .await
+            .unwrap();
+        check(msgs).await;
+    }
+    for _ in 0..10 {
+        let msgs = a
+            .lock()
+            .await
+            .fetch_msgs()
+            .set_timestamp(DateTimeUtc::from_timestamp_nanos(0))
+            .fetch(2)
+            .await
+            .unwrap();
+        check(msgs).await;
+    }
+    for _ in 0..10 {
+        let msgs = c
+            .lock()
+            .await
+            .fetch_msgs()
+            .set_timestamp(DateTimeUtc::from_timestamp_nanos(0))
+            .fetch(2)
+            .await
+            .unwrap();
+        check(msgs).await;
+    }
+    for _ in 0..10 {
+        let msgs = c
+            .lock()
+            .await
+            .fetch_msgs()
+            .set_timestamp(DateTimeUtc::from_timestamp_nanos(0))
+            .fetch(2)
+            .await
+            .unwrap();
+        check(msgs).await;
+        let msgs = a
+            .lock()
+            .await
+            .fetch_msgs()
+            .set_timestamp(DateTimeUtc::from_timestamp_nanos(0))
+            .fetch(2)
+            .await
+            .unwrap();
+        check(msgs).await;
+    }
     app.async_drop().await;
 }
