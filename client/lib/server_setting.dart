@@ -19,6 +19,7 @@ class _ServerSettingState extends State<ServerSetting> {
   int httpPort = -1, ping = -1;
   String serverName = "", serverState = "", serverVersion = "";
   bool isOnline = false;
+  bool? isTLS;
   late OurChatServer server;
   Color serverStatusColor = Colors.grey;
 
@@ -98,6 +99,24 @@ class _ServerSettingState extends State<ServerSetting> {
                 (ping == -1 ? "" : "$ping ms"),
                 style: const TextStyle(color: Colors.grey),
               ),
+            ],
+          ),
+          Row(
+            // 展示是否支持tls
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text("${AppLocalizations.of(context)!.tlsEncryption} "),
+              isTLS == null
+                  ? Text("")
+                  : (isTLS!
+                      ? Text(
+                          AppLocalizations.of(context)!.tlsEnabled,
+                          style: const TextStyle(color: Colors.green),
+                        )
+                      : Text(
+                          AppLocalizations.of(context)!.tlsDisabled,
+                          style: const TextStyle(color: Colors.red),
+                        ))
             ],
           ),
         ],
@@ -185,7 +204,8 @@ class _ServerSettingState extends State<ServerSetting> {
                   // 连接新的服务端地址
                   ourchatAppState.config["servers"][0]["host"] = address;
                   ourchatAppState.config["servers"][0]["port"] = port;
-                  server = OurChatServer(address, port);
+                  isTLS = await OurChatServer.tlsEnabled(address, port);
+                  server = OurChatServer(address, port, isTLS!);
                   setState(() {
                     isOnline = false;
                     serverState = "";
@@ -197,7 +217,8 @@ class _ServerSettingState extends State<ServerSetting> {
                   });
                   var resCode = unavailableStatusCode;
                   resCode = await server.getServerInfo();
-                  if (resCode == unavailableStatusCode) {
+                  if (resCode == unavailableStatusCode ||
+                      resCode == unknownStatusCode) {
                     // 连接失败
                     setState(() {
                       serverState =

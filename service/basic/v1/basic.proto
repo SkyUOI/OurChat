@@ -38,4 +38,10 @@ service BasicService {
   rpc Support(support.v1.SupportRequest) returns (support.v1.SupportResponse);
 
   rpc GetPresetUserStatus(preset_user_status.v1.GetPresetUserStatusRequest) returns (preset_user_status.v1.GetPresetUserStatusResponse);
+
+  rpc Ping(PingRequest) returns (PingResponse);
 }
+
+message PingRequest {}
+
+message PingResponse {}
