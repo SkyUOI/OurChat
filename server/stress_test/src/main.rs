@@ -2,7 +2,7 @@
 
 mod framework;
 
-use base::consts::OCID;
+use base::consts::{CONFIG_FILE_ENV_VAR, OCID};
 use clap::Parser;
 use client::helper;
 use dashmap::DashMap;
@@ -69,9 +69,10 @@ async fn test_register(report: &mut Report, app: &mut client::TestApp) -> UsersG
         .set_requests(1000);
     let mut users = Vec::with_capacity(1000);
     for _ in 0..1000 {
-        users.push(Arc::new(tokio::sync::Mutex::new(
+        let tmp = Arc::new(tokio::sync::Mutex::new(
             client::oc_helper::user::TestUser::random(app).await,
-        )));
+        ));
+        users.push(tmp);
     }
     let idx = Arc::new(AtomicUsize::new(0));
     let users = users;
@@ -80,7 +81,15 @@ async fn test_register(report: &mut Report, app: &mut client::TestApp) -> UsersG
         .stress_test(move || {
             let now = idx.fetch_add(1, Ordering::SeqCst);
             let user = users[now].clone();
-            async move { user.lock().await.register().await.is_ok() }
+            async move {
+                match user.lock().await.register().await {
+                    Ok(_) => true,
+                    Err(e) => {
+                        tracing::error!("{}", e);
+                        false
+                    }
+                }
+            }
         })
         .await;
 
@@ -222,6 +231,7 @@ pub struct ArgsParser {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    dotenvy::dotenv().ok();
     let args = ArgsParser::parse();
     let mut app = if args.use_exists_instance {
         base::log::logger_init(true, None, std::io::stdout, "ourchat");
@@ -230,7 +240,7 @@ async fn main() -> anyhow::Result<()> {
     } else {
         if let Some(path) = args.config {
             unsafe {
-                set_var("OURCHAT_CONFIG_FILE", path);
+                set_var(CONFIG_FILE_ENV_VAR, path);
             }
         }
         client::TestApp::new_with_launching_instance().await?
