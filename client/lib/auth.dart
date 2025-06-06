@@ -117,7 +117,7 @@ class _LoginState extends State<Login> {
                                 await ocAccount.login(password, ocid, email);
                             if (res == okStatusCode) {
                               ourchatAppState.thisAccount = ocAccount;
-                              ourchatAppState.pdb =
+                              ourchatAppState.privateDB =
                                   OurchatDatabase(ocAccount.id);
                               await ourchatAppState.thisAccount!
                                   .getAccountInfo();
@@ -286,7 +286,7 @@ class _RegisterState extends State<Register> {
                             if (res == okStatusCode) {
                               // 注册成功
                               ourchatAppState.thisAccount = ocAccount;
-                              ourchatAppState.pdb =
+                              ourchatAppState.privateDB =
                                   OurchatDatabase(ocAccount.id);
                               await ourchatAppState.thisAccount!
                                   .getAccountInfo();

@@ -45,7 +45,7 @@ class User extends StatelessWidget {
             onPressed: () {
               appState.thisAccount = null;
               appState.server = null;
-              appState.pdb = null;
+              appState.privateDB = null;
               Navigator.pop(context);
               Navigator.push(context, MaterialPageRoute(builder: (context) {
                 return ServerSetting();

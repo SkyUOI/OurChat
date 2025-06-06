@@ -12,20 +12,28 @@ class Friends extends StatelessWidget {
     OurchatAppState ourchatAppState = context.watch<OurchatAppState>();
     return Column(
       children: [
-        ListView.builder(
-          itemBuilder: (context, index) {
-            return ElevatedButton(onPressed: () {}, child: Text("好友请求"));
-          },
-          itemCount: 1,
-        ),
-        ListView.builder(
+        Flexible(
+          flex: 1,
+          child: ListView.builder(
             itemBuilder: (context, index) {
-              return ElevatedButton(
-                  onPressed: () {},
-                  child: Text(
-                      ourchatAppState.thisAccount!.friends[index].toString()));
+              return ElevatedButton(onPressed: () {}, child: Text("好友请求"));
             },
-            itemCount: ourchatAppState.thisAccount!.friends.length)
+            itemCount: 1,
+          ),
+        ),
+        Flexible(
+          flex: 1,
+          child: ListView.builder(
+              itemBuilder: (context, index) {
+                return ElevatedButton(
+                    onPressed: () {},
+                    child: Text(ourchatAppState.thisAccount!.friends[index]
+                        .toString()));
+              },
+              itemCount: ourchatAppState.thisAccount!.friends.length),
+        ),
+        if (ourchatAppState.thisAccount!.friends.isEmpty)
+          Flexible(flex: 1, child: Text("你还没有好友哦"))
       ],
     );
   }

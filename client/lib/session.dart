@@ -305,8 +305,8 @@ class _UserTabState extends State<UserTab> {
                       2: FlexColumnWidth(15)
                     },
                     children: [
-                      if (isFriend)
-                        userInfoRow(i10n!.displayName, account.displayName),
+                      if (account.displayName != null)
+                        userInfoRow(i10n!.displayName, account.displayName!),
                       userInfoRow(i10n!.username, account.username),
                       userInfoRow(i10n.ocid, account.ocid),
                     ],

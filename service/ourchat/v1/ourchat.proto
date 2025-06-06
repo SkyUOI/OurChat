@@ -28,7 +28,7 @@ import "service/ourchat/webrtc/room/create_room/v1/create_room.proto";
 
 // Main service of the Ourchat
 // JWT is required.If token is missing or out-of-dated,please refer to
-// AuthService to authenticate one JWT Insert to headers: token: <token>
+// AuthService to authenticate one JWT Insert to headers: token: "token"
 service OurChatService {
   // Warning: the meaning is deleting the account, not logout
   rpc Unregister(unregister.v1.UnregisterRequest) returns (unregister.v1.UnregisterResponse);

@@ -23,14 +23,14 @@ class OurchatAppState extends ChangeNotifier {
   int device = desktop;
   OurChatServer? server;
   OurchatAccount? thisAccount;
-  late database.PublicOurchatDatabase db;
-  database.OurchatDatabase? pdb;
+  late database.PublicOurchatDatabase publicDB;
+  database.OurchatDatabase? privateDB;
   OurchatConfig config;
 
   OurchatAppState() : config = OurchatConfig() {
     logger.i("init Ourchat");
     constructLogger(convertStrIntoLevel(config["log_level"]));
-    db = database.PublicOurchatDatabase();
+    publicDB = database.PublicOurchatDatabase();
     notifyListeners();
     logger.i("init Ourchat done");
   }
@@ -46,9 +46,7 @@ class OurchatAppState extends ChangeNotifier {
         FetchMsgsRequest(time: thisAccount!.latestMsgTime.timestamp));
     res.listen((res) {
       thisAccount!.latestMsgTime = OurchatTime(inputTimestamp: res.time);
-      // print(thisAccount!.latestMsgTime.timestamp);
       thisAccount!.updateLatestMsgTime();
-      // print(res);
       // TODO: 管理消息
     });
   }

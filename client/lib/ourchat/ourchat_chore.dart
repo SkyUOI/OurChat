@@ -37,4 +37,15 @@ class OurchatTime {
     datetime =
         DateTime.fromMicrosecondsSinceEpoch(seconds.toInt() * 1000000 + nanos);
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (other is OurchatTime) {
+      return timestamp == other.timestamp;
+    }
+    return false;
+  }
+
+  @override
+  int get hashCode => timestamp.hashCode;
 }
