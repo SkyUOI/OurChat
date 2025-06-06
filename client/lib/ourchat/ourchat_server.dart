@@ -1,5 +1,6 @@
 import 'package:grpc/grpc.dart';
 import 'package:ourchat/const.dart';
+import 'package:ourchat/log.dart';
 import 'package:ourchat/service/basic/server/v1/server.pb.dart';
 import 'package:ourchat/service/basic/v1/basic.pbgrpc.dart';
 
@@ -41,21 +42,46 @@ class OurChatServer {
   ServerVersion? serverVersion;
   OurchatInterceptor? interceptor;
 
-  OurChatServer(this.host, this.port) {
+  OurChatServer(this.host, this.port, bool ssl) {
+    // try ssl/tls connection
+    if (!ssl) {
+      logger.w("Switch to insecure connection");
+    }
     channel = ClientChannel(
       host,
       port: port,
-      options: const ChannelOptions(credentials: ChannelCredentials.insecure()),
+      options: ssl
+          ? const ChannelOptions(credentials: ChannelCredentials.secure())
+          : const ChannelOptions(credentials: ChannelCredentials.insecure()),
     );
+  }
+
+  static Future<bool> tlsEnabled(String host, int port) async {
+    try {
+      var channel = ClientChannel(
+        host,
+        port: port,
+        options: const ChannelOptions(credentials: ChannelCredentials.secure()),
+      );
+      var stub = BasicServiceClient(channel);
+      await stub.ping(PingRequest());
+      return true;
+    } on GrpcError catch (e) {
+      if (e.code == unavailableStatusCode &&
+          e.message!.contains("HandshakeException")) {}
+      return false;
+    }
   }
 
   Future getServerInfo() async {
     BasicServiceClient stub = BasicServiceClient(channel!);
     try {
       int beginTime = DateTime.now().millisecondsSinceEpoch;
-      var res = await stub.getServerInfo(GetServerInfoRequest());
+      var _ = await stub.ping(PingRequest());
       int endTime = DateTime.now().millisecondsSinceEpoch;
       ping = endTime - beginTime;
+
+      var res = await stub.getServerInfo(GetServerInfoRequest());
       serverStatus = res.status;
       httpPort = res.httpPort;
       uniqueIdentifier = res.uniqueIdentifier;
@@ -63,8 +89,10 @@ class OurChatServer {
       serverName = res.serverName;
       return okStatusCode;
     } on GrpcError catch (e) {
+      logger.e("Failed to get server info: ${e.message}");
       return e.code;
     } catch (e) {
+      logger.e("Failed to get server info: $e");
       return unknownStatusCode;
     }
   }

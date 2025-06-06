@@ -349,7 +349,7 @@ impl TestUser {
         Ok(())
     }
 
-    pub fn fetch_msgs(&mut self) -> FetchMsgBuilder {
+    pub fn fetch_msgs(&mut self) -> FetchMsgBuilder<'_> {
         let tmp = self.timestamp_receive_msg;
         FetchMsgBuilder {
             user: self,

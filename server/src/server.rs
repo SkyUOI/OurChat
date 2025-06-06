@@ -30,7 +30,8 @@ use pb::service::basic::server::v1::RunningStatus;
 use pb::service::basic::support::v1::{SupportRequest, SupportResponse};
 use pb::service::basic::v1::basic_service_server::{BasicService, BasicServiceServer};
 use pb::service::basic::v1::{
-    GetIdRequest, GetIdResponse, GetServerInfoRequest, TimestampRequest, TimestampResponse,
+    GetIdRequest, GetIdResponse, GetServerInfoRequest, PingRequest, PingResponse, TimestampRequest,
+    TimestampResponse,
 };
 use pb::service::ourchat::v1::our_chat_service_server::OurChatServiceServer;
 use pb::service::server_manage::delete_account::v1::{DeleteAccountRequest, DeleteAccountResponse};
@@ -441,6 +442,11 @@ pub struct BasicServiceProvider {
 /// Implementation of Basic service methods
 #[tonic::async_trait]
 impl BasicService for BasicServiceProvider {
+    #[tracing::instrument(skip(self))]
+    async fn ping(&self, _request: Request<PingRequest>) -> Result<Response<PingResponse>, Status> {
+        Ok(Response::new(PingResponse {}))
+    }
+
     /// Get current server timestamp in UTC
     #[tracing::instrument(skip(self))]
     async fn timestamp(
