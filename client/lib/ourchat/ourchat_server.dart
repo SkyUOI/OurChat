@@ -77,9 +77,11 @@ class OurChatServer {
     BasicServiceClient stub = BasicServiceClient(channel!);
     try {
       int beginTime = DateTime.now().millisecondsSinceEpoch;
-      var res = await stub.getServerInfo(GetServerInfoRequest());
+      var _ = await stub.ping(PingRequest());
       int endTime = DateTime.now().millisecondsSinceEpoch;
       ping = endTime - beginTime;
+
+      var res = await stub.getServerInfo(GetServerInfoRequest());
       serverStatus = res.status;
       httpPort = res.httpPort;
       uniqueIdentifier = res.uniqueIdentifier;
