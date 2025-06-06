@@ -226,5 +226,17 @@
     "userInfo": "User Info",
     "@userInfo": {
         "description": "User Info"
+    },
+    "tlsEncryption": "TLS Encryption Status:",
+    "@tlsEncryption": {
+        "description": "TLS Encryption Status:"
+    },
+    "tlsEnabled": "Enabled",
+    "@tlsEnabled": {
+        "description": "TLS Enabled"
+    },
+    "tlsDisabled": "Disabled",
+    "@tlsDisabled": {
+        "description": "TLS Disabled"
     }
 }
