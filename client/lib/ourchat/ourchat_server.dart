@@ -64,7 +64,7 @@ class OurChatServer {
         options: const ChannelOptions(credentials: ChannelCredentials.secure()),
       );
       var stub = BasicServiceClient(channel);
-      await stub.getServerInfo(GetServerInfoRequest());
+      await stub.ping(PingRequest());
       return true;
     } on GrpcError catch (e) {
       if (e.code == unavailableStatusCode &&
