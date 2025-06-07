@@ -81,9 +81,7 @@ class Controller extends StatelessWidget {
           appState.device = (constraints.maxHeight < constraints.maxWidth)
               ? desktop
               : mobile; // 通过屏幕比例判断桌面端/移动端
-          return Navigator(
-            pages: [const MaterialPage(child: ServerSetting())],
-          );
+          return ServerSetting();
         },
       ),
       theme: ThemeData(

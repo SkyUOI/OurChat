@@ -30,97 +30,95 @@ class _ServerSettingState extends State<ServerSetting> {
     address = ourchatAppState.config["servers"][0]["host"];
     port = ourchatAppState.config["servers"][0]["port"];
     var key = GlobalKey<FormState>();
-    var serverInfoLabels = Expanded(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Padding(
-            padding: EdgeInsets.all(10.0),
-            child: SizedBox(height: 100.0, width: 100.0, child: Placeholder()),
-            // child: Image(image: AssetImage("assets/images/logo.png"))
-          ),
-          Row(
-            // 展示服务端ip
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text("${AppLocalizations.of(context)!.serverAddress}: "),
-              Text(address, style: const TextStyle(color: Colors.grey)),
-            ],
-          ),
-          Row(
-            // 展示服务端名称
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text("${AppLocalizations.of(context)!.serverName}: "),
-              Text(serverName, style: const TextStyle(color: Colors.grey)),
-            ],
-          ),
-          Row(
-            // 展示服务端端口
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text("${AppLocalizations.of(context)!.port}: "),
-              Text(port.toString(), style: const TextStyle(color: Colors.grey)),
-            ],
-          ),
-          Row(
-            // 展示服务端http端口
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text("${AppLocalizations.of(context)!.httpPort}: "),
-              Text(
-                (httpPort == -1 ? "" : httpPort.toString()),
-                style: const TextStyle(color: Colors.grey),
-              ),
-            ],
-          ),
-          Row(
-            // 展示服务端状态
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text("${AppLocalizations.of(context)!.serverStatus}: "),
-              Text(serverState, style: TextStyle(color: serverStatusColor)),
-            ],
-          ),
-          Row(
-            // 展示服务端版本
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text("${AppLocalizations.of(context)!.serverVersion}: "),
-              Text(serverVersion, style: const TextStyle(color: Colors.grey)),
-            ],
-          ),
-          Row(
-            // 展示连接延迟
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text("${AppLocalizations.of(context)!.ping}: "),
-              Text(
-                (ping == -1 ? "" : "$ping ms"),
-                style: const TextStyle(color: Colors.grey),
-              ),
-            ],
-          ),
-          Row(
-            // 展示是否支持tls
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text("${AppLocalizations.of(context)!.tlsEncryption} "),
-              isTLS == null
-                  ? Text("")
-                  : (isTLS!
-                      ? Text(
-                          AppLocalizations.of(context)!.tlsEnabled,
-                          style: const TextStyle(color: Colors.green),
-                        )
-                      : Text(
-                          AppLocalizations.of(context)!.tlsDisabled,
-                          style: const TextStyle(color: Colors.red),
-                        ))
-            ],
-          ),
-        ],
-      ),
+    var serverInfoLabels = Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Padding(
+          padding: EdgeInsets.all(10.0),
+          child: SizedBox(height: 100.0, width: 100.0, child: Placeholder()),
+          // child: Image(image: AssetImage("assets/images/logo.png"))
+        ),
+        Row(
+          // 展示服务端ip
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text("${AppLocalizations.of(context)!.serverAddress}: "),
+            Text(address, style: const TextStyle(color: Colors.grey)),
+          ],
+        ),
+        Row(
+          // 展示服务端名称
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text("${AppLocalizations.of(context)!.serverName}: "),
+            Text(serverName, style: const TextStyle(color: Colors.grey)),
+          ],
+        ),
+        Row(
+          // 展示服务端端口
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text("${AppLocalizations.of(context)!.port}: "),
+            Text(port.toString(), style: const TextStyle(color: Colors.grey)),
+          ],
+        ),
+        Row(
+          // 展示服务端http端口
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text("${AppLocalizations.of(context)!.httpPort}: "),
+            Text(
+              (httpPort == -1 ? "" : httpPort.toString()),
+              style: const TextStyle(color: Colors.grey),
+            ),
+          ],
+        ),
+        Row(
+          // 展示服务端状态
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text("${AppLocalizations.of(context)!.serverStatus}: "),
+            Text(serverState, style: TextStyle(color: serverStatusColor)),
+          ],
+        ),
+        Row(
+          // 展示服务端版本
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text("${AppLocalizations.of(context)!.serverVersion}: "),
+            Text(serverVersion, style: const TextStyle(color: Colors.grey)),
+          ],
+        ),
+        Row(
+          // 展示连接延迟
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text("${AppLocalizations.of(context)!.ping}: "),
+            Text(
+              (ping == -1 ? "" : "$ping ms"),
+              style: const TextStyle(color: Colors.grey),
+            ),
+          ],
+        ),
+        Row(
+          // 展示是否支持tls
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text("${AppLocalizations.of(context)!.tlsEncryption} "),
+            isTLS == null
+                ? Text("")
+                : (isTLS!
+                    ? Text(
+                        AppLocalizations.of(context)!.tlsEnabled,
+                        style: const TextStyle(color: Colors.green),
+                      )
+                    : Text(
+                        AppLocalizations.of(context)!.tlsDisabled,
+                        style: const TextStyle(color: Colors.red),
+                      ))
+          ],
+        ),
+      ],
     );
     var serverForm = Padding(
       padding: const EdgeInsets.all(8.0),
@@ -276,7 +274,9 @@ class _ServerSettingState extends State<ServerSetting> {
             // 移动端，纵向展示
             return Padding(
               padding: const EdgeInsets.all(20.0),
-              child: Column(children: [serverInfoLabels, serverForm]),
+              child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [serverInfoLabels, serverForm]),
             );
           }
           return Padding(
