@@ -25,10 +25,10 @@ export default {
         { id: 3, titleKey: 'monitor', path: '/monitor', icon: 'el-icon-data-line' },
         { id: 4, titleKey: 'logs', path: '/logs', icon: 'el-icon-document' },
         { id: 5, titleKey: 'users', path: '/users', icon: 'el-icon-user' },
-        { id: 6, titleKey: 'config', path: '/config', icon: 'el-icon-files' }
-      ]
+        { id: 6, titleKey: 'config', path: '/config', icon: 'el-icon-files' },
+      ],
     }
-  }
+  },
 }
 </script>
 
@@ -38,7 +38,7 @@ export default {
   height: 100%;
   background-color: #2c3e50;
   color: #ecf0f1;
-  box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
   z-index: 100;
 }
 

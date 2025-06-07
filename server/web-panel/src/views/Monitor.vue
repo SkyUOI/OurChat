@@ -5,12 +5,6 @@
   </div>
 </template>
 
-<script>
-export default {
-  name: 'Monitor'
-}
-</script>
-
 <style scoped>
 .monitor {
   padding: 20px;

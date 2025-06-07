@@ -36,5 +36,15 @@
   "used": "Used",
   "free": "Free",
   "realtime": "Realtime",
-  "last24Hours": "Last 24 Hours"
+  "last24Hours": "Last 24 Hours",
+  "adminLogin": "Admin Login",
+  "usernamePlaceholder": "Please enter username",
+  "passwordPlaceholder": "Please enter password",
+  "login": "Login",
+  "rememberMe": "Remember me",
+  "forgotPassword": "Forgot password",
+  "usernameRequired": "Username is required",
+  "passwordRequired": "Password is required",
+  "loginSuccess": "Login successful",
+  "allRightsReserved": "All rights reserved"
 }

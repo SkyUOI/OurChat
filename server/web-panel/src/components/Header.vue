@@ -7,9 +7,9 @@
       </el-icon>
       <el-breadcrumb separator="/">
         <el-breadcrumb-item :to="{ path: '/' }">{{ $t('dashboard') }}</el-breadcrumb-item>
-<el-breadcrumb-item v-for="item in breadcrumb" :key="item.path">
-  {{ $t(item.titleKey) }}
-</el-breadcrumb-item>
+        <el-breadcrumb-item v-for="item in breadcrumb" :key="item.path">
+          {{ $t(item.titleKey) }}
+        </el-breadcrumb-item>
       </el-breadcrumb>
     </div>
 
@@ -28,14 +28,19 @@
 
       <el-dropdown trigger="click">
         <div class="user-info">
-          <el-avatar size="small" src="https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png"></el-avatar>
+          <el-avatar
+            size="small"
+            src="https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png"
+          ></el-avatar>
           <span class="username">{{ $t('admin') }}</span>
         </div>
         <template #dropdown>
           <el-dropdown-menu>
             <el-dropdown-item><i class="el-icon-user"></i>{{ $t('profile') }}</el-dropdown-item>
             <el-dropdown-item><i class="el-icon-setting"></i>{{ $t('settings') }}</el-dropdown-item>
-            <el-dropdown-item divided><i class="el-icon-switch-button"></i>{{ $t('logout') }}</el-dropdown-item>
+            <el-dropdown-item divided
+              ><i class="el-icon-switch-button"></i>{{ $t('logout') }}</el-dropdown-item
+            >
           </el-dropdown-menu>
         </template>
       </el-dropdown>
@@ -50,27 +55,25 @@ export default {
   name: 'Header',
   components: {
     Fold,
-    Expand
+    Expand,
   },
-data() {
-  return {
-    sidebarCollapsed: false,
-    breadcrumb: [
-      { titleKey: 'systemOverview', path: '/' }
-    ],
-    currentLanguage: 'zh' // 默认语言
-  }
-},
+  data() {
+    return {
+      sidebarCollapsed: false,
+      breadcrumb: [{ titleKey: 'systemOverview', path: '/' }],
+      currentLanguage: 'zh', // 默认语言
+    }
+  },
   methods: {
     toggleSidebar() {
       this.sidebarCollapsed = !this.sidebarCollapsed
       this.$emit('toggle-sidebar', this.sidebarCollapsed)
     },
     changeLanguage(lang) {
-      this.currentLanguage = lang;
-      this.$i18n.locale = lang;
-    }
-  }
+      this.currentLanguage = lang
+      this.$i18n.locale = lang
+    },
+  },
 }
 </script>
 
@@ -82,7 +85,7 @@ data() {
   padding: 0 20px;
   height: 60px;
   background-color: #fff;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   z-index: 99;
 }
 

@@ -3,19 +3,16 @@ import os
 commands = []
 
 
-def generate(dir, from_path, to_path):
-    path = os.getcwd()
-    os.chdir(dir)
-    for file in os.listdir():
-        if os.path.isdir(file):
-            generate(file, from_path + "/" + file, to_path)
-        else:
-            commands.append(f"protoc {from_path}/{file} --dart_out=grpc:{to_path}")
-
-    os.chdir(path)
+def generate(dir, to_path):
+    for root, dirs, files in os.walk(dir):
+        for file in files:
+            commands.append(
+                f"protoc {os.path.join(root, file)} --dart_out=grpc:{to_path}"
+            )
 
 
-generate("service", "service", "client/lib")
+generate("service", "client/lib")
+
 for index in range(len(commands)):
     command = commands[index]
     os.system(command)

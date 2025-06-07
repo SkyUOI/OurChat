@@ -73,13 +73,33 @@ export default {
       appConfig: '',
       dbConfig: '',
       history: [
-        { time: '2025-06-05 14:30:22', user: 'admin', type: '服务器配置', description: '修改了端口设置' },
-        { time: '2025-06-04 09:15:47', user: 'admin', type: '应用配置', description: '更新了API地址' },
-        { time: '2025-06-03 16:20:33', user: 'admin', type: '数据库配置', description: '调整了连接池大小' },
-        { time: '2025-06-02 11:05:18', user: 'admin', type: '服务器配置', description: '添加了SSL配置' }
-      ]
+        {
+          time: '2025-06-05 14:30:22',
+          user: 'admin',
+          type: '服务器配置',
+          description: '修改了端口设置',
+        },
+        {
+          time: '2025-06-04 09:15:47',
+          user: 'admin',
+          type: '应用配置',
+          description: '更新了API地址',
+        },
+        {
+          time: '2025-06-03 16:20:33',
+          user: 'admin',
+          type: '数据库配置',
+          description: '调整了连接池大小',
+        },
+        {
+          time: '2025-06-02 11:05:18',
+          user: 'admin',
+          type: '服务器配置',
+          description: '添加了SSL配置',
+        },
+      ],
     }
-  }
+  },
 }
 </script>
 

@@ -11,12 +11,12 @@ import zh from './locales/zh.json'
 // 创建i18n实例
 const i18n = createI18n({
   legacy: false,
-  locale: 'zh', // 默认语言
+  locale: 'en', // 默认语言
   fallbackLocale: 'en', // 回退语言
   messages: {
     en,
-    zh
-  }
+    zh,
+  },
 })
 
 const app = createApp(App)

@@ -36,5 +36,15 @@
   "used": "已用",
   "free": "空闲",
   "realtime": "实时",
-  "last24Hours": "24小时"
+  "last24Hours": "24小时",
+  "adminLogin": "管理员登录",
+  "usernamePlaceholder": "请输入用户名",
+  "passwordPlaceholder": "请输入密码",
+  "login": "登录",
+  "rememberMe": "记住我",
+  "forgotPassword": "忘记密码",
+  "usernameRequired": "请输入用户名",
+  "passwordRequired": "请输入密码",
+  "loginSuccess": "登录成功",
+  "allRightsReserved": "版权所有"
 }

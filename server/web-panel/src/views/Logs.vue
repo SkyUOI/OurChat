@@ -5,12 +5,6 @@
   </div>
 </template>
 
-<script>
-export default {
-  name: 'Logs'
-}
-</script>
-
 <style scoped>
 .logs {
   padding: 20px;

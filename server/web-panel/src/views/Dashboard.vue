@@ -4,15 +4,8 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import SystemOverview from '@/components/SystemOverview.vue'
-
-export default {
-  name: 'Dashboard',
-  components: {
-    SystemOverview
-  }
-}
 </script>
 
 <style scoped>
