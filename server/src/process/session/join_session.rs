@@ -10,18 +10,18 @@ use base::consts::{ID, SessionID};
 use migration::m20241229_022701_add_role_for_session::PredefinedPermissions;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
-use pb::service::ourchat::session::join_in_session::v1::{
-    JoinInSessionApproval, JoinInSessionRequest, JoinInSessionResponse,
+use pb::service::ourchat::session::join_session::v1::{
+    JoinSessionApproval, JoinSessionRequest, JoinSessionResponse,
 };
 use pb::time::to_google_timestamp;
 use tonic::{Request, Response, Status};
 
-pub async fn join_in_session(
+pub async fn join_session(
     server: &RpcServer,
     id: ID,
-    request: Request<JoinInSessionRequest>,
-) -> Result<Response<JoinInSessionResponse>, Status> {
-    match join_in_session_impl(server, id, request).await {
+    request: Request<JoinSessionRequest>,
+) -> Result<Response<JoinSessionResponse>, Status> {
+    match join_session_impl(server, id, request).await {
         Ok(res) => Ok(Response::new(res)),
         Err(e) => match e {
             JoinInSessionErr::Db(_)
@@ -65,11 +65,11 @@ impl From<db::messages::MsgError> for JoinInSessionErr {
     }
 }
 
-async fn join_in_session_impl(
+async fn join_session_impl(
     server: &RpcServer,
     id: ID,
-    request: Request<JoinInSessionRequest>,
-) -> Result<JoinInSessionResponse, JoinInSessionErr> {
+    request: Request<JoinSessionRequest>,
+) -> Result<JoinSessionResponse, JoinInSessionErr> {
     let req = request.into_inner();
     let session_id: SessionID = req.session_id.into();
 
@@ -97,7 +97,7 @@ async fn join_in_session_impl(
         return Err(JoinInSessionErr::Status(Status::permission_denied(BAN)));
     }
 
-    let respond_msg = RespondMsgType::JoinInSessionApproval(JoinInSessionApproval {
+    let respond_msg = RespondMsgType::JoinSessionApproval(JoinSessionApproval {
         session_id: session_id.into(),
         user_id: id.into(),
         leave_message: req.leave_message,
@@ -147,6 +147,6 @@ async fn join_in_session_impl(
         )
         .await?;
     }
-    let ret = JoinInSessionResponse {};
+    let ret = JoinSessionResponse {};
     Ok(ret)
 }

@@ -15,7 +15,7 @@ import "service/ourchat/session/add_role/v1/add_role.proto";
 import "service/ourchat/session/ban/v1/ban.proto";
 import "service/ourchat/session/delete_session/v1/delete_session.proto";
 import "service/ourchat/session/get_session_info/v1/get_session_info.proto";
-import "service/ourchat/session/join_in_session/v1/join_in_session.proto";
+import "service/ourchat/session/join_session/v1/join_session.proto";
 import "service/ourchat/session/leave_session/v1/leave_session.proto";
 import "service/ourchat/session/mute/v1/mute.proto";
 import "service/ourchat/session/new_session/v1/session.proto";
@@ -83,9 +83,9 @@ service OurChatService {
 
   rpc DeleteFriend(friends.delete_friend.v1.DeleteFriendRequest) returns (friends.delete_friend.v1.DeleteFriendResponse);
 
-  rpc JoinInSession(session.join_in_session.v1.JoinInSessionRequest) returns (session.join_in_session.v1.JoinInSessionResponse);
+  rpc JoinSession(session.join_session.v1.JoinSessionRequest) returns (session.join_session.v1.JoinSessionResponse);
 
-  rpc AcceptJoinInSession(session.join_in_session.v1.AcceptJoinInSessionRequest) returns (session.join_in_session.v1.AcceptJoinInSessionResponse);
+  rpc AcceptJoinSession(session.join_session.v1.AcceptJoinSessionRequest) returns (session.join_session.v1.AcceptJoinSessionResponse);
 
   // Webrtc operations
 

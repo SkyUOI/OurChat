@@ -1,7 +1,7 @@
 use client::TestApp;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
-use pb::service::ourchat::session::join_in_session::v1::{
-    AcceptJoinInSessionRequest, JoinInSessionRequest,
+use pb::service::ourchat::session::join_session::v1::{
+    AcceptJoinSessionRequest, JoinSessionRequest,
 };
 use server::db::session::in_session;
 
@@ -16,16 +16,16 @@ async fn join_in_session_success() {
     c.lock()
         .await
         .oc()
-        .join_in_session(JoinInSessionRequest {
+        .join_session(JoinSessionRequest {
             session_id: session.session_id.into(),
             leave_message: Some("hello".to_string()),
         })
         .await
         .unwrap();
     // will receive
-    let join_in_request = a.lock().await.fetch_msgs().fetch(1).await.unwrap();
-    assert_eq!(join_in_request.len(), 1);
-    let RespondMsgType::JoinInSessionApproval(join_in) = join_in_request
+    let join_request = a.lock().await.fetch_msgs().fetch(1).await.unwrap();
+    assert_eq!(join_request.len(), 1);
+    let RespondMsgType::JoinSessionApproval(join_in) = join_request
         .into_iter()
         .next()
         .unwrap()
@@ -45,7 +45,7 @@ async fn join_in_session_success() {
     a.lock()
         .await
         .oc()
-        .accept_join_in_session(AcceptJoinInSessionRequest {
+        .accept_join_session(AcceptJoinSessionRequest {
             session_id: session.session_id.into(),
             user_id: join_in.user_id,
             accepted: true,
@@ -78,16 +78,16 @@ async fn join_in_session_reject() {
     c.lock()
         .await
         .oc()
-        .join_in_session(JoinInSessionRequest {
+        .join_session(JoinSessionRequest {
             session_id: session.session_id.into(),
             leave_message: Some("hello".to_string()),
         })
         .await
         .unwrap();
     // will receive
-    let join_in_request = a.lock().await.fetch_msgs().fetch(1).await.unwrap();
-    assert_eq!(join_in_request.len(), 1);
-    let RespondMsgType::JoinInSessionApproval(join_in) = join_in_request
+    let join_request = a.lock().await.fetch_msgs().fetch(1).await.unwrap();
+    assert_eq!(join_request.len(), 1);
+    let RespondMsgType::JoinSessionApproval(join_in) = join_request
         .into_iter()
         .next()
         .unwrap()
@@ -107,7 +107,7 @@ async fn join_in_session_reject() {
     a.lock()
         .await
         .oc()
-        .accept_join_in_session(AcceptJoinInSessionRequest {
+        .accept_join_session(AcceptJoinSessionRequest {
             session_id: session.session_id.into(),
             user_id: join_in.user_id,
             accepted: false,

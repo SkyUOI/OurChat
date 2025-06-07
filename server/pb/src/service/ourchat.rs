@@ -79,9 +79,9 @@ pub mod session {
         }
     }
 
-    pub mod join_in_session {
+    pub mod join_session {
         pub mod v1 {
-            include!("../generated/service.ourchat.session.join_in_session.v1.rs");
+            include!("../generated/service.ourchat.session.join_session.v1.rs");
         }
     }
 }

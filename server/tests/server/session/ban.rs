@@ -1,6 +1,6 @@
 use claims::{assert_gt, assert_none};
 use client::TestApp;
-use pb::service::ourchat::session::join_in_session::v1::JoinInSessionRequest;
+use pb::service::ourchat::session::join_session::v1::JoinSessionRequest;
 use server::db::session::{BanStatus, get_all_session_relations};
 use server::process::error_msg::{BAN, PERMISSION_DENIED};
 use std::time::Duration;
@@ -64,7 +64,7 @@ async fn ban_user() {
         .lock()
         .await
         .oc()
-        .join_in_session(JoinInSessionRequest {
+        .join_session(JoinSessionRequest {
             session_id: session.session_id.into(),
             ..Default::default()
         })
