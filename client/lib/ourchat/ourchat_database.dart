@@ -70,9 +70,10 @@ class Session extends Table {
 class Record extends Table {
   Int64Column get msgId => int64()();
   IntColumn get fromSession => integer().nullable()();
-  IntColumn get sender => integer()();
-  IntColumn get time => integer()();
+  Int64Column get sender => int64()();
+  DateTimeColumn get time => dateTime()();
   TextColumn get data => text()();
+  IntColumn get read => integer().withDefault(const Constant(0))();
 
   @override
   Set<Column> get primaryKey => {msgId};

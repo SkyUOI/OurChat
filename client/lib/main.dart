@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:ourchat/ourchat/ourchat_chore.dart';
 import 'package:ourchat/ourchat/ourchat_database.dart' as database;
@@ -11,6 +13,7 @@ import 'package:ourchat/const.dart';
 import 'package:ourchat/config.dart';
 import 'package:ourchat/server_setting.dart';
 import 'package:ourchat/ourchat/ourchat_server.dart';
+import 'package:ourchat/ourchat/ourchat_database.dart';
 import 'log.dart';
 import 'dart:core';
 
@@ -44,10 +47,33 @@ class OurchatAppState extends ChangeNotifier {
         interceptors: [server!.interceptor!]);
     var res = stub.fetchMsgs(
         FetchMsgsRequest(time: thisAccount!.latestMsgTime.timestamp));
-    res.listen((res) {
-      thisAccount!.latestMsgTime = OurchatTime(inputTimestamp: res.time);
+    res.listen((msg) async {
+      thisAccount!.latestMsgTime = OurchatTime(inputTimestamp: msg.time);
       thisAccount!.updateLatestMsgTime();
-      // TODO: 管理消息
+      var row = await (privateDB!.select(privateDB!.record)
+            ..where((u) => u.msgId.equals(BigInt.from(msg.msgId.toInt()))))
+          .getSingleOrNull();
+      if (row != null) {
+        // 重复消息
+        return;
+      }
+      logger.i("receive message(type:${msg.whichRespondMsgType()})");
+      var data = {};
+      Int64 sender = Int64();
+      switch (msg.whichRespondMsgType()) {
+        case FetchMsgsResponse_RespondMsgType.addFriendApproval:
+          sender = msg.addFriendApproval.inviterId;
+          data["leave_message"] = msg.addFriendApproval.leaveMessage;
+          break;
+        default:
+          break;
+      }
+      privateDB!.into(privateDB!.record).insert(RecordData(
+          msgId: BigInt.from(msg.msgId.toInt()),
+          sender: BigInt.from(sender.toInt()),
+          time: OurchatTime(inputTimestamp: msg.time).datetime,
+          data: jsonEncode(data),
+          read: 0));
     });
   }
 }
