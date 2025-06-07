@@ -53,7 +53,6 @@ class Account extends Table {
   DateTimeColumn get updateTime => dateTime()();
   TextColumn get friendsJson => text()();
   TextColumn get sessionsJson => text()();
-  TextColumn get displayName => text().nullable()();
 
   // 客户端独有字段
   DateTimeColumn get latestMsgTime => dateTime()();
