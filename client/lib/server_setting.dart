@@ -203,7 +203,8 @@ class _ServerSettingState extends State<ServerSetting> {
                   ourchatAppState.config["servers"][0]["host"] = address;
                   ourchatAppState.config["servers"][0]["port"] = port;
                   isTLS = await OurChatServer.tlsEnabled(address, port);
-                  server = OurChatServer(address, port, isTLS!);
+                  server = OurChatServer(address, port, isTLS!,
+                      ourchatAppState.config["keep_alive_interval"]);
                   setState(() {
                     isOnline = false;
                     serverState = "";

@@ -10,7 +10,7 @@ import 'package:provider/provider.dart';
 import 'package:localstorage/localstorage.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
 import 'package:ourchat/const.dart';
-import 'package:ourchat/config.dart';
+import 'package:ourchat/ourchat/ourchat_config.dart';
 import 'package:ourchat/server_setting.dart';
 import 'package:ourchat/ourchat/ourchat_server.dart';
 import 'package:ourchat/ourchat/ourchat_database.dart';

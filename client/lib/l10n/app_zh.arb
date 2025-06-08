@@ -57,5 +57,7 @@
     "userInfo": "用户信息",
     "tlsEnabled": "已启用",
     "tlsEncryption": "TLS加密状态:",
-    "tlsDisabled": "未启用"
+    "tlsDisabled": "未启用",
+    "mustBeInteger": "必须为整数",
+    "keepAliveInterval": "Keep-alive包发送间隔(秒)"
 }

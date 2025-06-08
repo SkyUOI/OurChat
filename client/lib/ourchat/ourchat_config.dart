@@ -17,7 +17,8 @@ class OurchatConfig {
         {"host": "localhost", "port": 7777},
       ],
       "color": 0xFF2196F3,
-      "log_level": defaultLogLevel
+      "log_level": defaultLogLevel,
+      "keep_alive_interval": 300
     };
   }
 
@@ -58,7 +59,7 @@ class OurchatConfig {
 
   void saveConfig() {
     logger.i("save config");
-    checkConfig();
+    // checkConfig();
     localStorage.setItem("config", jsonEncode(data));
     logger.i("save config done");
   }
