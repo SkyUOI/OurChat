@@ -1,10 +1,8 @@
 {
   "dashboard": "仪表盘",
-  "services": "服务管理",
-  "monitor": "资源监控",
-  "logs": "日志查看",
-  "users": "用户管理",
-  "config": "配置管理",
+  "servicesManagement": "服务管理",
+  "logsView": "日志查看",
+  "usersManagement": "用户管理",
   "systemOverview": "系统概览",
   "serviceManagement": "服务管理",
   "resourceMonitoring": "资源监控",

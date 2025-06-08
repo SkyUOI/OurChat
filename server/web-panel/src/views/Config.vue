@@ -1,12 +1,8 @@
 <template>
-  <div class="config">
-    <h1>配置管理</h1>
-    <p>这是配置管理页面</p>
+  <div class="p-5">
+    <h1 class="text-2xl font-bold">{{ $t('configManagement') }}</h1>
   </div>
 </template>
 
-<style scoped>
-.config {
-  padding: 20px;
-}
-</style>
+<script setup lang="ts">
+</script>

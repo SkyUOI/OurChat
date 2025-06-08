@@ -1,12 +1,5 @@
 <template>
-  <div class="users">
-    <h1>用户管理</h1>
-    <p>这是用户管理页面</p>
+  <div class="p-5">
+    <h1 class="text-2xl font-bold">{{ $t('usersManagement') }}</h1>
   </div>
 </template>
-
-<style scoped>
-.users {
-  padding: 20px;
-}
-</style>

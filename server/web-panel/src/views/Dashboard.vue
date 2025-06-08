@@ -1,5 +1,5 @@
 <template>
-  <div class="dashboard">
+  <div class="p-5">
     <SystemOverview />
   </div>
 </template>
@@ -7,9 +7,3 @@
 <script setup>
 import SystemOverview from '@/components/SystemOverview.vue'
 </script>
-
-<style scoped>
-.dashboard {
-  padding: 20px;
-}
-</style>

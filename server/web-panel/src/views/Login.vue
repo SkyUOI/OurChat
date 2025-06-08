@@ -1,9 +1,9 @@
 <template>
-  <div class="login-container">
-    <el-card class="login-card">
-      <div class="login-header">
-        <img src="../../assets/logo.png" alt="Logo" class="logo" />
-        <h2>{{ $t('adminLogin') }}</h2>
+  <div class="flex justify-center items-center min-h-screen bg-gradient-to-br from-[#f5f7fa] to-[#c3cfe2] p-5">
+    <el-card class="w-full max-w-md rounded-lg shadow-lg">
+      <div class="text-center mb-6">
+        <img src="../../assets/logo.png" alt="Logo" class="w-20 h-20 mx-auto mb-4" />
+        <h2 class="text-2xl font-bold">{{ $t('adminLogin') }}</h2>
       </div>
 
       <el-form
@@ -31,19 +31,17 @@
         </el-form-item>
 
         <el-form-item>
-          <el-button type="primary" native-type="submit" class="login-btn" :loading="loading">
+          <el-button type="primary" native-type="submit" class="w-full mt-3" :loading="loading">
             {{ $t('login') }}
           </el-button>
         </el-form-item>
 
-        <div class="login-footer">
+        <div class="flex justify-between items-center mt-4">
           <el-checkbox v-model="rememberMe">{{ $t('rememberMe') }}</el-checkbox>
           <el-link type="primary">{{ $t('forgotPassword') }}</el-link>
         </div>
       </el-form>
     </el-card>
-
-    <div class="copyright">© 2025 OurChat Server Control Panel. {{ $t('allRightsReserved') }}</div>
   </div>
 </template>
 
@@ -86,51 +84,3 @@ const handleLogin = () => {
   })
 }
 </script>
-
-<style scoped>
-.login-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  padding: 20px;
-}
-
-.login-card {
-  width: 100%;
-  max-width: 400px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.login-header {
-  text-align: center;
-  margin-bottom: 24px;
-}
-
-.logo {
-  width: 80px;
-  height: 80px;
-  margin-bottom: 16px;
-}
-
-.login-btn {
-  width: 100%;
-  margin-top: 10px;
-}
-
-.login-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 10px;
-}
-
-.copyright {
-  text-align: center;
-  margin-top: 24px;
-  color: #666;
-  font-size: 12px;
-}
-</style>
