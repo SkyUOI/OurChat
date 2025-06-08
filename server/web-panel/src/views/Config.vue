@@ -1,9 +1,11 @@
 <template>
   <div class="config">
-    <h1>配置管理</h1>
-    <p>这是配置管理页面</p>
+    <h1>{{ $t('configManagement') }}</h1>
   </div>
 </template>
+
+<script setup lang="ts">
+</script>
 
 <style scoped>
 .config {

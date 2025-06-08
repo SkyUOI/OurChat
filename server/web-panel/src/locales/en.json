@@ -1,10 +1,8 @@
 {
   "dashboard": "Dashboard",
-  "services": "Services",
-  "monitor": "Monitor",
-  "logs": "Logs",
-  "users": "Users",
-  "config": "Configuration",
+  "servicesManagement": "Services",
+  "logsView": "Logs",
+  "usersManagement": "Users",
   "systemOverview": "System Overview",
   "serviceManagement": "Service Management",
   "resourceMonitoring": "Resource Monitoring",

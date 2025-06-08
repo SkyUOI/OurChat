@@ -1,7 +1,6 @@
 <template>
   <div class="services">
-    <h1>服务管理</h1>
-    <p>这是服务管理页面</p>
+    <h1>{{ $t('servicesManagement') }}</h1>
   </div>
 </template>
 

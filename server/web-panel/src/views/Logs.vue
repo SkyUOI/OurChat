@@ -1,7 +1,6 @@
 <template>
   <div class="logs">
-    <h1>日志查看</h1>
-    <p>这是日志查看页面</p>
+    <h1>{{ $t('logsView') }}</h1>
   </div>
 </template>
 
