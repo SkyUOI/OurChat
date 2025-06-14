@@ -42,10 +42,6 @@
         </div>
       </el-form>
     </el-card>
-
-    <div class="text-center mt-6 text-gray-600 text-sm">
-      © 2025 OurChat Server Control Panel. {{ $t('allRightsReserved') }}
-    </div>
   </div>
 </template>
 
