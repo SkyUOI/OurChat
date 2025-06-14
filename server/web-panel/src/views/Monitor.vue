@@ -1,11 +1,5 @@
 <template>
-  <div class="monitor">
-    <h1>{{ $t('resourceMonitoring') }}</h1>
+  <div class="p-5">
+    <h1 class="text-2xl font-bold">{{ $t('resourceMonitoring') }}</h1>
   </div>
 </template>
-
-<style scoped>
-.monitor {
-  padding: 20px;
-}
-</style>

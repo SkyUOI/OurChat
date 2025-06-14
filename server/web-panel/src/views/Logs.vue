@@ -1,11 +1,5 @@
 <template>
-  <div class="logs">
-    <h1>{{ $t('logsView') }}</h1>
+  <div class="p-5">
+    <h1 class="text-2xl font-bold">{{ $t('logsView') }}</h1>
   </div>
 </template>
-
-<style scoped>
-.logs {
-  padding: 20px;
-}
-</style>
