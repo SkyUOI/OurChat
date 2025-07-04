@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:grpc/grpc.dart' as grpc;
 import 'package:ourchat/const.dart';
 import 'package:ourchat/main.dart';
-import 'package:ourchat/ourchat/ourchat_account.dart';
+import 'package:ourchat/core/account.dart';
 import 'package:ourchat/service/basic/v1/basic.pbgrpc.dart';
 import 'package:ourchat/service/ourchat/friends/add_friend/v1/add_friend.pb.dart';
 import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
 import 'package:provider/provider.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
 import 'dart:async';
-import 'package:ourchat/ourchat/ourchat_ui.dart';
+import 'package:ourchat/core/ui.dart';
 import 'package:fixnum/fixnum.dart';
 
 const emptyTab = 0;

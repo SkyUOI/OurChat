@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
 import 'package:ourchat/const.dart';
 import 'package:ourchat/main.dart';
-import 'package:ourchat/ourchat/ourchat_database.dart';
-import 'ourchat/ourchat_account.dart';
+import 'package:ourchat/core/database.dart';
+import 'core/account.dart';
 import 'package:ourchat/home.dart';
 import 'package:provider/provider.dart';
 

@@ -3,7 +3,7 @@ import 'package:drift_flutter/drift_flutter.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:path_provider/path_provider.dart';
 
-part 'ourchat_database.g.dart';
+part 'database.g.dart';
 
 class PublicSession extends Table {
   Int64Column get sessionId => int64()();

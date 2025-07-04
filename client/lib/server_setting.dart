@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/auth.dart';
-import 'package:ourchat/ourchat/ourchat_server.dart';
+import 'package:ourchat/core/server.dart';
 
 class ServerSetting extends StatefulWidget {
   const ServerSetting({super.key});
