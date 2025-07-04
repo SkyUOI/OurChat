@@ -18,7 +18,7 @@ class _ServerSettingState extends State<ServerSetting> {
   int port = 7777;
   int httpPort = -1, ping = -1;
   String serverName = "", serverState = "", serverVersion = "";
-  bool isOnline = false;
+  bool isOnline = false, isConnecting = false;
   bool? isTLS;
   late OurChatServer server;
   Color serverStatusColor = Colors.grey;
@@ -169,100 +169,117 @@ class _ServerSettingState extends State<ServerSetting> {
                 });
               },
             ),
-            Padding(
-              padding: const EdgeInsets.all(10.0),
-              child: ElevatedButton(
-                child: Text(
-                  // 如果服务端在线(尝试连接成功)，则显示"继续"
-                  isOnline
-                      ? AppLocalizations.of(context)!.continue_
-                      : AppLocalizations.of(context)!.connect,
-                ),
-                onPressed: () async {
-                  if (!key.currentState!.validate()) {
-                    // 检查服务端信息是否合法
-                    return;
-                  }
-                  var prevAddress = address;
-                  var prevPort = port;
-                  key.currentState!.save();
-                  if (prevAddress == address && prevPort == port && isOnline) {
-                    // 进入Auth界面
-                    ourchatAppState.server = server;
-                    ourchatAppState.update();
-                    Navigator.pop(context);
-                    Navigator.push(context,
-                        MaterialPageRoute(builder: (context) {
-                      return const Scaffold(
-                        body: Auth(),
-                      );
-                    }));
-                    return;
-                  }
-                  // 连接新的服务端地址
-                  ourchatAppState.config["servers"][0]["host"] = address;
-                  ourchatAppState.config["servers"][0]["port"] = port;
-                  isTLS = await OurChatServer.tlsEnabled(address, port);
-                  server = OurChatServer(address, port, isTLS!,
-                      ourchatAppState.config["keep_alive_interval"]);
-                  setState(() {
-                    isOnline = false;
-                    serverState = "";
-                    httpPort = -1;
-                    serverVersion = "";
-                    serverName = "";
-                    ping = -1;
-                    serverStatusColor = Colors.grey;
-                  });
-                  var resCode = unavailableStatusCode;
-                  resCode = await server.getServerInfo();
-                  if (resCode == unavailableStatusCode ||
-                      resCode == unknownStatusCode) {
-                    // 连接失败
-                    setState(() {
-                      serverState =
-                          AppLocalizations.of(context)!.serverStatusOffline;
-                      serverStatusColor = Colors.red;
-                    });
-                    return;
-                  }
-                  // 连接成功
-                  if (!context.mounted) return;
-                  setState(() {
-                    isOnline = true;
-                    // FIXME: use try-catch to avoid panicking when the server is down or network is broken
-                    httpPort = server.httpPort!;
-                    switch (server.serverStatus!.value) {
-                      case okStatusCode:
-                        serverState =
-                            AppLocalizations.of(context)!.serverStatusOnline;
-                        serverStatusColor = Colors.green;
-                        break;
-                      case internalStatusCode:
-                        serverState = AppLocalizations.of(context)!.serverError;
-                        serverStatusColor = Colors.red;
-                        break;
-                      case unavailableStatusCode:
-                        serverState = AppLocalizations.of(
-                          context,
-                        )!
-                            .serverStatusUnderMaintenance;
-                        serverStatusColor = Colors.orange;
-                        break;
-                      default:
-                        serverState =
-                            AppLocalizations.of(context)!.serverStatusUnknown;
-                        serverStatusColor = Colors.grey;
-                        break;
+            if (!isConnecting)
+              Padding(
+                padding: const EdgeInsets.all(10.0),
+                child: ElevatedButton(
+                  child: Text(
+                    // 如果服务端在线(尝试连接成功)，则显示"继续"
+                    isOnline
+                        ? AppLocalizations.of(context)!.continue_
+                        : AppLocalizations.of(context)!.connect,
+                  ),
+                  onPressed: () async {
+                    if (!key.currentState!.validate()) {
+                      // 检查服务端信息是否合法
+                      return;
                     }
-                    serverVersion =
-                        "${server.serverVersion!.major}.${server.serverVersion!.minor}.${server.serverVersion!.patch}";
-                    serverName = server.serverName!;
-                    ping = server.ping!;
-                  });
-                },
+                    setState(() {
+                      isConnecting = true;
+                    });
+                    var prevAddress = address;
+                    var prevPort = port;
+                    key.currentState!.save();
+                    if (prevAddress == address &&
+                        prevPort == port &&
+                        isOnline) {
+                      // 进入Auth界面
+                      ourchatAppState.server = server;
+                      ourchatAppState.update();
+                      Navigator.pop(context);
+                      Navigator.push(context,
+                          MaterialPageRoute(builder: (context) {
+                        return const Scaffold(
+                          body: Auth(),
+                        );
+                      }));
+                      return;
+                    }
+                    // 连接新的服务端地址
+                    ourchatAppState.config["servers"][0]["host"] = address;
+                    ourchatAppState.config["servers"][0]["port"] = port;
+                    isTLS = await OurChatServer.tlsEnabled(address, port);
+                    server = OurChatServer(address, port, isTLS!,
+                        ourchatAppState.config["keep_alive_interval"]);
+                    setState(() {
+                      isOnline = false;
+                      serverState = "";
+                      httpPort = -1;
+                      serverVersion = "";
+                      serverName = "";
+                      ping = -1;
+                      serverStatusColor = Colors.grey;
+                    });
+                    var resCode = unavailableStatusCode;
+                    resCode = await server.getServerInfo();
+                    setState(() {
+                      isConnecting = false;
+                    });
+                    if (resCode == unavailableStatusCode ||
+                        resCode == unknownStatusCode) {
+                      // 连接失败
+                      setState(() {
+                        serverState =
+                            AppLocalizations.of(context)!.serverStatusOffline;
+                        serverStatusColor = Colors.red;
+                      });
+                      return;
+                    }
+                    // 连接成功
+                    if (!context.mounted) return;
+                    setState(() {
+                      isOnline = true;
+                      // FIXME: use try-catch to avoid panicking when the server is down or network is broken
+                      httpPort = server.httpPort!;
+                      switch (server.serverStatus!.value) {
+                        case okStatusCode:
+                          serverState =
+                              AppLocalizations.of(context)!.serverStatusOnline;
+                          serverStatusColor = Colors.green;
+                          break;
+                        case internalStatusCode:
+                          serverState =
+                              AppLocalizations.of(context)!.serverError;
+                          serverStatusColor = Colors.red;
+                          break;
+                        case unavailableStatusCode:
+                          serverState = AppLocalizations.of(
+                            context,
+                          )!
+                              .serverStatusUnderMaintenance;
+                          serverStatusColor = Colors.orange;
+                          break;
+                        default:
+                          serverState =
+                              AppLocalizations.of(context)!.serverStatusUnknown;
+                          serverStatusColor = Colors.grey;
+                          break;
+                      }
+                      serverVersion =
+                          "${server.serverVersion!.major}.${server.serverVersion!.minor}.${server.serverVersion!.patch}";
+                      serverName = server.serverName!;
+                      ping = server.ping!;
+                    });
+                  },
+                ),
               ),
-            ),
+            if (isConnecting)
+              Padding(
+                padding: EdgeInsets.all(10.0),
+                child: CircularProgressIndicator(
+                  color: Theme.of(context).primaryColor,
+                ),
+              )
           ],
         ),
       ),
