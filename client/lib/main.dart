@@ -1,19 +1,19 @@
 import 'dart:convert';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
-import 'package:ourchat/ourchat/ourchat_chore.dart';
-import 'package:ourchat/ourchat/ourchat_database.dart' as database;
+import 'package:ourchat/core/chore.dart';
+import 'package:ourchat/core/database.dart' as database;
 import 'package:ourchat/service/ourchat/msg_delivery/v1/msg_delivery.pb.dart';
 import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
-import 'ourchat/ourchat_account.dart';
+import 'core/account.dart';
 import 'package:provider/provider.dart';
 import 'package:localstorage/localstorage.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
 import 'package:ourchat/const.dart';
-import 'package:ourchat/config.dart';
+import 'package:ourchat/core/config.dart';
 import 'package:ourchat/server_setting.dart';
-import 'package:ourchat/ourchat/ourchat_server.dart';
-import 'package:ourchat/ourchat/ourchat_database.dart';
+import 'package:ourchat/core/server.dart';
+import 'package:ourchat/core/database.dart';
 import 'log.dart';
 import 'dart:core';
 

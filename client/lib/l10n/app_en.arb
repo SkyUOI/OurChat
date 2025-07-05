@@ -238,5 +238,13 @@
     "tlsDisabled": "Disabled",
     "@tlsDisabled": {
         "description": "TLS Disabled"
+    },
+    "mustBeInteger": "Must Be Integer",
+    "@mustBeInteger": {
+        "description": "Must Be Integer"
+    },
+    "keepAliveInterval": "Keep-Alive Interval(seconds)",
+    "@keepAliveInterval": {
+        "description": "Keep-Alive Interval"
     }
 }

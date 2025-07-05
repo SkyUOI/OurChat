@@ -140,8 +140,8 @@ app.*.symbols
 lib/google
 lib/service
 
-# orm 
-lib/ourchat/*.g.dart
+# generate
+**/*.g.dart
 
 # l10n
 lib/l10n/*.dart
