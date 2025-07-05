@@ -233,3 +233,5 @@ pub static VERSION_SPLIT: LazyLock<ServerVersion> = LazyLock::new(|| {
         patch: ver[2].parse().unwrap(),
     }
 });
+
+pub const JWT_HEADER: &str = "authorization";

@@ -2,7 +2,7 @@ use crate::oc_helper::FAKE_MANAGER;
 use crate::oc_helper::client::{OCClient, TestApp};
 use crate::oc_helper::{ClientErr, Clients};
 use anyhow::Context;
-use base::consts::{ID, OCID, SessionID};
+use base::consts::{ID, JWT_HEADER, OCID, SessionID};
 use base::setting::tls::TlsConfig;
 use pb::service::auth::authorize::v1::{AuthRequest, auth_request};
 use pb::service::auth::register::v1::RegisterRequest;
@@ -45,6 +45,7 @@ pub struct TestUser {
     pub tls: TlsConfig,
     // Check whether message == 0 in the end
     pub ensure_no_message_left: bool,
+    pub authorization_header: String,
 
     has_dropped: bool,
     has_registered: bool,
@@ -79,6 +80,7 @@ impl TestUser {
             has_registered: false,
             tls: TlsConfig::default(),
             ensure_no_message_left: false,
+            authorization_header: "Bearer".to_string(),
         }
     }
 
@@ -120,15 +122,14 @@ impl TestUser {
         .connect()
         .await
         .context("connect error")?;
-        let token: MetadataValue<_> = user
-            .token
+        let token: MetadataValue<_> = format!("{} {}", user.authorization_header, user.token)
             .to_string()
             .parse()
             .context("token parse error")?;
         user.oc_server = Some(OurChatServiceClient::with_interceptor(
             channel,
             Box::new(move |mut req: tonic::Request<()>| {
-                req.metadata_mut().insert("token", token.clone());
+                req.metadata_mut().insert(JWT_HEADER, token.clone());
                 Ok(req)
             }),
         ));

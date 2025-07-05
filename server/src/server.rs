@@ -9,7 +9,7 @@ use crate::process::db::get_id;
 use crate::process::error_msg::{self, ACCOUNT_DELETED, SERVER_ERROR};
 use crate::process::{self, ErrAuth};
 use crate::{SERVER_INFO, SharedData, ShutdownRev};
-use base::consts::{ID, OCID, VERSION_SPLIT};
+use base::consts::{ID, JWT_HEADER, OCID, VERSION_SPLIT};
 use base::database::DbPool;
 use futures_util::future::BoxFuture;
 use http_body_util::BodyExt;
@@ -347,7 +347,7 @@ impl RpcServer {
     #[allow(clippy::result_large_err)]
     fn check_auth(req: &mut Request<()>) -> Result<ID, Status> {
         // Check if token exists in metadata
-        match req.metadata().get("token") {
+        match req.metadata().get(JWT_HEADER) {
             Some(token) => {
                 match process::check_token(token.to_str().unwrap()) {
                     Ok(jwt) => {
@@ -360,6 +360,12 @@ impl RpcServer {
                     Err(e) => match e {
                         ErrAuth::JWT(_) => Err(Status::unauthenticated(error_msg::token::INVALID)),
                         ErrAuth::Expire => Err(Status::unauthenticated(error_msg::token::EXPIRED)),
+                        ErrAuth::UnsupportedAuthorizationHeader => Err(Status::unauthenticated(
+                            error_msg::token::UNSUPPORTED_AUTHORIZATION_HEADER,
+                        )),
+                        ErrAuth::IncorrectFormat => {
+                            Err(Status::unauthenticated(error_msg::token::INCORRECT_FORMAT))
+                        }
                     },
                 }
             }

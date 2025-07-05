@@ -148,7 +148,14 @@ pub fn generate_access_token(id: ID) -> String {
 }
 
 pub fn check_token(token: &str) -> Result<JWTdata, ErrAuth> {
-    let data = decode_token(token)?;
+    let v: Vec<_> = token.split_whitespace().collect();
+    if v.len() != 2 {
+        return Err(ErrAuth::IncorrectFormat);
+    }
+    if v[0] != "Bearer" {
+        return Err(ErrAuth::UnsupportedAuthorizationHeader);
+    }
+    let data = decode_token(v[1])?;
     if chrono::offset::Utc::now().timestamp() < data.exp {
         Ok(data)
     } else {
@@ -162,6 +169,10 @@ pub enum ErrAuth {
     Expire,
     #[error("JWT error")]
     JWT(#[from] jsonwebtoken::errors::Error),
+    #[error("Unsupported authorization header, only support Bearer")]
+    UnsupportedAuthorizationHeader,
+    #[error("Authorization: Bearer <jwt>")]
+    IncorrectFormat,
 }
 
 /// Decodes a JWT token and returns the contained claims as `JWTdata`.
