@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:ourchat/log.dart';
+import 'package:ourchat/core/log.dart';
 import 'main.dart';
 import 'package:provider/provider.dart';
 import 'package:ourchat/l10n/app_localizations.dart';

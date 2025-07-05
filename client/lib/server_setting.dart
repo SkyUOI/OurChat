@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:ourchat/const.dart';
+import 'package:ourchat/core/const.dart';
 import 'package:provider/provider.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
 import 'package:ourchat/main.dart';
@@ -20,7 +20,7 @@ class _ServerSettingState extends State<ServerSetting> {
   String serverName = "", serverState = "", serverVersion = "";
   bool isOnline = false, isConnecting = false;
   bool? isTLS;
-  late OurChatServer server;
+  late OurchatServer server;
   Color serverStatusColor = Colors.grey;
 
   @override
@@ -169,7 +169,7 @@ class _ServerSettingState extends State<ServerSetting> {
                 });
               },
             ),
-            if (!isConnecting)
+            if (!isConnecting) // 没有连接进程
               Padding(
                 padding: const EdgeInsets.all(10.0),
                 child: ElevatedButton(
@@ -208,8 +208,8 @@ class _ServerSettingState extends State<ServerSetting> {
                     // 连接新的服务端地址
                     ourchatAppState.config["servers"][0]["host"] = address;
                     ourchatAppState.config["servers"][0]["port"] = port;
-                    isTLS = await OurChatServer.tlsEnabled(address, port);
-                    server = OurChatServer(address, port, isTLS!,
+                    isTLS = await OurchatServer.tlsEnabled(address, port);
+                    server = OurchatServer(address, port, isTLS!,
                         ourchatAppState.config["keep_alive_interval"]);
                     setState(() {
                       isOnline = false;
@@ -237,6 +237,8 @@ class _ServerSettingState extends State<ServerSetting> {
                     }
                     // 连接成功
                     if (!context.mounted) return;
+                    ourchatAppState.config.saveConfig();
+                    // 保存服务器地址
                     setState(() {
                       isOnline = true;
                       // FIXME: use try-catch to avoid panicking when the server is down or network is broken
@@ -273,7 +275,7 @@ class _ServerSettingState extends State<ServerSetting> {
                   },
                 ),
               ),
-            if (isConnecting)
+            if (isConnecting) // 连接中
               Padding(
                 padding: EdgeInsets.all(10.0),
                 child: CircularProgressIndicator(

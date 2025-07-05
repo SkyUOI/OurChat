@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:drift/drift.dart';
-import 'package:ourchat/const.dart';
+import 'package:ourchat/core/const.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/core/database.dart';
@@ -17,7 +17,7 @@ import 'package:crypto/crypto.dart';
 
 class OurchatAccount {
   OurchatAppState ourchatAppState;
-  late OurChatServer server;
+  late OurchatServer server;
   late Int64 id;
   late String username, email, ocid, token;
   String? avatarKey, displayName, status;

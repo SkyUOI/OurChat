@@ -1,20 +1,15 @@
-import 'dart:convert';
-import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
-import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/core/database.dart' as database;
-import 'package:ourchat/service/ourchat/msg_delivery/v1/msg_delivery.pb.dart';
-import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
 import 'core/account.dart';
 import 'package:provider/provider.dart';
 import 'package:localstorage/localstorage.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
-import 'package:ourchat/const.dart';
+import 'package:ourchat/core/const.dart';
 import 'package:ourchat/core/config.dart';
 import 'package:ourchat/server_setting.dart';
 import 'package:ourchat/core/server.dart';
-import 'package:ourchat/core/database.dart';
-import 'log.dart';
+import 'package:ourchat/core/event.dart';
+import 'core/log.dart';
 import 'dart:core';
 
 void main() async {
@@ -24,10 +19,11 @@ void main() async {
 
 class OurchatAppState extends ChangeNotifier {
   int device = desktop;
-  OurChatServer? server;
+  OurchatServer? server;
   OurchatAccount? thisAccount;
   late database.PublicOurchatDatabase publicDB;
   database.OurchatDatabase? privateDB;
+  OurchatEventSystem? eventSystem;
   OurchatConfig config;
 
   OurchatAppState() : config = OurchatConfig() {
@@ -40,41 +36,6 @@ class OurchatAppState extends ChangeNotifier {
 
   void update() {
     notifyListeners();
-  }
-
-  void listenMsgs() async {
-    var stub = OurChatServiceClient(server!.channel!,
-        interceptors: [server!.interceptor!]);
-    var res = stub.fetchMsgs(
-        FetchMsgsRequest(time: thisAccount!.latestMsgTime.timestamp));
-    res.listen((msg) async {
-      thisAccount!.latestMsgTime = OurchatTime(inputTimestamp: msg.time);
-      thisAccount!.updateLatestMsgTime();
-      var row = await (privateDB!.select(privateDB!.record)
-            ..where((u) => u.msgId.equals(BigInt.from(msg.msgId.toInt()))))
-          .getSingleOrNull();
-      if (row != null) {
-        // 重复消息
-        return;
-      }
-      logger.i("receive message(type:${msg.whichRespondMsgType()})");
-      var data = {};
-      Int64 sender = Int64();
-      switch (msg.whichRespondMsgType()) {
-        case FetchMsgsResponse_RespondMsgType.addFriendApproval:
-          sender = msg.addFriendApproval.inviterId;
-          data["leave_message"] = msg.addFriendApproval.leaveMessage;
-          break;
-        default:
-          break;
-      }
-      privateDB!.into(privateDB!.record).insert(RecordData(
-          msgId: BigInt.from(msg.msgId.toInt()),
-          sender: BigInt.from(sender.toInt()),
-          time: OurchatTime(inputTimestamp: msg.time).datetime,
-          data: jsonEncode(data),
-          read: 0));
-    });
   }
 }
 

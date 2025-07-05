@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:grpc/grpc.dart' as grpc;
-import 'package:ourchat/const.dart';
+import 'package:ourchat/core/const.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/core/account.dart';
 import 'package:ourchat/service/basic/v1/basic.pbgrpc.dart';

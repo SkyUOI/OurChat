@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:ourchat/core/event.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
-import 'package:ourchat/const.dart';
+import 'package:ourchat/core/const.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/core/database.dart';
 import 'core/account.dart';
@@ -119,9 +120,11 @@ class _LoginState extends State<Login> {
                               ourchatAppState.thisAccount = ocAccount;
                               ourchatAppState.privateDB =
                                   OurchatDatabase(ocAccount.id);
+                              ourchatAppState.eventSystem =
+                                  OurchatEventSystem(ourchatAppState);
                               await ourchatAppState.thisAccount!
                                   .getAccountInfo();
-                              ourchatAppState.listenMsgs();
+                              ourchatAppState.eventSystem!.listenEvents();
                               ourchatAppState.update();
                               if (context.mounted) {
                                 // 跳转主界面
@@ -288,10 +291,12 @@ class _RegisterState extends State<Register> {
                               ourchatAppState.thisAccount = ocAccount;
                               ourchatAppState.privateDB =
                                   OurchatDatabase(ocAccount.id);
+                              ourchatAppState.eventSystem =
+                                  OurchatEventSystem(ourchatAppState);
                               await ourchatAppState.thisAccount!
                                   .getAccountInfo();
 
-                              ourchatAppState.listenMsgs();
+                              ourchatAppState.eventSystem!.listenEvents();
                               ourchatAppState.update();
                               if (context.mounted) {
                                 // 注册成功后跳转到主页

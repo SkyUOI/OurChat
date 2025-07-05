@@ -1,6 +1,6 @@
 import 'package:grpc/grpc.dart';
-import 'package:ourchat/const.dart';
-import 'package:ourchat/log.dart';
+import 'package:ourchat/core/const.dart';
+import 'package:ourchat/core/log.dart';
 import 'package:ourchat/service/basic/server/v1/server.pb.dart';
 import 'package:ourchat/service/basic/v1/basic.pbgrpc.dart';
 
@@ -32,7 +32,7 @@ class OurchatInterceptor implements ClientInterceptor {
   }
 }
 
-class OurChatServer {
+class OurchatServer {
   String host;
   String? uniqueIdentifier, serverName;
   int port;
@@ -42,7 +42,7 @@ class OurChatServer {
   ServerVersion? serverVersion;
   OurchatInterceptor? interceptor;
 
-  OurChatServer(this.host, this.port, bool ssl, int pingIntervalSeconds) {
+  OurchatServer(this.host, this.port, bool ssl, int pingIntervalSeconds) {
     // try ssl/tls connection
     if (!ssl) {
       logger.w("Switch to insecure connection");

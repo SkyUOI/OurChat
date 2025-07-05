@@ -1,7 +1,7 @@
 import 'package:localstorage/localstorage.dart';
 import 'dart:convert';
 
-import 'package:ourchat/log.dart';
+import 'package:ourchat/core/log.dart';
 
 /// Manage config entries of application
 ///
