@@ -7,7 +7,7 @@ use crate::{
 };
 use anyhow::Context;
 use base::consts::ID;
-use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
+use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
 use pb::service::ourchat::msg_delivery::v1::{Msg, SendMsgRequest, SendMsgResponse};
 use tonic::{Request, Response, Status};
 
@@ -77,7 +77,7 @@ async fn send_msg_impl(
     {
         Err(Status::permission_denied(error_msg::MUTE))?
     }
-    let respond_msg = RespondMsgType::Msg(Msg {
+    let respond_msg = RespondEventType::Msg(Msg {
         bundle_msgs: req.bundle_msgs,
         session_id: req.session_id,
         is_encrypted: req.is_encrypted,

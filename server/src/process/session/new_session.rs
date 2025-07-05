@@ -9,7 +9,7 @@ use base::database::DbPool;
 use entities::{friend, prelude::*};
 use invite_session::v1::InviteSession;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
-use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
+use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
 use pb::service::ourchat::session::invite_session;
 use pb::service::ourchat::session::new_session::v1::{
     FailedMember, FailedReason, NewSessionRequest, NewSessionResponse,
@@ -150,7 +150,7 @@ pub async fn send_verification_request(
         leave_message: Some(leave_message.clone()),
         expire_timestamp: Some(expire_at_google),
     };
-    let respond_msg = RespondMsgType::InviteSession(respond_msg);
+    let respond_msg = RespondEventType::InviteSession(respond_msg);
     // TODO: is_encrypted
     let msg_model = insert_msg_record(
         invitee,
@@ -165,7 +165,7 @@ pub async fn send_verification_request(
     let fetch_response = FetchMsgsResponse {
         msg_id: msg_model.msg_id as u64,
         time: Some(expire_at_google),
-        respond_msg_type: Some(respond_msg),
+        respond_event_type: Some(respond_msg),
     };
     let rabbitmq_connection = server
         .rabbitmq

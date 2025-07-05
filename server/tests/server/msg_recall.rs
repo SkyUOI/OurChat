@@ -2,7 +2,7 @@ use claims::assert_lt;
 use client::TestApp;
 use parking_lot::Mutex;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
-use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
+use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
 use pb::service::ourchat::msg_delivery::{self, recall::v1::RecallMsgRequest, v1::OneMsg};
 use pb::time::from_google_timestamp;
 use std::sync::Arc;
@@ -75,7 +75,8 @@ async fn test_recall() {
             chrono::Utc::now()
         );
         assert_eq!(rec[msg_recall_idx].msg_id, recall_msg_id);
-        let RespondMsgType::Recall(data) = rec[msg_recall_idx].clone().respond_msg_type.unwrap()
+        let RespondEventType::Recall(data) =
+            rec[msg_recall_idx].clone().respond_event_type.unwrap()
         else {
             panic!("not a recall notification")
         };

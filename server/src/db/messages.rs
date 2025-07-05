@@ -8,7 +8,7 @@ use sea_orm::{
 
 use super::session::if_permission_exist;
 use base::consts::{ID, SessionID};
-use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
+use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
 
 #[derive(Debug, thiserror::Error)]
 pub enum MsgError {
@@ -95,7 +95,7 @@ pub async fn del_msg(
 pub async fn insert_msg_record(
     sender_id: ID,
     session_id: Option<SessionID>,
-    msg: RespondMsgType,
+    msg: RespondEventType,
     is_encrypted: bool,
     db_conn: &impl ConnectionTrait,
     is_all_user: bool,

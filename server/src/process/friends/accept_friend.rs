@@ -13,7 +13,7 @@ use pb::service::ourchat::friends::accept_friend::v1::{
 };
 use pb::service::ourchat::friends::add_friend::v1::AddFriendRequest;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
-use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
+use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
 use pb::time::to_google_timestamp;
 use sea_orm::{ActiveModelTrait, ActiveValue, TransactionTrait};
 use tonic::{Request, Response, Status};
@@ -145,7 +145,7 @@ async fn accept_friend_impl(
         .create_channel()
         .await
         .context("cannot create channel")?;
-    let respond_msg = RespondMsgType::AcceptFriend(AcceptFriendNotification {
+    let respond_msg = RespondEventType::AcceptFriend(AcceptFriendNotification {
         inviter_id: inviter_id.into(),
         invitee_id: id.into(),
         leave_message: req.leave_message,
@@ -169,7 +169,7 @@ async fn accept_friend_impl(
     let fetch_response = FetchMsgsResponse {
         msg_id: msg_model.msg_id as u64,
         time: Some(to_google_timestamp(msg_model.time.into())),
-        respond_msg_type: Some(respond_msg),
+        respond_event_type: Some(respond_msg),
     };
     transmit_msg(
         fetch_response,

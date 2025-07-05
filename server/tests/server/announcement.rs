@@ -6,7 +6,7 @@ use migration::m20250218_093632_server_manage_permission::PredefinedServerManage
 use pb::service::{
     ourchat::msg_delivery::{
         announcement::v1::{Announcement, AnnouncementResponse},
-        v1::fetch_msgs_response::RespondMsgType,
+        v1::fetch_msgs_response::RespondEventType,
     },
     server_manage::publish_announcement::v1::PublishAnnouncementRequest,
 };
@@ -114,14 +114,14 @@ async fn publish_and_fetch_announcement() {
         sleep(Duration::from_millis(200)).await;
         let receive = user.lock().await.fetch_msgs().fetch(2).await.unwrap();
         assert_eq!(receive.len(), 2, "{receive:?}");
-        match receive[0].to_owned().respond_msg_type.unwrap() {
-            RespondMsgType::AnnouncementResponse(announcement) => {
+        match receive[0].to_owned().respond_event_type.unwrap() {
+            RespondEventType::AnnouncementResponse(announcement) => {
                 assert_eq!(announcement.announcement.unwrap(), announcement_bef);
             }
             _ => panic!("Wrong message type"),
         }
-        match receive[1].to_owned().respond_msg_type.unwrap() {
-            RespondMsgType::AnnouncementResponse(received_announcement) => {
+        match receive[1].to_owned().respond_event_type.unwrap() {
+            RespondEventType::AnnouncementResponse(received_announcement) => {
                 assert_eq!(
                     announcement_clone.to_owned().content,
                     received_announcement.announcement.unwrap().content,

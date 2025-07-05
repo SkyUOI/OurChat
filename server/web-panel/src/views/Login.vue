@@ -1,5 +1,7 @@
 <template>
-  <div class="flex justify-center items-center min-h-screen bg-gradient-to-br from-[#f5f7fa] to-[#c3cfe2] p-5">
+  <div
+    class="flex justify-center items-center min-h-screen bg-gradient-to-br from-[#f5f7fa] to-[#c3cfe2] p-5"
+  >
     <el-card class="w-full max-w-md rounded-lg shadow-lg">
       <div class="text-center mb-6">
         <img src="../../assets/logo.png" alt="Logo" class="w-20 h-20 mx-auto mb-4" />

@@ -9,7 +9,7 @@ use anyhow::Context;
 use base::consts::{ID, SessionID};
 use migration::m20241229_022701_add_role_for_session::PredefinedPermissions;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
-use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
+use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
 use pb::service::ourchat::session::join_session::v1::{
     JoinSessionApproval, JoinSessionRequest, JoinSessionResponse,
 };
@@ -97,7 +97,7 @@ async fn join_session_impl(
         return Err(JoinInSessionErr::Status(Status::permission_denied(BAN)));
     }
 
-    let respond_msg = RespondMsgType::JoinSessionApproval(JoinSessionApproval {
+    let respond_msg = RespondEventType::JoinSessionApproval(JoinSessionApproval {
         session_id: session_id.into(),
         user_id: id.into(),
         leave_message: req.leave_message,
@@ -116,7 +116,7 @@ async fn join_session_impl(
     let fetch_response = FetchMsgsResponse {
         msg_id: msg_model.msg_id as u64,
         time: Some(to_google_timestamp(msg_model.time.into())),
-        respond_msg_type: Some(respond_msg),
+        respond_event_type: Some(respond_msg),
     };
     let peoples_should_be_sent = get_all_session_relations(id, &server.db.db_pool).await?;
     let rmq_conn = server

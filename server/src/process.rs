@@ -116,7 +116,7 @@ use crate::rabbitmq::generate_route_key;
 use base::consts::ID;
 use entities::prelude::*;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
-use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
+use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
 use pb::time::to_google_timestamp;
 use prost::Message;
 
@@ -279,7 +279,7 @@ impl From<MsgError> for MsgInsTransmitErr {
 pub async fn message_insert_and_transmit(
     user_id: ID,
     session_id: Option<SessionID>,
-    msg: RespondMsgType,
+    msg: RespondEventType,
     dest: Dest,
     is_encrypted: bool,
     db_conn: &impl ConnectionTrait,
@@ -297,7 +297,7 @@ pub async fn message_insert_and_transmit(
     let fetch_response = FetchMsgsResponse {
         msg_id: msg_model.msg_id as u64,
         time: Some(to_google_timestamp(msg_model.time.into())),
-        respond_msg_type: Some(msg),
+        respond_event_type: Some(msg),
     };
     transmit_msg(fetch_response, dest, rmq_chan, db_conn).await?;
     Ok(())

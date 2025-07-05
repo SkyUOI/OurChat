@@ -66,7 +66,8 @@ async fn test_text_get() {
 
     let msgs = c.lock().await.fetch_msgs().fetch(2).await.unwrap();
     for (i, msg_id) in msgs.into_iter().zip(msg_id.iter()) {
-        if let fetch_msgs_response::RespondMsgType::Msg(ref item) = i.respond_msg_type.unwrap() {
+        if let fetch_msgs_response::RespondEventType::Msg(ref item) = i.respond_event_type.unwrap()
+        {
             assert_eq!(item.session_id, u64::from(session.session_id));
             assert_eq!(item.bundle_msgs, vec![msg_should_sent.clone()]);
             assert_eq!(i.msg_id, *msg_id);
@@ -116,7 +117,8 @@ async fn test_repeated_msg() {
     let check = async |msgs: Vec<msg_delivery::v1::FetchMsgsResponse>| {
         let mut users = HashSet::from([b.lock().await.id, a.lock().await.id]);
         for i in msgs {
-            if let fetch_msgs_response::RespondMsgType::Msg(ref item) = i.respond_msg_type.unwrap()
+            if let fetch_msgs_response::RespondEventType::Msg(ref item) =
+                i.respond_event_type.unwrap()
             {
                 assert!(users.contains(&item.sender_id.into()));
                 users.remove(&item.sender_id.into());

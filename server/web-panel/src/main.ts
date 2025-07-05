@@ -27,9 +27,9 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component)
 }
 
-const pinia = createPinia();
+const pinia = createPinia()
 
-app.use(pinia);
+app.use(pinia)
 app.use(router)
 app.use(ElementPlus)
 app.use(i18n) // 使用i18n插件

@@ -4,7 +4,7 @@ use client::TestApp;
 use migration::m20241229_022701_add_role_for_session::PredefinedRoles;
 use pb::service::ourchat::friends::accept_friend::v1::{AcceptFriendRequest, AcceptFriendResult};
 use pb::service::ourchat::friends::add_friend::v1::AddFriendRequest;
-use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
+use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
 use server::db::friend::query_friend;
 use server::db::session::get_all_roles_of_session;
 use std::time::Duration;
@@ -27,8 +27,8 @@ async fn add_friend_accept() {
         .await
         .unwrap();
     let user2_rec = user2.lock().await.fetch_msgs().fetch(1).await.unwrap();
-    let RespondMsgType::AddFriendApproval(add_friend) =
-        user2_rec[0].respond_msg_type.clone().unwrap()
+    let RespondEventType::AddFriendApproval(add_friend) =
+        user2_rec[0].respond_event_type.clone().unwrap()
     else {
         panic!()
     };
@@ -54,8 +54,8 @@ async fn add_friend_accept() {
             .unwrap()
     );
     let user1_rec = user1.lock().await.fetch_msgs().fetch(2).await.unwrap();
-    let RespondMsgType::AcceptFriend(accept_friend_notification) =
-        user1_rec[1].respond_msg_type.clone().unwrap()
+    let RespondEventType::AcceptFriend(accept_friend_notification) =
+        user1_rec[1].respond_event_type.clone().unwrap()
     else {
         panic!()
     };
@@ -97,8 +97,8 @@ async fn add_friend_reject() {
         .unwrap();
     let user2_rec = user2.lock().await.fetch_msgs().fetch(1).await.unwrap();
     assert_eq!(user2_rec.len(), 1);
-    let RespondMsgType::AddFriendApproval(add_friend) =
-        user2_rec[0].respond_msg_type.clone().unwrap()
+    let RespondEventType::AddFriendApproval(add_friend) =
+        user2_rec[0].respond_event_type.clone().unwrap()
     else {
         panic!()
     };
@@ -125,8 +125,8 @@ async fn add_friend_reject() {
     );
     let user1_rec = user1.lock().await.fetch_msgs().fetch(2).await.unwrap();
     assert_eq!(user1_rec.len(), 2, "{user1_rec:?}");
-    let RespondMsgType::AcceptFriend(accept_friend_notification) =
-        user1_rec[1].respond_msg_type.clone().unwrap()
+    let RespondEventType::AcceptFriend(accept_friend_notification) =
+        user1_rec[1].respond_event_type.clone().unwrap()
     else {
         panic!()
     };

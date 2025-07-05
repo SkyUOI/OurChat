@@ -50,7 +50,7 @@ fn main() -> anyhow::Result<()> {
     }
     tonic_build::configure()
         .type_attribute(
-            "service.ourchat.msg_delivery.v1.FetchMsgsResponse.respond_msg_type",
+            "service.ourchat.msg_delivery.v1.FetchMsgsResponse.respond_event_type",
             "#[derive(serde::Serialize, serde::Deserialize)]",
         )
         .type_attribute(

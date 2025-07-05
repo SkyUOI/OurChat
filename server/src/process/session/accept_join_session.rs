@@ -5,7 +5,7 @@ use crate::{db, process::error_msg::SERVER_ERROR, server::RpcServer};
 use anyhow::Context;
 use base::consts::{ID, SessionID};
 use migration::m20241229_022701_add_role_for_session::PredefinedPermissions;
-use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
+use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
 use pb::service::ourchat::session::join_session::v1::{
     AcceptJoinSessionNotification, AcceptJoinSessionRequest, AcceptJoinSessionResponse,
 };
@@ -95,7 +95,7 @@ async fn accept_join_session_impl(
         }
     }
     // send a notification to applicant
-    let respond_msg = RespondMsgType::AcceptJoinInSession(AcceptJoinSessionNotification {
+    let respond_msg = RespondEventType::AcceptJoinSession(AcceptJoinSessionNotification {
         session_id: session_id.into(),
         accepted: req.accepted,
     });

@@ -10,7 +10,7 @@ use base::consts::ID;
 use deadpool_lapin::lapin::options::{QueueBindOptions, QueueDeclareOptions, QueueDeleteOptions};
 use deadpool_lapin::lapin::types::FieldTable;
 use pb::service::ourchat::msg_delivery::v1::{
-    FetchMsgsRequest, FetchMsgsResponse, fetch_msgs_response::RespondMsgType,
+    FetchMsgsRequest, FetchMsgsResponse, fetch_msgs_response::RespondEventType,
 };
 use pb::time::{from_google_timestamp, to_google_timestamp};
 use prost::Message;
@@ -81,7 +81,7 @@ async fn fetch_user_msg_impl(
                     let db_logic = async {
                         while let Some(msgs) = pag.fetch_and_next().await? {
                             for msg_model in msgs {
-                                let msg: RespondMsgType =
+                                let msg: RespondEventType =
                                     match serde_json::from_value(msg_model.msg_data) {
                                         Ok(m) => m,
                                         Err(e) => {
@@ -90,7 +90,7 @@ async fn fetch_user_msg_impl(
                                         }
                                     };
                                 tx.send(Ok(FetchMsgsResponse {
-                                    respond_msg_type: Some(msg),
+                                    respond_event_type: Some(msg),
                                     msg_id: msg_model.msg_id as u64,
                                     time: Some(to_google_timestamp(msg_model.time.into())),
                                 }))

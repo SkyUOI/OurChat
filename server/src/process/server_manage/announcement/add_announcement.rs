@@ -1,6 +1,6 @@
 use entities::{announcement, announcement_msg};
 use pb::service::ourchat::msg_delivery::{
-    announcement::v1::Announcement, v1::fetch_msgs_response::RespondMsgType,
+    announcement::v1::Announcement, v1::fetch_msgs_response::RespondEventType,
 };
 use sea_orm::{ActiveModelTrait, ActiveValue, ConnectionTrait};
 
@@ -37,7 +37,7 @@ pub async fn add_announcement(
     let msg = insert_msg_record(
         res.publisher_id.into(),
         None,
-        RespondMsgType::AnnouncementResponse(res.clone().into()),
+        RespondEventType::AnnouncementResponse(res.clone().into()),
         false,
         dbpool,
         true,

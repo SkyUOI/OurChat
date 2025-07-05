@@ -1,5 +1,5 @@
 use client::TestApp;
-use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
+use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
 use pb::service::ourchat::session::join_session::v1::{
     AcceptJoinSessionRequest, JoinSessionRequest,
 };
@@ -25,11 +25,11 @@ async fn join_in_session_success() {
     // will receive
     let join_request = a.lock().await.fetch_msgs().fetch(1).await.unwrap();
     assert_eq!(join_request.len(), 1);
-    let RespondMsgType::JoinSessionApproval(join_in) = join_request
+    let RespondEventType::JoinSessionApproval(join_in) = join_request
         .into_iter()
         .next()
         .unwrap()
-        .respond_msg_type
+        .respond_event_type
         .unwrap()
     else {
         panic!()
@@ -59,7 +59,8 @@ async fn join_in_session_success() {
     );
     let ret = c.lock().await.fetch_msgs().fetch(2).await.unwrap();
     assert_eq!(ret.len(), 2, "{ret:?}");
-    let RespondMsgType::AcceptJoinInSession(ret) = ret[1].respond_msg_type.clone().unwrap() else {
+    let RespondEventType::AcceptJoinSession(ret) = ret[1].respond_event_type.clone().unwrap()
+    else {
         panic!()
     };
     assert_eq!(ret.session_id, *session.session_id);
@@ -87,11 +88,11 @@ async fn join_in_session_reject() {
     // will receive
     let join_request = a.lock().await.fetch_msgs().fetch(1).await.unwrap();
     assert_eq!(join_request.len(), 1);
-    let RespondMsgType::JoinSessionApproval(join_in) = join_request
+    let RespondEventType::JoinSessionApproval(join_in) = join_request
         .into_iter()
         .next()
         .unwrap()
-        .respond_msg_type
+        .respond_event_type
         .unwrap()
     else {
         panic!()
@@ -121,7 +122,8 @@ async fn join_in_session_reject() {
     );
     let ret = c.lock().await.fetch_msgs().fetch(2).await.unwrap();
     assert_eq!(ret.len(), 2, "{ret:?}");
-    let RespondMsgType::AcceptJoinInSession(ret) = ret[1].respond_msg_type.clone().unwrap() else {
+    let RespondEventType::AcceptJoinSession(ret) = ret[1].respond_event_type.clone().unwrap()
+    else {
         panic!()
     };
     assert_eq!(ret.session_id, *session.session_id);

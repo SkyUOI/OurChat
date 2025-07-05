@@ -12,7 +12,7 @@ use client::TestApp;
 use migration::m20241229_022701_add_role_for_session::PredefinedRoles;
 use parking_lot::Mutex;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
-use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
+use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
 use pb::service::ourchat::session::{
     get_session_info::v1::{GetSessionInfoRequest, QueryValues},
     new_session::v1::NewSessionRequest,
@@ -72,7 +72,8 @@ async fn session_create() {
     let user3_rec = user3.lock().await.fetch_msgs().fetch(1).await.unwrap();
     let check = async |rec: Vec<FetchMsgsResponse>| {
         assert_eq!(rec.len(), 1);
-        let RespondMsgType::InviteSession(rec) = rec[0].respond_msg_type.clone().unwrap() else {
+        let RespondEventType::InviteSession(rec) = rec[0].respond_event_type.clone().unwrap()
+        else {
             panic!();
         };
         assert_eq!(rec.session_id, *session_id);
