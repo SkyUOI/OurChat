@@ -72,7 +72,7 @@ async fn session_create() {
     let user3_rec = user3.lock().await.fetch_msgs().fetch(1).await.unwrap();
     let check = async |rec: Vec<FetchMsgsResponse>| {
         assert_eq!(rec.len(), 1);
-        let RespondEventType::InviteSession(rec) = rec[0].respond_event_type.clone().unwrap()
+        let RespondEventType::InviteUserToSession(rec) = rec[0].respond_event_type.clone().unwrap()
         else {
             panic!();
         };

@@ -7,7 +7,7 @@ import "service/ourchat/friends/accept_friend/v1/accept_friend.proto";
 import "service/ourchat/friends/add_friend/v1/add_friend.proto";
 import "service/ourchat/msg_delivery/announcement/v1/announcement.proto";
 import "service/ourchat/msg_delivery/recall/v1/recall.proto";
-import "service/ourchat/session/invite_session/v1/invite_session.proto";
+import "service/ourchat/session/invite_user_to_session/v1/invite_user_to_session.proto";
 import "service/ourchat/session/join_session/v1/join_session.proto";
 
 // One piece of message
@@ -37,7 +37,7 @@ message FetchMsgsResponse {
   // different type of message
   oneof respond_event_type {
     Msg msg = 1;
-    session.invite_session.v1.InviteSession invite_session = 2;
+    session.invite_user_to_session.v1.InviteUserToSession invite_user_to_session = 2;
     friends.accept_friend.v1.AcceptFriendNotification accept_friend = 3;
     recall.v1.RecallNotification recall = 4;
     session.join_session.v1.JoinSessionApproval join_session_approval = 7;

@@ -70,7 +70,7 @@ fn main() -> anyhow::Result<()> {
             "#[derive(serde::Serialize, serde::Deserialize)]",
         )
         .type_attribute(
-            "service.ourchat.session.invite_session.v1.InviteSession",
+            "service.ourchat.session.invite_user_to_session.v1.InviteUserToSession",
             "#[derive(serde::Serialize, serde::Deserialize)]",
         )
         .type_attribute(

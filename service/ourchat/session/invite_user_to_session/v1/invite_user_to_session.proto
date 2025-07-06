@@ -1,10 +1,10 @@
 syntax = "proto3";
 
-package service.ourchat.session.invite_session.v1;
+package service.ourchat.session.invite_user_to_session.v1;
 
 import "google/protobuf/timestamp.proto";
 
-message InviteSession {
+message InviteUserToSession {
   // invite to which session
   uint64 session_id = 1;
   // inviter

@@ -25,9 +25,9 @@ pub mod session {
         }
     }
 
-    pub mod invite_session {
+    pub mod invite_user_to_session {
         pub mod v1 {
-            include!("../generated/service.ourchat.session.invite_session.v1.rs");
+            include!("../generated/service.ourchat.session.invite_user_to_session.v1.rs");
         }
     }
 
