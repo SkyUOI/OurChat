@@ -17,8 +17,8 @@ use pb::service::ourchat::msg_delivery::recall::v1::{RecallMsgRequest, RecallMsg
 use pb::service::ourchat::msg_delivery::v1::{
     FetchMsgsRequest, FetchMsgsResponse, SendMsgRequest, SendMsgResponse,
 };
-use pb::service::ourchat::session::accept_session::v1::{
-    AcceptSessionRequest, AcceptSessionResponse,
+use pb::service::ourchat::session::accept_join_session_invitation::v1::{
+    AcceptJoinSessionInvitationRequest, AcceptJoinSessionInvitationResponse,
 };
 use pb::service::ourchat::session::add_role::v1::{AddRoleRequest, AddRoleResponse};
 use pb::service::ourchat::session::ban::v1::{
@@ -143,10 +143,10 @@ impl OurChatService for RpcServer {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn accept_session(
+    async fn accept_join_session_invitation(
         &self,
-        request: Request<AcceptSessionRequest>,
-    ) -> Result<Response<AcceptSessionResponse>, Status> {
+        request: Request<AcceptJoinSessionInvitationRequest>,
+    ) -> Result<Response<AcceptJoinSessionInvitationResponse>, Status> {
         let id = get_id_from_req(&request).unwrap();
         self.check_account_status(id).await?;
         process::accept_session(self, id, request).await

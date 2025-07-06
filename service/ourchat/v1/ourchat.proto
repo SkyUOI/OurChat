@@ -10,7 +10,7 @@ import "service/ourchat/friends/set_friend_info/v1/set_friend_info.proto";
 import "service/ourchat/get_account_info/v1/get_account_info.proto";
 import "service/ourchat/msg_delivery/recall/v1/recall.proto";
 import "service/ourchat/msg_delivery/v1/msg_delivery.proto";
-import "service/ourchat/session/accept_session/v1/accept_session.proto";
+import "service/ourchat/session/accept_join_session_invitation/v1/accept_join_session_invitation.proto";
 import "service/ourchat/session/add_role/v1/add_role.proto";
 import "service/ourchat/session/ban/v1/ban.proto";
 import "service/ourchat/session/delete_session/v1/delete_session.proto";
@@ -28,7 +28,8 @@ import "service/ourchat/webrtc/room/create_room/v1/create_room.proto";
 
 // Main service of the Ourchat
 // JWT is required.If token is missing or out-of-dated,please refer to
-// AuthService to authenticate one JWT Insert to headers: Authorization: Bearer "token"
+// AuthService to authenticate one JWT Insert to headers: Authorization: Bearer
+// "token"
 service OurChatService {
   // Warning: the meaning is deleting the account, not logout
   rpc Unregister(unregister.v1.UnregisterRequest) returns (unregister.v1.UnregisterResponse);
@@ -51,7 +52,7 @@ service OurChatService {
 
   // session operations
 
-  rpc AcceptSession(session.accept_session.v1.AcceptSessionRequest) returns (session.accept_session.v1.AcceptSessionResponse);
+  rpc AcceptJoinSessionInvitation(session.accept_join_session_invitation.v1.AcceptJoinSessionInvitationRequest) returns (session.accept_join_session_invitation.v1.AcceptJoinSessionInvitationResponse);
 
   rpc NewSession(session.new_session.v1.NewSessionRequest) returns (session.new_session.v1.NewSessionResponse);
 

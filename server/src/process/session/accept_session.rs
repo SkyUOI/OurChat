@@ -5,8 +5,8 @@ use crate::{process::error_msg::SERVER_ERROR, server::RpcServer};
 use anyhow::Context;
 use base::consts::{ID, SessionID};
 use entities::message_records;
-use pb::service::ourchat::session::accept_session::v1::{
-    AcceptSessionRequest, AcceptSessionResponse,
+use pb::service::ourchat::session::accept_join_session_invitation::v1::{
+    AcceptJoinSessionInvitationRequest, AcceptJoinSessionInvitationResponse,
 };
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, TransactionTrait};
 use tonic::{Response, Status};
@@ -26,8 +26,8 @@ enum AcceptSessionError {
 async fn accept_impl(
     server: &RpcServer,
     id: ID,
-    request: tonic::Request<AcceptSessionRequest>,
-) -> Result<AcceptSessionResponse, AcceptSessionError> {
+    request: tonic::Request<AcceptJoinSessionInvitationRequest>,
+) -> Result<AcceptJoinSessionInvitationResponse, AcceptSessionError> {
     let req = request.into_inner();
     let session_id: SessionID = req.session_id.into();
     // check if banned from the session
@@ -77,14 +77,14 @@ async fn accept_impl(
             }
         }
     }
-    Ok(AcceptSessionResponse {})
+    Ok(AcceptJoinSessionInvitationResponse {})
 }
 
 pub async fn accept_session(
     server: &RpcServer,
     id: ID,
-    request: tonic::Request<AcceptSessionRequest>,
-) -> Result<Response<AcceptSessionResponse>, Status> {
+    request: tonic::Request<AcceptJoinSessionInvitationRequest>,
+) -> Result<Response<AcceptJoinSessionInvitationResponse>, Status> {
     match accept_impl(server, id, request).await {
         Ok(d) => Ok(Response::new(d)),
         Err(e) => match e {

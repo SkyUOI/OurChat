@@ -89,13 +89,13 @@ async fn session_create() {
     user2
         .lock()
         .await
-        .accept_session(session_id, false)
+        .accept_join_session_invitation(session_id, false)
         .await
         .unwrap();
     user3
         .lock()
         .await
-        .accept_session(session_id, true)
+        .accept_join_session_invitation(session_id, true)
         .await
         .unwrap();
     tokio::time::sleep(Duration::from_millis(200)).await;

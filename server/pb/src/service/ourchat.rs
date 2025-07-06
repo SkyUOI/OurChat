@@ -19,9 +19,9 @@ pub mod session {
         }
     }
 
-    pub mod accept_session {
+    pub mod accept_join_session_invitation {
         pub mod v1 {
-            include!("../generated/service.ourchat.session.accept_session.v1.rs");
+            include!("../generated/service.ourchat.session.accept_join_session_invitation.v1.rs");
         }
     }
 

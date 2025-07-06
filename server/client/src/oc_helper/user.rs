@@ -11,7 +11,7 @@ use pb::service::ourchat::download::v1::{DownloadRequest, DownloadResponse};
 use pb::service::ourchat::msg_delivery::v1::{
     BundleMsgs, FetchMsgsRequest, FetchMsgsResponse, SendMsgRequest, SendMsgResponse,
 };
-use pb::service::ourchat::session::accept_session::v1::AcceptSessionRequest;
+use pb::service::ourchat::session::accept_join_session_invitation::v1::AcceptJoinSessionInvitationRequest;
 use pb::service::ourchat::session::ban::v1::{BanUserRequest, UnbanUserRequest};
 use pb::service::ourchat::session::mute::v1::{MuteUserRequest, UnmuteUserRequest};
 use pb::service::ourchat::unregister::v1::UnregisterRequest;
@@ -151,16 +151,16 @@ impl TestUser {
 
 // Features implemented
 impl TestUser {
-    pub async fn accept_session(
+    pub async fn accept_join_session_invitation(
         &mut self,
         session_id: SessionID,
         accept: bool,
     ) -> anyhow::Result<()> {
-        let req = AcceptSessionRequest {
+        let req = AcceptJoinSessionInvitationRequest {
             session_id: session_id.into(),
             accepted: accept,
         };
-        self.oc().accept_session(req).await?;
+        self.oc().accept_join_session_invitation(req).await?;
         Ok(())
     }
 
