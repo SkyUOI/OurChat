@@ -59,7 +59,7 @@ class OurchatEventSystem {
         // 重复事件
         return;
       }
-      logger.i("receive evnet(type:${event.whichRespondEventType()})");
+      logger.i("receive event(type:${event.whichRespondEventType()})");
       // 创建一个发送者oc账号对象
       OurchatAccount sender = OurchatAccount(ourchatAppState);
       sender.token = ourchatAppState.thisAccount!.token;
