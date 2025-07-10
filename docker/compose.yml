@@ -58,7 +58,7 @@ services:
     # ports:
     # - "6379:6379"
     volumes:
-      - ./data/redis-data:/opt/redis/data
+      - ./data/redis-data:/data
       - ./config/redis.conf:/usr/local/etc/redis/redis.conf
     networks:
       - net
