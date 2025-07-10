@@ -15,15 +15,15 @@ message JoinSessionApproval {
   optional string leave_message = 3;
 }
 
-message AcceptJoinSessionRequest {
+message AllowUserJoinSessionRequest {
   uint64 session_id = 1;
   uint64 user_id = 2;
   bool accepted = 3;
 }
 
-message AcceptJoinSessionResponse {}
+message AllowUserJoinSessionResponse {}
 
-message AcceptJoinSessionNotification {
+message AllowUserJoinSessionNotification {
   uint64 session_id = 1;
   bool accepted = 2;
 }

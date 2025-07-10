@@ -1,9 +1,9 @@
 use sea_orm::{ConnectionTrait, EntityTrait};
 
 use base::consts::SessionID;
-pub mod accept_join_session;
-pub mod accept_session;
+pub mod accept_join_session_invitation;
 pub mod add_role;
+pub mod allow_user_join_session;
 pub mod ban;
 pub mod delete_session;
 pub mod get_session_info;

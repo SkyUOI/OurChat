@@ -1,7 +1,7 @@
 use client::TestApp;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
 use pb::service::ourchat::session::join_session::v1::{
-    AcceptJoinSessionRequest, JoinSessionRequest,
+    AllowUserJoinSessionRequest, JoinSessionRequest,
 };
 use server::db::session::in_session;
 
@@ -45,7 +45,7 @@ async fn join_in_session_success() {
     a.lock()
         .await
         .oc()
-        .accept_join_session(AcceptJoinSessionRequest {
+        .allow_user_join_session(AllowUserJoinSessionRequest {
             session_id: session.session_id.into(),
             user_id: join_in.user_id,
             accepted: true,
@@ -108,7 +108,7 @@ async fn join_in_session_reject() {
     a.lock()
         .await
         .oc()
-        .accept_join_session(AcceptJoinSessionRequest {
+        .allow_user_join_session(AllowUserJoinSessionRequest {
             session_id: session.session_id.into(),
             user_id: join_in.user_id,
             accepted: false,

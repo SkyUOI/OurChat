@@ -7,17 +7,17 @@ use base::consts::{ID, SessionID};
 use migration::m20241229_022701_add_role_for_session::PredefinedPermissions;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
 use pb::service::ourchat::session::join_session::v1::{
-    AcceptJoinSessionNotification, AcceptJoinSessionRequest, AcceptJoinSessionResponse,
+    AllowUserJoinSessionNotification, AllowUserJoinSessionRequest, AllowUserJoinSessionResponse,
 };
 use sea_orm::TransactionTrait;
 use tonic::{Request, Response, Status};
 
-pub async fn accept_join_session(
+pub async fn allow_user_join_session(
     server: &RpcServer,
     id: ID,
-    request: Request<AcceptJoinSessionRequest>,
-) -> Result<Response<AcceptJoinSessionResponse>, Status> {
-    match accept_join_session_impl(server, id, request).await {
+    request: Request<AllowUserJoinSessionRequest>,
+) -> Result<Response<AllowUserJoinSessionResponse>, Status> {
+    match allow_user_join_session_impl(server, id, request).await {
         Ok(res) => Ok(Response::new(res)),
         Err(e) => match e {
             AcceptJoinSessionErr::Db(_) | AcceptJoinSessionErr::Internal(_) => {
@@ -57,11 +57,11 @@ impl From<MsgInsTransmitErr> for AcceptJoinSessionErr {
     }
 }
 
-async fn accept_join_session_impl(
+async fn allow_user_join_session_impl(
     server: &RpcServer,
     id: ID,
-    request: Request<AcceptJoinSessionRequest>,
-) -> Result<AcceptJoinSessionResponse, AcceptJoinSessionErr> {
+    request: Request<AllowUserJoinSessionRequest>,
+) -> Result<AllowUserJoinSessionResponse, AcceptJoinSessionErr> {
     let req = request.into_inner();
     let session_id: SessionID = req.session_id.into();
     if !if_permission_exist(
@@ -95,7 +95,7 @@ async fn accept_join_session_impl(
         }
     }
     // send a notification to applicant
-    let respond_msg = RespondEventType::AcceptJoinSession(AcceptJoinSessionNotification {
+    let respond_msg = RespondEventType::AcceptJoinSession(AllowUserJoinSessionNotification {
         session_id: session_id.into(),
         accepted: req.accepted,
     });
@@ -118,6 +118,6 @@ async fn accept_join_session_impl(
         &mut conn,
     )
     .await?;
-    let ret = AcceptJoinSessionResponse {};
+    let ret = AllowUserJoinSessionResponse {};
     Ok(ret)
 }

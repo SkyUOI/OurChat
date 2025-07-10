@@ -31,7 +31,8 @@ use pb::service::ourchat::session::get_session_info::v1::{
     GetSessionInfoRequest, GetSessionInfoResponse,
 };
 use pb::service::ourchat::session::join_session::v1::{
-    AcceptJoinSessionRequest, AcceptJoinSessionResponse, JoinSessionRequest, JoinSessionResponse,
+    AllowUserJoinSessionRequest, AllowUserJoinSessionResponse, JoinSessionRequest,
+    JoinSessionResponse,
 };
 use pb::service::ourchat::session::leave_session::v1::{LeaveSessionRequest, LeaveSessionResponse};
 use pb::service::ourchat::session::mute::v1::{
@@ -149,7 +150,7 @@ impl OurChatService for RpcServer {
     ) -> Result<Response<AcceptJoinSessionInvitationResponse>, Status> {
         let id = get_id_from_req(&request).unwrap();
         self.check_account_status(id).await?;
-        process::accept_session(self, id, request).await
+        process::accept_join_session_invitation(self, id, request).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -325,13 +326,13 @@ impl OurChatService for RpcServer {
 
     /// Accept a pending session join request
     #[tracing::instrument(skip(self))]
-    async fn accept_join_session(
+    async fn allow_user_join_session(
         &self,
-        request: Request<AcceptJoinSessionRequest>,
-    ) -> Result<Response<AcceptJoinSessionResponse>, Status> {
+        request: Request<AllowUserJoinSessionRequest>,
+    ) -> Result<Response<AllowUserJoinSessionResponse>, Status> {
         let id = get_id_from_req(&request).unwrap();
         self.check_account_status(id).await?;
-        process::accept_join_session(self, id, request).await
+        process::allow_user_join_session(self, id, request).await
     }
 
     /// Rpc create room

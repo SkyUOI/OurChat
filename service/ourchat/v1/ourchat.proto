@@ -86,7 +86,7 @@ service OurChatService {
 
   rpc JoinSession(session.join_session.v1.JoinSessionRequest) returns (session.join_session.v1.JoinSessionResponse);
 
-  rpc AcceptJoinSession(session.join_session.v1.AcceptJoinSessionRequest) returns (session.join_session.v1.AcceptJoinSessionResponse);
+  rpc AllowUserJoinSession(session.join_session.v1.AllowUserJoinSessionRequest) returns (session.join_session.v1.AllowUserJoinSessionResponse);
 
   // Webrtc operations
 

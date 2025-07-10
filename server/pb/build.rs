@@ -86,7 +86,7 @@ fn main() -> anyhow::Result<()> {
             "#[derive(serde::Serialize, serde::Deserialize)]",
         )
         .type_attribute(
-            "service.ourchat.session.join_session.v1.AcceptJoinSessionNotification",
+            "service.ourchat.session.join_session.v1.AllowUserJoinSessionNotification",
             "#[derive(serde::Serialize, serde::Deserialize)]",
         )
         .type_attribute(

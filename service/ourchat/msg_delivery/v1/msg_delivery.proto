@@ -41,7 +41,7 @@ message FetchMsgsResponse {
     friends.accept_friend.v1.AcceptFriendNotification accept_friend = 3;
     recall.v1.RecallNotification recall = 4;
     session.join_session.v1.JoinSessionApproval join_session_approval = 7;
-    session.join_session.v1.AcceptJoinSessionNotification accept_join_session = 9;
+    session.join_session.v1.AllowUserJoinSessionNotification accept_join_session = 9;
     friends.add_friend.v1.AddFriendApproval add_friend_approval = 8;
     announcement.v1.AnnouncementResponse announcement_response = 10;
   }

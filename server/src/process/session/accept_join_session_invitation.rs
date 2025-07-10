@@ -23,7 +23,7 @@ enum AcceptSessionError {
     Redis(#[from] deadpool_redis::redis::RedisError),
 }
 
-async fn accept_impl(
+async fn accept_join_session_invitation_impl(
     server: &RpcServer,
     id: ID,
     request: tonic::Request<AcceptJoinSessionInvitationRequest>,
@@ -56,36 +56,41 @@ async fn accept_impl(
         .filter(message_records::Column::Time.gt(time_limit))
         .one(&server.db.db_pool)
         .await?;
-    if model.is_none() {
-        Err(Status::not_found(not_found::SESSION_INVITATION))?
-    }
-    if req.accepted {
-        let transaction = server.db.db_pool.begin().await?;
-        match join_in_session(session_id, id, None, &transaction).await {
-            Ok(_) => {
-                transaction.commit().await?;
+    match model {
+        None => Err(Status::not_found(not_found::SESSION_INVITATION))?,
+        Some(model) => {
+            if req.accepted {
+                let transaction = server.db.db_pool.begin().await?;
+                match join_in_session(session_id, id, None, &transaction).await {
+                    Ok(_) => {
+                        transaction.commit().await?;
+                    }
+                    Err(SessionError::Db(e)) => {
+                        transaction.rollback().await?;
+                        return Err(AcceptSessionError::DbError(e));
+                    }
+                    Err(SessionError::SessionNotFound) => {
+                        transaction.rollback().await?;
+                        return Err(AcceptSessionError::Status(Status::not_found(
+                            not_found::SESSION,
+                        )));
+                    }
+                }
             }
-            Err(SessionError::Db(e)) => {
-                transaction.rollback().await?;
-                return Err(AcceptSessionError::DbError(e));
-            }
-            Err(SessionError::SessionNotFound) => {
-                transaction.rollback().await?;
-                return Err(AcceptSessionError::Status(Status::not_found(
-                    not_found::SESSION,
-                )));
-            }
+            entities::message_records::Entity::delete_by_id(model.msg_id)
+                .exec(&server.db.db_pool)
+                .await?;
+            Ok(AcceptJoinSessionInvitationResponse {})
         }
     }
-    Ok(AcceptJoinSessionInvitationResponse {})
 }
 
-pub async fn accept_session(
+pub async fn accept_join_session_invitation(
     server: &RpcServer,
     id: ID,
     request: tonic::Request<AcceptJoinSessionInvitationRequest>,
 ) -> Result<Response<AcceptJoinSessionInvitationResponse>, Status> {
-    match accept_impl(server, id, request).await {
+    match accept_join_session_invitation_impl(server, id, request).await {
         Ok(d) => Ok(Response::new(d)),
         Err(e) => match e {
             AcceptSessionError::DbError(_)
