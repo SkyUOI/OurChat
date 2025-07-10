@@ -15,10 +15,12 @@ import "service/ourchat/session/add_role/v1/add_role.proto";
 import "service/ourchat/session/ban/v1/ban.proto";
 import "service/ourchat/session/delete_session/v1/delete_session.proto";
 import "service/ourchat/session/get_session_info/v1/get_session_info.proto";
+import "service/ourchat/session/invite_to_session/v1/invite_to_session.proto";
 import "service/ourchat/session/join_in_session/v1/join_in_session.proto";
 import "service/ourchat/session/leave_session/v1/leave_session.proto";
 import "service/ourchat/session/mute/v1/mute.proto";
 import "service/ourchat/session/new_session/v1/session.proto";
+import "service/ourchat/session/session_room_key/v1/session_room_key.proto";
 import "service/ourchat/session/set_role/v1/set_role.proto";
 import "service/ourchat/session/set_session_info/v1/set_session_info.proto";
 import "service/ourchat/set_account_info/v1/set_account_info.proto";
@@ -87,7 +89,11 @@ service OurChatService {
 
   rpc AcceptJoinInSession(session.join_in_session.v1.AcceptJoinInSessionRequest) returns (session.join_in_session.v1.AcceptJoinInSessionResponse);
 
+  rpc InviteToSession(session.invite_to_session.v1.InviteToSessionRequest) returns (session.invite_to_session.v1.InviteToSessionResponse);
+
   // Webrtc operations
 
   rpc CreateRoom(webrtc.room.create_room.v1.CreateRoomRequest) returns (webrtc.room.create_room.v1.CreateRoomResponse);
+
+  rpc SendRoomKey(session.session_room_key.v1.SendRoomKeyRequest) returns (session.session_room_key.v1.SendRoomKeyResponse);
 }

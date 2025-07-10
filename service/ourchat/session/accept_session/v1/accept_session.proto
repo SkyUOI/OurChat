@@ -6,6 +6,7 @@ message AcceptSessionRequest {
   uint64 session_id = 1;
   // accept or reject
   bool accepted = 2;
+  uint64 inviter_id = 3;
 }
 
 message AcceptSessionResponse {}

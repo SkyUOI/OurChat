@@ -10,7 +10,7 @@ message InviteSession {
   // inviter
   uint64 inviter_id = 2;
   // leaving a message for invitee
-  optional string leave_message = 3;
+  string leave_message = 3;
   // when to expire
   google.protobuf.Timestamp expire_timestamp = 4;
 }

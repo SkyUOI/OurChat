@@ -1,9 +1,9 @@
 use crate::db::messages::insert_msg_record;
-use crate::db::session::SessionError;
+use crate::db::session::{SessionError, get_session_by_id};
 use crate::process::error_msg::{SERVER_ERROR, not_found};
 use crate::process::{Dest, check_user_exist, transmit_msg};
 use crate::{db, helper, server::RpcServer};
-use anyhow::Context;
+use anyhow::{Context, anyhow};
 use base::consts::{ID, SessionID};
 use base::database::DbPool;
 use entities::{friend, prelude::*};
@@ -88,6 +88,7 @@ async fn new_session_impl(
             people_num,
             req.name.unwrap_or_default(),
             &transaction,
+            req.e2ee_on,
         )
         .await?;
         // add session relation
@@ -147,16 +148,20 @@ pub async fn send_verification_request(
     let respond_msg = InviteSession {
         session_id: session_id.into(),
         inviter_id: sender.into(),
-        leave_message: Some(leave_message.clone()),
+        leave_message: leave_message.clone(),
         expire_timestamp: Some(expire_at_google),
     };
+    let session = get_session_by_id(session_id, &server.db.db_pool)
+        .await?
+        .ok_or(anyhow!("cannot found session"))?;
+    let is_encrypted = session.e2ee_on;
     let respond_msg = RespondMsgType::InviteSession(respond_msg);
     // TODO: is_encrypted
     let msg_model = insert_msg_record(
-        invitee,
+        invitee.into(),
         Some(session_id),
         respond_msg.clone(),
-        false,
+        is_encrypted,
         &server.db.db_pool,
         false,
     )

@@ -8,13 +8,16 @@ async fn test_text_sent() {
     let mut app = client::TestApp::new_with_launching_instance()
         .await
         .unwrap();
-    let (session_user, session) = app.new_session_db_level(3, "session1").await.unwrap();
+    let (session_user, session) = app
+        .new_session_db_level(3, "session1", false)
+        .await
+        .unwrap();
     let (a, _b, _cc) = (
         session_user[0].clone(),
         session_user[1].clone(),
         session_user[2].clone(),
     );
-    let ret = a
+    let ret: tonic::Response<msg_delivery::v1::SendMsgResponse> = a
         .lock()
         .await
         .send_msg(
@@ -22,6 +25,7 @@ async fn test_text_sent() {
             vec![OneMsg {
                 data: Some(msg_delivery::v1::one_msg::Data::Text("hello".to_owned())),
             }],
+            false,
         )
         .await
         .unwrap();
@@ -34,7 +38,10 @@ async fn test_text_get() {
     let mut app = client::TestApp::new_with_launching_instance()
         .await
         .unwrap();
-    let (session_user, session) = app.new_session_db_level(3, "session1").await.unwrap();
+    let (session_user, session) = app
+        .new_session_db_level(3, "session1", false)
+        .await
+        .unwrap();
     let (a, _b, c) = (
         session_user[0].clone(),
         session_user[1].clone(),
@@ -47,7 +54,7 @@ async fn test_text_get() {
     let ret = a
         .lock()
         .await
-        .send_msg(session.session_id, vec![msg_should_sent.clone()])
+        .send_msg(session.session_id, vec![msg_should_sent.clone()], false)
         .await
         .unwrap();
     let mut msg_id = vec![ret.into_inner().msg_id];
@@ -55,7 +62,7 @@ async fn test_text_get() {
     let ret = a
         .lock()
         .await
-        .send_msg(session.session_id, vec![msg_should_sent.clone()])
+        .send_msg(session.session_id, vec![msg_should_sent.clone()], false)
         .await
         .unwrap()
         .into_inner();

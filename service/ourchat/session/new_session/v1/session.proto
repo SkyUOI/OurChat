@@ -10,6 +10,7 @@ message NewSessionRequest {
   string leave_message = 3;
   // avatar resource id
   optional string avatar_key = 4;
+  bool e2ee_on = 5;
 }
 
 enum FailedReason {

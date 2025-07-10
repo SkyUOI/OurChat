@@ -67,8 +67,8 @@ pub async fn del_msg(
         None => return Err(MsgError::NotFound),
         Some(d) => d,
     };
-    if let Some(owner) = deleter_id {
-        if i64::from(owner) != msg.sender_id
+    if let (Some(owner), Some(sender)) = (deleter_id, msg.sender_id) {
+        if i64::from(owner) != sender
             && !if_permission_exist(
                 owner,
                 session_id,
@@ -91,7 +91,7 @@ pub async fn del_msg(
 ///
 /// Returns `MsgError::DbError` if a database error occurs.
 pub async fn insert_msg_record(
-    sender_id: ID,
+    sender_id: Option<ID>,
     session_id: Option<SessionID>,
     msg: RespondMsgType,
     is_encrypted: bool,
@@ -100,7 +100,7 @@ pub async fn insert_msg_record(
 ) -> Result<message_records::Model, MsgError> {
     let msg = message_records::ActiveModel {
         msg_data: ActiveValue::Set(serde_json::to_value(msg).unwrap()),
-        sender_id: ActiveValue::Set(sender_id.into()),
+        sender_id: ActiveValue::Set(sender_id.map(i64::from)),
         session_id: ActiveValue::Set(session_id.map(i64::from)),
         is_encrypted: ActiveValue::Set(is_encrypted),
         is_all_user: ActiveValue::Set(is_all_user),

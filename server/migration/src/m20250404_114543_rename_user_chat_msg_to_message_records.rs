@@ -50,4 +50,5 @@ pub enum MessageRecords {
     Table,
     IsAllUser,
     MsgId,
+    SenderId,
 }

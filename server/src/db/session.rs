@@ -370,6 +370,7 @@ pub async fn create_session_db(
     people_num: usize,
     session_name: String,
     db_conn: &impl ConnectionTrait,
+    e2ee_on: bool,
 ) -> Result<session::Model, sea_orm::DbErr> {
     let time_now = chrono::Utc::now();
     let session = session::ActiveModel {
@@ -378,6 +379,8 @@ pub async fn create_session_db(
         size: ActiveValue::Set(people_num as i32),
         created_time: ActiveValue::Set(time_now.into()),
         updated_time: ActiveValue::Set(time_now.into()),
+        e2ee_on: ActiveValue::Set(e2ee_on),
+        leaving_to_process: ActiveValue::Set(false),
         ..Default::default()
     };
     let ret = session.insert(db_conn).await?;

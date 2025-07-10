@@ -11,7 +11,10 @@ use std::time::Duration;
 #[tokio::test]
 async fn mute_user() {
     let mut app = TestApp::new_with_launching_instance().await.unwrap();
-    let (session_user, session) = app.new_session_db_level(5, "session1").await.unwrap();
+    let (session_user, session) = app
+        .new_session_db_level(5, "session1", false)
+        .await
+        .unwrap();
     let (a, b, c, d, e) = (
         session_user[0].clone(),
         session_user[1].clone(),
@@ -66,6 +69,7 @@ async fn mute_user() {
             vec![OneMsg {
                 data: Some(msg_delivery::v1::one_msg::Data::Text("hello".to_owned())),
             }],
+            false,
         )
         .await
         .unwrap_err()
@@ -81,7 +85,10 @@ async fn mute_user() {
 #[tokio::test]
 async fn mute_user_with_duration() {
     let mut app = TestApp::new_with_launching_instance().await.unwrap();
-    let (session_user, session) = app.new_session_db_level(3, "session1").await.unwrap();
+    let (session_user, session) = app
+        .new_session_db_level(3, "session1", false)
+        .await
+        .unwrap();
     let a = session_user[0].clone();
     let b = session_user[1].clone();
     let (_aid, bid) = (a.lock().await.id, b.lock().await.id);
@@ -113,7 +120,10 @@ async fn mute_user_with_duration() {
 #[tokio::test]
 async fn mute_user_with_lower_privilege() {
     let mut app = TestApp::new_with_launching_instance().await.unwrap();
-    let (session_user, session) = app.new_session_db_level(3, "session1").await.unwrap();
+    let (session_user, session) = app
+        .new_session_db_level(3, "session1", false)
+        .await
+        .unwrap();
     let a = session_user[0].clone();
     let b = session_user[1].clone();
     let c = session_user[2].clone();
@@ -134,7 +144,10 @@ async fn mute_user_with_lower_privilege() {
 #[tokio::test]
 async fn mute_already_muted_user() {
     let mut app = TestApp::new_with_launching_instance().await.unwrap();
-    let (session_user, session) = app.new_session_db_level(3, "session1").await.unwrap();
+    let (session_user, session) = app
+        .new_session_db_level(3, "session1", false)
+        .await
+        .unwrap();
     let a = session_user[0].clone();
     let b = session_user[1].clone();
     let c = session_user[2].clone();
@@ -172,7 +185,10 @@ async fn mute_already_muted_user() {
 #[tokio::test]
 async fn unmute_user() {
     let mut app = TestApp::new_with_launching_instance().await.unwrap();
-    let (session_user, session) = app.new_session_db_level(3, "session1").await.unwrap();
+    let (session_user, session) = app
+        .new_session_db_level(3, "session1", false)
+        .await
+        .unwrap();
     let a = session_user[0].clone();
     let b = session_user[1].clone();
     let (_aid, bid) = (a.lock().await.id, b.lock().await.id);

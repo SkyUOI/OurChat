@@ -101,8 +101,14 @@ async fn accept_friend_impl(
     if req.status == AcceptFriendResult::Success as i32 {
         // create a session
         session_id = Some(helper::generate_session_id()?);
-        db::session::create_session_db(session_id.unwrap(), 0, "".to_owned(), &server.db.db_pool)
-            .await?;
+        db::session::create_session_db(
+            session_id.unwrap(),
+            0,
+            "".to_owned(),
+            &server.db.db_pool,
+            false,
+        )
+        .await?;
         let transaction = server.db.db_pool.begin().await?;
         db::session::batch_join_in_session(
             session_id.unwrap(),
@@ -155,7 +161,7 @@ async fn accept_friend_impl(
     // TODO: is_encrypted
     let transaction = server.db.db_pool.begin().await?;
     let _msg_model = insert_msg_record(
-        inviter_id,
+        inviter_id.into(),
         None,
         respond_msg.clone(),
         false,
@@ -163,8 +169,15 @@ async fn accept_friend_impl(
         false,
     )
     .await?;
-    let msg_model =
-        insert_msg_record(id, None, respond_msg.clone(), false, &transaction, false).await?;
+    let msg_model = insert_msg_record(
+        id.into(),
+        None,
+        respond_msg.clone(),
+        false,
+        &transaction,
+        false,
+    )
+    .await?;
     transaction.commit().await?;
     let fetch_response = FetchMsgsResponse {
         msg_id: msg_model.msg_id as u64,

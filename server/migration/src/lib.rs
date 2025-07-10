@@ -23,6 +23,11 @@ mod m20250404_135851_add_is_all_user_in_message_records;
 mod m20250404_153258_add_announcement_message_table;
 mod m20250405_081542_add_name_for_server_manager_role;
 mod m20250524_082226_webrtc_room;
+mod m20250531_080259_add_e2ee_on_in_session;
+mod m20250607_110239_add_room_key_time_and_leaving_to_process_in_session;
+mod m20250607_144007_add_public_key_in_user;
+mod m20250609_074125_change_sender_id_to_be_optional_in_message_records;
+mod m20250705_113148_change_public_key_from_string_to_bytes;
 
 pub struct Migrator;
 
@@ -53,6 +58,15 @@ impl MigratorTrait for Migrator {
             Box::new(m20250404_153258_add_announcement_message_table::Migration),
             Box::new(m20250405_081542_add_name_for_server_manager_role::Migration),
             Box::new(m20250524_082226_webrtc_room::Migration),
+            Box::new(m20250531_080259_add_e2ee_on_in_session::Migration),
+            Box::new(
+                m20250607_110239_add_room_key_time_and_leaving_to_process_in_session::Migration,
+            ),
+            Box::new(m20250607_144007_add_public_key_in_user::Migration),
+            Box::new(
+                m20250609_074125_change_sender_id_to_be_optional_in_message_records::Migration,
+            ),
+            Box::new(m20250705_113148_change_public_key_from_string_to_bytes::Migration),
         ]
     }
 }

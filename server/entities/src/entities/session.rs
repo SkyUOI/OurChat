@@ -14,6 +14,9 @@ pub struct Model {
     pub created_time: DateTimeWithTimeZone,
     pub description: String,
     pub default_role: i64,
+    pub e2ee_on: bool,
+    pub room_key_time: DateTimeWithTimeZone,
+    pub leaving_to_process: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

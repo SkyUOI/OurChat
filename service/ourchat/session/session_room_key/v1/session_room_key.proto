@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package service.ourchat.session.session_room_key.v1;
+
+import "service/ourchat/session/new_session/v1/session.proto";
+
+message SendRoomKeyNotification {
+  uint64 session_id = 1;
+  uint64 sender = 2;
+  bytes public_key = 3;
+}
+
+message ReceiveRoomKeyNotification {
+  uint64 session_id = 1;
+  uint64 user_id = 2;
+  bytes room_key = 3;
+}
+
+message SendRoomKeyRequest {
+  uint64 session_id = 1;
+  uint64 user_id = 2;
+  bytes room_key = 3;
+}
+
+message SendRoomKeyResponse {
+  optional service.ourchat.session.new_session.v1.FailedMember failed_member = 1;
+}
+
+message UpdateRoomKeyNotification {
+  uint64 session_id = 1;
+}

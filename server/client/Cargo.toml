@@ -32,3 +32,7 @@ urlencoding.workspace = true
 libc-print.workspace = true
 chrono.workspace = true
 http.workspace = true
+ring.workspace = true
+rsa.workspace = true
+base64.workspace = true
+bytes.workspace = true

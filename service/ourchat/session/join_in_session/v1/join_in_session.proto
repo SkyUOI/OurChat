@@ -13,17 +13,20 @@ message JoinInSessionApproval {
   uint64 session_id = 1;
   uint64 user_id = 2;
   optional string leave_message = 3;
+  optional bytes public_key = 4;
 }
 
 message AcceptJoinInSessionRequest {
   uint64 session_id = 1;
   uint64 user_id = 2;
   bool accepted = 3;
+  optional bytes room_key = 4;
 }
 
 message AcceptJoinInSessionResponse {}
 
 message AcceptJoinInSessionNotification {
   uint64 session_id = 1;
-  bool accepted = 2;
+  bool accepted = 3;
+  optional bytes room_key = 2;
 }

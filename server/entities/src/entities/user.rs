@@ -23,6 +23,8 @@ pub struct Model {
     pub update_time: DateTimeWithTimeZone,
     pub account_status: i32,
     pub deleted_at: Option<DateTimeWithTimeZone>,
+    #[sea_orm(column_type = "VarBinary(StringLen::None)")]
+    pub public_key: Vec<u8>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

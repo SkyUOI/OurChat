@@ -7,10 +7,12 @@ pub mod add_role;
 pub mod ban;
 pub mod delete_session;
 pub mod get_session_info;
+pub mod invite_to_session;
 pub mod join_in_session;
 pub mod leave_session;
 pub mod mute;
 pub mod new_session;
+pub mod session_room_key;
 pub mod set_role;
 pub mod set_self_info;
 

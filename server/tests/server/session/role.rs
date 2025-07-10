@@ -8,7 +8,10 @@ use server::process::error_msg::PERMISSION_DENIED;
 #[tokio::test]
 async fn set_role() {
     let mut app = TestApp::new_with_launching_instance().await.unwrap();
-    let (session_user, session) = app.new_session_db_level(3, "session1").await.unwrap();
+    let (session_user, session) = app
+        .new_session_db_level(3, "session1", false)
+        .await
+        .unwrap();
     let (a, b, c) = (
         session_user[0].clone(),
         session_user[1].clone(),

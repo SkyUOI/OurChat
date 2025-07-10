@@ -99,6 +99,11 @@ pub struct MainCfg {
     pub single_instance: bool,
     #[serde(default = "consts::default_leader_node")]
     pub leader_node: bool,
+    #[serde(
+        default = "consts::default_room_key_duration",
+        with = "humantime_serde"
+    )]
+    pub room_key_duration: Duration,
     pub password_hash: PasswordHash,
     pub db: DbArgCfg,
     pub debug: DebugCfg,

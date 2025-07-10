@@ -64,6 +64,7 @@ prost.workspace = true
 jsonwebtoken.workspace = true
 tokio-stream.workspace = true
 scopeguard.workspace = true
+rsa.workspace = true
 
 deadpool-lapin.workspace = true
 

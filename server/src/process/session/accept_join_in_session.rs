@@ -97,6 +97,7 @@ async fn accept_join_in_session_impl(
     // send a notification to applicant
     let respond_msg = RespondMsgType::AcceptJoinInSession(AcceptJoinInSessionNotification {
         session_id: session_id.into(),
+        room_key: req.room_key,
         accepted: req.accepted,
     });
     let rmq_conn = server
@@ -109,7 +110,7 @@ async fn accept_join_in_session_impl(
         .await
         .context("cannot create rabbitmq channel")?;
     super::super::message_insert_and_transmit(
-        req.user_id.into(),
+        ID::from(req.user_id).into(),
         Some(session_id),
         respond_msg.clone(),
         Dest::User(req.user_id.into()),

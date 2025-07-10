@@ -8,7 +8,9 @@ import "service/ourchat/friends/add_friend/v1/add_friend.proto";
 import "service/ourchat/msg_delivery/announcement/v1/announcement.proto";
 import "service/ourchat/msg_delivery/recall/v1/recall.proto";
 import "service/ourchat/session/invite_session/v1/invite_session.proto";
+import "service/ourchat/session/invite_to_session/v1/invite_to_session.proto";
 import "service/ourchat/session/join_in_session/v1/join_in_session.proto";
+import "service/ourchat/session/session_room_key/v1/session_room_key.proto";
 
 // One piece of message
 message OneMsg {
@@ -44,6 +46,10 @@ message FetchMsgsResponse {
     session.join_in_session.v1.AcceptJoinInSessionNotification accept_join_in_session = 9;
     friends.add_friend.v1.AddFriendApproval add_friend_approval = 8;
     announcement.v1.AnnouncementResponse announcement_response = 10;
+    session.invite_to_session.v1.AcceptSessionNotification accept_session_approval = 11;
+    session.session_room_key.v1.ReceiveRoomKeyNotification receive_room_key = 12;
+    session.session_room_key.v1.SendRoomKeyNotification send_room_key = 13;
+    session.session_room_key.v1.UpdateRoomKeyNotification update_room_key = 14;
   }
   // id of the message
   uint64 msg_id = 5;

@@ -1,6 +1,12 @@
 use std::pin::Pin;
 
 use pb::service::ourchat::download::v1::{DownloadRequest, DownloadResponse};
+use pb::service::ourchat::session::invite_to_session::v1::{
+    InviteToSessionRequest, InviteToSessionResponse,
+};
+use pb::service::ourchat::session::session_room_key::v1::{
+    SendRoomKeyRequest, SendRoomKeyResponse,
+};
 use pb::service::ourchat::webrtc::room::create_room::v1::{CreateRoomRequest, CreateRoomResponse};
 use tonic::{Request, Response, Status};
 
@@ -344,5 +350,23 @@ impl OurChatService for RpcServer {
         let id = get_id_from_req(&request).unwrap();
         self.check_account_status(id).await?;
         process::create_room(self, id, request).await
+    }
+
+    async fn invite_to_session(
+        &self,
+        request: Request<InviteToSessionRequest>,
+    ) -> Result<Response<InviteToSessionResponse>, Status> {
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::invite_to_session(self, id, request).await
+    }
+
+    async fn send_room_key(
+        &self,
+        request: Request<SendRoomKeyRequest>,
+    ) -> Result<Response<SendRoomKeyResponse>, Status> {
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::send_room_key(self, id, request).await
     }
 }

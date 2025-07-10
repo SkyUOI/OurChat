@@ -6,7 +6,7 @@ async fn leave_session() {
     let mut app = client::TestApp::new_with_launching_instance()
         .await
         .unwrap();
-    let (session_user, session) = app.new_session_db_level(3, "session1").await.unwrap();
+    let (session_user, session) = app.new_session_db_level(3, "session1", true).await.unwrap();
     let a = session_user[0].clone();
     let b = session_user[1].clone();
     let c = session_user[2].clone();

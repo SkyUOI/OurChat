@@ -84,6 +84,18 @@ pub mod session {
             include!("../generated/service.ourchat.session.join_in_session.v1.rs");
         }
     }
+
+    pub mod invite_to_session {
+        pub mod v1 {
+            include!("../generated/service.ourchat.session.invite_to_session.v1.rs");
+        }
+    }
+
+    pub mod session_room_key {
+        pub mod v1 {
+            include!("../generated/service.ourchat.session.session_room_key.v1.rs");
+        }
+    }
 }
 
 pub mod set_account_info {

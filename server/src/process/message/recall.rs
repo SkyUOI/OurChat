@@ -75,7 +75,7 @@ async fn recall_msg_internal(
     let respond_msg = RespondMsgType::Recall(RecallNotification { msg_id: req.msg_id });
     // TODO: is_encrypted
     let msg = db::messages::insert_msg_record(
-        id,
+        id.into(),
         Some(req.session_id.into()),
         respond_msg.clone(),
         false,

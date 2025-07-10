@@ -96,6 +96,10 @@ color-eyre = "0"
 actix-tls = "3"
 
 webrtc = "0.13"
+rsa = "0"
+base64 = "0"
+
+# matrix-sdk = "0.11.0"
 
 [workspace.dependencies.lettre]
 version = "0"
@@ -154,6 +158,7 @@ features = ["full", "tracing"]
 [workspace.dependencies.bytes]
 version = "1"
 default-features = false
+features = ["serde"]
 
 [workspace.dependencies.serde]
 version = "1"

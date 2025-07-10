@@ -1,5 +1,7 @@
 mod ban;
 mod delete;
+mod e2ee_update;
+mod invite;
 mod join;
 mod leave;
 mod mute;
@@ -76,7 +78,7 @@ async fn session_create() {
         };
         assert_eq!(rec.session_id, *session_id);
         assert_eq!(rec.inviter_id, *user1_id);
-        assert_eq!(rec.leave_message, Some("hello".to_string()));
+        assert_eq!(rec.leave_message, "hello".to_string());
     };
     check(user3_rec).await;
     notify.notify_waiters();
@@ -87,13 +89,13 @@ async fn session_create() {
     user2
         .lock()
         .await
-        .accept_session(session_id, false)
+        .accept_session(session_id, false, user1_id)
         .await
         .unwrap();
     user3
         .lock()
         .await
-        .accept_session(session_id, true)
+        .accept_session(session_id, true, user1_id)
         .await
         .unwrap();
     tokio::time::sleep(Duration::from_millis(200)).await;
@@ -116,7 +118,10 @@ async fn session_create() {
 #[tokio::test]
 async fn get_session_info() {
     let mut app = TestApp::new_with_launching_instance().await.unwrap();
-    let (session_user, session) = app.new_session_db_level(3, "session1").await.unwrap();
+    let (session_user, session) = app
+        .new_session_db_level(3, "session1", false)
+        .await
+        .unwrap();
     let (a, b, c) = (
         session_user[0].clone(),
         session_user[1].clone(),
@@ -176,7 +181,10 @@ async fn get_session_info() {
 #[tokio::test]
 async fn set_session_info() {
     let mut app = TestApp::new_with_launching_instance().await.unwrap();
-    let (session_user, session) = app.new_session_db_level(3, "session1").await.unwrap();
+    let (session_user, session) = app
+        .new_session_db_level(3, "session1", false)
+        .await
+        .unwrap();
     let (a, b, _c) = (
         session_user[0].clone(),
         session_user[1].clone(),
