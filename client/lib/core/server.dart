@@ -14,7 +14,7 @@ class OurchatInterceptor implements ClientInterceptor {
   ResponseFuture<R> interceptUnary<Q, R>(ClientMethod<Q, R> method, Q request,
       CallOptions options, ClientUnaryInvoker<Q, R> invoker) {
     var newOptions = options.mergedWith(
-      CallOptions(metadata: {'token': token}),
+      CallOptions(metadata: {'authorization': "Bearer $token"}),
     );
     return invoker(method, request, newOptions);
   }
@@ -26,7 +26,7 @@ class OurchatInterceptor implements ClientInterceptor {
       CallOptions options,
       ClientStreamingInvoker<Q, R> invoker) {
     var newOptions = options.mergedWith(
-      CallOptions(metadata: {'token': token}),
+      CallOptions(metadata: {'authorization': "Bearer $token"}),
     );
     return invoker(method, requests, newOptions);
   }
