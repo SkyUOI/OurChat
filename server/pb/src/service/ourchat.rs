@@ -84,6 +84,12 @@ pub mod session {
             include!("../generated/service.ourchat.session.join_session.v1.rs");
         }
     }
+
+    pub mod allow_user_join_session {
+        pub mod v1 {
+            include!("../generated/service.ourchat.session.allow_user_join_session.v1.rs");
+        }
+    }
 }
 
 pub mod set_account_info {
@@ -111,9 +117,9 @@ pub mod friends {
         }
     }
 
-    pub mod accept_friend {
+    pub mod accept_friend_invitation {
         pub mod v1 {
-            include!("../generated/service.ourchat.friends.accept_friend.v1.rs");
+            include!("../generated/service.ourchat.friends.accept_friend_invitation.v1.rs");
         }
     }
 

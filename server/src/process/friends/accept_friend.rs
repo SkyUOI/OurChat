@@ -8,8 +8,9 @@ use anyhow::Context;
 use base::consts::ID;
 use deadpool_redis::redis::AsyncCommands;
 use migration::m20241229_022701_add_role_for_session::PredefinedRoles;
-use pb::service::ourchat::friends::accept_friend::v1::{
-    AcceptFriendNotification, AcceptFriendRequest, AcceptFriendResponse, AcceptFriendResult,
+use pb::service::ourchat::friends::accept_friend_invitation::v1::{
+    AcceptFriendInvitationRequest, AcceptFriendInvitationResponse, AcceptFriendInvitationResult,
+    FriendInvitationResultNotification,
 };
 use pb::service::ourchat::friends::add_friend::v1::AddFriendRequest;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
@@ -18,12 +19,12 @@ use pb::time::to_google_timestamp;
 use sea_orm::{ActiveModelTrait, ActiveValue, TransactionTrait};
 use tonic::{Request, Response, Status};
 
-pub async fn accept_friend(
+pub async fn accept_friend_invitation(
     server: &RpcServer,
     id: ID,
-    request: Request<AcceptFriendRequest>,
-) -> Result<Response<AcceptFriendResponse>, Status> {
-    match accept_friend_impl(server, id, request).await {
+    request: Request<AcceptFriendInvitationRequest>,
+) -> Result<Response<AcceptFriendInvitationResponse>, Status> {
+    match accept_friend_invitation_impl(server, id, request).await {
         Ok(res) => Ok(Response::new(res)),
         Err(e) => match e {
             AcceptFriendErr::Db(_) | AcceptFriendErr::Internal(_) | AcceptFriendErr::Redis(_) => {
@@ -77,11 +78,11 @@ impl From<MsgError> for AcceptFriendErr {
     }
 }
 
-async fn accept_friend_impl(
+async fn accept_friend_invitation_impl(
     server: &RpcServer,
     id: ID,
-    request: Request<AcceptFriendRequest>,
-) -> Result<AcceptFriendResponse, AcceptFriendErr> {
+    request: Request<AcceptFriendInvitationRequest>,
+) -> Result<AcceptFriendInvitationResponse, AcceptFriendErr> {
     let req = request.into_inner();
     let inviter_id: ID = req.friend_id.into();
     let mut redis_conn = server
@@ -98,7 +99,7 @@ async fn accept_friend_impl(
     let add_friend_req: String = redis_conn.get_del(&key).await?;
     let add_friend_req: AddFriendRequest = serde_json::from_str(&add_friend_req).unwrap();
     let mut session_id = None;
-    if req.status == AcceptFriendResult::Success as i32 {
+    if req.status == AcceptFriendInvitationResult::Success as i32 {
         // create a session
         session_id = Some(helper::generate_session_id()?);
         db::session::create_session_db(session_id.unwrap(), 0, "".to_owned(), &server.db.db_pool)
@@ -145,13 +146,14 @@ async fn accept_friend_impl(
         .create_channel()
         .await
         .context("cannot create channel")?;
-    let respond_msg = RespondEventType::AcceptFriend(AcceptFriendNotification {
-        inviter_id: inviter_id.into(),
-        invitee_id: id.into(),
-        leave_message: req.leave_message,
-        status: req.status,
-        session_id: session_id.map(|x| x.into()),
-    });
+    let respond_msg =
+        RespondEventType::FriendInvitationResultNotification(FriendInvitationResultNotification {
+            inviter_id: inviter_id.into(),
+            invitee_id: id.into(),
+            leave_message: req.leave_message,
+            status: req.status,
+            session_id: session_id.map(|x| x.into()),
+        });
     // TODO: is_encrypted
     let transaction = server.db.db_pool.begin().await?;
     let _msg_model = insert_msg_record(
@@ -178,7 +180,7 @@ async fn accept_friend_impl(
         &server.db.db_pool,
     )
     .await?;
-    let ret = AcceptFriendResponse {
+    let ret = AcceptFriendInvitationResponse {
         session_id: session_id.map(|x| x.into()),
     };
     Ok(ret)

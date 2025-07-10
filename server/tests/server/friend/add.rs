@@ -2,7 +2,9 @@ use base::consts::SessionID;
 use claims::{assert_none, assert_some};
 use client::TestApp;
 use migration::m20241229_022701_add_role_for_session::PredefinedRoles;
-use pb::service::ourchat::friends::accept_friend::v1::{AcceptFriendRequest, AcceptFriendResult};
+use pb::service::ourchat::friends::accept_friend_invitation::v1::{
+    AcceptFriendInvitationRequest, AcceptFriendInvitationResult,
+};
 use pb::service::ourchat::friends::add_friend::v1::AddFriendRequest;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
 use server::db::friend::query_friend;
@@ -21,38 +23,38 @@ use std::time::Duration;
 #[tokio::test]
 async fn add_friend_accept() {
     let mut app = TestApp::new_with_launching_instance().await.unwrap();
-    let user1 = app.new_user().await.unwrap();
-    let user2 = app.new_user().await.unwrap();
-    let (user1_id, user2_id) = (user1.lock().await.id, user2.lock().await.id);
-    user1
+    let inviter = app.new_user().await.unwrap();
+    let invitee = app.new_user().await.unwrap();
+    let (inviter_id, invitee_id) = (inviter.lock().await.id, invitee.lock().await.id);
+    inviter
         .lock()
         .await
         .oc()
         .add_friend(AddFriendRequest {
-            friend_id: user2_id.into(),
+            friend_id: invitee_id.into(),
             leave_message: None,
             display_name: Some("new_friend".to_owned()),
         })
         .await
         .unwrap();
-    let user2_rec = user2.lock().await.fetch_msgs().fetch(1).await.unwrap();
-    let RespondEventType::AddFriendApproval(add_friend) =
-        user2_rec[0].respond_event_type.clone().unwrap()
+    let invitee_rec = invitee.lock().await.fetch_msgs().fetch(1).await.unwrap();
+    let RespondEventType::NewFriendInvitationNotification(add_friend) =
+        invitee_rec[0].respond_event_type.clone().unwrap()
     else {
         panic!()
     };
     assert_eq!(add_friend.leave_message, None);
-    assert_eq!(add_friend.inviter_id, *user1_id);
+    assert_eq!(add_friend.inviter_id, *inviter_id);
 
     let send_invitation = async || {
-        user2
+        invitee
             .lock()
             .await
             .oc()
-            .accept_friend(AcceptFriendRequest {
-                friend_id: user1_id.into(),
+            .accept_friend_invitation(AcceptFriendInvitationRequest {
+                friend_id: inviter_id.into(),
                 leave_message: None,
-                status: AcceptFriendResult::Success.into(),
+                status: AcceptFriendInvitationResult::Success.into(),
             })
             .await
     };
@@ -60,22 +62,22 @@ async fn add_friend_accept() {
     let session_id1: SessionID = ret.session_id.unwrap().into();
     tokio::time::sleep(Duration::from_millis(100)).await;
     assert_some!(
-        query_friend(user1_id, user2_id, app.get_db_connection())
+        query_friend(inviter_id, invitee_id, app.get_db_connection())
             .await
             .unwrap()
     );
-    let user1_rec = user1.lock().await.fetch_msgs().fetch(2).await.unwrap();
-    let RespondEventType::AcceptFriend(accept_friend_notification) =
-        user1_rec[1].respond_event_type.clone().unwrap()
+    let inviter_rec = inviter.lock().await.fetch_msgs().fetch(2).await.unwrap();
+    let RespondEventType::FriendInvitationResultNotification(accept_friend_notification) =
+        inviter_rec[1].respond_event_type.clone().unwrap()
     else {
         panic!()
     };
     assert_eq!(accept_friend_notification.leave_message, None);
-    assert_eq!(accept_friend_notification.inviter_id, *user1_id);
-    assert_eq!(accept_friend_notification.invitee_id, *user2_id);
+    assert_eq!(accept_friend_notification.inviter_id, *inviter_id);
+    assert_eq!(accept_friend_notification.invitee_id, *invitee_id);
     assert_eq!(
         accept_friend_notification.status,
-        AcceptFriendResult::Success as i32
+        AcceptFriendInvitationResult::Success as i32
     );
     let session_id2: SessionID = accept_friend_notification.session_id.unwrap().into();
     assert_eq!(session_id1, session_id2);
@@ -118,22 +120,22 @@ async fn add_friend_reject() {
         .unwrap();
     let user2_rec = user2.lock().await.fetch_msgs().fetch(1).await.unwrap();
     assert_eq!(user2_rec.len(), 1);
-    let RespondEventType::AddFriendApproval(add_friend) =
+    let RespondEventType::NewFriendInvitationNotification(new_friend_notification) =
         user2_rec[0].respond_event_type.clone().unwrap()
     else {
         panic!()
     };
-    assert_eq!(add_friend.leave_message, None);
-    assert_eq!(add_friend.inviter_id, *user1_id);
+    assert_eq!(new_friend_notification.leave_message, None);
+    assert_eq!(new_friend_notification.inviter_id, *user1_id);
     let send_invitation = async || {
         user2
             .lock()
             .await
             .oc()
-            .accept_friend(AcceptFriendRequest {
+            .accept_friend_invitation(AcceptFriendInvitationRequest {
                 friend_id: user1_id.into(),
                 leave_message: None,
-                status: AcceptFriendResult::Fail.into(),
+                status: AcceptFriendInvitationResult::Fail.into(),
             })
             .await
     };
@@ -147,19 +149,19 @@ async fn add_friend_reject() {
     );
     let user1_rec = user1.lock().await.fetch_msgs().fetch(2).await.unwrap();
     assert_eq!(user1_rec.len(), 2, "{user1_rec:?}");
-    let RespondEventType::AcceptFriend(accept_friend_notification) =
+    let RespondEventType::FriendInvitationResultNotification(friend_invitation_result) =
         user1_rec[1].respond_event_type.clone().unwrap()
     else {
         panic!()
     };
-    assert_eq!(accept_friend_notification.leave_message, None);
-    assert_eq!(accept_friend_notification.inviter_id, *user1_id);
-    assert_eq!(accept_friend_notification.invitee_id, *user2_id);
+    assert_eq!(friend_invitation_result.leave_message, None);
+    assert_eq!(friend_invitation_result.inviter_id, *user1_id);
+    assert_eq!(friend_invitation_result.invitee_id, *user2_id);
     assert_eq!(
-        accept_friend_notification.status,
-        AcceptFriendResult::Fail as i32
+        friend_invitation_result.status,
+        AcceptFriendInvitationResult::Fail as i32
     );
-    assert_none!(accept_friend_notification.session_id);
+    assert_none!(friend_invitation_result.session_id);
 
     // test that the invitation is not sent again
     let err = send_invitation().await.unwrap_err();

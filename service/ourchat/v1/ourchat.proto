@@ -3,7 +3,7 @@ syntax = "proto3";
 package service.ourchat.v1;
 
 import "service/ourchat/download/v1/download.proto";
-import "service/ourchat/friends/accept_friend/v1/accept_friend.proto";
+import "service/ourchat/friends/accept_friend_invitation/v1/accept_friend_invitation.proto";
 import "service/ourchat/friends/add_friend/v1/add_friend.proto";
 import "service/ourchat/friends/delete_friend/v1/delete_friend.proto";
 import "service/ourchat/friends/set_friend_info/v1/set_friend_info.proto";
@@ -12,6 +12,7 @@ import "service/ourchat/msg_delivery/recall/v1/recall.proto";
 import "service/ourchat/msg_delivery/v1/msg_delivery.proto";
 import "service/ourchat/session/accept_join_session_invitation/v1/accept_join_session_invitation.proto";
 import "service/ourchat/session/add_role/v1/add_role.proto";
+import "service/ourchat/session/allow_user_join_session/v1/allow_user_join_session.proto";
 import "service/ourchat/session/ban/v1/ban.proto";
 import "service/ourchat/session/delete_session/v1/delete_session.proto";
 import "service/ourchat/session/get_session_info/v1/get_session_info.proto";
@@ -80,13 +81,13 @@ service OurChatService {
 
   rpc AddFriend(friends.add_friend.v1.AddFriendRequest) returns (friends.add_friend.v1.AddFriendResponse);
 
-  rpc AcceptFriend(friends.accept_friend.v1.AcceptFriendRequest) returns (friends.accept_friend.v1.AcceptFriendResponse);
+  rpc AcceptFriendInvitation(friends.accept_friend_invitation.v1.AcceptFriendInvitationRequest) returns (friends.accept_friend_invitation.v1.AcceptFriendInvitationResponse);
 
   rpc DeleteFriend(friends.delete_friend.v1.DeleteFriendRequest) returns (friends.delete_friend.v1.DeleteFriendResponse);
 
   rpc JoinSession(session.join_session.v1.JoinSessionRequest) returns (session.join_session.v1.JoinSessionResponse);
 
-  rpc AllowUserJoinSession(session.join_session.v1.AllowUserJoinSessionRequest) returns (session.join_session.v1.AllowUserJoinSessionResponse);
+  rpc AllowUserJoinSession(session.allow_user_join_session.v1.AllowUserJoinSessionRequest) returns (session.allow_user_join_session.v1.AllowUserJoinSessionResponse);
 
   // Webrtc operations
 

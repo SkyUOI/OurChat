@@ -6,7 +6,9 @@ use tonic::{Request, Response, Status};
 
 use super::RpcServer;
 use crate::process::{self, get_id_from_req};
-use pb::service::ourchat::friends::accept_friend::v1::{AcceptFriendRequest, AcceptFriendResponse};
+use pb::service::ourchat::friends::accept_friend_invitation::v1::{
+    AcceptFriendInvitationRequest, AcceptFriendInvitationResponse,
+};
 use pb::service::ourchat::friends::add_friend::v1::{AddFriendRequest, AddFriendResponse};
 use pb::service::ourchat::friends::delete_friend::v1::{DeleteFriendRequest, DeleteFriendResponse};
 use pb::service::ourchat::friends::set_friend_info::v1::{
@@ -21,6 +23,9 @@ use pb::service::ourchat::session::accept_join_session_invitation::v1::{
     AcceptJoinSessionInvitationRequest, AcceptJoinSessionInvitationResponse,
 };
 use pb::service::ourchat::session::add_role::v1::{AddRoleRequest, AddRoleResponse};
+use pb::service::ourchat::session::allow_user_join_session::v1::{
+    AllowUserJoinSessionRequest, AllowUserJoinSessionResponse,
+};
 use pb::service::ourchat::session::ban::v1::{
     BanUserRequest, BanUserResponse, UnbanUserRequest, UnbanUserResponse,
 };
@@ -30,10 +35,7 @@ use pb::service::ourchat::session::delete_session::v1::{
 use pb::service::ourchat::session::get_session_info::v1::{
     GetSessionInfoRequest, GetSessionInfoResponse,
 };
-use pb::service::ourchat::session::join_session::v1::{
-    AllowUserJoinSessionRequest, AllowUserJoinSessionResponse, JoinSessionRequest,
-    JoinSessionResponse,
-};
+use pb::service::ourchat::session::join_session::v1::{JoinSessionRequest, JoinSessionResponse};
 use pb::service::ourchat::session::leave_session::v1::{LeaveSessionRequest, LeaveSessionResponse};
 use pb::service::ourchat::session::mute::v1::{
     MuteUserRequest, MuteUserResponse, UnmuteUserRequest, UnmuteUserResponse,
@@ -294,13 +296,13 @@ impl OurChatService for RpcServer {
 
     /// Accept a pending friend request
     #[tracing::instrument(skip(self))]
-    async fn accept_friend(
+    async fn accept_friend_invitation(
         &self,
-        request: Request<AcceptFriendRequest>,
-    ) -> Result<Response<AcceptFriendResponse>, Status> {
+        request: Request<AcceptFriendInvitationRequest>,
+    ) -> Result<Response<AcceptFriendInvitationResponse>, Status> {
         let id = get_id_from_req(&request).unwrap();
         self.check_account_status(id).await?;
-        process::accept_friend(self, id, request).await
+        process::accept_friend_invitation(self, id, request).await
     }
 
     /// Remove a user from the list of friends

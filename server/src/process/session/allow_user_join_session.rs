@@ -6,7 +6,7 @@ use anyhow::Context;
 use base::consts::{ID, SessionID};
 use migration::m20241229_022701_add_role_for_session::PredefinedPermissions;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
-use pb::service::ourchat::session::join_session::v1::{
+use pb::service::ourchat::session::allow_user_join_session::v1::{
     AllowUserJoinSessionNotification, AllowUserJoinSessionRequest, AllowUserJoinSessionResponse,
 };
 use sea_orm::TransactionTrait;
@@ -95,10 +95,11 @@ async fn allow_user_join_session_impl(
         }
     }
     // send a notification to applicant
-    let respond_msg = RespondEventType::AcceptJoinSession(AllowUserJoinSessionNotification {
-        session_id: session_id.into(),
-        accepted: req.accepted,
-    });
+    let respond_msg =
+        RespondEventType::AllowUserJoinSessionNotification(AllowUserJoinSessionNotification {
+            session_id: session_id.into(),
+            accepted: req.accepted,
+        });
     let rmq_conn = server
         .rabbitmq
         .get()

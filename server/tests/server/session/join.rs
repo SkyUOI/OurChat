@@ -1,8 +1,7 @@
 use client::TestApp;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
-use pb::service::ourchat::session::join_session::v1::{
-    AllowUserJoinSessionRequest, JoinSessionRequest,
-};
+use pb::service::ourchat::session::allow_user_join_session::v1::AllowUserJoinSessionRequest;
+use pb::service::ourchat::session::join_session::v1::JoinSessionRequest;
 use server::db::session::in_session;
 
 #[tokio::test]
@@ -59,7 +58,8 @@ async fn join_in_session_success() {
     );
     let ret = c.lock().await.fetch_msgs().fetch(2).await.unwrap();
     assert_eq!(ret.len(), 2, "{ret:?}");
-    let RespondEventType::AcceptJoinSession(ret) = ret[1].respond_event_type.clone().unwrap()
+    let RespondEventType::AllowUserJoinSessionNotification(ret) =
+        ret[1].respond_event_type.clone().unwrap()
     else {
         panic!()
     };
@@ -122,7 +122,8 @@ async fn join_in_session_reject() {
     );
     let ret = c.lock().await.fetch_msgs().fetch(2).await.unwrap();
     assert_eq!(ret.len(), 2, "{ret:?}");
-    let RespondEventType::AcceptJoinSession(ret) = ret[1].respond_event_type.clone().unwrap()
+    let RespondEventType::AllowUserJoinSessionNotification(ret) =
+        ret[1].respond_event_type.clone().unwrap()
     else {
         panic!()
     };
