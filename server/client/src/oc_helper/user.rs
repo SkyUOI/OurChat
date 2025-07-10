@@ -28,7 +28,7 @@ use tokio::sync::Notify;
 use tokio_stream::StreamExt;
 use tonic::metadata::MetadataValue;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig, Identity, Uri};
-use tonic::{Response, Streaming};
+use tonic::{Response, Status, Streaming};
 
 pub struct TestUser {
     pub name: String,
@@ -155,7 +155,7 @@ impl TestUser {
         &mut self,
         session_id: SessionID,
         accept: bool,
-    ) -> anyhow::Result<()> {
+    ) -> Result<(), Status> {
         let req = AcceptJoinSessionInvitationRequest {
             session_id: session_id.into(),
             accepted: accept,

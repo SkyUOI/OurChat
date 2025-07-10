@@ -99,6 +99,23 @@ async fn session_create() {
         .await
         .unwrap();
     tokio::time::sleep(Duration::from_millis(200)).await;
+    let err = user2
+        .lock()
+        .await
+        .accept_join_session_invitation(session_id, false)
+        .await
+        .unwrap_err();
+    assert_eq!(err.code(), tonic::Code::NotFound);
+    assert_eq!(err.message(), error_msg::not_found::SESSION_INVITATION);
+    let err = user3
+        .lock()
+        .await
+        .accept_join_session_invitation(session_id, true)
+        .await
+        .unwrap_err();
+    assert_eq!(err.code(), tonic::Code::NotFound);
+    assert_eq!(err.message(), error_msg::not_found::SESSION_INVITATION);
+
     assert_eq!(
         get_all_session_relations(user2_id, app.get_db_connection())
             .await
