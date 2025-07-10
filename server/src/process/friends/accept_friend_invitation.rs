@@ -3,11 +3,10 @@ use crate::db::session::SessionError;
 use crate::process::error_msg::{PERMISSION_DENIED, not_found};
 use crate::process::friends::mapped_add_friend_to_redis;
 use crate::process::{Dest, transmit_msg};
-use crate::{db, helper, process::error_msg::SERVER_ERROR, server::RpcServer};
+use crate::{db, process::error_msg::SERVER_ERROR, server::RpcServer};
 use anyhow::Context;
 use base::consts::ID;
 use deadpool_redis::redis::AsyncCommands;
-use migration::m20241229_022701_add_role_for_session::PredefinedRoles;
 use pb::service::ourchat::friends::accept_friend_invitation::v1::{
     AcceptFriendInvitationRequest, AcceptFriendInvitationResponse, AcceptFriendInvitationResult,
     FriendInvitationResultNotification,
@@ -16,7 +15,7 @@ use pb::service::ourchat::friends::add_friend::v1::AddFriendRequest;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
 use pb::time::to_google_timestamp;
-use sea_orm::{ActiveModelTrait, ActiveValue, TransactionTrait};
+use sea_orm::TransactionTrait;
 use tonic::{Request, Response, Status};
 
 pub async fn accept_friend_invitation(
@@ -100,40 +99,17 @@ async fn accept_friend_invitation_impl(
     let add_friend_req: AddFriendRequest = serde_json::from_str(&add_friend_req).unwrap();
     let mut session_id = None;
     if req.status == AcceptFriendInvitationResult::Success as i32 {
-        // create a session
-        session_id = Some(helper::generate_session_id()?);
-        db::session::create_session_db(session_id.unwrap(), 0, "".to_owned(), &server.db.db_pool)
-            .await?;
         let transaction = server.db.db_pool.begin().await?;
-        db::session::batch_join_in_session(
-            session_id.unwrap(),
-            &[id, inviter_id],
-            Some(PredefinedRoles::Owner.into()),
-            &transaction,
-        )
-        .await?;
-        transaction.commit().await?;
-
-        // create friend relation
-        let transaction = server.db.db_pool.begin().await?;
-        let model = entities::friend::ActiveModel {
-            user_id: ActiveValue::Set(inviter_id.into()),
-            friend_id: ActiveValue::Set(id.into()),
-        };
-        model.insert(&transaction).await?;
-        let model = entities::friend::ActiveModel {
-            user_id: ActiveValue::Set(id.into()),
-            friend_id: ActiveValue::Set(inviter_id.into()),
-        };
-        model.insert(&transaction).await?;
-        if let Some(display_name) = add_friend_req.display_name {
-            let model = entities::user_contact_info::ActiveModel {
-                user_id: ActiveValue::Set(inviter_id.into()),
-                contact_user_id: ActiveValue::Set(id.into()),
-                display_name: ActiveValue::Set(Some(display_name)),
-            };
-            model.insert(&transaction).await?;
-        }
+        session_id = Some(
+            db::friend::add_friend(
+                id,
+                inviter_id,
+                add_friend_req.display_name,
+                None,
+                &transaction,
+            )
+            .await?,
+        );
         transaction.commit().await?;
     }
     // transmit to both

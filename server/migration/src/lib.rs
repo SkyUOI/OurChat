@@ -23,6 +23,7 @@ mod m20250404_135851_add_is_all_user_in_message_records;
 mod m20250404_153258_add_announcement_message_table;
 mod m20250405_081542_add_name_for_server_manager_role;
 mod m20250524_082226_webrtc_room;
+mod m20250710_090847_add_session_id_to_friend_relation;
 
 pub struct Migrator;
 
@@ -53,6 +54,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20250404_153258_add_announcement_message_table::Migration),
             Box::new(m20250405_081542_add_name_for_server_manager_role::Migration),
             Box::new(m20250524_082226_webrtc_room::Migration),
+            Box::new(m20250710_090847_add_session_id_to_friend_relation::Migration),
         ]
     }
 }

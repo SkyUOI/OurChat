@@ -311,6 +311,21 @@ impl TestApp {
         Ok((users, TestSession::new(session_id)))
     }
 
+    /// Helper function to create a friendship between two users
+    pub async fn create_friendship(
+        &mut self,
+        user1_id: ID,
+        user2_id: ID,
+    ) -> anyhow::Result<SessionID> {
+        // Simplified friendship creation - in real implementation this would
+        // involve the full add_friend/accept_friend_invitation flow
+        let transaction = self.get_db_connection().begin().await?;
+        let session_id =
+            server::db::friend::add_friend(user1_id, user2_id, None, None, &transaction).await?;
+        transaction.commit().await?;
+        Ok(session_id)
+    }
+
     pub async fn change_role_db_level(
         _user_id: ID,
         _session_id: SessionID,
