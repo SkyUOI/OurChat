@@ -68,8 +68,9 @@ async fn test_recall() {
     let recall_msg_id = recall_msg.msg_id;
     // receive the recall signal
     let b_rec = b.lock().await.fetch_msgs().fetch(1).await.unwrap();
-    let check = |rec: Vec<FetchMsgsResponse>, msg_len, msg_recall_idx: usize| {
+    let check = async |rec: Vec<FetchMsgsResponse>, msg_len, msg_recall_idx: usize| {
         assert_eq!(rec.len(), msg_len, "{rec:?}");
+        tokio::time::sleep(Duration::from_millis(200)).await;
         assert_lt!(
             from_google_timestamp(&rec[msg_recall_idx].time.unwrap()).unwrap(),
             chrono::Utc::now()
@@ -82,9 +83,10 @@ async fn test_recall() {
         };
         assert_eq!(data.msg_id, msg_id);
     };
-    check(b_rec, 1, 0);
+    check(b_rec, 1, 0).await;
     notify.notify_waiters();
     join!(task).0.unwrap();
-    check(res.lock().clone().unwrap(), 2, 1);
+    let tmp = { res.lock().clone().unwrap() };
+    check(tmp, 2, 1).await;
     app.async_drop().await;
 }
