@@ -95,6 +95,8 @@ pub use session::{
     add_role::add_role,
     ban::{ban_user, unban_user},
     delete_session::delete_session,
+    e2eeize_and_dee2eeize_session::dee2eeize_session,
+    e2eeize_and_dee2eeize_session::e2eeize_session,
     get_session_info::get_session_info,
     invite_to_session::invite_to_session,
     join_in_session::join_in_session,

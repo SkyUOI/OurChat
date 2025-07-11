@@ -89,16 +89,20 @@ async fn send_msg_impl(
     {
         Err(Status::permission_denied(error_msg::MUTE))?
     }
+    let session_id = req.session_id.into();
+    let session = get_session_by_id(session_id, &server.db.db_pool)
+        .await?
+        .ok_or(anyhow!("cannot find session"))?;
+    if !session.e2ee_on && req.is_encrypted {
+        Err(Status::permission_denied(error_msg::E2EE_NOT_ON))?
+    }
     let respond_msg = RespondMsgType::Msg(Msg {
         bundle_msgs: req.bundle_msgs,
         session_id: req.session_id,
         is_encrypted: req.is_encrypted,
         sender_id: id.into(),
     });
-    let session_id = req.session_id.into();
-    let session = get_session_by_id(session_id, &server.db.db_pool)
-        .await?
-        .ok_or(anyhow!("cannot find session"))?;
+
     let sender_id: u64 = id.into();
     let rmq_conn = server
         .rabbitmq

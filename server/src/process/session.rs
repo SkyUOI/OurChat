@@ -6,6 +6,7 @@ pub mod accept_session;
 pub mod add_role;
 pub mod ban;
 pub mod delete_session;
+pub mod e2eeize_and_dee2eeize_session;
 pub mod get_session_info;
 pub mod invite_to_session;
 pub mod join_in_session;

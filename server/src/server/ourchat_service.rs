@@ -1,6 +1,10 @@
 use std::pin::Pin;
 
 use pb::service::ourchat::download::v1::{DownloadRequest, DownloadResponse};
+use pb::service::ourchat::session::e2eeize_and_dee2eeize_session::v1::{
+    Dee2eeizeSessionRequest, Dee2eeizeSessionResponse, E2eeizeSessionRequest,
+    E2eeizeSessionResponse,
+};
 use pb::service::ourchat::session::invite_to_session::v1::{
     InviteToSessionRequest, InviteToSessionResponse,
 };
@@ -368,5 +372,23 @@ impl OurChatService for RpcServer {
         let id = get_id_from_req(&request).unwrap();
         self.check_account_status(id).await?;
         process::send_room_key(self, id, request).await
+    }
+
+    async fn e2eeize_session(
+        &self,
+        request: Request<E2eeizeSessionRequest>,
+    ) -> Result<Response<E2eeizeSessionResponse>, Status> {
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::e2eeize_session(self, id, request).await
+    }
+
+    async fn dee2eeize_session(
+        &self,
+        request: Request<Dee2eeizeSessionRequest>,
+    ) -> Result<Response<Dee2eeizeSessionResponse>, Status> {
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::dee2eeize_session(self, id, request).await
     }
 }

@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package service.ourchat.session.e2eeize_and_dee2eeize_session.v1;
+
+message E2eeizeSessionRequest {
+  uint64 session_id = 1;
+}
+
+message E2eeizeSessionResponse {}
+
+message Dee2eeizeSessionRequest {
+  uint64 session_id = 1;
+}
+
+message Dee2eeizeSessionResponse {}

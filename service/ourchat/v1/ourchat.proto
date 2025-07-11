@@ -14,6 +14,7 @@ import "service/ourchat/session/accept_session/v1/accept_session.proto";
 import "service/ourchat/session/add_role/v1/add_role.proto";
 import "service/ourchat/session/ban/v1/ban.proto";
 import "service/ourchat/session/delete_session/v1/delete_session.proto";
+import "service/ourchat/session/e2eeize_and_dee2eeize_session/v1/e2eeize_and_dee2eeize_session.proto";
 import "service/ourchat/session/get_session_info/v1/get_session_info.proto";
 import "service/ourchat/session/invite_to_session/v1/invite_to_session.proto";
 import "service/ourchat/session/join_in_session/v1/join_in_session.proto";
@@ -96,4 +97,8 @@ service OurChatService {
   rpc CreateRoom(webrtc.room.create_room.v1.CreateRoomRequest) returns (webrtc.room.create_room.v1.CreateRoomResponse);
 
   rpc SendRoomKey(session.session_room_key.v1.SendRoomKeyRequest) returns (session.session_room_key.v1.SendRoomKeyResponse);
+
+  rpc E2eeizeSession(session.e2eeize_and_dee2eeize_session.v1.E2eeizeSessionRequest) returns (session.e2eeize_and_dee2eeize_session.v1.E2eeizeSessionResponse);
+
+  rpc Dee2eeizeSession(session.e2eeize_and_dee2eeize_session.v1.Dee2eeizeSessionRequest) returns (session.e2eeize_and_dee2eeize_session.v1.Dee2eeizeSessionResponse);
 }
