@@ -95,7 +95,7 @@ async fn send_room_key_impl(
         Some(session_id.into()),
         msg,
         Dest::User(req.user_id.into()),
-        true,
+        false,
         &server.db.db_pool,
         &mut conn,
     )

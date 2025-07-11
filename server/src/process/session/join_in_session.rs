@@ -116,7 +116,7 @@ async fn join_in_session_impl(
         id.into(),
         Some(session_id),
         respond_msg.clone(),
-        is_encrypted,
+        false,
         &server.db.db_pool,
         false,
     )

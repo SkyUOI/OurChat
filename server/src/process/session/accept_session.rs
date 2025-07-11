@@ -110,7 +110,7 @@ async fn accept_impl(
         Some(session_id),
         msg,
         Dest::User(inviter.into()),
-        is_encrypted,
+        false,
         &server.db.db_pool,
         &mut conn,
     )

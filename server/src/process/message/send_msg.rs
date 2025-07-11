@@ -132,7 +132,7 @@ async fn send_msg_impl(
                 Some(session_id),
                 msg,
                 Dest::User(id),
-                true,
+                false,
                 &server.db.db_pool,
                 &mut conn,
             )
@@ -152,7 +152,7 @@ async fn send_msg_impl(
                         Some(session_id),
                         msg,
                         Dest::User(id),
-                        true,
+                        false,
                         &server.db.db_pool,
                         &mut conn,
                     )
