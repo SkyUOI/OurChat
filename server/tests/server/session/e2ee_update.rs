@@ -87,6 +87,7 @@ async fn e2ee_update_timeout() {
     assert_eq!(received_room_key, new_room_key);
     app.async_drop().await
 }
+
 #[tokio::test]
 async fn e2ee_update_member_leaving() {
     let mut app = TestApp::new_with_launching_instance().await.unwrap();

@@ -158,7 +158,6 @@ async fn accept_friend_impl(
         status: req.status,
         session_id: session_id.map(|x| x.into()),
     });
-    // TODO: is_encrypted
     let transaction = server.db.db_pool.begin().await?;
     let _msg_model = insert_msg_record(
         inviter_id.into(),

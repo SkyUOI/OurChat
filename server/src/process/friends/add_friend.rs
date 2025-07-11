@@ -102,7 +102,6 @@ async fn add_friend_impl(
         inviter_id: id.into(),
         leave_message: req.leave_message,
     });
-    // TODO: is_encrypted
     let transaction = server.db.db_pool.begin().await?;
     let _msg_model = insert_msg_record(
         Some(friend_id),

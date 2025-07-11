@@ -156,7 +156,6 @@ pub async fn send_verification_request(
         .ok_or(anyhow!("cannot found session"))?;
     let is_encrypted = session.e2ee_on;
     let respond_msg = RespondMsgType::InviteSession(respond_msg);
-    // TODO: is_encrypted
     let msg_model = insert_msg_record(
         invitee.into(),
         Some(session_id),

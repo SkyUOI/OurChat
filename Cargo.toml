@@ -97,7 +97,6 @@ actix-tls = "3"
 
 webrtc = "0.13"
 rsa = "0"
-base64 = "0"
 
 # matrix-sdk = "0.11.0"
 

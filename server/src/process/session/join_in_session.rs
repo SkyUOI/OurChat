@@ -112,7 +112,6 @@ async fn join_in_session_impl(
         leave_message: req.leave_message,
         public_key: public_key.map(Into::<Bytes>::into),
     });
-    // TODO: is_encrypted
     let msg_model = insert_msg_record(
         id.into(),
         Some(session_id),

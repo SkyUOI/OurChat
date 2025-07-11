@@ -12,7 +12,7 @@ impl MigrationTrait for Migration {
             .alter_table(
                 Table::alter()
                     .table(User::Table)
-                    .add_column(string(User::PublicKey))
+                    .add_column(binary(User::PublicKey))
                     .to_owned(),
             )
             .await
