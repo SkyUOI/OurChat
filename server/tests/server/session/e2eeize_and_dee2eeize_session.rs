@@ -10,7 +10,7 @@ use pb::service::ourchat::{
 };
 use rand::rngs::OsRng;
 use rsa::{Pkcs1v15Encrypt, RsaPublicKey, pkcs1::DecodeRsaPublicKey as _};
-use server::db::session::{check_user_in_session, get_session_by_id};
+use server::db::session::get_session_by_id;
 
 #[tokio::test]
 pub async fn test_e2eeize_session() {
@@ -21,15 +21,15 @@ pub async fn test_e2eeize_session() {
         .unwrap();
     let a = session_user[0].clone();
     let b = session_user[1].clone();
-    let (aid, bid) = (a.lock().await.id, b.lock().await.id);
-    assert!(
-        !check_user_in_session(
-            aid,
-            session.session_id,
-            &app.db_pool.as_ref().unwrap().db_pool
-        )
-        .await
-        .unwrap()
+    let (_aid, bid) = (a.lock().await.id, b.lock().await.id);
+    assert_err!(
+        b.lock()
+            .await
+            .oc()
+            .e2eeize_session(E2eeizeSessionRequest {
+                session_id: session.session_id.into(),
+            })
+            .await
     );
     a.lock()
         .await
@@ -39,6 +39,7 @@ pub async fn test_e2eeize_session() {
         })
         .await
         .unwrap();
+
     let msgs = a.lock().await.fetch_msgs(2).await.unwrap();
     assert_eq!(msgs.len(), 2);
     let RespondMsgType::UpdateRoomKey(update_room_key) = msgs[0].respond_msg_type.clone().unwrap()
@@ -96,15 +97,15 @@ pub async fn test_dee2eeize_session() {
     let (session_user, session) = app.new_session_db_level(2, "session1", true).await.unwrap();
     let a = session_user[0].clone();
     let b: std::sync::Arc<tokio::sync::Mutex<client::TestUser>> = session_user[1].clone();
-    let (aid, _bid) = (a.lock().await.id, b.lock().await.id);
-    assert!(
-        !check_user_in_session(
-            aid,
-            session.session_id,
-            &app.db_pool.as_ref().unwrap().db_pool
-        )
-        .await
-        .unwrap()
+    let (_aid, _bid) = (a.lock().await.id, b.lock().await.id);
+    assert_err!(
+        b.lock()
+            .await
+            .oc()
+            .e2eeize_session(E2eeizeSessionRequest {
+                session_id: session.session_id.into(),
+            })
+            .await
     );
     a.lock()
         .await

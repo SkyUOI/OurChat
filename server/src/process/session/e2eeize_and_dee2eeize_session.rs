@@ -1,6 +1,7 @@
 use anyhow::{Context, anyhow};
 use base::consts::ID;
 use chrono::Utc;
+use migration::m20241229_022701_add_role_for_session::PredefinedPermissions;
 use pb::service::ourchat::{
     msg_delivery::v1::fetch_msgs_response::RespondMsgType,
     session::{
@@ -17,12 +18,12 @@ use tonic::{Request, Response, Status};
 
 use crate::{
     db::{
-        session::{check_user_in_session, get_members, get_session_by_id},
+        session::{check_user_in_session, get_members, get_session_by_id, if_permission_exist},
         user::get_account_info_db,
     },
     process::{
         Dest, MsgInsTransmitErr,
-        error_msg::{SERVER_ERROR, not_found},
+        error_msg::{PERMISSION_DENIED, SERVER_ERROR, not_found},
         message_insert_and_transmit,
     },
     server::RpcServer,
@@ -73,6 +74,18 @@ async fn e2eeize_session_impl(
         .ok_or(anyhow!("cannot find session"))?;
     if check_user_in_session(id, session_id.into(), &server.db.db_pool).await? {
         Err(Status::not_found(not_found::USER_IN_SESSION))?;
+    }
+    if !if_permission_exist(
+        id,
+        session_id.into(),
+        PredefinedPermissions::E2eeizeAndDee2eeizeSession.into(),
+        &server.db.db_pool,
+    )
+    .await?
+    {
+        return Err(E2eeizeSessionError::Status(Status::permission_denied(
+            PERMISSION_DENIED,
+        )));
     }
     if session.e2ee_on {
         Err(Status::already_exists("session already e2eeized"))?;
@@ -171,6 +184,18 @@ async fn dee2eeize_session_impl(
         .ok_or(anyhow!("cannot find session"))?;
     if check_user_in_session(id, session_id.into(), &server.db.db_pool).await? {
         Err(Status::not_found(not_found::USER_IN_SESSION))?;
+    }
+    if !if_permission_exist(
+        id,
+        session_id.into(),
+        PredefinedPermissions::E2eeizeAndDee2eeizeSession.into(),
+        &server.db.db_pool,
+    )
+    .await?
+    {
+        return Err(Dee2eeizeSessionError::Status(Status::permission_denied(
+            PERMISSION_DENIED,
+        )));
     }
     if !session.e2ee_on {
         Err(Status::already_exists("session already dee2eeized"))?;
