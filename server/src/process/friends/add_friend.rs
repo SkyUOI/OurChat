@@ -101,6 +101,7 @@ async fn add_friend_impl(
     let respond_msg =
         RespondEventType::NewFriendInvitationNotification(NewFriendInvitationNotification {
             inviter_id: id.into(),
+            invitee_id: friend_id.into(),
             leave_message: req.leave_message,
         });
     // TODO: is_encrypted

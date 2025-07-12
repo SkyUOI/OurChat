@@ -12,5 +12,6 @@ message AddFriendResponse {}
 
 message NewFriendInvitationNotification {
   uint64 inviter_id = 1;
+  uint64 invitee_id = 3;
   optional string leave_message = 2;
 }
