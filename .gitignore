@@ -48,3 +48,8 @@ server/files_storage/*
 # pref
 perf.data*
 flamegraph.svg
+
+node_modules/
+server/web-panel/src/
+client/lib/core
+client/lib/l10n
