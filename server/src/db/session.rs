@@ -168,12 +168,12 @@ pub async fn get_all_roles_of_session(
 /// # Returns
 ///
 /// * `Result<bool, sea_orm::DbErr>` - `true` if the user is in the session, `false` if not, or a `DbErr` if the operation fails.
-pub async fn check_user_in_session(
+pub async fn in_session(
     user_id: ID,
     session_id: SessionID,
     db_conn: &impl ConnectionTrait,
 ) -> Result<bool, sea_orm::DbErr> {
-    let ret = session_relation::Entity::find_by_id((user_id.into(), session_id.into()))
+    let ret = session_relation::Entity::find_by_id((session_id.into(), user_id.into()))
         .one(db_conn)
         .await?;
     Ok(ret.is_some())
@@ -351,17 +351,6 @@ pub async fn delete_session(
         return Err(SessionError::SessionNotFound);
     }
     Ok(())
-}
-
-pub async fn in_session(
-    user_id: ID,
-    session_id: SessionID,
-    db_conn: &impl ConnectionTrait,
-) -> Result<bool, sea_orm::DbErr> {
-    let res = session_relation::Entity::find_by_id((session_id.into(), user_id.into()))
-        .one(db_conn)
-        .await?;
-    Ok(res.is_some())
 }
 
 /// create a new session in the database

@@ -1,7 +1,7 @@
 use crate::db::session::user_muted_status;
 use crate::process::error_msg;
 use crate::{
-    db::{self, messages::MsgError, session::check_user_in_session},
+    db::{self, messages::MsgError, session::in_session},
     process::error_msg::{PERMISSION_DENIED, SERVER_ERROR, not_found},
     server::RpcServer,
 };
@@ -61,7 +61,7 @@ async fn send_msg_impl(
     let req = request.into_inner();
     let db_conn = server.db.clone();
     // check
-    if check_user_in_session(id, req.session_id.into(), &db_conn.db_pool).await? {
+    if in_session(id, req.session_id.into(), &db_conn.db_pool).await? {
         Err(Status::permission_denied(PERMISSION_DENIED))?;
     }
     // check mute
