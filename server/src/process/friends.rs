@@ -1,6 +1,6 @@
 use base::consts::ID;
 
-pub mod accept_friend;
+pub mod accept_friend_invitation;
 pub mod add_friend;
 pub mod delete_friend;
 pub mod set_friend_info;

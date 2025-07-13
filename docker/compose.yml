@@ -51,14 +51,14 @@ services:
       timeout: 30s
       retries: 5
   redis:
-    image: redis:7-alpine
+    image: redis:8-alpine
     restart: always
     command: redis-server /usr/local/etc/redis/redis.conf
     # If you want to expose the redis port, uncomment the following lines
     # ports:
     # - "6379:6379"
     volumes:
-      - ./data/redis-data:/opt/redis/data
+      - ./data/redis-data:/data
       - ./config/redis.conf:/usr/local/etc/redis/redis.conf
     networks:
       - net

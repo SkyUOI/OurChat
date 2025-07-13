@@ -2,7 +2,7 @@ use claims::assert_lt;
 use client::TestApp;
 use parking_lot::Mutex;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
-use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
+use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
 use pb::service::ourchat::msg_delivery::{self, recall::v1::RecallMsgRequest, v1::OneMsg};
 use pb::time::from_google_timestamp;
 use std::sync::Arc;
@@ -49,7 +49,8 @@ async fn test_recall() {
         let ret = c_clone
             .lock()
             .await
-            .fetch_msgs_notify(notify_clone)
+            .fetch_msgs()
+            .fetch_with_notify(notify_clone)
             .await
             .unwrap();
         *res_clone.lock() = Some(ret);
@@ -70,23 +71,26 @@ async fn test_recall() {
         .into_inner();
     let recall_msg_id = recall_msg.msg_id;
     // receive the recall signal
-    let b_rec = b.lock().await.fetch_msgs(1).await.unwrap();
-    let check = |rec: Vec<FetchMsgsResponse>, msg_len, msg_recall_idx: usize| {
+    let b_rec = b.lock().await.fetch_msgs().fetch(1).await.unwrap();
+    let check = async |rec: Vec<FetchMsgsResponse>, msg_len, msg_recall_idx: usize| {
         assert_eq!(rec.len(), msg_len, "{rec:?}");
+        tokio::time::sleep(Duration::from_millis(200)).await;
         assert_lt!(
             from_google_timestamp(&rec[msg_recall_idx].time.unwrap()).unwrap(),
             chrono::Utc::now()
         );
         assert_eq!(rec[msg_recall_idx].msg_id, recall_msg_id);
-        let RespondMsgType::Recall(data) = rec[msg_recall_idx].clone().respond_msg_type.unwrap()
+        let RespondEventType::Recall(data) =
+            rec[msg_recall_idx].clone().respond_event_type.unwrap()
         else {
             panic!("not a recall notification")
         };
         assert_eq!(data.msg_id, msg_id);
     };
-    check(b_rec, 1, 0);
+    check(b_rec, 1, 0).await;
     notify.notify_waiters();
     join!(task).0.unwrap();
-    check(res.lock().clone().unwrap(), 2, 1);
+    let tmp = { res.lock().clone().unwrap() };
+    check(tmp, 2, 1).await;
     app.async_drop().await;
 }

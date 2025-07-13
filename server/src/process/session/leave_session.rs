@@ -1,4 +1,4 @@
-use crate::db::session::{SessionError, check_user_in_session, get_session_by_id};
+use crate::db::session::{SessionError, in_session, get_session_by_id};
 use crate::process::error_msg::not_found;
 use crate::{db, process::error_msg::SERVER_ERROR, server::RpcServer};
 use anyhow::anyhow;
@@ -41,7 +41,7 @@ async fn leave_session_impl(
 ) -> Result<LeaveSessionResponse, LeaveSessionErr> {
     let req = request.into_inner();
     let session_id: SessionID = req.session_id.into();
-    if check_user_in_session(id, session_id, &server.db.db_pool).await? {
+    if !in_session(id, session_id, &server.db.db_pool).await? {
         Err(Status::not_found(not_found::USER_IN_SESSION))?;
     }
     let transaction = server.db.db_pool.begin().await?;

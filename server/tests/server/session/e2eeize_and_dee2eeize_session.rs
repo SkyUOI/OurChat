@@ -2,7 +2,7 @@ use bytes::Bytes;
 use claims::assert_err;
 use client::{TestApp, oc_helper::TestSession};
 use pb::service::ourchat::{
-    msg_delivery::v1::{OneMsg, fetch_msgs_response::RespondMsgType, one_msg::Data},
+    msg_delivery::v1::{OneMsg, fetch_msgs_response::RespondEventType, one_msg::Data},
     session::{
         e2eeize_and_dee2eeize_session::v1::{Dee2eeizeSessionRequest, E2eeizeSessionRequest},
         session_room_key::v1::SendRoomKeyRequest,
@@ -40,13 +40,14 @@ pub async fn test_e2eeize_session() {
         .await
         .unwrap();
 
-    let msgs = a.lock().await.fetch_msgs(2).await.unwrap();
+    let msgs = a.lock().await.fetch_msgs().fetch(2).await.unwrap();
     assert_eq!(msgs.len(), 2);
-    let RespondMsgType::UpdateRoomKey(update_room_key) = msgs[0].respond_msg_type.clone().unwrap()
+    let RespondEventType::UpdateRoomKey(update_room_key) =
+        msgs[0].respond_event_type.clone().unwrap()
     else {
         panic!("what is accepted is not update room key");
     };
-    let RespondMsgType::SendRoomKey(send_room_key) = msgs[1].respond_msg_type.clone().unwrap()
+    let RespondEventType::SendRoomKey(send_room_key) = msgs[1].respond_event_type.clone().unwrap()
     else {
         panic!("what is accepted is not send room key")
     };
@@ -70,10 +71,10 @@ pub async fn test_e2eeize_session() {
         })
         .await
         .unwrap();
-    let msgs = b.lock().await.fetch_msgs(3).await.unwrap();
+    let msgs = b.lock().await.fetch_msgs().fetch(3).await.unwrap();
     assert_eq!(msgs.len(), 3);
-    let RespondMsgType::ReceiveRoomKey(receive_room_key) =
-        msgs[2].respond_msg_type.clone().unwrap()
+    let RespondEventType::ReceiveRoomKey(receive_room_key) =
+        msgs[2].respond_event_type.clone().unwrap()
     else {
         panic!("what is accepted is not receive room key");
     };

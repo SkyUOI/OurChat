@@ -3,21 +3,22 @@ syntax = "proto3";
 package service.ourchat.v1;
 
 import "service/ourchat/download/v1/download.proto";
-import "service/ourchat/friends/accept_friend/v1/accept_friend.proto";
+import "service/ourchat/friends/accept_friend_invitation/v1/accept_friend_invitation.proto";
 import "service/ourchat/friends/add_friend/v1/add_friend.proto";
 import "service/ourchat/friends/delete_friend/v1/delete_friend.proto";
 import "service/ourchat/friends/set_friend_info/v1/set_friend_info.proto";
 import "service/ourchat/get_account_info/v1/get_account_info.proto";
 import "service/ourchat/msg_delivery/recall/v1/recall.proto";
 import "service/ourchat/msg_delivery/v1/msg_delivery.proto";
-import "service/ourchat/session/accept_session/v1/accept_session.proto";
+import "service/ourchat/session/accept_join_session_invitation/v1/accept_join_session_invitation.proto";
 import "service/ourchat/session/add_role/v1/add_role.proto";
+import "service/ourchat/session/allow_user_join_session/v1/allow_user_join_session.proto";
 import "service/ourchat/session/ban/v1/ban.proto";
 import "service/ourchat/session/delete_session/v1/delete_session.proto";
 import "service/ourchat/session/e2eeize_and_dee2eeize_session/v1/e2eeize_and_dee2eeize_session.proto";
 import "service/ourchat/session/get_session_info/v1/get_session_info.proto";
-import "service/ourchat/session/invite_to_session/v1/invite_to_session.proto";
-import "service/ourchat/session/join_in_session/v1/join_in_session.proto";
+import "service/ourchat/session/invite_user_to_session/v1/invite_user_to_session.proto";
+import "service/ourchat/session/join_session/v1/join_session.proto";
 import "service/ourchat/session/leave_session/v1/leave_session.proto";
 import "service/ourchat/session/mute/v1/mute.proto";
 import "service/ourchat/session/new_session/v1/session.proto";
@@ -31,74 +32,114 @@ import "service/ourchat/webrtc/room/create_room/v1/create_room.proto";
 
 // Main service of the Ourchat
 // JWT is required.If token is missing or out-of-dated,please refer to
-// AuthService to authenticate one JWT Insert to headers: token: <token>
+// AuthService to authenticate one JWT Insert to headers: Authorization: Bearer
+// "token"
 service OurChatService {
   // Warning: the meaning is deleting the account, not logout
-  rpc Unregister(unregister.v1.UnregisterRequest) returns (unregister.v1.UnregisterResponse);
+  rpc Unregister(unregister.v1.UnregisterRequest)
+      returns (unregister.v1.UnregisterResponse);
 
-  rpc GetAccountInfo(get_account_info.v1.GetAccountInfoRequest) returns (get_account_info.v1.GetAccountInfoResponse);
+  rpc GetAccountInfo(get_account_info.v1.GetAccountInfoRequest)
+      returns (get_account_info.v1.GetAccountInfoResponse);
 
   // Set some information of the account
-  rpc SetSelfInfo(set_account_info.v1.SetSelfInfoRequest) returns (set_account_info.v1.SetSelfInfoResponse);
+  rpc SetSelfInfo(set_account_info.v1.SetSelfInfoRequest)
+      returns (set_account_info.v1.SetSelfInfoResponse);
 
-  rpc SetFriendInfo(friends.set_friend_info.v1.SetFriendInfoRequest) returns (friends.set_friend_info.v1.SetFriendInfoResponse);
+  rpc SetFriendInfo(friends.set_friend_info.v1.SetFriendInfoRequest)
+      returns (friends.set_friend_info.v1.SetFriendInfoResponse);
 
   // Turn on the delivery, continuing to receive messages
-  rpc FetchMsgs(msg_delivery.v1.FetchMsgsRequest) returns (stream msg_delivery.v1.FetchMsgsResponse);
+  rpc FetchMsgs(msg_delivery.v1.FetchMsgsRequest)
+      returns (stream msg_delivery.v1.FetchMsgsResponse);
 
-  rpc SendMsg(msg_delivery.v1.SendMsgRequest) returns (msg_delivery.v1.SendMsgResponse);
+  rpc SendMsg(msg_delivery.v1.SendMsgRequest)
+      returns (msg_delivery.v1.SendMsgResponse);
 
   rpc Upload(stream upload.v1.UploadRequest) returns (upload.v1.UploadResponse);
 
-  rpc Download(download.v1.DownloadRequest) returns (stream download.v1.DownloadResponse);
+  rpc Download(download.v1.DownloadRequest)
+      returns (stream download.v1.DownloadResponse);
 
   // session operations
 
-  rpc AcceptSession(session.accept_session.v1.AcceptSessionRequest) returns (session.accept_session.v1.AcceptSessionResponse);
+  rpc AcceptJoinSessionInvitation(session.accept_join_session_invitation.v1
+                                      .AcceptJoinSessionInvitationRequest)
+      returns (session.accept_join_session_invitation.v1
+                   .AcceptJoinSessionInvitationResponse);
 
-  rpc NewSession(session.new_session.v1.NewSessionRequest) returns (session.new_session.v1.NewSessionResponse);
+  rpc NewSession(session.new_session.v1.NewSessionRequest)
+      returns (session.new_session.v1.NewSessionResponse);
 
-  rpc GetSessionInfo(session.get_session_info.v1.GetSessionInfoRequest) returns (session.get_session_info.v1.GetSessionInfoResponse);
+  rpc GetSessionInfo(session.get_session_info.v1.GetSessionInfoRequest)
+      returns (session.get_session_info.v1.GetSessionInfoResponse);
 
-  rpc SetSessionInfo(session.set_session_info.v1.SetSessionInfoRequest) returns (session.set_session_info.v1.SetSessionInfoResponse);
+  rpc SetSessionInfo(session.set_session_info.v1.SetSessionInfoRequest)
+      returns (session.set_session_info.v1.SetSessionInfoResponse);
 
-  rpc DeleteSession(session.delete_session.v1.DeleteSessionRequest) returns (session.delete_session.v1.DeleteSessionResponse);
+  rpc DeleteSession(session.delete_session.v1.DeleteSessionRequest)
+      returns (session.delete_session.v1.DeleteSessionResponse);
 
-  rpc LeaveSession(session.leave_session.v1.LeaveSessionRequest) returns (session.leave_session.v1.LeaveSessionResponse);
+  rpc LeaveSession(session.leave_session.v1.LeaveSessionRequest)
+      returns (session.leave_session.v1.LeaveSessionResponse);
 
-  rpc RecallMsg(msg_delivery.recall.v1.RecallMsgRequest) returns (msg_delivery.recall.v1.RecallMsgResponse);
+  rpc RecallMsg(msg_delivery.recall.v1.RecallMsgRequest)
+      returns (msg_delivery.recall.v1.RecallMsgResponse);
 
-  rpc SetRole(session.set_role.v1.SetRoleRequest) returns (session.set_role.v1.SetRoleResponse);
+  rpc SetRole(session.set_role.v1.SetRoleRequest)
+      returns (session.set_role.v1.SetRoleResponse);
 
-  rpc AddRole(session.add_role.v1.AddRoleRequest) returns (session.add_role.v1.AddRoleResponse);
+  rpc AddRole(session.add_role.v1.AddRoleRequest)
+      returns (session.add_role.v1.AddRoleResponse);
 
-  rpc MuteUser(session.mute.v1.MuteUserRequest) returns (session.mute.v1.MuteUserResponse);
+  rpc MuteUser(session.mute.v1.MuteUserRequest)
+      returns (session.mute.v1.MuteUserResponse);
 
-  rpc UnmuteUser(session.mute.v1.UnmuteUserRequest) returns (session.mute.v1.UnmuteUserResponse);
+  rpc UnmuteUser(session.mute.v1.UnmuteUserRequest)
+      returns (session.mute.v1.UnmuteUserResponse);
 
-  rpc BanUser(session.ban.v1.BanUserRequest) returns (session.ban.v1.BanUserResponse);
+  rpc BanUser(session.ban.v1.BanUserRequest)
+      returns (session.ban.v1.BanUserResponse);
 
-  rpc UnbanUser(session.ban.v1.UnbanUserRequest) returns (session.ban.v1.UnbanUserResponse);
+  rpc UnbanUser(session.ban.v1.UnbanUserRequest)
+      returns (session.ban.v1.UnbanUserResponse);
 
-  rpc AddFriend(friends.add_friend.v1.AddFriendRequest) returns (friends.add_friend.v1.AddFriendResponse);
+  rpc AddFriend(friends.add_friend.v1.AddFriendRequest)
+      returns (friends.add_friend.v1.AddFriendResponse);
 
-  rpc AcceptFriend(friends.accept_friend.v1.AcceptFriendRequest) returns (friends.accept_friend.v1.AcceptFriendResponse);
+  rpc AcceptFriendInvitation(
+      friends.accept_friend_invitation.v1.AcceptFriendInvitationRequest)
+      returns (
+          friends.accept_friend_invitation.v1.AcceptFriendInvitationResponse);
 
-  rpc DeleteFriend(friends.delete_friend.v1.DeleteFriendRequest) returns (friends.delete_friend.v1.DeleteFriendResponse);
+  rpc DeleteFriend(friends.delete_friend.v1.DeleteFriendRequest)
+      returns (friends.delete_friend.v1.DeleteFriendResponse);
 
-  rpc JoinInSession(session.join_in_session.v1.JoinInSessionRequest) returns (session.join_in_session.v1.JoinInSessionResponse);
+  rpc JoinSession(session.join_session.v1.JoinSessionRequest)
+      returns (session.join_session.v1.JoinSessionResponse);
 
-  rpc AcceptJoinInSession(session.join_in_session.v1.AcceptJoinInSessionRequest) returns (session.join_in_session.v1.AcceptJoinInSessionResponse);
+  rpc AllowUserJoinSession(
+      session.allow_user_join_session.v1.AllowUserJoinSessionRequest)
+      returns (session.allow_user_join_session.v1.AllowUserJoinSessionResponse);
 
-  rpc InviteToSession(session.invite_to_session.v1.InviteToSessionRequest) returns (session.invite_to_session.v1.InviteToSessionResponse);
+  rpc InviteUserToSession(
+      session.invite_user_to_session.v1.InviteUserToSessionRequest)
+      returns (session.invite_user_to_session.v1.InviteUserToSessionResponse);
 
   // Webrtc operations
 
-  rpc CreateRoom(webrtc.room.create_room.v1.CreateRoomRequest) returns (webrtc.room.create_room.v1.CreateRoomResponse);
+  rpc CreateRoom(webrtc.room.create_room.v1.CreateRoomRequest)
+      returns (webrtc.room.create_room.v1.CreateRoomResponse);
 
-  rpc SendRoomKey(session.session_room_key.v1.SendRoomKeyRequest) returns (session.session_room_key.v1.SendRoomKeyResponse);
+  rpc SendRoomKey(session.session_room_key.v1.SendRoomKeyRequest)
+      returns (session.session_room_key.v1.SendRoomKeyResponse);
 
-  rpc E2eeizeSession(session.e2eeize_and_dee2eeize_session.v1.E2eeizeSessionRequest) returns (session.e2eeize_and_dee2eeize_session.v1.E2eeizeSessionResponse);
+  rpc E2eeizeSession(
+      session.e2eeize_and_dee2eeize_session.v1.E2eeizeSessionRequest)
+      returns (session.e2eeize_and_dee2eeize_session.v1.E2eeizeSessionResponse);
 
-  rpc Dee2eeizeSession(session.e2eeize_and_dee2eeize_session.v1.Dee2eeizeSessionRequest) returns (session.e2eeize_and_dee2eeize_session.v1.Dee2eeizeSessionResponse);
+  rpc Dee2eeizeSession(
+      session.e2eeize_and_dee2eeize_session.v1.Dee2eeizeSessionRequest)
+      returns (
+          session.e2eeize_and_dee2eeize_session.v1.Dee2eeizeSessionResponse);
 }

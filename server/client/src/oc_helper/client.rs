@@ -83,6 +83,16 @@ impl TestApp {
         Self::new_with_launching_instance_custom_cfg(Self::get_test_config()?).await
     }
 
+    /// # Example
+    ///
+    /// ```ignore
+    /// let (mut config, args) = TestApp::get_test_config().unwrap();
+    /// let user_files_limit = Size::from_mebibytes(10);
+    /// config.main_cfg.user_files_limit = user_files_limit;
+    /// let mut app = TestApp::new_with_launching_instance_custom_cfg((config, args))
+    ///     .await
+    ///     .unwrap();
+    /// ```
     pub async fn new_with_launching_instance_custom_cfg(
         (mut server_config, args): ConfigWithArgs,
     ) -> anyhow::Result<Self> {
@@ -301,6 +311,21 @@ impl TestApp {
         .await?;
         transaction.commit().await?;
         Ok((users, TestSession::new(session_id)))
+    }
+
+    /// Helper function to create a friendship between two users
+    pub async fn create_friendship(
+        &mut self,
+        user1_id: ID,
+        user2_id: ID,
+    ) -> anyhow::Result<SessionID> {
+        // Simplified friendship creation - in real implementation this would
+        // involve the full add_friend/accept_friend_invitation flow
+        let transaction = self.get_db_connection().begin().await?;
+        let session_id =
+            server::db::friend::add_friend(user1_id, user2_id, None, None, &transaction).await?;
+        transaction.commit().await?;
+        Ok(session_id)
     }
 
     pub async fn change_role_db_level(

@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
-import 'ourchat/ourchat_account.dart';
+import 'package:ourchat/core/database.dart' as database;
+import 'core/account.dart';
 import 'package:provider/provider.dart';
 import 'package:localstorage/localstorage.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:ourchat/const.dart';
-import 'package:ourchat/config.dart';
+import 'package:ourchat/l10n/app_localizations.dart';
+import 'package:ourchat/core/const.dart';
+import 'package:ourchat/core/config.dart';
 import 'package:ourchat/server_setting.dart';
-import 'package:ourchat/ourchat/ourchat_server.dart';
-import 'log.dart';
+import 'package:ourchat/core/server.dart';
+import 'package:ourchat/core/event.dart';
+import 'core/log.dart';
 import 'dart:core';
 
 void main() async {
@@ -17,13 +19,17 @@ void main() async {
 
 class OurchatAppState extends ChangeNotifier {
   int device = desktop;
-  OurChatServer? server;
+  OurchatServer? server;
   OurchatAccount? thisAccount;
+  late database.PublicOurchatDatabase publicDB;
+  database.OurchatDatabase? privateDB;
+  OurchatEventSystem? eventSystem;
   OurchatConfig config;
 
   OurchatAppState() : config = OurchatConfig() {
     logger.i("init Ourchat");
     constructLogger(convertStrIntoLevel(config["log_level"]));
+    publicDB = database.PublicOurchatDatabase();
     notifyListeners();
     logger.i("init Ourchat done");
   }
@@ -62,7 +68,7 @@ class Controller extends StatelessWidget {
           appState.device = (constraints.maxHeight < constraints.maxWidth)
               ? desktop
               : mobile; // 通过屏幕比例判断桌面端/移动端
-          return const Navigator(pages: [MaterialPage(child: ServerSetting())]);
+          return ServerSetting();
         },
       ),
       theme: ThemeData(

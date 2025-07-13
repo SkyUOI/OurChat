@@ -7,10 +7,9 @@ use anyhow::Context;
 use base::consts::{ID, SessionID};
 use base::database::DbPool;
 use entities::{friend, prelude::*};
-use invite_session::v1::InviteSession;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
-use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
-use pb::service::ourchat::session::invite_session;
+use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
+use pb::service::ourchat::session::invite_user_to_session::v1::InviteUserToSession;
 use pb::service::ourchat::session::new_session::v1::{
     FailedMember, FailedReason, NewSessionRequest, NewSessionResponse,
 };
@@ -145,13 +144,13 @@ pub async fn send_verification_request(
     let expire_at = chrono::Utc::now() + server.shared_data.cfg.main_cfg.verification_expire_time;
     let expire_at_google = to_google_timestamp(expire_at);
     // save to the database
-    let respond_msg = InviteSession {
+    let respond_msg = InviteUserToSession {
         session_id: session_id.into(),
         inviter_id: sender.into(),
         leave_message: leave_message.clone(),
         expire_timestamp: Some(expire_at_google),
     };
-    let respond_msg = RespondMsgType::InviteSession(respond_msg);
+    let respond_msg = RespondEventType::InviteUserToSession(respond_msg);
     let msg_model = insert_msg_record(
         invitee.into(),
         Some(session_id),
@@ -165,7 +164,7 @@ pub async fn send_verification_request(
     let fetch_response = FetchMsgsResponse {
         msg_id: msg_model.msg_id as u64,
         time: Some(expire_at_google),
-        respond_msg_type: Some(respond_msg),
+        respond_event_type: Some(respond_msg),
     };
     let rabbitmq_connection = server
         .rabbitmq

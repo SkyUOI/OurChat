@@ -32,6 +32,7 @@ urlencoding.workspace = true
 libc-print.workspace = true
 chrono.workspace = true
 http.workspace = true
+utils ={ path = "../utils" }
 ring.workspace = true
 rsa.workspace = true
 bytes.workspace = true

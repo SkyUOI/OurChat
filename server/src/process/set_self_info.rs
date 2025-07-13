@@ -111,6 +111,7 @@ async fn update_account(
             )
             .await
             .context("Cannot set user defined status to redis")?;
+        public_updated = true;
     }
     let txn = db_conn.begin().await?;
     if let Some(avatar_key) = request_data.avatar_key {

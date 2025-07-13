@@ -76,8 +76,8 @@ use tonic::Request;
 
 pub use download::download;
 pub use friends::{
-    accept_friend::accept_friend, add_friend::add_friend, delete_friend::delete_friend,
-    set_friend_info::set_friend_info,
+    accept_friend_invitation::accept_friend_invitation, add_friend::add_friend,
+    delete_friend::delete_friend, set_friend_info::set_friend_info,
 };
 pub use message::{fetch_user_msg::fetch_user_msg, recall::recall_msg, send_msg::send_msg};
 pub use server_manage::{
@@ -90,16 +90,16 @@ pub use server_manage::{
     set_server_status::set_server_status,
 };
 pub use session::{
-    accept_join_in_session::accept_join_in_session,
-    accept_session::accept_session,
+    accept_join_session_invitation::accept_join_session_invitation,
     add_role::add_role,
+    allow_user_join_session::allow_user_join_session,
     ban::{ban_user, unban_user},
     delete_session::delete_session,
     e2eeize_and_dee2eeize_session::dee2eeize_session,
     e2eeize_and_dee2eeize_session::e2eeize_session,
     get_session_info::get_session_info,
-    invite_to_session::invite_to_session,
-    join_in_session::join_in_session,
+    invite_to_session::invite_user_to_session,
+    join_session::join_session,
     leave_session::leave_session,
     mute::{mute_user, unmute_user},
     new_session::new_session,
@@ -120,7 +120,7 @@ use crate::rabbitmq::generate_route_key;
 use base::consts::ID;
 use entities::prelude::*;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
-use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
+use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
 use pb::time::to_google_timestamp;
 use prost::Message;
 
@@ -152,7 +152,14 @@ pub fn generate_access_token(id: ID) -> String {
 }
 
 pub fn check_token(token: &str) -> Result<JWTdata, ErrAuth> {
-    let data = decode_token(token)?;
+    let v: Vec<_> = token.split_whitespace().collect();
+    if v.len() != 2 {
+        return Err(ErrAuth::IncorrectFormat);
+    }
+    if v[0] != "Bearer" {
+        return Err(ErrAuth::UnsupportedAuthorizationHeader);
+    }
+    let data = decode_token(v[1])?;
     if chrono::offset::Utc::now().timestamp() < data.exp {
         Ok(data)
     } else {
@@ -166,6 +173,10 @@ pub enum ErrAuth {
     Expire,
     #[error("JWT error")]
     JWT(#[from] jsonwebtoken::errors::Error),
+    #[error("Unsupported authorization header, only support Bearer")]
+    UnsupportedAuthorizationHeader,
+    #[error("Authorization: Bearer <jwt>")]
+    IncorrectFormat,
 }
 
 /// Decodes a JWT token and returns the contained claims as `JWTdata`.
@@ -283,7 +294,7 @@ impl From<MsgError> for MsgInsTransmitErr {
 pub async fn message_insert_and_transmit(
     sender_id: Option<ID>,
     session_id: Option<SessionID>,
-    msg: RespondMsgType,
+    msg: RespondEventType,
     dest: Dest,
     is_encrypted: bool,
     db_conn: &impl ConnectionTrait,
@@ -301,7 +312,7 @@ pub async fn message_insert_and_transmit(
     let fetch_response = FetchMsgsResponse {
         msg_id: msg_model.msg_id as u64,
         time: Some(to_google_timestamp(msg_model.time.into())),
-        respond_msg_type: Some(msg),
+        respond_event_type: Some(msg),
     };
     transmit_msg(fetch_response, dest, rmq_chan, db_conn).await?;
     Ok(())

@@ -21,11 +21,15 @@ dependencies:
   grpc: ^4.0.1
   fixnum: ^1.1.1
   path_provider: ^2.1.5
+  drift: ^2.26.1
+  drift_flutter: ^0.2.4
 
 dev_dependencies:
   # flutter_test:
   #   sdk: flutter
   flutter_lints: ^5.0.0
+  drift_dev: ^2.26.1
+  build_runner: ^2.4.15
 
 flutter:
   uses-material-design: true

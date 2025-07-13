@@ -16,7 +16,7 @@ pub struct TestHttpApp {
 }
 
 impl TestHttpApp {
-    pub async fn build_server() -> anyhow::Result<Cfg> {
+    pub async fn get_config() -> anyhow::Result<Cfg> {
         let mut config = Launcher::get_config(None)?;
         config.main_cfg.port = 0;
         config.main_cfg.run_migration = true;
@@ -79,7 +79,19 @@ impl TestHttpApp {
     }
 
     pub async fn new(email_client: Option<Box<dyn EmailSender>>) -> anyhow::Result<Self> {
-        Self::setup(Self::build_server().await?, None, email_client).await
+        Self::setup(Self::get_config().await?, None, email_client).await
+    }
+
+    /// # Example
+    ///
+    /// ```ignore
+    ///
+    /// ```
+    pub async fn new_custom(
+        cfg: Cfg,
+        email_client: Option<Box<dyn EmailSender>>,
+    ) -> anyhow::Result<Self> {
+        Self::setup(cfg, None, email_client).await
     }
 
     pub async fn ourchat_api_get(

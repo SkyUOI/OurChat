@@ -3,7 +3,7 @@ use client::TestHttpApp;
 use http_server::Cfg;
 
 pub async fn build_server() -> anyhow::Result<Cfg> {
-    let mut ret = TestHttpApp::build_server().await?;
+    let mut ret = TestHttpApp::get_config().await?;
     ret.main_cfg.enable_matrix = true;
     Ok(ret)
 }

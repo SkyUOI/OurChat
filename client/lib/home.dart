@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:ourchat/const.dart';
+import 'package:ourchat/core/const.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/session.dart';
 import 'package:ourchat/setting.dart';

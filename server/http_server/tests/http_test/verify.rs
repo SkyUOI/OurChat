@@ -21,7 +21,7 @@ async fn test_verify() {
             anyhow::Ok(())
         });
     let mut app = TestApp::new_with_launching_instance().await.unwrap();
-    let http_app = TestHttpApp::build_server().await.unwrap();
+    let http_app = TestHttpApp::get_config().await.unwrap();
     let mut http_app = TestHttpApp::setup(
         http_app,
         Some(app.rmq_vhost.clone()),

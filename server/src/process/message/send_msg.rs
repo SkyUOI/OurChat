@@ -2,14 +2,14 @@ use crate::db::session::{get_members, get_session_by_id, user_muted_status};
 use crate::db::user::get_account_info_db;
 use crate::process::{Dest, MsgInsTransmitErr, error_msg, message_insert_and_transmit};
 use crate::{
-    db::{self, messages::MsgError, session::check_user_in_session},
+    db::{self, messages::MsgError, session::in_session},
     process::error_msg::{PERMISSION_DENIED, SERVER_ERROR, not_found},
     server::RpcServer,
 };
 use anyhow::{Context, anyhow};
 use base::consts::ID;
 use chrono::Utc;
-use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
+use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
 use pb::service::ourchat::msg_delivery::v1::{Msg, SendMsgRequest, SendMsgResponse};
 use pb::service::ourchat::session::session_room_key::v1::{
     SendRoomKeyNotification, UpdateRoomKeyNotification,
@@ -73,8 +73,8 @@ async fn send_msg_impl(
     let req = request.into_inner();
     let db_conn = server.db.clone();
     // check
-    if check_user_in_session(id, req.session_id.into(), &db_conn.db_pool).await? {
-        Err(Status::permission_denied(PERMISSION_DENIED))?;
+    if !in_session(id, req.session_id.into(), &db_conn.db_pool).await? {
+        Err(Status::permission_denied(not_found::USER_IN_SESSION))?;
     }
     // check mute
     let mut redis_connection = server
@@ -96,7 +96,7 @@ async fn send_msg_impl(
     if !session.e2ee_on && req.is_encrypted {
         Err(Status::permission_denied(error_msg::E2EE_NOT_ON))?
     }
-    let respond_msg = RespondMsgType::Msg(Msg {
+    let respond_msg = RespondEventType::Msg(Msg {
         bundle_msgs: req.bundle_msgs,
         session_id: req.session_id,
         is_encrypted: req.is_encrypted,
@@ -128,7 +128,7 @@ async fn send_msg_impl(
         let expire_time: chrono::TimeDelta =
             chrono::Duration::from_std(server.shared_data.cfg.main_cfg.room_key_duration).unwrap();
         if Utc::now() - last_time > expire_time || session.leaving_to_process {
-            let msg = RespondMsgType::UpdateRoomKey(UpdateRoomKeyNotification {
+            let msg = RespondEventType::UpdateRoomKey(UpdateRoomKeyNotification {
                 session_id: session_id.into(),
             });
             message_insert_and_transmit(
@@ -146,7 +146,7 @@ async fn send_msg_impl(
                     let user = get_account_info_db(members.user_id.into(), &server.db.db_pool)
                         .await?
                         .ok_or(anyhow!("cannot find user"))?;
-                    let msg = RespondMsgType::SendRoomKey(SendRoomKeyNotification {
+                    let msg = RespondEventType::SendRoomKey(SendRoomKeyNotification {
                         session_id: session_id.into(),
                         sender: (members.user_id as u64),
                         public_key: user.public_key.into(),

@@ -67,4 +67,6 @@ pub mod token {
     pub const INVALID: &str = "Token Invalid";
     pub const EXPIRED: &str = "Token Expired";
     pub const MISSING: &str = "Token Missing";
+    pub const UNSUPPORTED_AUTHORIZATION_HEADER: &str = "Only Support Bearer";
+    pub const INCORRECT_FORMAT: &str = "Correct format is Authorization: Bearer <jwt>";
 }

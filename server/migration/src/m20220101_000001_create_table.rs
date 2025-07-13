@@ -192,6 +192,7 @@ pub enum Friend {
     #[allow(clippy::enum_variant_names)]
     FriendId,
     DisplayName,
+    SessionId,
 }
 
 #[derive(DeriveIden)]

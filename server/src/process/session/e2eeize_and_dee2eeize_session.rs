@@ -3,7 +3,7 @@ use base::consts::ID;
 use chrono::Utc;
 use migration::m20241229_022701_add_role_for_session::PredefinedPermissions;
 use pb::service::ourchat::{
-    msg_delivery::v1::fetch_msgs_response::RespondMsgType,
+    msg_delivery::v1::fetch_msgs_response::RespondEventType,
     session::{
         e2eeize_and_dee2eeize_session::v1::{
             Dee2eeizeSessionRequest, Dee2eeizeSessionResponse, E2eeizeSessionRequest,
@@ -18,7 +18,7 @@ use tonic::{Request, Response, Status};
 
 use crate::{
     db::{
-        session::{check_user_in_session, get_members, get_session_by_id, if_permission_exist},
+        session::{get_members, get_session_by_id, if_permission_exist, in_session},
         user::get_account_info_db,
     },
     process::{
@@ -72,7 +72,7 @@ async fn e2eeize_session_impl(
     let session = get_session_by_id(session_id.into(), &server.db.db_pool)
         .await?
         .ok_or(anyhow!("cannot find session"))?;
-    if check_user_in_session(id, session_id.into(), &server.db.db_pool).await? {
+    if !in_session(id, session_id.into(), &server.db.db_pool).await? {
         Err(Status::not_found(not_found::USER_IN_SESSION))?;
     }
     if !if_permission_exist(
@@ -90,7 +90,7 @@ async fn e2eeize_session_impl(
     if session.e2ee_on {
         Err(Status::already_exists("session already e2eeized"))?;
     }
-    let msg = RespondMsgType::UpdateRoomKey(UpdateRoomKeyNotification { session_id });
+    let msg = RespondEventType::UpdateRoomKey(UpdateRoomKeyNotification { session_id });
     let rmq_conn = server
         .rabbitmq
         .get()
@@ -116,7 +116,7 @@ async fn e2eeize_session_impl(
             let user = get_account_info_db(members.user_id.into(), &server.db.db_pool)
                 .await?
                 .ok_or(anyhow!("cannot find user"))?;
-            let msg = RespondMsgType::SendRoomKey(SendRoomKeyNotification {
+            let msg = RespondEventType::SendRoomKey(SendRoomKeyNotification {
                 session_id,
                 sender: (members.user_id as u64),
                 public_key: user.public_key.into(),
@@ -182,7 +182,7 @@ async fn dee2eeize_session_impl(
     let session = get_session_by_id(session_id.into(), &server.db.db_pool)
         .await?
         .ok_or(anyhow!("cannot find session"))?;
-    if check_user_in_session(id, session_id.into(), &server.db.db_pool).await? {
+    if !in_session(id, session_id.into(), &server.db.db_pool).await? {
         Err(Status::not_found(not_found::USER_IN_SESSION))?;
     }
     if !if_permission_exist(

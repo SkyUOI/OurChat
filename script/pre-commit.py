@@ -15,6 +15,9 @@ def main():
     os.chdir("client/")
     if os.system("dart format lib/"):
         print("It seems dart is not installed.Ignored")
+    os.chdir("../server/web-panel/")
+    if os.system("pnpm run format"):
+        print("It seems pnpm is not installed.Ignored")
 
 
 if __name__ == "__main__":

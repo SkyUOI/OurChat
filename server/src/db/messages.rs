@@ -8,7 +8,7 @@ use sea_orm::{
 
 use super::session::if_permission_exist;
 use base::consts::{ID, SessionID};
-use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
+use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
 
 #[derive(Debug, thiserror::Error)]
 pub enum MsgError {
@@ -41,9 +41,11 @@ pub async fn get_session_msgs<T: ConnectionTrait>(
         .from_raw_sql(Statement::from_sql_and_values(
             DatabaseBackend::Postgres,
             r#"SELECT * FROM message_records
-        WHERE time > $1 AND
-        (sender_id = $2 OR EXISTS (SELECT * FROM session_relation WHERE user_id = $2 AND session_id = message_records.session_id)) OR (is_all_user = true)"#,
-            [end_timestamp.into(), user_id.into()],
+WHERE time > $1 AND
+((sender_id = $2 OR EXISTS (SELECT * FROM session_relation WHERE user_id = $2 AND session_id = message_records.session_id)) OR (is_all_user = true))"#,
+                [end_timestamp.into(), user_id.into()],
+            // r#"SELECT * FROM message_records"#,
+            // [],
         ))
         .paginate(db_conn, page_size);
     Ok(msgs)
@@ -93,7 +95,7 @@ pub async fn del_msg(
 pub async fn insert_msg_record(
     sender_id: Option<ID>,
     session_id: Option<SessionID>,
-    msg: RespondMsgType,
+    msg: RespondEventType,
     is_encrypted: bool,
     db_conn: &impl ConnectionTrait,
     is_all_user: bool,

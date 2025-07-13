@@ -9,7 +9,7 @@ use crate::process::db::get_id;
 use crate::process::error_msg::{self, ACCOUNT_DELETED, SERVER_ERROR};
 use crate::process::{self, ErrAuth};
 use crate::{SERVER_INFO, SharedData, ShutdownRev};
-use base::consts::{ID, OCID, VERSION_SPLIT};
+use base::consts::{ID, JWT_HEADER, OCID, VERSION_SPLIT};
 use base::database::DbPool;
 use futures_util::future::BoxFuture;
 use http_body_util::BodyExt;
@@ -30,7 +30,8 @@ use pb::service::basic::server::v1::RunningStatus;
 use pb::service::basic::support::v1::{SupportRequest, SupportResponse};
 use pb::service::basic::v1::basic_service_server::{BasicService, BasicServiceServer};
 use pb::service::basic::v1::{
-    GetIdRequest, GetIdResponse, GetServerInfoRequest, TimestampRequest, TimestampResponse,
+    GetIdRequest, GetIdResponse, GetServerInfoRequest, PingRequest, PingResponse, TimestampRequest,
+    TimestampResponse,
 };
 use pb::service::ourchat::v1::our_chat_service_server::OurChatServiceServer;
 use pb::service::server_manage::delete_account::v1::{DeleteAccountRequest, DeleteAccountResponse};
@@ -346,7 +347,7 @@ impl RpcServer {
     #[allow(clippy::result_large_err)]
     fn check_auth(req: &mut Request<()>) -> Result<ID, Status> {
         // Check if token exists in metadata
-        match req.metadata().get("token") {
+        match req.metadata().get(JWT_HEADER) {
             Some(token) => {
                 match process::check_token(token.to_str().unwrap()) {
                     Ok(jwt) => {
@@ -359,6 +360,12 @@ impl RpcServer {
                     Err(e) => match e {
                         ErrAuth::JWT(_) => Err(Status::unauthenticated(error_msg::token::INVALID)),
                         ErrAuth::Expire => Err(Status::unauthenticated(error_msg::token::EXPIRED)),
+                        ErrAuth::UnsupportedAuthorizationHeader => Err(Status::unauthenticated(
+                            error_msg::token::UNSUPPORTED_AUTHORIZATION_HEADER,
+                        )),
+                        ErrAuth::IncorrectFormat => {
+                            Err(Status::unauthenticated(error_msg::token::INCORRECT_FORMAT))
+                        }
                     },
                 }
             }
@@ -441,6 +448,11 @@ pub struct BasicServiceProvider {
 /// Implementation of Basic service methods
 #[tonic::async_trait]
 impl BasicService for BasicServiceProvider {
+    #[tracing::instrument(skip(self))]
+    async fn ping(&self, _request: Request<PingRequest>) -> Result<Response<PingResponse>, Status> {
+        Ok(Response::new(PingResponse {}))
+    }
+
     /// Get current server timestamp in UTC
     #[tracing::instrument(skip(self))]
     async fn timestamp(

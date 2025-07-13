@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:ourchat/log.dart';
+import 'package:ourchat/core/log.dart';
 import 'main.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:ourchat/l10n/app_localizations.dart';
 
 class Setting extends StatelessWidget {
   const Setting({super.key});
@@ -10,135 +10,68 @@ class Setting extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final formKey = GlobalKey<FormState>();
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.only(top: 20.0, bottom: 20.0),
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                // 可滚动
-                child: Column(
-                  children: [
-                    _SeedColorEditor(formKey: formKey),
-                    _LogLevelSelector(),
-                  ],
+    return Form(
+      key: formKey,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.only(top: 20.0, bottom: 20.0),
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  // 可滚动
+                  child: Column(
+                    children: [
+                      SeedColorEditor(),
+                      LogLevelSelector(),
+                      KeepAliveTimeEditor()
+                    ],
+                  ),
                 ),
               ),
-            ),
-            _DialogButtons(formKey: formKey) // 确定/重置
-          ],
+              DialogButtons(formKey: formKey) // 确定/重置
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _SeedColorEditor extends StatelessWidget {
-  const _SeedColorEditor({required this.formKey});
-
-  final GlobalKey<FormState> formKey;
-
-  @override
-  Widget build(BuildContext context) {
-    var appState = context.watch<OurchatAppState>();
-    var i18n = AppLocalizations.of(context)!;
-    var seedColor = appState.config["color"];
-    return Form(
-      key: formKey,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(5.0),
-                child: SizedBox(
-                  width: 30.0,
-                  height: 30.0,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: ColorScheme.fromSeed(
-                          seedColor: Color(seedColor),
-                        ).secondary,
-                      ),
-                      color: Color(
-                        appState.config["color"],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: TextFormField(
-                  decoration: InputDecoration(
-                    labelText: i18n.themeColorSeed,
-                  ),
-                  controller: TextEditingController(
-                    text: "0x${appState.config["color"].toRadixString(16)}",
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return AppLocalizations.of(
-                        context,
-                      )!
-                          .cantBeEmpty;
-                    }
-                    return null;
-                  },
-                  onSaved: (value) {
-                    appState.config["color"] = int.parse(
-                      value!,
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DialogButtons extends StatelessWidget {
-  const _DialogButtons({
-    required this.formKey,
+class KeepAliveTimeEditor extends StatelessWidget {
+  const KeepAliveTimeEditor({
+    super.key,
   });
 
-  final GlobalKey<FormState> formKey;
-
   @override
   Widget build(BuildContext context) {
-    var appState = context.watch<OurchatAppState>();
-    var i18n = AppLocalizations.of(context)!;
+    var ourchatAppState = context.watch<OurchatAppState>();
+    var l10n = AppLocalizations.of(context)!;
     return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Padding(
           padding: const EdgeInsets.all(5.0),
-          child: ElevatedButton(
-            onPressed: () {
-              var servers = appState.config["servers"];
-              appState.config.reset();
-              appState.config["servers"] = servers;
-              appState.update();
-              appState.config.saveConfig();
-            },
-            child: Text(i18n.reset),
+          child: SizedBox(
+            height: 30.0,
+            width: 30.0,
+            child: Icon(Icons.timer, size: 35.0),
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.all(5.0),
-          child: ElevatedButton(
-            child: Text(i18n.save),
-            onPressed: () {
-              if (formKey.currentState!.validate()) {
-                formKey.currentState!.save();
-                appState.update();
-                appState.config.saveConfig();
+        Expanded(
+          child: TextFormField(
+            initialValue:
+                ourchatAppState.config["keep_alive_interval"].toString(),
+            decoration: InputDecoration(label: Text(l10n.keepAliveInterval)),
+            autovalidateMode: AutovalidateMode.onUnfocus,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return l10n.cantBeEmpty;
               }
+              if (int.tryParse(value) == null) {
+                return l10n.mustBeInteger;
+              }
+              ourchatAppState.config["keep_alive_interval"] = int.parse(value);
+              return null;
             },
           ),
         ),
@@ -147,84 +80,136 @@ class _DialogButtons extends StatelessWidget {
   }
 }
 
-class _LogLevelSelector extends StatefulWidget {
+class SeedColorEditor extends StatelessWidget {
+  const SeedColorEditor({
+    super.key,
+  });
+
   @override
-  _LogLevelSelectorState createState() => _LogLevelSelectorState();
+  Widget build(BuildContext context) {
+    var ourchatAppState = context.watch<OurchatAppState>();
+    var l10n = AppLocalizations.of(context)!;
+    var seedColor = ourchatAppState.config["color"];
+    return Row(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(5.0),
+          child: SizedBox(
+            width: 30.0,
+            height: 30.0,
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: ColorScheme.fromSeed(
+                    seedColor: Color(seedColor),
+                  ).secondary,
+                ),
+                color: Color(
+                  ourchatAppState.config["color"],
+                ),
+              ),
+            ),
+          ),
+        ),
+        Expanded(
+          child: TextFormField(
+              decoration: InputDecoration(
+                labelText: l10n.themeColorSeed,
+              ),
+              controller: TextEditingController(
+                text: "0x${ourchatAppState.config["color"].toRadixString(16)}",
+              ),
+              autovalidateMode: AutovalidateMode.onUnfocus,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return AppLocalizations.of(
+                    context,
+                  )!
+                      .cantBeEmpty;
+                }
+                ourchatAppState.config["color"] = int.parse(
+                  value,
+                );
+                return null;
+              }),
+        ),
+      ],
+    );
+  }
 }
 
-class _LogLevelSelectorState extends State<_LogLevelSelector> {
-  late String _selectedLevel;
+class DialogButtons extends StatelessWidget {
+  const DialogButtons({
+    super.key,
+    required this.formKey,
+  });
+
+  final GlobalKey<FormState> formKey;
 
   @override
   Widget build(BuildContext context) {
     var appState = context.watch<OurchatAppState>();
-    _selectedLevel = appState.config["log_level"];
-    var i18n = AppLocalizations.of(context)!;
+    var l10n = AppLocalizations.of(context)!;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          _getLevelIcon(_selectedLevel),
-          Expanded(
-            child: InputDecorator(
-              decoration: InputDecoration(
-                labelText: i18n.logLevel,
-                isCollapsed: true,
-                contentPadding: EdgeInsets.only(bottom: 4),
-                border: UnderlineInputBorder(
-                  borderSide: BorderSide(
-                    color: Theme.of(context).dividerColor,
-                    width: 1.0,
-                  ),
-                  borderRadius: BorderRadius.zero,
-                ),
-                enabledBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(
-                    color: Theme.of(context).dividerColor,
-                    width: 1.0,
-                  ),
-                  borderRadius: BorderRadius.zero,
-                ),
-                alignLabelWithHint: true,
-                isDense: true,
-              ),
-              child: Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownMenu<String>(
-                    width: MediaQuery.of(context).size.width - 100,
-                    initialSelection: appState.config["log_level"],
-                    onSelected: (String? newValue) {
-                      appState.config["log_level"] = newValue!;
-                      setState(() {
-                        _selectedLevel = newValue;
-                      });
-                      constructLogger(convertStrIntoLevel(_selectedLevel));
-                      logger.i('Selected log level: $_selectedLevel');
-                      appState.update();
-                    },
-                    dropdownMenuEntries: logLevels
-                        .map<DropdownMenuEntry<String>>((String value) {
-                      return DropdownMenuEntry<String>(
-                        value: value,
-                        label: value,
-                        leadingIcon: SizedBox(
-                          width: 40,
-                          child: _getLevelIcon(value),
-                        ),
-                      );
-                    }).toList(),
-                    inputDecorationTheme: InputDecorationTheme(
-                        border:
-                            UnderlineInputBorder(borderSide: BorderSide.none)),
-                  ),
-                ),
-              ),
-            ),
-          )
-        ],
+      padding: const EdgeInsets.all(5.0),
+      child: ElevatedButton(
+        onPressed: () {
+          var servers = appState.config["servers"];
+          appState.config.reset();
+          appState.config["servers"] = servers;
+          appState.update();
+        },
+        child: Text(l10n.reset),
       ),
+    );
+  }
+}
+
+class LogLevelSelector extends StatelessWidget {
+  const LogLevelSelector({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    var ourchatAppState = context.watch<OurchatAppState>();
+    var l10n = AppLocalizations.of(context)!;
+    List<DropdownMenuItem> dropDownItems = [];
+    for (var i = 0; i < logLevels.length; i++) {
+      var value = logLevels[i];
+      dropDownItems.add(DropdownMenuItem(
+          value: value,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [getLevelIcon(value), Text(value)],
+          )));
+    }
+    return Row(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(5.0),
+          child: SizedBox(
+              width: 30.0,
+              height: 30.0,
+              child: getLevelIcon(ourchatAppState.config["log_level"])),
+        ),
+        Expanded(
+            child: DropdownButtonFormField(
+                decoration: InputDecoration(label: Text(l10n.logLevel)),
+                value: ourchatAppState.config["log_level"],
+                items: dropDownItems,
+                selectedItemBuilder: (context) {
+                  List<DropdownMenuItem> selectedItems = [];
+                  for (var i = 0; i < logLevels.length; i++) {
+                    var value = logLevels[i];
+                    selectedItems.add(
+                        DropdownMenuItem(value: value, child: Text(value)));
+                  }
+                  return selectedItems;
+                },
+                onChanged: (value) {
+                  ourchatAppState.config["log_level"] = value;
+                  ourchatAppState.update();
+                })),
+      ],
     );
   }
 
@@ -242,39 +227,34 @@ class _LogLevelSelectorState extends State<_LogLevelSelector> {
   ///
   /// If the log level does not match any of the predefined cases,
   /// a default help icon is returned.
-  Icon _getLevelIcon(String level) {
-    var size = 44.0;
+  Icon getLevelIcon(String level) {
+    var size = 35.0;
     switch (level) {
       case 'debug':
         return Icon(
           Icons.bug_report,
-          color: Colors.green,
           size: size,
         );
       case 'info':
-        return Icon(Icons.info, color: Colors.blue, size: size);
+        return Icon(Icons.info, size: size);
       case 'warning':
         return Icon(
           Icons.warning,
-          color: Colors.orange,
           size: size,
         );
       case 'error':
         return Icon(
           Icons.error,
-          color: Colors.red,
           size: size,
         );
       case 'fatal':
         return Icon(
           Icons.dangerous,
-          color: Colors.purple,
           size: size,
         );
       case 'trace':
         return Icon(
           Icons.code,
-          color: Colors.grey,
           size: size,
         );
       default:

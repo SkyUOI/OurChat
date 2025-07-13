@@ -49,7 +49,5 @@ server/files_storage/*
 perf.data*
 flamegraph.svg
 
-node_modules/
-server/web-panel/src/
-client/lib/core
-client/lib/l10n
+# vscode
+*.code-workspace

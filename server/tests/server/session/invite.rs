@@ -3,9 +3,10 @@ use core::panic;
 use bytes::Bytes;
 use client::{TestApp, oc_helper::TestSession};
 use pb::service::ourchat::{
-    msg_delivery::v1::fetch_msgs_response::RespondMsgType,
+    msg_delivery::v1::fetch_msgs_response::RespondEventType,
     session::{
-        accept_session::v1::AcceptSessionRequest, invite_to_session::v1::InviteToSessionRequest,
+        accept_join_session_invitation::v1::AcceptJoinSessionInvitationRequest,
+        invite_user_to_session::v1::InviteUserToSessionRequest,
         session_room_key::v1::SendRoomKeyRequest,
     },
 };
@@ -25,20 +26,20 @@ async fn invite_user_to_session_success() {
     a.lock()
         .await
         .oc()
-        .invite_to_session(InviteToSessionRequest {
+        .invite_user_to_session(InviteUserToSessionRequest {
             session_id: session.session_id.into(),
             invitee: cid.into(),
             leave_message: "hi".to_owned(),
         })
         .await
         .unwrap();
-    let invite_request = c.lock().await.fetch_msgs(1).await.unwrap();
+    let invite_request = c.lock().await.fetch_msgs().fetch(1).await.unwrap();
     assert_eq!(invite_request.len(), 1);
-    let RespondMsgType::InviteSession(invite_request) = invite_request
+    let RespondEventType::InviteUserToSession(invite_request) = invite_request
         .into_iter()
         .next()
         .unwrap()
-        .respond_msg_type
+        .respond_event_type
         .unwrap()
     else {
         panic!("invite request is not InviteSession",);
@@ -54,23 +55,23 @@ async fn invite_user_to_session_success() {
     c.lock()
         .await
         .oc()
-        .accept_session(AcceptSessionRequest {
+        .accept_join_session_invitation(AcceptJoinSessionInvitationRequest {
             session_id: session.session_id.into(),
             accepted: true,
             inviter_id: aid.into(),
         })
         .await
         .unwrap();
-    let accept_approval = a.lock().await.fetch_msgs(2).await.unwrap();
+    let accept_approval = a.lock().await.fetch_msgs().fetch(2).await.unwrap();
     assert_eq!(accept_approval.len(), 2);
-    let RespondMsgType::AcceptSessionApproval(accept_approval) = accept_approval
+    let RespondEventType::AcceptSessionApproval(accept_approval) = accept_approval
         .into_iter()
         .nth(1)
         .unwrap()
-        .respond_msg_type
+        .respond_event_type
         .unwrap()
     else {
-        panic!("accept notification is not AcceptJoinInSession",);
+        panic!("accept notification is not AcceptSessionApproval",);
     };
     assert!(
         in_session(cid, session.session_id, app.get_db_connection())
@@ -99,13 +100,13 @@ async fn invite_user_to_session_success() {
         })
         .await
         .unwrap();
-    let room_key_notification = c.lock().await.fetch_msgs(2).await.unwrap();
+    let room_key_notification = c.lock().await.fetch_msgs().fetch(2).await.unwrap();
     assert_eq!(room_key_notification.len(), 2);
-    let RespondMsgType::ReceiveRoomKey(room_key_notification) = room_key_notification
+    let RespondEventType::ReceiveRoomKey(room_key_notification) = room_key_notification
         .into_iter()
         .nth(1)
         .unwrap()
-        .respond_msg_type
+        .respond_event_type
         .unwrap()
     else {
         panic!("room key request is not SendRoomKey",);
@@ -137,20 +138,20 @@ async fn invite_user_to_session_reject() {
     a.lock()
         .await
         .oc()
-        .invite_to_session(InviteToSessionRequest {
+        .invite_user_to_session(InviteUserToSessionRequest {
             session_id: session.session_id.into(),
             invitee: cid.into(),
             leave_message: "hi".to_owned(),
         })
         .await
         .unwrap();
-    let invite_request = c.lock().await.fetch_msgs(1).await.unwrap();
+    let invite_request = c.lock().await.fetch_msgs().fetch(1).await.unwrap();
     assert_eq!(invite_request.len(), 1);
-    let RespondMsgType::InviteSession(invite_request) = invite_request
+    let RespondEventType::InviteUserToSession(invite_request) = invite_request
         .into_iter()
         .next()
         .unwrap()
-        .respond_msg_type
+        .respond_event_type
         .unwrap()
     else {
         panic!("invite request is not InviteSession",);
@@ -166,20 +167,20 @@ async fn invite_user_to_session_reject() {
     c.lock()
         .await
         .oc()
-        .accept_session(AcceptSessionRequest {
+        .accept_join_session_invitation(AcceptJoinSessionInvitationRequest {
             session_id: session.session_id.into(),
             accepted: false,
             inviter_id: aid.into(),
         })
         .await
         .unwrap();
-    let accept_approval = a.lock().await.fetch_msgs(2).await.unwrap();
+    let accept_approval = a.lock().await.fetch_msgs().fetch(2).await.unwrap();
     assert_eq!(accept_approval.len(), 2);
-    let RespondMsgType::AcceptSessionApproval(accept_approval) = accept_approval
+    let RespondEventType::AcceptSessionApproval(accept_approval) = accept_approval
         .into_iter()
         .nth(1)
         .unwrap()
-        .respond_msg_type
+        .respond_event_type
         .unwrap()
     else {
         panic!("accept notification is not AcceptJoinInSession");

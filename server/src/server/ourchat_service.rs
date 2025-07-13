@@ -5,8 +5,8 @@ use pb::service::ourchat::session::e2eeize_and_dee2eeize_session::v1::{
     Dee2eeizeSessionRequest, Dee2eeizeSessionResponse, E2eeizeSessionRequest,
     E2eeizeSessionResponse,
 };
-use pb::service::ourchat::session::invite_to_session::v1::{
-    InviteToSessionRequest, InviteToSessionResponse,
+use pb::service::ourchat::session::invite_user_to_session::v1::{
+    InviteUserToSessionRequest, InviteUserToSessionResponse,
 };
 use pb::service::ourchat::session::session_room_key::v1::{
     SendRoomKeyRequest, SendRoomKeyResponse,
@@ -16,7 +16,9 @@ use tonic::{Request, Response, Status};
 
 use super::RpcServer;
 use crate::process::{self, get_id_from_req};
-use pb::service::ourchat::friends::accept_friend::v1::{AcceptFriendRequest, AcceptFriendResponse};
+use pb::service::ourchat::friends::accept_friend_invitation::v1::{
+    AcceptFriendInvitationRequest, AcceptFriendInvitationResponse,
+};
 use pb::service::ourchat::friends::add_friend::v1::{AddFriendRequest, AddFriendResponse};
 use pb::service::ourchat::friends::delete_friend::v1::{DeleteFriendRequest, DeleteFriendResponse};
 use pb::service::ourchat::friends::set_friend_info::v1::{
@@ -27,10 +29,13 @@ use pb::service::ourchat::msg_delivery::recall::v1::{RecallMsgRequest, RecallMsg
 use pb::service::ourchat::msg_delivery::v1::{
     FetchMsgsRequest, FetchMsgsResponse, SendMsgRequest, SendMsgResponse,
 };
-use pb::service::ourchat::session::accept_session::v1::{
-    AcceptSessionRequest, AcceptSessionResponse,
+use pb::service::ourchat::session::accept_join_session_invitation::v1::{
+    AcceptJoinSessionInvitationRequest, AcceptJoinSessionInvitationResponse,
 };
 use pb::service::ourchat::session::add_role::v1::{AddRoleRequest, AddRoleResponse};
+use pb::service::ourchat::session::allow_user_join_session::v1::{
+    AllowUserJoinSessionRequest, AllowUserJoinSessionResponse,
+};
 use pb::service::ourchat::session::ban::v1::{
     BanUserRequest, BanUserResponse, UnbanUserRequest, UnbanUserResponse,
 };
@@ -40,10 +45,7 @@ use pb::service::ourchat::session::delete_session::v1::{
 use pb::service::ourchat::session::get_session_info::v1::{
     GetSessionInfoRequest, GetSessionInfoResponse,
 };
-use pb::service::ourchat::session::join_in_session::v1::{
-    AcceptJoinInSessionRequest, AcceptJoinInSessionResponse, JoinInSessionRequest,
-    JoinInSessionResponse,
-};
+use pb::service::ourchat::session::join_session::v1::{JoinSessionRequest, JoinSessionResponse};
 use pb::service::ourchat::session::leave_session::v1::{LeaveSessionRequest, LeaveSessionResponse};
 use pb::service::ourchat::session::mute::v1::{
     MuteUserRequest, MuteUserResponse, UnmuteUserRequest, UnmuteUserResponse,
@@ -154,13 +156,13 @@ impl OurChatService for RpcServer {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn accept_session(
+    async fn accept_join_session_invitation(
         &self,
-        request: Request<AcceptSessionRequest>,
-    ) -> Result<Response<AcceptSessionResponse>, Status> {
+        request: Request<AcceptJoinSessionInvitationRequest>,
+    ) -> Result<Response<AcceptJoinSessionInvitationResponse>, Status> {
         let id = get_id_from_req(&request).unwrap();
         self.check_account_status(id).await?;
-        process::accept_session(self, id, request).await
+        process::accept_join_session_invitation(self, id, request).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -304,13 +306,13 @@ impl OurChatService for RpcServer {
 
     /// Accept a pending friend request
     #[tracing::instrument(skip(self))]
-    async fn accept_friend(
+    async fn accept_friend_invitation(
         &self,
-        request: Request<AcceptFriendRequest>,
-    ) -> Result<Response<AcceptFriendResponse>, Status> {
+        request: Request<AcceptFriendInvitationRequest>,
+    ) -> Result<Response<AcceptFriendInvitationResponse>, Status> {
         let id = get_id_from_req(&request).unwrap();
         self.check_account_status(id).await?;
-        process::accept_friend(self, id, request).await
+        process::accept_friend_invitation(self, id, request).await
     }
 
     /// Remove a user from the list of friends
@@ -325,24 +327,24 @@ impl OurChatService for RpcServer {
 
     /// Request to join a session
     #[tracing::instrument(skip(self))]
-    async fn join_in_session(
+    async fn join_session(
         &self,
-        request: Request<JoinInSessionRequest>,
-    ) -> Result<Response<JoinInSessionResponse>, Status> {
+        request: Request<JoinSessionRequest>,
+    ) -> Result<Response<JoinSessionResponse>, Status> {
         let id = get_id_from_req(&request).unwrap();
         self.check_account_status(id).await?;
-        process::join_in_session(self, id, request).await
+        process::join_session(self, id, request).await
     }
 
     /// Accept a pending session join request
     #[tracing::instrument(skip(self))]
-    async fn accept_join_in_session(
+    async fn allow_user_join_session(
         &self,
-        request: Request<AcceptJoinInSessionRequest>,
-    ) -> Result<Response<AcceptJoinInSessionResponse>, Status> {
+        request: Request<AllowUserJoinSessionRequest>,
+    ) -> Result<Response<AllowUserJoinSessionResponse>, Status> {
         let id = get_id_from_req(&request).unwrap();
         self.check_account_status(id).await?;
-        process::accept_join_in_session(self, id, request).await
+        process::allow_user_join_session(self, id, request).await
     }
 
     /// Rpc create room
@@ -356,13 +358,13 @@ impl OurChatService for RpcServer {
         process::create_room(self, id, request).await
     }
 
-    async fn invite_to_session(
+    async fn invite_user_to_session(
         &self,
-        request: Request<InviteToSessionRequest>,
-    ) -> Result<Response<InviteToSessionResponse>, Status> {
+        request: Request<InviteUserToSessionRequest>,
+    ) -> Result<Response<InviteUserToSessionResponse>, Status> {
         let id = get_id_from_req(&request).unwrap();
         self.check_account_status(id).await?;
-        process::invite_to_session(self, id, request).await
+        process::invite_user_to_session(self, id, request).await
     }
 
     async fn send_room_key(

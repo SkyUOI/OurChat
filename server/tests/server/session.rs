@@ -15,7 +15,7 @@ use client::TestApp;
 use migration::m20241229_022701_add_role_for_session::PredefinedRoles;
 use parking_lot::Mutex;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
-use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
+use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
 use pb::service::ourchat::session::{
     get_session_info::v1::{GetSessionInfoRequest, QueryValues},
     new_session::v1::NewSessionRequest,
@@ -53,7 +53,8 @@ async fn session_create() {
         let ret = user2_clone
             .lock()
             .await
-            .fetch_msgs_notify(notify_clone)
+            .fetch_msgs()
+            .fetch_with_notify(notify_clone)
             .await
             .unwrap();
         *user2_rec_clone.lock() = Some(ret);
@@ -71,10 +72,11 @@ async fn session_create() {
     let new_session = ret.into_inner();
     let session_id: SessionID = new_session.session_id.into();
     assert_eq!(new_session.failed_members, vec![]);
-    let user3_rec = user3.lock().await.fetch_msgs(1).await.unwrap();
+    let user3_rec = user3.lock().await.fetch_msgs().fetch(1).await.unwrap();
     let check = async |rec: Vec<FetchMsgsResponse>| {
         assert_eq!(rec.len(), 1);
-        let RespondMsgType::InviteSession(rec) = rec[0].respond_msg_type.clone().unwrap() else {
+        let RespondEventType::InviteUserToSession(rec) = rec[0].respond_event_type.clone().unwrap()
+        else {
             panic!();
         };
         assert_eq!(rec.session_id, *session_id);
@@ -90,16 +92,33 @@ async fn session_create() {
     user2
         .lock()
         .await
-        .accept_session(session_id, false, user1_id)
+        .accept_join_session_invitation(session_id, false, user1_id)
         .await
         .unwrap();
     user3
         .lock()
         .await
-        .accept_session(session_id, true, user1_id)
+        .accept_join_session_invitation(session_id, true, user1_id)
         .await
         .unwrap();
     tokio::time::sleep(Duration::from_millis(200)).await;
+    let err = user2
+        .lock()
+        .await
+        .accept_join_session_invitation(session_id, false, user1_id)
+        .await
+        .unwrap_err();
+    assert_eq!(err.code(), tonic::Code::NotFound);
+    assert_eq!(err.message(), error_msg::not_found::SESSION_INVITATION);
+    let err = user3
+        .lock()
+        .await
+        .accept_join_session_invitation(session_id, true, user1_id)
+        .await
+        .unwrap_err();
+    assert_eq!(err.code(), tonic::Code::NotFound);
+    assert_eq!(err.message(), error_msg::not_found::SESSION_INVITATION);
+
     assert_eq!(
         get_all_session_relations(user2_id, app.get_db_connection())
             .await

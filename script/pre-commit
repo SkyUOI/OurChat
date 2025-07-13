@@ -1,10 +1,3 @@
 #!/bin/sh
 
-# Rust Check
-cargo fmt --check
-# Python Check
-ruff format --check
-ruff check
-# protobuf check
-buf format --exit-code
-buf lint
+python script/pre-commit.py

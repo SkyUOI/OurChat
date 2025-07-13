@@ -50,7 +50,7 @@ fn main() -> anyhow::Result<()> {
     }
     tonic_build::configure()
         .type_attribute(
-            "service.ourchat.msg_delivery.v1.FetchMsgsResponse.respond_msg_type",
+            "service.ourchat.msg_delivery.v1.FetchMsgsResponse.respond_event_type",
             "#[derive(serde::Serialize, serde::Deserialize)]",
         )
         .type_attribute(
@@ -66,11 +66,11 @@ fn main() -> anyhow::Result<()> {
             "#[derive(serde::Serialize, serde::Deserialize)]",
         )
         .type_attribute(
-            "service.ourchat.friends.accept_friend.v1.AcceptFriendNotification",
+            "service.ourchat.friends.accept_friend_invitation.v1.FriendInvitationResultNotification",
             "#[derive(serde::Serialize, serde::Deserialize)]",
         )
         .type_attribute(
-            "service.ourchat.session.invite_session.v1.InviteSession",
+            "service.ourchat.session.invite_user_to_session.v1.InviteUserToSession",
             "#[derive(serde::Serialize, serde::Deserialize)]",
         )
         .type_attribute(
@@ -82,15 +82,15 @@ fn main() -> anyhow::Result<()> {
             "#[derive(serde::Serialize, serde::Deserialize)]",
         )
         .type_attribute(
-            "service.ourchat.session.join_in_session.v1.JoinInSessionApproval",
+            "service.ourchat.session.join_session.v1.JoinSessionApproval",
             "#[derive(serde::Serialize, serde::Deserialize)]",
         )
         .type_attribute(
-            "service.ourchat.session.join_in_session.v1.AcceptJoinInSessionNotification",
+            "service.ourchat.session.allow_user_join_session.v1.AllowUserJoinSessionNotification",
             "#[derive(serde::Serialize, serde::Deserialize)]",
         )
         .type_attribute(
-            "service.ourchat.friends.add_friend.v1.AddFriendApproval",
+            "service.ourchat.friends.add_friend.v1.NewFriendInvitationNotification",
             "#[derive(serde::Serialize, serde::Deserialize)]",
         )
         .type_attribute(
@@ -106,7 +106,7 @@ fn main() -> anyhow::Result<()> {
             "#[derive(serde::Serialize, serde::Deserialize)]",
         )
         .type_attribute(
-            "service.ourchat.session.invite_to_session.v1.AcceptSessionNotification",
+            "service.ourchat.session.invite_user_to_session.v1.AcceptSessionNotification",
             "#[derive(serde::Serialize, serde::Deserialize)]",
         )
         .type_attribute(

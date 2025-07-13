@@ -8,10 +8,10 @@ use base::consts::ID;
 use deadpool_redis::redis::AsyncCommands;
 use entities::prelude::Friend;
 use pb::service::ourchat::friends::add_friend::v1::{
-    AddFriendApproval, AddFriendRequest, AddFriendResponse,
+    AddFriendRequest, AddFriendResponse, NewFriendInvitationNotification,
 };
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
-use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
+use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
 use pb::time::to_google_timestamp;
 use sea_orm::{EntityTrait, TransactionTrait};
 use tonic::{Request, Response, Status};
@@ -98,10 +98,12 @@ async fn add_friend_impl(
         )
         .await?;
     // insert 2 messages
-    let respond_msg = RespondMsgType::AddFriendApproval(AddFriendApproval {
-        inviter_id: id.into(),
-        leave_message: req.leave_message,
-    });
+    let respond_msg =
+        RespondEventType::NewFriendInvitationNotification(NewFriendInvitationNotification {
+            inviter_id: id.into(),
+            invitee_id: friend_id.into(),
+            leave_message: req.leave_message,
+        });
     let transaction = server.db.db_pool.begin().await?;
     let _msg_model = insert_msg_record(
         Some(friend_id),
@@ -126,7 +128,7 @@ async fn add_friend_impl(
     let fetch_response = FetchMsgsResponse {
         msg_id: msg_model.msg_id as u64,
         time: Some(to_google_timestamp(msg_model.time.into())),
-        respond_msg_type: Some(respond_msg),
+        respond_event_type: Some(respond_msg),
     };
     let rmq_conn = server
         .rabbitmq

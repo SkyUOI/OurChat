@@ -14,7 +14,7 @@ use pb::service::ourchat::msg_delivery::recall::v1::{
     RecallMsgRequest, RecallMsgResponse, RecallNotification,
 };
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
-use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
+use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
 use pb::time::to_google_timestamp;
 use tonic::{Request, Response, Status};
 
@@ -72,7 +72,7 @@ async fn recall_msg_internal(
         &server.db.db_pool,
     )
     .await?;
-    let respond_msg = RespondMsgType::Recall(RecallNotification { msg_id: req.msg_id });
+    let respond_msg = RespondEventType::Recall(RecallNotification { msg_id: req.msg_id });
     let msg = db::messages::insert_msg_record(
         id.into(),
         Some(req.session_id.into()),
@@ -94,7 +94,7 @@ async fn recall_msg_internal(
     transmit_msg(
         FetchMsgsResponse {
             msg_id: msg.msg_id as u64,
-            respond_msg_type: Some(respond_msg),
+            respond_event_type: Some(respond_msg),
             time: Some(to_google_timestamp(msg.time.into())),
         },
         Dest::Session(req.session_id.into()),

@@ -211,8 +211,40 @@
     "@send": {
         "description": "Send"
     },
-    "friendAddMessage": "Friend Add Message",
-    "@friendAddMessage": {
-        "description": "friendAddMessage"
+    "addFriendMessage": "Friend Add Message",
+    "@addFriendMessage": {
+        "description": "Friend Add Message"
+    },
+    "friendAlreadyExists": "Friend Already Exists",
+    "@friendAlreadyExists": {
+        "description": "Friend Already Exists"
+    },
+    "succeeded": "Succeeded",
+    "@succeeded": {
+        "description": "Succeeded"
+    },
+    "userInfo": "User Info",
+    "@userInfo": {
+        "description": "User Info"
+    },
+    "tlsEncryption": "TLS Encryption Status:",
+    "@tlsEncryption": {
+        "description": "TLS Encryption Status:"
+    },
+    "tlsEnabled": "Enabled",
+    "@tlsEnabled": {
+        "description": "TLS Enabled"
+    },
+    "tlsDisabled": "Disabled",
+    "@tlsDisabled": {
+        "description": "TLS Disabled"
+    },
+    "mustBeInteger": "Must Be Integer",
+    "@mustBeInteger": {
+        "description": "Must Be Integer"
+    },
+    "keepAliveInterval": "Keep-Alive Interval(seconds)",
+    "@keepAliveInterval": {
+        "description": "Keep-Alive Interval"
     }
 }

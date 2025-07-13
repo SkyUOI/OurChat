@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ourchat/server_setting.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:ourchat/l10n/app_localizations.dart';
 import 'main.dart';
 
 class User extends StatelessWidget {
@@ -45,6 +45,8 @@ class User extends StatelessWidget {
             onPressed: () {
               appState.thisAccount = null;
               appState.server = null;
+              appState.privateDB!.close();
+              appState.privateDB = null;
               Navigator.pop(context);
               Navigator.push(context, MaterialPageRoute(builder: (context) {
                 return ServerSetting();

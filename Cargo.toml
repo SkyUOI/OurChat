@@ -39,9 +39,7 @@ rand = "0.8.5"
 snowdon = "0"
 zxcvbn = { version = "3", features = ["ser"] }
 tokio-cron-scheduler = "0.14.0"
-croner = { git = "https://github.com/Hexagon/croner-rust", features = [
-    "serde",
-] }
+croner = { version = "2.2.0", features = ["serde"] }
 
 thiserror = "2"
 tracing = { version = "0" }
@@ -65,7 +63,7 @@ async-trait = { version = "0" }
 # serde_plain = "1"
 
 # Grpc
-prost = { version = "0" }
+prost = { version = "0.13.5" }
 jsonwebtoken = "9"
 tower = { version = "0", features = ["full"] }
 hyper = { version = "1", features = ["full"] }

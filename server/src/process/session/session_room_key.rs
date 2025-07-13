@@ -1,7 +1,7 @@
 use anyhow::Context;
 use base::consts::ID;
 use pb::service::ourchat::{
-    msg_delivery::v1::fetch_msgs_response::RespondMsgType,
+    msg_delivery::v1::fetch_msgs_response::RespondEventType,
     session::{
         new_session::v1::{FailedMember, FailedReason},
         session_room_key::v1::{
@@ -85,7 +85,7 @@ async fn send_room_key_impl(
         .context("cannot create rabbitmq channel")?;
     let session_id = req.session_id;
     let room_key = req.room_key;
-    let msg = RespondMsgType::ReceiveRoomKey(ReceiveRoomKeyNotification {
+    let msg = RespondEventType::ReceiveRoomKey(ReceiveRoomKeyNotification {
         session_id,
         user_id: id.into(),
         room_key,

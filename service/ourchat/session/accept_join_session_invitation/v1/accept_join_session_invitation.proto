@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package service.ourchat.session.accept_join_session_invitation.v1;
+
+message AcceptJoinSessionInvitationRequest {
+  uint64 session_id = 1;
+  // accept or reject
+  bool accepted = 2;
+  uint64 inviter_id = 3;
+}
+
+message AcceptJoinSessionInvitationResponse {}

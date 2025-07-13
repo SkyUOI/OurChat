@@ -1,5 +1,5 @@
 use crate::db::friend::query_friend;
-use crate::process::error_msg::not_found;
+use crate::process::error_msg::{self, not_found};
 use crate::{db, process::error_msg::SERVER_ERROR, server::RpcServer};
 use base::consts::ID;
 use pb::service::ourchat::friends::delete_friend::v1::{DeleteFriendRequest, DeleteFriendResponse};
@@ -44,7 +44,14 @@ async fn delete_friend_impl(
     if friend_info.is_none() {
         Err(Status::not_found(not_found::FRIEND))?;
     }
-    db::friend::delete_friend(id, friend_id, &server.db.db_pool).await?;
+    if let Err(e) = db::friend::delete_friend(id, friend_id, &server.db.db_pool).await {
+        match e {
+            db::friend::DeleteFriendError::FriendShipNotFound => {
+                Err(Status::not_found(error_msg::not_found::FRIEND))?
+            }
+            db::friend::DeleteFriendError::Db(db_err) => Err(db_err)?,
+        }
+    }
     let ret = DeleteFriendResponse {};
     Ok(ret)
 }

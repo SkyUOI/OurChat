@@ -2,7 +2,7 @@ use anyhow::Context;
 use pb::service::{
     ourchat::msg_delivery::{
         announcement::v1::AnnouncementResponse,
-        v1::{FetchMsgsResponse, fetch_msgs_response::RespondMsgType},
+        v1::{FetchMsgsResponse, fetch_msgs_response::RespondEventType},
     },
     server_manage::publish_announcement::v1::{
         PublishAnnouncementRequest, PublishAnnouncementResponse,
@@ -64,7 +64,7 @@ async fn publish_announcement_internal(
         FetchMsgsResponse {
             msg_id: announcement.id,
             time: announcement.created_at,
-            respond_msg_type: Some(RespondMsgType::AnnouncementResponse(announcement.clone())),
+            respond_event_type: Some(RespondEventType::AnnouncementResponse(announcement.clone())),
         },
         Dest::All,
         &mut channel,

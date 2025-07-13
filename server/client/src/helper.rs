@@ -16,7 +16,7 @@ pub fn generate_file(size: Size) -> anyhow::Result<impl Iterator<Item = Vec<u8>>
     let ret: Vec<u8> = (0..1024_u64 * 1024_u64)
         .map(|i| (i % (u8::MAX as u64 + 1)) as u8)
         .collect();
-    if size % (1024 * 1024) != 0 {
+    if !size.is_multiple_of(1024 * 1024) {
         Ok(iter::repeat_n(ret.clone(), size / 1024 / 1024)
             .chain(iter::once(ret[..size % (1024 * 1024)].to_vec())))
     } else {

@@ -38,7 +38,7 @@ services:
       timeout: 30s
       retries: 5
   redis:
-    image: redis:7-alpine
+    image: redis:8-alpine
     restart: always
     command: redis-server /usr/local/etc/redis/redis.conf
     ports:

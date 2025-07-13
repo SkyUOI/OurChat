@@ -1,6 +1,6 @@
 use base::consts::ID;
 use pb::service::ourchat::session::{
-    invite_to_session::v1::{InviteToSessionRequest, InviteToSessionResponse},
+    invite_user_to_session::v1::{InviteUserToSessionRequest, InviteUserToSessionResponse},
     new_session::v1::{FailedMember, FailedReason},
 };
 use tonic::{Request, Response, Status};
@@ -26,11 +26,11 @@ pub enum InviteToSessionError {
     Status(#[from] tonic::Status),
 }
 
-async fn invite_to_session_impl(
+async fn invite_user_to_session_impl(
     server: &RpcServer,
     id: ID,
-    request: Request<InviteToSessionRequest>,
-) -> Result<InviteToSessionResponse, InviteToSessionError> {
+    request: Request<InviteUserToSessionRequest>,
+) -> Result<InviteUserToSessionResponse, InviteToSessionError> {
     let req = request.into_inner();
     if get_session_by_id(req.session_id.into(), &server.db.db_pool)
         .await?
@@ -57,15 +57,15 @@ async fn invite_to_session_impl(
         )
         .await?;
     }
-    Ok(InviteToSessionResponse { failed_member })
+    Ok(InviteUserToSessionResponse { failed_member })
 }
 
-pub async fn invite_to_session(
+pub async fn invite_user_to_session(
     server: &RpcServer,
     id: ID,
-    request: Request<InviteToSessionRequest>,
-) -> Result<Response<InviteToSessionResponse>, Status> {
-    match invite_to_session_impl(server, id, request).await {
+    request: Request<InviteUserToSessionRequest>,
+) -> Result<Response<InviteUserToSessionResponse>, Status> {
+    match invite_user_to_session_impl(server, id, request).await {
         Ok(res) => Ok(Response::new(res)),
         Err(e) => match e {
             InviteToSessionError::Unknown(_) | InviteToSessionError::DbError(_) => {

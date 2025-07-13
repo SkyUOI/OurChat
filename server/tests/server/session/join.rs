@@ -1,10 +1,9 @@
 use bytes::Bytes;
 use client::TestApp;
 use client::oc_helper::TestSession;
-use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondMsgType;
-use pb::service::ourchat::session::join_in_session::v1::{
-    AcceptJoinInSessionRequest, JoinInSessionRequest,
-};
+use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
+use pb::service::ourchat::session::allow_user_join_session::v1::AllowUserJoinSessionRequest;
+use pb::service::ourchat::session::join_session::v1::JoinSessionRequest;
 use rand::rngs::OsRng;
 use rsa::pkcs1::DecodeRsaPublicKey as _;
 use rsa::{Pkcs1v15Encrypt, RsaPublicKey};
@@ -21,20 +20,20 @@ async fn join_in_session_success() {
     c.lock()
         .await
         .oc()
-        .join_in_session(JoinInSessionRequest {
+        .join_session(JoinSessionRequest {
             session_id: session.session_id.into(),
             leave_message: Some("hello".to_string()),
         })
         .await
         .unwrap();
     // will receive
-    let join_in_request = a.lock().await.fetch_msgs(1).await.unwrap();
-    assert_eq!(join_in_request.len(), 1);
-    let RespondMsgType::JoinInSessionApproval(join_in) = join_in_request
+    let join_request = a.lock().await.fetch_msgs().fetch(1).await.unwrap();
+    assert_eq!(join_request.len(), 1);
+    let RespondEventType::JoinSessionApproval(join_in) = join_request
         .into_iter()
         .next()
         .unwrap()
-        .respond_msg_type
+        .respond_event_type
         .unwrap()
     else {
         panic!()
@@ -57,7 +56,7 @@ async fn join_in_session_success() {
     a.lock()
         .await
         .oc()
-        .accept_join_in_session(AcceptJoinInSessionRequest {
+        .allow_user_join_session(AllowUserJoinSessionRequest {
             session_id: session.session_id.into(),
             user_id: join_in.user_id,
             accepted: true,
@@ -70,9 +69,11 @@ async fn join_in_session_success() {
             .await
             .unwrap()
     );
-    let ret = c.lock().await.fetch_msgs(2).await.unwrap();
+    let ret = c.lock().await.fetch_msgs().fetch(2).await.unwrap();
     assert_eq!(ret.len(), 2, "{ret:?}");
-    let RespondMsgType::AcceptJoinInSession(ret) = ret[1].respond_msg_type.clone().unwrap() else {
+    let RespondEventType::AllowUserJoinSessionNotification(ret) =
+        ret[1].respond_event_type.clone().unwrap()
+    else {
         panic!()
     };
     let received_encrypted_room_key = ret.room_key.unwrap();
@@ -104,20 +105,20 @@ async fn join_in_session_reject() {
     c.lock()
         .await
         .oc()
-        .join_in_session(JoinInSessionRequest {
+        .join_session(JoinSessionRequest {
             session_id: session.session_id.into(),
             leave_message: Some("hello".to_string()),
         })
         .await
         .unwrap();
     // will receive
-    let join_in_request = a.lock().await.fetch_msgs(1).await.unwrap();
-    assert_eq!(join_in_request.len(), 1);
-    let RespondMsgType::JoinInSessionApproval(join_in) = join_in_request
+    let join_request = a.lock().await.fetch_msgs().fetch(1).await.unwrap();
+    assert_eq!(join_request.len(), 1);
+    let RespondEventType::JoinSessionApproval(join_in) = join_request
         .into_iter()
         .next()
         .unwrap()
-        .respond_msg_type
+        .respond_event_type
         .unwrap()
     else {
         panic!()
@@ -133,7 +134,7 @@ async fn join_in_session_reject() {
     a.lock()
         .await
         .oc()
-        .accept_join_in_session(AcceptJoinInSessionRequest {
+        .allow_user_join_session(AllowUserJoinSessionRequest {
             session_id: session.session_id.into(),
             user_id: join_in.user_id,
             accepted: false,
@@ -146,9 +147,11 @@ async fn join_in_session_reject() {
             .await
             .unwrap()
     );
-    let ret = c.lock().await.fetch_msgs(2).await.unwrap();
+    let ret = c.lock().await.fetch_msgs().fetch(2).await.unwrap();
     assert_eq!(ret.len(), 2, "{ret:?}");
-    let RespondMsgType::AcceptJoinInSession(ret) = ret[1].respond_msg_type.clone().unwrap() else {
+    let RespondEventType::AllowUserJoinSessionNotification(ret) =
+        ret[1].respond_event_type.clone().unwrap()
+    else {
         panic!()
     };
     assert_eq!(ret.session_id, *session.session_id);

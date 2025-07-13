@@ -2,7 +2,7 @@ use crate::oc_helper::FAKE_MANAGER;
 use crate::oc_helper::client::{OCClient, TestApp};
 use crate::oc_helper::{ClientErr, Clients};
 use anyhow::Context;
-use base::consts::{ID, OCID, SessionID};
+use base::consts::{ID, JWT_HEADER, OCID, SessionID};
 use base::setting::tls::TlsConfig;
 use bytes::Bytes;
 use pb::service::auth::authorize::v1::{AuthRequest, auth_request};
@@ -12,7 +12,7 @@ use pb::service::ourchat::download::v1::{DownloadRequest, DownloadResponse};
 use pb::service::ourchat::msg_delivery::v1::{
     BundleMsgs, FetchMsgsRequest, FetchMsgsResponse, SendMsgRequest, SendMsgResponse,
 };
-use pb::service::ourchat::session::accept_session::v1::AcceptSessionRequest;
+use pb::service::ourchat::session::accept_join_session_invitation::v1::AcceptJoinSessionInvitationRequest;
 use pb::service::ourchat::session::ban::v1::{BanUserRequest, UnbanUserRequest};
 use pb::service::ourchat::session::mute::v1::{MuteUserRequest, UnmuteUserRequest};
 use pb::service::ourchat::unregister::v1::UnregisterRequest;
@@ -32,7 +32,7 @@ use tokio::sync::Notify;
 use tokio_stream::StreamExt;
 use tonic::metadata::MetadataValue;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig, Identity, Uri};
-use tonic::{Response, Streaming};
+use tonic::{Response, Status, Streaming};
 
 pub struct TestUser {
     pub name: String,
@@ -49,6 +49,7 @@ pub struct TestUser {
     pub tls: TlsConfig,
     // Check whether message == 0 in the end
     pub ensure_no_message_left: bool,
+    pub authorization_header: String,
     pub key_pair: (RsaPrivateKey, RsaPublicKey),
 
     has_dropped: bool,
@@ -88,6 +89,7 @@ impl TestUser {
             has_registered: false,
             tls: TlsConfig::default(),
             ensure_no_message_left: false,
+            authorization_header: "Bearer".to_string(),
             key_pair: (private_key, public_key),
         }
     }
@@ -141,15 +143,14 @@ impl TestUser {
         .connect()
         .await
         .context("connect error")?;
-        let token: MetadataValue<_> = user
-            .token
+        let token: MetadataValue<_> = format!("{} {}", user.authorization_header, user.token)
             .to_string()
             .parse()
             .context("token parse error")?;
         user.oc_server = Some(OurChatServiceClient::with_interceptor(
             channel,
             Box::new(move |mut req: tonic::Request<()>| {
-                req.metadata_mut().insert("token", token.clone());
+                req.metadata_mut().insert(JWT_HEADER, token.clone());
                 Ok(req)
             }),
         ));
@@ -160,7 +161,7 @@ impl TestUser {
     pub(crate) async fn async_drop(&mut self) {
         if !self.has_unregistered {
             if self.ensure_no_message_left {
-                claims::assert_err!(self.fetch_msgs(1).await);
+                claims::assert_err!(self.fetch_msgs().fetch(1).await);
             }
             claims::assert_ok!(self.unregister().await);
             tracing::info!("unregister done");
@@ -171,18 +172,18 @@ impl TestUser {
 
 // Features implemented
 impl TestUser {
-    pub async fn accept_session(
+    pub async fn accept_join_session_invitation(
         &mut self,
         session_id: SessionID,
         accept: bool,
         inviter: ID,
-    ) -> anyhow::Result<()> {
-        let req = AcceptSessionRequest {
+    ) -> Result<(), Status> {
+        let req = AcceptJoinSessionInvitationRequest {
             session_id: session_id.into(),
             accepted: accept,
             inviter_id: inviter.into(),
         };
-        self.oc().accept_session(req).await?;
+        self.oc().accept_join_session_invitation(req).await?;
         Ok(())
     }
 
@@ -373,21 +374,43 @@ impl TestUser {
         Ok(())
     }
 
-    pub async fn fetch_msgs(
-        &mut self,
-        nums_limit: usize,
-    ) -> anyhow::Result<Vec<FetchMsgsResponse>> {
+    pub fn fetch_msgs(&mut self) -> FetchMsgBuilder<'_> {
+        let tmp = self.timestamp_receive_msg;
+        FetchMsgBuilder {
+            user: self,
+            timestamp: tmp,
+        }
+    }
+}
+
+impl Drop for TestUser {
+    fn drop(&mut self) {
+        if !self.has_dropped && !thread::panicking() && self.has_registered {
+            panic!("async_drop is not called to drop this user");
+        }
+    }
+}
+
+pub type TestUserShared = Arc<tokio::sync::Mutex<TestUser>>;
+
+pub struct FetchMsgBuilder<'a> {
+    pub timestamp: TimeStampUtc,
+    user: &'a mut TestUser,
+}
+
+impl<'a> FetchMsgBuilder<'a> {
+    pub async fn fetch(&mut self, nums_limit: usize) -> anyhow::Result<Vec<FetchMsgsResponse>> {
         let msg_get = FetchMsgsRequest {
-            time: Some(to_google_timestamp(self.timestamp_receive_msg)),
+            time: Some(to_google_timestamp(self.timestamp)),
         };
-        tracing::info!("timestamp_receive_msg: {}", self.timestamp_receive_msg);
-        let ret = self.oc().fetch_msgs(msg_get).await?;
+        tracing::info!("timestamp_receive_msg: {}", self.timestamp);
+        let ret = self.user.oc().fetch_msgs(msg_get).await?;
         let mut ret_stream = ret.into_inner();
         let logic = async {
             let mut msgs = vec![];
             while let Some(i) = ret_stream.next().await {
                 let i = i?;
-                self.timestamp_receive_msg = from_google_timestamp(&i.time.unwrap()).unwrap();
+                self.user.timestamp_receive_msg = from_google_timestamp(&i.time.unwrap()).unwrap();
                 msgs.push(i);
                 if msgs.len() == nums_limit {
                     break;
@@ -404,20 +427,21 @@ impl TestUser {
             }
         }
     }
-    pub async fn fetch_msgs_notify(
+
+    pub async fn fetch_with_notify(
         &mut self,
         notify: Arc<Notify>,
     ) -> Result<Vec<FetchMsgsResponse>, tonic::Status> {
         let msg_get = FetchMsgsRequest {
-            time: Some(to_google_timestamp(self.timestamp_receive_msg)),
+            time: Some(to_google_timestamp(self.timestamp)),
         };
-        let ret = self.oc().fetch_msgs(msg_get).await?;
+        let ret = self.user.oc().fetch_msgs(msg_get).await?;
         let mut ret_stream = ret.into_inner();
         let mut msgs = vec![];
         let logic = async {
             while let Some(i) = ret_stream.next().await {
                 let i = i?;
-                self.timestamp_receive_msg = from_google_timestamp(&i.time.unwrap()).unwrap();
+                self.user.timestamp_receive_msg = from_google_timestamp(&i.time.unwrap()).unwrap();
                 msgs.push(i);
             }
             Result::<_, tonic::Status>::Ok(())
@@ -428,14 +452,9 @@ impl TestUser {
         }
         Ok(msgs)
     }
-}
 
-impl Drop for TestUser {
-    fn drop(&mut self) {
-        if !self.has_dropped && !thread::panicking() && self.has_registered {
-            panic!("async_drop is not called to drop this user");
-        }
+    pub fn set_timestamp(mut self, timestamp: TimeStampUtc) -> Self {
+        self.timestamp = timestamp;
+        self
     }
 }
-
-pub type TestUserShared = Arc<tokio::sync::Mutex<TestUser>>;
