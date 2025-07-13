@@ -27,10 +27,10 @@ const createSession = "Create Session";
 
 // EventTypes
 const msgEvent = 0;
-const inviteSessionEvent = 1;
-const acceptFriendEvent = 2;
+const inviteUserToSessionEvent = 1;
+const friendInvitationResultNotificationEvent = 2;
 const recallEvent = 3;
 const joinSessionApprovalEvent = 4;
-const addFriendApprovalEvent = 5;
-const acceptJoinSessionEvent = 6;
+const newFriendInvitationNotificationEvent = 5;
+const allowUserJoinSessionNotificationEvent = 6;
 const announcementResponseEvent = 7;
