@@ -62,7 +62,7 @@ async fn session_create() {
     // try to create a session in two users
     let req = NewSessionRequest {
         members: vec![user2_id.into(), user3_id.into()],
-        leave_message: "hello".to_string(),
+        leave_message: Some("hello".to_string()),
         ..Default::default()
     };
     // wait for user2 to listen
@@ -81,7 +81,7 @@ async fn session_create() {
         };
         assert_eq!(rec.session_id, *session_id);
         assert_eq!(rec.inviter_id, *user1_id);
-        assert_eq!(rec.leave_message, "hello".to_string());
+        assert_eq!(rec.leave_message, Some("hello".to_string()));
     };
     check(user3_rec).await;
     notify.notify_waiters();

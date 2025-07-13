@@ -11,7 +11,7 @@ message InviteUserToSession {
   // inviter
   uint64 inviter_id = 2;
   // leaving a message for invitee
-  string leave_message = 3;
+  optional string leave_message = 3;
   // when to expire
   google.protobuf.Timestamp expire_timestamp = 4;
 }
@@ -19,12 +19,11 @@ message InviteUserToSession {
 message InviteUserToSessionRequest {
   uint64 session_id = 1;
   uint64 invitee = 2;
-  string leave_message = 3;
+  optional string leave_message = 3;
 }
 
 message InviteUserToSessionResponse {
-  optional service.ourchat.session.new_session.v1.FailedMember failed_member =
-      1;
+  optional service.ourchat.session.new_session.v1.FailedMember failed_member = 1;
 }
 
 message AcceptSessionNotification {

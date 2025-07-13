@@ -29,7 +29,7 @@ async fn invite_user_to_session_success() {
         .invite_user_to_session(InviteUserToSessionRequest {
             session_id: session.session_id.into(),
             invitee: cid.into(),
-            leave_message: "hi".to_owned(),
+            leave_message: Some("hi".to_owned()),
         })
         .await
         .unwrap();
@@ -46,7 +46,7 @@ async fn invite_user_to_session_success() {
     };
     assert_eq!(invite_request.session_id, *session.session_id);
     assert_eq!(invite_request.inviter_id, *aid);
-    assert_eq!(&invite_request.leave_message, "hi");
+    assert_eq!(invite_request.leave_message, Some("hi".to_string()));
     assert!(
         !in_session(cid, session.session_id, app.get_db_connection())
             .await
@@ -109,7 +109,7 @@ async fn invite_user_to_session_success() {
         .respond_event_type
         .unwrap()
     else {
-        panic!("room key request is not SendRoomKey",);
+        panic!("room key request is not ReceiveRoomKey");
     };
     assert_eq!(room_key_notification.session_id, *session.session_id);
     assert_eq!(room_key_notification.user_id, *aid);
@@ -141,7 +141,7 @@ async fn invite_user_to_session_reject() {
         .invite_user_to_session(InviteUserToSessionRequest {
             session_id: session.session_id.into(),
             invitee: cid.into(),
-            leave_message: "hi".to_owned(),
+            leave_message: Some("hi".to_owned()),
         })
         .await
         .unwrap();
@@ -158,7 +158,7 @@ async fn invite_user_to_session_reject() {
     };
     assert_eq!(invite_request.session_id, *session.session_id);
     assert_eq!(invite_request.inviter_id, *aid);
-    assert_eq!(&invite_request.leave_message, "hi");
+    assert_eq!(invite_request.leave_message, Some("hi".to_string()));
     assert!(
         !in_session(cid, session.session_id, app.get_db_connection())
             .await

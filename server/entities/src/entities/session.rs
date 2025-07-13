@@ -33,6 +33,8 @@ pub enum Relation {
         on_delete = "Cascade"
     )]
     Role,
+    #[sea_orm(has_many = "super::session_invitation::Entity")]
+    SessionInvitation,
     #[sea_orm(has_many = "super::session_relation::Entity")]
     SessionRelation,
     #[sea_orm(has_many = "super::user_role_relation::Entity")]
@@ -54,6 +56,12 @@ impl Related<super::message_records::Entity> for Entity {
 impl Related<super::role::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Role.def()
+    }
+}
+
+impl Related<super::session_invitation::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::SessionInvitation.def()
     }
 }
 

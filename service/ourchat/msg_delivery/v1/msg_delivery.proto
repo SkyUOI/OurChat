@@ -39,21 +39,15 @@ message FetchMsgsResponse {
   // different type of message
   oneof respond_event_type {
     Msg msg = 1;
-    session.invite_user_to_session.v1.InviteUserToSession
-        invite_user_to_session = 2;
-    friends.accept_friend_invitation.v1.FriendInvitationResultNotification
-        friend_invitation_result_notification = 3;
+    session.invite_user_to_session.v1.InviteUserToSession invite_user_to_session = 2;
+    friends.accept_friend_invitation.v1.FriendInvitationResultNotification friend_invitation_result_notification = 3;
     recall.v1.RecallNotification recall = 4;
     session.join_session.v1.JoinSessionApproval join_session_approval = 7;
-    session.allow_user_join_session.v1.AllowUserJoinSessionNotification
-        allow_user_join_session_notification = 9;
-    friends.add_friend.v1.NewFriendInvitationNotification
-        new_friend_invitation_notification = 8;
+    session.allow_user_join_session.v1.AllowUserJoinSessionNotification allow_user_join_session_notification = 9;
+    friends.add_friend.v1.NewFriendInvitationNotification new_friend_invitation_notification = 8;
     announcement.v1.AnnouncementResponse announcement_response = 10;
-    session.invite_user_to_session.v1.AcceptSessionNotification
-        accept_session_approval = 11;
-    session.session_room_key.v1.ReceiveRoomKeyNotification receive_room_key =
-        12;
+    session.invite_user_to_session.v1.AcceptSessionNotification accept_session_approval = 11;
+    session.session_room_key.v1.ReceiveRoomKeyNotification receive_room_key = 12;
     session.session_room_key.v1.SendRoomKeyNotification send_room_key = 13;
     session.session_room_key.v1.UpdateRoomKeyNotification update_room_key = 14;
   }

@@ -8,7 +8,7 @@ pub mod ban;
 pub mod delete_session;
 pub mod e2eeize_and_dee2eeize_session;
 pub mod get_session_info;
-pub mod invite_to_session;
+pub mod invite_user_to_session;
 pub mod join_session;
 pub mod leave_session;
 pub mod mute;

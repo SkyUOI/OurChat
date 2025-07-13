@@ -98,7 +98,7 @@ pub use session::{
     e2eeize_and_dee2eeize_session::dee2eeize_session,
     e2eeize_and_dee2eeize_session::e2eeize_session,
     get_session_info::get_session_info,
-    invite_to_session::invite_user_to_session,
+    invite_user_to_session::invite_user_to_session,
     join_session::join_session,
     leave_session::leave_session,
     mute::{mute_user, unmute_user},

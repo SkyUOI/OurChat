@@ -13,6 +13,7 @@ pub use super::server_management_permission::Entity as ServerManagementPermissio
 pub use super::server_management_role::Entity as ServerManagementRole;
 pub use super::server_management_role_permissions::Entity as ServerManagementRolePermissions;
 pub use super::session::Entity as Session;
+pub use super::session_invitation::Entity as SessionInvitation;
 pub use super::session_relation::Entity as SessionRelation;
 pub use super::user::Entity as User;
 pub use super::user_contact_info::Entity as UserContactInfo;

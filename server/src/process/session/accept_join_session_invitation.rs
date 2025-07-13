@@ -5,17 +5,17 @@ use crate::process::{Dest, MsgInsTransmitErr, error_msg, message_insert_and_tran
 use crate::{process::error_msg::SERVER_ERROR, server::RpcServer};
 use anyhow::{Context, anyhow};
 use base::consts::{ID, SessionID};
-use entities::message_records;
+use entities::session_invitation;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
 use pb::service::ourchat::session::accept_join_session_invitation::v1::{
     AcceptJoinSessionInvitationRequest, AcceptJoinSessionInvitationResponse,
 };
 use pb::service::ourchat::session::invite_user_to_session::v1::AcceptSessionNotification;
-use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, TransactionTrait};
+use sea_orm::{ColumnTrait, EntityTrait, ModelTrait, QueryFilter, TransactionTrait};
 use tonic::{Response, Status};
 
 #[derive(Debug, thiserror::Error)]
-enum AcceptSessionError {
+enum AcceptJoinSessionInvitationError {
     #[error("database error:{0:?}")]
     DbError(#[from] sea_orm::DbErr),
     #[error("unknown error:{0:?}")]
@@ -32,7 +32,7 @@ async fn accept_join_session_invitation_impl(
     server: &RpcServer,
     id: ID,
     request: tonic::Request<AcceptJoinSessionInvitationRequest>,
-) -> Result<AcceptJoinSessionInvitationResponse, AcceptSessionError> {
+) -> Result<AcceptJoinSessionInvitationResponse, AcceptJoinSessionInvitationError> {
     let req = request.into_inner();
     let session_id: SessionID = req.session_id.into();
     let inviter = req.inviter_id;
@@ -56,37 +56,33 @@ async fn accept_join_session_invitation_impl(
     let time_limit = chrono::Utc::now()
         - chrono::Duration::from_std(server.shared_data.cfg.main_cfg.verification_expire_time)
             .unwrap();
-    let model = entities::message_records::Entity::find()
-        .filter(message_records::Column::SessionId.eq(req.session_id))
-        .filter(message_records::Column::SenderId.eq(id))
-        .filter(message_records::Column::Time.gt(time_limit))
+    let model = session_invitation::Entity::find()
+        .filter(session_invitation::Column::SessionId.eq(req.session_id))
+        .filter(session_invitation::Column::Invitee.eq(id))
+        .filter(session_invitation::Column::ExpireAt.gt(time_limit))
         .one(&server.db.db_pool)
         .await?;
     match model {
         None => Err(Status::not_found(not_found::SESSION_INVITATION))?,
         Some(model) => {
+            let transaction = server.db.db_pool.begin().await?;
             if req.accepted {
-                let transaction = server.db.db_pool.begin().await?;
                 match join_in_session(session_id, id, None, &transaction).await {
-                    Ok(_) => {
-                        transaction.commit().await?;
-                    }
+                    Ok(_) => {}
                     Err(SessionError::Db(e)) => {
                         transaction.rollback().await?;
-                        return Err(AcceptSessionError::DbError(e));
+                        return Err(AcceptJoinSessionInvitationError::DbError(e));
                     }
                     Err(SessionError::SessionNotFound) => {
                         transaction.rollback().await?;
-                        return Err(AcceptSessionError::Status(Status::not_found(
+                        return Err(AcceptJoinSessionInvitationError::Status(Status::not_found(
                             not_found::SESSION,
                         )));
                     }
                 }
             }
-            entities::message_records::Entity::delete_by_id(model.msg_id)
-                .exec(&server.db.db_pool)
-                .await?;
-            return Ok(AcceptJoinSessionInvitationResponse {});
+            model.delete(&transaction).await?;
+            transaction.commit().await?;
         }
     }
     let rmq_conn = server
@@ -132,14 +128,14 @@ pub async fn accept_join_session_invitation(
     match accept_join_session_invitation_impl(server, id, request).await {
         Ok(d) => Ok(Response::new(d)),
         Err(e) => match e {
-            AcceptSessionError::DbError(_)
-            | AcceptSessionError::UnknownError(_)
-            | AcceptSessionError::Redis(_)
-            | AcceptSessionError::MessageError(_) => {
+            AcceptJoinSessionInvitationError::DbError(_)
+            | AcceptJoinSessionInvitationError::UnknownError(_)
+            | AcceptJoinSessionInvitationError::Redis(_)
+            | AcceptJoinSessionInvitationError::MessageError(_) => {
                 tracing::error!("{}", e);
                 Err(Status::internal(SERVER_ERROR))
             }
-            AcceptSessionError::Status(s) => Err(s),
+            AcceptJoinSessionInvitationError::Status(s) => Err(s),
         },
     }
 }

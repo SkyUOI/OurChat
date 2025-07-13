@@ -15,6 +15,7 @@ pub mod server_management_permission;
 pub mod server_management_role;
 pub mod server_management_role_permissions;
 pub mod session;
+pub mod session_invitation;
 pub mod session_relation;
 pub mod user;
 pub mod user_contact_info;

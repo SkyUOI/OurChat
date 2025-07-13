@@ -1,4 +1,4 @@
-use crate::db::session::{SessionError, in_session, get_session_by_id};
+use crate::db::session::{SessionError, get_session_by_id, in_session};
 use crate::process::error_msg::not_found;
 use crate::{db, process::error_msg::SERVER_ERROR, server::RpcServer};
 use anyhow::anyhow;
