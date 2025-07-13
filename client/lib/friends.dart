@@ -94,22 +94,22 @@ class FriendRequestDialog extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                (data[index].sender.id ==
+                                (data[index].sender!.id ==
                                         ourchatAppState.thisAccount!.id
-                                    ? data[index].invitee.username
-                                    : data[index].sender.username),
+                                    ? data[index].invitee!.username
+                                    : data[index].sender!.username),
                                 textAlign: TextAlign.left,
                               ),
-                              if (data[index].data["status"] != 0)
+                              if (data[index].data!["status"] != 0)
                                 Text(
-                                  data[index].data["status"] == 1
+                                  data[index].data!["status"] == 1
                                       ? l10n.accepted
                                       : l10n.refused,
                                   style: TextStyle(color: Colors.grey),
                                 ),
-                              if (data[index].data["status"] == 0 &&
+                              if (data[index].data!["status"] == 0 &&
                                   Int64.parseInt(data[index]
-                                          .data["invitee"]
+                                          .data!["invitee"]
                                           .toString()) ==
                                       ourchatAppState.thisAccount!.id)
                                 Row(
@@ -125,7 +125,7 @@ class FriendRequestDialog extends StatelessWidget {
                                           stub.acceptFriendInvitation(
                                               AcceptFriendInvitationRequest(
                                                   friendId:
-                                                      data[index].sender.id,
+                                                      data[index].sender!.id,
                                                   status: AcceptFriendInvitationResult
                                                       .ACCEPT_FRIEND_INVITATION_RESULT_SUCCESS));
                                         },
@@ -161,7 +161,7 @@ class FriendRequestDialog extends StatelessWidget {
                                                             stub.acceptFriendInvitation(AcceptFriendInvitationRequest(
                                                                 friendId:
                                                                     data[index]
-                                                                        .sender
+                                                                        .sender!
                                                                         .id,
                                                                 status: AcceptFriendInvitationResult
                                                                     .ACCEPT_FRIEND_INVITATION_RESULT_FAIL,
@@ -197,17 +197,17 @@ class FriendRequestDialog extends StatelessWidget {
                                 )
                             ]),
                         if (data[index].leaveMessage != "" &&
-                            data[index].data["status"] != 2)
+                            data[index].data!["status"] != 2)
                           Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
-                              data[index].leaveMessage,
+                              data[index].leaveMessage!,
                               textAlign: TextAlign.left,
                               style:
                                   TextStyle(fontSize: 10, color: Colors.grey),
                             ),
                           ),
-                        if (data[index].data["status"] == 2)
+                        if (data[index].data!["status"] == 2)
                           Align(
                               alignment: Alignment.centerLeft,
                               child: FutureBuilder(

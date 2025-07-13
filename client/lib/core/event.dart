@@ -12,80 +12,142 @@ import 'package:ourchat/service/ourchat/msg_delivery/v1/msg_delivery.pb.dart';
 import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
 
 class OurchatEvent {
-  Int64 eventId;
-  int eventType;
-  OurchatAccount sender;
-  OurchatTime sendTime;
-  Map data;
+  Int64? eventId;
+  int? eventType;
+  OurchatAccount? sender;
+  OurchatTime? sendTime;
+  Map? data;
   bool read;
-  OurchatEvent(
-      this.eventId, this.eventType, this.sender, this.sendTime, this.data,
-      {this.read = false});
+  OurchatAppState ourchatAppState;
+  OurchatEvent(this.ourchatAppState,
+      {this.eventId,
+      this.eventType,
+      this.sender,
+      this.sendTime,
+      this.data,
+      this.read = false});
 
   Future saveToDB(OurchatDatabase privateDB) async {
     var result = await (privateDB.select(privateDB.record)
-          ..where((u) => u.eventId.equals(BigInt.from(eventId.toInt()))))
+          ..where((u) => u.eventId.equals(BigInt.from(eventId!.toInt()))))
         .getSingleOrNull();
     if (result != null) {
       await (privateDB.update(privateDB.record)
-            ..where((u) => u.eventId.equals(BigInt.from(eventId.toInt()))))
+            ..where((u) => u.eventId.equals(BigInt.from(eventId!.toInt()))))
           .write(RecordCompanion(
-              eventId: Value(BigInt.from(eventId.toInt())),
-              eventType: Value(eventType),
-              sender: Value(BigInt.from(sender.id.toInt())),
-              time: Value(sendTime.datetime),
+              eventId: Value(BigInt.from(eventId!.toInt())),
+              eventType: Value(eventType!),
+              sender: Value(BigInt.from(sender!.id.toInt())),
+              time: Value(sendTime!.datetime),
               data: Value(jsonEncode(data)),
               read: Value((read ? 1 : 0))));
       return;
     }
     // 不存在 将消息存入数据库
     await privateDB.into(privateDB.record).insert(RecordData(
-        eventId: BigInt.from(eventId.toInt()),
-        eventType: eventType,
-        sender: BigInt.from(sender.id.toInt()),
-        time: sendTime.datetime,
+        eventId: BigInt.from(eventId!.toInt()),
+        eventType: eventType!,
+        sender: BigInt.from(sender!.id.toInt()),
+        time: sendTime!.datetime,
         data: jsonEncode(data),
-        read: 0));
+        read: (read ? 1 : 0)));
+  }
+
+  Future loadFromDB(OurchatDatabase privateDB, RecordData row) async {
+    eventId = Int64.parseInt(row.eventId.toString());
+    eventType = row.eventType;
+    sender = OurchatAccount(ourchatAppState);
+    sender!.id = Int64.parseInt(row.sender.toString());
+    sender!.token = ourchatAppState.thisAccount!.token;
+    sender!.recreateStub();
+    await sender!.getAccountInfo();
+    sendTime = OurchatTime(inputDatetime: row.time);
+    data = jsonDecode(row.data);
+    read = row.read == 1 ? true : false;
   }
 }
 
 class NewFriendInvitationNotification extends OurchatEvent {
-  String leaveMessage;
+  String? leaveMessage;
   int status;
-  OurchatAccount invitee;
+  OurchatAccount? invitee;
   Int64? resultEventId;
-  NewFriendInvitationNotification(Int64 eventId, OurchatAccount sender,
-      OurchatTime sendTime, this.leaveMessage, this.invitee,
-      {this.status = 0, this.resultEventId})
-      : super(eventId, newFriendInvitationNotificationEvent, sender, sendTime, {
-          "leave_message": leaveMessage,
-          "invitee": invitee.id.toInt(),
-          "status": status,
-          "result_event_id": (resultEventId?.toInt())
-        });
+  NewFriendInvitationNotification(OurchatAppState ourchatAppState,
+      {Int64? eventId,
+      OurchatAccount? sender,
+      OurchatTime? sendTime,
+      this.leaveMessage,
+      this.invitee,
+      this.status = 0,
+      this.resultEventId})
+      : super(ourchatAppState,
+            eventId: eventId,
+            eventType: newFriendInvitationNotificationEvent,
+            sender: sender,
+            sendTime: sendTime,
+            data: {
+              "leave_message": leaveMessage,
+              "invitee": invitee?.id.toInt(),
+              "status": status,
+              "result_event_id": (resultEventId?.toInt())
+            });
+
+  @override
+  Future loadFromDB(OurchatDatabase privateDB, RecordData row) async {
+    await super.loadFromDB(privateDB, row);
+    leaveMessage = data!["leave_message"];
+    invitee = OurchatAccount(ourchatAppState);
+    invitee!.id = Int64.parseInt(data!["invitee"].toString());
+    invitee!.token = ourchatAppState.thisAccount!.token;
+    invitee!.recreateStub();
+    await invitee!.getAccountInfo();
+    status = data!["status"];
+    resultEventId = data!["result_event_id"] == null
+        ? null
+        : Int64.parseInt(data!["result_event_id"].toString());
+  }
 }
 
 class FriendInvitationResultNotification extends OurchatEvent {
-  String leaveMessage;
-  OurchatAccount invitee;
-  bool accept;
-  List<Int64> requestEventIds;
-  FriendInvitationResultNotification(
-      Int64 eventId,
-      OurchatAccount sender,
-      OurchatTime sendTime,
+  String? leaveMessage;
+  OurchatAccount? invitee;
+  bool? accept;
+  List<Int64>? requestEventIds;
+  FriendInvitationResultNotification(OurchatAppState ourchatAppState,
+      {Int64? eventId,
+      OurchatAccount? sender,
+      OurchatTime? sendTime,
       this.leaveMessage,
       this.invitee,
       this.accept,
-      this.requestEventIds)
-      : super(eventId, friendInvitationResultNotificationEvent, sender,
-            sendTime, {
-          "leave_message": leaveMessage,
-          "invitee": invitee.id.toInt(),
-          "accept": accept,
-          "request_event_ids":
-              requestEventIds.map((i64) => i64.toInt()).toList()
-        });
+      this.requestEventIds})
+      : super(ourchatAppState,
+            eventId: eventId,
+            eventType: friendInvitationResultNotificationEvent,
+            sender: sender,
+            sendTime: sendTime,
+            data: {
+              "leave_message": leaveMessage,
+              "invitee": invitee!.id.toInt(),
+              "accept": accept,
+              "request_event_ids":
+                  requestEventIds!.map((i64) => i64.toInt()).toList()
+            });
+
+  @override
+  Future loadFromDB(OurchatDatabase privateDB, RecordData row) async {
+    await super.loadFromDB(privateDB, row);
+    leaveMessage = data!["leave_message"];
+    invitee = OurchatAccount(ourchatAppState);
+    invitee!.id = Int64.parseInt(data!["invitee"].toString());
+    invitee!.token = ourchatAppState.thisAccount!.token;
+    invitee!.recreateStub();
+    await invitee!.getAccountInfo();
+    accept = data!["accept"];
+    requestEventIds = data!["request_event_ids"]
+        .map((n) => Int64.parseInt(n.toString()))
+        .toList();
+  }
 }
 
 class OurchatEventSystem {
@@ -123,12 +185,13 @@ class OurchatEventSystem {
             sender.id = event.newFriendInvitationNotification.inviterId;
             OurchatAccount invitee = OurchatAccount(ourchatAppState);
             invitee.id = event.newFriendInvitationNotification.inviteeId;
-            eventObj = NewFriendInvitationNotification(
-                event.msgId,
-                sender,
-                OurchatTime(inputTimestamp: event.time),
-                event.newFriendInvitationNotification.leaveMessage,
-                invitee);
+            eventObj = NewFriendInvitationNotification(ourchatAppState,
+                eventId: event.msgId,
+                sender: sender,
+                sendTime: OurchatTime(inputTimestamp: event.time),
+                leaveMessage:
+                    event.newFriendInvitationNotification.leaveMessage,
+                invitee: invitee);
             break;
           case FetchMsgsResponse_RespondEventType // 收到好友申请结果
                 .friendInvitationResultNotification:
@@ -141,35 +204,36 @@ class OurchatEventSystem {
                 await selectNewFriendInvitation();
             List<Int64> requestEventIds = [];
             for (int i = 0; i < eventObjList.length; i++) {
-              if ((eventObjList[i].sender.id == sender.id &&
-                      eventObjList[i].data["invitee"] ==
+              if ((eventObjList[i].sender!.id == sender.id &&
+                      eventObjList[i].data!["invitee"] ==
                           ourchatAppState.thisAccount!.id.toInt()) ||
-                  eventObjList[i].sender.id ==
+                  eventObjList[i].sender!.id ==
                       ourchatAppState.thisAccount!.id) {
-                eventObjList[i].data["status"] =
+                eventObjList[i].data!["status"] =
                     (event.friendInvitationResultNotification.status ==
                             AcceptFriendInvitationResult
                                 .ACCEPT_FRIEND_INVITATION_RESULT_SUCCESS
                         ? 1
                         : 2);
                 eventObjList[i].read = true;
-                eventObjList[i].data["result_event_id"] = event.msgId.toInt();
-                requestEventIds.add(eventObjList[i].eventId);
+                eventObjList[i].data!["result_event_id"] = event.msgId.toInt();
+                requestEventIds.add(eventObjList[i].eventId!);
                 await eventObjList[i].saveToDB(ourchatAppState.privateDB!);
               }
             }
-            eventObj = FriendInvitationResultNotification(
-                event.msgId,
-                sender,
-                OurchatTime(inputTimestamp: event.time),
-                event.friendInvitationResultNotification.leaveMessage,
-                invitee,
-                (event.friendInvitationResultNotification.status ==
+            eventObj = FriendInvitationResultNotification(ourchatAppState,
+                eventId: event.msgId,
+                sender: sender,
+                sendTime: OurchatTime(inputTimestamp: event.time),
+                leaveMessage:
+                    event.friendInvitationResultNotification.leaveMessage,
+                invitee: invitee,
+                accept: (event.friendInvitationResultNotification.status ==
                         AcceptFriendInvitationResult
                             .ACCEPT_FRIEND_INVITATION_RESULT_SUCCESS
                     ? true
                     : false),
-                requestEventIds);
+                requestEventIds: requestEventIds);
             if (event.friendInvitationResultNotification.status ==
                 AcceptFriendInvitationResult
                     .ACCEPT_FRIEND_INVITATION_RESULT_SUCCESS) {
@@ -191,36 +255,17 @@ class OurchatEventSystem {
   }
 
   Future selectNewFriendInvitation() async {
-    var row = await (ourchatAppState.privateDB!
+    var rows = await (ourchatAppState.privateDB!
             .select(ourchatAppState.privateDB!.record)
           ..where(
               (u) => u.eventType.equals(newFriendInvitationNotificationEvent)))
         .get();
     List<NewFriendInvitationNotification> eventObjList = [];
-    for (int i = 0; i < row.length; i++) {
-      OurchatAccount sender = OurchatAccount(ourchatAppState);
-      sender.token = ourchatAppState.thisAccount!.token;
-      sender.recreateStub();
-      sender.id = Int64.parseInt(row[i].sender.toString());
-      await sender.getAccountInfo();
-      var data = jsonDecode(row[i].data);
-      OurchatAccount invitee = OurchatAccount(ourchatAppState);
-      invitee.token = ourchatAppState.thisAccount!.token;
-      invitee.recreateStub();
-      invitee.id = Int64.parseInt(data["invitee"].toString());
-      await invitee.getAccountInfo();
-      eventObjList.add(
-        NewFriendInvitationNotification(
-            Int64.parseInt(row[i].eventId.toString()),
-            sender,
-            OurchatTime(inputDatetime: row[i].time),
-            data["leave_message"],
-            invitee,
-            status: data["status"],
-            resultEventId: data["result_event_id"] == null
-                ? null
-                : Int64.parseInt(data["result_event_id"].toString())),
-      );
+    for (int i = 0; i < rows.length; i++) {
+      NewFriendInvitationNotification eventObj =
+          NewFriendInvitationNotification(ourchatAppState);
+      await eventObj.loadFromDB(ourchatAppState.privateDB!, rows[i]);
+      eventObjList.add(eventObj);
     }
     return eventObjList;
   }
