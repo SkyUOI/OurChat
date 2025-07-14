@@ -164,7 +164,7 @@ class _UserTabState extends State<UserTab> {
 
   void showAddFriendDialog(BuildContext context,
       OurchatAppState ourchatAppState, OurchatAccount account) {
-    var i10n = AppLocalizations.of(context);
+    var l10n = AppLocalizations.of(context);
     showDialog(
         context: context,
         builder: (context) {
@@ -177,14 +177,14 @@ class _UserTabState extends State<UserTab> {
                   children: [
                     TextFormField(
                       decoration:
-                          InputDecoration(label: Text(i10n!.addFriendMessage)),
+                          InputDecoration(label: Text(l10n!.addFriendMessage)),
                       onSaved: (newValue) {
                         addFriendLeaveMessage = newValue!;
                       },
                     ),
                     TextFormField(
                       decoration:
-                          InputDecoration(label: Text(i10n.displayName)),
+                          InputDecoration(label: Text(l10n.displayName)),
                       onSaved: (newValue) {
                         addFriendDisplayName = newValue!;
                       },
@@ -196,7 +196,7 @@ class _UserTabState extends State<UserTab> {
                   onPressed: () {
                     Navigator.pop(context);
                   },
-                  child: Text(i10n.cancel)),
+                  child: Text(l10n.cancel)),
               ElevatedButton(
                   onPressed: () async {
                     formKey.currentState!.save();
@@ -256,12 +256,12 @@ class _UserTabState extends State<UserTab> {
                                   AppLocalizations.of(context)!.unknownError),
                             ));
                         }
-                        ScaffoldMessenger.of(context)
-                            .showSnackBar(SnackBar(content: Text("ERROR")));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(l10n.internalError)));
                       }
                     }
                   },
-                  child: Text(i10n.send))
+                  child: Text(l10n.send))
             ],
           );
         });
@@ -271,6 +271,7 @@ class _UserTabState extends State<UserTab> {
   Widget build(BuildContext context) {
     var ourchatAppState = context.watch<OurchatAppState>();
     var sessionState = context.watch<SessionState>();
+    var l10n = AppLocalizations.of(context);
     return FutureBuilder(
         future: getAccountInfo(ourchatAppState, sessionState.currentUserId!),
         builder: (context, snapshot) {
@@ -282,7 +283,7 @@ class _UserTabState extends State<UserTab> {
                 children: [
                   CircularProgressIndicator(
                       color: Theme.of(context).primaryColor),
-                  Text("加载中...")
+                  Text(l10n!.loading)
                 ],
               ),
             );

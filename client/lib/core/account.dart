@@ -110,7 +110,7 @@ class OurchatAccount {
       }
     }
     if (privateData == null) {
-      if (isMe || ourchatAppState.thisAccount!.friends.contains(id)) {
+      if (isMe) {
         privateDataNeedUpdate = true;
       }
     } else {
@@ -125,7 +125,9 @@ class OurchatAccount {
     }
 
     if (publicDataNeedUpdate) await updatePublicData(publicData != null);
-    if (privateDataNeedUpdate) await updatePrivateData(privateData != null);
+    if (privateDataNeedUpdate) {
+      await updatePrivateData(privateData != null);
+    }
 
     if (ourchatAppState.thisAccount!.friends.contains(id)) {
       // get displayname
@@ -133,7 +135,6 @@ class OurchatAccount {
           id: id, requestValues: [RequestValues.REQUEST_VALUES_DISPLAY_NAME]));
       displayName = res.displayName;
     }
-
     gotInfo = true;
   }
 
@@ -193,6 +194,14 @@ class OurchatAccount {
     sessions = res.sessions;
     registerTime = OurchatTime(inputTimestamp: res.registerTime);
     OurchatDatabase? privateDB = ourchatAppState.privateDB;
+    var intFriendsId = [];
+    var intSessionsId = [];
+    for (int i = 0; i < friends.length; i++) {
+      intFriendsId.add(friends[i].toInt());
+    }
+    for (int i = 0; i < sessions.length; i++) {
+      intSessionsId.add(sessions[i].toInt());
+    }
     if (isDataExist) {
       (privateDB!.update(privateDB.account)
             ..where((u) => u.id.equals(BigInt.from(id.toInt()))))
@@ -200,8 +209,8 @@ class OurchatAccount {
               email: Value(email),
               registerTime: Value(registerTime.datetime),
               updateTime: Value(updateTime.datetime),
-              friendsJson: Value(jsonEncode(friends)),
-              sessionsJson: Value(jsonEncode(sessions)),
+              friendsJson: Value(jsonEncode(intFriendsId)),
+              sessionsJson: Value(jsonEncode(intSessionsId)),
               latestMsgTime: Value(latestMsgTime.datetime)));
     } else {
       privateDB!.into(privateDB.account).insert(AccountData(
@@ -209,8 +218,8 @@ class OurchatAccount {
           email: email,
           registerTime: registerTime.datetime,
           updateTime: updateTime.datetime,
-          friendsJson: jsonEncode(friends),
-          sessionsJson: jsonEncode(sessions),
+          friendsJson: jsonEncode(intFriendsId),
+          sessionsJson: jsonEncode(intSessionsId),
           latestMsgTime: latestMsgTime.datetime));
     }
   }

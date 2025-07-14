@@ -59,5 +59,9 @@
     "tlsEncryption": "TLS加密状态:",
     "tlsDisabled": "未启用",
     "mustBeInteger": "必须为整数",
-    "keepAliveInterval": "Keep-alive包发送间隔(秒)"
+    "keepAliveInterval": "Keep-alive包发送间隔(秒)",
+    "friendRequest": "好友申请",
+    "loading": "加载中",
+    "accepted": "已接受",
+    "refused": "已拒绝"
 }

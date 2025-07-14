@@ -246,5 +246,21 @@
     "keepAliveInterval": "Keep-Alive Interval(seconds)",
     "@keepAliveInterval": {
         "description": "Keep-Alive Interval"
+    },
+    "friendRequest": "Friend Request",
+    "@friendRequest": {
+        "description": "Friend Request"
+    },
+    "loading": "Loading",
+    "@loading": {
+        "description": "loading"
+    },
+    "accepted": "Accepted",
+    "@accepted": {
+        "description": "accepted"
+    },
+    "refused": "Refused",
+    "@refused": {
+        "description": "refused"
     }
 }
