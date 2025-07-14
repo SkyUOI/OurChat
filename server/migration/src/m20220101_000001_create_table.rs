@@ -182,6 +182,7 @@ pub enum User {
     Status,
     AccountStatus,
     DeletedAt,
+    PublicKey,
 }
 
 #[derive(DeriveIden)]
@@ -214,6 +215,9 @@ pub enum Session {
     UpdatedTime,
     Description,
     DefaultRole,
+    E2EEOn,
+    RoomKeyTime,
+    LeavingToProcess,
 }
 
 #[derive(DeriveIden)]

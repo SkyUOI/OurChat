@@ -1,5 +1,8 @@
 mod ban;
 mod delete;
+mod e2ee_update;
+mod e2eeize_and_dee2eeize_session;
+mod invite;
 mod join;
 mod leave;
 mod mute;
@@ -59,7 +62,7 @@ async fn session_create() {
     // try to create a session in two users
     let req = NewSessionRequest {
         members: vec![user2_id.into(), user3_id.into()],
-        leave_message: "hello".to_string(),
+        leave_message: Some("hello".to_string()),
         ..Default::default()
     };
     // wait for user2 to listen
@@ -89,20 +92,20 @@ async fn session_create() {
     user2
         .lock()
         .await
-        .accept_join_session_invitation(session_id, false)
+        .accept_join_session_invitation(session_id, false, user1_id)
         .await
         .unwrap();
     user3
         .lock()
         .await
-        .accept_join_session_invitation(session_id, true)
+        .accept_join_session_invitation(session_id, true, user1_id)
         .await
         .unwrap();
     tokio::time::sleep(Duration::from_millis(200)).await;
     let err = user2
         .lock()
         .await
-        .accept_join_session_invitation(session_id, false)
+        .accept_join_session_invitation(session_id, false, user1_id)
         .await
         .unwrap_err();
     assert_eq!(err.code(), tonic::Code::NotFound);
@@ -110,7 +113,7 @@ async fn session_create() {
     let err = user3
         .lock()
         .await
-        .accept_join_session_invitation(session_id, true)
+        .accept_join_session_invitation(session_id, true, user1_id)
         .await
         .unwrap_err();
     assert_eq!(err.code(), tonic::Code::NotFound);
@@ -135,7 +138,10 @@ async fn session_create() {
 #[tokio::test]
 async fn get_session_info() {
     let mut app = TestApp::new_with_launching_instance().await.unwrap();
-    let (session_user, session) = app.new_session_db_level(3, "session1").await.unwrap();
+    let (session_user, session) = app
+        .new_session_db_level(3, "session1", false)
+        .await
+        .unwrap();
     let (a, b, c) = (
         session_user[0].clone(),
         session_user[1].clone(),
@@ -195,7 +201,10 @@ async fn get_session_info() {
 #[tokio::test]
 async fn set_session_info() {
     let mut app = TestApp::new_with_launching_instance().await.unwrap();
-    let (session_user, session) = app.new_session_db_level(3, "session1").await.unwrap();
+    let (session_user, session) = app
+        .new_session_db_level(3, "session1", false)
+        .await
+        .unwrap();
     let (a, b, _c) = (
         session_user[0].clone(),
         session_user[1].clone(),

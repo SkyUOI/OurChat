@@ -15,11 +15,14 @@ import "service/ourchat/session/add_role/v1/add_role.proto";
 import "service/ourchat/session/allow_user_join_session/v1/allow_user_join_session.proto";
 import "service/ourchat/session/ban/v1/ban.proto";
 import "service/ourchat/session/delete_session/v1/delete_session.proto";
+import "service/ourchat/session/e2eeize_and_dee2eeize_session/v1/e2eeize_and_dee2eeize_session.proto";
 import "service/ourchat/session/get_session_info/v1/get_session_info.proto";
+import "service/ourchat/session/invite_user_to_session/v1/invite_user_to_session.proto";
 import "service/ourchat/session/join_session/v1/join_session.proto";
 import "service/ourchat/session/leave_session/v1/leave_session.proto";
 import "service/ourchat/session/mute/v1/mute.proto";
 import "service/ourchat/session/new_session/v1/session.proto";
+import "service/ourchat/session/session_room_key/v1/session_room_key.proto";
 import "service/ourchat/session/set_role/v1/set_role.proto";
 import "service/ourchat/session/set_session_info/v1/set_session_info.proto";
 import "service/ourchat/set_account_info/v1/set_account_info.proto";
@@ -89,7 +92,15 @@ service OurChatService {
 
   rpc AllowUserJoinSession(session.allow_user_join_session.v1.AllowUserJoinSessionRequest) returns (session.allow_user_join_session.v1.AllowUserJoinSessionResponse);
 
+  rpc InviteUserToSession(session.invite_user_to_session.v1.InviteUserToSessionRequest) returns (session.invite_user_to_session.v1.InviteUserToSessionResponse);
+
   // Webrtc operations
 
   rpc CreateRoom(webrtc.room.create_room.v1.CreateRoomRequest) returns (webrtc.room.create_room.v1.CreateRoomResponse);
+
+  rpc SendRoomKey(session.session_room_key.v1.SendRoomKeyRequest) returns (session.session_room_key.v1.SendRoomKeyResponse);
+
+  rpc E2eeizeSession(session.e2eeize_and_dee2eeize_session.v1.E2eeizeSessionRequest) returns (session.e2eeize_and_dee2eeize_session.v1.E2eeizeSessionResponse);
+
+  rpc Dee2eeizeSession(session.e2eeize_and_dee2eeize_session.v1.Dee2eeizeSessionRequest) returns (session.e2eeize_and_dee2eeize_session.v1.Dee2eeizeSessionResponse);
 }

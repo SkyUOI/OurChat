@@ -90,6 +90,18 @@ pub mod session {
             include!("../generated/service.ourchat.session.allow_user_join_session.v1.rs");
         }
     }
+
+    pub mod session_room_key {
+        pub mod v1 {
+            include!("../generated/service.ourchat.session.session_room_key.v1.rs");
+        }
+    }
+
+    pub mod e2eeize_and_dee2eeize_session {
+        pub mod v1 {
+            include!("../generated/service.ourchat.session.e2eeize_and_dee2eeize_session.v1.rs");
+        }
+    }
 }
 
 pub mod set_account_info {

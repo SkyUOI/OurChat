@@ -14,7 +14,9 @@ use pb::service::ourchat::session::new_session::v1::{
     FailedMember, FailedReason, NewSessionRequest, NewSessionResponse,
 };
 use pb::time::to_google_timestamp;
-use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, TransactionTrait};
+use sea_orm::{
+    ActiveModelTrait, ActiveValue, ColumnTrait, EntityTrait, QueryFilter, TransactionTrait,
+};
 use tonic::{Request, Response};
 use tracing::error;
 
@@ -87,6 +89,7 @@ async fn new_session_impl(
             people_num,
             req.name.unwrap_or_default(),
             &transaction,
+            req.e2ee_on,
         )
         .await?;
         // add session relation
@@ -138,7 +141,7 @@ pub async fn send_verification_request(
     sender: ID,
     invitee: ID,
     session_id: SessionID,
-    leave_message: String,
+    leave_message: Option<String>,
 ) -> anyhow::Result<()> {
     let expire_at = chrono::Utc::now() + server.shared_data.cfg.main_cfg.verification_expire_time;
     let expire_at_google = to_google_timestamp(expire_at);
@@ -146,13 +149,12 @@ pub async fn send_verification_request(
     let respond_msg = InviteUserToSession {
         session_id: session_id.into(),
         inviter_id: sender.into(),
-        leave_message: Some(leave_message.clone()),
+        leave_message: leave_message.clone(),
         expire_timestamp: Some(expire_at_google),
     };
     let respond_msg = RespondEventType::InviteUserToSession(respond_msg);
-    // TODO: is_encrypted
     let msg_model = insert_msg_record(
-        invitee,
+        invitee.into(),
         Some(session_id),
         respond_msg.clone(),
         false,
@@ -182,5 +184,15 @@ pub async fn send_verification_request(
         &server.db.db_pool,
     )
     .await?;
+    // mark this invitation
+    let model = entities::session_invitation::ActiveModel {
+        session_id: ActiveValue::Set(session_id.into()),
+        inviter: ActiveValue::Set(sender.into()),
+        invitee: ActiveValue::Set(invitee.into()),
+        leave_message: ActiveValue::Set(leave_message.unwrap_or_else(String::default)),
+        expire_at: ActiveValue::Set(expire_at.into()),
+        ..Default::default()
+    };
+    model.insert(&server.db.db_pool).await?;
     Ok(())
 }

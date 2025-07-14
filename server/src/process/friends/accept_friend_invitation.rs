@@ -99,6 +99,16 @@ async fn accept_friend_invitation_impl(
     let add_friend_req: AddFriendRequest = serde_json::from_str(&add_friend_req).unwrap();
     let mut session_id = None;
     if req.status == AcceptFriendInvitationResult::Success as i32 {
+        // create a session
+        session_id = Some(crate::helper::generate_session_id()?);
+        db::session::create_session_db(
+            session_id.unwrap(),
+            0,
+            "".to_owned(),
+            &server.db.db_pool,
+            false,
+        )
+        .await?;
         let transaction = server.db.db_pool.begin().await?;
         session_id = Some(
             db::friend::add_friend(
@@ -130,10 +140,9 @@ async fn accept_friend_invitation_impl(
             status: req.status,
             session_id: session_id.map(|x| x.into()),
         });
-    // TODO: is_encrypted
     let transaction = server.db.db_pool.begin().await?;
     let _msg_model = insert_msg_record(
-        inviter_id,
+        inviter_id.into(),
         None,
         respond_msg.clone(),
         false,
@@ -141,8 +150,15 @@ async fn accept_friend_invitation_impl(
         false,
     )
     .await?;
-    let msg_model =
-        insert_msg_record(id, None, respond_msg.clone(), false, &transaction, false).await?;
+    let msg_model = insert_msg_record(
+        id.into(),
+        None,
+        respond_msg.clone(),
+        false,
+        &transaction,
+        false,
+    )
+    .await?;
     transaction.commit().await?;
     let fetch_response = FetchMsgsResponse {
         msg_id: msg_model.msg_id as u64,

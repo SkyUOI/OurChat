@@ -1,9 +1,10 @@
-use crate::db::session::{SessionError, in_session};
+use crate::db::session::{SessionError, get_session_by_id, in_session};
 use crate::process::error_msg::not_found;
 use crate::{db, process::error_msg::SERVER_ERROR, server::RpcServer};
+use anyhow::anyhow;
 use base::consts::{ID, SessionID};
 use pb::service::ourchat::session::leave_session::v1::{LeaveSessionRequest, LeaveSessionResponse};
-use sea_orm::TransactionTrait;
+use sea_orm::{ActiveModelTrait, ActiveValue, IntoActiveModel, TransactionTrait};
 use tonic::{Request, Response, Status};
 
 pub async fn leave_session(
@@ -40,10 +41,18 @@ async fn leave_session_impl(
 ) -> Result<LeaveSessionResponse, LeaveSessionErr> {
     let req = request.into_inner();
     let session_id: SessionID = req.session_id.into();
-    if in_session(id, session_id, &server.db.db_pool).await? {
+    if !in_session(id, session_id, &server.db.db_pool).await? {
         Err(Status::not_found(not_found::USER_IN_SESSION))?;
     }
     let transaction = server.db.db_pool.begin().await?;
+    let session = get_session_by_id(session_id, &server.db.db_pool)
+        .await?
+        .ok_or(anyhow!("cannot found session"))?;
+    if session.e2ee_on {
+        let mut session = session.into_active_model();
+        session.leaving_to_process = ActiveValue::Set(true);
+        session.update(&server.db.db_pool).await?;
+    }
     match db::session::leave_session(session_id, id, &transaction).await {
         Ok(_) => {
             transaction.commit().await?;

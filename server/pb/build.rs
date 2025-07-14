@@ -105,6 +105,22 @@ fn main() -> anyhow::Result<()> {
             "service.ourchat.msg_delivery.announcement.v1.AnnouncementResponse",
             "#[derive(serde::Serialize, serde::Deserialize)]",
         )
+        .type_attribute(
+            "service.ourchat.session.invite_user_to_session.v1.AcceptSessionNotification",
+            "#[derive(serde::Serialize, serde::Deserialize)]",
+        )
+        .type_attribute(
+            "service.ourchat.session.session_room_key.v1.ReceiveRoomKeyNotification",
+            "#[derive(serde::Serialize, serde::Deserialize)]",
+        )
+        .type_attribute(
+            "service.ourchat.session.session_room_key.v1.SendRoomKeyNotification",
+            "#[derive(serde::Serialize, serde::Deserialize)]",
+        )
+        .type_attribute(
+            "service.ourchat.session.session_room_key.v1.UpdateRoomKeyNotification",
+            "#[derive(serde::Serialize, serde::Deserialize)]",
+        )
         .compile_well_known_types(true)
         .bytes(["."])
         .out_dir("./src/generated/")

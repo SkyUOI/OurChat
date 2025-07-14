@@ -32,6 +32,8 @@ single_instance = true
 leader_node = true
 # Log clean duration
 log_clean_duration = "30d"
+# E2EE room key available duration
+room_key_duration = "30d"
 
 [password_hash]
 # The memory size in 1 KiB blocks. Between 8*`p_cost` and (2^32)-1

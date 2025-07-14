@@ -1,3 +1,4 @@
+use base::consts::ID;
 use entities::{announcement, announcement_msg};
 use pb::service::ourchat::msg_delivery::{
     announcement::v1::Announcement, v1::fetch_msgs_response::RespondEventType,
@@ -35,7 +36,7 @@ pub async fn add_announcement(
     tracing::trace!("Announcement added successfully");
 
     let msg = insert_msg_record(
-        res.publisher_id.into(),
+        ID::from(res.publisher_id).into(),
         None,
         RespondEventType::AnnouncementResponse(res.clone().into()),
         false,

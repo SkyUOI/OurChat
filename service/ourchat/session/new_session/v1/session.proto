@@ -7,9 +7,10 @@ message NewSessionRequest {
   // name of the session, if not set, will leave a default name
   optional string name = 2;
   // leaving message
-  string leave_message = 3;
+  optional string leave_message = 3;
   // avatar resource id
   optional string avatar_key = 4;
+  bool e2ee_on = 5;
 }
 
 enum FailedReason {

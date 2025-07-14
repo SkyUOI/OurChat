@@ -9,7 +9,7 @@ pub struct Model {
     pub msg_id: i64,
     #[sea_orm(column_type = "JsonBinary")]
     pub msg_data: Json,
-    pub sender_id: i64,
+    pub sender_id: Option<i64>,
     pub session_id: Option<i64>,
     pub time: DateTimeWithTimeZone,
     pub is_encrypted: bool,

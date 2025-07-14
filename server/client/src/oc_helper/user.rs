@@ -4,6 +4,7 @@ use crate::oc_helper::{ClientErr, Clients};
 use anyhow::Context;
 use base::consts::{ID, JWT_HEADER, OCID, SessionID};
 use base::setting::tls::TlsConfig;
+use bytes::Bytes;
 use pb::service::auth::authorize::v1::{AuthRequest, auth_request};
 use pb::service::auth::register::v1::RegisterRequest;
 use pb::service::basic::v1::TimestampRequest;
@@ -20,6 +21,9 @@ use pb::time::{
     TimeStampUtc, from_google_timestamp, std_duration_to_prost_duration, to_google_timestamp,
 };
 use rand::Rng;
+use rand::rngs::OsRng;
+use rsa::pkcs1::EncodeRsaPublicKey as _;
+use rsa::{RsaPrivateKey, RsaPublicKey};
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
@@ -46,6 +50,7 @@ pub struct TestUser {
     // Check whether message == 0 in the end
     pub ensure_no_message_left: bool,
     pub authorization_header: String,
+    pub key_pair: (RsaPrivateKey, RsaPublicKey),
 
     has_dropped: bool,
     has_registered: bool,
@@ -58,6 +63,10 @@ impl TestUser {
         let name = FAKE_MANAGER.lock().generate_unique_name();
         let email = FAKE_MANAGER.lock().generate_unique_email();
         let url = app.rpc_url.clone();
+        let mut rng = OsRng;
+        let bits = 2048;
+        let private_key = rsa::RsaPrivateKey::new(&mut rng, bits).unwrap();
+        let public_key = RsaPublicKey::from(&private_key);
         Self {
             name,
             password: rand::thread_rng()
@@ -81,7 +90,18 @@ impl TestUser {
             tls: TlsConfig::default(),
             ensure_no_message_left: false,
             authorization_header: "Bearer".to_string(),
+            key_pair: (private_key, public_key),
         }
+    }
+
+    pub fn public_key_bytes(&self) -> Bytes {
+        self.key_pair
+            .1
+            .to_pkcs1_der()
+            .expect("PKCS#1 serialization failed")
+            .as_bytes()
+            .to_vec()
+            .into()
     }
 
     pub async fn register_internal(user: &mut TestUser) -> Result<(), ClientErr> {
@@ -89,6 +109,7 @@ impl TestUser {
             name: user.name.clone(),
             password: user.password.clone(),
             email: user.email.clone(),
+            public_key: user.public_key_bytes(),
         };
         let ret = user.clients.auth.register(request).await?.into_inner();
         user.ocid = OCID(ret.ocid);
@@ -155,10 +176,12 @@ impl TestUser {
         &mut self,
         session_id: SessionID,
         accept: bool,
+        inviter: ID,
     ) -> Result<(), Status> {
         let req = AcceptJoinSessionInvitationRequest {
             session_id: session_id.into(),
             accepted: accept,
+            inviter_id: inviter.into(),
         };
         self.oc().accept_join_session_invitation(req).await?;
         Ok(())
@@ -268,10 +291,11 @@ impl TestUser {
         &mut self,
         session_id: SessionID,
         msg: BundleMsgs,
+        is_encrypted: bool,
     ) -> Result<Response<SendMsgResponse>, ClientErr> {
         let req = SendMsgRequest {
             session_id: session_id.into(),
-            is_encrypted: false,
+            is_encrypted,
             bundle_msgs: msg,
             time: Some(to_google_timestamp(self.get_timestamp().await)),
         };

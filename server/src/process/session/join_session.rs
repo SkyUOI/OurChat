@@ -2,11 +2,13 @@ use crate::db::messages::insert_msg_record;
 use crate::db::session::{
     get_all_session_relations, get_session_by_id, if_permission_exist, user_banned_status,
 };
+use crate::db::user::get_account_info_db;
 use crate::process::error_msg::{BAN, PERMISSION_DENIED, not_found};
 use crate::process::{Dest, transmit_msg};
 use crate::{db, process::error_msg::SERVER_ERROR, server::RpcServer};
-use anyhow::Context;
+use anyhow::{Context, anyhow};
 use base::consts::{ID, SessionID};
+use bytes::Bytes;
 use migration::m20241229_022701_add_role_for_session::PredefinedPermissions;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
@@ -96,15 +98,23 @@ async fn join_session_impl(
     {
         return Err(JoinInSessionErr::Status(Status::permission_denied(BAN)));
     }
+    let session = get_session_by_id(session_id, &server.db.db_pool)
+        .await?
+        .ok_or(anyhow!("cannot find session"))?;
+    let is_encrypted = session.e2ee_on;
+    let user = get_account_info_db(id, &server.db.db_pool)
+        .await?
+        .ok_or(anyhow!("cannot find user"))?;
+    let public_key = is_encrypted.then_some(user.public_key);
 
     let respond_msg = RespondEventType::JoinSessionApproval(JoinSessionApproval {
         session_id: session_id.into(),
         user_id: id.into(),
         leave_message: req.leave_message,
+        public_key: public_key.map(Into::<Bytes>::into),
     });
-    // TODO: is_encrypted
     let msg_model = insert_msg_record(
-        id,
+        id.into(),
         Some(session_id),
         respond_msg.clone(),
         false,

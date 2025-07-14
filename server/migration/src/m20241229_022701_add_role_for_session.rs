@@ -162,6 +162,7 @@ pub enum PredefinedPermissions {
     MuteUser = 11,
     UnmuteUser = 12,
     AcceptJoinRequest = 13,
+    E2eeizeAndDee2eeizeSession = 14,
 }
 
 #[derive(num_enum::TryFromPrimitive, num_enum::IntoPrimitive)]

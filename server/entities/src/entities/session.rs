@@ -14,6 +14,9 @@ pub struct Model {
     pub created_time: DateTimeWithTimeZone,
     pub description: String,
     pub default_role: i64,
+    pub e2ee_on: bool,
+    pub room_key_time: DateTimeWithTimeZone,
+    pub leaving_to_process: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -30,6 +33,8 @@ pub enum Relation {
         on_delete = "Cascade"
     )]
     Role,
+    #[sea_orm(has_many = "super::session_invitation::Entity")]
+    SessionInvitation,
     #[sea_orm(has_many = "super::session_relation::Entity")]
     SessionRelation,
     #[sea_orm(has_many = "super::user_role_relation::Entity")]
@@ -51,6 +56,12 @@ impl Related<super::message_records::Entity> for Entity {
 impl Related<super::role::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Role.def()
+    }
+}
+
+impl Related<super::session_invitation::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::SessionInvitation.def()
     }
 }
 

@@ -217,6 +217,10 @@ pub const fn default_network_cmd_port() -> u16 {
     7779
 }
 
+pub const fn default_room_key_duration() -> Duration {
+    Duration::from_days(30)
+}
+
 pub mod option {
     pub const fn default_network_cmd_port() -> Option<u16> {
         Some(super::default_network_cmd_port())

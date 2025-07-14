@@ -90,7 +90,7 @@ pub async fn add_friend(
 ) -> anyhow::Result<SessionID> {
     // create a session
     let session_id = helper::generate_session_id()?;
-    db::session::create_session_db(session_id, 0, "".to_owned(), transaction).await?;
+    db::session::create_session_db(session_id, 0, "".to_owned(), transaction, false).await?;
     db::session::batch_join_in_session(
         session_id,
         &[user_id1, user_id2],

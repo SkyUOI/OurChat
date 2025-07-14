@@ -1,6 +1,16 @@
 use std::pin::Pin;
 
 use pb::service::ourchat::download::v1::{DownloadRequest, DownloadResponse};
+use pb::service::ourchat::session::e2eeize_and_dee2eeize_session::v1::{
+    Dee2eeizeSessionRequest, Dee2eeizeSessionResponse, E2eeizeSessionRequest,
+    E2eeizeSessionResponse,
+};
+use pb::service::ourchat::session::invite_user_to_session::v1::{
+    InviteUserToSessionRequest, InviteUserToSessionResponse,
+};
+use pb::service::ourchat::session::session_room_key::v1::{
+    SendRoomKeyRequest, SendRoomKeyResponse,
+};
 use pb::service::ourchat::webrtc::room::create_room::v1::{CreateRoomRequest, CreateRoomResponse};
 use tonic::{Request, Response, Status};
 
@@ -346,5 +356,41 @@ impl OurChatService for RpcServer {
         let id = get_id_from_req(&request).unwrap();
         self.check_account_status(id).await?;
         process::create_room(self, id, request).await
+    }
+
+    async fn invite_user_to_session(
+        &self,
+        request: Request<InviteUserToSessionRequest>,
+    ) -> Result<Response<InviteUserToSessionResponse>, Status> {
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::invite_user_to_session(self, id, request).await
+    }
+
+    async fn send_room_key(
+        &self,
+        request: Request<SendRoomKeyRequest>,
+    ) -> Result<Response<SendRoomKeyResponse>, Status> {
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::send_room_key(self, id, request).await
+    }
+
+    async fn e2eeize_session(
+        &self,
+        request: Request<E2eeizeSessionRequest>,
+    ) -> Result<Response<E2eeizeSessionResponse>, Status> {
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::e2eeize_session(self, id, request).await
+    }
+
+    async fn dee2eeize_session(
+        &self,
+        request: Request<Dee2eeizeSessionRequest>,
+    ) -> Result<Response<Dee2eeizeSessionResponse>, Status> {
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::dee2eeize_session(self, id, request).await
     }
 }

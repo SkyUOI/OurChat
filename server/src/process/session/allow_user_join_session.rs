@@ -98,6 +98,7 @@ async fn allow_user_join_session_impl(
     let respond_msg =
         RespondEventType::AllowUserJoinSessionNotification(AllowUserJoinSessionNotification {
             session_id: session_id.into(),
+            room_key: req.room_key,
             accepted: req.accepted,
         });
     let rmq_conn = server
@@ -110,7 +111,7 @@ async fn allow_user_join_session_impl(
         .await
         .context("cannot create rabbitmq channel")?;
     super::super::message_insert_and_transmit(
-        req.user_id.into(),
+        ID::from(req.user_id).into(),
         Some(session_id),
         respond_msg.clone(),
         Dest::User(req.user_id.into()),

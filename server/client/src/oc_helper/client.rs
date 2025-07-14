@@ -270,6 +270,7 @@ impl TestApp {
         &mut self,
         n: usize,
         name: impl Into<String>,
+        e2ee_on: bool,
     ) -> anyhow::Result<(Vec<TestUserShared>, TestSession)> {
         let mut users = Vec::with_capacity(n);
         for _ in 0..n {
@@ -283,6 +284,7 @@ impl TestApp {
             0,
             name.into(),
             &self.db_pool.as_ref().unwrap().db_pool,
+            e2ee_on,
         )
         .await?;
         tracing::info!("create session:{}", session_id);

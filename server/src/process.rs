@@ -95,11 +95,15 @@ pub use session::{
     allow_user_join_session::allow_user_join_session,
     ban::{ban_user, unban_user},
     delete_session::delete_session,
+    e2eeize_and_dee2eeize_session::dee2eeize_session,
+    e2eeize_and_dee2eeize_session::e2eeize_session,
     get_session_info::get_session_info,
+    invite_user_to_session::invite_user_to_session,
     join_session::join_session,
     leave_session::leave_session,
     mute::{mute_user, unmute_user},
     new_session::new_session,
+    session_room_key::send_room_key,
     set_role::set_role,
     set_self_info::set_session_info,
 };
@@ -288,7 +292,7 @@ impl From<MsgError> for MsgInsTransmitErr {
 }
 
 pub async fn message_insert_and_transmit(
-    user_id: ID,
+    sender_id: Option<ID>,
     session_id: Option<SessionID>,
     msg: RespondEventType,
     dest: Dest,
@@ -297,7 +301,7 @@ pub async fn message_insert_and_transmit(
     rmq_chan: &mut deadpool_lapin::lapin::Channel,
 ) -> Result<(), MsgInsTransmitErr> {
     let msg_model = crate::db::messages::insert_msg_record(
-        user_id,
+        sender_id,
         session_id,
         msg.clone(),
         is_encrypted,

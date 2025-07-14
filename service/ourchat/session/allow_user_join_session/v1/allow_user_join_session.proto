@@ -6,6 +6,7 @@ message AllowUserJoinSessionRequest {
   uint64 session_id = 1;
   uint64 user_id = 2;
   bool accepted = 3;
+  optional bytes room_key = 4;
 }
 
 message AllowUserJoinSessionResponse {}
@@ -13,4 +14,5 @@ message AllowUserJoinSessionResponse {}
 message AllowUserJoinSessionNotification {
   uint64 session_id = 1;
   bool accepted = 2;
+  optional bytes room_key = 3;
 }

@@ -6,11 +6,14 @@ pub mod add_role;
 pub mod allow_user_join_session;
 pub mod ban;
 pub mod delete_session;
+pub mod e2eeize_and_dee2eeize_session;
 pub mod get_session_info;
+pub mod invite_user_to_session;
 pub mod join_session;
 pub mod leave_session;
 pub mod mute;
 pub mod new_session;
+pub mod session_room_key;
 pub mod set_role;
 pub mod set_self_info;
 

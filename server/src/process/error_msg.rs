@@ -33,6 +33,7 @@ pub const MAINTAINING: &str = "Server Maintaining";
 pub const MUTE: &str = "User Muted";
 pub const BAN: &str = "User Banned";
 pub const ACCOUNT_DELETED: &str = "Account Deleted";
+pub const E2EE_NOT_ON: &str = "E2EE Not On";
 
 // fetch msg
 
