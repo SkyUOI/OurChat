@@ -44,7 +44,6 @@ class Friends extends StatelessWidget {
               itemBuilder: (context, index) {
                 var account = OurchatAccount(ourchatAppState);
                 account.id = ourchatAppState.thisAccount!.friends[index];
-                account.token = ourchatAppState.thisAccount!.token;
                 account.recreateStub();
                 return ElevatedButton(
                     onPressed: () {},

@@ -139,7 +139,6 @@ class _UserTabState extends State<UserTab> {
   Future getAccountInfo(OurchatAppState ourchatAppState, Int64 id) async {
     OurchatAccount account = OurchatAccount(ourchatAppState);
     account.id = id;
-    account.token = ourchatAppState.thisAccount!.token;
     account.recreateStub();
     await account.getAccountInfo();
     return account;
@@ -457,7 +456,7 @@ class _SessionListState extends State<SessionList> {
             child: ListView.builder(
               itemBuilder: (context, index) {
                 return SizedBox(
-                    height: 50.0,
+                    height: 80.0,
                     child: Padding(
                       padding: const EdgeInsets.only(top: 10.0),
                       child: ElevatedButton(
@@ -467,10 +466,36 @@ class _SessionListState extends State<SessionList> {
                                       borderRadius:
                                           BorderRadius.circular(10.0)))),
                           onPressed: () {},
-                          child: const Placeholder()),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              SizedBox(
+                                height: 40,
+                                width: 40,
+                                child: Placeholder(),
+                              ),
+                              Padding(
+                                padding: EdgeInsets.only(left: 8.0),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      "123",
+                                      style: TextStyle(
+                                          fontSize: 20, color: Colors.black),
+                                    ),
+                                    Text(
+                                      "msg",
+                                      style: TextStyle(color: Colors.grey),
+                                    )
+                                  ],
+                                ),
+                              )
+                            ],
+                          )),
                     ));
               },
-              itemCount: 10,
+              itemCount: ourchatAppState.thisAccount!.sessions.length,
             ),
           )
         ],
@@ -486,7 +511,6 @@ class _SessionListState extends State<SessionList> {
       var res = await stub.getId(GetIdRequest(ocid: ocid));
       OurchatAccount account = OurchatAccount(ourchatAppState);
       account.id = res.id;
-      account.token = ourchatAppState.thisAccount!.token;
       account.recreateStub();
       await account.getAccountInfo();
       return account;

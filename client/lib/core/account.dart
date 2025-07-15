@@ -19,7 +19,7 @@ class OurchatAccount {
   OurchatAppState ourchatAppState;
   late OurchatServer server;
   late Int64 id;
-  late String username, email, ocid, token;
+  late String username, email, ocid;
   String? avatarKey, displayName, status;
   bool isMe = false, gotInfo = false;
   late OurchatTime publicUpdateTime, updateTime, registerTime;
@@ -35,10 +35,8 @@ class OurchatAccount {
   }
 
   void recreateStub() {
-    var interceptor = OurchatInterceptor();
-    interceptor.setToken(token);
-    server.interceptor = interceptor;
-    stub = OurChatServiceClient(server.channel!, interceptors: [interceptor]);
+    stub = OurChatServiceClient(server.channel!,
+        interceptors: [server.interceptor!]);
   }
 
   Future login(String password, String? ocid, String? email) async {
@@ -54,8 +52,10 @@ class OurchatAccount {
       email = email;
       id = res.id;
       ocid = res.ocid;
-      token = res.token;
       isMe = true;
+      var interceptor = OurchatInterceptor();
+      interceptor.setToken(res.token);
+      server.interceptor = interceptor;
       recreateStub();
       return okStatusCode;
     } on GrpcError catch (e) {
@@ -78,8 +78,10 @@ class OurchatAccount {
       username = name;
       id = res.id;
       ocid = res.ocid;
-      token = res.token;
       isMe = true;
+      var interceptor = OurchatInterceptor();
+      interceptor.setToken(res.token);
+      server.interceptor = interceptor;
       recreateStub();
       return okStatusCode;
     } on GrpcError catch (e) {

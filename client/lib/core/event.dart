@@ -58,7 +58,6 @@ class OurchatEvent {
     eventType = row.eventType;
     sender = OurchatAccount(ourchatAppState);
     sender!.id = Int64.parseInt(row.sender.toString());
-    sender!.token = ourchatAppState.thisAccount!.token;
     sender!.recreateStub();
     await sender!.getAccountInfo();
     sendTime = OurchatTime(inputDatetime: row.time);
@@ -98,7 +97,6 @@ class NewFriendInvitationNotification extends OurchatEvent {
     leaveMessage = data!["leave_message"];
     invitee = OurchatAccount(ourchatAppState);
     invitee!.id = Int64.parseInt(data!["invitee"].toString());
-    invitee!.token = ourchatAppState.thisAccount!.token;
     invitee!.recreateStub();
     await invitee!.getAccountInfo();
     status = data!["status"];
@@ -140,7 +138,6 @@ class FriendInvitationResultNotification extends OurchatEvent {
     leaveMessage = data!["leave_message"];
     invitee = OurchatAccount(ourchatAppState);
     invitee!.id = Int64.parseInt(data!["invitee"].toString());
-    invitee!.token = ourchatAppState.thisAccount!.token;
     invitee!.recreateStub();
     await invitee!.getAccountInfo();
     accept = data!["accept"];
@@ -176,7 +173,6 @@ class OurchatEventSystem {
         logger.i("receive new event(type:${event.whichRespondEventType()})");
         // 创建一个发送者oc账号对象
         OurchatAccount sender = OurchatAccount(ourchatAppState);
-        sender.token = ourchatAppState.thisAccount!.token;
         sender.recreateStub();
         OurchatEvent? eventObj;
         switch (event.whichRespondEventType()) {
@@ -198,7 +194,6 @@ class OurchatEventSystem {
             OurchatAccount invitee = OurchatAccount(ourchatAppState);
             sender.id = event.friendInvitationResultNotification.inviterId;
             invitee.id = event.friendInvitationResultNotification.inviteeId;
-            invitee.token = ourchatAppState.thisAccount!.token;
             invitee.recreateStub();
             List<NewFriendInvitationNotification> eventObjList =
                 await selectNewFriendInvitation();
