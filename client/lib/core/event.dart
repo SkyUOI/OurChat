@@ -251,7 +251,7 @@ class OurchatEventSystem {
         }
       }
     } on GrpcError {
-      logger.w("Diconnected\nTrying to reconnect");
+      logger.w("Disconnected\nTrying to reconnect");
       listenEvents();
     }
   }
