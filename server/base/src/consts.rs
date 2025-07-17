@@ -2,7 +2,7 @@
 
 use pb::service::basic::server::v1::ServerVersion;
 use size::Size;
-use std::{path::PathBuf, sync::LazyLock, time::Duration};
+use std::{path::PathBuf, str::FromStr, sync::LazyLock, time::Duration};
 use utils::{impl_newtype_int, impl_newtype_string};
 
 /// OCID Length
@@ -98,7 +98,7 @@ impl From<&OCID> for sea_orm::Value {
 
 /// default clear interval
 pub fn default_clear_interval() -> croner::Cron {
-    croner::Cron::new("0 0 0 * *")
+    croner::Cron::from_str("0 0 0 * *").expect("incorrect initial cron")
 }
 
 /// default file save days

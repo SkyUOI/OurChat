@@ -39,7 +39,7 @@ rand = "0.8.5"
 snowdon = "0"
 zxcvbn = { version = "3", features = ["ser"] }
 tokio-cron-scheduler = "0.14.0"
-croner = { version = "2.2.0", features = ["serde"] }
+croner = { version = "3.0.0", features = ["serde"] }
 
 thiserror = "2"
 tracing = { version = "0" }
