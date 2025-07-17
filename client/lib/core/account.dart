@@ -22,7 +22,7 @@ class OurchatAccount {
   late String username, email, ocid;
   String? avatarKey, displayName, status;
   bool isMe = false, gotInfo = false;
-  late OurchatTime publicUpdateTime, updateTime, registerTime;
+  late OurchatTime publicUpdateTime, updatedTime, registerTime;
   late List<Int64> friends, sessions;
   late OurChatServiceClient stub;
 
@@ -190,7 +190,7 @@ class OurchatAccount {
         ],
       ),
     );
-    updateTime = OurchatTime(inputTimestamp: res.updateTime);
+    updatedTime = OurchatTime(inputTimestamp: res.updateTime);
     email = res.email;
     friends = res.friends;
     sessions = res.sessions;
@@ -210,7 +210,7 @@ class OurchatAccount {
           .write(AccountCompanion(
               email: Value(email),
               registerTime: Value(registerTime.datetime),
-              updateTime: Value(updateTime.datetime),
+              updateTime: Value(updatedTime.datetime),
               friendsJson: Value(jsonEncode(intFriendsId)),
               sessionsJson: Value(jsonEncode(intSessionsId)),
               latestMsgTime: Value(latestMsgTime.datetime)));
@@ -219,7 +219,7 @@ class OurchatAccount {
           id: BigInt.from(id.toInt()),
           email: email,
           registerTime: registerTime.datetime,
-          updateTime: updateTime.datetime,
+          updateTime: updatedTime.datetime,
           friendsJson: jsonEncode(intFriendsId),
           sessionsJson: jsonEncode(intSessionsId),
           latestMsgTime: latestMsgTime.datetime));
