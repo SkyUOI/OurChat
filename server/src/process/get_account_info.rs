@@ -120,8 +120,8 @@ async fn get_account_info_impl(
                 QueryValues::RegisterTime => {
                     ret.register_time = Some(to_google_timestamp(queried_user.time.into()))
                 }
-                QueryValues::PublicUpdateTime => {
-                    ret.public_update_time =
+                QueryValues::PublicUpdatedTime => {
+                    ret.public_updated_time =
                         Some(to_google_timestamp(queried_user.public_update_time.into()))
                 }
                 QueryValues::UpdatedTime => {

@@ -138,7 +138,7 @@ async fn test_get_info(users: &UsersGroup, report: &mut Report) {
                             QueryValues::Friends.into(),
                             QueryValues::UpdatedTime.into(),
                             QueryValues::RegisterTime.into(),
-                            QueryValues::PublicUpdateTime.into(),
+                            QueryValues::PublicUpdatedTime.into(),
                         ],
                     })
                     .await

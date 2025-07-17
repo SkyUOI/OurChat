@@ -21,7 +21,7 @@ enum QueryValues {
   // The register time of the account
   QUERY_VALUES_REGISTER_TIME = 7;
   // The public information updated time of the account,used for guests
-  QUERY_VALUES_PUBLIC_UPDATE_TIME = 8;
+  QUERY_VALUES_PUBLIC_UPDATED_TIME = 8;
   // All information updated time,used for owner
   QUERY_VALUES_UPDATED_TIME = 9;
   // All sessions
@@ -47,7 +47,7 @@ message GetAccountInfoResponse {
   optional string status = 5;
   optional string avatar_key = 6;
   optional google.protobuf.Timestamp register_time = 7;
-  optional google.protobuf.Timestamp public_update_time = 8;
+  optional google.protobuf.Timestamp public_updated_time = 8;
   optional google.protobuf.Timestamp updated_time = 9;
   repeated uint64 sessions = 10;
   repeated uint64 friends = 11;
