@@ -9,7 +9,7 @@ use anyhow::Context;
 use base::consts::ID;
 use deadpool_redis::redis::AsyncCommands;
 use pb::service::ourchat::get_account_info::v1::{
-    GetAccountInfoRequest, GetAccountInfoResponse, OWNER_PRIVILEGE, RequestValues,
+    GetAccountInfoRequest, GetAccountInfoResponse, OWNER_PRIVILEGE, QueryValues,
 };
 use pb::time::to_google_timestamp;
 use std::cmp::PartialEq;
@@ -69,7 +69,7 @@ async fn get_account_info_impl(
     let mut ret = GetAccountInfoResponse::default();
 
     for i in &request.request_values {
-        let i = match RequestValues::try_from(*i) {
+        let i = match QueryValues::try_from(*i) {
             Ok(i) => i,
             Err(_) => {
                 return Err(tonic::Status::invalid_argument(REQUEST_INVALID_VALUE))?;
@@ -81,9 +81,9 @@ async fn get_account_info_impl(
         } else {
             // can access the info,get from the database
             match i {
-                RequestValues::Ocid => ret.ocid = Some(get_ocid(id, &server.db).await?.0),
-                RequestValues::Email => ret.email = Some(queried_user.email.clone()),
-                RequestValues::DisplayName => {
+                QueryValues::Ocid => ret.ocid = Some(get_ocid(id, &server.db).await?.0),
+                QueryValues::Email => ret.email = Some(queried_user.email.clone()),
+                QueryValues::DisplayName => {
                     if let Privilege::Owner = privilege {
                         // invalid for the owner, ignore
                     } else {
@@ -101,7 +101,7 @@ async fn get_account_info_impl(
                         );
                     }
                 }
-                RequestValues::Status => {
+                QueryValues::Status => {
                     // ret.status = Some(queried_user.status.clone().unwrap_or_default());
                     let mut redis_conn = server
                         .db
@@ -114,24 +114,24 @@ async fn get_account_info_impl(
                         .await
                         .context("Cannot get redis' information")?;
                 }
-                RequestValues::AvatarKey => {
+                QueryValues::AvatarKey => {
                     ret.avatar_key = Some(queried_user.avatar.clone().unwrap_or_default());
                 }
-                RequestValues::RegisterTime => {
+                QueryValues::RegisterTime => {
                     ret.register_time = Some(to_google_timestamp(queried_user.time.into()))
                 }
-                RequestValues::PublicUpdateTime => {
+                QueryValues::PublicUpdateTime => {
                     ret.public_update_time =
                         Some(to_google_timestamp(queried_user.public_update_time.into()))
                 }
-                RequestValues::UpdateTime => {
+                QueryValues::UpdatedTime => {
                     // only owner can get
                     if privilege != Privilege::Owner {
                         return Err(GetInfoError::PermissionDenied)?;
                     }
-                    ret.update_time = Some(to_google_timestamp(queried_user.update_time.into()))
+                    ret.updated_time = Some(to_google_timestamp(queried_user.update_time.into()))
                 }
-                RequestValues::Sessions => {
+                QueryValues::Sessions => {
                     // only owner can get
                     if privilege != Privilege::Owner {
                         return Err(GetInfoError::PermissionDenied)?;
@@ -140,7 +140,7 @@ async fn get_account_info_impl(
                     let ids = sessions.into_iter().map(|x| x.session_id as u64).collect();
                     ret.sessions = ids;
                 }
-                RequestValues::Friends => {
+                QueryValues::Friends => {
                     let friends = friends().await?;
                     let mut ids = vec![];
                     for i in friends {
@@ -148,8 +148,8 @@ async fn get_account_info_impl(
                     }
                     ret.friends = ids
                 }
-                RequestValues::UserName => ret.user_name = Some(queried_user.name.clone()),
-                RequestValues::Unspecified => {}
+                QueryValues::UserName => ret.user_name = Some(queried_user.name.clone()),
+                QueryValues::Unspecified => {}
             }
         }
     }

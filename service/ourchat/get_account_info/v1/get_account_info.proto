@@ -4,30 +4,30 @@ package service.ourchat.get_account_info.v1;
 
 import "google/protobuf/timestamp.proto";
 
-enum RequestValues {
-  REQUEST_VALUES_UNSPECIFIED = 0;
+enum QueryValues {
+  QUERY_VALUES_UNSPECIFIED = 0;
   // ocid of the account
-  REQUEST_VALUES_OCID = 1;
+  QUERY_VALUES_OCID = 1;
   // email
-  REQUEST_VALUES_EMAIL = 2;
+  QUERY_VALUES_EMAIL = 2;
   // nick name
-  REQUEST_VALUES_USER_NAME = 3;
+  QUERY_VALUES_USER_NAME = 3;
   // friend's name displayed to you, set by user
-  REQUEST_VALUES_DISPLAY_NAME = 4;
+  QUERY_VALUES_DISPLAY_NAME = 4;
   // status
-  REQUEST_VALUES_STATUS = 5;
+  QUERY_VALUES_STATUS = 5;
   // The unique key of avatar resource
-  REQUEST_VALUES_AVATAR_KEY = 6;
+  QUERY_VALUES_AVATAR_KEY = 6;
   // The register time of the account
-  REQUEST_VALUES_REGISTER_TIME = 7;
+  QUERY_VALUES_REGISTER_TIME = 7;
   // The public information updated time of the account,used for guests
-  REQUEST_VALUES_PUBLIC_UPDATE_TIME = 8;
+  QUERY_VALUES_PUBLIC_UPDATE_TIME = 8;
   // All information updated time,used for owner
-  REQUEST_VALUES_UPDATE_TIME = 9;
+  QUERY_VALUES_UPDATED_TIME = 9;
   // All sessions
-  REQUEST_VALUES_SESSIONS = 10;
+  QUERY_VALUES_SESSIONS = 10;
   // All friends
-  REQUEST_VALUES_FRIENDS = 11;
+  QUERY_VALUES_FRIENDS = 11;
 }
 
 // Get account info
@@ -35,7 +35,7 @@ message GetAccountInfoRequest {
   // The id of the account, if not specified, return the current account
   optional uint64 id = 1;
   // Fill in the request values
-  repeated RequestValues request_values = 2;
+  repeated QueryValues request_values = 2;
 }
 
 // If values are requested, return the values otherwise return empty
@@ -48,7 +48,7 @@ message GetAccountInfoResponse {
   optional string avatar_key = 6;
   optional google.protobuf.Timestamp register_time = 7;
   optional google.protobuf.Timestamp public_update_time = 8;
-  optional google.protobuf.Timestamp update_time = 9;
+  optional google.protobuf.Timestamp updated_time = 9;
   repeated uint64 sessions = 10;
   repeated uint64 friends = 11;
 }

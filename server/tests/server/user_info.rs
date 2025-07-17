@@ -4,7 +4,7 @@ use claims::{assert_err, assert_gt, assert_lt, assert_ok};
 use client::TestApp;
 use pb::service::ourchat::{
     friends::set_friend_info::v1::SetFriendInfoRequest,
-    get_account_info::v1::{GetAccountInfoRequest, RequestValues},
+    get_account_info::v1::{GetAccountInfoRequest, QueryValues},
     set_account_info::v1::SetSelfInfoRequest,
 };
 use pb::time::from_google_timestamp;
@@ -33,10 +33,10 @@ async fn get_user_info() {
             .get_account_info(GetAccountInfoRequest {
                 id: Some(*user_id),
                 request_values: vec![
-                    RequestValues::Ocid.into(),
-                    RequestValues::Email.into(),
-                    RequestValues::UserName.into(),
-                    RequestValues::RegisterTime.into(),
+                    QueryValues::Ocid.into(),
+                    QueryValues::Email.into(),
+                    QueryValues::UserName.into(),
+                    QueryValues::RegisterTime.into(),
                 ],
             })
             .await
@@ -50,11 +50,11 @@ async fn get_user_info() {
         .get_account_info(GetAccountInfoRequest {
             id: None,
             request_values: vec![
-                RequestValues::Ocid.into(),
-                RequestValues::Email.into(),
-                RequestValues::UserName.into(),
-                RequestValues::Friends.into(),
-                RequestValues::RegisterTime.into(),
+                QueryValues::Ocid.into(),
+                QueryValues::Email.into(),
+                QueryValues::UserName.into(),
+                QueryValues::Friends.into(),
+                QueryValues::RegisterTime.into(),
             ],
         })
         .await
@@ -100,7 +100,7 @@ async fn set_user_info() {
         .oc()
         .get_account_info(GetAccountInfoRequest {
             id: None,
-            request_values: vec![RequestValues::UserName.into(), RequestValues::Ocid.into()],
+            request_values: vec![QueryValues::UserName.into(), QueryValues::Ocid.into()],
         })
         .await
         .unwrap();
@@ -139,7 +139,7 @@ async fn set_friend_info() -> anyhow::Result<()> {
         .oc()
         .get_account_info(GetAccountInfoRequest {
             id: Some(user2_id.into()),
-            request_values: vec![RequestValues::DisplayName.into()],
+            request_values: vec![QueryValues::DisplayName.into()],
         })
         .await?
         .into_inner();
@@ -159,7 +159,7 @@ async fn set_friend_info() -> anyhow::Result<()> {
         .oc()
         .get_account_info(GetAccountInfoRequest {
             id: Some(user2_id.into()),
-            request_values: vec![RequestValues::DisplayName.into()],
+            request_values: vec![QueryValues::DisplayName.into()],
         })
         .await?
         .into_inner();
@@ -237,7 +237,7 @@ async fn set_user_info_validation() {
         .oc()
         .get_account_info(GetAccountInfoRequest {
             id: None,
-            request_values: vec![RequestValues::Status.into()],
+            request_values: vec![QueryValues::Status.into()],
         })
         .await
         .unwrap();

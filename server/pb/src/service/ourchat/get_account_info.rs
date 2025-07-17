@@ -3,12 +3,12 @@ pub mod v1 {
 
     include!("../../generated/service.ourchat.get_account_info.v1.rs");
 
-    pub static OWNER_PRIVILEGE: LazyLock<HashSet<RequestValues>> = LazyLock::new(|| {
+    pub static OWNER_PRIVILEGE: LazyLock<HashSet<QueryValues>> = LazyLock::new(|| {
         collection_literals::collection! {
-            RequestValues::Sessions,
-            RequestValues::Friends,
-            RequestValues::UpdateTime,
-            RequestValues::Email,
+            QueryValues::Sessions,
+            QueryValues::Friends,
+            QueryValues::UpdatedTime,
+            QueryValues::Email,
         }
     });
 }

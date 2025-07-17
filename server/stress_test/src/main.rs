@@ -132,13 +132,13 @@ async fn test_get_info(users: &UsersGroup, report: &mut Report) {
                     .get_account_info(GetAccountInfoRequest {
                         id: None,
                         request_values: vec![
-                            RequestValues::Ocid.into(),
-                            RequestValues::UserName.into(),
-                            RequestValues::Email.into(),
-                            RequestValues::Friends.into(),
-                            RequestValues::UpdateTime.into(),
-                            RequestValues::RegisterTime.into(),
-                            RequestValues::PublicUpdateTime.into(),
+                            QueryValues::Ocid.into(),
+                            QueryValues::UserName.into(),
+                            QueryValues::Email.into(),
+                            QueryValues::Friends.into(),
+                            QueryValues::UpdatedTime.into(),
+                            QueryValues::RegisterTime.into(),
+                            QueryValues::PublicUpdateTime.into(),
                         ],
                     })
                     .await
