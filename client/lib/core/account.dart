@@ -103,10 +103,10 @@ class OurchatAccount {
       publicDataNeedUpdate = true;
     } else {
       GetAccountInfoResponse res = await stub.getAccountInfo(
-          GetAccountInfoRequest(id: id, requestValues: [
-        RequestValues.REQUEST_VALUES_PUBLIC_UPDATE_TIME
-      ]));
-      if (OurchatTime(inputTimestamp: res.publicUpdateTime) !=
+          GetAccountInfoRequest(
+              id: id,
+              requestValues: [QueryValues.QUERY_VALUES_PUBLIC_UPDATED_TIME]));
+      if (OurchatTime(inputTimestamp: res.publicUpdatedTime) !=
           OurchatTime(inputDatetime: publicData.publicUpdateTime)) {
         publicDataNeedUpdate = true;
       }
@@ -118,9 +118,8 @@ class OurchatAccount {
     } else {
       GetAccountInfoResponse res = await stub.getAccountInfo(
           GetAccountInfoRequest(
-              id: id,
-              requestValues: [RequestValues.REQUEST_VALUES_UPDATE_TIME]));
-      if (OurchatTime(inputTimestamp: res.updateTime) !=
+              id: id, requestValues: [QueryValues.QUERY_VALUES_UPDATED_TIME]));
+      if (OurchatTime(inputTimestamp: res.updatedTime) !=
           OurchatTime(inputDatetime: privateData.updateTime)) {
         privateDataNeedUpdate = true;
       }
@@ -134,7 +133,7 @@ class OurchatAccount {
     if (ourchatAppState.thisAccount!.friends.contains(id)) {
       // get displayname
       var res = await stub.getAccountInfo(GetAccountInfoRequest(
-          id: id, requestValues: [RequestValues.REQUEST_VALUES_DISPLAY_NAME]));
+          id: id, requestValues: [QueryValues.QUERY_VALUES_DISPLAY_NAME]));
       displayName = res.displayName;
     }
     gotInfo = true;
@@ -143,15 +142,15 @@ class OurchatAccount {
   Future updatePublicData(bool isDataExist) async {
     GetAccountInfoResponse res =
         await stub.getAccountInfo(GetAccountInfoRequest(id: id, requestValues: [
-      RequestValues.REQUEST_VALUES_AVATAR_KEY,
-      RequestValues.REQUEST_VALUES_USER_NAME,
-      RequestValues.REQUEST_VALUES_PUBLIC_UPDATE_TIME,
-      RequestValues.REQUEST_VALUES_STATUS,
-      RequestValues.REQUEST_VALUES_OCID
+      QueryValues.QUERY_VALUES_AVATAR_KEY,
+      QueryValues.QUERY_VALUES_USER_NAME,
+      QueryValues.QUERY_VALUES_PUBLIC_UPDATED_TIME,
+      QueryValues.QUERY_VALUES_STATUS,
+      QueryValues.QUERY_VALUES_OCID
     ]));
     avatarKey = res.avatarKey;
     username = res.userName;
-    publicUpdateTime = OurchatTime(inputTimestamp: res.publicUpdateTime);
+    publicUpdateTime = OurchatTime(inputTimestamp: res.publicUpdatedTime);
     status = res.status;
     ocid = res.ocid;
     PublicOurchatDatabase publicDB = ourchatAppState.publicDB;
@@ -182,15 +181,15 @@ class OurchatAccount {
       GetAccountInfoRequest(
         id: id,
         requestValues: [
-          RequestValues.REQUEST_VALUES_UPDATE_TIME,
-          RequestValues.REQUEST_VALUES_SESSIONS,
-          RequestValues.REQUEST_VALUES_FRIENDS,
-          RequestValues.REQUEST_VALUES_EMAIL,
-          RequestValues.REQUEST_VALUES_REGISTER_TIME,
+          QueryValues.QUERY_VALUES_UPDATED_TIME,
+          QueryValues.QUERY_VALUES_SESSIONS,
+          QueryValues.QUERY_VALUES_FRIENDS,
+          QueryValues.QUERY_VALUES_EMAIL,
+          QueryValues.QUERY_VALUES_REGISTER_TIME,
         ],
       ),
     );
-    updatedTime = OurchatTime(inputTimestamp: res.updateTime);
+    updatedTime = OurchatTime(inputTimestamp: res.updatedTime);
     email = res.email;
     friends = res.friends;
     sessions = res.sessions;
