@@ -105,7 +105,7 @@ pub use session::{
     new_session::new_session,
     session_room_key::send_room_key,
     set_role::set_role,
-    set_self_info::set_session_info,
+    set_session_info::set_session_info,
 };
 pub use set_self_info::set_self_info;
 pub use unregister::unregister;

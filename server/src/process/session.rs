@@ -15,7 +15,7 @@ pub mod mute;
 pub mod new_session;
 pub mod session_room_key;
 pub mod set_role;
-pub mod set_self_info;
+pub mod set_session_info;
 
 async fn query_session(
     id: SessionID,

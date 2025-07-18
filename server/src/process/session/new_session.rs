@@ -189,7 +189,7 @@ pub async fn send_verification_request(
         session_id: ActiveValue::Set(session_id.into()),
         inviter: ActiveValue::Set(sender.into()),
         invitee: ActiveValue::Set(invitee.into()),
-        leave_message: ActiveValue::Set(leave_message.unwrap_or_else(String::default)),
+        leave_message: ActiveValue::Set(leave_message.unwrap_or_default()),
         expire_at: ActiveValue::Set(expire_at.into()),
         ..Default::default()
     };

@@ -7,12 +7,8 @@ use base::consts;
 use base::database::DbPool;
 use base::rabbitmq::http_server::VerifyRecord;
 use deadpool_redis::redis::AsyncCommands;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
-#[derive(Serialize, Deserialize)]
-struct VerifyForm {
-    email: String,
-}
 #[derive(Debug, Deserialize)]
 struct Param {
     token: String,
