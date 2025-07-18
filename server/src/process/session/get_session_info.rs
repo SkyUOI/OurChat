@@ -1,5 +1,6 @@
 use super::query_session;
-use crate::process::error_msg::{REQUEST_INVALID_VALUE, SERVER_ERROR, not_found};
+use crate::db::session::in_session;
+use crate::process::error_msg::{self, REQUEST_INVALID_VALUE, SERVER_ERROR, not_found};
 use crate::{db, server::RpcServer};
 use base::consts::ID;
 use pb::service::ourchat::session::get_session_info::v1::RoleInfo;
@@ -41,7 +42,7 @@ enum GetSessionErr {
 
 async fn get_session_info_impl(
     server: &RpcServer,
-    _id: ID,
+    id: ID,
     request: Request<GetSessionInfoRequest>,
 ) -> Result<GetSessionInfoResponse, GetSessionErr> {
     let mut res = GetSessionInfoResponse::default();
@@ -53,6 +54,7 @@ async fn get_session_info_impl(
             return Err(GetSessionErr::Status(Status::not_found(not_found::SESSION)));
         }
     };
+    let in_session = in_session(id, session_id, &server.db.db_pool).await?;
     for i in req_inner.query_values {
         let i = match QueryValues::try_from(i) {
             Ok(i) => i,
@@ -80,6 +82,9 @@ async fn get_session_info_impl(
                 res.updated_time = Some(to_google_timestamp(session_data.updated_time.into()));
             }
             QueryValues::Members => {
+                if !in_session {
+                    Err(Status::permission_denied(error_msg::PERMISSION_DENIED))?
+                }
                 res.members = db::session::get_members(session_id, &server.db.db_pool)
                     .await?
                     .into_iter()
@@ -87,6 +92,9 @@ async fn get_session_info_impl(
                     .collect();
             }
             QueryValues::Roles => {
+                if !in_session {
+                    Err(Status::permission_denied(error_msg::PERMISSION_DENIED))?
+                }
                 let all_users =
                     db::session::get_all_roles_of_session(session_id, &server.db.db_pool).await?;
                 res.roles = all_users

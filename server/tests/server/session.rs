@@ -10,7 +10,7 @@ mod role;
 
 use base::consts::{ID, SessionID};
 use base::types::RoleId;
-use claims::assert_lt;
+use claims::{assert_lt, assert_ok};
 use client::TestApp;
 use migration::m20241229_022701_add_role_for_session::PredefinedRoles;
 use parking_lot::Mutex;
@@ -195,6 +195,53 @@ async fn get_session_info() {
             (c.lock().await.id, PredefinedRoles::Member.into())
         ])
     );
+    // permission denied
+    let user_not_in_session = app.new_user().await.unwrap();
+    assert_ok!(
+        user_not_in_session
+            .lock()
+            .await
+            .oc()
+            .get_session_info(GetSessionInfoRequest {
+                session_id: session.session_id.into(),
+                query_values: vec![
+                    QueryValues::Size.into(),
+                    QueryValues::Name.into(),
+                    QueryValues::Unspecified.into(),
+                    QueryValues::AvatarKey.into(),
+                    QueryValues::CreatedTime.into(),
+                    QueryValues::SessionId.into(),
+                ],
+            })
+            .await
+    );
+    // Cannot get member list
+    let err = user_not_in_session
+        .lock()
+        .await
+        .oc()
+        .get_session_info(GetSessionInfoRequest {
+            session_id: session.session_id.into(),
+            query_values: vec![QueryValues::Members.into()],
+        })
+        .await
+        .unwrap_err();
+    assert_eq!(err.code(), tonic::Code::PermissionDenied);
+    assert_eq!(err.message(), error_msg::PERMISSION_DENIED);
+
+    // Cannot get roles list
+    let err = user_not_in_session
+        .lock()
+        .await
+        .oc()
+        .get_session_info(GetSessionInfoRequest {
+            session_id: session.session_id.into(),
+            query_values: vec![QueryValues::Roles.into()],
+        })
+        .await
+        .unwrap_err();
+    assert_eq!(err.code(), tonic::Code::PermissionDenied);
+    assert_eq!(err.message(), error_msg::PERMISSION_DENIED);
     app.async_drop().await;
 }
 
