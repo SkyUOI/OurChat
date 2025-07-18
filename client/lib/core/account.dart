@@ -21,7 +21,7 @@ class OurchatAccount {
   late Int64 id;
   late String username, email, ocid;
   String? avatarKey, displayName, status;
-  bool isMe = false, gotInfo = false;
+  bool isMe = false;
   late OurchatTime publicUpdateTime, updatedTime, registerTime;
   late List<Int64> friends, sessions;
   late OurChatServiceClient stub;
@@ -136,7 +136,6 @@ class OurchatAccount {
           id: id, requestValues: [QueryValues.QUERY_VALUES_DISPLAY_NAME]));
       displayName = res.displayName;
     }
-    gotInfo = true;
   }
 
   Future updatePublicData(bool isDataExist) async {
