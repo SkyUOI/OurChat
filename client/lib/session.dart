@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:grpc/grpc.dart' as grpc;
 import 'package:ourchat/core/const.dart';
+import 'package:ourchat/core/session.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/core/account.dart';
 import 'package:ourchat/service/basic/v1/basic.pbgrpc.dart';
@@ -347,6 +348,7 @@ class _SessionListState extends State<SessionList> {
   Widget build(BuildContext context) {
     OurchatAppState ourchatAppState = context.watch<OurchatAppState>();
     SessionState sessionState = context.watch<SessionState>();
+    var l10n = AppLocalizations.of(context)!;
     return LayoutBuilder(builder: (context, constraints) {
       return Column(
         children: [
@@ -466,33 +468,49 @@ class _SessionListState extends State<SessionList> {
                                       borderRadius:
                                           BorderRadius.circular(10.0)))),
                           onPressed: () {},
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              SizedBox(
-                                height: 40,
-                                width: 40,
-                                child: Placeholder(),
-                              ),
-                              Padding(
-                                padding: EdgeInsets.only(left: 8.0),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
+                          child: FutureBuilder(
+                              future: getSessionInfo(ourchatAppState,
+                                  ourchatAppState.thisAccount!.sessions[index]),
+                              builder: (context, snapshot) {
+                                String name = l10n.loading;
+                                if (snapshot.connectionState ==
+                                    ConnectionState.done) {
+                                  name = (snapshot.data.name == null ||
+                                          snapshot.data.name.isEmpty
+                                      ? l10n.newSession
+                                      : snapshot.data.name);
+                                }
+                                return Row(
+                                  mainAxisAlignment: MainAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      "123",
-                                      style: TextStyle(
-                                          fontSize: 20, color: Colors.black),
+                                    SizedBox(
+                                      height: 40,
+                                      width: 40,
+                                      child: Placeholder(),
                                     ),
-                                    Text(
-                                      "msg",
-                                      style: TextStyle(color: Colors.grey),
+                                    Padding(
+                                      padding: EdgeInsets.only(left: 8.0),
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            name,
+                                            style: TextStyle(
+                                                fontSize: 20,
+                                                color: Colors.black),
+                                          ),
+                                          Text(
+                                            "msg",
+                                            style:
+                                                TextStyle(color: Colors.grey),
+                                          )
+                                        ],
+                                      ),
                                     )
                                   ],
-                                ),
-                              )
-                            ],
-                          )),
+                                );
+                              })),
                     ));
               },
               itemCount: ourchatAppState.thisAccount!.sessions.length,
@@ -501,6 +519,13 @@ class _SessionListState extends State<SessionList> {
         ],
       );
     });
+  }
+
+  Future getSessionInfo(
+      OurchatAppState ourchatAppState, Int64 sessionId) async {
+    OurchatSession session = OurchatSession(ourchatAppState, sessionId);
+    await session.getSessionInfo();
+    return session;
   }
 
   Future getAccountInfo(

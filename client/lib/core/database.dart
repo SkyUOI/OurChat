@@ -9,8 +9,8 @@ class PublicSession extends Table {
   Int64Column get sessionId => int64()();
   TextColumn get name => text()();
   TextColumn get avatarKey => text().nullable()();
-  IntColumn get createdTime => integer()();
-  IntColumn get updatedTime => integer()();
+  DateTimeColumn get createdTime => dateTime()();
+  DateTimeColumn get updatedTime => dateTime()();
   IntColumn get size => integer()();
   TextColumn get description => text().nullable()();
 
