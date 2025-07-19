@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:fixnum/fixnum.dart';
@@ -251,8 +252,8 @@ class OurchatEventSystem {
         }
       }
     } on GrpcError {
-      logger.w("Disconnected\nTrying to reconnect");
-      listenEvents();
+      logger.w("Disconnected\nTrying to reconnect in 3 seconds");
+      Timer(Duration(seconds: 3), listenEvents);
     }
   }
 
