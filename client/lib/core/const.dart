@@ -34,3 +34,7 @@ const joinSessionApprovalEvent = 4;
 const newFriendInvitationNotificationEvent = 5;
 const allowUserJoinSessionNotificationEvent = 6;
 const announcementResponseEvent = 7;
+
+// MsgTypes
+const textMsg = 0;
+const imageMsg = 1;

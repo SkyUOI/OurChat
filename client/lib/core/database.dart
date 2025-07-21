@@ -69,6 +69,7 @@ class Session extends Table {
 
 class Record extends Table {
   Int64Column get eventId => int64()();
+  Int64Column get sessionId => int64().nullable()();
   IntColumn get eventType => integer()();
   Int64Column get sender => int64()();
   DateTimeColumn get time => dateTime()();

@@ -1,5 +1,7 @@
+import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:ourchat/core/database.dart' as database;
+import 'package:ourchat/core/session.dart';
 import 'core/account.dart';
 import 'package:provider/provider.dart';
 import 'package:localstorage/localstorage.dart';
@@ -25,6 +27,8 @@ class OurchatAppState extends ChangeNotifier {
   database.OurchatDatabase? privateDB;
   OurchatEventSystem? eventSystem;
   OurchatConfig config;
+  Map<Int64, OurchatAccount> accountCachePool = {};
+  Map<Int64, OurchatSession> sessionCachePool = {};
 
   OurchatAppState() : config = OurchatConfig() {
     logger.i("init Ourchat");

@@ -7,6 +7,8 @@ import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/core/const.dart';
 import 'package:ourchat/core/database.dart';
 import 'package:ourchat/core/log.dart';
+import 'package:ourchat/core/session.dart';
+import 'package:ourchat/google/protobuf/timestamp.pb.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/service/ourchat/friends/accept_friend_invitation/v1/accept_friend_invitation.pb.dart';
 import 'package:ourchat/service/ourchat/msg_delivery/v1/msg_delivery.pb.dart';
@@ -17,6 +19,7 @@ class OurchatEvent {
   Int64? eventId;
   int? eventType;
   OurchatAccount? sender;
+  OurchatSession? session;
   OurchatTime? sendTime;
   Map? data;
   bool read;
@@ -25,6 +28,7 @@ class OurchatEvent {
       {this.eventId,
       this.eventType,
       this.sender,
+      this.session,
       this.sendTime,
       this.data,
       this.read = false});
@@ -40,6 +44,9 @@ class OurchatEvent {
               eventId: Value(BigInt.from(eventId!.toInt())),
               eventType: Value(eventType!),
               sender: Value(BigInt.from(sender!.id.toInt())),
+              sessionId: Value(session == null
+                  ? null
+                  : BigInt.from(session!.sessionId.toInt())),
               time: Value(sendTime!.datetime),
               data: Value(jsonEncode(data)),
               read: Value((read ? 1 : 0))));
@@ -50,6 +57,8 @@ class OurchatEvent {
         eventId: BigInt.from(eventId!.toInt()),
         eventType: eventType!,
         sender: BigInt.from(sender!.id.toInt()),
+        sessionId:
+            session == null ? null : BigInt.from(session!.sessionId.toInt()),
         time: sendTime!.datetime,
         data: jsonEncode(data),
         read: (read ? 1 : 0)));
@@ -62,9 +71,89 @@ class OurchatEvent {
     sender!.id = Int64.parseInt(row.sender.toString());
     sender!.recreateStub();
     await sender!.getAccountInfo();
+
+    if (row.sessionId != null) {
+      Int64 sessionId = Int64.parseInt(row.sessionId.toString());
+      session = OurchatSession(ourchatAppState, sessionId);
+      await session!.getSessionInfo();
+    }
     sendTime = OurchatTime(inputDatetime: row.time);
     data = jsonDecode(row.data);
     read = row.read == 1 ? true : false;
+  }
+}
+
+class OneMessage {
+  int? messageType;
+  String? text;
+  String? imageKey;
+  OneMessage({this.messageType, this.text, this.imageKey});
+
+  Map<String, dynamic> serialize() {
+    switch (messageType) {
+      case textMsg:
+        return {"message_type": messageType, "text": text};
+      case imageMsg:
+        return {"message_type": messageType, "image_key": imageKey};
+      default:
+        logger.w("serialize fail: unknown message_type($messageType)");
+        return {"message_type": messageType, "error": "unknown message_type"};
+    }
+  }
+
+  void deserialize(Map<String, dynamic> data) {
+    messageType = data["message_type"];
+    switch (messageType) {
+      case textMsg:
+        text = data["text"];
+      case imageMsg:
+        imageKey = data["image_key"];
+      default:
+        logger.w("deserialize fail: unknown message_type($messageType)");
+    }
+  }
+}
+
+class BundleMsgs extends OurchatEvent {
+  List<OneMessage> msgs;
+  BundleMsgs(OurchatAppState ourchatAppState,
+      {Int64? eventId,
+      OurchatAccount? sender,
+      OurchatSession? session,
+      OurchatTime? sendTime,
+      this.msgs = const []})
+      : super(ourchatAppState,
+            eventId: eventId,
+            eventType: newFriendInvitationNotificationEvent,
+            sender: sender,
+            session: session,
+            sendTime: sendTime,
+            data: {"msgs": msgs.map((u) => u.serialize()).toList()});
+
+  @override
+  Future loadFromDB(OurchatDatabase privateDB, RecordData row) async {
+    await super.loadFromDB(privateDB, row);
+    msgs = [];
+    for (int i = 0; i < data!["msgs"].length; i++) {
+      OneMessage oneMessage = OneMessage();
+      oneMessage.deserialize(data!["msgs"][i]);
+      msgs.add(oneMessage);
+    }
+  }
+
+  Future<SendMsgResponse> send(OurchatSession session) async {
+    var stub = OurChatServiceClient(ourchatAppState.server!.channel!,
+        interceptors: [ourchatAppState.server!.interceptor!]);
+    var res = await stub.sendMsg(SendMsgRequest(
+        sessionId: session.sessionId,
+        time: Timestamp(),
+        bundleMsgs: msgs.map((u) => OneMsg(text: u.text)),
+        isEncrypted: false));
+    return res;
+  }
+
+  OneMessage operator [](int index) {
+    return msgs[index];
   }
 }
 
@@ -151,6 +240,7 @@ class FriendInvitationResultNotification extends OurchatEvent {
 
 class OurchatEventSystem {
   OurchatAppState ourchatAppState;
+  Map listeners = {};
   OurchatEventSystem(this.ourchatAppState);
 
   void listenEvents() async {
@@ -158,6 +248,7 @@ class OurchatEventSystem {
         interceptors: [ourchatAppState.server!.interceptor!]);
     var res = stub.fetchMsgs(FetchMsgsRequest(
         time: ourchatAppState.thisAccount!.latestMsgTime.timestamp));
+    logger.i("start to listen event");
     try {
       await for (var event in res) {
         {
@@ -173,12 +264,14 @@ class OurchatEventSystem {
             // 重复事件
             continue;
           }
-          logger.i("receive new event(type:${event.whichRespondEventType()})");
+          FetchMsgsResponse_RespondEventType eventType =
+              event.whichRespondEventType();
+          logger.i("receive new event(type:$eventType)");
           // 创建一个发送者oc账号对象
           OurchatAccount sender = OurchatAccount(ourchatAppState);
           sender.recreateStub();
           OurchatEvent? eventObj;
-          switch (event.whichRespondEventType()) {
+          switch (eventType) {
             case FetchMsgsResponse_RespondEventType // 收到好友申请
                   .newFriendInvitationNotification:
               sender.id = event.newFriendInvitationNotification.inviterId;
@@ -240,11 +333,36 @@ class OurchatEventSystem {
               }
               eventObj.read = true;
 
+            case FetchMsgsResponse_RespondEventType.msg:
+              sender.id = event.msg.senderId;
+              eventObj = BundleMsgs(ourchatAppState,
+                  eventId: event.msgId,
+                  sender: sender,
+                  session: OurchatSession(ourchatAppState, event.msg.sessionId),
+                  sendTime: OurchatTime(inputTimestamp: event.time),
+                  msgs: event.msg.bundleMsgs.map((u) {
+                    OneMessage oneMessage = OneMessage();
+                    if (u.text.isNotEmpty) {
+                      oneMessage.messageType = textMsg;
+                      oneMessage.text = u.text;
+                    } else if (u.image.isNotEmpty) {
+                      oneMessage.messageType = imageMsg;
+                      oneMessage.imageKey = u.image;
+                    }
+                    return oneMessage;
+                  }).toList());
+
             default:
               break;
           }
           if (eventObj != null) {
             await eventObj.saveToDB(ourchatAppState.privateDB!);
+            if (listeners.containsKey(eventType)) {
+              // 通知对应listener
+              for (int i = 0; i < listeners[eventType].length; i++) {
+                listeners[eventType][i](eventObj);
+              }
+            }
           } else {
             // event 没有被任何case分支处理，属于未知事件类型
             logger.w("Unknown event type(id:${event.msgId})");
@@ -271,5 +389,43 @@ class OurchatEventSystem {
       eventObjList.add(eventObj);
     }
     return eventObjList;
+  }
+
+  Future<List<BundleMsgs>> getSessionEvent(
+      OurchatAppState ourchatAppState, OurchatSession session,
+      {int offset = 0, int num = 0}) async {
+    var privateDB = ourchatAppState.privateDB!;
+    var res = await (privateDB.select(privateDB.record)
+          ..where(
+              (u) => u.sessionId.equals(BigInt.from(session.sessionId.toInt())))
+          ..orderBy([
+            (u) => OrderingTerm(expression: u.time, mode: OrderingMode.desc)
+          ])
+          ..limit((num == 0 ? 50 : num), offset: offset))
+        .get();
+    List<BundleMsgs> bundleMsgsList = [];
+    for (int i = 0; i < res.length; i++) {
+      BundleMsgs bundleMsgs = BundleMsgs(ourchatAppState);
+      await bundleMsgs.loadFromDB(privateDB, res[i]);
+      bundleMsgsList.add(bundleMsgs);
+    }
+    return bundleMsgsList;
+  }
+
+  void addListener(
+      FetchMsgsResponse_RespondEventType eventType, Function callback) {
+    if (!listeners.containsKey(eventType)) {
+      listeners[eventType] = [];
+    }
+    print("add");
+    listeners[eventType].add(callback);
+  }
+
+  void removeListener(
+      FetchMsgsResponse_RespondEventType eventType, Function callback) {
+    if (listeners.containsKey(eventType)) {
+      listeners[eventType].remove(callback);
+    }
+    print("remove");
   }
 }
