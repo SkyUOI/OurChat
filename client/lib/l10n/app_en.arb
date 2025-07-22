@@ -262,5 +262,9 @@
     "refused": "Refused",
     "@refused": {
         "description": "refused"
+    },
+    "newSession": "New Session",
+    "@newSession": {
+        "description": "newSession"
     }
 }

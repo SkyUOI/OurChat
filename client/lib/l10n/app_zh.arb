@@ -63,5 +63,6 @@
     "friendRequest": "好友申请",
     "loading": "加载中",
     "accepted": "已接受",
-    "refused": "已拒绝"
+    "refused": "已拒绝",
+    "newSession": "新建会话"
 }
