@@ -297,7 +297,6 @@ impl TestUser {
             session_id: session_id.into(),
             is_encrypted,
             bundle_msgs: msg,
-            time: Some(to_google_timestamp(self.get_timestamp().await)),
         };
         Ok(self.oc().send_msg(req).await?)
     }

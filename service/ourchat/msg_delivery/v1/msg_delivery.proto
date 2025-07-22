@@ -24,8 +24,6 @@ message OneMsg {
 message SendMsgRequest {
   // from which session
   uint64 session_id = 1;
-  // time the message is sent
-  google.protobuf.Timestamp time = 2;
   repeated OneMsg bundle_msgs = 3;
   bool is_encrypted = 4;
 }
@@ -70,4 +68,6 @@ message Msg {
 message SendMsgResponse {
   // id of the message
   uint64 msg_id = 1;
+  // time the message is sent
+  google.protobuf.Timestamp time = 2;
 }
