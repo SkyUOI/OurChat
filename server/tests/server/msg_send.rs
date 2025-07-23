@@ -87,6 +87,23 @@ async fn test_text_get() {
         .fetch(2)
         .await
         .unwrap();
+    let msg_sent_myself = a
+        .lock()
+        .await
+        .fetch_msgs()
+        .fetch(1)
+        .await
+        .unwrap()
+        .into_iter()
+        .next()
+        .unwrap();
+    if let fetch_msgs_response::RespondEventType::Msg(ref item) =
+        msg_sent_myself.respond_event_type.unwrap()
+    {
+        assert_eq!(item.session_id, u64::from(session.session_id));
+        assert_eq!(item.bundle_msgs, vec![msg_should_sent.clone()]);
+        assert_eq!(msg_sent_myself.msg_id, msg_id[0]);
+    }
     app.async_drop().await;
 }
 

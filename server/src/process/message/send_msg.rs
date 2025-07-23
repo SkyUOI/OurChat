@@ -2,7 +2,7 @@ use crate::db::session::{get_members, get_session_by_id, user_muted_status};
 use crate::db::user::get_account_info_db;
 use crate::process::{Dest, MsgInsTransmitErr, error_msg, message_insert_and_transmit};
 use crate::{
-    db::{self, messages::MsgError, session::in_session},
+    db::{messages::MsgError, session::in_session},
     process::error_msg::{PERMISSION_DENIED, SERVER_ERROR, not_found},
     server::RpcServer,
 };
@@ -115,13 +115,14 @@ async fn send_msg_impl(
         .await
         .context("cannot create rabbitmq channel")?;
 
-    let msg_id = db::messages::insert_msg_record(
+    let msg_id = message_insert_and_transmit(
         Some(id),
         Some(req.session_id.into()),
         respond_msg,
+        Dest::Session(session_id),
         req.is_encrypted,
         &db_conn.db_pool,
-        session.e2ee_on,
+        &mut conn,
     )
     .await?;
     if session.e2ee_on {

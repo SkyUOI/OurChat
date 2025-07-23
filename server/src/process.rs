@@ -61,6 +61,7 @@ mod webrtc;
 
 use base::consts::SessionID;
 use deadpool_lapin::lapin::options::BasicPublishOptions;
+use entities::message_records;
 use jsonwebtoken::DecodingKey;
 use jsonwebtoken::EncodingKey;
 use jsonwebtoken::Validation;
@@ -291,6 +292,24 @@ impl From<MsgError> for MsgInsTransmitErr {
     }
 }
 
+/// Insert a new message record into the database and transmit it to RabbitMQ(Corresponding user).
+///
+/// `sender_id` and `session_id` specify the sender and session of the message,
+/// respectively. `msg` is the message content. `dest` is the destination of the
+/// message. `is_encrypted` specifies whether the message is encrypted. `db_conn`
+/// is the database connection. `rmq_chan` is the RabbitMQ channel.
+///
+/// The message record is inserted with `is_all_user` set to `false`. The
+/// `time` field of the message record is set to the current time. The `msg_id`
+/// field of the message record is set to the auto-incrementing ID of the
+/// message record. The `msg_data` field of the message record is set to the
+/// serialized `RespondEventType`.
+///
+/// After inserting the message record, the function transmits the message to
+/// RabbitMQ using `transmit_msg`.
+///
+/// Returns `Ok(Model)` if the message is inserted and transmitted successfully.
+/// Returns `Err(MsgInsTransmitErr)` if an error occurs.
 pub async fn message_insert_and_transmit(
     sender_id: Option<ID>,
     session_id: Option<SessionID>,
@@ -299,7 +318,7 @@ pub async fn message_insert_and_transmit(
     is_encrypted: bool,
     db_conn: &impl ConnectionTrait,
     rmq_chan: &mut deadpool_lapin::lapin::Channel,
-) -> Result<(), MsgInsTransmitErr> {
+) -> Result<message_records::Model, MsgInsTransmitErr> {
     let msg_model = crate::db::messages::insert_msg_record(
         sender_id,
         session_id,
@@ -315,7 +334,7 @@ pub async fn message_insert_and_transmit(
         respond_event_type: Some(msg),
     };
     transmit_msg(fetch_response, dest, rmq_chan, db_conn).await?;
-    Ok(())
+    Ok(msg_model)
 }
 
 fn mapped_to_user_defined_status(user_id: impl Display) -> String {
