@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:ourchat/core/const.dart';
+import 'package:ourchat/core/log.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/core/database.dart';
@@ -19,10 +20,11 @@ class OurchatAccount {
   OurchatAppState ourchatAppState;
   late OurchatServer server;
   late Int64 id;
-  late String username, email, ocid;
-  String? avatarKey, displayName, status;
+  late String username, ocid;
+  String? avatarKey, displayName, status, email;
   bool isMe = false;
   late OurchatTime publicUpdateTime, updatedTime, registerTime;
+  DateTime lastCheckTime = DateTime(0);
   late List<Int64> friends, sessions;
   late OurChatServiceClient stub;
 
@@ -90,8 +92,37 @@ class OurchatAccount {
   }
 
   Future getAccountInfo() async {
+    if (ourchatAppState.accountCachePool.containsKey(id)) {
+      OurchatAccount accountCache = ourchatAppState.accountCachePool[id]!;
+      if (DateTime.now().difference(accountCache.lastCheckTime).inMinutes < 5) {
+        // 上次检查更新在5min内 无需检查
+        username = accountCache.username;
+        ocid = accountCache.ocid;
+        avatarKey = accountCache.avatarKey;
+        displayName = accountCache.displayName;
+        status = accountCache.status;
+        isMe = accountCache.isMe;
+        publicUpdateTime = accountCache.publicUpdateTime;
+        lastCheckTime = accountCache.lastCheckTime;
+        stub = accountCache.stub;
+        if (isMe) {
+          email = accountCache.email;
+          updatedTime = accountCache.updatedTime;
+          registerTime = accountCache.registerTime;
+          friends = accountCache.friends;
+          sessions = accountCache.sessions;
+        }
+        logger.d("use account cache");
+        return;
+      }
+    }
+
     PublicOurchatDatabase db = ourchatAppState.publicDB;
     OurchatDatabase pdb = ourchatAppState.privateDB!;
+    if (ourchatAppState.thisAccount != null &&
+        ourchatAppState.thisAccount!.id == id) {
+      isMe = true;
+    }
     bool publicDataNeedUpdate = false, privateDataNeedUpdate = false;
     var publicData = await (db.select(db.publicAccount)
           ..where((u) => u.id.equals(BigInt.from((id.toInt())))))
@@ -136,6 +167,9 @@ class OurchatAccount {
           id: id, requestValues: [QueryValues.QUERY_VALUES_DISPLAY_NAME]));
       displayName = res.displayName;
     }
+    lastCheckTime = DateTime.now();
+    ourchatAppState.accountCachePool[id] = this;
+    logger.d("save account info to cache");
   }
 
   Future updatePublicData(bool isDataExist) async {
@@ -206,7 +240,7 @@ class OurchatAccount {
       (privateDB!.update(privateDB.account)
             ..where((u) => u.id.equals(BigInt.from(id.toInt()))))
           .write(AccountCompanion(
-              email: Value(email),
+              email: Value(email!),
               registerTime: Value(registerTime.datetime),
               updateTime: Value(updatedTime.datetime),
               friendsJson: Value(jsonEncode(intFriendsId)),
@@ -215,7 +249,7 @@ class OurchatAccount {
     } else {
       privateDB!.into(privateDB.account).insert(AccountData(
           id: BigInt.from(id.toInt()),
-          email: email,
+          email: email!,
           registerTime: registerTime.datetime,
           updateTime: updatedTime.datetime,
           friendsJson: jsonEncode(intFriendsId),

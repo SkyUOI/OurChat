@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/core/database.dart';
+import 'package:ourchat/core/log.dart';
 import 'package:ourchat/core/server.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/service/ourchat/session/get_session_info/v1/get_session_info.pb.dart';
@@ -20,6 +21,7 @@ class OurchatSession {
   late List<Int64> members = [];
   late Map<Int64, int> roles = {};
   late int size;
+  DateTime lastCheckTime = DateTime(0);
 
   OurchatSession(this.ourchatAppState, this.sessionId) {
     server = ourchatAppState.server!;
@@ -28,6 +30,25 @@ class OurchatSession {
   }
 
   Future getSessionInfo() async {
+    if (ourchatAppState.sessionCachePool.keys.contains(sessionId)) {
+      OurchatSession sessionCache =
+          ourchatAppState.sessionCachePool[sessionId]!;
+      if (DateTime.now().difference(sessionCache.lastCheckTime).inMinutes < 5) {
+        // 上次检查更新在5min内 无需检查
+        sessionId = sessionCache.sessionId;
+        name = sessionCache.name;
+        avatarKey = sessionCache.avatarKey;
+        createdTime = sessionCache.createdTime;
+        updatedTime = sessionCache.updatedTime;
+        members = sessionCache.members;
+        roles = sessionCache.roles;
+        size = sessionCache.size;
+        lastCheckTime = sessionCache.lastCheckTime;
+        logger.d("use session cache");
+        return;
+      }
+    }
+
     var localSessionData = await (ourchatAppState.publicDB
             .select(ourchatAppState.publicDB.publicSession)
           ..where((u) => u.sessionId.equals(BigInt.from(sessionId.toInt()))))
@@ -129,5 +150,19 @@ class OurchatSession {
       }
       intRoles.forEach((key, value) => roles[Int64.parseInt(key)] = value);
     }
+
+    lastCheckTime = DateTime.now();
+    ourchatAppState.sessionCachePool[sessionId] = this;
+  }
+
+  @override
+  int get hashCode => sessionId.toInt();
+
+  @override
+  bool operator ==(Object other) {
+    if (other is OurchatSession) {
+      return sessionId == other.sessionId;
+    }
+    return false;
   }
 }

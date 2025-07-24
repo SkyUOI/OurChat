@@ -31,7 +31,7 @@ class User extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text("${AppLocalizations.of(context)!.email}: "),
-            SelectableText(appState.thisAccount!.email),
+            SelectableText(appState.thisAccount!.email!),
           ],
         ),
         Row(

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:grpc/grpc.dart' as grpc;
 import 'package:ourchat/core/const.dart';
+import 'package:ourchat/core/event.dart';
 import 'package:ourchat/core/session.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/core/account.dart';
 import 'package:ourchat/service/basic/v1/basic.pbgrpc.dart';
 import 'package:ourchat/service/ourchat/friends/add_friend/v1/add_friend.pb.dart';
+import 'package:ourchat/service/ourchat/msg_delivery/v1/msg_delivery.pb.dart';
 import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
 import 'package:provider/provider.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
@@ -19,11 +21,37 @@ const userTab = 2;
 
 class SessionState extends ChangeNotifier {
   int tabIndex = emptyTab;
-  int? currentSessionId;
+  OurchatSession? currentSession;
   Int64? currentUserId;
   String tabTitle = "";
+  List<BundleMsgs> currentSessionRecords = [];
+  List<OurchatSession> sessionsList = [];
+  Map<OurchatSession, BundleMsgs> sessionRecentMsg = {};
   void update() {
     notifyListeners();
+  }
+
+  void receiveMsg(BundleMsgs eventObj) async {
+    await eventObj.sender!.getAccountInfo();
+    sessionRecentMsg[eventObj.session!] = eventObj;
+    if (currentSession == eventObj.session) {
+      currentSessionRecords.insert(0, eventObj);
+    }
+    update();
+  }
+
+  void getSessions(OurchatAppState ourchatAppState) async {
+    sessionsList = [];
+    for (int i = 0; i < ourchatAppState.thisAccount!.sessions.length; i++) {
+      OurchatSession session = OurchatSession(
+          ourchatAppState, ourchatAppState.thisAccount!.sessions[i]);
+      await session.getSessionInfo();
+      List<BundleMsgs> record = await ourchatAppState.eventSystem!
+          .getSessionEvent(ourchatAppState, session, num: 1);
+      sessionsList.add(session);
+      sessionRecentMsg[session] = record[0];
+    }
+    update();
   }
 }
 
@@ -46,7 +74,7 @@ class _SessionState extends State<Session> {
         Widget tab;
         switch (sessionState.tabIndex) {
           case sessionTab:
-            tab = SessionWidget();
+            tab = SessionTab();
             break;
           case userTab:
             tab = UserTab();
@@ -61,7 +89,7 @@ class _SessionState extends State<Session> {
             Widget page = const Placeholder();
             // 匹配不同设备类型
             if (appState.device == mobile) {
-              if (sessionState.currentSessionId != null ||
+              if (sessionState.currentSession != null ||
                   sessionState.currentUserId != null) {
                 page = Column(
                   children: [
@@ -71,7 +99,8 @@ class _SessionState extends State<Session> {
                           onPressed: () {
                             sessionState.tabTitle = "";
                             sessionState.currentUserId = null;
-                            sessionState.currentSessionId = null;
+                            sessionState.currentSession = null;
+                            sessionState.currentSessionRecords = [];
                             sessionState.update();
                           },
                         ),
@@ -337,17 +366,28 @@ class _SessionListState extends State<SessionList> {
   bool showSearchResults = false; // 正在显示搜索结果
   bool search = false; // 搜索中
   String searchKeyword = "";
+  late OurchatAppState ourchatAppState;
+  late SessionState sessionState;
+  bool inited = false;
 
   @override
   void dispose() {
     _debounceTimer?.cancel();
+    ourchatAppState.eventSystem!.removeListener(
+        FetchMsgsResponse_RespondEventType.msg, sessionState.receiveMsg);
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    OurchatAppState ourchatAppState = context.watch<OurchatAppState>();
-    SessionState sessionState = context.watch<SessionState>();
+    ourchatAppState = context.watch<OurchatAppState>();
+    sessionState = context.watch<SessionState>();
+    if (!inited) {
+      ourchatAppState.eventSystem!.addListener(
+          FetchMsgsResponse_RespondEventType.msg, sessionState.receiveMsg);
+      sessionState.getSessions(ourchatAppState);
+      inited = true;
+    }
     var l10n = AppLocalizations.of(context)!;
     return LayoutBuilder(builder: (context, constraints) {
       return Column(
@@ -457,6 +497,8 @@ class _SessionListState extends State<SessionList> {
           Expanded(
             child: ListView.builder(
               itemBuilder: (context, index) {
+                OurchatSession currentSession =
+                    sessionState.sessionsList[index];
                 return SizedBox(
                     height: 80.0,
                     child: Padding(
@@ -467,53 +509,60 @@ class _SessionListState extends State<SessionList> {
                                   RoundedRectangleBorder(
                                       borderRadius:
                                           BorderRadius.circular(10.0)))),
-                          onPressed: () {},
-                          child: FutureBuilder(
-                              future: getSessionInfo(ourchatAppState,
-                                  ourchatAppState.thisAccount!.sessions[index]),
-                              builder: (context, snapshot) {
-                                String name = l10n.loading;
-                                if (snapshot.connectionState ==
-                                    ConnectionState.done) {
-                                  name = (snapshot.data.name == null ||
-                                          snapshot.data.name.isEmpty
-                                      ? l10n.newSession
-                                      : snapshot.data.name);
-                                }
-                                return Row(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  children: [
-                                    SizedBox(
-                                      height: 40,
-                                      width: 40,
-                                      child: Placeholder(),
-                                    ),
-                                    Padding(
-                                      padding: EdgeInsets.only(left: 8.0),
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Text(
-                                            name,
-                                            style: TextStyle(
-                                                fontSize: 20,
-                                                color: Colors.black),
-                                          ),
-                                          Text(
-                                            "msg",
+                          onPressed: () async {
+                            sessionState.currentSession = currentSession;
+                            sessionState.tabIndex = sessionTab;
+                            sessionState.tabTitle = (currentSession.name == ""
+                                ? l10n.newSession
+                                : currentSession.name);
+                            sessionState.update();
+                            sessionState.currentSessionRecords =
+                                await ourchatAppState.eventSystem!
+                                    .getSessionEvent(
+                                        ourchatAppState, currentSession);
+                            sessionState.update();
+                          },
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              SizedBox(
+                                height: 40,
+                                width: 40,
+                                child: Placeholder(),
+                              ),
+                              Expanded(
+                                child: Padding(
+                                    padding: EdgeInsets.only(left: 8.0),
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Align(
+                                            alignment: Alignment.centerLeft,
+                                            child: Text(
+                                              (currentSession.name == ""
+                                                  ? l10n.newSession
+                                                  : currentSession.name),
+                                              style: TextStyle(
+                                                  fontSize: 20,
+                                                  color: Colors.black),
+                                            )),
+                                        Align(
+                                          alignment: Alignment.centerLeft,
+                                          child: Text(
+                                            "${sessionState.sessionRecentMsg[currentSession]!.sender!.username}: ${sessionState.sessionRecentMsg[currentSession]!.msgs[0].text}",
                                             style:
                                                 TextStyle(color: Colors.grey),
-                                          )
-                                        ],
-                                      ),
-                                    )
-                                  ],
-                                );
-                              })),
+                                          ),
+                                        )
+                                      ],
+                                    )),
+                              )
+                            ],
+                          )),
                     ));
               },
-              itemCount: ourchatAppState.thisAccount!.sessions.length,
+              itemCount: sessionState.sessionsList.length,
             ),
           )
         ],
@@ -576,33 +625,72 @@ class _SessionListState extends State<SessionList> {
   }
 }
 
-class SessionWidget extends StatelessWidget {
-  const SessionWidget({super.key});
+class SessionTab extends StatelessWidget {
+  const SessionTab({super.key});
 
   @override
   Widget build(BuildContext context) {
+    OurchatAppState ourchatAppState = context.watch<OurchatAppState>();
     SessionState sessionState = context.watch<SessionState>();
-    sessionState.tabTitle = "Title";
-    return Column(
-      mainAxisSize: MainAxisSize.max,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Flexible(
-            flex: 10, child: cardWithPadding(const SessionRecord())), //聊天记录
-        Flexible(
-          // 输入框
-          flex: 2,
-          child: cardWithPadding(const Align(
-            alignment: Alignment.bottomCenter,
-            child: SingleChildScrollView(
-              child: TextField(
-                decoration: InputDecoration(hintText: "Type here..."),
-                maxLines: null,
+    var l10n = AppLocalizations.of(context)!;
+    var key = GlobalKey<FormState>();
+    TextEditingController controller = TextEditingController();
+    return Form(
+      key: key,
+      child: Stack(
+        children: [
+          Column(
+            mainAxisSize: MainAxisSize.max,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Flexible(
+                  flex: 10,
+                  child: cardWithPadding(const SessionRecord())), //聊天记录
+              Flexible(
+                // 输入框
+                flex: 2,
+                child: cardWithPadding(Align(
+                  alignment: Alignment.bottomCenter,
+                  child: SingleChildScrollView(
+                    child: TextFormField(
+                      decoration: InputDecoration(hintText: "Type here..."),
+                      maxLines: null,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return l10n.cantBeEmpty;
+                        }
+                        return null;
+                      },
+                      onSaved: (value) async {
+                        BundleMsgs bundleMsgs = BundleMsgs(ourchatAppState,
+                            sender: ourchatAppState.thisAccount!,
+                            msgs: [
+                              OneMessage(messageType: textMsg, text: value)
+                            ]);
+                        controller.text = "";
+                        var res =
+                            await bundleMsgs.send(sessionState.currentSession!);
+                        // TODO: deal with error
+                      },
+                      controller: controller,
+                    ),
+                  ),
+                )),
               ),
-            ),
-          )),
-        ),
-      ],
+            ],
+          ),
+          Align(
+            alignment: Alignment.bottomRight,
+            child: FloatingActionButton.extended(
+                onPressed: () {
+                  if (key.currentState!.validate()) {
+                    key.currentState!.save();
+                  }
+                },
+                label: Text(l10n.send)),
+          )
+        ],
+      ),
     );
   }
 }
@@ -615,40 +703,21 @@ class SessionRecord extends StatefulWidget {
 }
 
 class _SessionRecordState extends State<SessionRecord> {
-  List<List> records = [
-    [
-      "User1",
-      [const Text("Message1"), const Text("Message1_newLine")],
-      true,
-    ], // username messages isMe
-    [
-      "User2",
-      [const Text("Message2")],
-      false,
-    ],
-    [
-      "User3",
-      [const Text("Message3")],
-      false,
-    ],
-    [
-      "User4",
-      [const Text("Message4")],
-      false,
-    ],
-    [
-      "User5",
-      [const Text("Message5")],
-      false,
-    ],
-  ];
   @override
   Widget build(BuildContext context) {
+    SessionState sessionState = context.watch<SessionState>();
     return ListView.builder(
       itemBuilder: (context, index) {
-        String username = records[index][0];
-        List<Widget> messages = records[index][1];
-        bool isMe = records[index][2];
+        String username =
+            sessionState.currentSessionRecords[index].sender!.username;
+        List<Widget> messages = [];
+        for (int i = 0;
+            i < sessionState.currentSessionRecords[index].msgs.length;
+            i++) {
+          messages.add(
+              Text(sessionState.currentSessionRecords[index].msgs[i].text!));
+        }
+        bool isMe = sessionState.currentSessionRecords[index].sender!.isMe;
         Widget avatar = Image.asset("assets/images/logo.png", height: 30.0);
         Widget message = Column(
           crossAxisAlignment:
@@ -676,7 +745,8 @@ class _SessionRecordState extends State<SessionRecord> {
           ),
         );
       },
-      itemCount: records.length,
+      itemCount: sessionState.currentSessionRecords.length,
+      reverse: true,
     );
   }
 }
