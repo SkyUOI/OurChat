@@ -8,7 +8,6 @@ import 'package:ourchat/core/const.dart';
 import 'package:ourchat/core/database.dart';
 import 'package:ourchat/core/log.dart';
 import 'package:ourchat/core/session.dart';
-import 'package:ourchat/google/protobuf/timestamp.pb.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/service/ourchat/friends/accept_friend_invitation/v1/accept_friend_invitation.pb.dart';
 import 'package:ourchat/service/ourchat/msg_delivery/v1/msg_delivery.pb.dart';
@@ -146,7 +145,6 @@ class BundleMsgs extends OurchatEvent {
         interceptors: [ourchatAppState.server!.interceptor!]);
     var res = await stub.sendMsg(SendMsgRequest(
         sessionId: session.sessionId,
-        time: Timestamp(),
         bundleMsgs: msgs.map((u) => OneMsg(text: u.text)),
         isEncrypted: false));
     return res;
