@@ -415,15 +415,17 @@ class OurchatEventSystem {
     if (!listeners.containsKey(eventType)) {
       listeners[eventType] = [];
     }
-    print("add");
+    logger.d("add listener of $eventType");
     listeners[eventType].add(callback);
   }
 
   void removeListener(
       FetchMsgsResponse_RespondEventType eventType, Function callback) {
+    logger.d("remove listener of $eventType");
     if (listeners.containsKey(eventType)) {
       listeners[eventType].remove(callback);
+      return;
     }
-    print("remove");
+    logger.d("fail to remove");
   }
 }
