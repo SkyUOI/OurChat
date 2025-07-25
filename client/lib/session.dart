@@ -668,8 +668,7 @@ class SessionTab extends StatelessWidget {
                               OneMessage(messageType: textMsg, text: value)
                             ]);
                         controller.text = "";
-                        var res =
-                            await bundleMsgs.send(sessionState.currentSession!);
+                        await bundleMsgs.send(sessionState.currentSession!);
                         // TODO: deal with error
                       },
                       controller: controller,
