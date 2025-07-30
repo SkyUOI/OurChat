@@ -14,7 +14,6 @@ import 'package:ourchat/service/auth/v1/auth.pbgrpc.dart';
 import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:grpc/grpc.dart';
-import 'package:crypto/crypto.dart';
 
 class OurchatAccount {
   OurchatAppState ourchatAppState;
@@ -45,11 +44,7 @@ class OurchatAccount {
     AuthServiceClient authStub = AuthServiceClient(server.channel!);
     try {
       var res = await authStub.auth(
-        AuthRequest(
-          email: email,
-          ocid: ocid,
-          password: sha256.convert(ascii.encode(password)).toString(),
-        ),
+        AuthRequest(email: email, ocid: ocid, password: password),
       );
       email = email;
       id = res.id;
@@ -72,7 +67,7 @@ class OurchatAccount {
       var res = await authStub.register(
         RegisterRequest(
           email: email,
-          password: sha256.convert(ascii.encode(password)).toString(),
+          password: password,
           name: name,
         ),
       );

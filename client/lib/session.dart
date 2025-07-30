@@ -49,9 +49,13 @@ class SessionState extends ChangeNotifier {
       List<BundleMsgs> record = await ourchatAppState.eventSystem!
           .getSessionEvent(ourchatAppState, session, num: 1);
       sessionsList.add(session);
-      sessionRecentMsg[session] = record[0];
+      if (record.isNotEmpty) {
+        sessionRecentMsg[session] = record[0];
+      }
     }
-    update();
+    if (sessionsList.isNotEmpty) {
+      update();
+    }
   }
 }
 

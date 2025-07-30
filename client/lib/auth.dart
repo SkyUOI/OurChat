@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ourchat/core/event.dart';
+import 'package:ourchat/core/log.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
 import 'package:ourchat/core/const.dart';
 import 'package:ourchat/main.dart';
@@ -139,6 +140,7 @@ class _LoginState extends State<Login> {
                               }
                             } else {
                               // 处理报错
+                              logger.w("register fail: code $res");
                               setState(() {
                                 switch (res) {
                                   case internalStatusCode:
@@ -311,6 +313,7 @@ class _RegisterState extends State<Register> {
                               }
                             } else {
                               // 处理报错
+                              logger.w("register fail: code $res");
                               setState(() {
                                 switch (res) {
                                   case internalStatusCode:
@@ -340,6 +343,8 @@ class _RegisterState extends State<Register> {
                                               .emailExists),
                                     ));
                                     break;
+                                  case invalidArgumentStatusCode:
+                                  // TODO: fill
                                   default:
                                     // 未知错误
                                     ScaffoldMessenger.of(context)
