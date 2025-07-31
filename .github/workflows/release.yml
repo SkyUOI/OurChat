@@ -28,6 +28,10 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
 
+      - name: Build and push Docker image
+        run: |
+          python3 script/build_production_container.py --extension ${{ steps.get_version.outputs.VERSION }} --skip_base --push
+
       - name: Prepare server bundle files
         run: |
           mkdir -p bundle
