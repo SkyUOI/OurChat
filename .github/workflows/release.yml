@@ -86,13 +86,13 @@ jobs:
       - name: Build Release
         run: cd client && flutter build linux
       - name: Compress
-        run: tar -czvf ourchat-client-linux.tar.gz client/build/linux/x64/release/bundle/
+        run: cd client/build/linux/x64/release && tar -czvf ourchat-client-linux.tar.gz bundle
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           files: |
-            ourchat-client-linux.tar.gz
+            client/build/linux/x64/release/ourchat-client-linux.tar.gz
   
   create_client_on_android_release:
     name: Create client On Android release
@@ -156,10 +156,10 @@ jobs:
       - name: Rename
         run: mv client/build/windows/x64/runner/Release/client.exe client/build/windows/x64/runner/Release/Ourchat.exe
       - name: compress
-        run: tar -czvf ourchat-client-windows.tar.gz client/build/windows/x64/runner/Release
+        run: cd client/build/windows/x64/runner && tar -czvf ourchat-client-windows.tar.gz Release
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           files: |
-            ourchat-client-windows.tar.gz
+            client/build/windows/x64/runner/ourchat-client-windows.tar.gz
