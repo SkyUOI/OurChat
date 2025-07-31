@@ -3,5 +3,18 @@
          the Flutter tool needs it to communicate with the running application
          to allow setting breakpoints, to provide hot reload, etc.
     -->
+    <!-- 必须声明的权限 -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    
+    <!-- 可选权限（根据实际功能添加） -->
+    <!-- 如果使用本地存储 -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    
+    <!-- 如果使用相机 -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
+
     <uses-permission android:name="android.permission.INTERNET"/>
 </manifest>

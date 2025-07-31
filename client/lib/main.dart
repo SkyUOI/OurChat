@@ -15,6 +15,7 @@ import 'core/log.dart';
 import 'dart:core';
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   await initLocalStorage();
   runApp(const MainApp());
 }
