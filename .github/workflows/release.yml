@@ -1,12 +1,13 @@
-name: Publish Docker image
+name: Release
 
 on:
-  release:
-    types: [ published ]
+  push:
+    tags:
+      - v[0-9]+.*
 
 jobs:
-  push_to_registry:
-    name: Push Docker image to Docker Hub
+  create_server_release:
+    name: Create server release
     runs-on: ubuntu-latest
     steps:
       - name: Check out the repo
@@ -25,6 +26,59 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
 
-      - name: Build and push Docker image
+      - name: Prepare server bundle files
         run: |
-          python3 script/build_production_container.py --extension ${{ steps.get_version.outputs.VERSION }} --skip_base --push 
+          mkdir -p bundle
+          cp docker/compose.yml bundle/
+          cp docker/compose.debian.yml bundle/
+          cp -r config bundle/
+
+      - name: Update image tags in compose files
+        run: |
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+          sed -i "s/nightly/$VERSION/g" bundle/compose.yml
+          sed -i "s/nightly/$VERSION/g" bundle/compose.debian.yml
+
+      - name: Create server bundle archive
+        run: |
+          cd bundle
+          zip -r ../ourchat-server.zip .
+          cd ..
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: |
+            ourchat-server.zip
+
+  create_client_linux_release:
+    name: Create client release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Flutter Init
+        run: cd client && flutter pub get
+      - name: Grpc generate
+        run: dart pub global activate protoc_plugin && python script/generate.pb.dart.py
+      - name: Drift generate
+        run: cd client && dart run build_runner build
+      - name: Build Release
+        run: cd client && flutter build linux
+      - name: Create Zip
+        run: zip -r ourchat-client-linux.zip client/build/linux/x64/release/bundle/
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: |
+            ourchat-client-linux.zip

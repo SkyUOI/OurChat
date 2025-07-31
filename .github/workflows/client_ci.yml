@@ -42,7 +42,7 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Flutter Init
         run: cd client && flutter pub get
-      - name: FLutter Fmt
+      - name: Flutter Fmt
         run: |
           cd client
           dart format lib/l10n/app_localizations.dart
