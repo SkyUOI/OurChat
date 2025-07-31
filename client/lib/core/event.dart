@@ -123,7 +123,7 @@ class BundleMsgs extends OurchatEvent {
       this.msgs = const []})
       : super(ourchatAppState,
             eventId: eventId,
-            eventType: newFriendInvitationNotificationEvent,
+            eventType: msgEvent,
             sender: sender,
             session: session,
             sendTime: sendTime,
