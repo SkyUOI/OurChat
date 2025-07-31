@@ -86,10 +86,11 @@ class OurchatAccount {
     }
   }
 
-  Future getAccountInfo() async {
+  Future getAccountInfo({bool ignoreCache = false}) async {
     if (ourchatAppState.accountCachePool.containsKey(id)) {
       OurchatAccount accountCache = ourchatAppState.accountCachePool[id]!;
-      if (DateTime.now().difference(accountCache.lastCheckTime).inMinutes < 5) {
+      if (!ignoreCache &&
+          DateTime.now().difference(accountCache.lastCheckTime).inMinutes < 5) {
         // 上次检查更新在5min内 无需检查
         username = accountCache.username;
         ocid = accountCache.ocid;

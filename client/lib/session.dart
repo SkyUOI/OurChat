@@ -551,14 +551,16 @@ class _SessionListState extends State<SessionList> {
                                                   fontSize: 20,
                                                   color: Colors.black),
                                             )),
-                                        Align(
-                                          alignment: Alignment.centerLeft,
-                                          child: Text(
-                                            "${sessionState.sessionRecentMsg[currentSession]!.sender!.username}: ${sessionState.sessionRecentMsg[currentSession]!.msgs[0].text}",
-                                            style:
-                                                TextStyle(color: Colors.grey),
-                                          ),
-                                        )
+                                        if (sessionState.sessionRecentMsg
+                                            .containsKey(currentSession))
+                                          Align(
+                                            alignment: Alignment.centerLeft,
+                                            child: Text(
+                                              "${sessionState.sessionRecentMsg[currentSession]!.sender!.username}: ${sessionState.sessionRecentMsg[currentSession]!.msgs[0].text}",
+                                              style:
+                                                  TextStyle(color: Colors.grey),
+                                            ),
+                                          )
                                       ],
                                     )),
                               )

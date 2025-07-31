@@ -367,8 +367,8 @@ class OurchatEventSystem {
           }
         }
       }
-    } on GrpcError {
-      logger.w("Disconnected\nTrying to reconnect in 3 seconds");
+    } on GrpcError catch (e) {
+      logger.w("Disconnected\nTrying to reconnect in 3 seconds ($e)");
       Timer(Duration(seconds: 3), listenEvents);
     }
   }

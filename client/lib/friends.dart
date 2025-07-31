@@ -114,19 +114,28 @@ class FriendRequestDialog extends StatelessWidget {
                                 Row(
                                   children: [
                                     IconButton(
-                                        onPressed: () {
+                                        onPressed: () async {
                                           var stub = OurChatServiceClient(
                                               ourchatAppState.server!.channel!,
                                               interceptors: [
                                                 ourchatAppState
                                                     .server!.interceptor!
                                               ]);
-                                          stub.acceptFriendInvitation(
+                                          Navigator.pop(context);
+                                          await stub.acceptFriendInvitation(
                                               AcceptFriendInvitationRequest(
                                                   friendId:
                                                       data[index].sender!.id,
                                                   status: AcceptFriendInvitationResult
                                                       .ACCEPT_FRIEND_INVITATION_RESULT_SUCCESS));
+                                          await ourchatAppState.thisAccount!
+                                              .getAccountInfo(
+                                                  ignoreCache: true);
+                                          await data[index]
+                                              .sender!
+                                              .getAccountInfo(
+                                                  ignoreCache: true);
+                                          ourchatAppState.update();
                                         },
                                         icon: Icon(Icons.check)),
                                     IconButton(
