@@ -3,6 +3,9 @@ name: Release
 on:
   push:
 
+permissions:
+  contents: write
+
 jobs:
   create_server_release:
     name: Create server release
