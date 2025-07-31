@@ -631,13 +631,37 @@ class _SessionListState extends State<SessionList> {
   }
 }
 
-class SessionTab extends StatelessWidget {
+class SessionTab extends StatefulWidget {
   const SessionTab({super.key});
 
   @override
+  State<SessionTab> createState() => _SessionTabState();
+}
+
+class _SessionTabState extends State<SessionTab> {
+  bool inited = false;
+  late OurchatAppState ourchatAppState;
+  late SessionState sessionState;
+
+  @override
+  void dispose() {
+    if (ourchatAppState.device == mobile) {
+      ourchatAppState.eventSystem!.removeListener(
+          FetchMsgsResponse_RespondEventType.msg, sessionState.receiveMsg);
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    OurchatAppState ourchatAppState = context.watch<OurchatAppState>();
-    SessionState sessionState = context.watch<SessionState>();
+    ourchatAppState = context.watch<OurchatAppState>();
+    sessionState = context.watch<SessionState>();
+    if (!inited && ourchatAppState.device == mobile) {
+      ourchatAppState.eventSystem!.addListener(
+          FetchMsgsResponse_RespondEventType.msg, sessionState.receiveMsg);
+      sessionState.getSessions(ourchatAppState);
+      inited = true;
+    }
     var l10n = AppLocalizations.of(context)!;
     var key = GlobalKey<FormState>();
     TextEditingController controller = TextEditingController();
@@ -684,8 +708,9 @@ class SessionTab extends StatelessWidget {
               ),
             ],
           ),
-          Align(
-            alignment: Alignment.bottomRight,
+          Positioned(
+            right: 20,
+            bottom: 20,
             child: FloatingActionButton.extended(
                 onPressed: () {
                   if (key.currentState!.validate()) {
