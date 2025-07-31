@@ -73,6 +73,10 @@ jobs:
         run: dart pub global activate protoc_plugin && python script/generate.pb.dart.py
       - name: Drift generate
         run: cd client && dart run build_runner build
+      - name: Install packages
+        run: |
+          apt update
+          apt install -y libgtk-3-dev
       - name: Build Release
         run: cd client && flutter build linux
       - name: Create Zip
