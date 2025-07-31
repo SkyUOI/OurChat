@@ -58,8 +58,8 @@ jobs:
           files: |
             ourchat-server.zip
 
-  create_client_linux_release:
-    name: Create client release
+  create_client_on_linux_release:
+    name: Create client on Linux release
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     steps:
@@ -85,11 +85,45 @@ jobs:
           sudo apt install -y libgtk-3-dev
       - name: Build Release
         run: cd client && flutter build linux
-      - name: Create Zip
-        run: zip -r ourchat-client-linux.zip client/build/linux/x64/release/bundle/
+      - name: Compress
+        run: tar -czvf ourchat-client-linux.tar.gz client/build/linux/x64/release/bundle/
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           files: |
-            ourchat-client-linux.zip
+            ourchat-client-linux.tar.gz
+
+  create_client_on_windows_release:
+    name: Create client on Windows release
+    runs-on: windows-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Flutter Init
+        run: cd client && flutter pub get
+      - name: Grpc generate
+        run: dart pub global activate protoc_plugin && python script/generate.pb.dart.py
+      - name: Drift generate
+        run: cd client && dart run build_runner build
+      - name: Build Release
+        run: cd client && flutter build windows
+      - name: Rename
+        run: mv client/build/windows/x64/runner/Release/client.exe client/build/windows/x64/runner/Release/Ourchat.exe
+      - name: compress
+        run: tar -czvf ourchat-client-windows.tar.gz client/build/windows/x64/runner/Release
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: |
+            ourchat-client-windows.tar.gz
