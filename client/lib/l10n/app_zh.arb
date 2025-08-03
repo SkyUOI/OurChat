@@ -64,5 +64,6 @@
     "loading": "加载中",
     "accepted": "已接受",
     "refused": "已拒绝",
-    "newSession": "新建会话"
+    "newSession": "新建会话",
+    "savePassword": "保存密码"
 }

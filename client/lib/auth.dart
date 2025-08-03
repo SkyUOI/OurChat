@@ -42,11 +42,16 @@ class Login extends StatefulWidget {
 
 class _LoginState extends State<Login> {
   String account = "", password = "";
-  bool showPassword = false;
+  bool savePassword = false, inited = false;
   @override
   Widget build(BuildContext context) {
     var key = GlobalKey<FormState>();
     var ourchatAppState = context.watch<OurchatAppState>();
+    if (!inited) {
+      account = ourchatAppState.config["recent_account"];
+      password = ourchatAppState.config["recent_password"];
+      inited = true;
+    }
     return Form(
         key: key,
         child: Row(
@@ -85,19 +90,19 @@ class _LoginState extends State<Login> {
                           password = newValue!;
                         });
                       },
-                      obscureText: !showPassword,
+                      obscureText: true,
                     ),
                     CheckboxListTile(
-                        // 显示密码checkbox
+                        // 保存密码checkbox
                         dense: true,
                         contentPadding: const EdgeInsets.all(0.0),
                         controlAffinity: ListTileControlAffinity.leading,
-                        title: Text(AppLocalizations.of(context)!.showPassword),
-                        value: showPassword,
+                        title: Text(AppLocalizations.of(context)!.savePassword),
+                        value: savePassword,
                         onChanged: (value) {
                           setState(() {
                             key.currentState!.save();
-                            showPassword = !showPassword;
+                            savePassword = !savePassword;
                           });
                         }),
                     Padding(
@@ -118,6 +123,11 @@ class _LoginState extends State<Login> {
                             var res =
                                 await ocAccount.login(password, ocid, email);
                             if (res == okStatusCode) {
+                              ourchatAppState.config["recent_account"] =
+                                  account;
+                              ourchatAppState.config["recent_password"] =
+                                  (savePassword ? password : "");
+                              ourchatAppState.config.saveConfig();
                               ourchatAppState.thisAccount = ocAccount;
                               ourchatAppState.privateDB =
                                   OurchatDatabase(ocAccount.id);

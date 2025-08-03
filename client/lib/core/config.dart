@@ -18,7 +18,8 @@ class OurchatConfig {
       ],
       "color": 0xFF2196F3,
       "log_level": defaultLogLevel,
-      "keep_alive_interval": 300
+      "recent_account": "",
+      "recent_password": ""
     };
   }
 

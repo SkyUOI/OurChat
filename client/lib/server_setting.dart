@@ -206,8 +206,6 @@ class _ServerSettingState extends State<ServerSetting> {
                       return;
                     }
                     // 连接新的服务端地址
-                    ourchatAppState.config["servers"][0]["host"] = address;
-                    ourchatAppState.config["servers"][0]["port"] = port;
                     isTLS = await OurchatServer.tlsEnabled(address, port);
                     server = OurchatServer(address, port, isTLS!,
                         ourchatAppState.config["keep_alive_interval"]);
@@ -237,6 +235,8 @@ class _ServerSettingState extends State<ServerSetting> {
                     }
                     // 连接成功
                     if (!context.mounted) return;
+                    ourchatAppState.config["servers"][0]["host"] = address;
+                    ourchatAppState.config["servers"][0]["port"] = port;
                     ourchatAppState.config.saveConfig();
                     // 保存服务器地址
                     setState(() {
