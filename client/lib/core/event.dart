@@ -12,7 +12,6 @@ import 'package:ourchat/main.dart';
 import 'package:ourchat/service/ourchat/friends/accept_friend_invitation/v1/accept_friend_invitation.pb.dart';
 import 'package:ourchat/service/ourchat/msg_delivery/v1/msg_delivery.pb.dart';
 import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
-import 'package:grpc/grpc.dart';
 
 class OurchatEvent {
   Int64? eventId;
@@ -367,7 +366,7 @@ class OurchatEventSystem {
           }
         }
       }
-    } on GrpcError catch (e) {
+    } catch (e) {
       logger.w("Disconnected\nTrying to reconnect in 3 seconds ($e)");
       Timer(Duration(seconds: 3), listenEvents);
     }
