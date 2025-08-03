@@ -50,6 +50,7 @@ class _LoginState extends State<Login> {
     if (!inited) {
       account = ourchatAppState.config["recent_account"];
       password = ourchatAppState.config["recent_password"];
+      if (password.isNotEmpty) savePassword = true;
       inited = true;
     }
     return Form(
