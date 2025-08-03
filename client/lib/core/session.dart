@@ -4,7 +4,6 @@ import 'package:drift/drift.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/core/database.dart';
-import 'package:ourchat/core/log.dart';
 import 'package:ourchat/core/server.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/service/ourchat/session/get_session_info/v1/get_session_info.pb.dart';
@@ -44,7 +43,6 @@ class OurchatSession {
         roles = sessionCache.roles;
         size = sessionCache.size;
         lastCheckTime = sessionCache.lastCheckTime;
-        logger.d("use session cache");
         return;
       }
     }

@@ -108,7 +108,6 @@ class OurchatAccount {
           friends = accountCache.friends;
           sessions = accountCache.sessions;
         }
-        logger.d("use account cache");
         return;
       }
     }
