@@ -49,6 +49,7 @@ class User extends StatelessWidget {
               appState.privateDB = null;
               appState.accountCachePool = {};
               appState.sessionCachePool = {};
+              appState.eventSystem!.stopListening();
               Navigator.pop(context);
               Navigator.push(context, MaterialPageRoute(builder: (context) {
                 return ServerSetting();

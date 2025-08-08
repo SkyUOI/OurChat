@@ -12,6 +12,7 @@ import 'package:ourchat/main.dart';
 import 'package:ourchat/service/ourchat/friends/accept_friend_invitation/v1/accept_friend_invitation.pb.dart';
 import 'package:ourchat/service/ourchat/msg_delivery/v1/msg_delivery.pb.dart';
 import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
+import 'package:grpc/grpc.dart';
 
 class OurchatEvent {
   Int64? eventId;
@@ -239,15 +240,19 @@ class OurchatEventSystem {
   OurchatAppState ourchatAppState;
   Map listeners = {};
   OurchatEventSystem(this.ourchatAppState);
+  ResponseStream<FetchMsgsResponse>? connection;
+  bool listening = false;
 
   void listenEvents() async {
     var stub = OurChatServiceClient(ourchatAppState.server!.channel!,
         interceptors: [ourchatAppState.server!.interceptor!]);
-    var res = stub.fetchMsgs(FetchMsgsRequest(
+    stopListening();
+    connection = stub.fetchMsgs(FetchMsgsRequest(
         time: ourchatAppState.thisAccount!.latestMsgTime.timestamp));
+    listening = true;
     logger.i("start to listen event");
     try {
-      await for (var event in res) {
+      await for (var event in connection!) {
         {
           ourchatAppState.thisAccount!.latestMsgTime =
               OurchatTime(inputTimestamp: event.time);
@@ -332,22 +337,25 @@ class OurchatEventSystem {
 
             case FetchMsgsResponse_RespondEventType.msg:
               sender.id = event.msg.senderId;
+              List<OneMessage> msgs = [];
+              for (int i = 0; i < event.msg.bundleMsgs.length; i++) {
+                OneMsg oneMsg = event.msg.bundleMsgs[i]; // OneMsg 为grpc对象
+                OneMessage oneMessage = OneMessage(); // OneMessage为OurChat对象
+                if (oneMsg.text.isNotEmpty) {
+                  oneMessage.messageType = textMsg;
+                  oneMessage.text = oneMsg.text;
+                } else if (oneMsg.image.isNotEmpty) {
+                  oneMessage.messageType = imageMsg;
+                  oneMessage.imageKey = oneMsg.image;
+                }
+                msgs.add(oneMessage);
+              }
               eventObj = BundleMsgs(ourchatAppState,
                   eventId: event.msgId,
                   sender: sender,
                   session: OurchatSession(ourchatAppState, event.msg.sessionId),
                   sendTime: OurchatTime(inputTimestamp: event.time),
-                  msgs: event.msg.bundleMsgs.map((u) {
-                    OneMessage oneMessage = OneMessage();
-                    if (u.text.isNotEmpty) {
-                      oneMessage.messageType = textMsg;
-                      oneMessage.text = u.text;
-                    } else if (u.image.isNotEmpty) {
-                      oneMessage.messageType = imageMsg;
-                      oneMessage.imageKey = u.image;
-                    }
-                    return oneMessage;
-                  }).toList());
+                  msgs: msgs);
 
             default:
               break;
@@ -357,7 +365,11 @@ class OurchatEventSystem {
             if (listeners.containsKey(eventType)) {
               // 通知对应listener
               for (int i = 0; i < listeners[eventType].length; i++) {
-                listeners[eventType][i](eventObj);
+                try {
+                  listeners[eventType][i](eventObj);
+                } catch (e) {
+                  logger.w("notify listener fail: $e");
+                }
               }
             }
           } else {
@@ -367,6 +379,7 @@ class OurchatEventSystem {
         }
       }
     } catch (e) {
+      if (!listening) return;
       logger.w("Disconnected\nTrying to reconnect in 3 seconds ($e)");
       Timer(Duration(seconds: 3), listenEvents);
     }
@@ -426,5 +439,12 @@ class OurchatEventSystem {
       return;
     }
     logger.d("fail to remove");
+  }
+
+  void stopListening() {
+    listening = false;
+    if (connection != null) {
+      connection!.cancel();
+    }
   }
 }
