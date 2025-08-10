@@ -48,7 +48,7 @@ fn main() -> anyhow::Result<()> {
     if !should_rebuilt {
         return Ok(());
     }
-    tonic_build::configure()
+    tonic_prost_build::configure()
         .type_attribute(
             "service.ourchat.msg_delivery.v1.FetchMsgsResponse.respond_event_type",
             "#[derive(serde::Serialize, serde::Deserialize)]",
@@ -122,7 +122,7 @@ fn main() -> anyhow::Result<()> {
             "#[derive(serde::Serialize, serde::Deserialize)]",
         )
         .compile_well_known_types(true)
-        .bytes(["."])
+        .bytes(".")
         .out_dir("./src/generated/")
         .compile_protos(
             &[

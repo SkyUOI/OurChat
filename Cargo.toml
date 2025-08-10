@@ -63,7 +63,7 @@ async-trait = { version = "0" }
 # serde_plain = "1"
 
 # Grpc
-prost = { version = "0.13.5" }
+prost = { version = "0.14.1" }
 jsonwebtoken = "9"
 tower = { version = "0", features = ["full"] }
 hyper = { version = "1", features = ["full"] }
@@ -81,6 +81,8 @@ fake = "4"
 imageinfo = "0"
 walkdir = "2"
 tonic-build = "0"
+tonic-prost-build = "0"
+tonic-prost = "0"
 http = "1"
 http-serde = "2"
 email_address = "0"
@@ -109,17 +111,9 @@ default-features = false
 features = ["json", "rustls-tls"]
 
 [workspace.dependencies.tonic]
-version = "0.13"
+version = "0.14.1"
 default-features = false
-features = [
-    "codegen",
-    "prost",
-    "channel",
-    "transport",
-    "router",
-    "server",
-    "_tls-any",
-]
+features = ["codegen", "channel", "transport", "router", "server", "_tls-any"]
 
 [workspace.dependencies.sqlx]
 version = "0"

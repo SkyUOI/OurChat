@@ -5,6 +5,7 @@ edition.workspace = true
 
 [dependencies]
 tonic.workspace = true
+tonic-prost.workspace = true
 anyhow.workspace = true
 collection_literals.workspace = true
 prost.workspace = true
@@ -14,5 +15,6 @@ chrono.workspace = true
 
 [build-dependencies]
 tonic-build.workspace = true
+tonic-prost-build.workspace = true
 anyhow.workspace = true
 walkdir.workspace = true
