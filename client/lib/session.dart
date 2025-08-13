@@ -8,6 +8,7 @@ import 'package:ourchat/core/account.dart';
 import 'package:ourchat/service/basic/v1/basic.pbgrpc.dart';
 import 'package:ourchat/service/ourchat/friends/add_friend/v1/add_friend.pb.dart';
 import 'package:ourchat/service/ourchat/msg_delivery/v1/msg_delivery.pb.dart';
+import 'package:ourchat/service/ourchat/session/new_session/v1/session.pb.dart';
 import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
 import 'package:provider/provider.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
@@ -416,7 +417,15 @@ class _SessionListState extends State<SessionList> {
                           }));
                 },
               )),
-              IconButton(onPressed: () {}, icon: const Icon(Icons.add)) // 创建会话
+              IconButton(
+                  onPressed: () {
+                    showDialog(
+                        context: context,
+                        builder: (context) {
+                          return NewSessionDialog();
+                        });
+                  },
+                  icon: const Icon(Icons.add)) // 创建会话
             ],
           ),
           if (showSearchResults)
@@ -628,6 +637,159 @@ class _SessionListState extends State<SessionList> {
       }
     }
     return null;
+  }
+}
+
+class NewSessionDialog extends StatefulWidget {
+  const NewSessionDialog({
+    super.key,
+  });
+
+  @override
+  State<NewSessionDialog> createState() => _NewSessionDialogState();
+}
+
+class _NewSessionDialogState extends State<NewSessionDialog> {
+  List<OurchatAccount> friends = [];
+  List<bool> checked = [];
+  bool gotFriendList = false, enableE2EE = true;
+  OurchatAppState? ourchatAppState;
+
+  void getFriendList() async {
+    friends = [];
+    for (int i = 0; i < ourchatAppState!.thisAccount!.friends.length; i++) {
+      OurchatAccount ourchatAccount = OurchatAccount(ourchatAppState!);
+      ourchatAccount.id = ourchatAppState!.thisAccount!.friends[i];
+      ourchatAccount.recreateStub();
+      await ourchatAccount.getAccountInfo();
+      friends.add(ourchatAccount);
+    }
+    for (int i = 0; i < friends.length; i++) {
+      checked.add(false);
+    }
+    gotFriendList = true;
+    ourchatAppState!.update();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ourchatAppState = context.watch<OurchatAppState>();
+    var l10n = AppLocalizations.of(context)!;
+    if (!gotFriendList) {
+      getFriendList();
+    }
+    return AlertDialog(
+      content: SizedBox(
+        height: 450,
+        width: 300,
+        child: ListView.builder(
+          itemBuilder: (context, index) {
+            return SizedBox(
+                height: 60.0,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 10.0),
+                  child: ElevatedButton(
+                      style: ButtonStyle(
+                          shape: WidgetStateProperty.all(RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10.0)))),
+                      onPressed: () {
+                        setState(() {
+                          checked[index] = !checked[index];
+                        });
+                      },
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          SizedBox(
+                            height: 40,
+                            width: 40,
+                            child: Placeholder(),
+                          ),
+                          Expanded(
+                            child: Padding(
+                                padding: EdgeInsets.only(left: 8.0),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: Text(
+                                          friends[index].username,
+                                          style: TextStyle(
+                                              fontSize: 20,
+                                              color: Colors.black),
+                                        )),
+                                  ],
+                                )),
+                          ),
+                          Checkbox(
+                              value: checked[index],
+                              onChanged: (v) {
+                                setState(() {
+                                  checked[index] = v!;
+                                });
+                              })
+                        ],
+                      )),
+                ));
+          },
+          itemCount: friends.length,
+        ),
+      ),
+      actionsAlignment: MainAxisAlignment.spaceBetween,
+      actions: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            GestureDetector(
+              child: Text(l10n.enableE2EE),
+              onTap: () {
+                setState(() {
+                  enableE2EE = !enableE2EE;
+                });
+              },
+            ),
+            Checkbox(
+                value: enableE2EE,
+                onChanged: (v) {
+                  setState(() {
+                    enableE2EE = v!;
+                  });
+                }),
+          ],
+        ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+                onPressed: () async {
+                  List<Int64> members = [];
+                  for (int i = 0; i < friends.length; i++) {
+                    if (checked[i]) {
+                      members.add(friends[i].id);
+                    }
+                  }
+                  var stub = OurChatServiceClient(
+                      ourchatAppState!.server!.channel!,
+                      interceptors: [ourchatAppState!.server!.interceptor!]);
+                  await stub.newSession(
+                      NewSessionRequest(members: members, e2eeOn: enableE2EE));
+                  ourchatAppState!.thisAccount!
+                      .getAccountInfo(ignoreCache: true);
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                  }
+                },
+                icon: Icon(Icons.check)),
+            IconButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                icon: Icon(Icons.close))
+          ],
+        )
+      ],
+    );
   }
 }
 

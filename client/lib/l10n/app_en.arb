@@ -270,5 +270,9 @@
     "savePassword": "Save Password",
     "@savePassword": {
         "description": "savePassword"
+    },
+    "enableE2EE": "Enable End-to-End Encryption",
+    "@enableE2EE": {
+        "description": "Enable End-to-End Encryption"
     }
 }

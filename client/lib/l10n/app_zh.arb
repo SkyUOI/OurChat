@@ -65,5 +65,6 @@
     "accepted": "已接受",
     "refused": "已拒绝",
     "newSession": "新建会话",
-    "savePassword": "保存密码"
+    "savePassword": "保存密码",
+    "enableE2EE": "开启端到端加密"
 }
