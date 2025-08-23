@@ -194,7 +194,7 @@ class LogLevelSelector extends StatelessWidget {
         Expanded(
             child: DropdownButtonFormField(
                 decoration: InputDecoration(label: Text(l10n.logLevel)),
-                value: ourchatAppState.config["log_level"],
+                initialValue: ourchatAppState.config["log_level"],
                 items: dropDownItems,
                 selectedItemBuilder: (context) {
                   List<DropdownMenuItem> selectedItems = [];
