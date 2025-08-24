@@ -1,7 +1,5 @@
 //! A client for test
 
-#![feature(duration_constructors_lite)]
-
 pub mod helper;
 pub mod http_helper;
 pub mod oc_helper;

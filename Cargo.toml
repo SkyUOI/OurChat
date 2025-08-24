@@ -29,7 +29,7 @@ strip = true
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.87"
+rust-version = "1.91"
 
 [workspace.dependencies]
 anyhow = "1"

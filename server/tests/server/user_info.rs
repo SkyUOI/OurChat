@@ -245,3 +245,47 @@ async fn set_user_info_validation() {
 
     app.async_drop().await;
 }
+
+#[tokio::test]
+async fn different_user_get_info() {
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
+    let user1 = app.new_user().await.unwrap();
+    let user2 = app.new_user().await.unwrap();
+    let (ocid1, ocid2) = (
+        user1.lock().await.ocid.clone(),
+        user2.lock().await.ocid.clone(),
+    );
+    assert_eq!(
+        user2
+            .lock()
+            .await
+            .oc()
+            .get_account_info(GetAccountInfoRequest {
+                id: Some(user2.lock().await.id.into()),
+                request_values: vec![QueryValues::Ocid.into()],
+            })
+            .await
+            .unwrap()
+            .into_inner()
+            .ocid
+            .unwrap(),
+        ocid2.0
+    );
+    assert_eq!(
+        user1
+            .lock()
+            .await
+            .oc()
+            .get_account_info(GetAccountInfoRequest {
+                id: Some(user1.lock().await.id.into()),
+                request_values: vec![QueryValues::Ocid.into()],
+            })
+            .await
+            .unwrap()
+            .into_inner()
+            .ocid
+            .unwrap(),
+        ocid1.0
+    );
+    app.async_drop().await;
+}

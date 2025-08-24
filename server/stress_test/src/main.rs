@@ -1,5 +1,3 @@
-#![feature(duration_constructors_lite)]
-
 mod framework;
 
 use base::consts::{CONFIG_FILE_ENV_VAR, OCID};
