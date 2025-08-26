@@ -9,20 +9,20 @@ import 'package:ourchat/main.dart';
 import 'package:ourchat/service/ourchat/session/get_session_info/v1/get_session_info.pb.dart';
 import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
 
-class OurchatSession {
-  OurchatAppState ourchatAppState;
-  late OurchatServer server;
+class OurChatSession {
+  OurChatAppState ourchatAppState;
+  late OurChatServer server;
   late OurChatServiceClient stub;
   Int64 sessionId;
   late String name;
   late String? avatarKey;
-  late OurchatTime createdTime, updatedTime;
+  late OurChatTime createdTime, updatedTime;
   late List<Int64> members = [];
   late Map<Int64, int> roles = {};
   late int size;
   DateTime lastCheckTime = DateTime(0);
 
-  OurchatSession(this.ourchatAppState, this.sessionId) {
+  OurChatSession(this.ourchatAppState, this.sessionId) {
     server = ourchatAppState.server!;
     stub = OurChatServiceClient(server.channel!,
         interceptors: [server.interceptor!]);
@@ -30,7 +30,7 @@ class OurchatSession {
 
   Future getSessionInfo() async {
     if (ourchatAppState.sessionCachePool.keys.contains(sessionId)) {
-      OurchatSession sessionCache =
+      OurChatSession sessionCache =
           ourchatAppState.sessionCachePool[sessionId]!;
       if (DateTime.now().difference(sessionCache.lastCheckTime).inMinutes < 5) {
         // 上次检查更新在5min内 无需检查
@@ -62,8 +62,8 @@ class OurchatSession {
           GetSessionInfoRequest(sessionId: sessionId, queryValues: [
         QueryValues.QUERY_VALUES_UPDATED_TIME,
       ]));
-      publicNeedUpdate = (OurchatTime(inputTimestamp: res.updatedTime) ==
-          OurchatTime(inputDatetime: localSessionData.updatedTime));
+      publicNeedUpdate = (OurChatTime(inputTimestamp: res.updatedTime) ==
+          OurChatTime(inputDatetime: localSessionData.updatedTime));
       privateNeedUpdate =
           ourchatAppState.thisAccount!.sessions.contains(sessionId) &&
               publicNeedUpdate;
@@ -80,8 +80,8 @@ class OurchatSession {
       ]));
       name = res.name;
       avatarKey = res.avatarKey;
-      createdTime = OurchatTime(inputTimestamp: res.createdTime);
-      updatedTime = OurchatTime(inputTimestamp: res.updatedTime);
+      createdTime = OurChatTime(inputTimestamp: res.createdTime);
+      updatedTime = OurChatTime(inputTimestamp: res.updatedTime);
       size = res.size.toInt();
 
       if (localSessionData == null) {
@@ -96,8 +96,8 @@ class OurchatSession {
     } else {
       name = localSessionData!.name;
       avatarKey = localSessionData.avatarKey;
-      createdTime = OurchatTime(inputDatetime: localSessionData.createdTime);
-      updatedTime = OurchatTime(inputDatetime: localSessionData.updatedTime);
+      createdTime = OurChatTime(inputDatetime: localSessionData.createdTime);
+      updatedTime = OurChatTime(inputDatetime: localSessionData.updatedTime);
       size = localSessionData.size;
     }
     var privateDB = ourchatAppState.privateDB!;
@@ -158,7 +158,7 @@ class OurchatSession {
 
   @override
   bool operator ==(Object other) {
-    if (other is OurchatSession) {
+    if (other is OurChatSession) {
       return sessionId == other.sessionId;
     }
     return false;

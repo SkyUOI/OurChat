@@ -18,7 +18,7 @@ class _HomeState extends State<Home> {
   int index = 0;
   @override
   Widget build(BuildContext context) {
-    OurchatAppState ourchatAppState = context.watch<OurchatAppState>();
+    OurChatAppState ourchatAppState = context.watch<OurChatAppState>();
     Widget page = const Placeholder();
     switch (index) {
       case 0:

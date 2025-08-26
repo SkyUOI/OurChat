@@ -45,7 +45,7 @@ class KeepAliveTimeEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var ourchatAppState = context.watch<OurchatAppState>();
+    var ourchatAppState = context.watch<OurChatAppState>();
     var l10n = AppLocalizations.of(context)!;
     return Row(
       children: [
@@ -87,7 +87,7 @@ class SeedColorEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var ourchatAppState = context.watch<OurchatAppState>();
+    var ourchatAppState = context.watch<OurChatAppState>();
     var l10n = AppLocalizations.of(context)!;
     var seedColor = ourchatAppState.config["color"];
     return Row(
@@ -148,7 +148,7 @@ class DialogButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var appState = context.watch<OurchatAppState>();
+    var appState = context.watch<OurChatAppState>();
     var l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.all(5.0),
@@ -170,7 +170,7 @@ class LogLevelSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var ourchatAppState = context.watch<OurchatAppState>();
+    var ourchatAppState = context.watch<OurChatAppState>();
     var l10n = AppLocalizations.of(context)!;
     List<DropdownMenuItem> dropDownItems = [];
     for (var i = 0; i < logLevels.length; i++) {

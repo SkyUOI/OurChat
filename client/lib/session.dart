@@ -22,12 +22,12 @@ const userTab = 2;
 
 class SessionState extends ChangeNotifier {
   int tabIndex = emptyTab;
-  OurchatSession? currentSession;
+  OurChatSession? currentSession;
   Int64? currentUserId;
   String tabTitle = "";
   List<BundleMsgs> currentSessionRecords = [];
-  List<OurchatSession> sessionsList = [];
-  Map<OurchatSession, BundleMsgs> sessionRecentMsg = {};
+  List<OurChatSession> sessionsList = [];
+  Map<OurChatSession, BundleMsgs> sessionRecentMsg = {};
   void update() {
     notifyListeners();
   }
@@ -41,10 +41,10 @@ class SessionState extends ChangeNotifier {
     update();
   }
 
-  void getSessions(OurchatAppState ourchatAppState) async {
+  void getSessions(OurChatAppState ourchatAppState) async {
     sessionsList = [];
     for (int i = 0; i < ourchatAppState.thisAccount!.sessions.length; i++) {
-      OurchatSession session = OurchatSession(
+      OurChatSession session = OurChatSession(
           ourchatAppState, ourchatAppState.thisAccount!.sessions[i]);
       await session.getSessionInfo();
       List<BundleMsgs> record = await ourchatAppState.eventSystem!
@@ -70,7 +70,7 @@ class Session extends StatefulWidget {
 class _SessionState extends State<Session> {
   @override
   Widget build(BuildContext context) {
-    OurchatAppState appState = context.watch<OurchatAppState>();
+    OurChatAppState appState = context.watch<OurChatAppState>();
 
     return ChangeNotifierProvider(
       create: (context) => SessionState(),
@@ -171,8 +171,8 @@ class UserTab extends StatefulWidget {
 class _UserTabState extends State<UserTab> {
   String addFriendLeaveMessage = "", addFriendDisplayName = "";
 
-  Future getAccountInfo(OurchatAppState ourchatAppState, Int64 id) async {
-    OurchatAccount account = OurchatAccount(ourchatAppState);
+  Future getAccountInfo(OurChatAppState ourchatAppState, Int64 id) async {
+    OurChatAccount account = OurChatAccount(ourchatAppState);
     account.id = id;
     account.recreateStub();
     await account.getAccountInfo();
@@ -197,7 +197,7 @@ class _UserTabState extends State<UserTab> {
   }
 
   void showAddFriendDialog(BuildContext context,
-      OurchatAppState ourchatAppState, OurchatAccount account) {
+      OurChatAppState ourchatAppState, OurChatAccount account) {
     var l10n = AppLocalizations.of(context);
     showDialog(
         context: context,
@@ -303,7 +303,7 @@ class _UserTabState extends State<UserTab> {
 
   @override
   Widget build(BuildContext context) {
-    var ourchatAppState = context.watch<OurchatAppState>();
+    var ourchatAppState = context.watch<OurChatAppState>();
     var sessionState = context.watch<SessionState>();
     var l10n = AppLocalizations.of(context);
     return FutureBuilder(
@@ -322,7 +322,7 @@ class _UserTabState extends State<UserTab> {
               ),
             );
           }
-          OurchatAccount account = snapshot.data;
+          OurChatAccount account = snapshot.data;
           bool isFriend =
               ourchatAppState.thisAccount!.friends.contains(account.id);
           var i10n = AppLocalizations.of(context);
@@ -371,7 +371,7 @@ class _SessionListState extends State<SessionList> {
   bool showSearchResults = false; // 正在显示搜索结果
   bool search = false; // 搜索中
   String searchKeyword = "";
-  late OurchatAppState ourchatAppState;
+  late OurChatAppState ourchatAppState;
   late SessionState sessionState;
   bool inited = false;
 
@@ -385,7 +385,7 @@ class _SessionListState extends State<SessionList> {
 
   @override
   Widget build(BuildContext context) {
-    ourchatAppState = context.watch<OurchatAppState>();
+    ourchatAppState = context.watch<OurChatAppState>();
     sessionState = context.watch<SessionState>();
     if (!inited) {
       ourchatAppState.eventSystem!.addListener(
@@ -441,7 +441,7 @@ class _SessionListState extends State<SessionList> {
                       color: Theme.of(context).primaryColor,
                     );
                   }
-                  OurchatAccount? account = snapshot.data; // 获取搜索到的账号
+                  OurChatAccount? account = snapshot.data; // 获取搜索到的账号
                   if (account == null) {
                     // 查无此人
                     return Padding(
@@ -510,7 +510,7 @@ class _SessionListState extends State<SessionList> {
           Expanded(
             child: ListView.builder(
               itemBuilder: (context, index) {
-                OurchatSession currentSession =
+                OurChatSession currentSession =
                     sessionState.sessionsList[index];
                 return SizedBox(
                     height: 80.0,
@@ -586,19 +586,19 @@ class _SessionListState extends State<SessionList> {
   }
 
   Future getSessionInfo(
-      OurchatAppState ourchatAppState, Int64 sessionId) async {
-    OurchatSession session = OurchatSession(ourchatAppState, sessionId);
+      OurChatAppState ourchatAppState, Int64 sessionId) async {
+    OurChatSession session = OurChatSession(ourchatAppState, sessionId);
     await session.getSessionInfo();
     return session;
   }
 
   Future getAccountInfo(
-      OurchatAppState ourchatAppState, String ocid, context) async {
+      OurChatAppState ourchatAppState, String ocid, context) async {
     BasicServiceClient stub =
         BasicServiceClient(ourchatAppState.server!.channel!, interceptors: []);
     try {
       var res = await stub.getId(GetIdRequest(ocid: ocid));
-      OurchatAccount account = OurchatAccount(ourchatAppState);
+      OurChatAccount account = OurChatAccount(ourchatAppState);
       account.id = res.id;
       account.recreateStub();
       await account.getAccountInfo();
@@ -650,15 +650,15 @@ class NewSessionDialog extends StatefulWidget {
 }
 
 class _NewSessionDialogState extends State<NewSessionDialog> {
-  List<OurchatAccount> friends = [];
+  List<OurChatAccount> friends = [];
   List<bool> checked = [];
   bool gotFriendList = false, enableE2EE = true;
-  OurchatAppState? ourchatAppState;
+  OurChatAppState? ourchatAppState;
 
   void getFriendList() async {
     friends = [];
     for (int i = 0; i < ourchatAppState!.thisAccount!.friends.length; i++) {
-      OurchatAccount ourchatAccount = OurchatAccount(ourchatAppState!);
+      OurChatAccount ourchatAccount = OurChatAccount(ourchatAppState!);
       ourchatAccount.id = ourchatAppState!.thisAccount!.friends[i];
       ourchatAccount.recreateStub();
       await ourchatAccount.getAccountInfo();
@@ -673,7 +673,7 @@ class _NewSessionDialogState extends State<NewSessionDialog> {
 
   @override
   Widget build(BuildContext context) {
-    ourchatAppState = context.watch<OurchatAppState>();
+    ourchatAppState = context.watch<OurChatAppState>();
     var l10n = AppLocalizations.of(context)!;
     if (!gotFriendList) {
       getFriendList();
@@ -802,7 +802,7 @@ class SessionTab extends StatefulWidget {
 
 class _SessionTabState extends State<SessionTab> {
   bool inited = false;
-  late OurchatAppState ourchatAppState;
+  late OurChatAppState ourchatAppState;
   late SessionState sessionState;
 
   @override
@@ -816,7 +816,7 @@ class _SessionTabState extends State<SessionTab> {
 
   @override
   Widget build(BuildContext context) {
-    ourchatAppState = context.watch<OurchatAppState>();
+    ourchatAppState = context.watch<OurChatAppState>();
     sessionState = context.watch<SessionState>();
     if (!inited && ourchatAppState.device == mobile) {
       ourchatAppState.eventSystem!.addListener(

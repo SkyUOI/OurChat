@@ -11,7 +11,7 @@ class User extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var appState = context.watch<OurchatAppState>();
+    var appState = context.watch<OurChatAppState>();
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [

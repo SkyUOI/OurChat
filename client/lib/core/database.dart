@@ -31,14 +31,14 @@ class PublicAccount extends Table {
 }
 
 @DriftDatabase(tables: [PublicSession, PublicAccount])
-class PublicOurchatDatabase extends _$PublicOurchatDatabase {
-  PublicOurchatDatabase([QueryExecutor? executor])
+class PublicOurChatDatabase extends _$PublicOurChatDatabase {
+  PublicOurChatDatabase([QueryExecutor? executor])
       : super(executor ?? _openConnection());
   @override
   int get schemaVersion => 1;
   static QueryExecutor _openConnection() {
     return driftDatabase(
-      name: 'publicOurchatDatabase',
+      name: 'publicOurChatDatabase',
       native: const DriftNativeOptions(
         databaseDirectory: getApplicationSupportDirectory,
       ),
@@ -81,8 +81,8 @@ class Record extends Table {
 }
 
 @DriftDatabase(tables: [Account, Session, Record])
-class OurchatDatabase extends _$OurchatDatabase {
-  OurchatDatabase(id, [QueryExecutor? executor])
+class OurChatDatabase extends _$OurChatDatabase {
+  OurChatDatabase(id, [QueryExecutor? executor])
       : super(executor ?? _openConnection(id));
 
   @override
@@ -90,7 +90,7 @@ class OurchatDatabase extends _$OurchatDatabase {
 
   static QueryExecutor _openConnection(Int64 id) {
     return driftDatabase(
-      name: 'OurchatDB_${id.toString()}',
+      name: 'OurChatDB_${id.toString()}',
       native: const DriftNativeOptions(
         databaseDirectory: getApplicationSupportDirectory,
       ),

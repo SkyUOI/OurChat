@@ -4,7 +4,7 @@ import 'package:ourchat/core/log.dart';
 import 'package:ourchat/service/basic/server/v1/server.pb.dart';
 import 'package:ourchat/service/basic/v1/basic.pbgrpc.dart';
 
-class OurchatInterceptor implements ClientInterceptor {
+class OurChatInterceptor implements ClientInterceptor {
   String token = "";
   void setToken(String t) {
     token = t;
@@ -32,7 +32,7 @@ class OurchatInterceptor implements ClientInterceptor {
   }
 }
 
-class OurchatServer {
+class OurChatServer {
   String host;
   String? uniqueIdentifier, serverName;
   int port;
@@ -40,9 +40,9 @@ class OurchatServer {
   RunningStatus? serverStatus;
   ClientChannel? channel;
   ServerVersion? serverVersion;
-  OurchatInterceptor? interceptor;
+  OurChatInterceptor? interceptor;
 
-  OurchatServer(this.host, this.port, bool ssl) {
+  OurChatServer(this.host, this.port, bool ssl) {
     // try ssl/tls connection
     if (!ssl) {
       logger.w("Switch to insecure connection");

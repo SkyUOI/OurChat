@@ -154,7 +154,7 @@ jobs:
       - name: Build Release
         run: cd client && flutter build windows
       - name: Rename
-        run: mv client/build/windows/x64/runner/Release/client.exe client/build/windows/x64/runner/Release/Ourchat.exe
+        run: mv client/build/windows/x64/runner/Release/client.exe client/build/windows/x64/runner/Release/OurChat.exe
       - name: Compress
         run: cd client/build/windows/x64/runner && tar -czvf ourchat-client-windows.tar.gz Release
       - name: Release

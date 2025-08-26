@@ -1,7 +1,7 @@
 import 'package:fixnum/fixnum.dart';
 import 'package:ourchat/google/protobuf/timestamp.pb.dart';
 
-class OurchatTime {
+class OurChatTime {
   /*
   该类用于grpc的timestamp与datetime两种时间类型之间的转换
   为了避免数据库的精度问题，转换所得的datetime并不准确
@@ -10,7 +10,7 @@ class OurchatTime {
   DateTime? inputDatetime;
   late Timestamp timestamp;
   late DateTime datetime;
-  OurchatTime({this.inputTimestamp, this.inputDatetime}) {
+  OurChatTime({this.inputTimestamp, this.inputDatetime}) {
     if (inputTimestamp != null) {
       timestamp = inputTimestamp!;
       toDatetime();
@@ -40,7 +40,7 @@ class OurchatTime {
 
   @override
   bool operator ==(Object other) {
-    if (other is OurchatTime) {
+    if (other is OurChatTime) {
       return timestamp == other.timestamp;
     }
     return false;

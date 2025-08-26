@@ -26,7 +26,7 @@
     "featureUnavailable": "对应功能不存在或无法启用",
     "commandNotFound": "命令不存在",
     "unexpectedStatusCode": "意外的状态码: {code}",
-    "defaultUsername": "Ourchat用户",
+    "defaultUsername": "OurChat用户",
     "serverStatusUnderMaintenance": "维护中",
     "serverStatusOnline": "在线",
     "serverStatusOffline": "离线",

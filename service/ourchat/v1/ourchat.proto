@@ -30,7 +30,7 @@ import "service/ourchat/unregister/v1/unregister.proto";
 import "service/ourchat/upload/v1/upload.proto";
 import "service/ourchat/webrtc/room/create_room/v1/create_room.proto";
 
-// Main service of the Ourchat
+// Main service of the OurChat
 // JWT is required.If token is missing or out-of-dated,please refer to
 // AuthService to authenticate one JWT Insert to headers: Authorization: Bearer
 // "token"

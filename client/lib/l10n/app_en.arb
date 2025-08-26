@@ -59,7 +59,7 @@
     },
     "ocid": "OCID",
     "@ocid": {
-        "description": "uid of Ourchat"
+        "description": "uid of OurChat"
     },
     "password": "Password",
     "@password": {
@@ -111,7 +111,7 @@
             }
         }
     },
-    "defaultUsername": "OurchatUser",
+    "defaultUsername": "OurChatUser",
     "@defaultUsername": {
         "description": "default username when leave blank in register"
     },

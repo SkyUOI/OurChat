@@ -46,7 +46,7 @@ class _LoginState extends State<Login> {
   @override
   Widget build(BuildContext context) {
     var key = GlobalKey<FormState>();
-    var ourchatAppState = context.watch<OurchatAppState>();
+    var ourchatAppState = context.watch<OurChatAppState>();
     if (!inited) {
       account = ourchatAppState.config["recent_account"];
       password = ourchatAppState.config["recent_password"];
@@ -112,8 +112,8 @@ class _LoginState extends State<Login> {
                           onPressed: () async {
                             key.currentState!.save(); // 保存表单信息
                             // 创建ocAccount对象并登录
-                            OurchatAccount ocAccount =
-                                OurchatAccount(ourchatAppState);
+                            OurChatAccount ocAccount =
+                                OurChatAccount(ourchatAppState);
                             String? email, ocid;
                             if (account.contains('@')) {
                               // 判断邮箱/ocid登录
@@ -131,9 +131,9 @@ class _LoginState extends State<Login> {
                               ourchatAppState.config.saveConfig();
                               ourchatAppState.thisAccount = ocAccount;
                               ourchatAppState.privateDB =
-                                  OurchatDatabase(ocAccount.id);
+                                  OurChatDatabase(ocAccount.id);
                               ourchatAppState.eventSystem =
-                                  OurchatEventSystem(ourchatAppState);
+                                  OurChatEventSystem(ourchatAppState);
                               await ourchatAppState.thisAccount!
                                   .getAccountInfo();
                               ourchatAppState.eventSystem!.listenEvents();
@@ -230,7 +230,7 @@ class _RegisterState extends State<Register> {
   @override
   Widget build(BuildContext context) {
     var key = GlobalKey<FormState>();
-    var ourchatAppState = context.watch<OurchatAppState>();
+    var ourchatAppState = context.watch<OurChatAppState>();
     return Form(
         key: key,
         child: Row(
@@ -295,17 +295,17 @@ class _RegisterState extends State<Register> {
                           onPressed: () async {
                             key.currentState!.save(); // 保存表单信息
                             // 创建ocAccount对象并注册
-                            OurchatAccount ocAccount =
-                                OurchatAccount(ourchatAppState);
+                            OurChatAccount ocAccount =
+                                OurChatAccount(ourchatAppState);
                             var res = await ocAccount.register(
                                 password, username, email);
                             if (res == okStatusCode) {
                               // 注册成功
                               ourchatAppState.thisAccount = ocAccount;
                               ourchatAppState.privateDB =
-                                  OurchatDatabase(ocAccount.id);
+                                  OurChatDatabase(ocAccount.id);
                               ourchatAppState.eventSystem =
-                                  OurchatEventSystem(ourchatAppState);
+                                  OurChatEventSystem(ourchatAppState);
                               await ourchatAppState.thisAccount!
                                   .getAccountInfo();
 

@@ -4,7 +4,7 @@ import 'package:ourchat/core/log.dart';
 
 /// Manage config entries of application
 ///
-class OurchatConfig {
+class OurChatConfig {
   late Map<String, dynamic> data;
   SharedPreferencesWithCache? prefsWithCache;
 
@@ -55,7 +55,7 @@ class OurchatConfig {
     logger.i("config: $data");
   }
 
-  OurchatConfig() {
+  OurChatConfig() {
     SharedPreferencesWithCache.create(
             cacheOptions: const SharedPreferencesWithCacheOptions())
         .then((prefs) {

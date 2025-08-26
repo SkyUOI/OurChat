@@ -18,23 +18,23 @@ void main() async {
   runApp(const MainApp());
 }
 
-class OurchatAppState extends ChangeNotifier {
+class OurChatAppState extends ChangeNotifier {
   int device = desktop;
-  OurchatServer? server;
-  OurchatAccount? thisAccount;
-  late database.PublicOurchatDatabase publicDB;
-  database.OurchatDatabase? privateDB;
-  OurchatEventSystem? eventSystem;
-  OurchatConfig config;
-  Map<Int64, OurchatAccount> accountCachePool = {};
-  Map<Int64, OurchatSession> sessionCachePool = {};
+  OurChatServer? server;
+  OurChatAccount? thisAccount;
+  late database.PublicOurChatDatabase publicDB;
+  database.OurChatDatabase? privateDB;
+  OurChatEventSystem? eventSystem;
+  OurChatConfig config;
+  Map<Int64, OurChatAccount> accountCachePool = {};
+  Map<Int64, OurChatSession> sessionCachePool = {};
 
-  OurchatAppState() : config = OurchatConfig() {
-    logger.i("init Ourchat");
+  OurChatAppState() : config = OurChatConfig() {
+    logger.i("init OurChat");
     constructLogger(convertStrIntoLevel(config["log_level"]));
-    publicDB = database.PublicOurchatDatabase();
+    publicDB = database.PublicOurChatDatabase();
     notifyListeners();
-    logger.i("init Ourchat done");
+    logger.i("init OurChat done");
   }
 
   void update() {
@@ -49,7 +49,7 @@ class MainApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (context) {
-        var appState = OurchatAppState();
+        var appState = OurChatAppState();
         return appState;
       },
       child: const Controller(),
@@ -62,7 +62,7 @@ class Controller extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var appState = context.watch<OurchatAppState>();
+    var appState = context.watch<OurChatAppState>();
     return MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,

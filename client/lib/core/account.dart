@@ -15,22 +15,22 @@ import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:grpc/grpc.dart';
 
-class OurchatAccount {
-  OurchatAppState ourchatAppState;
-  late OurchatServer server;
+class OurChatAccount {
+  OurChatAppState ourchatAppState;
+  late OurChatServer server;
   late Int64 id;
   late String username, ocid;
   String? avatarKey, displayName, status, email;
   bool isMe = false;
-  late OurchatTime publicUpdateTime, updatedTime, registerTime;
+  late OurChatTime publicUpdateTime, updatedTime, registerTime;
   DateTime lastCheckTime = DateTime(0);
   late List<Int64> friends, sessions;
   late OurChatServiceClient stub;
 
   // 客户端独有字段，仅isMe为True时使用
-  OurchatTime latestMsgTime = OurchatTime(inputTimestamp: Timestamp());
+  OurChatTime latestMsgTime = OurChatTime(inputTimestamp: Timestamp());
 
-  OurchatAccount(this.ourchatAppState) {
+  OurChatAccount(this.ourchatAppState) {
     server = ourchatAppState.server!;
     stub = OurChatServiceClient(server.channel!);
   }
@@ -50,7 +50,7 @@ class OurchatAccount {
       id = res.id;
       ocid = res.ocid;
       isMe = true;
-      var interceptor = OurchatInterceptor();
+      var interceptor = OurChatInterceptor();
       interceptor.setToken(res.token);
       server.interceptor = interceptor;
       recreateStub();
@@ -76,7 +76,7 @@ class OurchatAccount {
       id = res.id;
       ocid = res.ocid;
       isMe = true;
-      var interceptor = OurchatInterceptor();
+      var interceptor = OurChatInterceptor();
       interceptor.setToken(res.token);
       server.interceptor = interceptor;
       recreateStub();
@@ -88,7 +88,7 @@ class OurchatAccount {
 
   Future getAccountInfo({bool ignoreCache = false}) async {
     if (ourchatAppState.accountCachePool.containsKey(id)) {
-      OurchatAccount accountCache = ourchatAppState.accountCachePool[id]!;
+      OurChatAccount accountCache = ourchatAppState.accountCachePool[id]!;
       if (!ignoreCache &&
           DateTime.now().difference(accountCache.lastCheckTime).inMinutes < 5) {
         // 上次检查更新在5min内 无需检查
@@ -112,8 +112,8 @@ class OurchatAccount {
       }
     }
 
-    PublicOurchatDatabase db = ourchatAppState.publicDB;
-    OurchatDatabase pdb = ourchatAppState.privateDB!;
+    PublicOurChatDatabase db = ourchatAppState.publicDB;
+    OurChatDatabase pdb = ourchatAppState.privateDB!;
     if (ourchatAppState.thisAccount != null &&
         ourchatAppState.thisAccount!.id == id) {
       isMe = true;
@@ -132,8 +132,8 @@ class OurchatAccount {
           GetAccountInfoRequest(
               id: id,
               requestValues: [QueryValues.QUERY_VALUES_PUBLIC_UPDATED_TIME]));
-      if (OurchatTime(inputTimestamp: res.publicUpdatedTime) !=
-          OurchatTime(inputDatetime: publicData.publicUpdateTime)) {
+      if (OurChatTime(inputTimestamp: res.publicUpdatedTime) !=
+          OurChatTime(inputDatetime: publicData.publicUpdateTime)) {
         publicDataNeedUpdate = true;
       }
     }
@@ -145,8 +145,8 @@ class OurchatAccount {
       GetAccountInfoResponse res = await stub.getAccountInfo(
           GetAccountInfoRequest(
               id: id, requestValues: [QueryValues.QUERY_VALUES_UPDATED_TIME]));
-      if (OurchatTime(inputTimestamp: res.updatedTime) !=
-          OurchatTime(inputDatetime: privateData.updateTime)) {
+      if (OurChatTime(inputTimestamp: res.updatedTime) !=
+          OurChatTime(inputDatetime: privateData.updateTime)) {
         privateDataNeedUpdate = true;
       }
     }
@@ -178,10 +178,10 @@ class OurchatAccount {
     ]));
     avatarKey = res.avatarKey;
     username = res.userName;
-    publicUpdateTime = OurchatTime(inputTimestamp: res.publicUpdatedTime);
+    publicUpdateTime = OurChatTime(inputTimestamp: res.publicUpdatedTime);
     status = res.status;
     ocid = res.ocid;
-    PublicOurchatDatabase publicDB = ourchatAppState.publicDB;
+    PublicOurChatDatabase publicDB = ourchatAppState.publicDB;
     if (isDataExist) {
       // 更新数据
       (publicDB.update(publicDB.publicAccount)
@@ -217,12 +217,12 @@ class OurchatAccount {
         ],
       ),
     );
-    updatedTime = OurchatTime(inputTimestamp: res.updatedTime);
+    updatedTime = OurChatTime(inputTimestamp: res.updatedTime);
     email = res.email;
     friends = res.friends;
     sessions = res.sessions;
-    registerTime = OurchatTime(inputTimestamp: res.registerTime);
-    OurchatDatabase? privateDB = ourchatAppState.privateDB;
+    registerTime = OurChatTime(inputTimestamp: res.registerTime);
+    OurChatDatabase? privateDB = ourchatAppState.privateDB;
     var intFriendsId = [];
     var intSessionsId = [];
     for (int i = 0; i < friends.length; i++) {

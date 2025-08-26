@@ -14,16 +14,16 @@ import 'package:ourchat/service/ourchat/msg_delivery/v1/msg_delivery.pb.dart';
 import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
 import 'package:grpc/grpc.dart';
 
-class OurchatEvent {
+class OurChatEvent {
   Int64? eventId;
   int? eventType;
-  OurchatAccount? sender;
-  OurchatSession? session;
-  OurchatTime? sendTime;
+  OurChatAccount? sender;
+  OurChatSession? session;
+  OurChatTime? sendTime;
   Map? data;
   bool read;
-  OurchatAppState ourchatAppState;
-  OurchatEvent(this.ourchatAppState,
+  OurChatAppState ourchatAppState;
+  OurChatEvent(this.ourchatAppState,
       {this.eventId,
       this.eventType,
       this.sender,
@@ -32,7 +32,7 @@ class OurchatEvent {
       this.data,
       this.read = false});
 
-  Future saveToDB(OurchatDatabase privateDB) async {
+  Future saveToDB(OurChatDatabase privateDB) async {
     var result = await (privateDB.select(privateDB.record)
           ..where((u) => u.eventId.equals(BigInt.from(eventId!.toInt()))))
         .getSingleOrNull();
@@ -63,20 +63,20 @@ class OurchatEvent {
         read: (read ? 1 : 0)));
   }
 
-  Future loadFromDB(OurchatDatabase privateDB, RecordData row) async {
+  Future loadFromDB(OurChatDatabase privateDB, RecordData row) async {
     eventId = Int64.parseInt(row.eventId.toString());
     eventType = row.eventType;
-    sender = OurchatAccount(ourchatAppState);
+    sender = OurChatAccount(ourchatAppState);
     sender!.id = Int64.parseInt(row.sender.toString());
     sender!.recreateStub();
     await sender!.getAccountInfo();
 
     if (row.sessionId != null) {
       Int64 sessionId = Int64.parseInt(row.sessionId.toString());
-      session = OurchatSession(ourchatAppState, sessionId);
+      session = OurChatSession(ourchatAppState, sessionId);
       await session!.getSessionInfo();
     }
-    sendTime = OurchatTime(inputDatetime: row.time);
+    sendTime = OurChatTime(inputDatetime: row.time);
     data = jsonDecode(row.data);
     read = row.read == 1 ? true : false;
   }
@@ -113,13 +113,13 @@ class OneMessage {
   }
 }
 
-class BundleMsgs extends OurchatEvent {
+class BundleMsgs extends OurChatEvent {
   List<OneMessage> msgs;
-  BundleMsgs(OurchatAppState ourchatAppState,
+  BundleMsgs(OurChatAppState ourchatAppState,
       {Int64? eventId,
-      OurchatAccount? sender,
-      OurchatSession? session,
-      OurchatTime? sendTime,
+      OurChatAccount? sender,
+      OurChatSession? session,
+      OurChatTime? sendTime,
       this.msgs = const []})
       : super(ourchatAppState,
             eventId: eventId,
@@ -130,7 +130,7 @@ class BundleMsgs extends OurchatEvent {
             data: {"msgs": msgs.map((u) => u.serialize()).toList()});
 
   @override
-  Future loadFromDB(OurchatDatabase privateDB, RecordData row) async {
+  Future loadFromDB(OurChatDatabase privateDB, RecordData row) async {
     await super.loadFromDB(privateDB, row);
     msgs = [];
     for (int i = 0; i < data!["msgs"].length; i++) {
@@ -140,7 +140,7 @@ class BundleMsgs extends OurchatEvent {
     }
   }
 
-  Future<SendMsgResponse> send(OurchatSession session) async {
+  Future<SendMsgResponse> send(OurChatSession session) async {
     var stub = OurChatServiceClient(ourchatAppState.server!.channel!,
         interceptors: [ourchatAppState.server!.interceptor!]);
     var res = await stub.sendMsg(SendMsgRequest(
@@ -155,15 +155,15 @@ class BundleMsgs extends OurchatEvent {
   }
 }
 
-class NewFriendInvitationNotification extends OurchatEvent {
+class NewFriendInvitationNotification extends OurChatEvent {
   String? leaveMessage;
   int status;
-  OurchatAccount? invitee;
+  OurChatAccount? invitee;
   Int64? resultEventId;
-  NewFriendInvitationNotification(OurchatAppState ourchatAppState,
+  NewFriendInvitationNotification(OurChatAppState ourchatAppState,
       {Int64? eventId,
-      OurchatAccount? sender,
-      OurchatTime? sendTime,
+      OurChatAccount? sender,
+      OurChatTime? sendTime,
       this.leaveMessage,
       this.invitee,
       this.status = 0,
@@ -181,10 +181,10 @@ class NewFriendInvitationNotification extends OurchatEvent {
             });
 
   @override
-  Future loadFromDB(OurchatDatabase privateDB, RecordData row) async {
+  Future loadFromDB(OurChatDatabase privateDB, RecordData row) async {
     await super.loadFromDB(privateDB, row);
     leaveMessage = data!["leave_message"];
-    invitee = OurchatAccount(ourchatAppState);
+    invitee = OurChatAccount(ourchatAppState);
     invitee!.id = Int64.parseInt(data!["invitee"].toString());
     invitee!.recreateStub();
     await invitee!.getAccountInfo();
@@ -195,15 +195,15 @@ class NewFriendInvitationNotification extends OurchatEvent {
   }
 }
 
-class FriendInvitationResultNotification extends OurchatEvent {
+class FriendInvitationResultNotification extends OurChatEvent {
   String? leaveMessage;
-  OurchatAccount? invitee;
+  OurChatAccount? invitee;
   bool? accept;
   List<Int64>? requestEventIds;
-  FriendInvitationResultNotification(OurchatAppState ourchatAppState,
+  FriendInvitationResultNotification(OurChatAppState ourchatAppState,
       {Int64? eventId,
-      OurchatAccount? sender,
-      OurchatTime? sendTime,
+      OurChatAccount? sender,
+      OurChatTime? sendTime,
       this.leaveMessage,
       this.invitee,
       this.accept,
@@ -222,10 +222,10 @@ class FriendInvitationResultNotification extends OurchatEvent {
             });
 
   @override
-  Future loadFromDB(OurchatDatabase privateDB, RecordData row) async {
+  Future loadFromDB(OurChatDatabase privateDB, RecordData row) async {
     await super.loadFromDB(privateDB, row);
     leaveMessage = data!["leave_message"];
-    invitee = OurchatAccount(ourchatAppState);
+    invitee = OurChatAccount(ourchatAppState);
     invitee!.id = Int64.parseInt(data!["invitee"].toString());
     invitee!.recreateStub();
     await invitee!.getAccountInfo();
@@ -236,10 +236,10 @@ class FriendInvitationResultNotification extends OurchatEvent {
   }
 }
 
-class OurchatEventSystem {
-  OurchatAppState ourchatAppState;
+class OurChatEventSystem {
+  OurChatAppState ourchatAppState;
   Map listeners = {};
-  OurchatEventSystem(this.ourchatAppState);
+  OurChatEventSystem(this.ourchatAppState);
   ResponseStream<FetchMsgsResponse>? connection;
   bool listening = false;
 
@@ -260,7 +260,7 @@ class OurchatEventSystem {
     await for (var event in saveConnectionStream) {
       {
         ourchatAppState.thisAccount!.latestMsgTime =
-            OurchatTime(inputTimestamp: event.time);
+            OurChatTime(inputTimestamp: event.time);
         ourchatAppState.thisAccount!.updateLatestMsgTime();
         var row = await (ourchatAppState.privateDB!
                 .select(ourchatAppState.privateDB!.record)
@@ -275,26 +275,26 @@ class OurchatEventSystem {
             event.whichRespondEventType();
         logger.i("receive new event(type:$eventType)");
         // 创建一个发送者oc账号对象
-        OurchatAccount sender = OurchatAccount(ourchatAppState);
+        OurChatAccount sender = OurChatAccount(ourchatAppState);
         sender.recreateStub();
-        OurchatEvent? eventObj;
+        OurChatEvent? eventObj;
         switch (eventType) {
           case FetchMsgsResponse_RespondEventType // 收到好友申请
                 .newFriendInvitationNotification:
             sender.id = event.newFriendInvitationNotification.inviterId;
-            OurchatAccount invitee = OurchatAccount(ourchatAppState);
+            OurChatAccount invitee = OurChatAccount(ourchatAppState);
             invitee.id = event.newFriendInvitationNotification.inviteeId;
             eventObj = NewFriendInvitationNotification(ourchatAppState,
                 eventId: event.msgId,
                 sender: sender,
-                sendTime: OurchatTime(inputTimestamp: event.time),
+                sendTime: OurChatTime(inputTimestamp: event.time),
                 leaveMessage:
                     event.newFriendInvitationNotification.leaveMessage,
                 invitee: invitee);
             break;
           case FetchMsgsResponse_RespondEventType // 收到好友申请结果
                 .friendInvitationResultNotification:
-            OurchatAccount invitee = OurchatAccount(ourchatAppState);
+            OurChatAccount invitee = OurChatAccount(ourchatAppState);
             sender.id = event.friendInvitationResultNotification.inviterId;
             invitee.id = event.friendInvitationResultNotification.inviteeId;
             invitee.recreateStub();
@@ -322,7 +322,7 @@ class OurchatEventSystem {
             eventObj = FriendInvitationResultNotification(ourchatAppState,
                 eventId: event.msgId,
                 sender: sender,
-                sendTime: OurchatTime(inputTimestamp: event.time),
+                sendTime: OurChatTime(inputTimestamp: event.time),
                 leaveMessage:
                     event.friendInvitationResultNotification.leaveMessage,
                 invitee: invitee,
@@ -357,8 +357,8 @@ class OurchatEventSystem {
             eventObj = BundleMsgs(ourchatAppState,
                 eventId: event.msgId,
                 sender: sender,
-                session: OurchatSession(ourchatAppState, event.msg.sessionId),
-                sendTime: OurchatTime(inputTimestamp: event.time),
+                session: OurChatSession(ourchatAppState, event.msg.sessionId),
+                sendTime: OurChatTime(inputTimestamp: event.time),
                 msgs: msgs);
 
           default:
@@ -401,7 +401,7 @@ class OurchatEventSystem {
   }
 
   Future<List<BundleMsgs>> getSessionEvent(
-      OurchatAppState ourchatAppState, OurchatSession session,
+      OurChatAppState ourchatAppState, OurChatSession session,
       {int offset = 0, int num = 0}) async {
     var privateDB = ourchatAppState.privateDB!;
     var res = await (privateDB.select(privateDB.record)

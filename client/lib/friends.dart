@@ -17,7 +17,7 @@ class Friends extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    OurchatAppState ourchatAppState = context.watch<OurchatAppState>();
+    OurChatAppState ourchatAppState = context.watch<OurChatAppState>();
     var l10n = AppLocalizations.of(context);
     return Column(
       children: [
@@ -42,7 +42,7 @@ class Friends extends StatelessWidget {
           flex: 1,
           child: ListView.builder(
               itemBuilder: (context, index) {
-                var account = OurchatAccount(ourchatAppState);
+                var account = OurChatAccount(ourchatAppState);
                 account.id = ourchatAppState.thisAccount!.friends[index];
                 account.recreateStub();
                 return ElevatedButton(
@@ -73,7 +73,7 @@ class FriendRequestDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    OurchatAppState ourchatAppState = context.watch<OurchatAppState>();
+    OurChatAppState ourchatAppState = context.watch<OurChatAppState>();
     var l10n = AppLocalizations.of(context);
     return AlertDialog(
       title: Text(l10n!.friendRequest),
@@ -255,7 +255,7 @@ class FriendRequestDialog extends StatelessWidget {
     );
   }
 
-  Future getRefuseReason(OurchatAppState ourchatAppState,
+  Future getRefuseReason(OurChatAppState ourchatAppState,
       NewFriendInvitationNotification eventObj) async {
     String refuseReason = "";
     if (eventObj.status == 2) {
