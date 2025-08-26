@@ -1,14 +1,12 @@
-import 'package:localstorage/localstorage.dart';
 import 'dart:convert';
-
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ourchat/core/log.dart';
 
 /// Manage config entries of application
 ///
-/// # Warning
-/// Please call [initLocalStorage] first
 class OurchatConfig {
   late Map<String, dynamic> data;
+  SharedPreferencesWithCache? prefsWithCache;
 
   Map<String, dynamic> getDefaultConfig() {
     // 默认配置
@@ -43,7 +41,10 @@ class OurchatConfig {
   void reload() {
     logger.i("load config");
     var defaultConfig = getDefaultConfig();
-    var storageConfig = localStorage.getItem("config");
+    String? storageConfig;
+    if (prefsWithCache != null) {
+      storageConfig = prefsWithCache!.getString("config");
+    }
     if (storageConfig == null) {
       data = defaultConfig;
     } else {
@@ -55,13 +56,24 @@ class OurchatConfig {
   }
 
   OurchatConfig() {
+    SharedPreferencesWithCache.create(
+            cacheOptions: const SharedPreferencesWithCacheOptions())
+        .then((prefs) {
+      prefsWithCache = prefs;
+      reload();
+    });
+    data = getDefaultConfig();
     reload();
   }
 
   void saveConfig() {
     logger.i("save config");
     // checkConfig();
-    localStorage.setItem("config", jsonEncode(data));
+    if (prefsWithCache == null) {
+      logger.w("prefsWithCache is null,return");
+      return;
+    }
+    prefsWithCache!.setString("config", jsonEncode(data));
     logger.i("save config done");
   }
 

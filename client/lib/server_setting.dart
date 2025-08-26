@@ -18,7 +18,7 @@ class _ServerSettingState extends State<ServerSetting> {
   int port = 7777;
   int httpPort = -1, ping = -1;
   String serverName = "", serverState = "", serverVersion = "";
-  bool isOnline = false, isConnecting = false;
+  bool isOnline = false, isConnecting = false, inited = false;
   bool? isTLS;
   late OurchatServer server;
   Color serverStatusColor = Colors.grey;
@@ -27,8 +27,11 @@ class _ServerSettingState extends State<ServerSetting> {
   Widget build(BuildContext context) {
     var ourchatAppState = context.watch<OurchatAppState>();
     // 从配置中读取地址和端口
-    address = ourchatAppState.config["servers"][0]["host"];
-    port = ourchatAppState.config["servers"][0]["port"];
+    if (!inited) {
+      address = ourchatAppState.config["servers"][0]["host"];
+      port = ourchatAppState.config["servers"][0]["port"];
+      inited = true;
+    }
     var key = GlobalKey<FormState>();
     var serverInfoLabels = Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -207,8 +210,7 @@ class _ServerSettingState extends State<ServerSetting> {
                     }
                     // 连接新的服务端地址
                     isTLS = await OurchatServer.tlsEnabled(address, port);
-                    server = OurchatServer(address, port, isTLS!,
-                        ourchatAppState.config["keep_alive_interval"]);
+                    server = OurchatServer(address, port, isTLS!);
                     setState(() {
                       isOnline = false;
                       serverState = "";

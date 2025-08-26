@@ -4,7 +4,6 @@ import 'package:ourchat/core/database.dart' as database;
 import 'package:ourchat/core/session.dart';
 import 'core/account.dart';
 import 'package:provider/provider.dart';
-import 'package:localstorage/localstorage.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
 import 'package:ourchat/core/const.dart';
 import 'package:ourchat/core/config.dart';
@@ -16,7 +15,6 @@ import 'dart:core';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await initLocalStorage();
   runApp(const MainApp());
 }
 

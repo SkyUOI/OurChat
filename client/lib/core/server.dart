@@ -42,7 +42,7 @@ class OurchatServer {
   ServerVersion? serverVersion;
   OurchatInterceptor? interceptor;
 
-  OurchatServer(this.host, this.port, bool ssl, int pingIntervalSeconds) {
+  OurchatServer(this.host, this.port, bool ssl) {
     // try ssl/tls connection
     if (!ssl) {
       logger.w("Switch to insecure connection");
@@ -54,9 +54,8 @@ class OurchatServer {
     channel = ClientChannel(host,
         port: port,
         options: ChannelOptions(
-            credentials: credentials,
-            keepAlive: ClientKeepAliveOptions(
-                pingInterval: Duration(seconds: pingIntervalSeconds))));
+          credentials: credentials,
+        ));
   }
 
   static Future<bool> tlsEnabled(String host, int port) async {
