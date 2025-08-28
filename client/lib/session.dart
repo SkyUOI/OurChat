@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:grpc/grpc.dart' as grpc;
+import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/core/const.dart';
 import 'package:ourchat/core/event.dart';
 import 'package:ourchat/core/session.dart';
@@ -251,47 +252,13 @@ class _UserTabState extends State<UserTab> {
                       }
                     } on grpc.GrpcError catch (e) {
                       if (context.mounted) {
-                        switch (e.code) {
-                          case internalStatusCode:
-                            // 服务端内部错误
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              content: Text(
-                                  AppLocalizations.of(context)!.serverError),
-                            ));
-                            break;
-                          case unavailableStatusCode:
-                            // 服务端维护中
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              content: Text(AppLocalizations.of(context)!
-                                  .serverStatusUnderMaintenance),
-                            ));
-                            break;
-                          case permissionDeniedStatusCode:
-                            // 没有权限
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              content: Text(AppLocalizations.of(context)!
-                                  .permissionDenied),
-                            ));
-                          case alreadyExistsStatusCode:
-                            // 好友关系已存在
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              content: Text(AppLocalizations.of(context)!
-                                  .friendAlreadyExists),
-                            ));
-                          case notFoundStatusCode:
-                            // 用户不存在
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              content: Text(
-                                  AppLocalizations.of(context)!.userNotFound),
-                            ));
-                          default:
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              content: Text(
-                                  AppLocalizations.of(context)!.unknownError),
-                            ));
-                        }
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(l10n.internalError)));
+                        showErrorMessage(context, e.code, e.message,
+                            permissionDeniedStatus:
+                                AppLocalizations.of(context)!.permissionDenied,
+                            alreadyExistsStatus: AppLocalizations.of(context)!
+                                .friendAlreadyExists,
+                            notFoundStatus: AppLocalizations.of(context)!
+                                .notFound(AppLocalizations.of(context)!.user));
                       }
                     }
                   },
@@ -390,7 +357,15 @@ class _SessionListState extends State<SessionList> {
     if (!inited) {
       ourchatAppState.eventSystem!.addListener(
           FetchMsgsResponse_RespondEventType.msg, sessionState.receiveMsg);
-      sessionState.getSessions(ourchatAppState);
+      try {
+        sessionState.getSessions(ourchatAppState);
+      } on grpc.GrpcError catch (e) {
+        showErrorMessage(context, e.code, e.message,
+            notFoundStatus: AppLocalizations.of(context)!
+                .notFound(AppLocalizations.of(context)!.session),
+            invalidArgumentStatus: AppLocalizations.of(context)!
+                .invalid(AppLocalizations.of(context)!.argument));
+      }
       inited = true;
     }
     var l10n = AppLocalizations.of(context)!;
@@ -446,8 +421,8 @@ class _SessionListState extends State<SessionList> {
                     // 查无此人
                     return Padding(
                         padding: const EdgeInsets.only(top: 5.0),
-                        child:
-                            Text(AppLocalizations.of(context)!.userNotFound));
+                        child: Text(AppLocalizations.of(context)!
+                            .notFound(AppLocalizations.of(context)!.user)));
                   }
                   bool isFriend =
                       ourchatAppState.thisAccount!.friends.contains(account.id);
@@ -585,13 +560,6 @@ class _SessionListState extends State<SessionList> {
     });
   }
 
-  Future getSessionInfo(
-      OurChatAppState ourchatAppState, Int64 sessionId) async {
-    OurChatSession session = OurChatSession(ourchatAppState, sessionId);
-    await session.getSessionInfo();
-    return session;
-  }
-
   Future getAccountInfo(
       OurChatAppState ourchatAppState, String ocid, context) async {
     BasicServiceClient stub =
@@ -605,35 +573,14 @@ class _SessionListState extends State<SessionList> {
       return account;
     } on grpc.GrpcError catch (e) {
       if (context.mounted) {
-        switch (e.code) {
-          case internalStatusCode: // 服务端内部错误
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                content: Text(AppLocalizations.of(context)!.serverError)));
-            break;
-          case unavailableStatusCode: // 服务端维护中
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text(
-                  AppLocalizations.of(context)!.serverStatusUnderMaintenance),
-            ));
-            break;
-          case permissionDeniedStatusCode: // 权限不足，理论上不会出现
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text(AppLocalizations.of(context)!.permissionDenied),
-            ));
-            break;
-          case invalidArgumentStatusCode: // 请求字段错误，理论上不会出现
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text(AppLocalizations.of(context)!.internalError),
-            ));
-            break;
-          case notFoundStatusCode: // 查无此人
-            break;
-          default: // 未知错误
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text(AppLocalizations.of(context)!.unknownError),
-            ));
-            break;
-        }
+        showErrorMessage(context, e.code, e.message,
+            // getAccountInfo
+            permissionDeniedStatus:
+                AppLocalizations.of(context)!.permissionDenied,
+            invalidArgumentStatus: AppLocalizations.of(context)!.internalError,
+            // getId
+            notFoundStatus: AppLocalizations.of(context)!
+                .notFound(AppLocalizations.of(context)!.user));
       }
     }
     return null;
@@ -860,8 +807,19 @@ class _SessionTabState extends State<SessionTab> {
                               OneMessage(messageType: textMsg, text: value)
                             ]);
                         controller.text = "";
-                        await bundleMsgs.send(sessionState.currentSession!);
-                        // TODO: deal with error
+                        try {
+                          await bundleMsgs.send(sessionState.currentSession!);
+                        } on grpc.GrpcError catch (e) {
+                          if (context.mounted) {
+                            showErrorMessage(context, e.code, e.message,
+                                permissionDeniedStatus:
+                                    AppLocalizations.of(context)!
+                                        .permissionDenied,
+                                notFoundStatus: AppLocalizations.of(context)!
+                                    .notFound(
+                                        AppLocalizations.of(context)!.session));
+                          }
+                        }
                       },
                       controller: controller,
                     ),

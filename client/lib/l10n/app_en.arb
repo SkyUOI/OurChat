@@ -98,10 +98,6 @@
     "@featureUnavailable": {
         "description": "Feature Unavailable"
     },
-    "commandNotFound": "Command not found",
-    "@commandNotFound": {
-        "description": "Command not found"
-    },
     "unexpectedStatusCode": "Unexpected status code: {code}",
     "@unexpectedStatusCode": {
         "description": "Unexpected status code: {code}",
@@ -147,10 +143,6 @@
     "@connect": {
         "description": "connect"
     },
-    "invalidPort": "Invalid port",
-    "@invalidPort": {
-        "description": "Invalid port"
-    },
     "continue_": "Continue",
     "@continue_": {
         "description": "Continue"
@@ -166,10 +158,6 @@
     "reset": "Reset",
     "@reset": {
         "description": "Reset"
-    },
-    "userNotFound": "User not found",
-    "@userNotFound": {
-        "description": "User not found"
     },
     "internalError": "Internal error",
     "@internalError": {
@@ -274,5 +262,45 @@
     "enableE2EE": "Enable End-to-End Encryption",
     "@enableE2EE": {
         "description": "Enable End-to-End Encryption"
+    },
+    "passwordIsNotStrongEnough": "Password is not strong enough",
+    "@passwordIsNotStrongEnough": {
+        "description": "Password is not strong enough"
+    },
+    "notFound": "{sth} not found",
+    "@notFound": {
+        "description": "Something not found",
+        "placeholders": {
+            "sth": {
+                "type": "String",
+                "example": "User"
+            }
+        }
+    },
+    "session": "Session",
+    "@session": {
+        "description": "Session"
+    },
+    "user": "User",
+    "@user": {
+        "description": "User"
+    },
+    "invitation": "Invitation",
+    "@invitation": {
+        "description": "invitation"
+    },
+    "invalid": "{sth} is invalid",
+    "@invalid": {
+        "description": "Something is invalid",
+        "placeholders": {
+            "sth": {
+                "type": "String",
+                "example": "Username"
+            }
+        }
+    },
+    "argument": "Argument",
+    "@argument": {
+        "description": "Argument"
     }
 }

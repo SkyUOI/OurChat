@@ -162,7 +162,8 @@ class _ServerSettingState extends State<ServerSetting> {
                 if (int.tryParse(value) == null ||
                     int.parse(value) > 65535 ||
                     int.parse(value) < 0) {
-                  return AppLocalizations.of(context)!.invalidPort;
+                  return AppLocalizations.of(context)!
+                      .invalid(AppLocalizations.of(context)!.port);
                 }
                 return null;
               },
@@ -243,7 +244,6 @@ class _ServerSettingState extends State<ServerSetting> {
                     // 保存服务器地址
                     setState(() {
                       isOnline = true;
-                      // FIXME: use try-catch to avoid panicking when the server is down or network is broken
                       httpPort = server.httpPort!;
                       switch (server.serverStatus!.value) {
                         case okStatusCode:

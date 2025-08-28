@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/core/event.dart';
 import 'package:ourchat/core/log.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
@@ -123,7 +124,8 @@ class _LoginState extends State<Login> {
                             }
                             var res =
                                 await ocAccount.login(password, ocid, email);
-                            if (res == okStatusCode) {
+                            var code = res.$1, message = res.$2;
+                            if (code == okStatusCode) {
                               ourchatAppState.config["recent_account"] =
                                   account;
                               ourchatAppState.config["recent_password"] =
@@ -150,60 +152,20 @@ class _LoginState extends State<Login> {
                                 ));
                               }
                             } else {
+                              logger.w("login fail: code $code");
                               // 处理报错
-                              logger.w("register fail: code $res");
-                              setState(() {
-                                switch (res) {
-                                  case internalStatusCode:
-                                    // 服务端内部错误
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                            content: Text(
-                                                AppLocalizations.of(context)!
-                                                    .serverError)));
-                                    break;
-                                  case unavailableStatusCode:
-                                    // 服务端维护中
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                            content: Text(AppLocalizations.of(
-                                                    context)!
-                                                .serverStatusUnderMaintenance)));
-                                    break;
-                                  case notFoundStatusCode:
-                                    // 用户不存在
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                            content: Text(
-                                                AppLocalizations.of(context)!
-                                                    .userNotFound)));
-                                    break;
-                                  case invalidArgumentStatusCode:
-                                    // 缺少AuthType 理论上不会出现该报错
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                            content: Text(
-                                                AppLocalizations.of(context)!
-                                                    .internalError)));
-                                    break;
-                                  case unauthenticatedStatusCode:
-                                    // 密码错误
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                            content: Text(
-                                                AppLocalizations.of(context)!
-                                                    .incorrectPassword)));
-                                    break;
-                                  default:
-                                    // 未知错误
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                            content: Text(
-                                                AppLocalizations.of(context)!
-                                                    .unknownError)));
-                                    break;
-                                }
-                              });
+                              if (context.mounted) {
+                                showErrorMessage(context, code, message,
+                                    notFoundStatus:
+                                        AppLocalizations.of(context)!.notFound(
+                                            AppLocalizations.of(context)!.user),
+                                    invalidArgumentStatus:
+                                        AppLocalizations.of(context)!
+                                            .internalError,
+                                    unauthenticatedStatus:
+                                        AppLocalizations.of(context)!
+                                            .incorrectPassword);
+                              }
                             }
                           },
                           child: Text(AppLocalizations.of(context)!.login)),
@@ -299,7 +261,8 @@ class _RegisterState extends State<Register> {
                                 OurChatAccount(ourchatAppState);
                             var res = await ocAccount.register(
                                 password, username, email);
-                            if (res == okStatusCode) {
+                            var code = res.$1, message = res.$2;
+                            if (code == okStatusCode) {
                               // 注册成功
                               ourchatAppState.thisAccount = ocAccount;
                               ourchatAppState.privateDB =
@@ -323,50 +286,27 @@ class _RegisterState extends State<Register> {
                                 ));
                               }
                             } else {
+                              logger.w("register fail: code $code");
                               // 处理报错
-                              logger.w("register fail: code $res");
-                              setState(() {
-                                switch (res) {
-                                  case internalStatusCode:
-                                    // 服务端内部错误
-                                    ScaffoldMessenger.of(context)
-                                        .showSnackBar(SnackBar(
-                                      content: Text(
+                              if (context.mounted) {
+                                showErrorMessage(context, code, message,
+                                    alreadyExistsStatus:
+                                        AppLocalizations.of(context)!
+                                            .emailExists,
+                                    invalidArgumentStatus: {
+                                      "Password Is Not Strong Enough":
                                           AppLocalizations.of(context)!
-                                              .serverError),
-                                    ));
-                                    break;
-                                  case unavailableStatusCode:
-                                    // 服务端维护中
-                                    ScaffoldMessenger.of(context)
-                                        .showSnackBar(SnackBar(
-                                      content: Text(
-                                          AppLocalizations.of(context)!
-                                              .serverStatusUnderMaintenance),
-                                    ));
-                                    break;
-                                  case alreadyExistsStatusCode:
-                                    // 邮箱已存在
-                                    ScaffoldMessenger.of(context)
-                                        .showSnackBar(SnackBar(
-                                      content: Text(
-                                          AppLocalizations.of(context)!
-                                              .emailExists),
-                                    ));
-                                    break;
-                                  case invalidArgumentStatusCode:
-                                  // TODO: fill
-                                  default:
-                                    // 未知错误
-                                    ScaffoldMessenger.of(context)
-                                        .showSnackBar(SnackBar(
-                                      content: Text(
-                                          AppLocalizations.of(context)!
-                                              .unknownError),
-                                    ));
-                                    break;
-                                }
-                              });
+                                              .passwordIsNotStrongEnough,
+                                      "Username Is Invalid":
+                                          AppLocalizations.of(context)!.invalid(
+                                              AppLocalizations.of(context)!
+                                                  .username),
+                                      "Email Address Is Invalid":
+                                          AppLocalizations.of(context)!.invalid(
+                                              AppLocalizations.of(context)!
+                                                  .email),
+                                    });
+                              }
                             }
                           },
                           child: Text(AppLocalizations.of(context)!.register)),

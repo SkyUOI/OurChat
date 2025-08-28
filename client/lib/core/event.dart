@@ -74,7 +74,11 @@ class OurChatEvent {
     if (row.sessionId != null) {
       Int64 sessionId = Int64.parseInt(row.sessionId.toString());
       session = OurChatSession(ourchatAppState, sessionId);
-      await session!.getSessionInfo();
+      try {
+        await session!.getSessionInfo();
+      } catch (e) {
+        logger.w("warning when get session info: ${e.toString()}");
+      }
     }
     sendTime = OurChatTime(inputDatetime: row.time);
     data = jsonDecode(row.data);

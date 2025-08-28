@@ -54,9 +54,9 @@ class OurChatAccount {
       interceptor.setToken(res.token);
       server.interceptor = interceptor;
       recreateStub();
-      return okStatusCode;
+      return (okStatusCode, null);
     } on GrpcError catch (e) {
-      return e.code;
+      return (e.code, e.message);
     }
   }
 
@@ -80,9 +80,9 @@ class OurChatAccount {
       interceptor.setToken(res.token);
       server.interceptor = interceptor;
       recreateStub();
-      return okStatusCode;
+      return (okStatusCode, null);
     } on GrpcError catch (e) {
-      return e.code;
+      return (e.code, e.message);
     }
   }
 
