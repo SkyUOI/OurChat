@@ -21,7 +21,6 @@ use pb::time::{
     TimeStampUtc, from_google_timestamp, std_duration_to_prost_duration, to_google_timestamp,
 };
 use rand::Rng;
-use rand::rngs::OsRng;
 use rsa::pkcs1::EncodeRsaPublicKey as _;
 use rsa::{RsaPrivateKey, RsaPublicKey};
 use std::sync::Arc;
@@ -63,14 +62,14 @@ impl TestUser {
         let name = FAKE_MANAGER.lock().generate_unique_name();
         let email = FAKE_MANAGER.lock().generate_unique_email();
         let url = app.rpc_url.clone();
-        let mut rng = OsRng;
+        let mut rng = rand::rng();
         let bits = 2048;
         let private_key = rsa::RsaPrivateKey::new(&mut rng, bits).unwrap();
         let public_key = RsaPublicKey::from(&private_key);
         Self {
             name,
-            password: rand::thread_rng()
-                .sample_iter(&rand::distributions::Alphanumeric)
+            password: rand::rng()
+                .sample_iter(&rand::distr::Alphanumeric)
                 .take(40)
                 .map(char::from)
                 .collect(),

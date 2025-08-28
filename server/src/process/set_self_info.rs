@@ -32,19 +32,18 @@ pub async fn set_self_info(
     let request_data = request.into_inner();
 
     // Check username length
-    if let Some(name) = &request_data.user_name {
-        if name.len() > USERNAME_MAX_LEN || name.trim().is_empty() {
-            return Err(Status::invalid_argument(invalid::USERNAME));
-        }
+    if let Some(name) = &request_data.user_name
+        && (name.len() > USERNAME_MAX_LEN || name.trim().is_empty())
+    {
+        return Err(Status::invalid_argument(invalid::USERNAME));
     }
 
     // Check status length
-    if let Some(status) = &request_data.user_defined_status {
-        if status.len() > STATUS_LENGTH_MAX {
-            return Err(Status::invalid_argument(STATUS_TOO_LONG));
-        }
+    if let Some(status) = &request_data.user_defined_status
+        && status.len() > STATUS_LENGTH_MAX
+    {
+        return Err(Status::invalid_argument(STATUS_TOO_LONG));
     }
-
     match update_account(
         id,
         request_data,

@@ -53,8 +53,8 @@ pub fn generate_ocid(bits: usize) -> String {
 /// ```
 ///
 pub fn generate_random_string(len: usize) -> String {
-    let rng = rand::thread_rng();
-    rng.sample_iter(rand::distributions::Alphanumeric)
+    let rng = rand::rng();
+    rng.sample_iter(rand::distr::Alphanumeric)
         .map(char::from)
         .take(len)
         .collect()

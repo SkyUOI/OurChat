@@ -313,7 +313,7 @@ static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
                             serde_json::from_str(&id.to_string()).unwrap()
                         });
                     let machine_id: u64 = origin_info.get("machine_id").map_or_else(
-                        || rand::thread_rng().gen_range(0..(1024 - 1)),
+                        || rand::rng().random_range(0..(1024 - 1)),
                         |machine_id| serde_json::from_str(&machine_id.to_string()).unwrap(),
                     );
                     let secret: String = origin_info.get("secret").map_or_else(
@@ -357,7 +357,7 @@ static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
     tracing::info!("Create server info file");
 
     let mut f = fs::File::create(&path).unwrap();
-    let id: u64 = rand::thread_rng().gen_range(0..(1024 - 1));
+    let id: u64 = rand::rng().random_range(0..(1024 - 1));
     let server_name = server_name();
     let info = ServerInfo {
         unique_id: uuid::Uuid::new_v4(),

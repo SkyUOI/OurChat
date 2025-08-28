@@ -10,7 +10,6 @@ use pb::service::ourchat::{
         session_room_key::v1::SendRoomKeyRequest,
     },
 };
-use rand::rngs::OsRng;
 use rsa::{Pkcs1v15Encrypt, RsaPublicKey, pkcs1::DecodeRsaPublicKey as _};
 use server::db::session::in_session;
 
@@ -86,8 +85,9 @@ async fn invite_user_to_session_success() {
     );
     let public_key = RsaPublicKey::from_pkcs1_der(&c.lock().await.public_key_bytes()).unwrap();
     let room_key = TestSession::generate_room_key();
+    let mut rng = rand::rng();
     let encrypted_room_key: Bytes = public_key
-        .encrypt(&mut OsRng, Pkcs1v15Encrypt, &room_key)
+        .encrypt(&mut rng, Pkcs1v15Encrypt, &room_key)
         .unwrap()
         .into();
     a.lock()

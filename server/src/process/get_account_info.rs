@@ -1,4 +1,3 @@
-use super::basic::get_ocid;
 use super::error_msg::{PERMISSION_DENIED, REQUEST_INVALID_VALUE, not_found};
 use super::mapped_to_user_defined_status;
 use crate::db;
@@ -81,7 +80,7 @@ async fn get_account_info_impl(
         } else {
             // can access the info,get from the database
             match i {
-                QueryValues::Ocid => ret.ocid = Some(get_ocid(request_id, &server.db).await?.0),
+                QueryValues::Ocid => ret.ocid = Some(queried_user.ocid.clone()),
                 QueryValues::Email => ret.email = Some(queried_user.email.clone()),
                 QueryValues::DisplayName => {
                     if let Privilege::Owner = privilege {

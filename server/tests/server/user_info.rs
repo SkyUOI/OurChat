@@ -255,13 +255,14 @@ async fn different_user_get_info() {
         user1.lock().await.ocid.clone(),
         user2.lock().await.ocid.clone(),
     );
+    let (user1_id, user2_id) = (user1.lock().await.id, user2.lock().await.id);
     assert_eq!(
         user2
             .lock()
             .await
             .oc()
             .get_account_info(GetAccountInfoRequest {
-                id: Some(user2.lock().await.id.into()),
+                id: Some(user2_id.into()),
                 request_values: vec![QueryValues::Ocid.into()],
             })
             .await
@@ -277,7 +278,39 @@ async fn different_user_get_info() {
             .await
             .oc()
             .get_account_info(GetAccountInfoRequest {
-                id: Some(user1.lock().await.id.into()),
+                id: Some(user1_id.into()),
+                request_values: vec![QueryValues::Ocid.into()],
+            })
+            .await
+            .unwrap()
+            .into_inner()
+            .ocid
+            .unwrap(),
+        ocid1.0
+    );
+    assert_eq!(
+        user1
+            .lock()
+            .await
+            .oc()
+            .get_account_info(GetAccountInfoRequest {
+                id: Some(user2_id.into()),
+                request_values: vec![QueryValues::Ocid.into()],
+            })
+            .await
+            .unwrap()
+            .into_inner()
+            .ocid
+            .unwrap(),
+        ocid2.0
+    );
+    assert_eq!(
+        user2
+            .lock()
+            .await
+            .oc()
+            .get_account_info(GetAccountInfoRequest {
+                id: Some(user1_id.into()),
                 request_values: vec![QueryValues::Ocid.into()],
             })
             .await

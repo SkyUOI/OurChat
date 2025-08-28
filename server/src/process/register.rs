@@ -44,7 +44,7 @@ async fn add_new_user(
     let passwd =
         helper::spawn_blocking_with_tracing(move || compute_password_hash(&passwd, params))
             .await
-            .context("compute hash error")?;
+            .context("compute hash async task error")??;
     let user = user::ActiveModel {
         id: ActiveValue::Set(id.into()),
         ocid: ActiveValue::Set(ocid),
@@ -103,13 +103,14 @@ enum RegisterError {
 /// # Panics
 ///
 /// Panics if the password is too long or if the salt generation fails.
-fn compute_password_hash(password: &str, params: Params) -> String {
-    let salt = SaltString::generate(&mut rand::thread_rng());
+fn compute_password_hash(password: &str, params: Params) -> anyhow::Result<String> {
+    let salt = SaltString::try_from_rng(&mut argon2::password_hash::rand_core::OsRng)?;
 
-    argon2::Argon2::new(argon2::Algorithm::Argon2id, argon2::Version::V0x13, params)
-        .hash_password(password.as_bytes(), &salt)
-        .unwrap()
-        .to_string()
+    Ok(
+        argon2::Argon2::new(argon2::Algorithm::Argon2id, argon2::Version::V0x13, params)
+            .hash_password(password.as_bytes(), &salt)?
+            .to_string(),
+    )
 }
 
 /// Internal implementation of the register process

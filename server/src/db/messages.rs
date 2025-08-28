@@ -69,18 +69,17 @@ pub async fn del_msg(
         None => return Err(MsgError::NotFound),
         Some(d) => d,
     };
-    if let (Some(owner), Some(sender)) = (deleter_id, msg.sender_id) {
-        if i64::from(owner) != sender
-            && !if_permission_exist(
-                owner,
-                session_id,
-                PredefinedPermissions::RecallMsg.into(),
-                db_conn,
-            )
-            .await?
-        {
-            return Err(MsgError::PermissionDenied);
-        }
+    if let (Some(owner), Some(sender)) = (deleter_id, msg.sender_id)
+        && i64::from(owner) != sender
+        && !if_permission_exist(
+            owner,
+            session_id,
+            PredefinedPermissions::RecallMsg.into(),
+            db_conn,
+        )
+        .await?
+    {
+        return Err(MsgError::PermissionDenied);
     }
     msg.delete(db_conn).await?;
     Ok(())
