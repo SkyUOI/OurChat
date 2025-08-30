@@ -82,8 +82,9 @@ async fn set_session_info_impl(
                 CANNOT_SET_NAME,
             )));
         }
+        let name = ActiveValue::Set(name);
         if model.name != name {
-            model.name = ActiveValue::Set(name);
+            model.name = name;
             modified = true;
         }
     }
@@ -93,8 +94,9 @@ async fn set_session_info_impl(
                 CANNOT_SET_DESCRIPTION,
             )));
         }
+        let description = ActiveValue::Set(description);
         if model.description != description {
-            model.description = ActiveValue::Set(description);
+            model.description = description;
             modified = true;
         }
     }
@@ -104,8 +106,9 @@ async fn set_session_info_impl(
                 CANNOT_SET_AVATAR,
             )));
         }
+        let avatar_key = ActiveValue::Set(Some(avatar_key));
         if model.avatar_key != avatar_key {
-            model.avatar_key = ActiveValue::Set(Some(avatar_key));
+            model.avatar_key = avatar_key;
             modified = true;
         }
     }

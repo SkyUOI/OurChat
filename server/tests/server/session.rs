@@ -258,18 +258,20 @@ async fn set_session_info() {
         session_user[2].clone(),
     );
     let get_timestamp = async || {
-        a.lock()
-            .await
-            .oc()
-            .get_session_info(GetSessionInfoRequest {
-                session_id: session.session_id.into(),
-                query_values: vec![QueryValues::UpdatedTime],
-            })
-            .await
-            .unwrap()
-            .into_inner()
-            .updated_time
-            .unwrap()
+        from_google_timestamp(
+            &a.lock()
+                .await
+                .oc()
+                .get_session_info(GetSessionInfoRequest {
+                    session_id: session.session_id.into(),
+                    query_values: vec![QueryValues::UpdatedTime.into()],
+                })
+                .await
+                .unwrap()
+                .into_inner()
+                .updated_time
+                .unwrap(),
+        )
     };
     let original_timestamp = get_timestamp().await;
     let request = SetSessionInfoRequest {

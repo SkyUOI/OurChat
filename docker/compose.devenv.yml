@@ -1,5 +1,5 @@
 # Just A Template Should be modified to fit requirement
-name: ourchat_server
+name: ourchat_develop_server
 services:
   db:
     image: postgres:17-alpine
@@ -7,10 +7,7 @@ services:
     environment:
       POSTGRES_DB: OurChat
       POSTGRES_PASSWORD: 123456
-    ports:
-      - "5432:5432"
-    networks:
-      - net
+    network_mode: host
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 10s
@@ -20,24 +17,13 @@ services:
     image: redis:8-alpine
     restart: always
     command: redis-server /usr/local/etc/redis/redis.conf
-    ports:
-      - "6379:6379"
     volumes:
       - ./config/redis.conf:/usr/local/etc/redis/redis.conf
-    networks:
-      - net
+    network_mode: host
   mq:
     image: rabbitmq:4-management-alpine
     restart: always
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: 123456
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    networks:
-      - net
-
-networks:
-  net:
-    driver: bridge
+    network_mode: host
