@@ -10,7 +10,7 @@ mod role;
 
 use base::consts::{ID, SessionID};
 use base::types::RoleId;
-use claims::{assert_lt, assert_ok};
+use claims::{assert_le, assert_lt, assert_ok};
 use client::TestApp;
 use migration::m20241229_022701_add_role_for_session::PredefinedRoles;
 use parking_lot::Mutex;
@@ -257,6 +257,21 @@ async fn set_session_info() {
         session_user[1].clone(),
         session_user[2].clone(),
     );
+    let get_timestamp = async || {
+        a.lock()
+            .await
+            .oc()
+            .get_session_info(GetSessionInfoRequest {
+                session_id: session.session_id.into(),
+                query_values: vec![QueryValues::UpdatedTime],
+            })
+            .await
+            .unwrap()
+            .into_inner()
+            .updated_time
+            .unwrap()
+    };
+    let original_timestamp = get_timestamp().await;
     let request = SetSessionInfoRequest {
         session_id: session.session_id.into(),
         name: Some("test name".to_owned()),
@@ -288,6 +303,9 @@ async fn set_session_info() {
     assert_eq!(info.name.unwrap(), "test name");
     assert_eq!(info.avatar_key.unwrap(), "pic key");
     assert_eq!(info.description.unwrap(), "test description");
+    // check if timestamp was updated
+    let now_timestamp = get_timestamp().await;
+    assert_le!(original_timestamp, now_timestamp);
     // without permission
     let err = b
         .lock()

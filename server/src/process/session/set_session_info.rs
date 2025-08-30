@@ -75,13 +75,17 @@ async fn set_session_info_impl(
             permissions_map.insert(j.permission_id);
         }
     }
+    let mut modified = false;
     if let Some(name) = request.name {
         if !permissions_map.contains(&(PredefinedPermissions::SetTitle as i64)) {
             return Err(SetSessionErr::Status(Status::permission_denied(
                 CANNOT_SET_NAME,
             )));
         }
-        model.name = ActiveValue::Set(name);
+        if model.name != name {
+            model.name = ActiveValue::Set(name);
+            modified = true;
+        }
     }
     if let Some(description) = request.description {
         if !permissions_map.contains(&(PredefinedPermissions::SetDescription as i64)) {
@@ -89,7 +93,10 @@ async fn set_session_info_impl(
                 CANNOT_SET_DESCRIPTION,
             )));
         }
-        model.description = ActiveValue::Set(description);
+        if model.description != description {
+            model.description = ActiveValue::Set(description);
+            modified = true;
+        }
     }
     if let Some(avatar_key) = request.avatar_key {
         if !permissions_map.contains(&(PredefinedPermissions::SetAvatar as i64)) {
@@ -97,15 +104,18 @@ async fn set_session_info_impl(
                 CANNOT_SET_AVATAR,
             )));
         }
-        model.avatar_key = ActiveValue::Set(Some(avatar_key));
+        if model.avatar_key != avatar_key {
+            model.avatar_key = ActiveValue::Set(Some(avatar_key));
+            modified = true;
+        }
     }
-    match model.update(&server.db.db_pool).await {
-        Ok(_) => Ok(res),
-        Err(e) => {
+    if modified {
+        if let Err(e) = model.update(&server.db.db_pool).await {
             if db::helper::is_conflict(&e) {
                 return Err(SetSessionErr::Conflict);
             }
-            Err(SetSessionErr::Db(e))
+            return Err(SetSessionErr::Db(e));
         }
     }
+    Ok(res)
 }
