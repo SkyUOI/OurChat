@@ -32,7 +32,7 @@ pub async fn get_announcements_by_time(
     Paginator<
         '_,
         impl ConnectionTrait,
-        SelectTwoModel<entities::announcement_msg::Model, entities::announcement::Model>,
+        SelectTwoModel<entities::announcement_msg::Model, announcement::Model>,
     >,
     GetAnnouncementErr,
 > {

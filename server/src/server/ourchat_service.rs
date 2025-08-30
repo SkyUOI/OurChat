@@ -347,6 +347,15 @@ impl OurChatService for RpcServer {
         process::allow_user_join_session(self, id, request).await
     }
 
+    async fn invite_user_to_session(
+        &self,
+        request: Request<InviteUserToSessionRequest>,
+    ) -> Result<Response<InviteUserToSessionResponse>, Status> {
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::invite_user_to_session(self, id, request).await
+    }
+
     /// Rpc create room
     #[tracing::instrument(skip(self))]
     async fn create_room(
@@ -356,15 +365,6 @@ impl OurChatService for RpcServer {
         let id = get_id_from_req(&request).unwrap();
         self.check_account_status(id).await?;
         process::create_room(self, id, request).await
-    }
-
-    async fn invite_user_to_session(
-        &self,
-        request: Request<InviteUserToSessionRequest>,
-    ) -> Result<Response<InviteUserToSessionResponse>, Status> {
-        let id = get_id_from_req(&request).unwrap();
-        self.check_account_status(id).await?;
-        process::invite_user_to_session(self, id, request).await
     }
 
     async fn send_room_key(

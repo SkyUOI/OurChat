@@ -47,7 +47,7 @@ impl FileSys {
             .sched
             .lock()
             .await
-            .add(Job::new_async(cron, move |_uuid, mut _l| {
+            .add(Job::new_async(cron, move |_uuid, _l| {
                 let db_conn = db_conn.clone();
                 let shared = shared.clone();
                 Box::pin(async move {

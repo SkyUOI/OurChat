@@ -112,13 +112,11 @@ async fn set_session_info_impl(
             modified = true;
         }
     }
-    if modified {
-        if let Err(e) = model.update(&server.db.db_pool).await {
-            if db::helper::is_conflict(&e) {
-                return Err(SetSessionErr::Conflict);
-            }
-            return Err(SetSessionErr::Db(e));
+    if modified && let Err(e) = model.update(&server.db.db_pool).await {
+        if db::helper::is_conflict(&e) {
+            return Err(SetSessionErr::Conflict);
         }
+        return Err(SetSessionErr::Db(e));
     }
     Ok(res)
 }

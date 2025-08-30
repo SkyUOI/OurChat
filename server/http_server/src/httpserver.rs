@@ -114,7 +114,7 @@ impl HttpServer {
         }
     }
 
-    fn load_rustls_config(&self, cfg: Arc<Cfg>) -> anyhow::Result<rustls::ServerConfig> {
+    fn load_rustls_config(&self, cfg: Arc<Cfg>) -> anyhow::Result<ServerConfig> {
         let mut cert_store = RootCertStore::empty();
         CertificateDer::pem_file_iter(cfg.main_cfg.tls.ca_tls_cert_path.as_ref().unwrap())?
             .flatten()
@@ -125,8 +125,7 @@ impl HttpServer {
         let key_der =
             PrivateKeyDer::from_pem_file(cfg.main_cfg.tls.server_key_cert_path.as_ref().unwrap())?;
         let cert_chain =
-            CertificateDer::pem_file_iter(cfg.main_cfg.tls.server_tls_cert_path.as_ref().unwrap())
-                .unwrap()
+            CertificateDer::pem_file_iter(cfg.main_cfg.tls.server_tls_cert_path.as_ref().unwrap())?
                 .flatten()
                 .collect();
         Ok(ServerConfig::builder()

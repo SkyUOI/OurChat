@@ -64,7 +64,7 @@ impl TestUser {
         let url = app.rpc_url.clone();
         let mut rng = rand::rng();
         let bits = 2048;
-        let private_key = rsa::RsaPrivateKey::new(&mut rng, bits).unwrap();
+        let private_key = RsaPrivateKey::new(&mut rng, bits).unwrap();
         let public_key = RsaPublicKey::from(&private_key);
         Self {
             name,
@@ -321,7 +321,7 @@ impl TestUser {
         user_ids: Vec<ID>,
         session_id: SessionID,
         duration: Option<Duration>,
-    ) -> Result<(), tonic::Status> {
+    ) -> Result<(), Status> {
         let req = BanUserRequest {
             user_ids: user_ids.into_iter().map(|x| x.into()).collect(),
             session_id: session_id.into(),
@@ -336,7 +336,7 @@ impl TestUser {
         user_ids: Vec<ID>,
         session_id: SessionID,
         duration: Option<Duration>,
-    ) -> Result<(), tonic::Status> {
+    ) -> Result<(), Status> {
         let req = MuteUserRequest {
             user_ids: user_ids.into_iter().map(|x| x.into()).collect(),
             session_id: session_id.into(),
@@ -350,7 +350,7 @@ impl TestUser {
         &mut self,
         user_ids: Vec<ID>,
         session_id: SessionID,
-    ) -> Result<(), tonic::Status> {
+    ) -> Result<(), Status> {
         let req = UnbanUserRequest {
             user_ids: user_ids.into_iter().map(|x| x.into()).collect(),
             session_id: session_id.into(),
@@ -363,7 +363,7 @@ impl TestUser {
         &mut self,
         user_ids: Vec<ID>,
         session_id: SessionID,
-    ) -> Result<(), tonic::Status> {
+    ) -> Result<(), Status> {
         let req = UnmuteUserRequest {
             user_ids: user_ids.into_iter().map(|x| x.into()).collect(),
             session_id: session_id.into(),
@@ -429,7 +429,7 @@ impl<'a> FetchMsgBuilder<'a> {
     pub async fn fetch_with_notify(
         &mut self,
         notify: Arc<Notify>,
-    ) -> Result<Vec<FetchMsgsResponse>, tonic::Status> {
+    ) -> Result<Vec<FetchMsgsResponse>, Status> {
         let msg_get = FetchMsgsRequest {
             time: Some(to_google_timestamp(self.timestamp)),
         };
@@ -442,7 +442,7 @@ impl<'a> FetchMsgBuilder<'a> {
                 self.user.timestamp_receive_msg = from_google_timestamp(&i.time.unwrap()).unwrap();
                 msgs.push(i);
             }
-            Result::<_, tonic::Status>::Ok(())
+            Result::<_, Status>::Ok(())
         };
         select! {
             _ = logic => {},

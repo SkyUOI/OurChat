@@ -23,7 +23,7 @@ pub enum InviteToSessionError {
     #[error("database error: {0:?}")]
     DbError(#[from] sea_orm::DbErr),
     #[error("status error: {0:?}")]
-    Status(#[from] tonic::Status),
+    Status(#[from] Status),
 }
 
 async fn invite_user_to_session_impl(

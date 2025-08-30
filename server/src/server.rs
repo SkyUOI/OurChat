@@ -448,11 +448,6 @@ pub struct BasicServiceProvider {
 /// Implementation of Basic service methods
 #[tonic::async_trait]
 impl BasicService for BasicServiceProvider {
-    #[tracing::instrument(skip(self))]
-    async fn ping(&self, _request: Request<PingRequest>) -> Result<Response<PingResponse>, Status> {
-        Ok(Response::new(PingResponse {}))
-    }
-
     /// Get current server timestamp in UTC
     #[tracing::instrument(skip(self))]
     async fn timestamp(
@@ -508,6 +503,11 @@ impl BasicService for BasicServiceProvider {
         request: Request<GetPresetUserStatusRequest>,
     ) -> Result<Response<GetPresetUserStatusResponse>, Status> {
         get_preset_user_status(self, request).await
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn ping(&self, _request: Request<PingRequest>) -> Result<Response<PingResponse>, Status> {
+        Ok(Response::new(PingResponse {}))
     }
 }
 

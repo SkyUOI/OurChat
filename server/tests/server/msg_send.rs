@@ -26,7 +26,7 @@ async fn test_text_sent() {
         .send_msg(
             session.session_id,
             vec![OneMsg {
-                data: Some(msg_delivery::v1::one_msg::Data::Text("hello".to_owned())),
+                data: Some(one_msg::Data::Text("hello".to_owned())),
             }],
             false,
         )
@@ -52,7 +52,7 @@ async fn test_text_get() {
     );
     // send a message
     let msg_should_sent = OneMsg {
-        data: Some(msg_delivery::v1::one_msg::Data::Text("hello".to_owned())),
+        data: Some(one_msg::Data::Text("hello".to_owned())),
     };
     let ret = a
         .lock()

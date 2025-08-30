@@ -25,7 +25,7 @@ use std::time::Duration;
 pub async fn get_all_session_relations(
     user_id: ID,
     db_conn: &impl ConnectionTrait,
-) -> Result<Vec<session_relation::Model>, sea_orm::DbErr> {
+) -> Result<Vec<session_relation::Model>, DbErr> {
     let ret = session_relation::Entity::find()
         .filter(session_relation::Column::UserId.eq(user_id))
         .all(db_conn)
@@ -48,7 +48,7 @@ pub async fn get_all_session_relations(
 pub async fn get_members(
     session_id: SessionID,
     db_conn: &impl ConnectionTrait,
-) -> Result<Vec<session_relation::Model>, sea_orm::DbErr> {
+) -> Result<Vec<session_relation::Model>, DbErr> {
     let users = session_relation::Entity::find()
         .filter(session_relation::Column::SessionId.eq(session_id))
         .all(db_conn)
@@ -73,7 +73,7 @@ pub async fn query_session_role(
     session_id: SessionID,
     role: RoleId,
     db_conn: &impl ConnectionTrait,
-) -> Result<Vec<user_role_relation::Model>, sea_orm::DbErr> {
+) -> Result<Vec<user_role_relation::Model>, DbErr> {
     let ret = user_role_relation::Entity::find()
         .filter(user_role_relation::Column::SessionId.eq(session_id))
         .filter(user_role_relation::Column::RoleId.eq(role))
@@ -149,7 +149,7 @@ pub async fn user_banned_status(
 pub async fn get_all_roles_of_session(
     session_id: SessionID,
     db_conn: &impl ConnectionTrait,
-) -> Result<Vec<user_role_relation::Model>, sea_orm::DbErr> {
+) -> Result<Vec<user_role_relation::Model>, DbErr> {
     let ret = user_role_relation::Entity::find()
         .filter(user_role_relation::Column::SessionId.eq(session_id))
         .all(db_conn)
@@ -172,7 +172,7 @@ pub async fn in_session(
     user_id: ID,
     session_id: SessionID,
     db_conn: &impl ConnectionTrait,
-) -> Result<bool, sea_orm::DbErr> {
+) -> Result<bool, DbErr> {
     let ret = session_relation::Entity::find_by_id((session_id.into(), user_id.into()))
         .one(db_conn)
         .await?;
@@ -184,7 +184,7 @@ pub enum SessionError {
     #[error("Session not found")]
     SessionNotFound,
     #[error("database error:{0:?}")]
-    Db(#[from] sea_orm::DbErr),
+    Db(#[from] DbErr),
 }
 
 /// Checks if the user has the given permission.
@@ -203,7 +203,7 @@ pub async fn if_permission_exist(
     session_id: SessionID,
     permission_checked: PermissionId,
     db_conn: &impl ConnectionTrait,
-) -> Result<bool, sea_orm::DbErr> {
+) -> Result<bool, DbErr> {
     let exists = user_role_relation::Entity::find()
         .join(
             sea_orm::JoinType::InnerJoin,
@@ -336,7 +336,7 @@ pub async fn leave_session(
 pub async fn get_session_by_id(
     session_id: SessionID,
     db_conn: &impl ConnectionTrait,
-) -> Result<Option<session::Model>, sea_orm::DbErr> {
+) -> Result<Option<session::Model>, DbErr> {
     session::Entity::find_by_id(session_id).one(db_conn).await
 }
 
@@ -360,7 +360,7 @@ pub async fn create_session_db(
     session_name: String,
     db_conn: &impl ConnectionTrait,
     e2ee_on: bool,
-) -> Result<session::Model, sea_orm::DbErr> {
+) -> Result<session::Model, DbErr> {
     let time_now = chrono::Utc::now();
     let session = session::ActiveModel {
         session_id: ActiveValue::Set(session_id.into()),

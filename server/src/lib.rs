@@ -1,7 +1,6 @@
 #![feature(decl_macro)]
 #![feature(duration_constructors)]
 
-mod cryption;
 pub mod db;
 pub mod helper;
 pub mod process;
@@ -571,7 +570,7 @@ impl Application {
         let sched = tokio::sync::Mutex::new(JobSchedulerWrapper::new(
             tokio_cron_scheduler::JobScheduler::new().await?,
         ));
-        base::log::add_clean_to_scheduler(
+        log::add_clean_to_scheduler(
             consts::OURCHAT_LOG_PREFIX,
             cfg.main_cfg.lop_keep,
             cfg.main_cfg.log_clean_duration,

@@ -30,7 +30,7 @@ pub enum SendRoomKeyError {
     #[error("message error:{0:?}")]
     MessageError(#[from] MsgInsTransmitErr),
     #[error("status error:{0:?}")]
-    Status(#[from] tonic::Status),
+    Status(#[from] Status),
 }
 
 pub async fn send_room_key(

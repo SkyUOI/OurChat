@@ -20,7 +20,7 @@ pub async fn manage_permission_existed(
     user_id: ID,
     permission_checked: i64,
     db_conn: &impl ConnectionTrait,
-) -> Result<bool, sea_orm::DbErr> {
+) -> Result<bool, DbErr> {
     let num = manager_role_relation::Entity::find()
         .join(
             sea_orm::JoinType::InnerJoin,
@@ -58,7 +58,7 @@ pub async fn add_role(
     description: Option<String>,
     permissions: impl IntoIterator<Item = i64>,
     db_conn: &impl ConnectionTrait,
-) -> Result<server_management_role::Model, sea_orm::DbErr> {
+) -> Result<server_management_role::Model, DbErr> {
     let role = server_management_role::ActiveModel {
         name: sea_orm::ActiveValue::Set(name),
         description: sea_orm::ActiveValue::Set(description),
@@ -91,7 +91,7 @@ pub async fn set_role(
     user_id: ID,
     role_id: i64,
     db_conn: &impl ConnectionTrait,
-) -> Result<(), sea_orm::DbErr> {
+) -> Result<(), DbErr> {
     manager_role_relation::ActiveModel {
         user_id: sea_orm::ActiveValue::Set(user_id.into()),
         role_id: sea_orm::ActiveValue::Set(role_id),

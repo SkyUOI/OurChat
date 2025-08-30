@@ -118,7 +118,7 @@ async fn e2eeize_session_impl(
                 .ok_or(anyhow!("cannot find user"))?;
             let msg = RespondEventType::SendRoomKey(SendRoomKeyNotification {
                 session_id,
-                sender: (members.user_id as u64),
+                sender: members.user_id as u64,
                 public_key: user.public_key.into(),
             });
             message_insert_and_transmit(

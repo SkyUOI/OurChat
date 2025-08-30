@@ -42,7 +42,7 @@ pub async fn send_msg(
 #[derive(thiserror::Error, Debug)]
 enum SendMsgErr {
     #[error("database error:{0:?}")]
-    Db(#[from] sea_orm::DbErr),
+    Db(#[from] DbErr),
     #[error("status error:{0:?}")]
     Status(#[from] Status),
     #[error("internal error:{0:?}")]
@@ -150,7 +150,7 @@ async fn send_msg_impl(
                         .ok_or(anyhow!("cannot find user"))?;
                     let msg = RespondEventType::SendRoomKey(SendRoomKeyNotification {
                         session_id: session_id.into(),
-                        sender: (members.user_id as u64),
+                        sender: members.user_id as u64,
                         public_key: user.public_key.into(),
                     });
                     message_insert_and_transmit(
