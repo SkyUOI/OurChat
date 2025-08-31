@@ -155,7 +155,7 @@ class _LoginState extends State<Login> {
                               logger.w("login fail: code $code");
                               // 处理报错
                               if (context.mounted) {
-                                showErrorMessage(context, code, message,
+                                showResultMessage(context, code, message,
                                     notFoundStatus:
                                         AppLocalizations.of(context)!.notFound(
                                             AppLocalizations.of(context)!.user),
@@ -289,7 +289,7 @@ class _RegisterState extends State<Register> {
                               logger.w("register fail: code $code");
                               // 处理报错
                               if (context.mounted) {
-                                showErrorMessage(context, code, message,
+                                showResultMessage(context, code, message,
                                     alreadyExistsStatus:
                                         AppLocalizations.of(context)!
                                             .emailExists,

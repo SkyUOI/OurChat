@@ -9,6 +9,7 @@ import 'package:ourchat/core/event.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
 import 'package:ourchat/service/ourchat/friends/accept_friend_invitation/v1/accept_friend_invitation.pb.dart';
 import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
+import 'package:ourchat/session.dart';
 import 'package:provider/provider.dart';
 import 'main.dart';
 
@@ -48,7 +49,31 @@ class Friends extends StatelessWidget {
                 account.id = ourchatAppState.thisAccount!.friends[index];
                 account.recreateStub();
                 return ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      showDialog(
+                          context: context,
+                          builder: (context) {
+                            return AlertDialog(
+                              title: Text(account.username),
+                              content: SizedBox(
+                                width: 150,
+                                child: ChangeNotifierProvider(
+                                  create: (context) => SessionState(),
+                                  builder: (context, child) {
+                                    var sessionState =
+                                        context.watch<SessionState>();
+                                    sessionState.currentUserId = account.id;
+                                    sessionState.tabIndex = userTab;
+                                    return Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [UserTab()],
+                                    );
+                                  },
+                                ),
+                              ),
+                            );
+                          });
+                    },
                     child: FutureBuilder(
                         future: account.getAccountInfo(),
                         builder: (context, snapshot) {
@@ -133,12 +158,13 @@ class FriendRequestDialog extends StatelessWidget {
                                                         .ACCEPT_FRIEND_INVITATION_RESULT_SUCCESS));
                                           } on grpc.GrpcError catch (e) {
                                             if (context.mounted) {
-                                              showErrorMessage(
+                                              showResultMessage(
                                                   context, e.code, e.message,
                                                   permissionDeniedStatus:
                                                       AppLocalizations.of(
                                                               context)!
-                                                          .permissionDenied,
+                                                          .permissionDenied(
+                                                              "Accept friend invitation"),
                                                   notFoundStatus:
                                                       AppLocalizations.of(
                                                               context)!
@@ -201,13 +227,14 @@ class FriendRequestDialog extends StatelessWidget {
                                                             .GrpcError catch (e) {
                                                               if (context
                                                                   .mounted) {
-                                                                showErrorMessage(
+                                                                showResultMessage(
                                                                     context,
                                                                     e.code,
                                                                     e.message,
                                                                     permissionDeniedStatus: AppLocalizations.of(
                                                                             context)!
-                                                                        .permissionDenied,
+                                                                        .permissionDenied(
+                                                                            "Refuse friend invitation"),
                                                                     notFoundStatus: AppLocalizations.of(
                                                                             context)!
                                                                         .notFound(

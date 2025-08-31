@@ -137,6 +137,15 @@ class OurChatAccount {
         publicDataNeedUpdate = true;
       }
     }
+    if (!publicDataNeedUpdate) {
+      // 使用本地缓存
+      username = publicData!.username;
+      ocid = publicData.ocid;
+      avatarKey = publicData.avatarKey;
+      status = publicData.status;
+      publicUpdateTime =
+          OurChatTime(inputDatetime: publicData.publicUpdateTime);
+    }
     if (privateData == null) {
       if (isMe) {
         privateDataNeedUpdate = true;
@@ -149,6 +158,22 @@ class OurChatAccount {
           OurChatTime(inputDatetime: privateData.updateTime)) {
         privateDataNeedUpdate = true;
       }
+    }
+    if (!privateDataNeedUpdate && isMe) {
+      // 使用本地缓存
+      updatedTime = OurChatTime(inputDatetime: privateData!.updateTime);
+      email = privateData.email;
+      friends = [];
+      List<dynamic> friendsList = jsonDecode(privateData.friendsJson);
+      for (int i = 0; i < friendsList.length; i++) {
+        friends.add(Int64.parseInt(friendsList[i].toString()));
+      }
+      sessions = [];
+      List<dynamic> sessionsList = jsonDecode(privateData.sessionsJson);
+      for (int i = 0; i < sessionsList.length; i++) {
+        sessions.add(Int64.parseInt(sessionsList[i].toString()));
+      }
+      registerTime = OurChatTime(inputDatetime: privateData.registerTime);
     }
 
     if (publicDataNeedUpdate) await updatePublicData(publicData != null);

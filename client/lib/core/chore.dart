@@ -26,25 +26,22 @@ class OurChatTime {
   void toTimestamp() {
     Int64 seconds = Int64.parseInt(
         (datetime.microsecondsSinceEpoch / 1000000).round().toString());
-    var nanos = (datetime.microsecondsSinceEpoch % 1000000) * 1000;
     // print(datetime.microsecondsSinceEpoch);
     // print("=>timestamp$seconds,$nanos");
-    timestamp = Timestamp(seconds: seconds, nanos: nanos);
+    timestamp = Timestamp(seconds: seconds);
   }
 
   void toDatetime() {
     var seconds = timestamp.seconds;
-    var nanos = (timestamp.nanos / 1000).round();
     // print(timestamp);
     // print("=>datetime${seconds.toInt() * 1000000 + nanos}");
-    datetime =
-        DateTime.fromMicrosecondsSinceEpoch(seconds.toInt() * 1000000 + nanos);
+    datetime = DateTime.fromMicrosecondsSinceEpoch(seconds.toInt() * 1000000);
   }
 
   @override
   bool operator ==(Object other) {
     if (other is OurChatTime) {
-      return timestamp == other.timestamp;
+      return datetime.difference(other.datetime).inMicroseconds == 0;
     }
     return false;
   }
@@ -53,7 +50,7 @@ class OurChatTime {
   int get hashCode => timestamp.hashCode;
 }
 
-void showErrorMessage(
+void showResultMessage(
   BuildContext context,
   int code,
   String? errorMessage, {
@@ -81,6 +78,7 @@ void showErrorMessage(
       if (okStatus != null) {
         message = okStatus;
       }
+      message = AppLocalizations.of(context)!.succeeded;
       break;
     case cancelledStatusCode:
       if (cancelledStatus != null) {

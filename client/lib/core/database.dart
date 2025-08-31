@@ -12,7 +12,7 @@ class PublicSession extends Table {
   DateTimeColumn get createdTime => dateTime()();
   DateTimeColumn get updatedTime => dateTime()();
   IntColumn get size => integer()();
-  TextColumn get description => text().nullable()();
+  TextColumn get description => text()();
 
   @override
   Set<Column> get primaryKey => {sessionId};

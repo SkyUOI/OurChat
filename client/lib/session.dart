@@ -8,8 +8,10 @@ import 'package:ourchat/main.dart';
 import 'package:ourchat/core/account.dart';
 import 'package:ourchat/service/basic/v1/basic.pbgrpc.dart';
 import 'package:ourchat/service/ourchat/friends/add_friend/v1/add_friend.pb.dart';
+import 'package:ourchat/service/ourchat/friends/set_friend_info/v1/set_friend_info.pb.dart';
 import 'package:ourchat/service/ourchat/msg_delivery/v1/msg_delivery.pb.dart';
 import 'package:ourchat/service/ourchat/session/new_session/v1/session.pb.dart';
+import 'package:ourchat/service/ourchat/session/set_session_info/v1/set_session_info.pb.dart';
 import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
 import 'package:provider/provider.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
@@ -100,18 +102,28 @@ class _SessionState extends State<Session> {
                 page = Column(
                   children: [
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        BackButton(
-                          onPressed: () {
-                            sessionState.tabTitle = "";
-                            sessionState.currentUserId = null;
-                            sessionState.currentSession = null;
-                            sessionState.currentSessionRecords = [];
-                            sessionState.update();
-                          },
+                        Row(
+                          children: [
+                            BackButton(
+                              onPressed: () {
+                                sessionState.tabTitle = "";
+                                sessionState.currentUserId = null;
+                                sessionState.currentSession = null;
+                                sessionState.currentSessionRecords = [];
+                                sessionState.update();
+                              },
+                            ),
+                            Text(sessionState.tabTitle,
+                                style: TextStyle(fontSize: 20))
+                          ],
                         ),
-                        Text(sessionState.tabTitle,
-                            style: TextStyle(fontSize: 20))
+                        if (sessionState.tabIndex == sessionTab)
+                          IconButton(
+                              onPressed: () => showSetSessionInfoDialog(
+                                  context, appState, sessionState),
+                              icon: Icon(Icons.more_horiz))
                       ],
                     ),
                     Expanded(child: tab)
@@ -129,8 +141,22 @@ class _SessionState extends State<Session> {
                       flex: 3,
                       child: Column(
                         children: [
-                          Text(sessionState.tabTitle,
-                              style: TextStyle(fontSize: 30)),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Expanded(
+                                child: Center(
+                                  child: Text(sessionState.tabTitle,
+                                      style: TextStyle(fontSize: 30)),
+                                ),
+                              ),
+                              if (sessionState.tabIndex == sessionTab)
+                                IconButton(
+                                    onPressed: () => showSetSessionInfoDialog(
+                                        context, appState, sessionState),
+                                    icon: Icon(Icons.more_horiz))
+                            ],
+                          ),
                           Expanded(child: tab)
                         ],
                       )),
@@ -142,6 +168,100 @@ class _SessionState extends State<Session> {
         );
       },
     );
+  }
+
+  void showSetSessionInfoDialog(BuildContext context, OurChatAppState appState,
+      SessionState sessionState) {
+    String name = sessionState.currentSession!.name,
+        description = sessionState.currentSession!.description;
+
+    showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          var key = GlobalKey<FormState>();
+          return AlertDialog(
+            title: Text(sessionState.currentSession!.name.isEmpty
+                ? AppLocalizations.of(context)!.newSession
+                : sessionState.currentSession!.name),
+            content: Form(
+              key: key,
+              child: SizedBox(
+                width: 150,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(right: 5.0),
+                          child: Text(AppLocalizations.of(context)!.sessionId),
+                        ),
+                        SelectableText(
+                            sessionState.currentSession!.sessionId.toString())
+                      ],
+                    ),
+                    TextFormField(
+                      initialValue: name,
+                      decoration: InputDecoration(
+                          label:
+                              Text(AppLocalizations.of(context)!.sessionName)),
+                      onSaved: (newValue) {
+                        name = newValue!;
+                      },
+                    ),
+                    TextFormField(
+                      initialValue: description,
+                      decoration: InputDecoration(
+                          label:
+                              Text(AppLocalizations.of(context)!.description)),
+                      onSaved: (newValue) {
+                        description = newValue!;
+                      },
+                    )
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              IconButton(
+                  onPressed: () async {
+                    key.currentState!.save();
+                    var stub = OurChatServiceClient(appState.server!.channel!,
+                        interceptors: [appState.server!.interceptor!]);
+                    try {
+                      await stub.setSessionInfo(SetSessionInfoRequest(
+                          sessionId: sessionState.currentSession!.sessionId,
+                          name: name,
+                          description: description));
+                      await sessionState.currentSession!
+                          .getSessionInfo(ignoreCache: true);
+                      sessionState.tabTitle = sessionState.currentSession!.name;
+                      appState.update();
+                      if (context.mounted) {
+                        showResultMessage(context, okStatusCode, null);
+                        Navigator.pop(context);
+                      }
+                    } on grpc.GrpcError catch (e) {
+                      if (context.mounted) {
+                        showResultMessage(context, e.code, e.message,
+                            alreadyExistsStatus:
+                                AppLocalizations.of(context)!.conflict,
+                            permissionDeniedStatus:
+                                AppLocalizations.of(context)!
+                                    .permissionDenied(e.message!));
+                        Navigator.pop(context);
+                      }
+                    }
+                  },
+                  icon: Icon(Icons.check)),
+              IconButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  icon: Icon(Icons.close)),
+            ],
+          );
+        });
   }
 }
 
@@ -245,16 +365,14 @@ class _UserTabState extends State<UserTab> {
                           displayName: addFriendDisplayName,
                           leaveMessage: addFriendLeaveMessage));
                       if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                          content:
-                              Text(AppLocalizations.of(context)!.succeeded),
-                        ));
+                        showResultMessage(context, okStatusCode, null);
                       }
                     } on grpc.GrpcError catch (e) {
                       if (context.mounted) {
-                        showErrorMessage(context, e.code, e.message,
+                        showResultMessage(context, e.code, e.message,
                             permissionDeniedStatus:
-                                AppLocalizations.of(context)!.permissionDenied,
+                                AppLocalizations.of(context)!.permissionDenied(
+                                    AppLocalizations.of(context)!.addFriend),
                             alreadyExistsStatus: AppLocalizations.of(context)!
                                 .friendAlreadyExists,
                             notFoundStatus: AppLocalizations.of(context)!
@@ -292,7 +410,6 @@ class _UserTabState extends State<UserTab> {
           OurChatAccount account = snapshot.data;
           bool isFriend =
               ourchatAppState.thisAccount!.friends.contains(account.id);
-          var i10n = AppLocalizations.of(context);
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -308,9 +425,9 @@ class _UserTabState extends State<UserTab> {
                     },
                     children: [
                       if (account.displayName != null)
-                        userInfoRow(i10n!.displayName, account.displayName!),
-                      userInfoRow(i10n!.username, account.username),
-                      userInfoRow(i10n.ocid, account.ocid),
+                        userInfoRow(l10n!.displayName, account.displayName!),
+                      userInfoRow(l10n!.username, account.username),
+                      userInfoRow(l10n.ocid, account.ocid),
                     ],
                   ),
                 ),
@@ -318,9 +435,68 @@ class _UserTabState extends State<UserTab> {
                   ElevatedButton(
                       onPressed: () => showAddFriendDialog(
                           context, ourchatAppState, account),
-                      child: Text(i10n.addFriend)),
+                      child: Text(l10n.addFriend)),
+                if (isFriend)
+                  ElevatedButton(
+                      onPressed: () => showSetDisplayNameDialog(
+                          context, ourchatAppState, account),
+                      child: Text(l10n.modify))
               ],
             ),
+          );
+        });
+  }
+
+  void showSetDisplayNameDialog(
+      BuildContext context, OurChatAppState appState, OurChatAccount account) {
+    showDialog(
+        context: context,
+        builder: (context) {
+          var key = GlobalKey<FormState>();
+          return AlertDialog(
+            content: Column(mainAxisSize: MainAxisSize.min, children: [
+              Form(
+                key: key,
+                child: TextFormField(
+                  initialValue: account.displayName,
+                  decoration: InputDecoration(
+                      label: Text(AppLocalizations.of(context)!.displayName)),
+                  onSaved: (newValue) async {
+                    var stub = OurChatServiceClient(appState.server!.channel!,
+                        interceptors: [appState.server!.interceptor!]);
+                    try {
+                      await stub.setFriendInfo(SetFriendInfoRequest(
+                          id: account.id, displayName: newValue));
+                      if (context.mounted) {
+                        showResultMessage(context, okStatusCode, null);
+                      }
+                      await account.getAccountInfo(ignoreCache: true);
+                      appState.update();
+                    } on grpc.GrpcError catch (e) {
+                      if (context.mounted) {
+                        showResultMessage(context, e.code, e.message);
+                      }
+                    } finally {
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                      }
+                    }
+                  },
+                ),
+              )
+            ]),
+            actions: [
+              IconButton(
+                  onPressed: () {
+                    key.currentState!.save();
+                  },
+                  icon: Icon(Icons.check)),
+              IconButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  icon: Icon(Icons.close))
+            ],
           );
         });
   }
@@ -360,7 +536,7 @@ class _SessionListState extends State<SessionList> {
       try {
         sessionState.getSessions(ourchatAppState);
       } on grpc.GrpcError catch (e) {
-        showErrorMessage(context, e.code, e.message,
+        showResultMessage(context, e.code, e.message,
             notFoundStatus: AppLocalizations.of(context)!
                 .notFound(AppLocalizations.of(context)!.session),
             invalidArgumentStatus: AppLocalizations.of(context)!
@@ -573,10 +749,10 @@ class _SessionListState extends State<SessionList> {
       return account;
     } on grpc.GrpcError catch (e) {
       if (context.mounted) {
-        showErrorMessage(context, e.code, e.message,
+        showResultMessage(context, e.code, e.message,
             // getAccountInfo
-            permissionDeniedStatus:
-                AppLocalizations.of(context)!.permissionDenied,
+            permissionDeniedStatus: AppLocalizations.of(context)!
+                .permissionDenied("Get Account Info"),
             invalidArgumentStatus: AppLocalizations.of(context)!.internalError,
             // getId
             notFoundStatus: AppLocalizations.of(context)!
@@ -811,10 +987,11 @@ class _SessionTabState extends State<SessionTab> {
                           await bundleMsgs.send(sessionState.currentSession!);
                         } on grpc.GrpcError catch (e) {
                           if (context.mounted) {
-                            showErrorMessage(context, e.code, e.message,
+                            showResultMessage(context, e.code, e.message,
                                 permissionDeniedStatus:
                                     AppLocalizations.of(context)!
-                                        .permissionDenied,
+                                        .permissionDenied(
+                                            AppLocalizations.of(context)!.send),
                                 notFoundStatus: AppLocalizations.of(context)!
                                     .notFound(
                                         AppLocalizations.of(context)!.session));
@@ -858,8 +1035,13 @@ class _SessionRecordState extends State<SessionRecord> {
     SessionState sessionState = context.watch<SessionState>();
     return ListView.builder(
       itemBuilder: (context, index) {
-        String username =
-            sessionState.currentSessionRecords[index].sender!.username;
+        String name =
+            sessionState.currentSessionRecords[index].sender!.displayName !=
+                        null &&
+                    sessionState.currentSessionRecords[index].sender!
+                        .displayName!.isNotEmpty
+                ? sessionState.currentSessionRecords[index].sender!.displayName!
+                : sessionState.currentSessionRecords[index].sender!.username;
         List<Widget> messages = [];
         for (int i = 0;
             i < sessionState.currentSessionRecords[index].msgs.length;
@@ -873,7 +1055,7 @@ class _SessionRecordState extends State<SessionRecord> {
           crossAxisAlignment:
               (isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start),
           children: [
-            Text(username),
+            Text(name),
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(8.0),

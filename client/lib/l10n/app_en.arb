@@ -171,9 +171,15 @@
     "@logLevel": {
         "description": "Log Level"
     },
-    "permissionDenied": "Permission denied",
+    "permissionDenied": "Permission denied ({action})",
     "@permissionDenied": {
-        "description": "Permission denied"
+        "description": "Permission denied",
+        "placeholders": {
+            "action": {
+                "type": "String",
+                "example": "Set session avatar"
+            }
+        }
     },
     "logout": "Log Out",
     "@logout": {
@@ -302,5 +308,25 @@
     "argument": "Argument",
     "@argument": {
         "description": "Argument"
+    },
+    "sessionName": "Session name",
+    "@sessionName": {
+        "description": "Session name"
+    },
+    "description": "Description",
+    "@description": {
+        "description": "description"
+    },
+    "conflict": "Conflict",
+    "@conflict": {
+        "description": "Conflict"
+    },
+    "sessionId": "Session ID",
+    "@sessionId": {
+        "description": "Session ID"
+    },
+    "modify": "Modify",
+    "@modify": {
+        "description": "Modify"
     }
 }

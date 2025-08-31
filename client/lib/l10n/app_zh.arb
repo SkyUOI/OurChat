@@ -40,7 +40,7 @@
     "reset": "重置",
     "internalError": "内部错误",
     "serverStatusUnknown": "未知",
-    "permissionDenied": "权限不足",
+    "permissionDenied": "权限不足 ({action})",
     "logLevel": "日志级别",
     "logout": "退出登录",
     "displayName": "备注",
@@ -70,5 +70,10 @@
     "user": "用户",
     "invitation": "邀请",
     "invalid": "{sth}无效",
-    "argument": "参数"
+    "argument": "参数",
+    "sessionName": "会话名称",
+    "description": "简介",
+    "conflict": "冲突",
+    "sessionId": "会话ID",
+    "modify": "修改"
 }
