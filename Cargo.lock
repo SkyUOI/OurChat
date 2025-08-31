@@ -1357,6 +1357,7 @@ dependencies = [
  "ring",
  "rsa 0.10.0-rc.5",
  "sea-orm",
+ "serde",
  "server",
  "sha3",
  "size",

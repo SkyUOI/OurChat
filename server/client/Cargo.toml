@@ -36,3 +36,4 @@ utils ={ path = "../utils" }
 ring.workspace = true
 rsa.workspace = true
 bytes.workspace = true
+serde.workspace = true

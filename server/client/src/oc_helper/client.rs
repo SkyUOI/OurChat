@@ -39,15 +39,13 @@ pub type OCClient = OurChatServiceClient<
 /// Some members are Option because you can construct a TestApp by connecting to an existing server or not
 #[derive(Clone)]
 pub struct TestApp {
-    pub port: u16,
     pub db_url: String,
     pub app_shared: Option<Arc<SharedData>>,
     pub db_pool: Option<DbPool>,
     pub owned_users: Vec<Arc<tokio::sync::Mutex<TestUser>>>,
-    pub clients: Clients,
-    pub rpc_url: String,
     pub app_config: Cfg,
     pub rmq_vhost: String,
+    pub core: ClientCore,
 
     has_dropped: bool,
     server_drop_handle: Option<ShutdownSdr>,
@@ -70,6 +68,48 @@ impl TestAppTrait for ArgsParser {
             ..Default::default()
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct ClientCore {
+    pub port: u16,
+    pub clients: Clients,
+    pub rpc_url: String,
+}
+
+impl ClientCore {
+    pub async fn new_with_existing_instance(cfg: ClientCoreConfig) -> anyhow::Result<Self> {
+        let remote_url = format!(
+            "{}://{}:{}",
+            cfg.main_cfg.protocol_http(),
+            cfg.main_cfg.ip,
+            cfg.main_cfg.port
+        );
+        let vhost = cfg.rabbitmq_cfg.vhost.clone();
+        Ok(Self {
+            should_drop_db: false,
+            port: cfg.main_cfg.port,
+            db_url: cfg.db_cfg.url(),
+            app_shared: None,
+            db_pool: None,
+            owned_users: vec![],
+            server_drop_handle: None,
+            has_dropped: false,
+            rpc_url: remote_url.clone(),
+            clients: Clients {
+                auth: AuthServiceClient::connect(remote_url.clone()).await?,
+                basic: BasicServiceClient::connect(remote_url.clone()).await?,
+            },
+            app_config: cfg,
+            rmq_vhost: vhost,
+            should_drop_vhost: false,
+        })
+    }
+}
+
+#[derive(Debug, serde::Deserialize, Clone)]
+pub struct ClientCoreConfig {
+    enable_ssl: Option<bool>
 }
 
 impl TestApp {
@@ -154,17 +194,19 @@ impl TestApp {
         }
         let connected_channel = connected_channel.connect().await?;
         let obj = TestApp {
-            port,
             db_url,
             server_drop_handle: Some(abort_handle),
             has_dropped: false,
             app_shared: Some(shared),
             owned_users: vec![],
             db_pool: Some(db_pool),
-            rpc_url: rpc_url.clone(),
-            clients: Clients {
-                auth: AuthServiceClient::new(connected_channel.clone()),
-                basic: BasicServiceClient::new(connected_channel),
+            core: ClientCore {
+                port,
+                clients: Clients {
+                    auth: AuthServiceClient::new(connected_channel.clone()),
+                    basic: BasicServiceClient::new(connected_channel),
+                },
+                rpc_url: rpc_url.clone(),
             },
             should_drop_db: true,
             app_config: server_config,
@@ -175,33 +217,6 @@ impl TestApp {
         Ok(obj)
     }
 
-    pub async fn new_with_existing_instance(cfg: Cfg) -> anyhow::Result<Self> {
-        let remote_url = format!(
-            "{}://{}:{}",
-            cfg.main_cfg.protocol_http(),
-            cfg.main_cfg.ip,
-            cfg.main_cfg.port
-        );
-        let vhost = cfg.rabbitmq_cfg.vhost.clone();
-        Ok(Self {
-            should_drop_db: false,
-            port: cfg.main_cfg.port,
-            db_url: cfg.db_cfg.url(),
-            app_shared: None,
-            db_pool: None,
-            owned_users: vec![],
-            server_drop_handle: None,
-            has_dropped: false,
-            rpc_url: remote_url.clone(),
-            clients: Clients {
-                auth: AuthServiceClient::connect(remote_url.clone()).await?,
-                basic: BasicServiceClient::connect(remote_url.clone()).await?,
-            },
-            app_config: cfg,
-            rmq_vhost: vhost,
-            should_drop_vhost: false,
-        })
-    }
 
     pub async fn async_drop(&mut self) {
         tracing::info!("async_drop called");
