@@ -30,7 +30,7 @@ jobs:
 
       - name: Build and push Docker image
         run: |
-          python3 script/build_production_container.py --extension ${{ steps.get_version.outputs.VERSION }} --skip_base --push
+          python3 script/build_production_container.py --extension ${{ steps.get_version.outputs.VERSION }} --skip-base --push
 
       - name: Prepare server bundle files
         run: |
