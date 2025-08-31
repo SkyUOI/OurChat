@@ -10,7 +10,7 @@ mod role;
 
 use base::consts::{ID, SessionID};
 use base::types::RoleId;
-use claims::{assert_le, assert_lt, assert_ok};
+use claims::{assert_lt, assert_ok};
 use client::TestApp;
 use migration::m20241229_022701_add_role_for_session::PredefinedRoles;
 use parking_lot::Mutex;
@@ -307,7 +307,7 @@ async fn set_session_info() {
     assert_eq!(info.description.unwrap(), "test description");
     // check if timestamp was updated
     let now_timestamp = get_timestamp().await;
-    assert_le!(original_timestamp, now_timestamp);
+    assert_lt!(original_timestamp, now_timestamp);
     // without permission
     let err = b
         .lock()
