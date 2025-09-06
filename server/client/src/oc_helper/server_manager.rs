@@ -25,11 +25,12 @@ pub struct TestServerManager {
 
 impl TestServerManager {
     pub async fn new(app: &TestApp, user_id: ID, token: String) -> anyhow::Result<Self> {
-        let channel =
-            Channel::builder(Uri::from_maybe_shared(app.rpc_url.clone()).context("Uri Error")?)
-                .connect()
-                .await
-                .context("Connect Error")?;
+        let channel = Channel::builder(
+            Uri::from_maybe_shared(app.core.rpc_url.clone()).context("Uri Error")?,
+        )
+        .connect()
+        .await
+        .context("Connect Error")?;
         let token_clone: MetadataValue<_> = format!("Bearer {}", &token)
             .parse()
             .context("token parse error")?;

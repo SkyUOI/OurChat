@@ -5,6 +5,7 @@ pub mod http_helper;
 pub mod oc_helper;
 
 pub use http_helper::TestHttpApp;
+pub use oc_helper::client::ClientCore;
 pub use oc_helper::client::TestApp;
 pub use oc_helper::user::TestUser;
 

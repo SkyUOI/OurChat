@@ -22,8 +22,7 @@ async fn get_datetime() {
 async fn get_server_info() {
     let mut app = TestApp::new_with_launching_instance().await.unwrap();
     let req = app
-        .clients
-        .basic
+        .basic_service()
         .get_server_info(GetServerInfoRequest {})
         .await
         .unwrap();
@@ -58,8 +57,7 @@ async fn get_support_info() {
 
     // Get support information
     let response = app
-        .clients
-        .basic
+        .basic_service()
         .support(SupportRequest {})
         .await
         .unwrap()
@@ -111,8 +109,7 @@ async fn get_preset_user_status() {
     add_preset_user_status(app.get_db_connection(), "I am good").await;
     add_preset_user_status(app.get_db_connection(), "I am bad").await;
     let statuses = app
-        .clients
-        .basic
+        .basic_service()
         .get_preset_user_status(Request::new(GetPresetUserStatusRequest {}))
         .await
         .unwrap()

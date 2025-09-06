@@ -1,5 +1,6 @@
+use crate::ClientCore;
 use crate::oc_helper::FAKE_MANAGER;
-use crate::oc_helper::client::{OCClient, TestApp};
+use crate::oc_helper::client::OCClient;
 use crate::oc_helper::{ClientErr, Clients};
 use anyhow::Context;
 use base::consts::{ID, JWT_HEADER, OCID, SessionID};
@@ -58,7 +59,7 @@ pub struct TestUser {
 
 // Utils functions implemented
 impl TestUser {
-    pub async fn random(app: &TestApp) -> Self {
+    pub async fn random(app: &ClientCore) -> Self {
         let name = FAKE_MANAGER.lock().generate_unique_name();
         let email = FAKE_MANAGER.lock().generate_unique_email();
         let url = app.rpc_url.clone();

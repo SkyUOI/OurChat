@@ -8,3 +8,4 @@ sha3.workspace = true
 chrono.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+reqwest.workspace = true

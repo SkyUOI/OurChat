@@ -1,3 +1,4 @@
+use anyhow::Context;
 use config::{ConfigError, File};
 use serde::{Deserialize, Serialize};
 use std::{path::Path, time::Duration};
@@ -60,4 +61,13 @@ pub fn read_a_config(path: impl AsRef<Path>) -> Result<config::Config, ConfigErr
     config::Config::builder()
         .add_source(File::with_name(path.as_ref().to_str().unwrap()))
         .build()
+}
+
+pub fn read_config_and_deserialize<'de, T: Deserialize<'de>>(
+    path: impl AsRef<Path>,
+) -> anyhow::Result<T> {
+    read_a_config(path)
+        .context("Failed to build config")?
+        .try_deserialize()
+        .context("Failed to build config")
 }

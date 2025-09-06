@@ -1,6 +1,6 @@
 mod framework;
 
-use base::consts::{CONFIG_FILE_ENV_VAR, OCID};
+use base::consts::OCID;
 use clap::Parser;
 use client::helper;
 use dashmap::DashMap;
@@ -8,19 +8,15 @@ use framework::{Output, Record, Report, StressTest};
 use pb::service::basic::v1::{GetServerInfoRequest, TimestampRequest};
 use pb::{self};
 use size::Size;
-use std::{
-    env::set_var,
-    path::PathBuf,
-    sync::{
-        Arc,
-        atomic::{AtomicUsize, Ordering},
-    },
+use std::sync::{
+    Arc,
+    atomic::{AtomicUsize, Ordering},
 };
 
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
-async fn test_timestamp(stress_test: &mut StressTest, app: &mut client::TestApp) -> Output {
+async fn test_timestamp(stress_test: &mut StressTest, app: &mut client::ClientCore) -> Output {
     let app = app.clients.clone();
     stress_test
         .stress_test(move || {
@@ -30,7 +26,10 @@ async fn test_timestamp(stress_test: &mut StressTest, app: &mut client::TestApp)
         .await
 }
 
-async fn test_get_server_into(stress_test: &mut StressTest, app: &mut client::TestApp) -> Output {
+async fn test_get_server_into(
+    stress_test: &mut StressTest,
+    app: &mut client::ClientCore,
+) -> Output {
     let app = app.clients.clone();
     stress_test
         .stress_test(move || {
@@ -45,7 +44,7 @@ async fn test_get_server_into(stress_test: &mut StressTest, app: &mut client::Te
         .await
 }
 
-async fn test_basic_service(report: &mut Report, app: &mut client::TestApp) {
+async fn test_basic_service(report: &mut Report, app: &mut client::ClientCore) {
     let mut stress_test = StressTest::builder()
         .set_concurrency(100)
         .set_requests(1000);
@@ -61,7 +60,7 @@ async fn test_basic_service(report: &mut Report, app: &mut client::TestApp) {
 
 type UsersGroup = Vec<Arc<tokio::sync::Mutex<client::oc_helper::user::TestUser>>>;
 
-async fn test_register(report: &mut Report, app: &mut client::TestApp) -> UsersGroup {
+async fn test_register(report: &mut Report, app: &mut client::ClientCore) -> UsersGroup {
     let mut stress_test = StressTest::builder()
         .set_concurrency(1000)
         .set_requests(1000);
@@ -91,7 +90,6 @@ async fn test_register(report: &mut Report, app: &mut client::TestApp) -> UsersG
         })
         .await;
 
-    app.owned_users.extend(users_test.clone().into_iter());
     report.add_record(Record::new("register", output));
     users_test
 }
@@ -201,7 +199,7 @@ async fn test_download(keys: Arc<DashMap<OCID, String>>, users: &UsersGroup, rep
     report.add_record(Record::new("download", output));
 }
 
-async fn test_endpoint(app: &mut client::TestApp) -> anyhow::Result<()> {
+async fn test_endpoint(app: &mut client::ClientCore) -> anyhow::Result<()> {
     let mut report = Report::new();
     test_basic_service(&mut report, app).await;
     let users = test_register(&mut report, app).await;
@@ -217,34 +215,19 @@ async fn test_endpoint(app: &mut client::TestApp) -> anyhow::Result<()> {
 #[command(author = "SkyUOI", about = "The Stress Test of OurChat")]
 pub struct ArgsParser {
     #[arg(short, long, help = "The path of server config")]
-    pub config: Option<String>,
-    #[arg(
-        short,
-        long,
-        help = "Whether to use existing instance",
-        default_value_t = false
-    )]
-    pub use_exists_instance: bool,
+    pub config: String,
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     dotenvy::dotenv().ok();
     let args = ArgsParser::parse();
-    let mut app = if args.use_exists_instance {
+    let mut app = {
         base::log::logger_init(true, None, std::io::stdout, "ourchat");
-        let cfg = server::get_configuration(args.config.iter().map(PathBuf::from).collect())?;
-        client::TestApp::new_with_existing_instance(cfg).await?
-    } else {
-        if let Some(path) = args.config {
-            unsafe {
-                set_var(CONFIG_FILE_ENV_VAR, path);
-            }
-        }
-        client::TestApp::new_with_launching_instance().await?
+        let cfg = base::setting::read_config_and_deserialize(&args.config)?;
+        client::ClientCore::new(cfg).await?
     };
     // test every endpoint's performance
     test_endpoint(&mut app).await?;
-    app.async_drop().await;
     Ok(())
 }

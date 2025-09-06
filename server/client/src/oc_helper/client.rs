@@ -53,6 +53,12 @@ pub struct TestApp {
     pub should_drop_vhost: bool,
 }
 
+impl TestApp {
+    pub fn basic_service(&mut self) -> &mut BasicServiceClient<Channel> {
+        &mut self.core.clients.basic
+    }
+}
+
 trait TestAppTrait {
     fn test() -> Self;
 }
@@ -75,41 +81,39 @@ pub struct ClientCore {
     pub port: u16,
     pub clients: Clients,
     pub rpc_url: String,
+    pub enable_ssl: bool,
 }
 
 impl ClientCore {
-    pub async fn new_with_existing_instance(cfg: ClientCoreConfig) -> anyhow::Result<Self> {
+    pub async fn new(cfg: ClientCoreConfig) -> anyhow::Result<Self> {
+        let url_without_scheme = format!("{}:{}", cfg.ip, cfg.port);
+        let enabled_tls = match cfg.enable_ssl {
+            Some(data) => data,
+            None => utils::http::test_and_get_http_status(&url_without_scheme).await?,
+        };
+
         let remote_url = format!(
-            "{}://{}:{}",
-            cfg.main_cfg.protocol_http(),
-            cfg.main_cfg.ip,
-            cfg.main_cfg.port
+            "{}://{}",
+            if enabled_tls { "https" } else { "http" },
+            url_without_scheme
         );
-        let vhost = cfg.rabbitmq_cfg.vhost.clone();
         Ok(Self {
-            should_drop_db: false,
-            port: cfg.main_cfg.port,
-            db_url: cfg.db_cfg.url(),
-            app_shared: None,
-            db_pool: None,
-            owned_users: vec![],
-            server_drop_handle: None,
-            has_dropped: false,
+            port: cfg.port,
             rpc_url: remote_url.clone(),
             clients: Clients {
                 auth: AuthServiceClient::connect(remote_url.clone()).await?,
                 basic: BasicServiceClient::connect(remote_url.clone()).await?,
             },
-            app_config: cfg,
-            rmq_vhost: vhost,
-            should_drop_vhost: false,
+            enable_ssl: enabled_tls,
         })
     }
 }
 
 #[derive(Debug, serde::Deserialize, Clone)]
 pub struct ClientCoreConfig {
-    enable_ssl: Option<bool>
+    ip: String,
+    port: u16,
+    enable_ssl: Option<bool>,
 }
 
 impl TestApp {
@@ -165,7 +169,8 @@ impl TestApp {
             port
         );
         let mut connected_channel = Endpoint::from_shared(rpc_url.clone())?;
-        if server_config.main_cfg.tls.is_tls_on()? {
+        let enabled_tls = server_config.main_cfg.tls.is_tls_on()?;
+        if enabled_tls {
             let client_cert = std::fs::read_to_string(
                 server_config
                     .main_cfg
@@ -207,6 +212,7 @@ impl TestApp {
                     basic: BasicServiceClient::new(connected_channel),
                 },
                 rpc_url: rpc_url.clone(),
+                enable_ssl: enabled_tls,
             },
             should_drop_db: true,
             app_config: server_config,
@@ -216,7 +222,6 @@ impl TestApp {
 
         Ok(obj)
     }
-
 
     pub async fn async_drop(&mut self) {
         tracing::info!("async_drop called");
@@ -252,7 +257,7 @@ impl TestApp {
     }
 
     pub async fn new_user(&mut self) -> anyhow::Result<TestUserShared> {
-        let user = Arc::new(tokio::sync::Mutex::new(TestUser::random(self).await));
+        let user = Arc::new(tokio::sync::Mutex::new(TestUser::random(&self.core).await));
         if self.app_config.main_cfg.tls.is_tls_on()? {
             user.lock().await.tls = self.app_config.main_cfg.tls.clone();
         }
@@ -356,8 +361,7 @@ impl TestApp {
     /// rely on this behavior
     pub async fn get_timestamp(&mut self) -> TimeStampUtc {
         let ret = self
-            .clients
-            .basic
+            .basic_service()
             .timestamp(TimestampRequest {})
             .await
             .unwrap()
@@ -369,8 +373,7 @@ impl TestApp {
 
     pub async fn get_id(&mut self, ocid: OCID) -> Result<ID, tonic::Status> {
         let id: ID = self
-            .clients
-            .basic
+            .basic_service()
             .get_id(GetIdRequest { ocid: ocid.0 })
             .await?
             .into_inner()

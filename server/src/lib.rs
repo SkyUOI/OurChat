@@ -146,17 +146,11 @@ impl MainCfg {
             iter.next().unwrap().into()
         };
         // read a config file
-        let mut cfg: serde_json::Value = setting::read_a_config(&cfg_path)
-            .expect("Failed to build config")
-            .try_deserialize()
-            .expect("Wrong config file structure");
+        let mut cfg: serde_json::Value = setting::read_config_and_deserialize(&cfg_path)?;
         let mut configs_list = vec![cfg_path];
         for i in iter {
             let i = i.into();
-            let merge_cfg: serde_json::Value = setting::read_a_config(&i)
-                .expect("Failed to build config")
-                .try_deserialize()
-                .expect("Wrong config file structure");
+            let merge_cfg: serde_json::Value = setting::read_config_and_deserialize(&i)?;
             cfg = merge_json(cfg, merge_cfg);
             configs_list.push(i);
         }
