@@ -164,8 +164,8 @@ jobs:
           files: |
             client/build/windows/x64/runner/ourchat-client-windows.tar.gz
     
-  create_client_on_macos_and_ios_release:
-    name: Create client on MacOS&iOS release
+  create_client_on_macos_and_release:
+    name: Create client on MacOS release
     runs-on: macos-latest
     if: startsWith(github.ref, 'refs/tags/')
     steps:
@@ -186,14 +186,12 @@ jobs:
       - name: Drift generate
         run: cd client && dart run build_runner build
       - name: Build Release
-        run: cd client && flutter build windows
-      - name: Rename
-        run: mv client/build/windows/x64/runner/Release/client.exe client/build/windows/x64/runner/Release/OurChat.exe
+        run: cd client && flutter build macos
       - name: Compress
-        run: cd client/build/windows/x64/runner && tar -czvf ourchat-client-windows.tar.gz Release
+        run: cd client/build/macos/Build/Products && tar -czvf ourchat-client-macos.tar.gz Release
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           files: |
-            client/build/windows/x64/runner/ourchat-client-windows.tar.gz
+            client/build/macos/Build/Products/ourchat-client-macos.tar.gz
