@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "ourchat" "\0"
+            VALUE "CompanyName", "com.skyuoi" "\0"
+            VALUE "FileDescription", "OurChat" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "ourchat" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2024 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "ourchat.exe" "\0"
-            VALUE "ProductName", "ourchat" "\0"
+            VALUE "InternalName", "OurChat" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2024 com.skyuoi. All rights reserved." "\0"
+            VALUE "OriginalFilename", "OurChat.exe" "\0"
+            VALUE "ProductName", "OurChat" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

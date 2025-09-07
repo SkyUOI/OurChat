@@ -14,7 +14,7 @@
     <!-- 允许 HTTP 请求 -->
     <application
         android:usesCleartextTraffic="true" 
-        android:label="ourchat"
+        android:label="OurChat"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
