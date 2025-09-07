@@ -21,11 +21,7 @@ class Setting extends StatelessWidget {
                 child: SingleChildScrollView(
                   // 可滚动
                   child: Column(
-                    children: [
-                      SeedColorEditor(),
-                      LogLevelSelector(),
-                      KeepAliveTimeEditor()
-                    ],
+                    children: [SeedColorEditor(), LogLevelSelector()],
                   ),
                 ),
               ),
@@ -34,48 +30,6 @@ class Setting extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class KeepAliveTimeEditor extends StatelessWidget {
-  const KeepAliveTimeEditor({
-    super.key,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    var ourchatAppState = context.watch<OurChatAppState>();
-    var l10n = AppLocalizations.of(context)!;
-    return Row(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(5.0),
-          child: SizedBox(
-            height: 30.0,
-            width: 30.0,
-            child: Icon(Icons.timer, size: 35.0),
-          ),
-        ),
-        Expanded(
-          child: TextFormField(
-            initialValue:
-                ourchatAppState.config["keep_alive_interval"].toString(),
-            decoration: InputDecoration(label: Text(l10n.keepAliveInterval)),
-            autovalidateMode: AutovalidateMode.onUnfocus,
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return l10n.cantBeEmpty;
-              }
-              if (int.tryParse(value) == null) {
-                return l10n.mustBeInteger;
-              }
-              ourchatAppState.config["keep_alive_interval"] = int.parse(value);
-              return null;
-            },
-          ),
-        ),
-      ],
     );
   }
 }
