@@ -4,7 +4,7 @@ use std::time::Duration;
 pub async fn test_and_get_http_status(url_without_scheme: impl AsRef<str>) -> Result<bool, Error> {
     let http_url = format!("http://{}", url_without_scheme.as_ref());
 
-    // Create client, set timeout and rediect policy
+    // Create client, set timeout and redirect policy
     let client = Client::builder()
         .redirect(redirect::Policy::limited(5))
         .timeout(Duration::from_secs(10))
