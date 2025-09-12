@@ -8,7 +8,11 @@ use pb::service::ourchat::{
     set_account_info::v1::SetSelfInfoRequest,
 };
 use pb::time::from_google_timestamp;
-use server::process::error_msg::invalid::{OCID_TOO_LONG, STATUS_TOO_LONG, USERNAME};
+use sea_orm::TransactionTrait;
+use server::process::{
+    db,
+    error_msg::invalid::{OCID_TOO_LONG, STATUS_TOO_LONG, USERNAME},
+};
 use tokio::time::sleep;
 
 #[tokio::test]
@@ -320,5 +324,40 @@ async fn different_user_get_info() {
             .unwrap(),
         ocid1.0
     );
+    app.async_drop().await;
+}
+
+#[tokio::test]
+async fn join_in_session_with_update_time_changed() {
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
+    let user1 = app.new_user().await.unwrap();
+    let user1_id = user1.lock().await.id;
+    let (_, session) = app.new_session_db_level(1, "test", false).await.unwrap();
+    let get_timestamp = async || {
+        from_google_timestamp(
+            &user1
+                .lock()
+                .await
+                .oc()
+                .get_account_info(GetAccountInfoRequest {
+                    id: Some(user1_id.into()),
+                    request_values: vec![QueryValues::UpdatedTime.into()],
+                })
+                .await
+                .unwrap()
+                .into_inner()
+                .updated_time
+                .unwrap(),
+        )
+    };
+    let origin_timestamp = get_timestamp().await;
+    let db = app.db_pool.as_ref().unwrap();
+    let transaction = db.db_pool.begin().await.unwrap();
+    db::join_in_session(session.session_id, user1_id, None, &transaction)
+        .await
+        .unwrap();
+    transaction.commit().await.unwrap();
+    let now_timestamp = get_timestamp().await;
+    assert_gt!(now_timestamp, origin_timestamp);
     app.async_drop().await;
 }

@@ -268,6 +268,14 @@ pub async fn join_in_session(
         role_id: ActiveValue::Set(role.unwrap_or(default_role).0),
     };
     role_relation.insert(db_conn).await?;
+    // Modify the info update time
+    let time = chrono::Utc::now();
+    let user = entities::user::ActiveModel {
+        id: ActiveValue::Set(id.into()),
+        update_time: ActiveValue::Set(time.into()),
+        ..Default::default()
+    };
+    user.update(db_conn).await?;
     Ok(())
 }
 
