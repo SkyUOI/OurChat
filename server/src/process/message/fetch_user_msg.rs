@@ -3,11 +3,15 @@ use std::time::Duration;
 use crate::{
     db,
     process::error_msg::{SERVER_ERROR, TIME_FORMAT_ERROR, TIME_MISSING},
+    rabbitmq::{
+        USER_MSG_BROADCAST_EXCHANGE, USER_MSG_DIRECT_EXCHANGE, check_exchange_exist,
+        create_user_message_broadcast_exchange, create_user_message_direct_exchange,
+    },
     server::{FetchMsgsStream, RpcServer},
 };
 use anyhow::Context;
 use base::consts::ID;
-use deadpool_lapin::lapin::options::{QueueBindOptions, QueueDeclareOptions, QueueDeleteOptions};
+use deadpool_lapin::lapin::options::{QueueBindOptions, QueueDeclareOptions};
 use deadpool_lapin::lapin::types::FieldTable;
 use pb::service::ourchat::msg_delivery::v1::{
     FetchMsgsRequest, FetchMsgsResponse, fetch_msgs_response::RespondEventType,
@@ -125,25 +129,43 @@ async fn fetch_user_msg_impl(
             channel
                 .queue_declare(
                     &queue_name,
-                    QueueDeclareOptions::default(),
+                    QueueDeclareOptions {
+                        auto_delete: true,
+                        durable: false,
+                        exclusive: true,
+                        ..Default::default()
+                    },
                     FieldTable::default(),
                 )
                 .await
                 .context("failed to create queue")?;
+            // check if the exchange exists
+            if check_exchange_exist(&channel, USER_MSG_DIRECT_EXCHANGE)
+                .await
+                .is_err()
+            {
+                create_user_message_direct_exchange(&channel).await?;
+            }
             channel
                 .queue_bind(
                     &queue_name,
-                    crate::rabbitmq::USER_MSG_EXCHANGE,
+                    crate::rabbitmq::USER_MSG_DIRECT_EXCHANGE,
                     &crate::rabbitmq::generate_route_key(id),
                     QueueBindOptions::default(),
                     FieldTable::default(),
                 )
                 .await
                 .context("failed to bind queue")?;
+            if check_exchange_exist(&channel, USER_MSG_BROADCAST_EXCHANGE)
+                .await
+                .is_err()
+            {
+                create_user_message_broadcast_exchange(&channel).await?;
+            }
             channel
                 .queue_bind(
                     &queue_name,
-                    crate::rabbitmq::USER_MSG_EXCHANGE,
+                    crate::rabbitmq::USER_MSG_BROADCAST_EXCHANGE,
                     "",
                     QueueBindOptions::default(),
                     FieldTable::default(),
@@ -160,21 +182,6 @@ async fn fetch_user_msg_impl(
                 )
                 .await
                 .context("failed to consume")?;
-            let _channel = scopeguard::guard(channel, |channel| {
-                tokio::spawn(async move {
-                    match channel
-                        .queue_delete(&queue_name, QueueDeleteOptions::default())
-                        .await
-                    {
-                        Ok(_) => {
-                            tracing::trace!("queue deleted");
-                        }
-                        Err(e) => {
-                            tracing::error!("failed to delete queue:{e}");
-                        }
-                    }
-                });
-            });
             tracing::trace!("starting consumer");
             let fetch = async {
                 while let Some(delivery) = consumer.next().await {

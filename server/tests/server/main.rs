@@ -1,8 +1,8 @@
 mod announcement;
 mod auth_register;
 mod basic;
+mod basic_services;
 mod chores;
-mod db;
 mod files;
 mod friend;
 mod log;

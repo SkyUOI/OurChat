@@ -116,7 +116,8 @@ pub use webrtc::create_room::create_room;
 use crate::SERVER_INFO;
 use crate::db::messages::MsgError;
 use crate::db::session::get_members;
-use crate::rabbitmq::USER_MSG_EXCHANGE;
+use crate::rabbitmq::USER_MSG_BROADCAST_EXCHANGE;
+use crate::rabbitmq::USER_MSG_DIRECT_EXCHANGE;
 use crate::rabbitmq::generate_route_key;
 use base::consts::ID;
 use entities::prelude::*;
@@ -232,7 +233,7 @@ async fn transmit_msg(
         Dest::User(id) => {
             rabbitmq_connection
                 .basic_publish(
-                    USER_MSG_EXCHANGE,
+                    USER_MSG_DIRECT_EXCHANGE,
                     &generate_route_key(id),
                     BasicPublishOptions::default(),
                     buf.as_ref(),
@@ -245,7 +246,7 @@ async fn transmit_msg(
                 let dest_id = i.user_id.into();
                 rabbitmq_connection
                     .basic_publish(
-                        USER_MSG_EXCHANGE,
+                        USER_MSG_DIRECT_EXCHANGE,
                         &generate_route_key(dest_id),
                         BasicPublishOptions::default(),
                         buf.as_ref(),
@@ -257,7 +258,7 @@ async fn transmit_msg(
         Dest::All => {
             rabbitmq_connection
                 .basic_publish(
-                    USER_MSG_EXCHANGE,
+                    USER_MSG_BROADCAST_EXCHANGE,
                     "",
                     BasicPublishOptions::default(),
                     buf.as_ref(),
