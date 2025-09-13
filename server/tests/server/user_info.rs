@@ -33,16 +33,15 @@ async fn get_user_info() {
         user2
             .lock()
             .await
-            .oc()
-            .get_account_info(GetAccountInfoRequest {
-                id: Some(*user_id),
-                request_values: vec![
-                    QueryValues::Ocid.into(),
-                    QueryValues::Email.into(),
-                    QueryValues::UserName.into(),
-                    QueryValues::RegisterTime.into(),
+            .get_account_info(
+                user_id,
+                vec![
+                    QueryValues::Ocid,
+                    QueryValues::Email,
+                    QueryValues::UserName,
+                    QueryValues::RegisterTime,
                 ],
-            })
+            )
             .await
     );
     // now have privileges
@@ -140,13 +139,8 @@ async fn set_friend_info() -> anyhow::Result<()> {
     let ret = user1
         .lock()
         .await
-        .oc()
-        .get_account_info(GetAccountInfoRequest {
-            id: Some(user2_id.into()),
-            request_values: vec![QueryValues::DisplayName.into()],
-        })
-        .await?
-        .into_inner();
+        .get_account_info(user2_id, vec![QueryValues::DisplayName.into()])
+        .await?;
     assert_eq!(ret.display_name.unwrap(), "");
     user1
         .lock()
@@ -160,13 +154,8 @@ async fn set_friend_info() -> anyhow::Result<()> {
     let ret = user1
         .lock()
         .await
-        .oc()
-        .get_account_info(GetAccountInfoRequest {
-            id: Some(user2_id.into()),
-            request_values: vec![QueryValues::DisplayName.into()],
-        })
-        .await?
-        .into_inner();
+        .get_account_info(user2_id, vec![QueryValues::DisplayName])
+        .await?;
     assert_eq!(ret.display_name.unwrap(), new_name);
     app.async_drop().await;
     Ok(())
@@ -264,14 +253,9 @@ async fn different_user_get_info() {
         user2
             .lock()
             .await
-            .oc()
-            .get_account_info(GetAccountInfoRequest {
-                id: Some(user2_id.into()),
-                request_values: vec![QueryValues::Ocid.into()],
-            })
+            .get_self_info(vec![QueryValues::Ocid])
             .await
             .unwrap()
-            .into_inner()
             .ocid
             .unwrap(),
         ocid2.0
@@ -280,14 +264,9 @@ async fn different_user_get_info() {
         user1
             .lock()
             .await
-            .oc()
-            .get_account_info(GetAccountInfoRequest {
-                id: Some(user1_id.into()),
-                request_values: vec![QueryValues::Ocid.into()],
-            })
+            .get_self_info(vec![QueryValues::Ocid])
             .await
             .unwrap()
-            .into_inner()
             .ocid
             .unwrap(),
         ocid1.0
@@ -296,14 +275,9 @@ async fn different_user_get_info() {
         user1
             .lock()
             .await
-            .oc()
-            .get_account_info(GetAccountInfoRequest {
-                id: Some(user2_id.into()),
-                request_values: vec![QueryValues::Ocid.into()],
-            })
+            .get_account_info(user2_id, vec![QueryValues::Ocid])
             .await
             .unwrap()
-            .into_inner()
             .ocid
             .unwrap(),
         ocid2.0
@@ -312,14 +286,9 @@ async fn different_user_get_info() {
         user2
             .lock()
             .await
-            .oc()
-            .get_account_info(GetAccountInfoRequest {
-                id: Some(user1_id.into()),
-                request_values: vec![QueryValues::Ocid.into()],
-            })
+            .get_account_info(user1_id, vec![QueryValues::Ocid],)
             .await
             .unwrap()
-            .into_inner()
             .ocid
             .unwrap(),
         ocid1.0
@@ -333,26 +302,9 @@ async fn join_in_session_with_update_time_changed() {
     let user1 = app.new_user().await.unwrap();
     let user1_id = user1.lock().await.id;
     let (_, session) = app.new_session_db_level(1, "test", false).await.unwrap();
-    let get_timestamp = async || {
-        from_google_timestamp(
-            &user1
-                .lock()
-                .await
-                .oc()
-                .get_account_info(GetAccountInfoRequest {
-                    id: Some(user1_id.into()),
-                    request_values: vec![QueryValues::UpdatedTime.into()],
-                })
-                .await
-                .unwrap()
-                .into_inner()
-                .updated_time
-                .unwrap(),
-        )
-    };
+    let get_timestamp = async || user1.lock().await.get_update_timestamp().await.unwrap();
     let origin_timestamp = get_timestamp().await;
-    let db = app.db_pool.as_ref().unwrap();
-    let transaction = db.db_pool.begin().await.unwrap();
+    let transaction = app.get_db_connection().begin().await.unwrap();
     db::join_in_session(session.session_id, user1_id, None, &transaction)
         .await
         .unwrap();

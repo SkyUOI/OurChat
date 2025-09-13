@@ -3,15 +3,11 @@ use anyhow::bail;
 pub type TimeStamp = chrono::DateTime<chrono::FixedOffset>;
 pub type TimeStampUtc = chrono::DateTime<chrono::Utc>;
 
-pub fn from_google_timestamp(
-    ts: &crate::google::protobuf::Timestamp,
-) -> Option<chrono::DateTime<chrono::Utc>> {
+pub fn from_google_timestamp(ts: &crate::google::protobuf::Timestamp) -> Option<TimeStampUtc> {
     chrono::DateTime::from_timestamp(ts.seconds, ts.nanos as u32)
 }
 
-pub fn to_google_timestamp(
-    ts: chrono::DateTime<chrono::Utc>,
-) -> crate::google::protobuf::Timestamp {
+pub fn to_google_timestamp(ts: TimeStampUtc) -> crate::google::protobuf::Timestamp {
     crate::google::protobuf::Timestamp {
         seconds: ts.timestamp(),
         nanos: ts.timestamp_subsec_nanos() as i32,

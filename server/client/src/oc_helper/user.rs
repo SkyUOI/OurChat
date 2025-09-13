@@ -10,6 +10,8 @@ use pb::service::auth::authorize::v1::{AuthRequest, auth_request};
 use pb::service::auth::register::v1::RegisterRequest;
 use pb::service::basic::v1::TimestampRequest;
 use pb::service::ourchat::download::v1::{DownloadRequest, DownloadResponse};
+use pb::service::ourchat::get_account_info;
+use pb::service::ourchat::get_account_info::v1::{GetAccountInfoRequest, GetAccountInfoResponse};
 use pb::service::ourchat::msg_delivery::v1::{
     BundleMsgs, FetchMsgsRequest, FetchMsgsResponse, SendMsgRequest, SendMsgResponse,
 };
@@ -379,6 +381,40 @@ impl TestUser {
             user: self,
             timestamp: tmp,
         }
+    }
+
+    pub async fn get_self_info(
+        &mut self,
+        queried_values: Vec<get_account_info::v1::QueryValues>,
+    ) -> anyhow::Result<GetAccountInfoResponse> {
+        let id = self.id;
+        self.get_account_info(id, queried_values).await
+    }
+
+    pub async fn get_account_info(
+        &mut self,
+        id: ID,
+        queried_values: Vec<get_account_info::v1::QueryValues>,
+    ) -> anyhow::Result<GetAccountInfoResponse> {
+        Ok(self
+            .oc()
+            .get_account_info(GetAccountInfoRequest {
+                id: Some(id.into()),
+                request_values: queried_values.into_iter().map(|x| x.into()).collect(),
+            })
+            .await?
+            .into_inner())
+    }
+
+    pub async fn get_update_timestamp(&mut self) -> anyhow::Result<TimeStampUtc> {
+        Ok(from_google_timestamp(
+            &self
+                .get_self_info(vec![get_account_info::v1::QueryValues::UpdatedTime])
+                .await?
+                .updated_time
+                .unwrap(),
+        )
+        .unwrap())
     }
 }
 
