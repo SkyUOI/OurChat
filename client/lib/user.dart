@@ -14,40 +14,41 @@ class User extends StatelessWidget {
   Widget build(BuildContext context) {
     var appState = context.watch<OurChatAppState>();
     var l10n = AppLocalizations.of(context)!;
-    return Expanded(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(10.0),
-            child: SizedBox(
-              width: 100.0,
-              height: 100.0,
-              child: Placeholder(),
-            ),
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(10.0),
+          child: SizedBox(
+            width: 100.0,
+            height: 100.0,
+            child: Placeholder(),
           ),
-          Text(
-            appState.thisAccount!.username,
-            style: TextStyle(fontSize: 20),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text("${l10n.email}: "),
-              SelectableText(appState.thisAccount!.email!),
-            ],
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text("${l10n.ocid}: "),
-              SelectableText(appState.thisAccount!.ocid),
-            ],
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ElevatedButton(
+        ),
+        Text(
+          appState.thisAccount!.username,
+          style: TextStyle(fontSize: 20),
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text("${l10n.email}: "),
+            SelectableText(appState.thisAccount!.email!),
+          ],
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text("${l10n.ocid}: "),
+            SelectableText(appState.thisAccount!.ocid),
+          ],
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(5.0),
+              child: ElevatedButton(
                   onPressed: () {
                     appState.thisAccount = null;
                     appState.server = null;
@@ -63,16 +64,19 @@ class User extends StatelessWidget {
                             builder: (context) => ServerSetting()));
                   },
                   child: Text(l10n.logout)),
-              ElevatedButton(
+            ),
+            Padding(
+              padding: const EdgeInsets.all(5.0),
+              child: ElevatedButton(
                   onPressed: () {
                     Navigator.push(context,
                         MaterialPageRoute(builder: (context) => About()));
                   },
-                  child: Text(l10n.about))
-            ],
-          ),
-        ],
-      ),
+                  child: Text(l10n.about)),
+            )
+          ],
+        ),
+      ],
     );
   }
 }
