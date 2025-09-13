@@ -75,5 +75,9 @@
     "description": "简介",
     "conflict": "冲突",
     "sessionId": "会话ID",
-    "modify": "修改"
+    "modify": "修改",
+    "about": "关于",
+    "donate": "捐赠",
+    "contribute": "贡献",
+    "copiedToClipboard": "已复制到剪贴板"
 }

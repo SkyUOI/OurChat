@@ -174,6 +174,7 @@ class _SessionState extends State<Session> {
       SessionState sessionState) {
     String name = sessionState.currentSession!.name,
         description = sessionState.currentSession!.description;
+    var l10n = AppLocalizations.of(context)!;
 
     showDialog(
         context: context,
@@ -181,7 +182,7 @@ class _SessionState extends State<Session> {
           var key = GlobalKey<FormState>();
           return AlertDialog(
             title: Text(sessionState.currentSession!.name.isEmpty
-                ? AppLocalizations.of(context)!.newSession
+                ? l10n.newSession
                 : sessionState.currentSession!.name),
             content: Form(
               key: key,
@@ -194,7 +195,7 @@ class _SessionState extends State<Session> {
                       children: [
                         Padding(
                           padding: const EdgeInsets.only(right: 5.0),
-                          child: Text(AppLocalizations.of(context)!.sessionId),
+                          child: Text(l10n.sessionId),
                         ),
                         SelectableText(
                             sessionState.currentSession!.sessionId.toString())
@@ -202,18 +203,16 @@ class _SessionState extends State<Session> {
                     ),
                     TextFormField(
                       initialValue: name,
-                      decoration: InputDecoration(
-                          label:
-                              Text(AppLocalizations.of(context)!.sessionName)),
+                      decoration:
+                          InputDecoration(label: Text(l10n.sessionName)),
                       onSaved: (newValue) {
                         name = newValue!;
                       },
                     ),
                     TextFormField(
                       initialValue: description,
-                      decoration: InputDecoration(
-                          label:
-                              Text(AppLocalizations.of(context)!.description)),
+                      decoration:
+                          InputDecoration(label: Text(l10n.description)),
                       onSaved: (newValue) {
                         description = newValue!;
                       },
@@ -236,7 +235,6 @@ class _SessionState extends State<Session> {
                       await sessionState.currentSession!
                           .getSessionInfo(ignoreCache: true);
                       sessionState.tabTitle = sessionState.currentSession!.name;
-                      appState.update();
                       if (context.mounted) {
                         showResultMessage(context, okStatusCode, null);
                         Navigator.pop(context);
@@ -244,11 +242,9 @@ class _SessionState extends State<Session> {
                     } on grpc.GrpcError catch (e) {
                       if (context.mounted) {
                         showResultMessage(context, e.code, e.message,
-                            alreadyExistsStatus:
-                                AppLocalizations.of(context)!.conflict,
+                            alreadyExistsStatus: l10n.conflict,
                             permissionDeniedStatus:
-                                AppLocalizations.of(context)!
-                                    .permissionDenied(e.message!));
+                                l10n.permissionDenied(e.message!));
                         Navigator.pop(context);
                       }
                     }
@@ -371,12 +367,9 @@ class _UserTabState extends State<UserTab> {
                       if (context.mounted) {
                         showResultMessage(context, e.code, e.message,
                             permissionDeniedStatus:
-                                AppLocalizations.of(context)!.permissionDenied(
-                                    AppLocalizations.of(context)!.addFriend),
-                            alreadyExistsStatus: AppLocalizations.of(context)!
-                                .friendAlreadyExists,
-                            notFoundStatus: AppLocalizations.of(context)!
-                                .notFound(AppLocalizations.of(context)!.user));
+                                l10n.permissionDenied(l10n.addFriend),
+                            alreadyExistsStatus: l10n.friendAlreadyExists,
+                            notFoundStatus: l10n.notFound(l10n.user));
                       }
                     }
                   },
@@ -449,6 +442,7 @@ class _UserTabState extends State<UserTab> {
 
   void showSetDisplayNameDialog(
       BuildContext context, OurChatAppState appState, OurChatAccount account) {
+    var l10n = AppLocalizations.of(context)!;
     showDialog(
         context: context,
         builder: (context) {
@@ -459,8 +453,7 @@ class _UserTabState extends State<UserTab> {
                 key: key,
                 child: TextFormField(
                   initialValue: account.displayName,
-                  decoration: InputDecoration(
-                      label: Text(AppLocalizations.of(context)!.displayName)),
+                  decoration: InputDecoration(label: Text(l10n.displayName)),
                   onSaved: (newValue) async {
                     var stub = OurChatServiceClient(appState.server!.channel!,
                         interceptors: [appState.server!.interceptor!]);
@@ -530,6 +523,7 @@ class _SessionListState extends State<SessionList> {
   Widget build(BuildContext context) {
     ourchatAppState = context.watch<OurChatAppState>();
     sessionState = context.watch<SessionState>();
+    var l10n = AppLocalizations.of(context)!;
     if (!inited) {
       ourchatAppState.eventSystem!.addListener(
           FetchMsgsResponse_RespondEventType.msg, sessionState.receiveMsg);
@@ -537,14 +531,11 @@ class _SessionListState extends State<SessionList> {
         sessionState.getSessions(ourchatAppState);
       } on grpc.GrpcError catch (e) {
         showResultMessage(context, e.code, e.message,
-            notFoundStatus: AppLocalizations.of(context)!
-                .notFound(AppLocalizations.of(context)!.session),
-            invalidArgumentStatus: AppLocalizations.of(context)!
-                .invalid(AppLocalizations.of(context)!.argument));
+            notFoundStatus: l10n.notFound(l10n.session),
+            invalidArgumentStatus: l10n.invalid(l10n.argument));
       }
       inited = true;
     }
-    var l10n = AppLocalizations.of(context)!;
     return LayoutBuilder(builder: (context, constraints) {
       return Column(
         children: [
@@ -573,7 +564,9 @@ class _SessionListState extends State<SessionList> {
                     showDialog(
                         context: context,
                         builder: (context) {
-                          return NewSessionDialog();
+                          return NewSessionDialog(
+                            sessionState: sessionState,
+                          );
                         });
                   },
                   icon: const Icon(Icons.add)) // 创建会话
@@ -597,8 +590,7 @@ class _SessionListState extends State<SessionList> {
                     // 查无此人
                     return Padding(
                         padding: const EdgeInsets.only(top: 5.0),
-                        child: Text(AppLocalizations.of(context)!
-                            .notFound(AppLocalizations.of(context)!.user)));
+                        child: Text(l10n.notFound(l10n.user)));
                   }
                   bool isFriend =
                       ourchatAppState.thisAccount!.friends.contains(account.id);
@@ -616,8 +608,7 @@ class _SessionListState extends State<SessionList> {
                             onPressed: () {
                               sessionState.currentUserId = account.id;
                               sessionState.tabIndex = userTab;
-                              sessionState.tabTitle =
-                                  AppLocalizations.of(context)!.userInfo;
+                              sessionState.tabTitle = l10n.userInfo;
                               sessionState.update();
                             },
                             child: Row(
@@ -736,10 +727,11 @@ class _SessionListState extends State<SessionList> {
     });
   }
 
-  Future getAccountInfo(
-      OurChatAppState ourchatAppState, String ocid, context) async {
+  Future getAccountInfo(OurChatAppState ourchatAppState, String ocid,
+      BuildContext context) async {
     BasicServiceClient stub =
         BasicServiceClient(ourchatAppState.server!.channel!, interceptors: []);
+    var l10n = AppLocalizations.of(context)!;
     try {
       var res = await stub.getId(GetIdRequest(ocid: ocid));
       OurChatAccount account = OurChatAccount(ourchatAppState);
@@ -751,12 +743,10 @@ class _SessionListState extends State<SessionList> {
       if (context.mounted) {
         showResultMessage(context, e.code, e.message,
             // getAccountInfo
-            permissionDeniedStatus: AppLocalizations.of(context)!
-                .permissionDenied("Get Account Info"),
-            invalidArgumentStatus: AppLocalizations.of(context)!.internalError,
+            permissionDeniedStatus: l10n.permissionDenied("Get Account Info"),
+            invalidArgumentStatus: l10n.internalError,
             // getId
-            notFoundStatus: AppLocalizations.of(context)!
-                .notFound(AppLocalizations.of(context)!.user));
+            notFoundStatus: l10n.notFound(l10n.user));
       }
     }
     return null;
@@ -764,9 +754,8 @@ class _SessionListState extends State<SessionList> {
 }
 
 class NewSessionDialog extends StatefulWidget {
-  const NewSessionDialog({
-    super.key,
-  });
+  final SessionState sessionState;
+  const NewSessionDialog({super.key, required this.sessionState});
 
   @override
   State<NewSessionDialog> createState() => _NewSessionDialogState();
@@ -797,6 +786,7 @@ class _NewSessionDialogState extends State<NewSessionDialog> {
   @override
   Widget build(BuildContext context) {
     ourchatAppState = context.watch<OurChatAppState>();
+    var sessionState = widget.sessionState;
     var l10n = AppLocalizations.of(context)!;
     if (!gotFriendList) {
       getFriendList();
@@ -895,10 +885,19 @@ class _NewSessionDialogState extends State<NewSessionDialog> {
                   var stub = OurChatServiceClient(
                       ourchatAppState!.server!.channel!,
                       interceptors: [ourchatAppState!.server!.interceptor!]);
-                  await stub.newSession(
-                      NewSessionRequest(members: members, e2eeOn: enableE2EE));
-                  ourchatAppState!.thisAccount!
-                      .getAccountInfo(ignoreCache: true);
+                  try {
+                    await stub.newSession(NewSessionRequest(
+                        members: members, e2eeOn: enableE2EE));
+                    await ourchatAppState!.thisAccount!
+                        .getAccountInfo(ignoreCache: true);
+                    sessionState.getSessions(ourchatAppState!);
+                  } on grpc.GrpcError catch (e) {
+                    if (context.mounted) {
+                      showResultMessage(context, e.code, e.message,
+                          notFoundStatus: l10n.notFound(l10n.user));
+                    }
+                    return;
+                  }
                   if (context.mounted) {
                     Navigator.pop(context);
                   }
@@ -989,12 +988,8 @@ class _SessionTabState extends State<SessionTab> {
                           if (context.mounted) {
                             showResultMessage(context, e.code, e.message,
                                 permissionDeniedStatus:
-                                    AppLocalizations.of(context)!
-                                        .permissionDenied(
-                                            AppLocalizations.of(context)!.send),
-                                notFoundStatus: AppLocalizations.of(context)!
-                                    .notFound(
-                                        AppLocalizations.of(context)!.session));
+                                    l10n.permissionDenied(l10n.send),
+                                notFoundStatus: l10n.notFound(l10n.session));
                           }
                         }
                       },

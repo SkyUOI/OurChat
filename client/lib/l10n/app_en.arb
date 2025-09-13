@@ -328,5 +328,21 @@
     "modify": "Modify",
     "@modify": {
         "description": "Modify"
+    },
+    "about": "About",
+    "@about": {
+        "description": "About"
+    },
+    "donate": "Donate",
+    "@donate": {
+        "description": "Donate"
+    },
+    "contribute": "Contribute",
+    "@contribute": {
+        "description": "Contribute"
+    },
+    "copiedToClipboard": "Copied to clipboard",
+    "@copiedToClipboard": {
+        "description": "Copied to clipboard"
     }
 }

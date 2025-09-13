@@ -238,7 +238,7 @@ class FriendRequestDialog extends StatelessWidget {
                                                                     notFoundStatus: AppLocalizations.of(
                                                                             context)!
                                                                         .notFound(
-                                                                            AppLocalizations.of(context)!.invitation));
+                                                                            l10n.invitation));
                                                                 Navigator.pop(
                                                                     context);
                                                               }

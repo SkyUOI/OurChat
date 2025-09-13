@@ -15,6 +15,7 @@ class Auth extends StatelessWidget {
   const Auth({super.key});
   @override
   Widget build(BuildContext context) {
+    var l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: DefaultTabController(
         length: 2,
@@ -22,8 +23,8 @@ class Auth extends StatelessWidget {
           children: [
             TabBar(
               tabs: [
-                Tab(text: AppLocalizations.of(context)!.login),
-                Tab(text: AppLocalizations.of(context)!.register),
+                Tab(text: l10n.login),
+                Tab(text: l10n.register),
               ],
             ),
             const Expanded(child: TabBarView(children: [Login(), Register()])),
@@ -54,6 +55,7 @@ class _LoginState extends State<Login> {
       if (password.isNotEmpty) savePassword = true;
       inited = true;
     }
+    var l10n = AppLocalizations.of(context)!;
     return Form(
         key: key,
         child: Row(
@@ -73,8 +75,7 @@ class _LoginState extends State<Login> {
                       // 账号输入框
                       initialValue: account,
                       decoration: InputDecoration(
-                          label: Text(
-                              "${AppLocalizations.of(context)!.ocid}/${AppLocalizations.of(context)!.email}")),
+                          label: Text("${l10n.ocid}/${l10n.email}")),
                       onSaved: (newValue) {
                         setState(() {
                           account = newValue!;
@@ -85,7 +86,7 @@ class _LoginState extends State<Login> {
                       // 密码输入框
                       initialValue: password,
                       decoration: InputDecoration(
-                        label: Text(AppLocalizations.of(context)!.password),
+                        label: Text(l10n.password),
                       ),
                       onSaved: (newValue) {
                         setState(() {
@@ -99,7 +100,7 @@ class _LoginState extends State<Login> {
                         dense: true,
                         contentPadding: const EdgeInsets.all(0.0),
                         controlAffinity: ListTileControlAffinity.leading,
-                        title: Text(AppLocalizations.of(context)!.savePassword),
+                        title: Text(l10n.savePassword),
                         value: savePassword,
                         onChanged: (value) {
                           setState(() {
@@ -156,19 +157,14 @@ class _LoginState extends State<Login> {
                               // 处理报错
                               if (context.mounted) {
                                 showResultMessage(context, code, message,
-                                    notFoundStatus:
-                                        AppLocalizations.of(context)!.notFound(
-                                            AppLocalizations.of(context)!.user),
-                                    invalidArgumentStatus:
-                                        AppLocalizations.of(context)!
-                                            .internalError,
+                                    notFoundStatus: l10n.notFound(l10n.user),
+                                    invalidArgumentStatus: l10n.internalError,
                                     unauthenticatedStatus:
-                                        AppLocalizations.of(context)!
-                                            .incorrectPassword);
+                                        l10n.incorrectPassword);
                               }
                             }
                           },
-                          child: Text(AppLocalizations.of(context)!.login)),
+                          child: Text(l10n.login)),
                     )
                   ],
                 )),
@@ -193,6 +189,7 @@ class _RegisterState extends State<Register> {
   Widget build(BuildContext context) {
     var key = GlobalKey<FormState>();
     var ourchatAppState = context.watch<OurChatAppState>();
+    var l10n = AppLocalizations.of(context)!;
     return Form(
         key: key,
         child: Row(
@@ -206,8 +203,7 @@ class _RegisterState extends State<Register> {
                     TextFormField(
                       // 用户名输入框
                       initialValue: username,
-                      decoration: InputDecoration(
-                          label: Text(AppLocalizations.of(context)!.username)),
+                      decoration: InputDecoration(label: Text(l10n.username)),
                       onSaved: (newValue) {
                         setState(() {
                           username = newValue!;
@@ -217,8 +213,7 @@ class _RegisterState extends State<Register> {
                     TextFormField(
                       // 邮箱输入框
                       initialValue: email,
-                      decoration: InputDecoration(
-                          label: Text(AppLocalizations.of(context)!.email)),
+                      decoration: InputDecoration(label: Text(l10n.email)),
                       onSaved: (newValue) {
                         setState(() {
                           email = newValue!;
@@ -229,7 +224,7 @@ class _RegisterState extends State<Register> {
                       // 密码输入框
                       initialValue: password,
                       decoration: InputDecoration(
-                        label: Text(AppLocalizations.of(context)!.password),
+                        label: Text(l10n.password),
                       ),
                       onSaved: (newValue) {
                         setState(() {
@@ -243,7 +238,7 @@ class _RegisterState extends State<Register> {
                         dense: true,
                         contentPadding: const EdgeInsets.all(0.0),
                         controlAffinity: ListTileControlAffinity.leading,
-                        title: Text(AppLocalizations.of(context)!.showPassword),
+                        title: Text(l10n.showPassword),
                         value: showPassword,
                         onChanged: (value) {
                           setState(() {
@@ -290,26 +285,19 @@ class _RegisterState extends State<Register> {
                               // 处理报错
                               if (context.mounted) {
                                 showResultMessage(context, code, message,
-                                    alreadyExistsStatus:
-                                        AppLocalizations.of(context)!
-                                            .emailExists,
+                                    alreadyExistsStatus: l10n.emailExists,
                                     invalidArgumentStatus: {
                                       "Password Is Not Strong Enough":
-                                          AppLocalizations.of(context)!
-                                              .passwordIsNotStrongEnough,
+                                          l10n.passwordIsNotStrongEnough,
                                       "Username Is Invalid":
-                                          AppLocalizations.of(context)!.invalid(
-                                              AppLocalizations.of(context)!
-                                                  .username),
+                                          l10n.invalid(l10n.username),
                                       "Email Address Is Invalid":
-                                          AppLocalizations.of(context)!.invalid(
-                                              AppLocalizations.of(context)!
-                                                  .email),
+                                          l10n.invalid(l10n.email),
                                     });
                               }
                             }
                           },
-                          child: Text(AppLocalizations.of(context)!.register)),
+                          child: Text(l10n.register)),
                     ),
                   ],
                 )),

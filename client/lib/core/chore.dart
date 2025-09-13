@@ -72,13 +72,14 @@ void showResultMessage(
   dynamic dataLossStatus,
   dynamic unauthenticatedStatus,
 }) {
-  dynamic message = AppLocalizations.of(context)!.unknownError;
+  var l10n = AppLocalizations.of(context)!;
+  dynamic message = l10n.unknownError;
   switch (code) {
     case okStatusCode:
       if (okStatus != null) {
         message = okStatus;
       }
-      message = AppLocalizations.of(context)!.succeeded;
+      message = l10n.succeeded;
       break;
     case cancelledStatusCode:
       if (cancelledStatus != null) {
@@ -143,14 +144,14 @@ void showResultMessage(
       if (internalStatus != null) {
         message = internalStatus;
       } else {
-        message = AppLocalizations.of(context)!.serverError;
+        message = l10n.serverError;
       }
       break;
     case unavailableStatusCode:
       if (unavailableStatus != null) {
         message = unavailableStatus;
       } else {
-        message = AppLocalizations.of(context)!.serverStatusUnderMaintenance;
+        message = l10n.serverStatusUnderMaintenance;
       }
       break;
     case dataLossStatusCode:

@@ -26,6 +26,7 @@ class _ServerSettingState extends State<ServerSetting> {
   @override
   Widget build(BuildContext context) {
     var ourchatAppState = context.watch<OurChatAppState>();
+    var l10n = AppLocalizations.of(context)!;
     // 从配置中读取地址和端口
     if (!inited) {
       address = ourchatAppState.config["servers"][0]["host"];
@@ -45,7 +46,7 @@ class _ServerSettingState extends State<ServerSetting> {
           // 展示服务端ip
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text("${AppLocalizations.of(context)!.serverAddress}: "),
+            Text("${l10n.serverAddress}: "),
             Text(address, style: const TextStyle(color: Colors.grey)),
           ],
         ),
@@ -53,7 +54,7 @@ class _ServerSettingState extends State<ServerSetting> {
           // 展示服务端名称
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text("${AppLocalizations.of(context)!.serverName}: "),
+            Text("${l10n.serverName}: "),
             Text(serverName, style: const TextStyle(color: Colors.grey)),
           ],
         ),
@@ -61,7 +62,7 @@ class _ServerSettingState extends State<ServerSetting> {
           // 展示服务端端口
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text("${AppLocalizations.of(context)!.port}: "),
+            Text("${l10n.port}: "),
             Text(port.toString(), style: const TextStyle(color: Colors.grey)),
           ],
         ),
@@ -69,7 +70,7 @@ class _ServerSettingState extends State<ServerSetting> {
           // 展示服务端http端口
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text("${AppLocalizations.of(context)!.httpPort}: "),
+            Text("${l10n.httpPort}: "),
             Text(
               (httpPort == -1 ? "" : httpPort.toString()),
               style: const TextStyle(color: Colors.grey),
@@ -80,7 +81,7 @@ class _ServerSettingState extends State<ServerSetting> {
           // 展示服务端状态
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text("${AppLocalizations.of(context)!.serverStatus}: "),
+            Text("${l10n.serverStatus}: "),
             Text(serverState, style: TextStyle(color: serverStatusColor)),
           ],
         ),
@@ -88,7 +89,7 @@ class _ServerSettingState extends State<ServerSetting> {
           // 展示服务端版本
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text("${AppLocalizations.of(context)!.serverVersion}: "),
+            Text("${l10n.serverVersion}: "),
             Text(serverVersion, style: const TextStyle(color: Colors.grey)),
           ],
         ),
@@ -96,7 +97,7 @@ class _ServerSettingState extends State<ServerSetting> {
           // 展示连接延迟
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text("${AppLocalizations.of(context)!.ping}: "),
+            Text("${l10n.ping}: "),
             Text(
               (ping == -1 ? "" : "$ping ms"),
               style: const TextStyle(color: Colors.grey),
@@ -107,16 +108,16 @@ class _ServerSettingState extends State<ServerSetting> {
           // 展示是否支持tls
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text("${AppLocalizations.of(context)!.tlsEncryption} "),
+            Text("${l10n.tlsEncryption} "),
             isTLS == null
                 ? Text("")
                 : (isTLS!
                     ? Text(
-                        AppLocalizations.of(context)!.tlsEnabled,
+                        l10n.tlsEnabled,
                         style: const TextStyle(color: Colors.green),
                       )
                     : Text(
-                        AppLocalizations.of(context)!.tlsDisabled,
+                        l10n.tlsDisabled,
                         style: const TextStyle(color: Colors.red),
                       ))
           ],
@@ -134,11 +135,11 @@ class _ServerSettingState extends State<ServerSetting> {
               // 地址输入框
               initialValue: address,
               decoration: InputDecoration(
-                label: Text(AppLocalizations.of(context)!.serverAddress),
+                label: Text(l10n.serverAddress),
               ),
               validator: (value) {
                 if (value!.isEmpty) {
-                  return AppLocalizations.of(context)!.cantBeEmpty;
+                  return l10n.cantBeEmpty;
                 }
                 return null;
               },
@@ -152,18 +153,17 @@ class _ServerSettingState extends State<ServerSetting> {
               // 端口输入框
               initialValue: port.toString(),
               decoration: InputDecoration(
-                label: Text(AppLocalizations.of(context)!.port),
+                label: Text(l10n.port),
               ),
               validator: (value) {
                 if (value!.isEmpty) {
-                  return AppLocalizations.of(context)!.cantBeEmpty;
+                  return l10n.cantBeEmpty;
                 }
 
                 if (int.tryParse(value) == null ||
                     int.parse(value) > 65535 ||
                     int.parse(value) < 0) {
-                  return AppLocalizations.of(context)!
-                      .invalid(AppLocalizations.of(context)!.port);
+                  return l10n.invalid(l10n.port);
                 }
                 return null;
               },
@@ -179,9 +179,7 @@ class _ServerSettingState extends State<ServerSetting> {
                 child: ElevatedButton(
                   child: Text(
                     // 如果服务端在线(尝试连接成功)，则显示"继续"
-                    isOnline
-                        ? AppLocalizations.of(context)!.continue_
-                        : AppLocalizations.of(context)!.connect,
+                    isOnline ? l10n.continue_ : l10n.connect,
                   ),
                   onPressed: () async {
                     if (!key.currentState!.validate()) {
@@ -230,8 +228,7 @@ class _ServerSettingState extends State<ServerSetting> {
                         resCode == unknownStatusCode) {
                       // 连接失败
                       setState(() {
-                        serverState =
-                            AppLocalizations.of(context)!.serverStatusOffline;
+                        serverState = l10n.serverStatusOffline;
                         serverStatusColor = Colors.red;
                       });
                       return;
@@ -247,13 +244,11 @@ class _ServerSettingState extends State<ServerSetting> {
                       httpPort = server.httpPort!;
                       switch (server.serverStatus!.value) {
                         case okStatusCode:
-                          serverState =
-                              AppLocalizations.of(context)!.serverStatusOnline;
+                          serverState = l10n.serverStatusOnline;
                           serverStatusColor = Colors.green;
                           break;
                         case internalStatusCode:
-                          serverState =
-                              AppLocalizations.of(context)!.serverError;
+                          serverState = l10n.serverError;
                           serverStatusColor = Colors.red;
                           break;
                         case unavailableStatusCode:
@@ -264,8 +259,7 @@ class _ServerSettingState extends State<ServerSetting> {
                           serverStatusColor = Colors.orange;
                           break;
                         default:
-                          serverState =
-                              AppLocalizations.of(context)!.serverStatusUnknown;
+                          serverState = l10n.serverStatusUnknown;
                           serverStatusColor = Colors.grey;
                           break;
                       }
