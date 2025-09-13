@@ -73,6 +73,10 @@ jobs:
         uses: arduino/setup-protoc@v3
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install requests
+        run: pip install requests
+      - name: About code generate
+        run: python script/generate_about_code.py --afdian_userid ${{ secrets.AFDIAN_USERID }} --afdian_token ${{ secrets.AFDIAN_TOKEN }} --version ${{ github.ref_name }} --commit_sha ${{ github.sha }}
       - name: Flutter Init
         run: cd client && flutter pub get
       - name: Grpc generate
@@ -83,8 +87,6 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y libgtk-3-dev
-      - name: about code generate
-        run: python script/generate_about_code.py --afdian_userid ${{ secrets.AFDIAN_USERID }} --afdian_token ${{ secrets.AFDIAN_TOKEN }} --tag ${{ github.ref }} --commit_sha ${{ github.sha }}
       - name: Build Release
         run: cd client && flutter build linux
       - name: Compress
@@ -111,6 +113,10 @@ jobs:
         uses: arduino/setup-protoc@v3
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install requests
+        run: pip install requests
+      - name: About code generate
+        run: python script/generate_about_code.py --afdian_userid ${{ secrets.AFDIAN_USERID }} --afdian_token ${{ secrets.AFDIAN_TOKEN }} --version ${{ github.ref_name }} --commit_sha ${{ github.sha }}
       - name: Flutter Init
         run: cd client && flutter pub get
       - name: Grpc generate
@@ -121,8 +127,6 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y libgtk-3-dev
-      - name: about code generate
-        run: python script/generate_about_code.py --afdian_userid ${{ secrets.AFDIAN_USERID }} --afdian_token ${{ secrets.AFDIAN_TOKEN }} --tag ${{ github.ref }} --commit_sha ${{ github.sha }}
       - name: Build Release
         run: cd client && flutter build apk
       - name: Rename
@@ -149,14 +153,16 @@ jobs:
         uses: arduino/setup-protoc@v3
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install requests
+        run: pip install requests
+      - name: About code generate
+        run: python script/generate_about_code.py --afdian_userid ${{ secrets.AFDIAN_USERID }} --afdian_token ${{ secrets.AFDIAN_TOKEN }} --version ${{ github.ref_name }} --commit_sha ${{ github.sha }}
       - name: Flutter Init
         run: cd client && flutter pub get
       - name: Grpc generate
         run: dart pub global activate protoc_plugin && python script/generate.pb.dart.py
       - name: Drift generate
         run: cd client && dart run build_runner build
-      - name: about code generate
-        run: python script/generate_about_code.py --afdian_userid ${{ secrets.AFDIAN_USERID }} --afdian_token ${{ secrets.AFDIAN_TOKEN }} --tag ${{ github.ref }} --commit_sha ${{ github.sha }}
       - name: Build Release
         run: cd client && flutter build windows
       - name: Rename
@@ -185,14 +191,16 @@ jobs:
         uses: arduino/setup-protoc@v3
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install requests
+        run: pip install requests
+      - name: About code generate
+        run: python script/generate_about_code.py --afdian_userid ${{ secrets.AFDIAN_USERID }} --afdian_token ${{ secrets.AFDIAN_TOKEN }} --version ${{ github.ref_name }} --commit_sha ${{ github.sha }}
       - name: Flutter Init
         run: cd client && flutter pub get
       - name: Grpc generate
         run: dart pub global activate protoc_plugin && python script/generate.pb.dart.py
       - name: Drift generate
         run: cd client && dart run build_runner build
-      - name: about code generate
-        run: python script/generate_about_code.py --afdian_userid ${{ secrets.AFDIAN_USERID }} --afdian_token ${{ secrets.AFDIAN_TOKEN }} --tag ${{ github.ref }} --commit_sha ${{ github.sha }}
       - name: Build Release
         run: cd client && flutter build macos
       - name: Compress
