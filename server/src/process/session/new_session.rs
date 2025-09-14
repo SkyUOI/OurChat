@@ -7,13 +7,13 @@ use anyhow::Context;
 use base::consts::{ID, SessionID};
 use base::database::DbPool;
 use entities::{friend, prelude::*};
+use pb::google;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
 use pb::service::ourchat::session::invite_user_to_session::v1::InviteUserToSession;
 use pb::service::ourchat::session::new_session::v1::{
     FailedMember, FailedReason, NewSessionRequest, NewSessionResponse,
 };
-use pb::time::to_google_timestamp;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, EntityTrait, QueryFilter, TransactionTrait,
 };
@@ -144,7 +144,7 @@ pub async fn send_verification_request(
     leave_message: Option<String>,
 ) -> anyhow::Result<()> {
     let expire_at = chrono::Utc::now() + server.shared_data.cfg.main_cfg.verification_expire_time;
-    let expire_at_google = to_google_timestamp(expire_at);
+    let expire_at_google: google::protobuf::Timestamp = expire_at.into();
     // save to the database
     let respond_msg = InviteUserToSession {
         session_id: session_id.into(),

@@ -15,7 +15,6 @@ use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventTyp
 use pb::service::ourchat::session::join_session::v1::{
     JoinSessionApproval, JoinSessionRequest, JoinSessionResponse,
 };
-use pb::time::to_google_timestamp;
 use tonic::{Request, Response, Status};
 
 pub async fn join_session(
@@ -125,7 +124,7 @@ async fn join_session_impl(
     // try to send the message directly
     let fetch_response = FetchMsgsResponse {
         msg_id: msg_model.msg_id as u64,
-        time: Some(to_google_timestamp(msg_model.time.into())),
+        time: Some(msg_model.time.into()),
         respond_event_type: Some(respond_msg),
     };
     let peoples_should_be_sent = get_all_session_relations(id, &server.db.db_pool).await?;

@@ -4,7 +4,7 @@ use parking_lot::Mutex;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
 use pb::service::ourchat::msg_delivery::{self, recall::v1::RecallMsgRequest, v1::OneMsg};
-use pb::time::from_google_timestamp;
+use pb::time::TimeStampUtc;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::join;
@@ -75,10 +75,8 @@ async fn test_recall() {
     let check = async |rec: Vec<FetchMsgsResponse>, msg_len, msg_recall_idx: usize| {
         assert_eq!(rec.len(), msg_len, "{rec:?}");
         tokio::time::sleep(Duration::from_millis(200)).await;
-        assert_lt!(
-            from_google_timestamp(&rec[msg_recall_idx].time.unwrap()).unwrap(),
-            chrono::Utc::now()
-        );
+        let tmp: TimeStampUtc = rec[msg_recall_idx].time.unwrap().try_into().unwrap();
+        assert_lt!(tmp, chrono::Utc::now());
         assert_eq!(rec[msg_recall_idx].msg_id, recall_msg_id);
         let RespondEventType::Recall(data) =
             rec[msg_recall_idx].clone().respond_event_type.unwrap()

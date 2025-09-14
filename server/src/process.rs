@@ -123,7 +123,6 @@ use base::consts::ID;
 use entities::prelude::*;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
-use pb::time::to_google_timestamp;
 use prost::Message;
 
 pub mod db {
@@ -331,7 +330,7 @@ pub async fn message_insert_and_transmit(
     .await?;
     let fetch_response = FetchMsgsResponse {
         msg_id: msg_model.msg_id as u64,
-        time: Some(to_google_timestamp(msg_model.time.into())),
+        time: Some(msg_model.time.into()),
         respond_event_type: Some(msg),
     };
     transmit_msg(fetch_response, dest, rmq_chan, db_conn).await?;

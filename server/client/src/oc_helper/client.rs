@@ -10,7 +10,7 @@ use pb::service::auth::v1::auth_service_client::AuthServiceClient;
 use pb::service::basic::v1::basic_service_client::BasicServiceClient;
 use pb::service::basic::v1::{GetIdRequest, TimestampRequest};
 use pb::service::ourchat::v1::our_chat_service_client::OurChatServiceClient;
-use pb::time::{TimeStampUtc, from_google_timestamp};
+use pb::time::TimeStampUtc;
 use sea_orm::TransactionTrait;
 use server::db::session::{BanStatus, MuteStatus, user_banned_status, user_muted_status};
 use server::helper::get_available_port;
@@ -40,15 +40,16 @@ pub type OCClient = OurChatServiceClient<
 #[derive(Clone)]
 pub struct TestApp {
     pub db_url: String,
-    pub app_shared: Option<Arc<SharedData>>,
-    pub db_pool: Option<DbPool>,
+    pub app_shared: Arc<SharedData>,
+    pub db_pool: DbPool,
+    pub rabbitmq_pool: deadpool_lapin::Pool,
     pub owned_users: Vec<Arc<tokio::sync::Mutex<TestUser>>>,
     pub app_config: Cfg,
     pub rmq_vhost: String,
     pub core: ClientCore,
 
     has_dropped: bool,
-    server_drop_handle: Option<ShutdownSdr>,
+    server_drop_handle: ShutdownSdr,
     pub should_drop_db: bool,
     pub should_drop_vhost: bool,
 }
@@ -156,6 +157,7 @@ impl TestApp {
         let abort_handle = application.get_abort_handle();
         let shared = application.shared.clone();
         let db_pool = application.pool.clone();
+        let rabbitmq_pool = application.rabbitmq.clone();
 
         let notifier = application.started_notify.clone();
         tokio::spawn(async move {
@@ -200,11 +202,12 @@ impl TestApp {
         let connected_channel = connected_channel.connect().await?;
         let obj = TestApp {
             db_url,
-            server_drop_handle: Some(abort_handle),
+            server_drop_handle: abort_handle,
             has_dropped: false,
-            app_shared: Some(shared),
+            app_shared: shared,
             owned_users: vec![],
-            db_pool: Some(db_pool),
+            db_pool,
+            rabbitmq_pool,
             core: ClientCore {
                 port,
                 clients: Clients {
@@ -228,10 +231,8 @@ impl TestApp {
         for i in &self.owned_users {
             i.lock().await.async_drop().await;
         }
-        if let Some(mut handle) = self.server_drop_handle.take() {
-            handle.shutdown_all_tasks().await.unwrap();
-            tracing::info!("shutdown message sent");
-        }
+        self.server_drop_handle.shutdown_all_tasks().await.unwrap();
+        tracing::info!("shutdown message sent");
 
         tracing::info!("app shut down");
         tokio::time::sleep(Duration::from_secs(1)).await;
@@ -299,14 +300,8 @@ impl TestApp {
         // create a group in database level
         let session_id = helper::generate_session_id()?;
         // then will join to session and add size column
-        process::db::create_session_db(
-            session_id,
-            0,
-            name.into(),
-            &self.db_pool.as_ref().unwrap().db_pool,
-            e2ee_on,
-        )
-        .await?;
+        process::db::create_session_db(session_id, 0, name.into(), &self.db_pool.db_pool, e2ee_on)
+            .await?;
         tracing::info!("create session:{}", session_id);
         let mut id_vec = vec![];
         for i in &users {
@@ -368,7 +363,7 @@ impl TestApp {
             .into_inner()
             .timestamp
             .unwrap();
-        from_google_timestamp(&ret).unwrap()
+        ret.try_into().unwrap()
     }
 
     pub async fn get_id(&mut self, ocid: OCID) -> Result<ID, tonic::Status> {
@@ -388,7 +383,7 @@ impl TestApp {
     ///
     /// Panics if launching with an existing instance.
     pub fn get_db_connection(&self) -> &sea_orm::DatabaseConnection {
-        &self.db_pool.as_ref().unwrap().db_pool
+        &self.db_pool.db_pool
     }
 
     pub async fn check_ban_status(
@@ -396,7 +391,7 @@ impl TestApp {
         user: ID,
         session_id: SessionID,
     ) -> anyhow::Result<Option<BanStatus>> {
-        let mut redis_connection = self.db_pool.as_ref().unwrap().redis_pool.get().await?;
+        let mut redis_connection = self.db_pool.redis_pool.get().await?;
         Ok(user_banned_status(user, session_id, &mut redis_connection).await?)
     }
 
@@ -405,7 +400,7 @@ impl TestApp {
         user: ID,
         session_id: SessionID,
     ) -> anyhow::Result<Option<MuteStatus>> {
-        let mut redis_connection = self.db_pool.as_ref().unwrap().redis_pool.get().await?;
+        let mut redis_connection = self.db_pool.redis_pool.get().await?;
         Ok(user_muted_status(user, session_id, &mut redis_connection).await?)
     }
 }

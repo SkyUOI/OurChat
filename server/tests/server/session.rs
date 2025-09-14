@@ -21,7 +21,7 @@ use pb::service::ourchat::session::{
     new_session::v1::NewSessionRequest,
     set_session_info::v1::SetSessionInfoRequest,
 };
-use pb::time::from_google_timestamp;
+use pb::time::TimeStampUtc;
 use server::db::session::get_all_session_relations;
 use server::process::error_msg;
 use std::collections::HashSet;
@@ -170,10 +170,8 @@ async fn get_session_info() {
     let info = info.into_inner();
     assert_eq!(info.name.unwrap(), "session1");
     assert_eq!(info.size.unwrap(), 3);
-    assert_lt!(
-        from_google_timestamp(&info.created_time.unwrap()).unwrap(),
-        time_now
-    );
+    let tmp: TimeStampUtc = info.created_time.unwrap().try_into().unwrap();
+    assert_lt!(tmp, time_now);
     assert_eq!(info.avatar_key.unwrap(), "");
     let session_id_get: SessionID = info.session_id.unwrap().into();
     assert_eq!(session_id_get, session.session_id);
@@ -257,21 +255,21 @@ async fn set_session_info() {
         session_user[1].clone(),
         session_user[2].clone(),
     );
-    let get_timestamp = async || {
-        from_google_timestamp(
-            &a.lock()
-                .await
-                .oc()
-                .get_session_info(GetSessionInfoRequest {
-                    session_id: session.session_id.into(),
-                    query_values: vec![QueryValues::UpdatedTime.into()],
-                })
-                .await
-                .unwrap()
-                .into_inner()
-                .updated_time
-                .unwrap(),
-        )
+    let get_timestamp = async || -> TimeStampUtc {
+        a.lock()
+            .await
+            .oc()
+            .get_session_info(GetSessionInfoRequest {
+                session_id: session.session_id.into(),
+                query_values: vec![QueryValues::UpdatedTime.into()],
+            })
+            .await
+            .unwrap()
+            .into_inner()
+            .updated_time
+            .unwrap()
+            .try_into()
+            .unwrap()
     };
     let original_timestamp = get_timestamp().await;
     let request = SetSessionInfoRequest {
