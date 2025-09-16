@@ -7,6 +7,23 @@ permissions:
   contents: write
 
 jobs:
+  create_gitee_release:
+    name: Create Gitee release
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Create Release Only
+        uses: nicennnnnnnlee/action-gitee-release@master
+        with:
+          gitee_action: create_release
+          gitee_owner: skyuoi
+          gitee_repo: OurChat
+          gitee_token: ${{ secrets.GITEE_TOKEN }}
+          gitee_tag_name: ${{ github.ref_name }}
+          gitee_release_name: ${{ github.ref_name }}
+          gitee_release_body: "Release ${{ github.ref_name }}"
+          gitee_target_commitish: main
+
   create_server_release:
     name: Create server release
     runs-on: ubuntu-latest
@@ -51,12 +68,23 @@ jobs:
           zip -r ../ourchat-server.zip .
           cd ..
 
-      - name: Release
+      - name: Release to Github
         uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           files: |
             ourchat-server.zip
+      - name: Release to Gitee
+        uses: nicennnnnnnlee/action-gitee-release@master
+        with:
+          gitee_action: upload_asset
+          gitee_owner: skyuoi
+          gitee_repo: OurChat
+          gitee_token: ${{ secrets.GITEE_TOKEN }}
+          gitee_tag_name: ${{ github.ref_name }}
+          gitee_upload_retry_times: 3
+          gitee_file_name: ourchat-server.zip
+          gitee_file_path: ourchat-server.zip
 
   create_client_on_linux_release:
     name: Create client on Linux release
@@ -91,12 +119,23 @@ jobs:
         run: cd client && flutter build linux
       - name: Compress
         run: cd client/build/linux/x64/release && tar -czvf ourchat-client-linux.tar.gz bundle
-      - name: Release
+      - name: Release to Github
         uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           files: |
             client/build/linux/x64/release/ourchat-client-linux.tar.gz
+      - name: Release to Gitee
+        uses: nicennnnnnnlee/action-gitee-release@master
+        with:
+          gitee_action: upload_asset
+          gitee_owner: skyuoi
+          gitee_repo: OurChat
+          gitee_token: ${{ secrets.GITEE_TOKEN }}
+          gitee_tag_name: ${{ github.ref_name }}
+          gitee_upload_retry_times: 3
+          gitee_file_name: ourchat-client-linux.tar.gz
+          gitee_file_path: client/build/linux/x64/release/ourchat-client-linux.tar.gz
   
   create_client_on_android_release:
     name: Create client on Android release
@@ -131,12 +170,23 @@ jobs:
         run: cd client && flutter build apk
       - name: Rename
         run: mv client/build/app/outputs/flutter-apk/app-release.apk client/build/app/outputs/flutter-apk/OurChat.apk
-      - name: Release
+      - name: Release to Github
         uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           files: |
             client/build/app/outputs/flutter-apk/OurChat.apk
+      - name: Release to Gitee
+        uses: nicennnnnnnlee/action-gitee-release@master
+        with:
+          gitee_action: upload_asset
+          gitee_owner: skyuoi
+          gitee_repo: OurChat
+          gitee_token: ${{ secrets.GITEE_TOKEN }}
+          gitee_tag_name: ${{ github.ref_name }}
+          gitee_upload_retry_times: 3
+          gitee_file_name: OurChat.apk
+          gitee_file_path: client/build/app/outputs/flutter-apk/OurChat.apk
 
   create_client_on_windows_release:
     name: Create client on Windows release
@@ -169,12 +219,23 @@ jobs:
         run: mv client/build/windows/x64/runner/Release/client.exe client/build/windows/x64/runner/Release/OurChat.exe
       - name: Compress
         run: cd client/build/windows/x64/runner && tar -czvf ourchat-client-windows.tar.gz Release
-      - name: Release
+      - name: Release to Github
         uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           files: |
             client/build/windows/x64/runner/ourchat-client-windows.tar.gz
+      - name: Release to Gitee
+        uses: nicennnnnnnlee/action-gitee-release@master
+        with:
+          gitee_action: upload_asset
+          gitee_owner: skyuoi
+          gitee_repo: OurChat
+          gitee_token: ${{ secrets.GITEE_TOKEN }}
+          gitee_tag_name: ${{ github.ref_name }}
+          gitee_upload_retry_times: 3
+          gitee_file_name: ourchat-client-windows.tar.gz
+          gitee_file_path: client/build/windows/x64/runner/ourchat-client-windows.tar.gz
     
   create_client_on_macos_and_release:
     name: Create client on MacOS release
@@ -205,9 +266,20 @@ jobs:
         run: cd client && flutter build macos
       - name: Compress
         run: cd client/build/macos/Build/Products && tar -czvf ourchat-client-macos.tar.gz Release
-      - name: Release
+      - name: Release to Github
         uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           files: |
             client/build/macos/Build/Products/ourchat-client-macos.tar.gz
+      - name: Release to Gitee
+        uses: nicennnnnnnlee/action-gitee-release@master
+        with:
+          gitee_action: upload_asset
+          gitee_owner: skyuoi
+          gitee_repo: OurChat
+          gitee_token: ${{ secrets.GITEE_TOKEN }}
+          gitee_tag_name: ${{ github.ref_name }}
+          gitee_upload_retry_times: 3
+          gitee_file_name: ourchat-client-macos.tar.gz
+          gitee_file_path: client/build/macos/Build/Products/ourchat-client-macos.tar.gz
