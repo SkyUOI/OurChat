@@ -31,7 +31,9 @@ class SessionState extends ChangeNotifier {
   List<BundleMsgs> currentSessionRecords = [];
   List<OurChatSession> sessionsList = [];
   Map<OurChatSession, BundleMsgs> sessionRecentMsg = {};
+  bool alreadyDispose = false;
   void update() {
+    if (alreadyDispose) return;
     notifyListeners();
   }
 
@@ -60,6 +62,12 @@ class SessionState extends ChangeNotifier {
     if (sessionsList.isNotEmpty) {
       update();
     }
+  }
+
+  @override
+  void dispose() {
+    alreadyDispose = true;
+    super.dispose();
   }
 }
 
