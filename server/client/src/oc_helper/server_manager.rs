@@ -46,7 +46,7 @@ impl TestServerManager {
         Ok(Self {
             client,
             user_id,
-            db_conn: app.db_pool.clone().unwrap(),
+            db_conn: app.db_pool.clone(),
         })
     }
 

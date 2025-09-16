@@ -20,9 +20,7 @@ use pb::service::ourchat::session::ban::v1::{BanUserRequest, UnbanUserRequest};
 use pb::service::ourchat::session::mute::v1::{MuteUserRequest, UnmuteUserRequest};
 use pb::service::ourchat::unregister::v1::UnregisterRequest;
 use pb::service::ourchat::v1::our_chat_service_client::OurChatServiceClient;
-use pb::time::{
-    TimeStampUtc, from_google_timestamp, std_duration_to_prost_duration, to_google_timestamp,
-};
+use pb::time::TimeStampUtc;
 use rand::Rng;
 use rsa::pkcs1::EncodeRsaPublicKey as _;
 use rsa::{RsaPrivateKey, RsaPublicKey};
@@ -316,7 +314,7 @@ impl TestUser {
             .into_inner()
             .timestamp
             .unwrap();
-        from_google_timestamp(&ret).unwrap()
+        ret.try_into().unwrap()
     }
 
     pub async fn ban_user(
@@ -328,7 +326,7 @@ impl TestUser {
         let req = BanUserRequest {
             user_ids: user_ids.into_iter().map(|x| x.into()).collect(),
             session_id: session_id.into(),
-            duration: duration.map(std_duration_to_prost_duration),
+            duration: duration.map(|x| x.into()),
         };
         self.oc().ban_user(req).await?;
         Ok(())
@@ -343,7 +341,7 @@ impl TestUser {
         let req = MuteUserRequest {
             user_ids: user_ids.into_iter().map(|x| x.into()).collect(),
             session_id: session_id.into(),
-            duration: duration.map(std_duration_to_prost_duration),
+            duration: duration.map(|x| x.into()),
         };
         self.oc().mute_user(req).await?;
         Ok(())
@@ -380,6 +378,7 @@ impl TestUser {
         FetchMsgBuilder {
             user: self,
             timestamp: tmp,
+            timeout_limit: DEFAULT_FETCH_TIMEOUT_LIMIT,
         }
     }
 
@@ -407,14 +406,13 @@ impl TestUser {
     }
 
     pub async fn get_update_timestamp(&mut self) -> anyhow::Result<TimeStampUtc> {
-        Ok(from_google_timestamp(
-            &self
-                .get_self_info(vec![get_account_info::v1::QueryValues::UpdatedTime])
-                .await?
-                .updated_time
-                .unwrap(),
-        )
-        .unwrap())
+        Ok(self
+            .get_self_info(vec![get_account_info::v1::QueryValues::UpdatedTime])
+            .await?
+            .updated_time
+            .unwrap()
+            .try_into()
+            .unwrap())
     }
 }
 
@@ -427,25 +425,43 @@ impl Drop for TestUser {
 }
 
 pub type TestUserShared = Arc<tokio::sync::Mutex<TestUser>>;
+const DEFAULT_FETCH_TIMEOUT_LIMIT: Duration = Duration::from_secs(20);
 
 pub struct FetchMsgBuilder<'a> {
     pub timestamp: TimeStampUtc,
     user: &'a mut TestUser,
+    timeout_limit: Duration,
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum FetchMsgErr {
+    #[error("time limit exceeded")]
+    Timeout,
+    #[error(transparent)]
+    Other(#[from] anyhow::Error),
 }
 
 impl<'a> FetchMsgBuilder<'a> {
-    pub async fn fetch(&mut self, nums_limit: usize) -> anyhow::Result<Vec<FetchMsgsResponse>> {
+    pub async fn fetch(
+        &mut self,
+        nums_limit: usize,
+    ) -> Result<Vec<FetchMsgsResponse>, FetchMsgErr> {
         let msg_get = FetchMsgsRequest {
-            time: Some(to_google_timestamp(self.timestamp)),
+            time: Some(self.timestamp.into()),
         };
         tracing::info!("timestamp_receive_msg: {}", self.timestamp);
-        let ret = self.user.oc().fetch_msgs(msg_get).await?;
+        let ret = self
+            .user
+            .oc()
+            .fetch_msgs(msg_get)
+            .await
+            .context("error from server side")?;
         let mut ret_stream = ret.into_inner();
         let logic = async {
             let mut msgs = vec![];
             while let Some(i) = ret_stream.next().await {
                 let i = i?;
-                self.user.timestamp_receive_msg = from_google_timestamp(&i.time.unwrap()).unwrap();
+                self.user.timestamp_receive_msg = i.time.unwrap().try_into().unwrap();
                 msgs.push(i);
                 if msgs.len() == nums_limit {
                     break;
@@ -457,8 +473,8 @@ impl<'a> FetchMsgBuilder<'a> {
             msgs = logic => {
                 Ok(msgs?)
             }
-            _ = tokio::time::sleep(Duration::from_secs(20)) => {
-                Err(anyhow::anyhow!("Time Limit Exceeded"))
+            _ = tokio::time::sleep(self.timeout_limit) => {
+                Err(FetchMsgErr::Timeout)
             }
         }
     }
@@ -468,7 +484,7 @@ impl<'a> FetchMsgBuilder<'a> {
         notify: Arc<Notify>,
     ) -> Result<Vec<FetchMsgsResponse>, Status> {
         let msg_get = FetchMsgsRequest {
-            time: Some(to_google_timestamp(self.timestamp)),
+            time: Some(self.timestamp.into()),
         };
         let ret = self.user.oc().fetch_msgs(msg_get).await?;
         let mut ret_stream = ret.into_inner();
@@ -476,7 +492,7 @@ impl<'a> FetchMsgBuilder<'a> {
         let logic = async {
             while let Some(i) = ret_stream.next().await {
                 let i = i?;
-                self.user.timestamp_receive_msg = from_google_timestamp(&i.time.unwrap()).unwrap();
+                self.user.timestamp_receive_msg = i.time.unwrap().try_into().unwrap();
                 msgs.push(i);
             }
             Result::<_, Status>::Ok(())
@@ -490,6 +506,11 @@ impl<'a> FetchMsgBuilder<'a> {
 
     pub fn set_timestamp(mut self, timestamp: TimeStampUtc) -> Self {
         self.timestamp = timestamp;
+        self
+    }
+
+    pub fn set_timeout(mut self, timeout_limit: Duration) -> Self {
+        self.timeout_limit = timeout_limit;
         self
     }
 }

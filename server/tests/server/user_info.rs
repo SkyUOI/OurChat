@@ -2,12 +2,14 @@ use std::time::Duration;
 
 use claims::{assert_err, assert_gt, assert_lt, assert_ok};
 use client::TestApp;
-use pb::service::ourchat::{
-    friends::set_friend_info::v1::SetFriendInfoRequest,
-    get_account_info::v1::{GetAccountInfoRequest, QueryValues},
-    set_account_info::v1::SetSelfInfoRequest,
+use pb::{
+    service::ourchat::{
+        friends::set_friend_info::v1::SetFriendInfoRequest,
+        get_account_info::v1::{GetAccountInfoRequest, QueryValues},
+        set_account_info::v1::SetSelfInfoRequest,
+    },
+    time::TimeStampUtc,
 };
-use pb::time::from_google_timestamp;
 use sea_orm::TransactionTrait;
 use server::process::{
     db,
@@ -67,14 +69,10 @@ async fn get_user_info() {
     assert_eq!(ret.user_name, Some(user_name.clone()));
     assert_eq!(ret.email, Some(user_email.clone()));
     assert_eq!(ret.friends, Vec::<u64>::default());
-    assert_gt!(
-        from_google_timestamp(&ret.register_time.unwrap()).unwrap(),
-        time_before_register
-    );
-    assert_lt!(
-        from_google_timestamp(&ret.register_time.unwrap()).unwrap(),
-        time_after_register
-    );
+    let tmp: TimeStampUtc = ret.register_time.unwrap().try_into().unwrap();
+    assert_gt!(tmp, time_before_register);
+    let tmp: TimeStampUtc = ret.register_time.unwrap().try_into().unwrap();
+    assert_lt!(tmp, time_after_register);
     // TODO:add display_name test
     app.async_drop().await;
 }
@@ -139,7 +137,7 @@ async fn set_friend_info() -> anyhow::Result<()> {
     let ret = user1
         .lock()
         .await
-        .get_account_info(user2_id, vec![QueryValues::DisplayName.into()])
+        .get_account_info(user2_id, vec![QueryValues::DisplayName])
         .await?;
     assert_eq!(ret.display_name.unwrap(), "");
     user1

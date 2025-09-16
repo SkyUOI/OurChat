@@ -12,7 +12,6 @@ use pb::service::ourchat::friends::add_friend::v1::{
 };
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
-use pb::time::to_google_timestamp;
 use sea_orm::{EntityTrait, TransactionTrait};
 use tonic::{Request, Response, Status};
 
@@ -127,7 +126,7 @@ async fn add_friend_impl(
     // send this message to the user who is invited
     let fetch_response = FetchMsgsResponse {
         msg_id: msg_model.msg_id as u64,
-        time: Some(to_google_timestamp(msg_model.time.into())),
+        time: Some(msg_model.time.into()),
         respond_event_type: Some(respond_msg),
     };
     let rmq_conn = server

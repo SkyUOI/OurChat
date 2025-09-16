@@ -67,8 +67,6 @@ async fn get_support_info() {
     assert_eq!(
         response.support_page,
         app.app_shared
-            .as_ref()
-            .unwrap()
             .cfg
             .user_setting
             .support_page
@@ -77,7 +75,7 @@ async fn get_support_info() {
     );
 
     // Verify contacts
-    let cfg_contacts = &app.app_shared.as_ref().unwrap().cfg.user_setting.contacts;
+    let cfg_contacts = &app.app_shared.cfg.user_setting.contacts;
     assert_eq!(response.contacts.len(), cfg_contacts.len());
 
     for (resp_contact, cfg_contact) in response.contacts.iter().zip(cfg_contacts.iter()) {

@@ -14,7 +14,6 @@ use pb::service::ourchat::friends::accept_friend_invitation::v1::{
 use pb::service::ourchat::friends::add_friend::v1::AddFriendRequest;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
-use pb::time::to_google_timestamp;
 use sea_orm::TransactionTrait;
 use tonic::{Request, Response, Status};
 
@@ -162,7 +161,7 @@ async fn accept_friend_invitation_impl(
     transaction.commit().await?;
     let fetch_response = FetchMsgsResponse {
         msg_id: msg_model.msg_id as u64,
-        time: Some(to_google_timestamp(msg_model.time.into())),
+        time: Some(msg_model.time.into()),
         respond_event_type: Some(respond_msg),
     };
     transmit_msg(

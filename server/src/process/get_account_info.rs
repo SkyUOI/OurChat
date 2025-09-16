@@ -10,7 +10,6 @@ use deadpool_redis::redis::AsyncCommands;
 use pb::service::ourchat::get_account_info::v1::{
     GetAccountInfoRequest, GetAccountInfoResponse, OWNER_PRIVILEGE, QueryValues,
 };
-use pb::time::to_google_timestamp;
 use std::cmp::PartialEq;
 use std::sync::OnceLock;
 use tonic::Request;
@@ -116,19 +115,16 @@ async fn get_account_info_impl(
                 QueryValues::AvatarKey => {
                     ret.avatar_key = Some(queried_user.avatar.clone().unwrap_or_default());
                 }
-                QueryValues::RegisterTime => {
-                    ret.register_time = Some(to_google_timestamp(queried_user.time.into()))
-                }
+                QueryValues::RegisterTime => ret.register_time = Some(queried_user.time.into()),
                 QueryValues::PublicUpdatedTime => {
-                    ret.public_updated_time =
-                        Some(to_google_timestamp(queried_user.public_update_time.into()))
+                    ret.public_updated_time = Some(queried_user.public_update_time.into())
                 }
                 QueryValues::UpdatedTime => {
                     // only owner can get
                     if privilege != Privilege::Owner {
                         return Err(GetInfoError::PermissionDenied)?;
                     }
-                    ret.updated_time = Some(to_google_timestamp(queried_user.update_time.into()))
+                    ret.updated_time = Some(queried_user.update_time.into())
                 }
                 QueryValues::Sessions => {
                     // only owner can get

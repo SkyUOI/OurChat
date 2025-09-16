@@ -44,7 +44,6 @@ use pb::service::server_manage::set_server_status::v1::{
 use pb::service::server_manage::v1::server_manage_service_server::{
     ServerManageService, ServerManageServiceServer,
 };
-use pb::time::to_google_timestamp;
 use process::error_msg::not_found;
 use std::net::SocketAddr;
 use std::pin::Pin;
@@ -457,7 +456,7 @@ impl BasicService for BasicServiceProvider {
         // Return current UTC timestamp
         let time = chrono::Utc::now();
         let res = TimestampResponse {
-            timestamp: Some(to_google_timestamp(time)),
+            timestamp: Some(time.into()),
         };
         Ok(Response::new(res))
     }

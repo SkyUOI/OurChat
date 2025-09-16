@@ -7,7 +7,6 @@ use pb::service::ourchat::session::get_session_info::v1::RoleInfo;
 use pb::service::ourchat::session::get_session_info::v1::{
     GetSessionInfoRequest, GetSessionInfoResponse, QueryValues,
 };
-use pb::time::to_google_timestamp;
 use tonic::{Request, Response, Status};
 
 pub async fn get_session_info(
@@ -76,10 +75,10 @@ async fn get_session_info_impl(
                 res.avatar_key = Some(session_data.avatar_key.clone().unwrap_or_default());
             }
             QueryValues::CreatedTime => {
-                res.created_time = Some(to_google_timestamp(session_data.created_time.into()));
+                res.created_time = Some(session_data.created_time.into());
             }
             QueryValues::UpdatedTime => {
-                res.updated_time = Some(to_google_timestamp(session_data.updated_time.into()));
+                res.updated_time = Some(session_data.updated_time.into());
             }
             QueryValues::Members => {
                 if !in_session {

@@ -14,7 +14,6 @@ use pb::service::ourchat::msg_delivery::v1::{Msg, SendMsgRequest, SendMsgRespons
 use pb::service::ourchat::session::session_room_key::v1::{
     SendRoomKeyNotification, UpdateRoomKeyNotification,
 };
-use pb::time::to_google_timestamp;
 use sea_orm::entity::prelude::*;
 use sea_orm::{ActiveValue, IntoActiveModel};
 use tonic::{Request, Response, Status};
@@ -173,6 +172,6 @@ async fn send_msg_impl(
     }
     Ok(SendMsgResponse {
         msg_id: msg_id.msg_id as u64,
-        time: Some(to_google_timestamp(msg_id.time.into())),
+        time: Some(msg_id.time.into()),
     })
 }

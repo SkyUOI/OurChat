@@ -14,8 +14,6 @@ pub mod announcement {
     pub mod v1 {
         use entities::announcement;
 
-        use crate::time::to_google_timestamp;
-
         include!("../../generated/service.ourchat.msg_delivery.announcement.v1.rs");
 
         impl From<announcement::Model> for AnnouncementResponse {
@@ -26,7 +24,7 @@ pub mod announcement {
                         title: value.title,
                         publisher_id: value.publisher_id as u64,
                     }),
-                    created_at: Some(to_google_timestamp(value.created_at.to_utc())),
+                    created_at: Some(value.created_at.to_utc().into()),
                     id: value.id as u64,
                 }
             }

@@ -58,12 +58,13 @@ pub async fn init(rmq: &deadpool_lapin::Pool) -> anyhow::Result<()> {
 
 pub async fn check_exchange_exist(
     channel: &Channel,
+    kind: ExchangeKind,
     exchange_name: impl AsRef<str>,
 ) -> anyhow::Result<()> {
     channel
         .exchange_declare(
             exchange_name.as_ref(),
-            ExchangeKind::Direct,
+            kind,
             ExchangeDeclareOptions {
                 passive: true,
                 ..Default::default()

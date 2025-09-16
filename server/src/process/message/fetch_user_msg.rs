@@ -3,20 +3,19 @@ use std::time::Duration;
 use crate::{
     db,
     process::error_msg::{SERVER_ERROR, TIME_FORMAT_ERROR, TIME_MISSING},
-    rabbitmq::{
-        USER_MSG_BROADCAST_EXCHANGE, USER_MSG_DIRECT_EXCHANGE, check_exchange_exist,
-        create_user_message_broadcast_exchange, create_user_message_direct_exchange,
-    },
+    rabbitmq::{create_user_message_broadcast_exchange, create_user_message_direct_exchange},
     server::{FetchMsgsStream, RpcServer},
 };
 use anyhow::Context;
 use base::consts::ID;
 use deadpool_lapin::lapin::options::{QueueBindOptions, QueueDeclareOptions};
 use deadpool_lapin::lapin::types::FieldTable;
-use pb::service::ourchat::msg_delivery::v1::{
-    FetchMsgsRequest, FetchMsgsResponse, fetch_msgs_response::RespondEventType,
+use pb::{
+    service::ourchat::msg_delivery::v1::{
+        FetchMsgsRequest, FetchMsgsResponse, fetch_msgs_response::RespondEventType,
+    },
+    time::TimeStampUtc,
 };
-use pb::time::{from_google_timestamp, to_google_timestamp};
 use prost::Message;
 use tokio::{select, sync::mpsc};
 use tokio_stream::StreamExt;
@@ -56,14 +55,16 @@ async fn fetch_user_msg_impl(
     request: tonic::Request<FetchMsgsRequest>,
 ) -> Result<Response<FetchMsgsStream>, FetchMsgError> {
     let request = request.into_inner();
-    let time = match from_google_timestamp(&match request.time {
+    let time: TimeStampUtc = match match request.time {
         Some(t) => t,
         None => {
             return Err(Status::invalid_argument(TIME_MISSING))?;
         }
-    }) {
-        Some(t) => t,
-        None => {
+    }
+    .try_into()
+    {
+        Ok(t) => t,
+        Err(_) => {
             return Err(Status::invalid_argument(TIME_FORMAT_ERROR))?;
         }
     };
@@ -96,7 +97,7 @@ async fn fetch_user_msg_impl(
                                 tx.send(Ok(FetchMsgsResponse {
                                     respond_event_type: Some(msg),
                                     msg_id: msg_model.msg_id as u64,
-                                    time: Some(to_google_timestamp(msg_model.time.into())),
+                                    time: Some(msg_model.time.into()),
                                 }))
                                 .await?;
                             }
@@ -132,20 +133,13 @@ async fn fetch_user_msg_impl(
                     QueueDeclareOptions {
                         auto_delete: true,
                         durable: false,
-                        exclusive: true,
                         ..Default::default()
                     },
                     FieldTable::default(),
                 )
                 .await
                 .context("failed to create queue")?;
-            // check if the exchange exists
-            if check_exchange_exist(&channel, USER_MSG_DIRECT_EXCHANGE)
-                .await
-                .is_err()
-            {
-                create_user_message_direct_exchange(&channel).await?;
-            }
+            create_user_message_direct_exchange(&channel).await?;
             channel
                 .queue_bind(
                     &queue_name,
@@ -156,12 +150,7 @@ async fn fetch_user_msg_impl(
                 )
                 .await
                 .context("failed to bind queue")?;
-            if check_exchange_exist(&channel, USER_MSG_BROADCAST_EXCHANGE)
-                .await
-                .is_err()
-            {
-                create_user_message_broadcast_exchange(&channel).await?;
-            }
+            create_user_message_broadcast_exchange(&channel).await?;
             channel
                 .queue_bind(
                     &queue_name,

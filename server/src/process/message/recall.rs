@@ -15,7 +15,6 @@ use pb::service::ourchat::msg_delivery::recall::v1::{
 };
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
-use pb::time::to_google_timestamp;
 use tonic::{Request, Response, Status};
 
 pub async fn recall_msg(
@@ -95,7 +94,7 @@ async fn recall_msg_internal(
         FetchMsgsResponse {
             msg_id: msg.msg_id as u64,
             respond_event_type: Some(respond_msg),
-            time: Some(to_google_timestamp(msg.time.into())),
+            time: Some(msg.time.into()),
         },
         Dest::Session(req.session_id.into()),
         &mut channel,

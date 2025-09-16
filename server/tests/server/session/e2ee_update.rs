@@ -105,11 +105,10 @@ async fn e2ee_update_member_leaving() {
         })
         .await
         .unwrap();
-    let session_model =
-        get_session_by_id(session.session_id, &app.db_pool.as_ref().unwrap().db_pool)
-            .await
-            .unwrap()
-            .unwrap();
+    let session_model = get_session_by_id(session.session_id, app.get_db_connection())
+        .await
+        .unwrap()
+        .unwrap();
     assert!(session_model.leaving_to_process);
     a.lock()
         .await

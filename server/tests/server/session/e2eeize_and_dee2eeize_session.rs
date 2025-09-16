@@ -116,7 +116,7 @@ pub async fn test_dee2eeize_session() {
         })
         .await
         .unwrap();
-    let session = get_session_by_id(session.session_id, &app.db_pool.as_ref().unwrap().db_pool)
+    let session = get_session_by_id(session.session_id, app.get_db_connection())
         .await
         .unwrap()
         .unwrap();
