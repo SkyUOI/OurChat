@@ -11,6 +11,7 @@ members = [
     "server/pb",
     "server/http_server",
     "server/utils",
+    "server/plugin_example"
 ]
 resolver = "3"
 
@@ -98,7 +99,9 @@ actix-tls = "3"
 webrtc = "0.13"
 rsa = "0.10.0-rc.5"
 
-# matrix-sdk = "0.11.0"
+wasmtime = "36.0.2"
+wasmtime-wasi = "36.0.2"
+wit-bindgen = "0.45.1"
 
 [workspace.dependencies.lettre]
 version = "0"

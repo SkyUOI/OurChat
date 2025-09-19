@@ -44,6 +44,9 @@ webrtc.workspace = true
 tokio-cron-scheduler.workspace = true
 croner.workspace = true
 
+wasmtime.workspace = true
+wasmtime-wasi.workspace = true
+
 # Useful crates
 collection_literals.workspace = true
 size.workspace = true

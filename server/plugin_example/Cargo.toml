@@ -1,0 +1,7 @@
+[package]
+name = "plugin_example"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+wit-bindgen.workspace = true

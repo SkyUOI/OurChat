@@ -1,0 +1,15 @@
+package ourchat:plugins@0.1.0;
+
+interface host {
+    log: func(message: string);
+}
+
+interface plugin {
+    load: func();
+    unload: func();
+}
+
+world plugin-world {
+    import host;
+    export plugin;
+}

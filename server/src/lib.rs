@@ -8,6 +8,7 @@ pub mod rabbitmq;
 mod server;
 mod shared_state;
 mod webrtc;
+mod plugin;
 
 use anyhow::bail;
 use base::consts::{self, CONFIG_FILE_ENV_VAR, LOG_OUTPUT_DIR, SERVER_INFO_PATH};
