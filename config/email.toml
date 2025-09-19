@@ -1,8 +1,1 @@
-# If any fields below are not specified, the email will be disabled
-
-# Email address displaying in sent email
-email_address = "default@ourchat.org"
-# Smtp server address
-smtp_address = "smtp.ourchat.org"
-# Smtp server password
-smtp_password = "password"
+inherit = "../docker/config/email.toml"

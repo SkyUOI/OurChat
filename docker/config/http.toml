@@ -8,7 +8,6 @@ user_setting = "user_setting.toml"
 # If not set, the email will be disabled
 email_cfg = "email.toml"
 rabbitmq_cfg = "rabbitmq.toml"
-ssl = false
 # The logo of this server
 logo_path = "../resource/logo.png"
 run_migration = false

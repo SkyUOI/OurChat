@@ -12,7 +12,7 @@ pub trait Setting {
         Self: Sized,
         Self: serde::Deserialize<'de>,
     {
-        Ok(read_a_config(path)?.try_deserialize()?)
+        Ok(read_config_and_deserialize(path)?)
     }
 }
 

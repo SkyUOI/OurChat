@@ -1,18 +1,3 @@
+inherit = "../docker/config/http.toml"
 # The http server listening ip
 ip = "localhost"
-# The http server listening port
-port = 7778
-redis_cfg = "redis.toml"
-db_cfg = "database.toml"
-user_setting = "user_setting.toml"
-# If not set, the email will be disabled
-email_cfg = "email.toml"
-rabbitmq_cfg = "rabbitmq.toml"
-# The logo of this server
-logo_path = "../resource/logo.png"
-run_migration = false
-# Log clean duration
-log_clean_duration = "30d"
-
-[tls]
-enable = false
