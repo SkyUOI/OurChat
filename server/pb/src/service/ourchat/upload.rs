@@ -12,7 +12,7 @@ pub mod v1 {
             }
         }
 
-        pub fn new_header(size: usize, hash: String, auto_clean: bool) -> Self {
+        pub fn new_header(size: usize, hash: bytes::Bytes, auto_clean: bool) -> Self {
             Self {
                 data: Some(Data::Metadata(Header {
                     hash,
