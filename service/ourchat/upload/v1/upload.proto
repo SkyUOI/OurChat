@@ -12,7 +12,7 @@ message UploadRequest {
 
 message Header {
   // the SHA256 of the file
-  string hash = 1;
+  bytes hash = 1;
   // bytes num of the file
   uint64 size = 2;
   // If the file should be cleaned automatically after several days

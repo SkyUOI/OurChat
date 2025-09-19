@@ -29,9 +29,9 @@ const PREFIX_LEN: usize = 20;
 /// # Details
 /// Generate a 20-character random string, and then add the file's sha256 hash value
 /// This ensures uniqueness while maintaining traceability through the hash
-fn generate_key_name(hash: &str) -> String {
+fn generate_key_name(hash: impl AsRef<str>) -> String {
     let prefix: String = generate_random_string(PREFIX_LEN);
-    format!("{prefix}{hash}")
+    format!("{prefix}{}", hash.as_ref())
 }
 
 /// Add a new file record to the database and create the file on disk
@@ -189,7 +189,7 @@ async fn upload_impl(
         }
         Some(data) => data,
     };
-    let key = generate_key_name(&metadata.hash);
+    let key = generate_key_name(format!("{:x}", metadata.hash));
     let files_storage_path = &server.shared_data.cfg.main_cfg.files_storage_path;
     let limit_size = server.shared_data.cfg.main_cfg.user_files_limit;
     let mut file_handle = add_file_record(
@@ -223,7 +223,7 @@ async fn upload_impl(
         tracing::trace!("received size:{}, expected size {}", metadata.size, sz);
         return Err(UploadError::FileSizeError);
     }
-    if format!("{hash:x}") != metadata.hash {
+    if hash.as_slice() != metadata.hash {
         tracing::trace!(
             "received hash:{:?}, expected hash {:?}",
             metadata.hash,
