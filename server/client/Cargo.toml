@@ -9,7 +9,6 @@ fake.workspace = true
 claims.workspace = true
 base = { path = "../base" }
 server = { path = ".." }
-http_server = { path = "../http_server" }
 parking_lot.workspace = true
 rand.workspace = true
 tokio-stream.workspace = true

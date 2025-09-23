@@ -79,20 +79,26 @@ code = splitCode()
 with open("./client/lib/about.dart", "w", encoding="utf-8") as f:
     for i in code[0]:
         f.write(i)
-    print("write "+f"const List<Map<String, String>> contributorsList = {json.dumps(get_github_contributors(),ensure_ascii=False)};")
-    f.write(
-        f"const List<Map<String, String>> contributorsList = {json.dumps(get_github_contributors(),ensure_ascii=False)};\n"
+    print(
+        "write "
+        + f"const List<Map<String, String>> contributorsList = {json.dumps(get_github_contributors(), ensure_ascii=False)};"
     )
-    print("write "+f"const List<Map<String, String>> donorsList = {json.dumps(get_afdian_donors(USERID=args.afdian_userid,TOKEN=args.afdian_token),ensure_ascii=False)};")
     f.write(
-        f"const List<Map<String, String>> donorsList = {json.dumps(get_afdian_donors(USERID=args.afdian_userid,TOKEN=args.afdian_token),ensure_ascii=False)};\n"
+        f"const List<Map<String, String>> contributorsList = {json.dumps(get_github_contributors(), ensure_ascii=False)};\n"
     )
-    print("write "+f'const version = "{args.version}";')
+    print(
+        "write "
+        + f"const List<Map<String, String>> donorsList = {json.dumps(get_afdian_donors(USERID=args.afdian_userid, TOKEN=args.afdian_token), ensure_ascii=False)};"
+    )
+    f.write(
+        f"const List<Map<String, String>> donorsList = {json.dumps(get_afdian_donors(USERID=args.afdian_userid, TOKEN=args.afdian_token), ensure_ascii=False)};\n"
+    )
+    print("write " + f'const version = "{args.version}";')
     f.write(f'const version = "{args.version}";\n')
-    print("write "+f'const commitSha = "{args.commit_sha}";')
+    print("write " + f'const commitSha = "{args.commit_sha}";')
     f.write(f'const commitSha = "{args.commit_sha}";\n')
     for i in code[1]:
         f.write(i)
-    
+
 
 os.system("dart format ./client/lib/about.dart")

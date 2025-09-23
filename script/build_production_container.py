@@ -40,17 +40,9 @@ if not skip_base:
     )
 # build alpine image
 msg_system(
-    f"docker buildx build -f Dockerfile --target ourchat-server {args_pass} -t skyuoi/ourchat:{extension} ."
+    f"docker buildx build -f Dockerfile {args_pass} -t skyuoi/ourchat:{extension} ."
 )
 # build debian image
 msg_system(
-    f"docker buildx build -f Dockerfile.debian --target ourchat-server {args_pass} -t skyuoi/ourchat:{extension}-debian ."
-)
-# build alpine http image
-msg_system(
-    f"docker buildx build -f Dockerfile --target http-server {args_pass} -t skyuoi/ourchat:{extension}-http ."
-)
-# build debian http image
-msg_system(
-    f"docker buildx build -f Dockerfile.debian --target http-server {args_pass} -t skyuoi/ourchat:{extension}-http-debian ."
+    f"docker buildx build -f Dockerfile.debian {args_pass} -t skyuoi/ourchat:{extension}-debian ."
 )

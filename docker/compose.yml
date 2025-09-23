@@ -17,21 +17,6 @@ services:
       - ./config/:/etc/ourchat
       - ./log:/root/log
       - ../resource/:/etc/resource
-  HttpServer:
-    init: true
-    image: skyuoi/ourchat:nightly-http
-    working_dir: /root
-    ports:
-      - "7778:7778"
-    networks:
-      - net
-    depends_on:
-      db:
-        condition: service_healthy
-    volumes:
-      - ./config/:/etc/ourchat
-      - ./log:/root/log
-      - ../resource/:/etc/resource
   db:
     image: postgres:17-alpine
     restart: always

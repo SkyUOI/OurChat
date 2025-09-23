@@ -3,6 +3,8 @@
 
 pub mod db;
 pub mod helper;
+pub mod httpserver;
+pub mod matrix;
 pub mod process;
 pub mod rabbitmq;
 mod server;
@@ -16,15 +18,13 @@ use base::database::postgres::PostgresDbCfg;
 use base::database::redis::RedisCfg;
 use base::rabbitmq::RabbitMQCfg;
 use base::setting::debug::DebugCfg;
-use base::setting::tls::TlsConfig;
-use base::setting::{Setting, UserSetting};
-use base::shutdown::{ShutdownRev, ShutdownSdr};
+use base::setting::{PathConvert, Setting, UserSetting};
+use base::shutdown::ShutdownSdr;
 use base::wrapper::JobSchedulerWrapper;
 use base::{log, setting};
 use clap::Parser;
 use dashmap::DashMap;
 use db::file_storage;
-use futures_util::future::join_all;
 use parking_lot::{Mutex, Once};
 use process::error_msg::MAINTAINING;
 use rand::Rng;
@@ -34,13 +34,13 @@ use std::cmp::Ordering;
 use std::time::Duration;
 use std::{
     fs,
-    net::SocketAddr,
     path::{Path, PathBuf},
     sync::{Arc, LazyLock},
 };
-use tokio::task::JoinHandle;
 use tracing::info;
 use utils::merge_json;
+
+use crate::httpserver::{HttpCfg, Launcher};
 
 #[derive(Debug, Parser, Default)]
 #[command(author = "SkyUOI", version = base::build::VERSION, about = "The Server of OurChat")]
@@ -57,16 +57,11 @@ pub struct ArgsParser {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct MainCfg {
-    #[serde(default = "consts::default_ip")]
-    pub ip: String,
     pub redis_cfg: PathBuf,
     pub db_cfg: PathBuf,
     pub rabbitmq_cfg: PathBuf,
     pub user_setting: PathBuf,
-    #[serde(default = "consts::default_port")]
-    pub port: u16,
-    #[serde(default = "consts::default_http_port")]
-    pub http_port: u16,
+    pub http_cfg: PathBuf,
     #[serde(default = "consts::default_clear_interval")]
     pub auto_clean_duration: croner::Cron,
     #[serde(default = "consts::default_file_save_time", with = "humantime_serde")]
@@ -106,7 +101,6 @@ pub struct MainCfg {
     pub password_hash: PasswordHash,
     pub db: DbArgCfg,
     pub debug: DebugCfg,
-    pub tls: TlsConfig,
 
     #[serde(skip)]
     pub cmd_args: ParserCfg,
@@ -157,17 +151,16 @@ impl MainCfg {
         let mut cfg: MainCfg = serde_json::from_value(cfg).expect("Failed to deserialize config");
         cfg.cmd_args.config = configs_list;
         // convert the path relevant to the config file to a path relevant to the directory
-        cfg.convert_to_abs_path()?;
+        let full_basepath = cfg
+            .cmd_args
+            .config
+            .first()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .canonicalize()?;
+        cfg.convert_to_abs_path(&full_basepath)?;
         Ok(cfg)
-    }
-
-    /// Return the protocol used for HTTP requests, either "http" or "https", based on the ssl field.
-    pub fn protocol_http(&self) -> String {
-        if self.tls.enable {
-            "https".to_string()
-        } else {
-            "http".to_string()
-        }
     }
 
     pub fn unique_instance(&self) -> bool {
@@ -182,6 +175,7 @@ pub struct Cfg {
     pub redis_cfg: RedisCfg,
     pub rabbitmq_cfg: RabbitMQCfg,
     pub user_setting: UserSetting,
+    pub http_cfg: HttpCfg,
 }
 
 impl Cfg {
@@ -190,12 +184,15 @@ impl Cfg {
         let redis_cfg = RedisCfg::build_from_path(&main_cfg.redis_cfg)?;
         let rabbitmq_cfg = RabbitMQCfg::build_from_path(&main_cfg.rabbitmq_cfg)?;
         let user_setting = UserSetting::build_from_path(&main_cfg.user_setting)?;
+        let mut http_cfg = HttpCfg::build_from_path(&main_cfg.http_cfg)?;
+        http_cfg.convert_to_abs_path(main_cfg.http_cfg.parent().unwrap())?;
         Ok(Self {
             main_cfg,
             db_cfg,
             redis_cfg,
             rabbitmq_cfg,
             user_setting,
+            http_cfg,
         })
     }
 }
@@ -220,7 +217,7 @@ pub struct ParserCfg {
     pub config: Vec<PathBuf>,
 }
 
-impl MainCfg {
+impl PathConvert for MainCfg {
     /// convert config paths to absolute path
     ///
     /// the base path is the first config file's parent directory
@@ -231,21 +228,14 @@ impl MainCfg {
     /// - `db_cfg`
     /// - `rabbitmq_cfg`
     /// - `user_setting`
-    fn convert_to_abs_path(&mut self) -> anyhow::Result<()> {
-        let full_basepath = self
-            .cmd_args
-            .config
-            .first()
-            .unwrap()
-            .parent()
-            .unwrap()
-            .canonicalize()?;
-        self.redis_cfg = utils::resolve_relative_path(&full_basepath, Path::new(&self.redis_cfg))?;
-        self.db_cfg = utils::resolve_relative_path(&full_basepath, Path::new(&self.db_cfg))?;
+    fn convert_to_abs_path(&mut self, full_basepath: &Path) -> anyhow::Result<()> {
+        self.redis_cfg = utils::resolve_relative_path(full_basepath, Path::new(&self.redis_cfg))?;
+        self.db_cfg = utils::resolve_relative_path(full_basepath, Path::new(&self.db_cfg))?;
         self.rabbitmq_cfg =
-            utils::resolve_relative_path(&full_basepath, Path::new(&self.rabbitmq_cfg))?;
+            utils::resolve_relative_path(full_basepath, Path::new(&self.rabbitmq_cfg))?;
         self.user_setting =
-            utils::resolve_relative_path(&full_basepath, Path::new(&self.user_setting))?;
+            utils::resolve_relative_path(full_basepath, Path::new(&self.user_setting))?;
+        self.http_cfg = utils::resolve_relative_path(full_basepath, Path::new(&self.http_cfg))?;
         Ok(())
     }
 }
@@ -374,50 +364,6 @@ fn clear() -> anyhow::Result<()> {
     Ok(())
 }
 
-/// This function listen to sigterm and ctrl-c signal. When the signal is received, it will call
-/// `shutdown_all_tasks` to shut down all tasks and exit the process.
-fn exit_signal(#[allow(unused_mut)] mut shutdown_sender: ShutdownSdr) -> anyhow::Result<()> {
-    let mut shutdown_sender_clone = shutdown_sender.clone();
-    #[cfg(not(windows))]
-    tokio::spawn(async move {
-        if let Some(()) = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())?
-            .recv()
-            .await
-        {
-            info!("Exit because of sigterm signal");
-            shutdown_sender.shutdown_all_tasks().await?;
-        }
-        anyhow::Ok(())
-    });
-    tokio::spawn(async move {
-        match tokio::signal::ctrl_c().await {
-            Ok(()) => {
-                info!("Exit because of ctrl-c signal");
-                shutdown_sender_clone.shutdown_all_tasks().await?;
-            }
-            Err(err) => {
-                tracing::error!("Unable to listen to ctrl-c signal:{}", err);
-                shutdown_sender_clone.shutdown_all_tasks().await?;
-            }
-        }
-        anyhow::Ok(())
-    });
-    Ok(())
-}
-
-/// build websocket server
-async fn start_server(
-    addr: impl Into<SocketAddr>,
-    db: DbPool,
-    shared_data: Arc<SharedData>,
-    rabbitmq: deadpool_lapin::Pool,
-    shutdown_receiver: ShutdownRev,
-) -> anyhow::Result<JoinHandle<anyhow::Result<()>>> {
-    let server = server::RpcServer::new(addr, db, shared_data, rabbitmq);
-    let handle = tokio::spawn(async move { server.run(shutdown_receiver).await });
-    Ok(handle)
-}
-
 /// global init can be called many times,but only the first time will be effective
 fn global_init() {
     static INIT: Once = Once::new();
@@ -429,9 +375,9 @@ fn global_init() {
 
 pub struct Application {
     pub shared: Arc<SharedData>,
+    pub http_launcher: Option<Launcher>,
     pub pool: DbPool,
     pub rabbitmq: deadpool_lapin::Pool,
-    server_addr: SocketAddr,
     /// for shutting down server fully,you shouldn't use handle.abort() to do this
     abort_sender: ShutdownSdr,
     pub started_notify: Arc<tokio::sync::Notify>,
@@ -539,16 +485,15 @@ impl Application {
         shared_state::set_friends_number_limit(main_cfg.friends_number_limit);
 
         if let Some(new_ip) = parser.ip {
-            main_cfg.ip = new_ip;
+            cfg.http_cfg.ip = new_ip;
         }
 
         // port
         let port = match parser.port {
-            None => main_cfg.port,
+            None => cfg.http_cfg.port,
             Some(port) => port,
         };
-        let addr: SocketAddr = format!("{}:{}", &main_cfg.ip, port).parse()?;
-        main_cfg.port = addr.port();
+        cfg.http_cfg.port = port;
 
         let abort_sender = ShutdownSdr::new(None);
         db::init_db_system();
@@ -571,8 +516,11 @@ impl Application {
             sched.lock().await,
         )
         .await?;
+        // init http server
+        let http_launcher = Launcher::build_from_config(&mut cfg).await?;
 
         Ok(Self {
+            http_launcher: Some(http_launcher),
             shared: Arc::new(SharedData {
                 cfg,
                 verify_record: DashMap::new(),
@@ -580,7 +528,6 @@ impl Application {
                 sched,
             }),
             pool: db_pool,
-            server_addr: addr,
             abort_sender,
             started_notify: Arc::new(tokio::sync::Notify::new()),
             rabbitmq: rmq_pool,
@@ -588,7 +535,7 @@ impl Application {
     }
 
     pub fn get_port(&self) -> u16 {
-        self.shared.cfg.main_cfg.port
+        self.shared.cfg.http_cfg.port
     }
 
     pub fn get_abort_handle(&self) -> ShutdownSdr {
@@ -613,29 +560,42 @@ impl Application {
             clear()?;
         }
 
-        let mut handles = Vec::new();
-
-        let handle = start_server(
-            self.server_addr,
+        let grpc_builder = server::RpcServer::new(
             self.pool.clone(),
             self.shared.clone(),
             self.rabbitmq.clone(),
-            self.abort_sender.new_receiver("rpc server", "rpc server"),
-        )
-        .await?;
-        handles.push(handle);
+        );
+        let grpc_service = grpc_builder.construct_grpc().await?;
+        let mut launcher = self.http_launcher.take().unwrap();
+        let shared_clone = self.shared.clone();
+        let rabbitmq_clone = self.rabbitmq.clone();
+        let pool_clone = self.pool.clone();
 
+        let wait_http_setup = launcher.started_notify.clone();
+
+        let shutdown_sdr = self.abort_sender.clone();
+        let handle = tokio::spawn(async move {
+            launcher
+                .run_forever(
+                    shared_clone,
+                    rabbitmq_clone,
+                    pool_clone,
+                    grpc_service,
+                    shutdown_sdr,
+                )
+                .await
+        });
+
+        wait_http_setup.notified().await;
         // Start the database file system
         file_storage::FileSys::new(self.pool.db_pool.clone(), self.shared.clone())
             .start()
             .await?;
-        // Start the shutdown signal listener
-        exit_signal(self.abort_sender.clone())?;
         self.shared.sched.lock().await.start().await?;
         info!("Start to register service to registry");
         info!("Server started");
         self.started_notify.notify_waiters();
-        join_all(handles).await.iter().for_each(|x| match x {
+        match handle.await {
             Ok(result) => match result {
                 Ok(_) => {}
                 Err(e) => {
@@ -645,11 +605,16 @@ impl Application {
             Err(e) => {
                 tracing::error!("server error when joining:{:?}", e);
             }
-        });
+        };
         self.pool.close().await?;
         self.rabbitmq.close();
         self.shared.sched.lock().await.shutdown().await?;
         info!("Server exited");
         Ok(())
     }
+}
+
+#[ctor::ctor]
+fn init() {
+    let _ = rustls::crypto::ring::default_provider().install_default();
 }

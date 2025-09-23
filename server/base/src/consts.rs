@@ -17,8 +17,6 @@ pub fn default_ip() -> String {
 
 /// default port
 pub const DEFAULT_PORT: u16 = 7777;
-/// http server default port
-pub const DEFAULT_HTTP_PORT: u16 = 7778;
 pub const APP_NAME: &str = "OurChat";
 pub const LOG_ENV_VAR: &str = "OURCHAT_LOG";
 pub const LOG_OUTPUT_DIR: &str = "log/";
@@ -28,7 +26,6 @@ pub const CONFIG_FILE_ENV_VAR: &str = "OURCHAT_CONFIG_FILE";
 // Main Server
 pub static OURCHAT_LOG_PREFIX: &str = "ourchat";
 // Http Server
-pub static HTTP_SERVER_LOG_PREFIX: &str = "http_server";
 
 pub const fn default_verify_email_expiry() -> Duration {
     Duration::from_mins(5)
@@ -130,10 +127,6 @@ pub const fn default_enable_cmd_stdin() -> bool {
 
 pub const fn default_port() -> u16 {
     DEFAULT_PORT
-}
-
-pub const fn default_http_port() -> u16 {
-    DEFAULT_HTTP_PORT
 }
 
 pub const fn default_debug_console_port() -> u16 {

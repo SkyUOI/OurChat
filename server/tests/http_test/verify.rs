@@ -1,6 +1,5 @@
 use base::email_client::MockEmailSender;
 use client::TestApp;
-use client::http_helper::TestHttpApp;
 use parking_lot::Mutex;
 use pb::service::auth::email_verify::v1::VerifyRequest;
 use std::sync::Arc;
@@ -20,15 +19,13 @@ async fn test_verify() {
             *mock_body.lock() = body;
             anyhow::Ok(())
         });
-    let mut app = TestApp::new_with_launching_instance().await.unwrap();
-    let http_app = TestHttpApp::get_config().await.unwrap();
-    let mut http_app = TestHttpApp::setup(
-        http_app,
-        Some(app.rmq_vhost.clone()),
-        Some(Box::new(mock_smtp)),
-    )
+    let (config, args) = TestApp::get_test_config().unwrap();
+    let mut app = TestApp::new_with_launching_instance_custom_cfg((config, args), |app| {
+        app.http_launcher.as_mut().unwrap().email_client = Some(Box::new(mock_smtp));
+    })
     .await
     .unwrap();
+
     let user = app.new_user().await.unwrap();
     let email = user.lock().await.email.clone();
     // Start Verify
@@ -53,7 +50,7 @@ async fn test_verify() {
 
     tokio::time::sleep(Duration::from_millis(100)).await;
     // check the wrong link
-    let res = http_app.verify("wrong token").await.unwrap();
+    let res = app.verify("wrong token").await.unwrap();
     assert_eq!(res.status(), reqwest::StatusCode::BAD_REQUEST);
 
     // check email in mock server
@@ -69,8 +66,7 @@ async fn test_verify() {
     };
 
     // check the link
-    http_app
-        .client
+    app.http_client
         .get(link)
         .send()
         .await
@@ -80,6 +76,5 @@ async fn test_verify() {
     // get status
     let mut ret = ret.into_inner();
     ret.next().await.unwrap().unwrap();
-    http_app.async_drop().await;
     app.async_drop().await;
 }

@@ -1,7 +1,7 @@
 # The http server listening ip
 ip = "localhost"
 # The http server listening port
-port = 7778
+port = 7777
 redis_cfg = "redis.toml"
 db_cfg = "database.toml"
 user_setting = "user_setting.toml"
@@ -11,8 +11,17 @@ rabbitmq_cfg = "rabbitmq.toml"
 # The logo of this server
 logo_path = "../resource/logo.png"
 run_migration = false
-# Log clean duration
-log_clean_duration = "30d"
+# enable Matrix Api
+enable_matrix = false
 
 [tls]
+# Enable tls encryption
 enable = false
+client_certificate_required = false
+# The address of the tsl certificate, if not specified, the tls will be disabled
+# server_tls_cert_path = ""
+# server_key_cert_path = ""
+# client_tls_cert_path = ""
+# client_key_cert_path = ""
+# ca_tls_cert_path = ""
+# client_ca_tls_cert_path = ""

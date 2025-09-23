@@ -16,6 +16,10 @@ pub trait Setting {
     }
 }
 
+pub trait PathConvert {
+    fn convert_to_abs_path(&mut self, full_basepath: &Path) -> anyhow::Result<()>;
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum ContactRole {
     #[serde(rename = "admin")]

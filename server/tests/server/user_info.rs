@@ -163,7 +163,7 @@ async fn set_friend_info() -> anyhow::Result<()> {
 async fn set_user_info_validation() {
     let (mut config, args) = TestApp::get_test_config().unwrap();
     config.main_cfg.user_defined_status_expire_time = Duration::from_secs(5);
-    let mut app = TestApp::new_with_launching_instance_custom_cfg((config, args))
+    let mut app = TestApp::new_with_launching_instance_custom_cfg((config, args), |_| {})
         .await
         .unwrap();
     let user = app.new_user().await.unwrap();

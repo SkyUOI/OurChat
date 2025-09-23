@@ -47,6 +47,7 @@ pub struct TestApp {
     pub app_config: Cfg,
     pub rmq_vhost: String,
     pub core: ClientCore,
+    pub http_client: reqwest::Client,
 
     has_dropped: bool,
     server_drop_handle: ShutdownSdr,
@@ -94,7 +95,7 @@ impl ClientCore {
         };
 
         let remote_url = format!(
-            "{}://{}",
+            "{}://{}/grpc",
             if enabled_tls { "https" } else { "http" },
             url_without_scheme
         );
@@ -125,7 +126,7 @@ impl TestApp {
     }
 
     pub async fn new_with_launching_instance() -> anyhow::Result<Self> {
-        Self::new_with_launching_instance_custom_cfg(Self::get_test_config()?).await
+        Self::new_with_launching_instance_custom_cfg(Self::get_test_config()?, |_| {}).await
     }
 
     /// # Example
@@ -140,6 +141,7 @@ impl TestApp {
     /// ```
     pub async fn new_with_launching_instance_custom_cfg(
         (mut server_config, args): ConfigWithArgs,
+        process_config: impl FnOnce(&mut Application),
     ) -> anyhow::Result<Self> {
         // should create a different database for each test
         let db = uuid::Uuid::new_v4().to_string();
@@ -153,7 +155,9 @@ impl TestApp {
         server_config.rabbitmq_cfg.vhost = vhost.clone();
         let db_url = server_config.db_cfg.url();
         let mut application = Application::build(args, server_config.clone()).await?;
+        process_config(&mut application);
         let port = application.get_port();
+        server_config.http_cfg.port = port;
         let abort_handle = application.get_abort_handle();
         let shared = application.shared.clone();
         let db_pool = application.pool.clone();
@@ -167,15 +171,15 @@ impl TestApp {
         notifier.notified().await;
         let rpc_url = format!(
             "{}://localhost:{}",
-            server_config.main_cfg.protocol_http(),
+            server_config.http_cfg.protocol_http(),
             port
         );
         let mut connected_channel = Endpoint::from_shared(rpc_url.clone())?;
-        let enabled_tls = server_config.main_cfg.tls.is_tls_on()?;
+        let enabled_tls = server_config.http_cfg.tls.is_tls_on()?;
         if enabled_tls {
             let client_cert = std::fs::read_to_string(
                 server_config
-                    .main_cfg
+                    .http_cfg
                     .tls
                     .client_tls_cert_path
                     .clone()
@@ -183,7 +187,7 @@ impl TestApp {
             )?;
             let client_key = std::fs::read_to_string(
                 server_config
-                    .main_cfg
+                    .http_cfg
                     .tls
                     .client_key_cert_path
                     .clone()
@@ -191,7 +195,7 @@ impl TestApp {
             )?;
             let client_identity = Identity::from_pem(client_cert.clone(), client_key);
             let server_ca_cert = std::fs::read_to_string(
-                server_config.main_cfg.tls.ca_tls_cert_path.clone().unwrap(),
+                server_config.http_cfg.tls.ca_tls_cert_path.clone().unwrap(),
             )?;
             let server_root_ca = Certificate::from_pem(server_ca_cert);
             let tls = ClientTlsConfig::new()
@@ -200,10 +204,23 @@ impl TestApp {
             connected_channel = Endpoint::from_shared(rpc_url.clone())?.tls_config(tls)?;
         }
         let connected_channel = connected_channel.connect().await?;
+
+        // Construct http client
+        let mut http_client = reqwest::Client::builder().timeout(Duration::from_secs(2));
+        if shared.cfg.http_cfg.tls.is_tls_on()? {
+            let pem =
+                tokio::fs::read(shared.cfg.http_cfg.tls.ca_tls_cert_path.as_ref().unwrap()).await?;
+            let cert = reqwest::Certificate::from_pem(&pem)?;
+            http_client = http_client.add_root_certificate(cert)
+        }
+        let http_client = http_client.build()?;
+
         let obj = TestApp {
+            http_client,
             db_url,
             server_drop_handle: abort_handle,
             has_dropped: false,
+            should_drop_db: true,
             app_shared: shared,
             owned_users: vec![],
             db_pool,
@@ -217,7 +234,6 @@ impl TestApp {
                 rpc_url: rpc_url.clone(),
                 enable_ssl: enabled_tls,
             },
-            should_drop_db: true,
             app_config: server_config,
             rmq_vhost: vhost,
             should_drop_vhost: true,
@@ -243,8 +259,9 @@ impl TestApp {
                     tracing::error!("failed to drop the database: {}", e);
                 }
             }
+            tracing::info!("db deleted");
         }
-        tracing::info!("db deleted");
+
         if self.should_drop_vhost {
             delete_vhost(
                 &reqwest::Client::new(),
@@ -259,8 +276,8 @@ impl TestApp {
 
     pub async fn new_user(&mut self) -> anyhow::Result<TestUserShared> {
         let user = Arc::new(tokio::sync::Mutex::new(TestUser::random(&self.core).await));
-        if self.app_config.main_cfg.tls.is_tls_on()? {
-            user.lock().await.tls = self.app_config.main_cfg.tls.clone();
+        if self.app_config.http_cfg.tls.is_tls_on()? {
+            user.lock().await.tls = self.app_config.http_cfg.tls.clone();
         }
         user.lock().await.register().await?;
         self.owned_users.push(user.clone());
@@ -405,6 +422,46 @@ impl TestApp {
     }
 }
 
+impl TestApp {
+    pub async fn ourchat_api_get(
+        &self,
+        name: impl AsRef<str>,
+    ) -> Result<reqwest::Response, reqwest::Error> {
+        self.http_get(format!("v1/{}", name.as_ref())).await
+    }
+
+    pub async fn matrix_api_get(
+        &self,
+        name: impl AsRef<str>,
+    ) -> Result<reqwest::Response, reqwest::Error> {
+        self.http_get(format!("_matrix/{}", name.as_ref())).await
+    }
+
+    pub async fn http_get(
+        &self,
+        url: impl AsRef<str>,
+    ) -> Result<reqwest::Response, reqwest::Error> {
+        let mut base_url = self.app_config.http_cfg.base_url();
+        if let Some(host) = base_url.host()
+            && (host == "0.0.0.0" || host == "127.0.0.1")
+        {
+            let port = base_url.port_u16().unwrap_or(80);
+            let mut parts = base_url.into_parts();
+            parts.authority = Some(format!("localhost:{port}").parse().unwrap());
+            base_url = http::Uri::from_parts(parts).unwrap();
+        }
+        self.http_client
+            .get(format!("{}{}", base_url, url.as_ref()))
+            .send()
+            .await
+    }
+
+    pub async fn verify(&mut self, token: &str) -> Result<reqwest::Response, reqwest::Error> {
+        self.ourchat_api_get(format!("verify/confirm?token={token}"))
+            .await
+    }
+}
+
 impl Drop for TestApp {
     fn drop(&mut self) {
         if !self.has_dropped && !thread::panicking() {
@@ -413,4 +470,4 @@ impl Drop for TestApp {
     }
 }
 
-type ConfigWithArgs = (Cfg, ArgsParser);
+pub type ConfigWithArgs = (Cfg, ArgsParser);

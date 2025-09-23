@@ -1,6 +1,8 @@
-use crate::Cfg;
+use std::sync::Arc;
+
+use crate::SharedData;
 use crate::matrix::defines::MatrixUserId;
-use actix_web::{HttpResponse, Responder, get, web};
+use axum::{Json, extract::State, routing::get};
 use base::consts::OCID;
 use base::setting;
 use http::Uri;
@@ -49,19 +51,19 @@ pub struct SupportResponse {
     pub support_page: Option<Uri>,
 }
 
-#[get("/matrix/support")]
-pub async fn support(cfg: web::Data<Cfg>) -> impl Responder {
+pub async fn support(State(cfg): State<Arc<SharedData>>) -> Json<SupportResponse> {
     let contacts = cfg
+        .cfg
         .user_setting
         .contacts
         .iter()
-        .map(|x| Contact::try_from(x.clone(), cfg.main_cfg.domain()))
+        .map(|x| Contact::try_from(x.clone(), cfg.cfg.http_cfg.domain()))
         .collect();
     let response = SupportResponse {
         contacts,
-        support_page: cfg.user_setting.support_page.clone(),
+        support_page: cfg.cfg.user_setting.support_page.clone(),
     };
-    HttpResponse::Ok().json(response)
+    Json(response)
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -84,18 +86,18 @@ pub struct ClientResponse {
     pub m_identity_server: Option<IdentityServerInfo>,
 }
 
-#[get("/matrix/client")]
-async fn client(cfg: web::Data<Cfg>) -> impl Responder {
+async fn client(State(cfg): State<Arc<SharedData>>) -> Json<ClientResponse> {
     let ret = ClientResponse {
         m_homeserver: HomeserverInfo {
-            base_url: cfg.main_cfg.base_url().clone(),
+            base_url: cfg.cfg.http_cfg.base_url().clone(),
         },
         m_identity_server: None,
     };
-    HttpResponse::Ok().json(ret)
+    Json(ret)
 }
 
-pub fn configure_route(cfg: &mut web::ServiceConfig) {
-    let scope = web::scope("/.well-known").service(support).service(client);
-    cfg.service(scope);
+pub fn configure_route() -> axum::Router<Arc<SharedData>> {
+    axum::Router::new()
+        .route("/matrix/support", get(support))
+        .route("/matrix/client", get(client))
 }
