@@ -8,8 +8,7 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument(
     "--extension",
-    type=str,
-    default="latest",
+    action="append",
     help="The extension tag for the images (default: latest).",
 )
 parser.add_argument(
@@ -23,11 +22,18 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
-extension = args.extension
+extension = args.extension or ["latest"]
 skip_base = args.skip_base
 args_pass = ""
 if args.push:
     args_pass += "--push "
+
+args_tags_alpine = ""
+for i in extension:
+    args_tags_alpine += f"-t skyuoi/ourchat:{i} "
+args_tags_debian = ""
+for i in extension:
+    args_tags_debian += f"-t skyuoi/ourchat:{i}-debian "
 
 if not skip_base:
     # build alpine base image
@@ -38,11 +44,8 @@ if not skip_base:
     msg_system(
         f"docker buildx build -f docker/Dockerfile.debian-base {args_pass} -t skyuoi/ourchat:debian-base ."
     )
+
 # build alpine image
-msg_system(
-    f"docker buildx build -f Dockerfile {args_pass} -t skyuoi/ourchat:{extension} ."
-)
+msg_system(f"docker buildx build -f Dockerfile {args_pass} {args_tags_alpine} .")
 # build debian image
-msg_system(
-    f"docker buildx build -f Dockerfile.debian {args_pass} -t skyuoi/ourchat:{extension}-debian ."
-)
+msg_system(f"docker buildx build -f Dockerfile.debian {args_pass} {args_tags_debian} .")

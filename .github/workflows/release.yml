@@ -47,7 +47,7 @@ jobs:
 
       - name: Build and push Docker image
         run: |
-          python3 script/build_production_container.py --extension ${{ steps.get_version.outputs.VERSION }} --skip-base --push
+          python3 script/build_production_container.py --extension ${{ steps.get_version.outputs.VERSION }} --extension latest --skip-base --push
 
       - name: Prepare server bundle files
         run: |
@@ -136,7 +136,7 @@ jobs:
           gitee_upload_retry_times: 3
           gitee_file_name: ourchat-client-linux.tar.gz
           gitee_file_path: client/build/linux/x64/release/ourchat-client-linux.tar.gz
-  
+
   create_client_on_android_release:
     name: Create client on Android release
     runs-on: ubuntu-latest
@@ -236,7 +236,7 @@ jobs:
           gitee_upload_retry_times: 3
           gitee_file_name: ourchat-client-windows.tar.gz
           gitee_file_path: client/build/windows/x64/runner/ourchat-client-windows.tar.gz
-    
+
   create_client_on_macos_release:
     name: Create client on MacOS release
     runs-on: macos-latest
