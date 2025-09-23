@@ -13,14 +13,14 @@ FROM chef AS builder
 COPY --from=planner /app/recipe.json recipe.json
 
 COPY .cargo /app/.cargo
-RUN cargo chef cook --release --recipe-path recipe.json --bin server --bin http_server
+RUN cargo chef cook --release --recipe-path recipe.json --bin server
 
 COPY server /app/server
 COPY Cargo.toml /app/Cargo.toml
 COPY Cargo.lock /app/Cargo.lock
 COPY service /app/service
 
-RUN cargo build --release --bin server --bin http_server
+RUN cargo build --release --bin server
 
 FROM alpine:latest AS ourchat-server
 
