@@ -36,7 +36,7 @@ class OurChatServer {
   String host;
   String? uniqueIdentifier, serverName;
   int port;
-  int? httpPort, ping;
+  int? ping;
   RunningStatus? serverStatus;
   ClientChannel? channel;
   ServerVersion? serverVersion;
@@ -85,7 +85,6 @@ class OurChatServer {
 
       var res = await stub.getServerInfo(GetServerInfoRequest());
       serverStatus = res.status;
-      httpPort = res.httpPort;
       uniqueIdentifier = res.uniqueIdentifier;
       serverVersion = res.serverVersion;
       serverName = res.serverName;

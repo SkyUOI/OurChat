@@ -8,16 +8,9 @@ use crate::process::basic::support::support;
 use crate::process::db::get_id;
 use crate::process::error_msg::{self, ACCOUNT_DELETED, SERVER_ERROR};
 use crate::process::{self, ErrAuth};
-use crate::{SERVER_INFO, SharedData, ShutdownRev};
+use crate::{SERVER_INFO, SharedData};
 use base::consts::{ID, JWT_HEADER, OCID, VERSION_SPLIT};
 use base::database::DbPool;
-use futures_util::future::BoxFuture;
-use http_body_util::BodyExt;
-use http_body_util::Full;
-use hyper::body::Bytes;
-use hyper::rt::{Read, Write};
-use hyper::server::conn::http2;
-use hyper_util::rt::TokioIo;
 use migration::m20250301_005919_add_soft_delete_columns::AccountStatus;
 use pb::service::auth::authorize::v1::{AuthRequest, AuthResponse};
 use pb::service::auth::email_verify::v1::{VerifyRequest, VerifyResponse};
@@ -45,20 +38,10 @@ use pb::service::server_manage::v1::server_manage_service_server::{
     ServerManageService, ServerManageServiceServer,
 };
 use process::error_msg::not_found;
-use std::net::SocketAddr;
 use std::pin::Pin;
 use std::sync::{Arc, LazyLock};
-use tokio::net::TcpListener;
-use tokio::select;
-use tokio_rustls::TlsAcceptor;
-use tokio_rustls::rustls::pki_types::PrivateKeyDer;
-use tokio_rustls::rustls::pki_types::{CertificateDer, pem::PemObject as _};
-use tokio_rustls::rustls::server::WebPkiClientVerifier;
-use tokio_rustls::rustls::{RootCertStore, ServerConfig};
 use tonic::service::Routes;
 use tonic::{Request, Response, Status};
-use tower::Service;
-use tracing::{debug, info, warn};
 
 pub use ourchat_service::*;
 
@@ -68,7 +51,6 @@ pub use ourchat_service::*;
 pub struct RpcServer {
     pub db: DbPool,
     pub shared_data: Arc<SharedData>,
-    pub addr: SocketAddr,
     pub rabbitmq: deadpool_lapin::Pool,
 }
 
@@ -79,58 +61,6 @@ pub struct ServerManageServiceProvider {
     pub rabbitmq: deadpool_lapin::Pool,
 }
 
-/// Check if the request is a gRPC request by examining the content-type header
-fn is_grpc_request(req: &hyper::Request<impl hyper::body::Body>) -> bool {
-    req.headers()
-        .get("content-type")
-        .map(|v| v.as_bytes().starts_with(b"application/grpc"))
-        .unwrap_or(false)
-}
-
-fn launch_connection<B>(svc: B, io: impl Read + Write + Unpin + Send + 'static)
-where
-    B: Service<
-            hyper::Request<hyper::body::Incoming>,
-            Response = hyper::Response<tonic::body::Body>,
-            Error = std::convert::Infallible,
-        > + Clone
-        + Send
-        + 'static,
-    B::Future: Send,
-{
-    tokio::spawn(async move {
-        if let Err(err) = http2::Builder::new(hyper_util::rt::TokioExecutor::default())
-            .serve_connection(
-                io,
-                hyper::service::service_fn(
-                    move |req| -> BoxFuture<
-                        'static,
-                        Result<hyper::Response<tonic::body::Body>, std::convert::Infallible>,
-                    > {
-                        let mut inner_svc = svc.clone();
-                        Box::pin(async move {
-                            if is_grpc_request(&req) {
-                                inner_svc.call(req).await
-                            } else {
-                                let body = Full::new(Bytes::from("Not implemented"))
-                                    .map_err(|_| Status::internal("Body error"))
-                                    .boxed_unsync();
-                                Ok(hyper::Response::builder()
-                                    .status(404)
-                                    .body(tonic::body::Body::new(body))
-                                    .unwrap())
-                            }
-                        })
-                    },
-                ),
-            )
-            .await
-        {
-            tracing::error!("Connection error: {:?}", err);
-        }
-    });
-}
-
 impl RpcServer {
     /// Create a new RPC server instance
     ///
@@ -139,16 +69,10 @@ impl RpcServer {
     /// * `db` - Database connection pool
     /// * `shared_data` - Shared server data
     /// * `rabbitmq` - RabbitMQ connection pool
-    pub fn new(
-        ip: impl Into<SocketAddr>,
-        db: DbPool,
-        shared_data: Arc<SharedData>,
-        rabbitmq: deadpool_lapin::Pool,
-    ) -> Self {
+    pub fn new(db: DbPool, shared_data: Arc<SharedData>, rabbitmq: deadpool_lapin::Pool) -> Self {
         Self {
             db,
             shared_data,
-            addr: ip.into(),
             rabbitmq,
         }
     }
@@ -160,11 +84,7 @@ impl RpcServer {
     ///
     /// # Returns
     /// Result indicating success or failure
-    pub async fn run(self, mut shutdown_rev: ShutdownRev) -> anyhow::Result<()> {
-        // Log server startup
-        info!("starting rpc server, connecting to {}", self.addr);
-        let addr = self.addr;
-
+    pub async fn construct_grpc(self) -> anyhow::Result<Routes> {
         // Initialize service providers with shared resources
         let basic_service = BasicServiceProvider {
             shared_data: self.shared_data.clone(),
@@ -186,7 +106,6 @@ impl RpcServer {
         let shared_data1 = self.shared_data.clone();
         let shared_data2 = self.shared_data.clone();
         let shared_data3 = self.shared_data.clone();
-        let shared_data_for_tls = self.shared_data.clone();
 
         // Create service instances with interceptors for authentication and maintenance checks
         let main_svc = OurChatServiceServer::with_interceptor(self, move |mut req| {
@@ -221,118 +140,7 @@ impl RpcServer {
         builder.add_service(server_manage_svc);
         let routes = builder.routes();
         let svc = routes.prepare();
-
-        let cert_path = shared_data_for_tls
-            .cfg
-            .main_cfg
-            .tls
-            .server_tls_cert_path
-            .clone();
-        let key_path = shared_data_for_tls
-            .cfg
-            .main_cfg
-            .tls
-            .server_key_cert_path
-            .clone();
-        let client_ca_cert_path = shared_data_for_tls
-            .cfg
-            .main_cfg
-            .tls
-            .client_ca_tls_cert_path
-            .clone();
-        let is_tls_on = shared_data_for_tls.cfg.main_cfg.tls.is_tls_on()?;
-        let client_certificate_required = shared_data_for_tls
-            .cfg
-            .main_cfg
-            .tls
-            .client_certificate_required;
-
-        let mut tls_acceptor = None;
-        if is_tls_on {
-            let cert_path = cert_path.unwrap();
-            let key_path = key_path.unwrap();
-            let client_ca_cert_path = client_ca_cert_path.unwrap();
-            info!(
-                "TLS on: cert_path = {}, key_path = {}",
-                cert_path.display(),
-                key_path.display(),
-            );
-            let certs = {
-                let fd = std::fs::File::open(cert_path)?;
-                let mut buf = std::io::BufReader::new(&fd);
-                CertificateDer::pem_reader_iter(&mut buf).collect::<Result<Vec<_>, _>>()?
-            };
-            let key = {
-                let fd = std::fs::File::open(key_path)?;
-                let mut buf = std::io::BufReader::new(&fd);
-                PrivateKeyDer::from_pem_reader(&mut buf)?
-            };
-            let client_ca_cert = {
-                let fd = std::fs::File::open(client_ca_cert_path)?;
-                let mut buf = std::io::BufReader::new(&fd);
-                CertificateDer::pem_reader_iter(&mut buf).collect::<Result<Vec<_>, _>>()?
-            };
-
-            let mut client_root_store = RootCertStore::empty();
-            for cert in &client_ca_cert {
-                client_root_store.add(cert.clone()).map_err(|e| {
-                    anyhow::anyhow!("Failed to add certificate to RootCertStore: {:?}", e)
-                })?;
-            }
-
-            let client_cert = WebPkiClientVerifier::builder(Arc::new(client_root_store));
-
-            let mut tls = if client_certificate_required {
-                ServerConfig::builder().with_client_cert_verifier(client_cert.build()?)
-            } else {
-                ServerConfig::builder().with_no_client_auth()
-            }
-            .with_single_cert(certs, key)?;
-
-            tls.alpn_protocols = vec![b"h2".to_vec()];
-            tls_acceptor = Some(TlsAcceptor::from(Arc::new(tls)));
-            debug!("TLS enabled: {}", tls_acceptor.is_some());
-        } else {
-            warn!("TLS disabled, this is insecure.");
-        }
-
-        // Main server loop
-        let server = async move {
-            let listener = TcpListener::bind(addr).await?;
-            loop {
-                // Accept incoming connections
-                let (socket, _) = listener.accept().await?;
-
-                let tls_io;
-                let io;
-                let tls_acceptor = tls_acceptor.clone();
-                let svc_routes = svc.clone();
-
-                if is_tls_on {
-                    debug!("tls_io getting");
-                    tls_io = TokioIo::new(tls_acceptor.unwrap().accept(socket).await?);
-                    let svc = tower::ServiceBuilder::new().service(svc_routes.clone());
-                    launch_connection(svc, tls_io);
-                } else {
-                    io = TokioIo::new(socket);
-                    let svc = tower::ServiceBuilder::new().service(svc_routes);
-                    launch_connection(svc, io);
-                }
-                debug!("execute after accepting");
-            }
-            #[allow(unreachable_code)]
-            Ok::<(), anyhow::Error>(())
-        };
-
-        // Handle shutdown signal or server error
-        select! {
-            _ = shutdown_rev.wait_shutting_down() => {}
-            err = server => {
-                tracing::error!("Server main loop error: {:?}", err);
-                err?
-            }
-        }
-        Ok(())
+        Ok(svc)
     }
 
     /// Verify authentication token from request metadata and extract user ID
@@ -469,7 +277,6 @@ impl BasicService for BasicServiceProvider {
     ) -> Result<Response<pb::service::basic::server::v1::GetServerInfoResponse>, Status> {
         Ok(Response::new(
             pb::service::basic::server::v1::GetServerInfoResponse {
-                http_port: self.shared_data.cfg.main_cfg.http_port.into(),
                 status: self.shared_data.get_maintaining().into(),
                 ..SERVER_INFO_RPC.clone()
             },
@@ -515,7 +322,6 @@ impl BasicService for BasicServiceProvider {
 static SERVER_INFO_RPC: LazyLock<pb::service::basic::server::v1::GetServerInfoResponse> =
     LazyLock::new(|| pb::service::basic::server::v1::GetServerInfoResponse {
         server_version: Some(*VERSION_SPLIT),
-        http_port: 0, // Port number set dynamically at runtime
         status: RunningStatus::Normal as i32,
         unique_identifier: SERVER_INFO.unique_id.to_string(),
         server_name: SERVER_INFO.server_name.to_string(),

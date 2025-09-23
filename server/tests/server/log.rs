@@ -26,7 +26,7 @@ async fn test_log_clear() {
     )));
     File::create(&path2).unwrap();
 
-    let mut app = TestApp::new_with_launching_instance_custom_cfg((config, args))
+    let mut app = TestApp::new_with_launching_instance_custom_cfg((config, args), |_| {})
         .await
         .unwrap();
     tokio::time::sleep(Duration::from_secs(2)).await;

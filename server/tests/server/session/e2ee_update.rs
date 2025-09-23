@@ -14,7 +14,7 @@ use tokio::time::sleep;
 async fn e2ee_update_timeout() {
     let (mut config, args) = TestApp::get_test_config().unwrap();
     config.main_cfg.room_key_duration = Duration::from_secs(1);
-    let mut app = TestApp::new_with_launching_instance_custom_cfg((config, args))
+    let mut app = TestApp::new_with_launching_instance_custom_cfg((config, args), |_| {})
         .await
         .unwrap();
     let (session_user, session) = app.new_session_db_level(2, "session1", true).await.unwrap();

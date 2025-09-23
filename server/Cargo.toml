@@ -13,7 +13,6 @@ serde_json.workspace = true
 # serde_repr = "0"
 # tokio-tungstenite = "0"
 clap.workspace = true
-futures-util.workspace = true
 rand.workspace = true
 snowdon.workspace = true
 sea-orm.workspace = true
@@ -35,9 +34,6 @@ fake = { workspace = true, optional = true }
 zxcvbn.workspace = true
 email_address.workspace = true
 tower.workspace = true
-hyper.workspace = true
-hyper-util.workspace = true
-http-body-util.workspace = true
 secrecy.workspace = true
 utils = { path = "utils" }
 webrtc.workspace = true
@@ -63,7 +59,6 @@ tonic.workspace = true
 prost.workspace = true
 jsonwebtoken.workspace = true
 tokio-stream.workspace = true
-scopeguard.workspace = true
 rsa.workspace = true
 
 deadpool-lapin.workspace = true
@@ -71,17 +66,26 @@ deadpool-lapin.workspace = true
 humantime.workspace = true
 humantime-serde.workspace = true
 
-tokio-rustls = { version = "0.26.1", features = [
-    "ring",
-    "tls12",
-], default-features = false }
 tower-http.workspace = true
 http-body = "1.0.1"
+axum.workspace = true
+axum-server.workspace = true
+http.workspace = true
+http-serde.workspace = true
+rustls.workspace = true
+ctor.workspace = true
+
+[dependencies.matrix-sdk]
+version = "0"
+default-features = false
+features = ["rustls-tls"]
 
 [dev-dependencies]
 claims.workspace = true
 client = { path = "client" }
 tempfile = "3"
+reqwest.workspace = true
+linkify.workspace = true
 
 [build-dependencies]
 anyhow.workspace = true

@@ -16,7 +16,7 @@ class ServerSetting extends StatefulWidget {
 class _ServerSettingState extends State<ServerSetting> {
   String address = "localhost";
   int port = 7777;
-  int httpPort = -1, ping = -1;
+  int ping = -1;
   String serverName = "", serverState = "", serverVersion = "";
   bool isOnline = false, isConnecting = false, inited = false;
   bool? isTLS;
@@ -64,17 +64,6 @@ class _ServerSettingState extends State<ServerSetting> {
           children: [
             Text("${l10n.port}: "),
             Text(port.toString(), style: const TextStyle(color: Colors.grey)),
-          ],
-        ),
-        Row(
-          // 展示服务端http端口
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text("${l10n.httpPort}: "),
-            Text(
-              (httpPort == -1 ? "" : httpPort.toString()),
-              style: const TextStyle(color: Colors.grey),
-            ),
           ],
         ),
         Row(
@@ -213,7 +202,6 @@ class _ServerSettingState extends State<ServerSetting> {
                     setState(() {
                       isOnline = false;
                       serverState = "";
-                      httpPort = -1;
                       serverVersion = "";
                       serverName = "";
                       ping = -1;
@@ -241,7 +229,6 @@ class _ServerSettingState extends State<ServerSetting> {
                     // 保存服务器地址
                     setState(() {
                       isOnline = true;
-                      httpPort = server.httpPort!;
                       switch (server.serverStatus!.value) {
                         case okStatusCode:
                           serverState = l10n.serverStatusOnline;

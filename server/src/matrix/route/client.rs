@@ -1,4 +1,4 @@
-use actix_web::{HttpResponse, Responder, get, web};
+use axum::{Json, routing::get};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -7,16 +7,15 @@ pub struct VersionResponse {
     pub unstable_features: HashMap<String, bool>,
     pub versions: Vec<String>,
 }
-#[get("/versions")]
-pub async fn versions() -> impl Responder {
+
+pub async fn versions() -> Json<VersionResponse> {
     let response = VersionResponse {
         unstable_features: collection_literals::collection! {},
         versions: vec!["v1.13".to_owned()],
     };
-    HttpResponse::Ok().json(response)
+    Json(response)
 }
 
-pub fn configure_route(cfg: &mut web::ServiceConfig) {
-    let scope = web::scope("/client").service(versions);
-    cfg.service(scope);
+pub fn configure_route() -> axum::Router {
+    axum::Router::new().route("/versions", get(versions))
 }

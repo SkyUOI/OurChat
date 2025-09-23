@@ -1,8 +1,12 @@
+use std::sync::Arc;
 use std::time::Duration;
 
-use crate::{Cfg, EmailClientType};
-use actix_web::{HttpRequest, HttpResponse, Responder, get, web};
+use crate::SharedData;
+use crate::httpserver::EmailClientType;
 use anyhow::Context;
+use axum::extract::{Query, State};
+use axum::http::StatusCode;
+use axum::routing::get;
 use base::consts;
 use base::database::DbPool;
 use base::rabbitmq::http_server::VerifyRecord;
@@ -14,39 +18,31 @@ struct Param {
     token: String,
 }
 
-#[get("/verify/confirm")]
 #[tracing::instrument]
+#[axum::debug_handler]
 async fn verify_token(
-    req: HttpRequest,
-    param: web::Query<Param>,
-) -> Result<impl Responder, actix_web::Error> {
-    let pool = match req.app_data::<DbPool>() {
-        None => {
-            tracing::error!("No Database connection");
-            return Ok(HttpResponse::InternalServerError());
-        }
-        Some(pool) => pool,
-    };
+    State(pool): State<DbPool>,
+    Query(param): Query<Param>,
+) -> Result<(), StatusCode> {
     // check if the token is valid
-    let ret = if match check_token_exist_and_del_token(&param.token, &pool.redis_pool).await {
+    if match check_token_exist_and_del_token(&param.token, &pool.redis_pool).await {
         Ok(data) => data,
         Err(e) => {
             tracing::error!("Error while checking token:{:?}", e);
-            return Ok(HttpResponse::InternalServerError());
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
         }
     } {
-        HttpResponse::Ok()
+        Ok(())
     } else {
-        HttpResponse::BadRequest()
-    };
-    Ok(ret)
+        Err(StatusCode::BAD_REQUEST)
+    }
 }
 
 pub async fn verify_client(
     db: &DbPool,
     email_client: &Option<EmailClientType>,
     data: VerifyRecord,
-    cfg: &web::Data<Cfg>,
+    shared_data: &Arc<SharedData>,
 ) -> anyhow::Result<()> {
     if let Some(email_client) = email_client {
         let user_mailbox = format!("User <{}>", data.email);
@@ -64,7 +60,7 @@ pub async fn verify_client(
                 format!("{} Verification", consts::APP_NAME),
                 format!(
                     "please click \"{}v1/verify/confirm?token={}\" to verify your email",
-                    cfg.main_cfg.base_url(),
+                    shared_data.cfg.http_cfg.base_url(),
                     data.token
                 ),
             )
@@ -75,7 +71,7 @@ pub async fn verify_client(
     }
     add_token(
         &data.token,
-        cfg.user_setting.verify_email_expiry,
+        shared_data.cfg.user_setting.verify_email_expiry,
         &db.redis_pool,
     )
     .await?;
@@ -108,6 +104,6 @@ async fn add_token(
     Ok(())
 }
 
-pub fn config(cfg: &mut web::ServiceConfig) {
-    cfg.service(verify_token);
+pub fn config() -> axum::Router<DbPool> {
+    axum::Router::new().route("/verify/confirm", get(verify_token))
 }
