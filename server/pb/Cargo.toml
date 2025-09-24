@@ -15,7 +15,6 @@ chrono.workspace = true
 claims.workspace = true
 
 [build-dependencies]
-tonic-build.workspace = true
 tonic-prost-build.workspace = true
 anyhow.workspace = true
 walkdir.workspace = true

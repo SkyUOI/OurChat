@@ -27,14 +27,13 @@ sqlx.workspace = true
 dashmap.workspace = true
 sha3.workspace = true
 uuid.workspace = true
-config.workspace = true
 argon2.workspace = true
 deadpool-redis.workspace = true
 fake = { workspace = true, optional = true }
 zxcvbn.workspace = true
 email_address.workspace = true
 tower.workspace = true
-secrecy.workspace = true
+#secrecy.workspace = true
 utils = { path = "utils" }
 webrtc.workspace = true
 tokio-cron-scheduler.workspace = true
@@ -63,11 +62,9 @@ rsa.workspace = true
 
 deadpool-lapin.workspace = true
 
-humantime.workspace = true
 humantime-serde.workspace = true
 
 tower-http.workspace = true
-http-body = "1.0.1"
 axum.workspace = true
 axum-server.workspace = true
 http.workspace = true
@@ -75,10 +72,10 @@ http-serde.workspace = true
 rustls.workspace = true
 ctor.workspace = true
 
-[dependencies.matrix-sdk]
-version = "0"
-default-features = false
-features = ["rustls-tls"]
+#[dependencies.matrix-sdk]
+#version = "0"
+#default-features = false
+#features = ["rustls-tls"]
 
 [dev-dependencies]
 claims.workspace = true
