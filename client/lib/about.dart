@@ -143,8 +143,7 @@ class _AboutState extends State<About> {
               children: [
                 Expanded(
                   child: TabBarView(children: [
-                    Expanded(
-                        child: Column(
+                    Column(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
                         SizedBox(
@@ -154,9 +153,8 @@ class _AboutState extends State<About> {
                             )),
                         info
                       ],
-                    )),
-                    Expanded(
-                        child: Padding(
+                    ),
+                    Padding(
                       padding: const EdgeInsets.all(10.0),
                       child: Card(
                         child: Stack(
@@ -175,10 +173,9 @@ class _AboutState extends State<About> {
                           ],
                         ),
                       ),
-                    )),
-                    Expanded(
-                        child: Padding(
-                      padding: const EdgeInsets.all(10.0),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(5.0),
                       child: Card(
                         child: Stack(
                           children: [
@@ -196,7 +193,7 @@ class _AboutState extends State<About> {
                           ],
                         ),
                       ),
-                    ))
+                    )
                   ]),
                 ),
                 Row(
