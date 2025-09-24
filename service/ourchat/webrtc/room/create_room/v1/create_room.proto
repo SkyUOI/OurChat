@@ -4,6 +4,8 @@ package service.ourchat.webrtc.room.create_room.v1;
 
 message CreateRoomRequest {
   optional string title = 1;
+  // If true, the room will be deleted when the last user leaves
+  bool auto_delete = 2;
 }
 
 message CreateRoomResponse {

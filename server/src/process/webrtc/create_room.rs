@@ -1,6 +1,13 @@
-use crate::{process::error_msg::SERVER_ERROR, server::RpcServer};
+use crate::{
+    helper::GENERATOR,
+    process::error_msg::SERVER_ERROR,
+    server::RpcServer,
+    webrtc::{RoomId, RoomInfo},
+};
+use anyhow::Context;
 use base::consts::ID;
 use pb::service::ourchat::webrtc::room::create_room::v1::{CreateRoomRequest, CreateRoomResponse};
+use snowdon::ClassicLayoutSnowflakeExtension;
 use tonic::{Request, Response, Status};
 
 pub async fn create_room(
@@ -11,7 +18,7 @@ pub async fn create_room(
     match create_room_impl(server, id, request).await {
         Ok(res) => Ok(Response::new(res)),
         Err(e) => match e {
-            CreateRoomErr::Db(_) | CreateRoomErr::Internal(_) => {
+            CreateRoomErr::Db(_) | CreateRoomErr::Internal(_) | CreateRoomErr::Redis(_) => {
                 tracing::error!("{}", e);
                 Err(Status::internal(SERVER_ERROR))
             }
@@ -26,14 +33,52 @@ enum CreateRoomErr {
     Db(#[from] sea_orm::DbErr),
     #[error("status error:{0:?}")]
     Status(#[from] Status),
+    #[error("redis error:{0:?}")]
+    Redis(#[from] deadpool_redis::redis::RedisError),
     #[error("internal error:{0:?}")]
     Internal(#[from] anyhow::Error),
 }
 
+fn room_key(room_id: RoomId) -> String {
+    format!("webrtc:room:{}", room_id)
+}
+
 async fn create_room_impl(
-    _server: &RpcServer,
+    server: &RpcServer,
     _id: ID,
-    _request: Request<CreateRoomRequest>,
+    request: Request<CreateRoomRequest>,
 ) -> Result<CreateRoomResponse, CreateRoomErr> {
-    todo!()
+    let req = request.into_inner();
+    let room_id = RoomId(
+        GENERATOR
+            .generate()
+            .context("failed to generate snowflake id")?
+            .into_i64()
+            .try_into()
+            .context("failed to generate snowflake id")?,
+    );
+    let key = room_key(room_id);
+    let mut conn = server
+        .db
+        .redis_pool
+        .get()
+        .await
+        .context("cannot get redis connection")?;
+    let info = RoomInfo {
+        title: req.title,
+        room_id,
+        users_num: 0,
+        auto_delete: req.auto_delete,
+    };
+    let mut pipe = deadpool_redis::redis::pipe();
+    let _: () = pipe
+        .atomic()
+        .hset(&key, "title", info.title)
+        .hset(&key, "room_id", info.room_id)
+        .hset(&key, "auto_delete", info.auto_delete)
+        .hset(&key, "users_num", info.users_num)
+        .query_async(&mut conn)
+        .await?;
+    let ret = CreateRoomResponse { room_id: *room_id };
+    Ok(ret)
 }
