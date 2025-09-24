@@ -1,3 +1,5 @@
+mod move_room;
+
 use deadpool_redis::redis::ToRedisArgs;
 use utils::impl_newtype_int;
 
@@ -17,4 +19,8 @@ pub struct RoomInfo {
     pub room_id: RoomId,
     pub users_num: u32,
     pub auto_delete: bool,
+}
+
+pub fn zero_room_name() -> &'static str {
+    "webrtc:zero_room"
 }

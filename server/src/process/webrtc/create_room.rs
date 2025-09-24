@@ -2,10 +2,11 @@ use crate::{
     helper::GENERATOR,
     process::error_msg::SERVER_ERROR,
     server::RpcServer,
-    webrtc::{RoomId, RoomInfo},
+    webrtc::{RoomId, RoomInfo, zero_room_name},
 };
 use anyhow::Context;
 use base::consts::ID;
+use deadpool_redis::redis::AsyncTypedCommands;
 use pb::service::ourchat::webrtc::room::create_room::v1::{CreateRoomRequest, CreateRoomResponse};
 use snowdon::ClassicLayoutSnowflakeExtension;
 use tonic::{Request, Response, Status};
@@ -79,6 +80,8 @@ async fn create_room_impl(
         .hset(&key, "users_num", info.users_num)
         .query_async(&mut conn)
         .await?;
+    // append new created
+    conn.sadd(zero_room_name(), room_id).await?;
     let ret = CreateRoomResponse { room_id: *room_id };
     Ok(ret)
 }

@@ -11,6 +11,7 @@ pub mod message_records;
 pub mod permission;
 pub mod role;
 pub mod role_permissions;
+pub mod rtc_room;
 pub mod server_management_permission;
 pub mod server_management_role;
 pub mod server_management_role_permissions;

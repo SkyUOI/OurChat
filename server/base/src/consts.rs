@@ -214,6 +214,10 @@ pub const fn default_room_key_duration() -> Duration {
     Duration::from_days(30)
 }
 
+pub const fn default_keep_voip_room_keep_duration() -> Duration {
+    Duration::from_mins(10)
+}
+
 pub mod option {
     pub const fn default_network_cmd_port() -> Option<u16> {
         Some(super::default_network_cmd_port())
