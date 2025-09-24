@@ -2,7 +2,7 @@ use crate::{
     helper::GENERATOR,
     process::error_msg::SERVER_ERROR,
     server::RpcServer,
-    webrtc::{RoomId, RoomInfo, zero_room_name},
+    webrtc::{RoomId, RoomInfo, empty_room_name},
 };
 use anyhow::Context;
 use base::consts::ID;
@@ -71,17 +71,10 @@ async fn create_room_impl(
         users_num: 0,
         auto_delete: req.auto_delete,
     };
-    let mut pipe = deadpool_redis::redis::pipe();
-    let _: () = pipe
-        .atomic()
-        .hset(&key, "title", info.title)
-        .hset(&key, "room_id", info.room_id)
-        .hset(&key, "auto_delete", info.auto_delete)
-        .hset(&key, "users_num", info.users_num)
-        .query_async(&mut conn)
-        .await?;
+    let pipe = info.hset_pipe(&key);
+    let _: () = pipe.query_async(&mut conn).await?;
     // append new created
-    conn.sadd(zero_room_name(), room_id).await?;
+    conn.sadd(empty_room_name(), room_id).await?;
     let ret = CreateRoomResponse { room_id: *room_id };
     Ok(ret)
 }

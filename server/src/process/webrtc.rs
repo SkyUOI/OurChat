@@ -6,7 +6,7 @@ use tokio::sync::MutexGuard;
 use tokio_cron_scheduler::Job;
 use tracing::error;
 
-use crate::webrtc::zero_room_name;
+use crate::webrtc::empty_room_name;
 
 pub mod create_room;
 
@@ -20,7 +20,7 @@ pub async fn clean_rooms<'a>(
         Box::pin(async move {
             let logic = async move {
                 let mut conn = redis_pool.get().await?;
-                let empty_rooms = conn.smembers(zero_room_name()).await?;
+                let empty_rooms = conn.smembers(empty_room_name()).await?;
 
                 anyhow::Ok(())
             };

@@ -532,6 +532,7 @@ impl Application {
         // init some regular tasks
         crate::process::webrtc::clean_rooms(
             cfg.main_cfg.voip.empty_room_keep_duration,
+            db_pool.redis_pool.clone(),
             sched.lock().await,
         )
         .await?;

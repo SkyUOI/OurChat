@@ -5354,6 +5354,7 @@ dependencies = [
  "dashmap",
  "deadpool-lapin",
  "deadpool-redis",
+ "derive",
  "dotenvy",
  "email_address",
  "entities",
