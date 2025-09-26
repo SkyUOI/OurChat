@@ -4,6 +4,7 @@ services:
   OurChatServer:
     init: true
     image: skyuoi/ourchat:latest-debian
+    restart: always
     working_dir: /root
     ports:
       - "7777:7777"
@@ -17,6 +18,8 @@ services:
       - ./config/:/etc/ourchat
       - ./log:/root/log
       - ../resource/:/etc/resource
+    # environment:
+    #   OURCHAT_LOG: trace,mio=off,h2=off,tonic=off,tower=off,tokio::task::waker=off,runtime::resource=off,lapin=off,pinky_swear=off,async_io=off,polling=off
   db:
     image: postgres:17
     restart: always
@@ -31,7 +34,7 @@ services:
     networks:
       - net
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 30s
       retries: 5
