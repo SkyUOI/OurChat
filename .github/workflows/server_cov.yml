@@ -2,7 +2,7 @@ name: ServerCov
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
 
 env:
   CARGO_TERM_COLOR: always
@@ -20,7 +20,7 @@ jobs:
       - id: skip_check
         uses: fkirc/skip-duplicate-actions@v5
         with:
-          concurrent_skipping: 'always'
+          concurrent_skipping: "always"
           paths_ignore: '["client/**"]'
 
   Test:
@@ -31,13 +31,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@nightly
-      # - uses: cargo-bins/cargo-binstall@main
-      # - name: Tarpaulin
-      # run: cargo binstall cargo-tarpaulin --no-confirm --force
-      # Warn: because the glibc version of GitHub action is lower than the requirement(2.38) installed by cargo-binstall, so we need to compile it by cargo install until the version is updated
-      - name: Tarpaulin
-        run: cargo install cargo-tarpaulin
-
+      - uses: cargo-bins/cargo-binstall@main
+      - name: Install llvm-cov
+        run: cargo binstall cargo-llvm-cov --no-confirm --force
       - name: Install Deps
         run: sudo apt-get update && sudo apt install -y protobuf-compiler
       - name: Set Up Environment
@@ -45,7 +41,7 @@ jobs:
       - name: Test
         run: |
           export OURCHAT_TEST_CONFIG_DIR=$(pwd)/config/
-          cargo tarpaulin -e derive --workspace -o lcov
+          cargo llvm-cov --lcov --output-path lcov.info
 
       - name: Display Coverage
         uses: codecov/codecov-action@v5
