@@ -9,11 +9,12 @@ services:
     image: test-ourchat-debian:latest
     environment:
       - OURCHAT_CONFIG_FILE=/app/docker/config/ourchat.toml
-      - OURCHAT_LOG=trace,actix_web=off,actix_server=off,mio=off,h2=off,tonic=off,tower=off,tokio::task::waker=off,runtime::resource=off,actix_http=off,lapin=off,hyper_util=off,pinky_swear=off,async_io=off,polling=off
+      - OURCHAT_LOG=trace,mio=off,h2=off,tonic=off,tower=off,tokio::task::waker=off,runtime::resource=off,actix_http=off,lapin=off,hyper_util=off,pinky_swear=off,async_io=off,polling=off
     command: tail -f /dev/null
     working_dir: /app
     volumes:
       - ../resource/:/app/docker/resource
+      - ../config/:/app/docker/config
     ports:
       - "7777:7777"
       - "7778:7778"
