@@ -44,5 +44,5 @@ jobs:
         run: docker compose -f docker/compose.devenv.yml up -d
       - name: Test
         run: |
-          export OURCHAT_TEST_CONFIG_DIR=$(pwd)/config/
+          export OURCHAT_CONFIG_FILE=$(pwd)/config/
           cargo test

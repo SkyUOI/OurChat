@@ -9,5 +9,5 @@ pub use oc_helper::user::TestUser;
 
 #[ctor::ctor]
 fn init() {
-    helper::init_env_var();
+    dotenvy::dotenv().ok();
 }

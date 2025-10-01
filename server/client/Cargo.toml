@@ -28,10 +28,9 @@ sea-orm.workspace = true
 dotenvy.workspace = true
 ctor.workspace = true
 urlencoding.workspace = true
-libc-print.workspace = true
 chrono.workspace = true
 http.workspace = true
-utils ={ path = "../utils" }
+utils = { path = "../utils" }
 ring.workspace = true
 rsa.workspace = true
 bytes.workspace = true

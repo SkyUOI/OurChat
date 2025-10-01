@@ -40,7 +40,7 @@ jobs:
         run: docker compose -f docker/compose.devenv.yml up -d
       - name: Test
         run: |
-          export OURCHAT_TEST_CONFIG_DIR=$(pwd)/config/
+          export OURCHAT_CONFIG_FILE=$(pwd)/config/
           cargo llvm-cov --lcov --output-path lcov.info
 
       - name: Display Coverage

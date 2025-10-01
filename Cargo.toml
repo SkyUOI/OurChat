@@ -36,7 +36,7 @@ serde_json = "1"
 rand = "0.9.2"
 snowdon = "0"
 zxcvbn = { version = "3", features = ["ser"] }
-tokio-cron-scheduler = "0.14.0"
+tokio-cron-scheduler = "0.15.0"
 croner = { version = "3.0.0", features = ["serde"] }
 
 thiserror = "2"
@@ -61,7 +61,7 @@ async-trait = { version = "0" }
 
 # Grpc
 prost = { version = "0.14.1" }
-jsonwebtoken = "9"
+jsonwebtoken = "9.3.1"
 tower = { version = "0", features = ["full"] }
 
 linkify = "0"
@@ -69,7 +69,6 @@ claims = "0"
 urlencoding = "2"
 dotenvy = "0"
 ctor = "0"
-libc-print = "0"
 fake = "4"
 walkdir = "2"
 tonic-prost-build = "0"

@@ -2,12 +2,7 @@ pub mod rabbitmq;
 
 use pb::service::ourchat::download::v1::DownloadResponse;
 use size::Size;
-use std::env::VarError;
-use std::io::ErrorKind;
-use std::path::PathBuf;
-use std::process::exit;
-use std::sync::Once;
-use std::{fmt, iter};
+use std::iter;
 use tokio_stream::StreamExt;
 use tonic::Streaming;
 
@@ -45,50 +40,4 @@ pub async fn get_hash_from_download(
     }
     let hash = format!("{:x}", hasher.finalize());
     Ok(hash)
-}
-
-pub const OURCHAT_TEST_CONFIG_DIR: &str = "OURCHAT_TEST_CONFIG_DIR";
-
-/// Initialize the environment variable for testing
-pub fn init_env_var() {
-    // use libc-print because this function will be called in ctor function when the std::print is not available
-    static TMP: Once = Once::new();
-    TMP.call_once(|| {
-        fn output_err(e: impl fmt::Debug) {
-            libc_print::libc_eprintln!("{:?}", e);
-            exit(1);
-        }
-
-        match dotenvy::dotenv() {
-            Ok(_) => {}
-            Err(dotenvy::Error::Io(e)) => {
-                if e.kind() != ErrorKind::NotFound {
-                    output_err(e);
-                }
-            }
-            Err(e) => {
-                output_err(e);
-            }
-        }
-        // Set config file path
-        let dir = match std::env::var(OURCHAT_TEST_CONFIG_DIR) {
-            Ok(d) => d,
-            Err(VarError::NotPresent) => {
-                libc_print::libc_eprintln!("\"{}\" is not set, please set it in \".env\" file or set this environment var directly", OURCHAT_TEST_CONFIG_DIR);
-                exit(1);
-            }
-            Err(VarError::NotUnicode(wrong_str)) => {
-                libc_print::libc_eprintln!("\"{}\" is not a valid unicode string: {}", OURCHAT_TEST_CONFIG_DIR, wrong_str.display());
-                exit(1);
-            }
-        };
-        let test_config_dir = PathBuf::from(dir);
-        unsafe {
-            std::env::set_var("OURCHAT_CONFIG_FILE", test_config_dir.join("ourchat.toml"));
-            std::env::set_var(
-                "OURCHAT_HTTP_CONFIG_FILE",
-                test_config_dir.join("http.toml"),
-            );
-        }
-    });
 }
