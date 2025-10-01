@@ -1,5 +1,5 @@
 //! Some utils functions
-use crate::SERVER_INFO;
+use crate::{SERVER_INFO, webrtc::RoomId};
 use base::consts::SessionID;
 use rand::Rng;
 use snowdon::{
@@ -25,8 +25,13 @@ impl MachineId for SnowflakeParams {
 pub type MySnowflake = Snowflake<ClassicLayout<SnowflakeParams>, SnowflakeParams>;
 pub type MySnowflakeGenerator = Generator<ClassicLayout<SnowflakeParams>, SnowflakeParams>;
 
-/// A Generator of Snowflake
-pub static GENERATOR: LazyLock<MySnowflakeGenerator> = LazyLock::new(MySnowflakeGenerator::default);
+/// A Generator of Snowflake, only being created to generate user id
+pub static USER_ID_GENERATOR: LazyLock<MySnowflakeGenerator> =
+    LazyLock::new(MySnowflakeGenerator::default);
+pub static WEBRTC_ROOM_ID_GENERATOR: LazyLock<MySnowflakeGenerator> =
+    LazyLock::new(MySnowflakeGenerator::default);
+pub static SESSION_ID_GENERATOR: LazyLock<MySnowflakeGenerator> =
+    LazyLock::new(MySnowflakeGenerator::default);
 
 /// Generate ocid by random
 pub fn generate_ocid(bits: usize) -> String {
@@ -77,7 +82,13 @@ pub async fn create_file_with_dirs_if_not_exist<T: AsRef<std::path::Path>>(
 }
 
 pub fn generate_session_id() -> anyhow::Result<SessionID> {
-    Ok(GENERATOR.generate()?.into_i64().into())
+    Ok(SESSION_ID_GENERATOR.generate()?.into_i64().into())
+}
+
+pub fn generate_webrtc_room_id() -> anyhow::Result<RoomId> {
+    Ok(RoomId(
+        WEBRTC_ROOM_ID_GENERATOR.generate()?.into_i64() as u64
+    ))
 }
 
 /// Get an available port on the system.

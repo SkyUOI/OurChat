@@ -9,6 +9,7 @@ pub use super::message_records::Entity as MessageRecords;
 pub use super::permission::Entity as Permission;
 pub use super::role::Entity as Role;
 pub use super::role_permissions::Entity as RolePermissions;
+pub use super::rtc_room::Entity as RtcRoom;
 pub use super::server_management_permission::Entity as ServerManagementPermission;
 pub use super::server_management_role::Entity as ServerManagementRole;
 pub use super::server_management_role_permissions::Entity as ServerManagementRolePermissions;

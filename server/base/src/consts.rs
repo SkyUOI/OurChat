@@ -42,7 +42,7 @@ impl_newtype_int!(ID, u64, serde::Serialize, serde::Deserialize);
 impl_newtype_int!(SessionID, u64, serde::Serialize, serde::Deserialize);
 impl_newtype_int!(MsgID, u64, serde::Serialize, serde::Deserialize);
 
-macro impl_from($from:path, $ty:ty) {
+pub macro impl_from($from:path, $ty:ty) {
     impl From<$ty> for $from {
         fn from(value: $ty) -> Self {
             $from(value.try_into().unwrap())
@@ -56,7 +56,7 @@ macro impl_from($from:path, $ty:ty) {
     }
 }
 
-macro impl_from_all_ints($from:path) {
+pub macro impl_from_all_ints($from:path) {
     impl_from!($from, i32);
     impl_from!($from, i64);
     impl_from!($from, u32);
@@ -212,6 +212,10 @@ pub const fn default_network_cmd_port() -> u16 {
 
 pub const fn default_room_key_duration() -> Duration {
     Duration::from_days(30)
+}
+
+pub const fn default_keep_voip_room_keep_duration() -> Duration {
+    Duration::from_mins(10)
 }
 
 pub mod option {

@@ -9,7 +9,7 @@ pub mod process;
 pub mod rabbitmq;
 mod server;
 mod shared_state;
-mod webrtc;
+pub mod webrtc;
 
 use anyhow::bail;
 use base::consts::{self, CONFIG_FILE_ENV_VAR, LOG_OUTPUT_DIR, SERVER_INFO_PATH};
@@ -101,6 +101,7 @@ pub struct MainCfg {
     pub password_hash: PasswordHash,
     pub db: DbArgCfg,
     pub debug: DebugCfg,
+    pub voip: VOIP,
 
     #[serde(skip)]
     pub cmd_args: ParserCfg,
@@ -116,6 +117,15 @@ pub struct PasswordHash {
     pub p_cost: u32,
     #[serde(default = "consts::default_output_len")]
     pub output_len: Option<usize>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct VOIP {
+    #[serde(
+        default = "consts::default_keep_voip_room_keep_duration",
+        with = "humantime_serde"
+    )]
+    pub empty_room_keep_duration: Duration,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -518,6 +528,14 @@ impl Application {
         .await?;
         // init http server
         let http_launcher = Launcher::build_from_config(&mut cfg).await?;
+
+        // init some regular tasks
+        crate::process::webrtc::clean_rooms(
+            cfg.main_cfg.voip.empty_room_keep_duration,
+            db_pool.clone(),
+            sched.lock().await,
+        )
+        .await?;
 
         Ok(Self {
             http_launcher: Some(http_launcher),

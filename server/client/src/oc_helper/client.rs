@@ -395,12 +395,12 @@ impl TestApp {
     }
 
     /// Get the database connection.
-    ///
-    /// # Panics
-    ///
-    /// Panics if launching with an existing instance.
     pub fn get_db_connection(&self) -> &sea_orm::DatabaseConnection {
         &self.db_pool.db_pool
+    }
+
+    pub fn get_redis_connection(&self) -> &deadpool_redis::Pool {
+        &self.db_pool.redis_pool
     }
 
     pub async fn check_ban_status(

@@ -36,3 +36,4 @@ rsa.workspace = true
 bytes.workspace = true
 serde.workspace = true
 deadpool-lapin.workspace = true
+deadpool-redis.workspace = true

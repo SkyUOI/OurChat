@@ -54,6 +54,8 @@ pb = { path = "pb" }
 
 entities = { path = "entities" }
 
+derive = { path = "derive" }
+
 tonic.workspace = true
 prost.workspace = true
 jsonwebtoken.workspace = true

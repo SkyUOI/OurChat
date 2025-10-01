@@ -33,7 +33,7 @@ async fn add_new_user(
     params: Params,
 ) -> Result<RegisterResponse, RegisterError> {
     // Generate snowflake id
-    let id = ID(helper::GENERATOR
+    let id = ID(helper::USER_ID_GENERATOR
         .generate()
         .context("failed to generate snowflake id")?
         .into_i64()

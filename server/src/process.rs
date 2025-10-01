@@ -57,7 +57,7 @@ mod set_self_info;
 pub mod unregister;
 mod upload;
 pub mod verify;
-mod webrtc;
+pub mod webrtc;
 
 use base::consts::SessionID;
 use deadpool_lapin::lapin::options::BasicPublishOptions;

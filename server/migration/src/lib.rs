@@ -30,6 +30,7 @@ mod m20250609_074125_change_sender_id_to_be_optional_in_message_records;
 mod m20250710_090847_add_session_id_to_friend_relation;
 mod m20250712_025238_add_e2eeize_and_dee2eeize_session_permission;
 mod m20250714_000446_session_invitation;
+mod m20250924_053530_webrtc_room;
 
 pub struct Migrator;
 
@@ -71,6 +72,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20250710_090847_add_session_id_to_friend_relation::Migration),
             Box::new(m20250712_025238_add_e2eeize_and_dee2eeize_session_permission::Migration),
             Box::new(m20250714_000446_session_invitation::Migration),
+            Box::new(m20250924_053530_webrtc_room::Migration),
         ]
     }
 }
