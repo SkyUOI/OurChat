@@ -149,7 +149,7 @@ impl MainCfg {
         let mut cfg: serde_json::Value = setting::read_config_and_deserialize(&cfg_path)?;
         let mut configs_list = vec![cfg_path];
         for i in iter {
-            let i = i.into();
+            let i: PathBuf = i.into();
             let merge_cfg: serde_json::Value = setting::read_config_and_deserialize(&i)?;
             cfg = merge_json(cfg, merge_cfg);
             configs_list.push(i);
