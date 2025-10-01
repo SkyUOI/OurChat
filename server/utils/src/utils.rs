@@ -87,8 +87,6 @@ pub fn merge_json(origin: serde_json::Value, new: serde_json::Value) -> serde_js
             }
             serde_json::Value::Object(origin_map)
         }
-        // If both are arrays, keep the original array
-        (origin @ serde_json::Value::Array(_), _) => origin,
         // For all other cases, use the new value
         (_, new) => new,
     }
@@ -176,7 +174,7 @@ mod tests {
         assert_eq!(
             merged,
             json!({
-                "tags": ["a", "b", "c"],
+                "tags": ["d", "e"],
                 "data": 2
             })
         );

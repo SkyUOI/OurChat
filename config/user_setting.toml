@@ -1,17 +1,1 @@
-support_page = "https://skyuoi.org/support"
-# Control users' password strength, the bigger the number, the stricter the rcheck
-password_strength_limit = 1
-verify_email_expiry = "5min"
-add_friend_request_expiry = "3d"
-
-[[contacts]]
-# input admin or security
-# If there is any problem about security, the client will contact the role "security"
-role = "admin"
-# optional
-email_address = "admin@ourchat.org"
-# optional
-phone_number = "1234567890"
-# optional
-# In matrix, it is the matrix id
-ocid = "limuy"
+inherit = "../docker/config/user_setting.toml"

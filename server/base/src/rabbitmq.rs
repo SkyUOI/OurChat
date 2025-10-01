@@ -1,9 +1,10 @@
 pub mod http_server;
 
-use config::File;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::time::Duration;
+
+use crate::setting;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct RabbitMQCfg {
@@ -17,10 +18,7 @@ pub struct RabbitMQCfg {
 
 impl RabbitMQCfg {
     pub fn build_from_path(path: &Path) -> anyhow::Result<Self> {
-        let cfg = config::Config::builder()
-            .add_source(File::with_name(path.to_str().unwrap()))
-            .build()?;
-        let cfg: RabbitMQCfg = cfg.try_deserialize()?;
+        let cfg = setting::read_config_and_deserialize(path)?;
         Ok(cfg)
     }
 

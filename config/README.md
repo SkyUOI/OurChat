@@ -9,4 +9,4 @@ Each set of config contains the following files:
 
 - `ourchat.toml`: The main config file
 - `database.toml`: The database config file
-- `redis_connect.toml`: The redis config file
+- `redis.toml`: The redis config file
