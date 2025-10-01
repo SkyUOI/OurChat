@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TlsConfig {
     #[serde(default = "crate::consts::default_tls")]
     pub enable: bool,
@@ -45,5 +45,12 @@ impl TlsConfig {
         } else {
             Ok(false)
         }
+    }
+}
+
+impl Default for TlsConfig {
+    fn default() -> Self {
+        let empty = serde_json::json!({});
+        serde_json::from_value(empty).unwrap()
     }
 }

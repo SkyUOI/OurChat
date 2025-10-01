@@ -47,8 +47,8 @@ jobs:
 
       - name: Test-Alpine
         run: |
-          docker compose -f docker/compose.dev-alpine.yml up -d
-          docker compose -f docker/compose.dev-alpine.yml exec OurChatServer sh -c "cd /app && cargo test"
+          docker compose -f docker/compose.test-alpine.yml up -d
+          docker compose -f docker/compose.test-alpine.yml exec OurChatServer sh -c "cd /app && cargo test"
 
   test-debian:
     needs: pre_job
@@ -68,5 +68,5 @@ jobs:
 
       - name: Test-Debian
         run: |
-          docker compose -f docker/compose.dev-debian.yml up -d
-          docker compose -f docker/compose.dev-debian.yml exec OurChatServer sh -c "cd /app && cargo test"
+          docker compose -f docker/compose.test-debian.yml up -d
+          docker compose -f docker/compose.test-debian.yml exec OurChatServer sh -c "cd /app && cargo test"

@@ -27,6 +27,8 @@ single_instance = true
 leader_node = true
 # Log clean duration
 log_clean_duration = "30d"
+# Keep Log Duration when cleaning
+log_keep = "3d"
 # E2EE room key available duration
 room_key_duration = "30d"
 

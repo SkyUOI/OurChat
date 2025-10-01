@@ -315,6 +315,7 @@ pub struct HttpCfg {
     pub log_clean_duration: Duration,
     #[serde(default = "base::consts::default_log_keep", with = "humantime_serde")]
     pub lop_keep: Duration,
+    #[serde(default)]
     pub tls: TlsConfig,
     pub email_cfg: Option<PathBuf>,
 }

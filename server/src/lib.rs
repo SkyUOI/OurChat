@@ -1,6 +1,7 @@
 #![feature(decl_macro)]
 #![feature(duration_constructors)]
 
+pub mod config;
 pub mod db;
 pub mod helper;
 pub mod httpserver;
@@ -11,17 +12,13 @@ mod server;
 mod shared_state;
 pub mod webrtc;
 
-use anyhow::bail;
-use base::consts::{self, CONFIG_FILE_ENV_VAR, LOG_OUTPUT_DIR, SERVER_INFO_PATH};
+use crate::config::{Cfg, MainCfg};
+use crate::httpserver::Launcher;
+use base::consts::{self, LOG_OUTPUT_DIR, SERVER_INFO_PATH};
 use base::database::DbPool;
-use base::database::postgres::PostgresDbCfg;
-use base::database::redis::RedisCfg;
-use base::rabbitmq::RabbitMQCfg;
-use base::setting::debug::DebugCfg;
-use base::setting::{PathConvert, Setting, UserSetting};
+use base::log;
 use base::shutdown::ShutdownSdr;
 use base::wrapper::JobSchedulerWrapper;
-use base::{log, setting};
 use clap::Parser;
 use dashmap::DashMap;
 use db::file_storage;
@@ -29,18 +26,13 @@ use parking_lot::{Mutex, Once};
 use process::error_msg::MAINTAINING;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
-use size::Size;
 use std::cmp::Ordering;
-use std::time::Duration;
 use std::{
     fs,
     path::{Path, PathBuf},
     sync::{Arc, LazyLock},
 };
 use tracing::info;
-use utils::merge_json;
-
-use crate::httpserver::{HttpCfg, Launcher};
 
 #[derive(Debug, Parser, Default)]
 #[command(author = "SkyUOI", version = base::build::VERSION, about = "The Server of OurChat")]
@@ -53,158 +45,6 @@ pub struct ArgsParser {
     pub shared_cfg: ParserCfg,
     #[arg(long, help = "server info file path", default_value = SERVER_INFO_PATH)]
     pub server_info: PathBuf,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct MainCfg {
-    pub redis_cfg: PathBuf,
-    pub db_cfg: PathBuf,
-    pub rabbitmq_cfg: PathBuf,
-    pub user_setting: PathBuf,
-    pub http_cfg: PathBuf,
-    #[serde(default = "consts::default_clear_interval")]
-    pub auto_clean_duration: croner::Cron,
-    #[serde(default = "consts::default_file_save_time", with = "humantime_serde")]
-    pub file_save_time: Duration,
-    #[serde(default = "consts::default_user_files_store_limit")]
-    pub user_files_limit: Size,
-    #[serde(default = "consts::default_friends_number_limit")]
-    pub friends_number_limit: u32,
-    #[serde(default = "consts::default_files_storage_path")]
-    pub files_storage_path: PathBuf,
-    #[serde(
-        default = "consts::default_verification_expire_time",
-        with = "humantime_serde"
-    )]
-    pub verification_expire_time: Duration,
-    #[serde(
-        default = "consts::default_user_defined_status_expire_time",
-        with = "humantime_serde"
-    )]
-    pub user_defined_status_expire_time: Duration,
-    #[serde(
-        default = "consts::default_log_clean_duration",
-        with = "humantime_serde"
-    )]
-    pub log_clean_duration: Duration,
-    #[serde(default = "consts::default_log_keep", with = "humantime_serde")]
-    pub lop_keep: Duration,
-    #[serde(default = "consts::default_single_instance")]
-    pub single_instance: bool,
-    #[serde(default = "consts::default_leader_node")]
-    pub leader_node: bool,
-    #[serde(
-        default = "consts::default_room_key_duration",
-        with = "humantime_serde"
-    )]
-    pub room_key_duration: Duration,
-    pub password_hash: PasswordHash,
-    pub db: DbArgCfg,
-    pub debug: DebugCfg,
-    pub voip: VOIP,
-
-    #[serde(skip)]
-    pub cmd_args: ParserCfg,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct PasswordHash {
-    #[serde(default = "consts::default_m_cost")]
-    pub m_cost: u32,
-    #[serde(default = "consts::default_t_cost")]
-    pub t_cost: u32,
-    #[serde(default = "consts::default_p_cost")]
-    pub p_cost: u32,
-    #[serde(default = "consts::default_output_len")]
-    pub output_len: Option<usize>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct VOIP {
-    #[serde(
-        default = "consts::default_keep_voip_room_keep_duration",
-        with = "humantime_serde"
-    )]
-    pub empty_room_keep_duration: Duration,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct DbArgCfg {
-    #[serde(default = "consts::default_fetch_msg_page_size")]
-    pub fetch_msg_page_size: u64,
-}
-
-impl MainCfg {
-    pub fn new(config_path: Vec<impl Into<PathBuf>>) -> anyhow::Result<Self> {
-        let len = config_path.len();
-        let mut iter = config_path.into_iter();
-        let cfg_path = if len == 0 {
-            if let Ok(env) = std::env::var(CONFIG_FILE_ENV_VAR) {
-                env
-            } else {
-                tracing::error!("Please specify config file");
-                bail!("Please specify config file");
-            }
-            .into()
-        } else {
-            iter.next().unwrap().into()
-        };
-        // read a config file
-        let mut cfg: serde_json::Value = setting::read_config_and_deserialize(&cfg_path)?;
-        let mut configs_list = vec![cfg_path];
-        for i in iter {
-            let i = i.into();
-            let merge_cfg: serde_json::Value = setting::read_config_and_deserialize(&i)?;
-            cfg = merge_json(cfg, merge_cfg);
-            configs_list.push(i);
-        }
-        let mut cfg: MainCfg = serde_json::from_value(cfg).expect("Failed to deserialize config");
-        cfg.cmd_args.config = configs_list;
-        // convert the path relevant to the config file to a path relevant to the directory
-        let full_basepath = cfg
-            .cmd_args
-            .config
-            .first()
-            .unwrap()
-            .parent()
-            .unwrap()
-            .canonicalize()?;
-        cfg.convert_to_abs_path(&full_basepath)?;
-        Ok(cfg)
-    }
-
-    pub fn unique_instance(&self) -> bool {
-        self.leader_node || self.single_instance
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Cfg {
-    pub main_cfg: MainCfg,
-    pub db_cfg: PostgresDbCfg,
-    pub redis_cfg: RedisCfg,
-    pub rabbitmq_cfg: RabbitMQCfg,
-    pub user_setting: UserSetting,
-    pub http_cfg: HttpCfg,
-}
-
-impl Cfg {
-    pub fn new(main_cfg: MainCfg) -> anyhow::Result<Self> {
-        let db_cfg = PostgresDbCfg::build_from_path(&main_cfg.db_cfg)?;
-        let redis_cfg = RedisCfg::build_from_path(&main_cfg.redis_cfg)?;
-        let rabbitmq_cfg = RabbitMQCfg::build_from_path(&main_cfg.rabbitmq_cfg)?;
-        let user_setting = UserSetting::build_from_path(&main_cfg.user_setting)?;
-        let mut http_cfg = HttpCfg::build_from_path(&main_cfg.http_cfg)?;
-        http_cfg.convert_to_abs_path(main_cfg.http_cfg.parent().unwrap())?;
-        Ok(Self {
-            main_cfg,
-            db_cfg,
-            redis_cfg,
-            rabbitmq_cfg,
-            user_setting,
-            http_cfg,
-        })
-    }
 }
 
 #[derive(Debug, Parser, Clone, Default)]
@@ -225,29 +65,6 @@ pub struct ParserCfg {
     pub maintaining: bool,
     #[arg(short, long, help = "ourchat config file path", num_args = 0..,)]
     pub config: Vec<PathBuf>,
-}
-
-impl PathConvert for MainCfg {
-    /// convert config paths to absolute path
-    ///
-    /// the base path is the first config file's parent directory
-    ///
-    /// the paths to be converted:
-    ///
-    /// - `redis_cfg`
-    /// - `db_cfg`
-    /// - `rabbitmq_cfg`
-    /// - `user_setting`
-    fn convert_to_abs_path(&mut self, full_basepath: &Path) -> anyhow::Result<()> {
-        self.redis_cfg = utils::resolve_relative_path(full_basepath, Path::new(&self.redis_cfg))?;
-        self.db_cfg = utils::resolve_relative_path(full_basepath, Path::new(&self.db_cfg))?;
-        self.rabbitmq_cfg =
-            utils::resolve_relative_path(full_basepath, Path::new(&self.rabbitmq_cfg))?;
-        self.user_setting =
-            utils::resolve_relative_path(full_basepath, Path::new(&self.user_setting))?;
-        self.http_cfg = utils::resolve_relative_path(full_basepath, Path::new(&self.http_cfg))?;
-        Ok(())
-    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]

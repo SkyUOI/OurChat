@@ -50,3 +50,6 @@ fetch_msg_page_size = 2000
 debug_console = true
 # Warning: don't expose it to the world
 debug_console_port = 7776
+
+[voip]
+empty_room_keep_duration = "1h"

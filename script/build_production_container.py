@@ -48,4 +48,6 @@ if not skip_base:
 # build alpine image
 msg_system(f"docker buildx build -f docker/Dockerfile {args_pass} {args_tags_alpine} .")
 # build debian image
-msg_system(f"docker buildx build -f docker/Dockerfile.debian {args_pass} {args_tags_debian} .")
+msg_system(
+    f"docker buildx build -f docker/Dockerfile.debian {args_pass} {args_tags_debian} ."
+)

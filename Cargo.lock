@@ -571,6 +571,7 @@ dependencies = [
  "rand 0.9.2",
  "sea-orm",
  "serde",
+ "serde_json",
  "shadow-rs",
  "size",
  "sqlx",

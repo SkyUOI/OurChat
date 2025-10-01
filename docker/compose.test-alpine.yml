@@ -1,5 +1,5 @@
 # This template can set up an environment for testing or developing
-name: ourchat_server
+name: ourchat_server_test_alpine
 services:
   OurChatServer:
     init: true
@@ -12,12 +12,8 @@ services:
       - OURCHAT_LOG=trace,mio=off,h2=off,tonic=off,tower=off,tokio::task::waker=off,runtime::resource=off,actix_http=off,lapin=off,hyper_util=off,pinky_swear=off,async_io=off,polling=off
     volumes:
       - ../resource/:/app/docker/resource
-      - ../config/:/app/docker/config
     command: tail -f /dev/null
     working_dir: /app
-    ports:
-      - "7777:7777"
-      - "7778:7778"
     networks:
       - net
     depends_on:
@@ -29,8 +25,6 @@ services:
     environment:
       POSTGRES_DB: OurChat
       POSTGRES_PASSWORD: 123456
-    ports:
-      - "5432:5432"
     networks:
       - net
     healthcheck:
@@ -42,8 +36,6 @@ services:
     image: redis:8-alpine
     restart: always
     command: redis-server /usr/local/etc/redis/redis.conf
-    ports:
-      - "6379:6379"
     volumes:
       - ./config/redis.conf:/usr/local/etc/redis/redis.conf
     networks:
@@ -54,9 +46,6 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: 123456
-    ports:
-      - "5672:5672"
-      - "15672:15672"
     networks:
       - net
 
