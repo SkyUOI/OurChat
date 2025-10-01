@@ -1,4 +1,5 @@
 use crate::consts;
+use crate::setting::read_config_and_deserialize;
 use anyhow::bail;
 use lettre::message::Mailbox;
 use lettre::transport::smtp::authentication::Credentials;
@@ -74,11 +75,7 @@ impl EmailCfg {
     }
 
     pub fn build_from_path(path: &Path) -> anyhow::Result<Self> {
-        let cfg = config::Config::builder()
-            .add_source(config::File::with_name(path.to_str().unwrap()))
-            .build()?;
-        let cfg: EmailCfg = cfg.try_deserialize()?;
-        Ok(cfg)
+        read_config_and_deserialize(path)
     }
 }
 
