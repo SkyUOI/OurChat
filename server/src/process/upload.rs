@@ -16,10 +16,7 @@ use sea_orm::{
 use sha3::{Digest, Sha3_256};
 use size::Size;
 use std::{num::TryFromIntError, path::PathBuf};
-use tokio::{
-    fs::{self, File},
-    io::AsyncWriteExt,
-};
+use tokio::{fs, io::AsyncWriteExt};
 use tokio_stream::StreamExt;
 use tonic::{Response, Status};
 
@@ -34,7 +31,7 @@ fn generate_key_name(hash: impl AsRef<str>) -> String {
     format!("{prefix}{}", hash.as_ref())
 }
 
-/// Add a new file record to the database and create the file on disk
+/// Add a new file record to the database without creating the file on disk
 ///
 /// # Arguments
 ///
@@ -53,7 +50,7 @@ pub async fn add_file_record(
     db_connection: &DatabaseConnection,
     files_storage_path: impl Into<PathBuf>,
     limit_size: Size,
-) -> Result<File, UploadError> {
+) -> Result<(), UploadError> {
     if sz > limit_size {
         return Err(UploadError::FileSizeOverflow);
     }
@@ -95,8 +92,7 @@ pub async fn add_file_record(
         ref_cnt: sea_orm::Set(1),
     };
     file.insert(db_connection).await?;
-    let f = create_file_with_dirs_if_not_exist(&path).await?;
-    Ok(f)
+    Ok(())
 }
 
 /// Clean up files to free up storage space
@@ -168,9 +164,9 @@ pub enum UploadError {
 ///
 /// # Flow
 /// 1. Receives metadata in first message
-/// 2. Creates file record and opens file handle
-/// 3. Streams content while validating size
-/// 4. Verifies file hash matches expected value
+/// 2. Streams content to temporary file while validating size and computing hash
+/// 3. Verifies file hash matches expected value
+/// 4. Only if verification passes, creates file record and moves file to final location
 async fn upload_impl(
     server: &RpcServer,
     id: ID,
@@ -189,49 +185,85 @@ async fn upload_impl(
         }
         Some(data) => data,
     };
+
     let key = generate_key_name(format!("{:x}", metadata.hash));
+    let key_clone = key.clone();
     let files_storage_path = &server.shared_data.cfg.main_cfg.files_storage_path;
     let limit_size = server.shared_data.cfg.main_cfg.user_files_limit;
-    let mut file_handle = add_file_record(
-        id,
-        Size::from_bytes(metadata.size),
-        key.clone(),
-        metadata.auto_clean,
-        &server.db.db_pool,
-        &files_storage_path,
-        limit_size,
-    )
-    .await?;
+
+    // Create temporary file path for streaming
+    let temp_key = format!("{}.tmp", key);
+    let temp_path = files_storage_path.join(&temp_key);
+    let temp_path_clone = temp_path.clone();
+
+    // Create temporary file and stream content
+    let mut temp_file = create_file_with_dirs_if_not_exist(&temp_path).await?;
     let mut hasher = Sha3_256::new();
     let mut sz = 0;
-    while let Some(data) = stream_req.next().await {
-        let data = match data?.data {
-            Some(upload_request::Data::Content(data)) => data,
-            _ => {
-                return Err(UploadError::WrongStructure);
+    let logic = async move {
+        while let Some(data) = stream_req.next().await {
+            let data = match data?.data {
+                Some(upload_request::Data::Content(data)) => data,
+                _ => {
+                    return Err(UploadError::WrongStructure);
+                }
+            };
+            sz += data.len();
+            if sz > metadata.size as usize {
+                return Err(UploadError::FileSizeError);
             }
-        };
-        sz += data.len();
-        if sz > metadata.size as usize {
+            temp_file.write_all(&data).await?;
+            hasher.update(&data);
+        }
+
+        let hash = hasher.finalize();
+
+        // Verify file size and hash
+        if sz != metadata.size as usize {
+            tracing::trace!("received size:{}, expected size {}", metadata.size, sz);
             return Err(UploadError::FileSizeError);
         }
-        file_handle.write_all(&data).await?;
-        hasher.update(&data);
+        if hash.as_slice() != metadata.hash {
+            tracing::trace!(
+                "received hash:{:?}, expected hash {:?}",
+                format!("{:x}", metadata.hash),
+                format!("{:x}", hash)
+            );
+            return Err(UploadError::FileHashError);
+        }
+
+        // All verifications passed, now create the database record and move file
+        let final_path = files_storage_path.join(&key);
+
+        // Create database record - this will handle storage limits and cleanup
+        add_file_record(
+            id,
+            Size::from_bytes(metadata.size),
+            key.clone(),
+            metadata.auto_clean,
+            &server.db.db_pool,
+            &files_storage_path,
+            limit_size,
+        )
+        .await?;
+
+        // Move temporary file to final location
+        fs::rename(&temp_path, &final_path).await?;
+        Ok(())
+    };
+    match logic.await {
+        Ok(_) => {}
+        Err(e) => {
+            // Clean up temporary file on error
+            match fs::remove_file(&temp_path_clone).await {
+                Ok(_) => {}
+                Err(e) => tracing::error!("Cannot remove temporary file {}", e),
+            }
+            return Err(e);
+        }
     }
-    let hash = hasher.finalize();
-    if sz != metadata.size as usize {
-        tracing::trace!("received size:{}, expected size {}", metadata.size, sz);
-        return Err(UploadError::FileSizeError);
-    }
-    if hash.as_slice() != metadata.hash {
-        tracing::trace!(
-            "received hash:{:?}, expected hash {:?}",
-            metadata.hash,
-            format!("{:x}", hash)
-        );
-        return Err(UploadError::FileHashError);
-    }
-    Ok(UploadResponse { key })
+
+    Ok(UploadResponse { key: key_clone })
 }
 
 /// Public API endpoint for file uploads

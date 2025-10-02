@@ -1,29 +1,60 @@
 use claims::assert_err;
 use client::TestApp;
 use client::helper::{generate_file, get_hash_from_download, get_hash_from_file};
+use client::oc_helper::user::TestUserShared;
 use size::Size;
+use tokio::fs;
 
-async fn download(
+/// Helper function to download a file and verify its hash
+async fn verify_file_download(
+    user: &TestUserShared,
+    key: String,
+    expected_hash: &str,
+) -> anyhow::Result<()> {
+    let file_download = user.lock().await.download_file_as_iter(key).await?;
+    assert_eq!(
+        get_hash_from_download(file_download).await.unwrap(),
+        expected_hash
+    );
+    Ok(())
+}
+
+/// Helper function to check if temporary files remain
+async fn no_temp_files_remain(app: &TestApp) -> bool {
+    let files_storage_path = &app.app_shared.cfg.main_cfg.files_storage_path;
+    match fs::read_dir(files_storage_path).await {
+        Ok(mut entries) => {
+            while let Ok(Some(entry)) = entries.next_entry().await {
+                if let Ok(file_type) = entry.file_type().await
+                    && file_type.is_file()
+                    && entry.path().extension() == Some("tmp".as_ref())
+                {
+                    tracing::warn!("Found temporary file: {}", entry.path().display());
+                    return false;
+                }
+            }
+            true
+        }
+        Err(_) => true, // If directory doesn't exist, no temp files
+    }
+}
+
+async fn test_upload_and_download(
     app: &mut TestApp,
     small_file: impl Iterator<Item = Vec<u8>> + Clone,
     small_file_hash: &str,
 ) {
     let user1 = app.new_user().await.unwrap();
-
     let key = user1
         .lock()
         .await
         .post_file_as_iter(small_file.clone())
         .await
         .unwrap();
-    // Allow
-    let file_download = user1.lock().await.download_file_as_iter(key).await.unwrap();
+    verify_file_download(&user1, key, small_file_hash)
+        .await
+        .unwrap();
 
-    assert_eq!(
-        get_hash_from_download(file_download).await.unwrap(),
-        small_file_hash
-    );
-    // Deny
     let user2 = app.new_user().await.unwrap();
     let key2 = user2
         .lock()
@@ -34,55 +65,37 @@ async fn download(
     assert_err!(user1.lock().await.download_file(key2).await);
 }
 
-async fn clean_files(
+async fn test_files_upload_overflow_and_delete(
     app: &mut TestApp,
     small_file: impl Iterator<Item = Vec<u8>> + Clone,
     small_file_hash: &str,
     max_size: Size,
 ) {
     let user = app.new_user().await.unwrap();
-
     let big_file_size = Size::from_mebibytes(1.5);
     let big_file = generate_file(big_file_size).unwrap();
 
-    let mut key = Vec::new();
-    for i in 0..max_size.bytes() / big_file_size.bytes() {
-        key.push(
+    let mut keys = Vec::new();
+    for _ in 0..max_size.bytes() / big_file_size.bytes() {
+        keys.push(
             user.lock()
                 .await
                 .post_file_as_iter(big_file.clone())
                 .await
                 .unwrap(),
         );
-        tracing::debug!("Uploaded File {}", i);
     }
-    tracing::debug!(
-        "Limit Size: {} bytes / Per File's Size {} bytes ({} files)",
-        max_size,
-        big_file_size,
-        max_size.bytes() / big_file_size.bytes()
-    );
-    let file_key = user
+
+    let small_file_key = user
         .lock()
         .await
         .post_file_as_iter(small_file.clone())
         .await
         .unwrap();
-    tracing::debug!("small file key: {}", &file_key);
-    let file_download = user
-        .lock()
-        .await
-        .download_file_as_iter(file_key)
+    assert_err!(user.lock().await.download_file(keys[0].clone()).await);
+    verify_file_download(&user, small_file_key, small_file_hash)
         .await
         .unwrap();
-    for (id, key) in key.iter().enumerate() {
-        tracing::debug!("file_key {id}: {}", &key);
-    }
-    assert_err!(user.lock().await.download_file(key[0].clone()).await);
-    assert_eq!(
-        get_hash_from_download(file_download).await.unwrap(),
-        small_file_hash
-    );
 }
 
 async fn deny_too_big_file(app: &mut TestApp) {
@@ -99,10 +112,24 @@ async fn upload() {
     let mut app = TestApp::new_with_launching_instance_custom_cfg((config, args), |_| {})
         .await
         .unwrap();
+
     let small_file = generate_file(Size::from_mebibytes(1.5)).unwrap();
     let small_file_hash = get_hash_from_file(small_file.clone());
-    download(&mut app, small_file.clone(), &small_file_hash).await;
-    clean_files(&mut app, small_file, &small_file_hash, user_files_limit).await;
+
+    test_upload_and_download(&mut app, small_file.clone(), &small_file_hash).await;
+    assert!(no_temp_files_remain(&app).await);
+
+    test_files_upload_overflow_and_delete(
+        &mut app,
+        small_file.clone(),
+        &small_file_hash,
+        user_files_limit,
+    )
+    .await;
+    assert!(no_temp_files_remain(&app).await);
+
     deny_too_big_file(&mut app).await;
+    assert!(no_temp_files_remain(&app).await);
+
     app.async_drop().await;
 }
