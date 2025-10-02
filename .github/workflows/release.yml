@@ -54,13 +54,19 @@ jobs:
           mkdir -p bundle
           cp docker/compose.yml bundle/
           cp docker/compose.debian.yml bundle/
-          cp -r config bundle/
+          cp -r docker/config bundle/
 
       - name: Update image tags in compose files
         run: |
           export VERSION=${{ steps.get_version.outputs.VERSION }}
           sed -i "s/nightly/$VERSION/g" bundle/compose.yml
           sed -i "s/nightly/$VERSION/g" bundle/compose.debian.yml
+
+      - name: Bundle Resources
+        run: |
+          cp -r resource bundle/
+          sed -i "s|../resource/|./resource/|g" bundle/compose.yml
+          sed -i "s|../resource/|./resource/|g" bundle/compose.debian.yml
 
       - name: Create server bundle archive
         run: |

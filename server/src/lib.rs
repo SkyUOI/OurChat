@@ -34,7 +34,7 @@ use std::{
 };
 use tracing::info;
 
-#[derive(Debug, Parser, Default, Clone)]
+#[derive(Debug, Parser, Clone)]
 #[command(author = "SkyUOI", version = base::build::VERSION, about = "The Server of OurChat")]
 pub struct ArgsParser {
     #[arg(short, long, help = "binding port")]
@@ -45,6 +45,17 @@ pub struct ArgsParser {
     pub shared_cfg: ParserCfg,
     #[arg(long, help = "server info file path", default_value = SERVER_INFO_PATH)]
     pub server_info: PathBuf,
+}
+
+impl Default for ArgsParser {
+    fn default() -> Self {
+        Self {
+            port: None,
+            ip: None,
+            shared_cfg: ParserCfg::default(),
+            server_info: PathBuf::from(SERVER_INFO_PATH),
+        }
+    }
 }
 
 #[derive(Debug, Parser, Clone, Default)]
@@ -78,7 +89,16 @@ struct ServerInfo {
 
 const SECRET_LEN: usize = 32;
 
-pub static ARG_PARSER: LazyLock<ArgsParser> = LazyLock::new(ArgsParser::parse);
+pub static RUN_AS_STANDALONE: LazyLock<Mutex<bool>> = LazyLock::new(|| Mutex::new(false));
+
+pub static ARG_PARSER: LazyLock<ArgsParser> = LazyLock::new(|| {
+    let flag = *RUN_AS_STANDALONE.lock();
+    if flag {
+        ArgsParser::parse()
+    } else {
+        ArgsParser::default()
+    }
+});
 
 static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
     info!("server info path: {}", ARG_PARSER.server_info.display());

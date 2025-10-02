@@ -17,7 +17,7 @@ services:
     volumes:
       - ./config/:/etc/ourchat
       - ./log:/root/log
-      - ../resource/:/etc/resource
+      - ../resource/:/root/resource
     # environment:
     #   OURCHAT_LOG: trace,mio=off,h2=off,tonic=off,tower=off,tokio::task::waker=off,runtime::resource=off,lapin=off,pinky_swear=off,async_io=off,polling=off
   db:
@@ -28,9 +28,9 @@ services:
       POSTGRES_PASSWORD: 123456
     volumes:
       - "./data/postgres-data:/var/lib/postgresql/data"
-      # If you want to expose the postgres port, uncomment the following lines
-      # ports:
-      # - "5432:5432"
+    # If you want to expose the postgres port, uncomment the following lines
+    # ports:
+    #   - "5432:5432"
     networks:
       - net
     healthcheck:
@@ -38,13 +38,14 @@ services:
       interval: 10s
       timeout: 30s
       retries: 5
+
   redis:
     image: redis:8-alpine
     restart: always
     command: redis-server /usr/local/etc/redis/redis.conf
     # If you want to expose the redis port, uncomment the following lines
     # ports:
-    # - "6379:6379"
+    #   - "6379:6379"
     volumes:
       - ./data/redis-data:/data
       - ./config/redis.conf:/usr/local/etc/redis/redis.conf
@@ -55,8 +56,8 @@ services:
     restart: always
     # If you want to expose the rabbitmq management port, uncomment the following lines
     # ports:
-    # - "5672:5672"
-    # - "15672:15672"
+    #   - "5672:5672"
+    #   - "15672:15672"
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: 123456
