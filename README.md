@@ -14,11 +14,7 @@
 
 OurChat is a chat application for Linux, Windows and macOS. It supports all platforms through Flutter.
 
-⚠️ The project is under rapid development, and there is also a lot of work to be done. It cannot be used directly by now.
-
-In the past year of 2024, we have achieved many outstanding tasks, and it is delightful that developers have devoted
-so much passion to this project in their spare time.
-Every developer deserves gratitude. 💖
+⚠️ The project is under rapid development, and there is also a lot of work to be done. But it has some basic functionalities and is ready for initial use, have a try!
 
 ## 📱 Feature Highlights
 
@@ -82,6 +78,6 @@ Please see [CONTRIBUTING](https://ourchat.readthedocs.io/en/latest/docs/developm
 
 | Platform | Status                                                                                                 |
 |:---------|:-------------------------------------------------------------------------------------------------------|
-| Linux    | ![Linux Test](https://img.shields.io/github/actions/workflow/status/skyuoi/ourchat/rust_linux.yml)     |
-| Windows  | ![Windows Test](https://img.shields.io/github/actions/workflow/status/skyuoi/ourchat/rust_windows.yml) |
-| Macos    | ![Macos Test](https://img.shields.io/github/actions/workflow/status/skyuoi/ourchat/rust_macos.yml)     |
+| Linux    | ![Linux Test](https://img.shields.io/github/actions/workflow/status/skyuoi/ourchat/server_linux.yml)     |
+| Windows  | ![Windows Test](https://img.shields.io/github/actions/workflow/status/skyuoi/ourchat/server_windows.yml) |
+| Macos    | ![Macos Test](https://img.shields.io/github/actions/workflow/status/skyuoi/ourchat/server_macos.yml)     |

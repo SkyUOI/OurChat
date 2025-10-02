@@ -12,9 +12,7 @@
 
 OurChat 是一个可以在 Linux，Windows 和 macOS 上运行的聊天软件。它通过 Flutter 技术支持所有平台。
 
-⚠️ 该项目正处在高速开发中，并且有大量的工作要做。截至目前，它仍然不能被直接使用。
-
-在过去的 2024 年，我们做了许多卓越的工作，很高兴开发者们能够利用业余时间在这个项目上倾注如此多的热情。每一名开发者都值得感谢。💖
+⚠️ 该项目正处在高速开发中，并且有大量的工作要做。但它已经有一些基本功能，并且已经可以进行初步试用，试试看吧！
 
 ## 📱 功能亮点
 
@@ -27,7 +25,7 @@ OurChat 是一个可以在 Linux，Windows 和 macOS 上运行的聊天软件。
 
 ## 官方服务器
 
-服务器地址: `skyuoi.org:7777`。在你要开发客户端时，你也可以把它当成开发服务器来辅助开发。服务器使用的docker镜像版本是`nightly` (会被定时更新，但不是每天).
+服务器地址: `skyuoi.org:7777`。在你要开发客户端时，你也可以把它当成开发服务器来辅助开发。服务器使用的 docker 镜像版本是`nightly` (会被定时更新，但不是每天).
 
 ## 🚀 愿景与目标
 
@@ -72,8 +70,8 @@ docker compose up -d
 
 ## 📦 支持的平台
 
-| 平台      | 状态                                                                                                     |
-|:--------|:-------------------------------------------------------------------------------------------------------|
-| Linux   | ![Linux Test](https://img.shields.io/github/actions/workflow/status/skyuoi/ourchat/rust_linux.yml)     |
-| Windows | ![Windows Test](https://img.shields.io/github/actions/workflow/status/skyuoi/ourchat/rust_windows.yml) |
-| macOS   | ![Macos Test](https://img.shields.io/github/actions/workflow/status/skyuoi/ourchat/rust_macos.yml)     |
+| 平台    | 状态                                                                                                     |
+| :------ | :------------------------------------------------------------------------------------------------------- |
+| Linux   | ![Linux Test](https://img.shields.io/github/actions/workflow/status/skyuoi/ourchat/server_linux.yml)     |
+| Windows | ![Windows Test](https://img.shields.io/github/actions/workflow/status/skyuoi/ourchat/server_windows.yml) |
+| macOS   | ![Macos Test](https://img.shields.io/github/actions/workflow/status/skyuoi/ourchat/server_macos.yml)     |
