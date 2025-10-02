@@ -34,7 +34,7 @@ use std::{
 };
 use tracing::info;
 
-#[derive(Debug, Parser, Default)]
+#[derive(Debug, Parser, Default, Clone)]
 #[command(author = "SkyUOI", version = base::build::VERSION, about = "The Server of OurChat")]
 pub struct ArgsParser {
     #[arg(short, long, help = "binding port")]
@@ -78,24 +78,12 @@ struct ServerInfo {
 
 const SECRET_LEN: usize = 32;
 
+pub static ARG_PARSER: LazyLock<ArgsParser> = LazyLock::new(ArgsParser::parse);
+
 static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
-    // Extract only server-info argument
-    let path = clap::Command::new("ourchat")
-        .arg(
-            clap::Arg::new("server-info")
-                .long("server-info")
-                .help("server info file path")
-                .default_value(SERVER_INFO_PATH),
-        )
-        .ignore_errors(true)
-        .get_matches()
-        .get_one::<String>("server-info")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from(SERVER_INFO_PATH));
+    info!("server info path: {}", ARG_PARSER.server_info.display());
 
-    info!("server info path: {}", path.display());
-
-    let state = path.exists();
+    let state = ARG_PARSER.server_info.exists();
     let server_name = || -> String {
         #[cfg(feature = "meaningful_name")]
         {
@@ -110,7 +98,7 @@ static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
     };
     if state {
         let origin_info: serde_json::Value =
-            serde_json::from_reader(&fs::File::open(&path).unwrap())
+            serde_json::from_reader(&fs::File::open(&ARG_PARSER.server_info).unwrap())
                 .expect("read server info error");
         if let serde_json::Value::Number(version) = &origin_info["version"] {
             let current_version = version.as_i64().unwrap() as u64;
@@ -144,10 +132,10 @@ static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
                         version,
                     };
                     // first backup the old server info
-                    let backup_path = path.with_extension("old");
-                    fs::rename(&path, &backup_path).unwrap();
+                    let backup_path = ARG_PARSER.server_info.with_extension("old");
+                    fs::rename(&ARG_PARSER.server_info, &backup_path).unwrap();
                     info!("backup server info to {}", backup_path.display());
-                    let mut f = fs::File::create(&path).unwrap();
+                    let mut f = fs::File::create(&ARG_PARSER.server_info).unwrap();
                     serde_json::to_writer_pretty(&mut f, &info).unwrap();
                     info
                 }
@@ -160,13 +148,13 @@ static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
         } else {
             panic!(
                 "Format Error: cannot find version in \"{}\"",
-                path.display()
+                ARG_PARSER.server_info.display()
             );
         }
     }
     tracing::info!("Create server info file");
 
-    let mut f = fs::File::create(&path).unwrap();
+    let mut f = fs::File::create(&ARG_PARSER.server_info).unwrap();
     let id: u64 = rand::rng().random_range(0..(1024 - 1));
     let server_name = server_name();
     let info = ServerInfo {
@@ -195,7 +183,6 @@ fn clear() -> anyhow::Result<()> {
 fn global_init() {
     static INIT: Once = Once::new();
     INIT.call_once(|| {
-        println!("Machine ID: {}", SERVER_INFO.machine_id);
         color_eyre::install().ok();
     })
 }
@@ -307,6 +294,7 @@ impl Application {
                 consts::OURCHAT_LOG_PREFIX,
             );
         }
+        info!("Machine ID: {}", SERVER_INFO.machine_id);
         let maintaining = main_cfg.cmd_args.maintaining;
         // Set up shared state
         shared_state::set_friends_number_limit(main_cfg.friends_number_limit);
