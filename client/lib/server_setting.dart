@@ -22,6 +22,7 @@ class _ServerSettingState extends State<ServerSetting> {
   bool? isTLS;
   late OurChatServer server;
   Color serverStatusColor = Colors.grey;
+  bool serverInfoLoaded = false;
 
   @override
   Widget build(BuildContext context) {
@@ -34,14 +35,34 @@ class _ServerSettingState extends State<ServerSetting> {
       inited = true;
     }
     var key = GlobalKey<FormState>();
+    Image serverLogo;
+    if (!serverInfoLoaded) {
+      serverLogo = Image.asset("assets/images/logo.png");
+    } else {
+      if (isTLS != null && isTLS!) {
+        serverLogo = Image.network(
+          "https://$address:${port.toString()}/v1/logo",
+          errorBuilder: (context, error, stackTrace) {
+            return Image.asset("assets/images/logo.png");
+          },
+          fit: BoxFit.contain,
+        );
+      } else {
+        serverLogo = Image.network(
+          "http://$address:${port.toString()}/v1/logo",
+          errorBuilder: (context, error, stackTrace) {
+            return Image.asset("assets/images/logo.png");
+          },
+          fit: BoxFit.contain,
+        );
+      }
+    }
     var serverInfoLabels = Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Padding(
-          padding: EdgeInsets.all(10.0),
-          child: SizedBox(height: 100.0, width: 100.0, child: Placeholder()),
-          // child: Image(image: AssetImage("assets/images/logo.png"))
-        ),
+        Padding(
+            padding: EdgeInsets.all(10.0),
+            child: SizedBox(height: 200.0, width: 200.0, child: serverLogo)),
         Row(
           // 展示服务端ip
           mainAxisAlignment: MainAxisAlignment.center,
@@ -229,6 +250,7 @@ class _ServerSettingState extends State<ServerSetting> {
                     // 保存服务器地址
                     setState(() {
                       isOnline = true;
+                      serverInfoLoaded = true;
                       switch (server.serverStatus!.value) {
                         case okStatusCode:
                           serverState = l10n.serverStatusOnline;
