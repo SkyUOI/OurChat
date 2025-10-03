@@ -11,7 +11,7 @@ services:
       - OURCHAT_CONFIG_FILE=/app/docker/config/ourchat.toml
       - OURCHAT_LOG=trace,mio=off,h2=off,tonic=off,tower=off,tokio::task::waker=off,runtime::resource=off,actix_http=off,lapin=off,hyper_util=off,pinky_swear=off,async_io=off,polling=off
     volumes:
-      - ../resource/:/app/docker/resource
+      - ../resource/:/root/resource
     command: tail -f /dev/null
     working_dir: /app
     networks:

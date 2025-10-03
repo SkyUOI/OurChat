@@ -13,7 +13,7 @@ services:
     command: tail -f /dev/null
     working_dir: /app
     volumes:
-      - ../resource/:/app/docker/resource
+      - ../resource/:/root/resource
     networks:
       - net
     depends_on:
