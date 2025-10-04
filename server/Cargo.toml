@@ -73,7 +73,6 @@ http.workspace = true
 http-serde.workspace = true
 rustls.workspace = true
 ctor.workspace = true
-mime_guess.workspace = true
 
 #[dependencies.matrix-sdk]
 #version = "0"
@@ -93,3 +92,4 @@ anyhow.workspace = true
 [features]
 default = ["meaningful_name"]
 meaningful_name = ["dep:fake"]
+official = ["base/official"]

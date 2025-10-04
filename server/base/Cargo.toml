@@ -37,7 +37,12 @@ humantime-serde.workspace = true
 croner.workspace = true
 serde_json.workspace = true
 tokio-cron-scheduler.workspace = true
+cfg-if.workspace = true
+const_format.workspace = true
 
 [build-dependencies]
 shadow-rs = "1"
 anyhow.workspace = true
+
+[features]
+official = []

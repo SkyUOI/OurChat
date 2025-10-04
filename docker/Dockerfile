@@ -20,7 +20,7 @@ COPY Cargo.toml /app/Cargo.toml
 COPY Cargo.lock /app/Cargo.lock
 COPY service /app/service
 
-RUN cargo build --release --bin server
+RUN cargo build --release --bin server --features=official
 
 FROM alpine:latest AS ourchat-server
 

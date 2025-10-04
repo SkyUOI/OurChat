@@ -87,7 +87,8 @@ tower_http = { version = "0.6", features = ["cors", "normalize-path", "fs"] }
 
 webrtc = "0.14.0"
 rsa = "0.10.0-rc.5"
-mime_guess = "2"
+cfg-if = "1"
+const_format = "0"
 
 # matrix-sdk = "0.11.0"
 

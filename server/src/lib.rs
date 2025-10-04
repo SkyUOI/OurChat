@@ -35,7 +35,7 @@ use std::{
 use tracing::info;
 
 #[derive(Debug, Parser, Clone)]
-#[command(author = "SkyUOI", version = base::build::VERSION, about = "The Server of OurChat")]
+#[command(author = "SkyUOI", version = base::version_display(), about = "The Server of OurChat")]
 pub struct ArgsParser {
     #[arg(short, long, help = "binding port")]
     pub port: Option<u16>,
