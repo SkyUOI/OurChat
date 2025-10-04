@@ -82,8 +82,7 @@ pub async fn download(
         .shared_data
         .cfg
         .main_cfg
-        .files_storage_path
-        .join(&req.key);
+        .get_file_path_from_key(&req.key);
     tokio::spawn(async move {
         match download_impl(id, req, &tx, &db_conn, path).await {
             Ok(_) => {}

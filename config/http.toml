@@ -2,3 +2,4 @@ inherit = "../docker/config/http.toml"
 # The http server listening ip
 ip = "localhost"
 logo_path = "../resource/logo.png"
+default_avatar_path = "../resource/logo.png"

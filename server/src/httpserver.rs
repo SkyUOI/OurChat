@@ -1,3 +1,4 @@
+mod avatar;
 mod status;
 pub mod verify;
 
@@ -68,19 +69,22 @@ impl HttpServer {
                 http::HeaderName::from_static("x-requested-with"),
             ]);
         let v1 = axum::Router::new()
-            .layer(
-                ServiceBuilder::new()
-                    .layer(cors)
-                    .layer(tower_http::normalize_path::NormalizePathLayer::trim_trailing_slash()),
-            )
             .route("/status", get(status::status))
             .route_service(
                 "/logo",
                 tower_http::services::ServeFile::new(shared_data.cfg.http_cfg.logo_path.clone()),
             )
-            .merge(verify::config().with_state(db_pool.clone()));
+            .route("/avatar", get(avatar::avatar))
+            .merge(verify::config().with_state(db_pool.clone()))
+            .layer(
+                ServiceBuilder::new()
+                    .layer(tower_http::trace::TraceLayer::new_for_http())
+                    .layer(tower_http::trace::TraceLayer::new_for_grpc())
+                    .layer(cors)
+                    .layer(tower_http::normalize_path::NormalizePathLayer::trim_trailing_slash()),
+            );
         let mut router: axum::Router = axum::Router::new()
-            .nest("/v1", v1.with_state(db_pool.clone()))
+            .nest("/v1", v1.with_state((db_pool.clone(), shared_data.clone())))
             .merge(grpc_service.into_axum_router());
         if enable_matrix {
             info!("matrix api enabled");
@@ -304,6 +308,7 @@ pub struct HttpCfg {
     #[serde(default = "base::consts::default_port")]
     pub port: u16,
     pub logo_path: PathBuf,
+    pub default_avatar_path: PathBuf,
     #[serde(default = "base::consts::default_http_run_migration")]
     pub run_migration: bool,
     #[serde(default = "base::consts::default_enable_matrix")]

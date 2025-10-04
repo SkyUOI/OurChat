@@ -10,6 +10,7 @@ email_cfg = "email.toml"
 rabbitmq_cfg = "rabbitmq.toml"
 # The logo of this server
 logo_path = "/root/resource/logo.png"
+default_avatar_path = "/root/resource/logo.png"
 run_migration = false
 # enable Matrix Api
 enable_matrix = false

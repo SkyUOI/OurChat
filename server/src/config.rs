@@ -162,6 +162,10 @@ impl MainCfg {
     pub fn unique_instance(&self) -> bool {
         self.leader_node || self.single_instance
     }
+
+    pub fn get_file_path_from_key(&self, key: &str) -> PathBuf {
+        self.files_storage_path.join(key)
+    }
 }
 
 #[derive(Debug, Clone)]

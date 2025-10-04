@@ -229,10 +229,9 @@ impl TestUser {
         Ok(())
     }
 
-    pub async fn post_file(&mut self, content: String) -> anyhow::Result<String> {
+    pub async fn post_file(&mut self, content: &[u8]) -> anyhow::Result<String> {
         self.post_file_as_iter(
             content
-                .as_bytes()
                 .chunks(1024 * 1024)
                 .map(|chunk| chunk.to_vec()),
         )

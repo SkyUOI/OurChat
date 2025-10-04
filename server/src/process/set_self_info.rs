@@ -10,14 +10,16 @@ use crate::{
     process::error_msg::SERVER_ERROR,
     server::RpcServer,
 };
-use anyhow::Context;
+use anyhow::{Context, anyhow};
 use base::consts::ID;
 use chrono::Duration;
 use deadpool_redis::redis::AsyncCommands;
 use entities::user;
 use migration::m20220101_000001_create_table::{OCID_MAX_LEN, USERNAME_MAX_LEN};
 use pb::service::ourchat::set_account_info::v1::{SetSelfInfoRequest, SetSelfInfoResponse};
-use sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection, DbErr, TransactionTrait};
+use sea_orm::{
+    ActiveModelTrait, ActiveValue, DatabaseConnection, DbErr, EntityTrait, TransactionTrait,
+};
 use tonic::{Request, Response, Status};
 
 pub const STATUS_LENGTH_MAX: usize = 128;
@@ -91,12 +93,18 @@ async fn update_account(
     mut redis_conn: RedisConnection,
     user_defined_status_expire_time: Duration,
 ) -> Result<(), SetError> {
+    let original_user = user::Entity::find_by_id(id)
+        .one(db_conn)
+        .await?
+        .ok_or(anyhow!("user not found"))?;
     let mut user = user::ActiveModel {
         id: ActiveValue::Set(id.into()),
         ..Default::default()
     };
     let mut public_updated = false;
-    if let Some(name) = request_data.user_name {
+    if let Some(name) = request_data.user_name
+        && name != original_user.name
+    {
         user.name = ActiveValue::Set(name);
         public_updated = true;
     }
@@ -113,25 +121,21 @@ async fn update_account(
         public_updated = true;
     }
     let txn = db_conn.begin().await?;
-    if let Some(avatar_key) = request_data.avatar_key {
-        let avatar_previous = user.avatar.clone().unwrap();
-        let mut should_modified = true;
-        // check whether the avatar is different from the previous one
-        if let Some(avatar) = avatar_previous {
-            if avatar == avatar_key {
-                should_modified = false;
-            }
+    if let Some(avatar_key) = request_data.avatar_key
+        && Some(&avatar_key) != original_user.avatar.as_ref()
+    {
+        if let Some(original_avatar) = &original_user.avatar {
             // reduce the refcount
-            file_storage::dec_file_refcnt(avatar, &txn)
+            file_storage::dec_file_refcnt(original_avatar, &txn)
                 .await
                 .context("cannot reduce the refcount of file")?;
-        } else {
-            should_modified = avatar_key.is_empty();
         }
-        if should_modified {
-            user.avatar = ActiveValue::Set(Some(avatar_key));
-            public_updated = true;
-        }
+        file_storage::inc_file_refcnt(&avatar_key, &txn)
+            .await
+            .context("cannot increase the refcount of file")?;
+
+        user.avatar = ActiveValue::Set(Some(avatar_key));
+        public_updated = true;
     }
     if let Some(new_ocid) = request_data.ocid {
         if new_ocid.len() > OCID_MAX_LEN {

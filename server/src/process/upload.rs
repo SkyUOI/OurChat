@@ -246,6 +246,8 @@ async fn upload_impl(
             limit_size,
         )
         .await?;
+        temp_file.flush().await?;
+        temp_file.sync_all().await?;
 
         // Move temporary file to final location
         fs::rename(&temp_path, &final_path).await?;

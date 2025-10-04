@@ -130,3 +130,19 @@ pub async fn dec_file_refcnt(
     }
     Ok(())
 }
+
+/// Increase the file ref count
+pub async fn inc_file_refcnt(
+    key: impl Into<String>,
+    db_conn: &impl ConnectionTrait,
+) -> Result<(), FileStorageError> {
+    let key = key.into();
+    let mut file = match Files::find_by_id(key).one(db_conn).await? {
+        Some(f) => f,
+        None => return Err(FileStorageError::NotFound),
+    };
+    file.ref_cnt += 1;
+    let file: files::ActiveModel = file.into();
+    file.update(db_conn).await?;
+    Ok(())
+}
