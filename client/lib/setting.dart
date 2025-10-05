@@ -81,9 +81,18 @@ class SeedColorEditor extends StatelessWidget {
                   )!
                       .cantBeEmpty;
                 }
-                ourchatAppState.config["color"] = int.parse(
-                  value,
-                );
+                int colorCode;
+                try {
+                  colorCode = int.parse(
+                    value,
+                  );
+                } catch (e) {
+                  return AppLocalizations.of(
+                    context,
+                  )!
+                      .invalidColorCode;
+                }
+                ourchatAppState.config["color"] = colorCode;
                 return null;
               }),
         ),

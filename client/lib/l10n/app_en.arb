@@ -25,6 +25,10 @@
     "@cantBeEmpty": {
         "description": "Cannot be empty"
     },
+    "invalidColorCode": "Invalid color code",
+    "@invalidColorCode": {
+        "description": "Cannot be empty"
+    },
     "incorrectPassword": "Incorrect password",
     "@incorrectPassword": {
         "description": "Incorrect password"
