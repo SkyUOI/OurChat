@@ -115,7 +115,7 @@ jobs:
       - name: Flutter Init
         run: cd client && flutter pub get
       - name: Grpc generate
-        run: dart pub global activate protoc_plugin && python script/generate.pb.dart.py
+        run: dart pub global activate protoc_plugin 22.4.0 && python script/generate.pb.dart.py
       - name: Drift generate
         run: cd client && dart run build_runner build
       - name: Install packages
@@ -167,7 +167,7 @@ jobs:
       - name: Flutter Init
         run: cd client && flutter pub get
       - name: Grpc generate
-        run: dart pub global activate protoc_plugin && python script/generate.pb.dart.py
+        run: dart pub global activate protoc_plugin 22.4.0 && python script/generate.pb.dart.py
       - name: Drift generate
         run: cd client && dart run build_runner build
       - name: Install packages
@@ -219,7 +219,7 @@ jobs:
       - name: Flutter Init
         run: cd client && flutter pub get
       - name: Grpc generate
-        run: dart pub global activate protoc_plugin && python script/generate.pb.dart.py
+        run: dart pub global activate protoc_plugin 22.4.0 && python script/generate.pb.dart.py
       - name: Drift generate
         run: cd client && dart run build_runner build
       - name: Build Release
@@ -269,7 +269,7 @@ jobs:
       - name: Flutter Init
         run: cd client && flutter pub get
       - name: Grpc generate
-        run: dart pub global activate protoc_plugin && python script/generate.pb.dart.py
+        run: dart pub global activate protoc_plugin 22.4.0 && python script/generate.pb.dart.py
       - name: Drift generate
         run: cd client && dart run build_runner build
       - name: Build Release

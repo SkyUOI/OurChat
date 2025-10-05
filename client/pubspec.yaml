@@ -16,8 +16,8 @@ dependencies:
     sdk: flutter
   intl: any
   logger: ^2.4.0
-  protobuf: ^4.0.0
-  grpc: ^4.0.1
+  protobuf: 4.2.0
+  grpc: 4.2.0
   fixnum: ^1.1.1
   path_provider: ^2.1.5
   drift: ^2.26.1
