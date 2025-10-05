@@ -82,7 +82,7 @@ class Record extends Table {
 
 @DriftDatabase(tables: [Account, Session, Record])
 class OurChatDatabase extends _$OurChatDatabase {
-  OurChatDatabase(id, [QueryExecutor? executor])
+  OurChatDatabase(Int64 id, [QueryExecutor? executor])
       : super(executor ?? _openConnection(id));
 
   @override

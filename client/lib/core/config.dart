@@ -78,9 +78,9 @@ class OurChatConfig {
     logger.i("save config done");
   }
 
-  operator [](key) => data[key];
+  dynamic operator [](String key) => data[key];
 
-  operator []=(key, value) {
+  void operator []=(String key, value) {
     data[key] = value;
     saveConfig();
   }

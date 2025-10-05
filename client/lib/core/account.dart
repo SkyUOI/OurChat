@@ -228,7 +228,7 @@ class OurChatAccount {
     }
   }
 
-  Future updatePrivateData(isDataExist) async {
+  Future updatePrivateData(bool isDataExist) async {
     var res = await stub.getAccountInfo(
       GetAccountInfoRequest(
         id: id,
