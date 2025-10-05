@@ -4,6 +4,7 @@ use pb::service::ourchat::set_account_info::v1::SetSelfInfoRequest;
 use server::process::error_msg::{
     ACCOUNT_DELETED, NOT_STRONG_PASSWORD,
     invalid::{EMAIL_ADDRESS, USERNAME},
+    not_found,
 };
 
 #[tokio::test]
@@ -90,7 +91,7 @@ async fn register_validation() {
 }
 
 #[tokio::test]
-async fn unregister_account() {
+async fn unregister_account_with_disable_policy() {
     let mut app = client::TestApp::new_with_launching_instance()
         .await
         .unwrap();
@@ -121,6 +122,44 @@ async fn unregister_account() {
         .unwrap_err();
     assert_eq!(status.code(), tonic::Code::Unauthenticated);
     assert_eq!(status.message(), ACCOUNT_DELETED);
+
+    app.async_drop().await;
+}
+
+#[tokio::test]
+async fn unregister_account_with_delete_policy() {
+    let (mut config, args) = client::TestApp::get_test_config().unwrap();
+    config.main_cfg.unregister_policy = server::config::UnregisterPolicy::Delete;
+    let mut app = client::TestApp::new_with_launching_instance_custom_cfg((config, args), |_| {})
+        .await
+        .unwrap();
+
+    // Create and authenticate a user
+    let user = app.new_user().await.unwrap();
+    assert_ok!(user.lock().await.email_auth().await);
+
+    // Test successful unregister
+    assert_ok!(user.lock().await.unregister().await);
+
+    // Try to unregister again
+    let status = user.lock().await.unregister().await.unwrap_err();
+    assert_eq!(status.code(), tonic::Code::Unauthenticated);
+    assert_eq!(status.message(), not_found::USER);
+
+    // Try to set self-info, should be failed
+    let status = user
+        .lock()
+        .await
+        .oc()
+        .set_self_info(SetSelfInfoRequest {
+            user_name: Some("test_user".to_string()),
+            ocid: Some("modified_ocid".to_string()),
+            ..Default::default()
+        })
+        .await
+        .unwrap_err();
+    assert_eq!(status.code(), tonic::Code::Unauthenticated);
+    assert_eq!(status.message(), not_found::USER);
 
     app.async_drop().await;
 }

@@ -28,6 +28,19 @@ async fn set_account_deleted(
     Ok(())
 }
 
+/// totoally delete user account and all related data
+async fn delete_account(
+    id: ID,
+    db_connection: &impl ConnectionTrait,
+) -> Result<(), UnregisterError> {
+    let user = user::ActiveModel {
+        id: ActiveValue::Set(id.into()),
+        ..Default::default()
+    };
+    user.delete(db_connection).await?;
+    Ok(())
+}
+
 async fn unregister_impl(
     server: &RpcServer,
     id: ID,
@@ -35,7 +48,14 @@ async fn unregister_impl(
 ) -> Result<UnregisterResponse, UnregisterError> {
     let db_conn = &server.db;
     let batch = async {
-        set_account_deleted(id, &db_conn.db_pool).await?;
+        match server.shared_data.cfg.main_cfg.unregister_policy {
+            crate::config::UnregisterPolicy::Disable => {
+                set_account_deleted(id, &db_conn.db_pool).await?;
+            }
+            crate::config::UnregisterPolicy::Delete => {
+                delete_account(id, &db_conn.db_pool).await?;
+            }
+        }
         Ok(())
     };
     match batch.await {

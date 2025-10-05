@@ -60,6 +60,8 @@ pub struct MainCfg {
     )]
     pub room_key_duration: Duration,
     #[serde(default)]
+    pub unregister_policy: UnregisterPolicy,
+    #[serde(default)]
     pub password_hash: PasswordHash,
     #[serde(default)]
     pub db: DbArgCfg,
@@ -70,6 +72,14 @@ pub struct MainCfg {
 
     #[serde(skip)]
     pub cmd_args: ParserCfg,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum UnregisterPolicy {
+    #[default]
+    Disable,
+    Delete,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
