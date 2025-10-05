@@ -38,4 +38,4 @@ flutter:
   uses-material-design: true
   generate: true
   assets:
-    - assets/images/logo.png
+    - assets/images/
