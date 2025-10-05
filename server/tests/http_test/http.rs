@@ -45,8 +45,11 @@ async fn http_tls() {
 
 #[tokio::test]
 async fn test_rate_limit() {
-    tracing::info!("http client building");
-    let mut app = TestApp::new_with_launching_instance().await.unwrap();
+    let (mut config, args) = TestApp::get_test_config().unwrap();
+    config.http_cfg.rate_limit.enable = true;
+    let mut app = TestApp::new_with_launching_instance_custom_cfg((config, args), |_| {})
+        .await
+        .unwrap();
     let mut limited = false;
     for _ in 0..100 {
         match app

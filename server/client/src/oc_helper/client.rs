@@ -122,7 +122,8 @@ pub struct ClientCoreConfig {
 impl TestApp {
     pub fn get_test_config() -> anyhow::Result<ConfigWithArgs> {
         let args = ArgsParser::test();
-        let config = server::get_configuration(args.shared_cfg.config.clone())?;
+        let mut config = server::get_configuration(args.shared_cfg.config.clone())?;
+        config.http_cfg.rate_limit.enable = false;
         Ok((config, args))
     }
 

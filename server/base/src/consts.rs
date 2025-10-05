@@ -218,6 +218,18 @@ pub const fn default_keep_voip_room_keep_duration() -> Duration {
     Duration::from_mins(10)
 }
 
+pub const fn default_rate_limit_enable() -> bool {
+    true
+}
+
+pub const fn default_rate_limit_burst() -> u32 {
+    8
+}
+
+pub const fn default_rate_limit_replenish_duration() -> Duration {
+    Duration::from_millis(500)
+}
+
 pub mod option {
     pub const fn default_network_cmd_port() -> Option<u16> {
         Some(super::default_network_cmd_port())

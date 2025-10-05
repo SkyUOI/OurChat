@@ -28,8 +28,8 @@ use std::{
 use tokio::{select, signal};
 use tokio_stream::StreamExt;
 use tower::ServiceBuilder;
-use tower_governor::{GovernorLayer, governor::GovernorConfig};
-use tracing::{debug, info};
+use tower_governor::{GovernorLayer, governor::GovernorConfigBuilder};
+use tracing::{debug, info, warn};
 
 pub struct HttpServer {}
 
@@ -72,7 +72,18 @@ impl HttpServer {
                 http::header::AUTHORIZATION,
                 http::HeaderName::from_static("x-requested-with"),
             ]);
-        let rate_governor_config = GovernorConfig::default();
+        let rate_governor_config = GovernorConfigBuilder::default()
+            .burst_size(shared_data.cfg.http_cfg.rate_limit.num_of_burst_requests)
+            .per_millisecond(
+                shared_data
+                    .cfg
+                    .http_cfg
+                    .rate_limit
+                    .replenish_duration
+                    .as_millis() as u64,
+            )
+            .finish()
+            .unwrap();
         let rate_governor_limiter = rate_governor_config.limiter().clone();
         // background task to clean up
         // copy the example of tower_governor
@@ -102,9 +113,14 @@ impl HttpServer {
                     .layer(tower_http::trace::TraceLayer::new_for_http())
                     .layer(tower_http::trace::TraceLayer::new_for_grpc())
                     .layer(cors)
-                    .layer(tower_http::normalize_path::NormalizePathLayer::trim_trailing_slash())
-                    .layer(GovernorLayer::new(rate_governor_config)),
+                    .layer(tower_http::normalize_path::NormalizePathLayer::trim_trailing_slash()),
             );
+        if shared_data.cfg.http_cfg.rate_limit.enable {
+            info!("Http rate limit enabled");
+            router = router.layer(GovernorLayer::new(rate_governor_config));
+        } else {
+            warn!("Http rate limit disabled");
+        }
         if enable_matrix {
             info!("matrix api enabled");
             router = router
@@ -344,7 +360,29 @@ pub struct HttpCfg {
     pub lop_keep: Duration,
     #[serde(default)]
     pub tls: TlsConfig,
+    #[serde(default)]
+    pub rate_limit: RateLimitCfg,
     pub email_cfg: Option<PathBuf>,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug)]
+pub struct RateLimitCfg {
+    #[serde(default = "base::consts::default_rate_limit_enable")]
+    pub enable: bool,
+    #[serde(default = "base::consts::default_rate_limit_burst")]
+    pub num_of_burst_requests: u32,
+    #[serde(
+        default = "base::consts::default_rate_limit_replenish_duration",
+        with = "humantime_serde"
+    )]
+    pub replenish_duration: Duration,
+}
+
+impl Default for RateLimitCfg {
+    fn default() -> Self {
+        let empty = serde_json::json!({});
+        serde_json::from_value(empty).unwrap()
+    }
 }
 
 impl base::setting::Setting for HttpCfg {}

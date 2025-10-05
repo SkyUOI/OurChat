@@ -15,6 +15,15 @@ run_migration = false
 # enable Matrix Api
 enable_matrix = false
 
+# control rate limit
+[rate_limit]
+# Enable rate limit
+enable = true
+# The maximum number of requests allowed per duration from a single IP address
+num_of_burst_requests = 8
+# replenish one request every duration seconds
+replenish_duration = "500ms"
+
 [tls]
 # Enable tls encryption
 enable = false
