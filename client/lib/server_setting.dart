@@ -14,7 +14,7 @@ class ServerSetting extends StatefulWidget {
 }
 
 class _ServerSettingState extends State<ServerSetting> {
-  String address = "localhost";
+  String address = "skyuoi.org";
   int port = 7777;
   int ping = -1;
   String serverName = "", serverState = "", serverVersion = "";
