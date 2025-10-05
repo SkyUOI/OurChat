@@ -17,7 +17,8 @@ class OurChatConfig {
       "color": 0xFF2196F3,
       "log_level": defaultLogLevel,
       "recent_account": "",
-      "recent_password": ""
+      "recent_password": "",
+      "recent_avatar_url": ""
     };
   }
 

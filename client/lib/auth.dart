@@ -6,6 +6,8 @@ import 'package:ourchat/l10n/app_localizations.dart';
 import 'package:ourchat/core/const.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/core/database.dart';
+import 'package:ourchat/service/basic/v1/basic.pbgrpc.dart';
+import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
 import 'core/account.dart';
 import 'package:ourchat/home.dart';
 import 'package:provider/provider.dart';
@@ -43,7 +45,7 @@ class Login extends StatefulWidget {
 }
 
 class _LoginState extends State<Login> {
-  String account = "", password = "";
+  String account = "", password = "", avatarUrl = "";
   bool savePassword = false, inited = false;
   @override
   Widget build(BuildContext context) {
@@ -52,6 +54,7 @@ class _LoginState extends State<Login> {
     if (!inited) {
       account = ourchatAppState.config["recent_account"];
       password = ourchatAppState.config["recent_password"];
+      avatarUrl = ourchatAppState.config["recent_avatar_url"];
       if (password.isNotEmpty) savePassword = true;
       inited = true;
     }
@@ -66,10 +69,14 @@ class _LoginState extends State<Login> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.all(10.0),
                       child: SizedBox(
-                          height: 100.0, width: 100.0, child: Placeholder()),
+                          height: 100.0,
+                          width: 100.0,
+                          child: (avatarUrl.isEmpty
+                              ? Image.asset("assets/images/logo.png")
+                              : Image(image: NetworkImage(avatarUrl)))),
                     ),
                     TextFormField(
                       // 账号输入框
@@ -131,6 +138,8 @@ class _LoginState extends State<Login> {
                                   account;
                               ourchatAppState.config["recent_password"] =
                                   (savePassword ? password : "");
+                              ourchatAppState.config["recent_avatar_url"] =
+                                  ocAccount.avatarUrl();
                               ourchatAppState.config.saveConfig();
                               ourchatAppState.thisAccount = ocAccount;
                               ourchatAppState.privateDB =

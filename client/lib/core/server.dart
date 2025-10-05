@@ -41,15 +41,18 @@ class OurChatServer {
   ClientChannel? channel;
   ServerVersion? serverVersion;
   OurChatInterceptor? interceptor;
+  bool? isTLS;
 
   OurChatServer(this.host, this.port, bool ssl) {
     // try ssl/tls connection
     if (!ssl) {
       logger.w("Switch to insecure connection");
+      isTLS = false;
     }
     ChannelCredentials credentials = ChannelCredentials.insecure();
     if (ssl) {
       credentials = ChannelCredentials.secure();
+      isTLS = true;
     }
     channel = ClientChannel(host,
         port: port,
