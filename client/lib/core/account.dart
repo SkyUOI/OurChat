@@ -94,7 +94,6 @@ class OurChatAccount {
         // 上次检查更新在5min内 无需检查
         username = accountCache.username;
         ocid = accountCache.ocid;
-        avatarKey = accountCache.avatarKey;
         displayName = accountCache.displayName;
         status = accountCache.status;
         isMe = accountCache.isMe;
@@ -283,5 +282,9 @@ class OurChatAccount {
     (pdb.update(pdb.account)
           ..where((u) => u.id.equals(BigInt.from(id.toInt()))))
         .write(AccountCompanion(latestMsgTime: Value(latestMsgTime.datetime)));
+  }
+
+  String avatarUrl() {
+    return "http${ourchatAppState.server!.isTLS! ? 's' : ''}://${ourchatAppState.server!.host}:${ourchatAppState.server!.port.toString()}/v1/avatar?user_id=${id.toString()}";
   }
 }

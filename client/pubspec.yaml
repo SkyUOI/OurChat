@@ -24,6 +24,8 @@ dependencies:
   drift_flutter: ^0.2.4
   shared_preferences: ^2.5.3
   url_launcher: ^6.3.2
+  image_picker: ^1.2.0
+  hashlib: ^2.2.0
 
 dev_dependencies:
   # flutter_test:
