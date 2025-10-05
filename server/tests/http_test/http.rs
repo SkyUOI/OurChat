@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use client::TestApp;
+use http::StatusCode;
 
 #[tokio::test]
 async fn http_status() {
@@ -40,4 +41,28 @@ async fn http_tls() {
         .error_for_status()
         .unwrap();
     http_app.async_drop().await;
+}
+
+#[tokio::test]
+async fn test_rate_limit() {
+    tracing::info!("http client building");
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
+    let mut limited = false;
+    for _ in 0..100 {
+        match app
+            .ourchat_api_get("status")
+            .await
+            .expect("failed")
+            .error_for_status()
+        {
+            Ok(_) => {}
+            Err(err) => {
+                if err.status() == Some(StatusCode::TOO_MANY_REQUESTS) {
+                    limited = true;
+                }
+            }
+        }
+    }
+    assert!(limited);
+    app.async_drop().await
 }

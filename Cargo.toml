@@ -89,6 +89,7 @@ webrtc = "0.14.0"
 rsa = "0.10.0-rc.5"
 cfg-if = "1"
 const_format = "0"
+tower_governor = { version = "0", features = ["tracing"] }
 
 # matrix-sdk = "0.11.0"
 

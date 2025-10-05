@@ -73,6 +73,7 @@ http.workspace = true
 http-serde.workspace = true
 rustls.workspace = true
 ctor.workspace = true
+tower_governor.workspace = true
 
 #[dependencies.matrix-sdk]
 #version = "0"

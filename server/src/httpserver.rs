@@ -19,12 +19,16 @@ use rustls::{
     pki_types::{CertificateDer, PrivateKeyDer, pem::PemObject},
 };
 use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
+use std::{
+    net::SocketAddr,
+    path::{Path, PathBuf},
+};
 use tokio::{select, signal};
 use tokio_stream::StreamExt;
 use tower::ServiceBuilder;
+use tower_governor::{GovernorLayer, governor::GovernorConfig};
 use tracing::{debug, info};
 
 pub struct HttpServer {}
@@ -68,6 +72,20 @@ impl HttpServer {
                 http::header::AUTHORIZATION,
                 http::HeaderName::from_static("x-requested-with"),
             ]);
+        let rate_governor_config = GovernorConfig::default();
+        let rate_governor_limiter = rate_governor_config.limiter().clone();
+        // background task to clean up
+        // copy the example of tower_governor
+        tokio::spawn(async move {
+            loop {
+                tokio::time::sleep(std::time::Duration::from_mins(1)).await;
+                info!(
+                    "rate limiting storage size: {}",
+                    rate_governor_limiter.len()
+                );
+                rate_governor_limiter.retain_recent();
+            }
+        });
         let v1 = axum::Router::new()
             .route("/status", get(status::status))
             .route_service(
@@ -75,17 +93,18 @@ impl HttpServer {
                 tower_http::services::ServeFile::new(shared_data.cfg.http_cfg.logo_path.clone()),
             )
             .route("/avatar", get(avatar::avatar))
-            .merge(verify::config().with_state(db_pool.clone()))
+            .merge(verify::config().with_state(db_pool.clone()));
+        let mut router: axum::Router = axum::Router::new()
+            .nest("/v1", v1.with_state((db_pool.clone(), shared_data.clone())))
+            .merge(grpc_service.into_axum_router())
             .layer(
                 ServiceBuilder::new()
                     .layer(tower_http::trace::TraceLayer::new_for_http())
                     .layer(tower_http::trace::TraceLayer::new_for_grpc())
                     .layer(cors)
-                    .layer(tower_http::normalize_path::NormalizePathLayer::trim_trailing_slash()),
+                    .layer(tower_http::normalize_path::NormalizePathLayer::trim_trailing_slash())
+                    .layer(GovernorLayer::new(rate_governor_config)),
             );
-        let mut router: axum::Router = axum::Router::new()
-            .nest("/v1", v1.with_state((db_pool.clone(), shared_data.clone())))
-            .merge(grpc_service.into_axum_router());
         if enable_matrix {
             info!("matrix api enabled");
             router = router
@@ -137,12 +156,15 @@ impl HttpServer {
                     RustlsConfig::from_config(Arc::new(config)),
                 )
                 .handle(handle)
-                .serve(router.into_make_service())
+                .serve(router.into_make_service_with_connect_info::<SocketAddr>())
                 .await?;
             } else {
-                axum::serve(listener, router)
-                    .with_graceful_shutdown(exit_signal())
-                    .await?;
+                axum::serve(
+                    listener,
+                    router.into_make_service_with_connect_info::<SocketAddr>(),
+                )
+                .with_graceful_shutdown(exit_signal())
+                .await?;
             }
             anyhow::Ok(())
         };
