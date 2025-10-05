@@ -1,5 +1,6 @@
 use crate::db::messages::insert_msg_record;
 use crate::db::session::SessionError;
+use crate::process::db::join_in_session;
 use crate::process::error_msg::{SERVER_ERROR, not_found};
 use crate::process::{Dest, check_user_exist, transmit_msg};
 use crate::{db, helper, server::RpcServer};
@@ -7,6 +8,7 @@ use anyhow::Context;
 use base::consts::{ID, SessionID};
 use base::database::DbPool;
 use entities::{friend, prelude::*};
+use migration::m20241229_022701_add_role_for_session::PredefinedRoles;
 use pb::google;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
@@ -59,7 +61,7 @@ async fn new_session_impl(
     let req = req.into_inner();
     // check whether to send a verification request
     let mut people_num = 1;
-    let mut peoples = vec![id];
+    let mut peoples = vec![];
     let mut need_to_verify = vec![];
     for i in &req.members {
         let member_id: ID = (*i).into();
@@ -92,8 +94,20 @@ async fn new_session_impl(
             req.e2ee_on,
         )
         .await?;
-        // add session relation
-        match db::session::batch_join_in_session(session_id, &peoples, None, &transaction).await {
+        let bundle = async {
+            // default set the creator as owner
+            join_in_session(
+                session_id,
+                id,
+                Some(PredefinedRoles::Owner.into()),
+                &transaction,
+            )
+            .await?;
+            // add session relation
+            db::session::batch_join_in_session(session_id, &peoples, None, &transaction).await?;
+            Ok::<(), SessionError>(())
+        };
+        match bundle.await {
             Ok(_) => {
                 transaction.commit().await?;
             }
@@ -106,6 +120,7 @@ async fn new_session_impl(
                 return Err(NewSessionError::DbError(e));
             }
         }
+
         Ok::<(), NewSessionError>(())
     };
     bundle.await?;

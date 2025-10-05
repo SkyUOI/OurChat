@@ -132,6 +132,31 @@ async fn session_create() {
             .len(),
         1
     );
+    // try set info
+    let request = SetSessionInfoRequest {
+        session_id: session_id.into(),
+        name: Some("test name".to_owned()),
+        description: Some("test description".to_owned()),
+        avatar_key: Some("pic key".to_owned()),
+    };
+    // accept request from owner
+    user1
+        .lock()
+        .await
+        .oc()
+        .set_session_info(request.clone())
+        .await
+        .unwrap();
+    // reject request from non-owner
+    let err = user3
+        .lock()
+        .await
+        .oc()
+        .set_session_info(request)
+        .await
+        .unwrap_err();
+    assert_eq!(err.code(), tonic::Code::PermissionDenied);
+    assert_eq!(err.message(), error_msg::CANNOT_SET_NAME);
     app.async_drop().await;
 }
 
