@@ -16,6 +16,31 @@ OurChat is a chat application for Linux, Windows and macOS. It supports all plat
 
 ⚠️ The project is under rapid development, and there is also a lot of work to be done. But it has some basic functionalities and is ready for initial use, have a try!
 
+## 🖼️ Project Preview
+
+<table align="center">
+  <tr>
+    <td align="center">
+      <img src="screenshots/main.png" alt="主界面" width="400" style="border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin: 8px;">
+      <br><em>💬 Chat </em>
+    </td>
+    <td align="center">
+      <img src="screenshots/login_page.png" alt="聊天界面" width="400" style="border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin: 8px;">
+      <br><em>🗨️ Login </em>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="screenshots/welcome_page.png" alt="联系人界面" width="400" style="border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin: 8px;">
+      <br><em>😊 Welcome</em>
+    </td>
+    <td align="center">
+      <img src="screenshots/about_page.png" alt="设置界面" width="400" style="border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin: 8px;">
+      <br><em>⚙️ About</em>
+    </td>
+  </tr>
+</table>
+
 ## 📱 Feature Highlights
 
 - 💬 Real-time messaging
@@ -76,8 +101,8 @@ Please see [CONTRIBUTING](https://ourchat.readthedocs.io/en/latest/docs/developm
 
 ## 📦 Supported Platforms
 
-| Platform | Status                                                                                                 |
-|:---------|:-------------------------------------------------------------------------------------------------------|
+| Platform | Status                                                                                                   |
+| :------- | :------------------------------------------------------------------------------------------------------- |
 | Linux    | ![Linux Test](https://img.shields.io/github/actions/workflow/status/skyuoi/ourchat/server_linux.yml)     |
 | Windows  | ![Windows Test](https://img.shields.io/github/actions/workflow/status/skyuoi/ourchat/server_windows.yml) |
 | Macos    | ![Macos Test](https://img.shields.io/github/actions/workflow/status/skyuoi/ourchat/server_macos.yml)     |

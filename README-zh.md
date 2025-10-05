@@ -14,6 +14,31 @@ OurChat 是一个可以在 Linux，Windows 和 macOS 上运行的聊天软件。
 
 ⚠️ 该项目正处在高速开发中，并且有大量的工作要做。但它已经有一些基本功能，并且已经可以进行初步试用，试试看吧！
 
+## 🖼️ 项目预览
+
+<table align="center">
+  <tr>
+    <td align="center">
+      <img src="screenshots/main.png" alt="主界面" width="400" style="border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin: 8px;">
+      <br><em>💬 主聊天界面</em>
+    </td>
+    <td align="center">
+      <img src="screenshots/login_page.png" alt="聊天界面" width="400" style="border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin: 8px;">
+      <br><em>🗨️ 登录界面</em>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="screenshots/welcome_page.png" alt="联系人界面" width="400" style="border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin: 8px;">
+      <br><em>😊 欢迎页</em>
+    </td>
+    <td align="center">
+      <img src="screenshots/about_page.png" alt="设置界面" width="400" style="border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin: 8px;">
+      <br><em>⚙️ 关于</em>
+    </td>
+  </tr>
+</table>
+
 ## 📱 功能亮点
 
 - 💬 实时消息传递
