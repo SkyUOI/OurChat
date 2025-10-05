@@ -10,8 +10,6 @@ dependencies:
   flutter:
     sdk: flutter
   provider: ^6.0.5
-  web_socket_channel: ^3.0.3
-  crypto: ^3.0.2
   flutter_localizations:
     sdk: flutter
   intl: any
