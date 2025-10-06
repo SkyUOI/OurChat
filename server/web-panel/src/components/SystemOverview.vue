@@ -3,7 +3,7 @@
     <h2 class="section-title">{{ $t('systemOverview') }}</h2>
 
     <div class="stats-grid">
-      <el-card v-for="stat in stats" :key="stat.title" shadow="hover">
+      <el-card v-for="stat in stats" :key="stat.titleKey" shadow="hover">
         <div class="stat-item">
           <div class="icon" :style="{ backgroundColor: stat.color }">
             <i :class="stat.icon"></i>
@@ -79,7 +79,7 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
 export default {
   name: 'SystemOverview',
   data() {

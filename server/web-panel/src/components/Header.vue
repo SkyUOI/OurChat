@@ -48,11 +48,12 @@
   </div>
 </template>
 
-<script>
-import { Fold, Expand } from '@element-plus/icons-vue'
+<script lang="ts">
+import Fold from "@element-plus/icons-vue"
+import Expand from "@element-plus/icons-vue"
 
 export default {
-  name: 'Header',
+  name: 'HeaderComponent',
   components: {
     Fold,
     Expand,
@@ -69,7 +70,7 @@ export default {
       this.sidebarCollapsed = !this.sidebarCollapsed
       this.$emit('toggle-sidebar', this.sidebarCollapsed)
     },
-    changeLanguage(lang) {
+    changeLanguage(lang: string) {
       this.currentLanguage = lang
       this.$i18n.locale = lang
     },

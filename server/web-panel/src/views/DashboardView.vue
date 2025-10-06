@@ -4,6 +4,6 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import SystemOverview from '@/components/SystemOverview.vue'
 </script>

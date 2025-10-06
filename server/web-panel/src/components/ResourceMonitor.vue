@@ -79,7 +79,7 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
 export default {
   name: 'ResourceMonitor',
   data() {
@@ -127,7 +127,7 @@ export default {
     }
   },
   methods: {
-    getUsageColor(percentage) {
+    getUsageColor(percentage: number) {
       if (percentage < 70) return '#67C23A'
       if (percentage < 90) return '#E6A23C'
       return '#F56C6C'

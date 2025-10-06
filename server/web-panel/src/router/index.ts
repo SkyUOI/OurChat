@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory, type RouteLocationNormalized } from 'vue-router'
-import Dashboard from '@/views/Dashboard.vue'
+import Dashboard from '@/views/DashboardView.vue'
 
 // 检查token是否存在
 const hasToken = (): boolean => {
@@ -10,7 +10,7 @@ const routes = [
   {
     path: '/login',
     name: 'Login',
-    component: () => import('@/views/Login.vue'),
+    component: () => import('@/views/LoginView.vue'),
   },
   {
     path: '/',
@@ -20,27 +20,27 @@ const routes = [
   {
     path: '/services',
     name: 'Services',
-    component: () => import('@/views/Services.vue'),
+    component: () => import('@/views/ServicesView.vue'),
   },
   {
     path: '/monitor',
     name: 'Monitor',
-    component: () => import('@/views/Monitor.vue'),
+    component: () => import('@/views/MonitorView.vue'),
   },
   {
     path: '/logs',
     name: 'Logs',
-    component: () => import('@/views/Logs.vue'),
+    component: () => import('@/views/LogsView.vue'),
   },
   {
     path: '/users',
     name: 'Users',
-    component: () => import('@/views/Users.vue'),
+    component: () => import('@/views/UsersView.vue'),
   },
   {
     path: '/config',
     name: 'Config',
-    component: () => import('@/views/Config.vue'),
+    component: () => import('@/views/ConfigView.vue'),
   },
 ]
 

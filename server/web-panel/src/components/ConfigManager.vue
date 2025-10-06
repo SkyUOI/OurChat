@@ -53,7 +53,7 @@
         <el-table-column prop="type" label="配置类型" width="120"></el-table-column>
         <el-table-column prop="description" label="描述"></el-table-column>
         <el-table-column label="操作" width="120">
-          <template #default="scope">
+          <template>
             <el-button size="small">查看</el-button>
             <el-button size="small" type="danger">回滚</el-button>
           </template>
@@ -63,7 +63,7 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
 export default {
   name: 'ConfigManager',
   data() {
