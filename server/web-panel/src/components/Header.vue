@@ -49,8 +49,7 @@
 </template>
 
 <script lang="ts">
-import Fold from "@element-plus/icons-vue"
-import Expand from "@element-plus/icons-vue"
+import {Fold, Expand} from "@element-plus/icons-vue"
 
 export default {
   name: 'HeaderComponent',
