@@ -30,8 +30,8 @@ importers:
         specifier: ^3.5.22
         version: 3.5.22(typescript@5.8.3)
       vue-i18n:
-        specifier: 11.1.5
-        version: 11.1.5(vue@3.5.22(typescript@5.8.3))
+        specifier: 11.1.10
+        version: 11.1.10(vue@3.5.22(typescript@5.8.3))
       vue-router:
         specifier: ^4.5.1
         version: 4.5.1(vue@3.5.22(typescript@5.8.3))
@@ -530,16 +530,16 @@ packages:
     peerDependencies:
       google-protobuf: ^3.14.0
 
-  '@intlify/core-base@11.1.5':
-    resolution: {integrity: sha512-xGRkISwV/2Trqb8yVQevlHm5roaQqy+75qwUzEQrviaQF0o4c5VDhjBW7WEGEoKFx09HSgq7NkvK/DAyuerTDg==}
+  '@intlify/core-base@11.1.10':
+    resolution: {integrity: sha512-JhRb40hD93Vk0BgMgDc/xMIFtdXPHoytzeK6VafBNOj6bb6oUZrGamXkBKecMsmGvDQQaPRGG2zpa25VCw8pyw==}
     engines: {node: '>= 16'}
 
-  '@intlify/message-compiler@11.1.5':
-    resolution: {integrity: sha512-YLSBbjD7qUdShe3ZAat9Hnf9E8FRpN6qmNFD/x5Xg5JVXjsks0kJ90Zj6aAuyoppJQA/YJdWZ8/bB7k3dg2TjQ==}
+  '@intlify/message-compiler@11.1.10':
+    resolution: {integrity: sha512-TABl3c8tSLWbcD+jkQTyBhrnW251dzqW39MPgEUCsd69Ua3ceoimsbIzvkcPzzZvt1QDxNkenMht+5//V3JvLQ==}
     engines: {node: '>= 16'}
 
-  '@intlify/shared@11.1.5':
-    resolution: {integrity: sha512-+I4vRzHm38VjLr/CAciEPJhGYFzWWW4HMTm+6H3WqknXLh0ozNX9oC8ogMUwTSXYR/wGUb1/lTpNziiCH5MybQ==}
+  '@intlify/shared@11.1.10':
+    resolution: {integrity: sha512-6ZW/f3Zzjxfa1Wh0tYQI5pLKUtU+SY7l70pEG+0yd0zjcsYcK0EBt6Fz30Dy0tZhEqemziQQy2aNU3GJzyrMUA==}
     engines: {node: '>= 16'}
 
   '@isaacs/cliui@8.0.2':
@@ -2451,8 +2451,8 @@ packages:
     peerDependencies:
       eslint: ^8.57.0 || ^9.0.0
 
-  vue-i18n@11.1.5:
-    resolution: {integrity: sha512-XCwuaEA5AF97g1frvH/EI1zI9uo1XKTf2/OCFgts7NvUWRsjlgeHPrkJV+a3gpzai2pC4quZ4AnOHFO8QK9hsg==}
+  vue-i18n@11.1.10:
+    resolution: {integrity: sha512-C+IwnSg8QDSOAox0gdFYP5tsKLx5jNWxiawNoiNB/Tw4CReXmM1VJMXbduhbrEzAFLhreqzfDocuSVjGbxQrag==}
     engines: {node: '>= 16'}
     peerDependencies:
       vue: ^3.0.0
@@ -2945,17 +2945,17 @@ snapshots:
       browser-headers: 0.4.1
       google-protobuf: 3.21.4
 
-  '@intlify/core-base@11.1.5':
+  '@intlify/core-base@11.1.10':
     dependencies:
-      '@intlify/message-compiler': 11.1.5
-      '@intlify/shared': 11.1.5
+      '@intlify/message-compiler': 11.1.10
+      '@intlify/shared': 11.1.10
 
-  '@intlify/message-compiler@11.1.5':
+  '@intlify/message-compiler@11.1.10':
     dependencies:
-      '@intlify/shared': 11.1.5
+      '@intlify/shared': 11.1.10
       source-map-js: 1.2.1
 
-  '@intlify/shared@11.1.5': {}
+  '@intlify/shared@11.1.10': {}
 
   '@isaacs/cliui@8.0.2':
     dependencies:
@@ -4856,10 +4856,10 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  vue-i18n@11.1.5(vue@3.5.22(typescript@5.8.3)):
+  vue-i18n@11.1.10(vue@3.5.22(typescript@5.8.3)):
     dependencies:
-      '@intlify/core-base': 11.1.5
-      '@intlify/shared': 11.1.5
+      '@intlify/core-base': 11.1.10
+      '@intlify/shared': 11.1.10
       '@vue/devtools-api': 6.6.4
       vue: 3.5.22(typescript@5.8.3)
 
