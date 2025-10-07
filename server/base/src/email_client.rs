@@ -1,7 +1,8 @@
 use crate::consts;
 use crate::setting::read_config_and_deserialize;
 use anyhow::bail;
-use lettre::message::Mailbox;
+use lettre::message::header::ContentType;
+use lettre::message::{Mailbox, SinglePart, MultiPart};
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{AsyncSmtpTransport, AsyncTransport};
 use serde::{Deserialize, Serialize};
@@ -39,8 +40,14 @@ impl EmailSender for EmailClient {
         let email = lettre::Message::builder()
             .from(self.from.clone())
             .to(to.clone())
-            .subject(subject)
-            .body(body)?;
+            .subject(subject).multipart(
+                MultiPart::alternative()
+                .singlepart(
+                    SinglePart::builder().header(ContentType::TEXT_PLAIN).body(body.clone()),
+            )
+            .singlepart(
+                SinglePart::builder().header(ContentType::TEXT_HTML).body(body)
+            ))?;
         self.send_low(email).await?;
         Ok(())
     }
