@@ -74,7 +74,10 @@ class _LoginState extends State<Login> {
                           width: 100.0,
                           child: (avatarUrl.isEmpty
                               ? Image.asset("assets/images/logo.png")
-                              : Image(image: NetworkImage(avatarUrl)))),
+                              : UserAvatar(
+                                  imageUrl: avatarUrl,
+                                  size: AppStyles.largeAvatarSize,
+                                ))),
                     ),
                     TextFormField(
                       // 账号输入框

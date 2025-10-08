@@ -639,9 +639,8 @@ class _SessionListState extends State<SessionList> {
                                 SizedBox(
                                     width: 40.0,
                                     height: 40.0,
-                                    child: Image(
-                                        image:
-                                            NetworkImage(account.avatarUrl()))),
+                                    child: UserAvatar(
+                                        imageUrl: account.avatarUrl())),
                                 if (isFriend)
                                   Text(
                                       "${account.displayName} (${account.username})")
@@ -841,9 +840,8 @@ class _NewSessionDialogState extends State<NewSessionDialog> {
                           SizedBox(
                             height: 40,
                             width: 40,
-                            child: Image(
-                                image:
-                                    NetworkImage(friends[index].avatarUrl())),
+                            child: UserAvatar(
+                                imageUrl: friends[index].avatarUrl()),
                           ),
                           Expanded(
                             child: Padding(
@@ -1072,11 +1070,9 @@ class _SessionRecordState extends State<SessionRecord> {
               Text(sessionState.currentSessionRecords[index].msgs[i].text!));
         }
         bool isMe = sessionState.currentSessionRecords[index].sender!.isMe;
-        Widget avatar = Image(
-          image: NetworkImage(
-              sessionState.currentSessionRecords[index].sender!.avatarUrl()),
-          height: 30,
-        );
+        Widget avatar = UserAvatar(
+            imageUrl:
+                sessionState.currentSessionRecords[index].sender!.avatarUrl());
         Widget message = Column(
           crossAxisAlignment:
               (isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start),
