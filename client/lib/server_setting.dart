@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ourchat/core/const.dart';
+import 'package:ourchat/core/chore.dart';
 import 'package:provider/provider.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
 import 'package:ourchat/main.dart';
@@ -185,9 +186,13 @@ class _ServerSettingState extends State<ServerSetting> {
             ),
             if (!isConnecting) // 没有连接进程
               Padding(
-                padding: const EdgeInsets.all(10.0),
-                child: ElevatedButton(
-                  child: Text(
+                padding: EdgeInsets.all(AppStyles.mediumPadding),
+                child: ElevatedButton.icon(
+                  style: AppStyles.defaultButtonStyle,
+                  icon: Icon(isOnline
+                      ? Icons.arrow_forward
+                      : Icons.connect_without_contact),
+                  label: Text(
                     // 如果服务端在线(尝试连接成功)，则显示"继续"
                     isOnline ? l10n.continue_ : l10n.connect,
                   ),

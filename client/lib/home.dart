@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ourchat/core/const.dart';
+import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/session.dart';
 import 'package:ourchat/setting.dart';
@@ -40,7 +41,7 @@ class _HomeState extends State<Home> {
           children: [
             Expanded(
                 child: Padding(
-              padding: const EdgeInsets.all(8.0),
+              padding: EdgeInsets.all(AppStyles.mediumPadding),
               child: page,
             )),
             BottomNavigationBar(
@@ -87,7 +88,7 @@ class _HomeState extends State<Home> {
           ),
           Expanded(
               child: Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: EdgeInsets.all(AppStyles.mediumPadding),
             child: page,
           )),
         ],

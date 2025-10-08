@@ -323,7 +323,7 @@ class _UserTabState extends State<UserTab> {
 
   void showAddFriendDialog(BuildContext context,
       OurChatAppState ourchatAppState, OurChatAccount account) {
-    var l10n = AppLocalizations.of(context);
+    var l10n = AppLocalizations.of(context)!;
     showDialog(
         context: context,
         builder: (context) {
@@ -336,7 +336,7 @@ class _UserTabState extends State<UserTab> {
                   children: [
                     TextFormField(
                       decoration:
-                          InputDecoration(label: Text(l10n!.addFriendMessage)),
+                          InputDecoration(label: Text(l10n.addFriendMessage)),
                       onSaved: (newValue) {
                         addFriendLeaveMessage = newValue!;
                       },
@@ -351,12 +351,16 @@ class _UserTabState extends State<UserTab> {
                   ],
                 )),
             actions: [
-              ElevatedButton(
+              ElevatedButton.icon(
+                  style: AppStyles.defaultButtonStyle,
+                  icon: Icon(Icons.close),
                   onPressed: () {
                     Navigator.pop(context);
                   },
-                  child: Text(l10n.cancel)),
-              ElevatedButton(
+                  label: Text(l10n.cancel)),
+              ElevatedButton.icon(
+                  style: AppStyles.defaultButtonStyle,
+                  icon: Icon(Icons.send),
                   onPressed: () async {
                     formKey.currentState!.save();
                     var stub = OurChatServiceClient(
@@ -381,7 +385,7 @@ class _UserTabState extends State<UserTab> {
                       }
                     }
                   },
-                  child: Text(l10n.send))
+                  label: Text(l10n.send))
             ],
           );
         });
@@ -391,7 +395,7 @@ class _UserTabState extends State<UserTab> {
   Widget build(BuildContext context) {
     var ourchatAppState = context.watch<OurChatAppState>();
     var sessionState = context.watch<SessionState>();
-    var l10n = AppLocalizations.of(context);
+    var l10n = AppLocalizations.of(context)!;
     return FutureBuilder(
         future: getAccountInfo(ourchatAppState, sessionState.currentUserId!),
         builder: (context, snapshot) {
@@ -403,7 +407,7 @@ class _UserTabState extends State<UserTab> {
                 children: [
                   CircularProgressIndicator(
                       color: Theme.of(context).primaryColor),
-                  Text(l10n!.loading)
+                  Text(l10n.loading)
                 ],
               ),
             );
@@ -415,10 +419,13 @@ class _UserTabState extends State<UserTab> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                SizedBox(
-                    width: 100,
-                    height: 100,
-                    child: Image(image: NetworkImage(account.avatarUrl()))),
+                Padding(
+                  padding: EdgeInsets.all(AppStyles.mediumPadding),
+                  child: UserAvatar(
+                    imageUrl: account.avatarUrl(),
+                    size: AppStyles.largeAvatarSize,
+                  ),
+                ),
                 Padding(
                   padding: const EdgeInsets.all(20.0),
                   child: Table(
@@ -429,22 +436,26 @@ class _UserTabState extends State<UserTab> {
                     },
                     children: [
                       if (account.displayName != null)
-                        userInfoRow(l10n!.displayName, account.displayName!),
-                      userInfoRow(l10n!.username, account.username),
+                        userInfoRow(l10n.displayName, account.displayName!),
+                      userInfoRow(l10n.username, account.username),
                       userInfoRow(l10n.ocid, account.ocid),
                     ],
                   ),
                 ),
                 if (!isFriend)
-                  ElevatedButton(
+                  ElevatedButton.icon(
+                      style: AppStyles.defaultButtonStyle,
+                      icon: Icon(Icons.person_add),
                       onPressed: () => showAddFriendDialog(
                           context, ourchatAppState, account),
-                      child: Text(l10n.addFriend)),
+                      label: Text(l10n.addFriend)),
                 if (isFriend)
-                  ElevatedButton(
+                  ElevatedButton.icon(
+                      style: AppStyles.defaultButtonStyle,
+                      icon: Icon(Icons.edit),
                       onPressed: () => showSetDisplayNameDialog(
                           context, ourchatAppState, account),
-                      child: Text(l10n.modify))
+                      label: Text(l10n.modify))
               ],
             ),
           );
@@ -555,7 +566,7 @@ class _SessionListState extends State<SessionList> {
               Expanded(
                   child: TextFormField(
                 // 搜索框
-                decoration: const InputDecoration(hintText: "Search"),
+                decoration: InputDecoration(hintText: l10n.search),
                 onChanged: (value) {
                   setState(() {
                     searchKeyword = value;
@@ -642,8 +653,7 @@ class _SessionListState extends State<SessionList> {
                 }),
           if (showSearchResults) const Divider(),
           if (showSearchResults)
-            const Align(
-                alignment: Alignment.centerLeft, child: Text("Session Id")),
+            Align(alignment: Alignment.centerLeft, child: Text(l10n.sessionId)),
           if (showSearchResults)
             SizedBox(
                 height: 50.0,
@@ -658,9 +668,9 @@ class _SessionListState extends State<SessionList> {
                 )),
           if (showSearchResults) const Divider(),
           if (showSearchResults)
-            const Align(
+            Align(
               alignment: Alignment.centerLeft,
-              child: Text("Others"),
+              child: Text(l10n.others),
             ),
           Expanded(
             child: ListView.builder(

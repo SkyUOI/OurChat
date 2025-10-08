@@ -4,6 +4,7 @@ import 'package:ourchat/main.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import 'package:ourchat/core/const.dart';
+import 'package:ourchat/core/chore.dart';
 import 'package:flutter/services.dart';
 
 // 将会在生成发行版时由脚本填入贡献者&赞助者名单
@@ -238,6 +239,7 @@ class _AboutState extends State<About> {
                       Column(
                         children: [
                           ElevatedButton.icon(
+                              style: AppStyles.defaultButtonStyle,
                               onPressed: () {
                                 launchUrl(Uri.parse(
                                     "https://github.com/skyuoi/ourchat"));
@@ -266,6 +268,7 @@ class _AboutState extends State<About> {
                       Column(
                         children: [
                           ElevatedButton.icon(
+                              style: AppStyles.defaultButtonStyle,
                               onPressed: () {
                                 launchUrl(Uri.parse(
                                     "https://www.afdian.com/a/ourchat"));

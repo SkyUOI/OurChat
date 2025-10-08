@@ -114,8 +114,10 @@ class _LoginState extends State<Login> {
                           });
                         }),
                     Padding(
-                      padding: const EdgeInsets.all(10.0),
-                      child: ElevatedButton(
+                      padding: EdgeInsets.all(AppStyles.mediumPadding),
+                      child: ElevatedButton.icon(
+                          style: AppStyles.defaultButtonStyle,
+                          icon: Icon(Icons.login),
                           onPressed: () async {
                             key.currentState!.save(); // 保存表单信息
                             // 创建ocAccount对象并登录
@@ -171,7 +173,7 @@ class _LoginState extends State<Login> {
                               }
                             }
                           },
-                          child: Text(l10n.login)),
+                          label: Text(l10n.login)),
                     )
                   ],
                 )),
@@ -254,8 +256,10 @@ class _RegisterState extends State<Register> {
                           });
                         }),
                     Padding(
-                      padding: const EdgeInsets.all(10.0),
-                      child: ElevatedButton(
+                      padding: EdgeInsets.all(AppStyles.mediumPadding),
+                      child: ElevatedButton.icon(
+                          style: AppStyles.defaultButtonStyle,
+                          icon: Icon(Icons.app_registration),
                           onPressed: () async {
                             key.currentState!.save(); // 保存表单信息
                             // 创建ocAccount对象并注册
@@ -304,7 +308,7 @@ class _RegisterState extends State<Register> {
                               }
                             }
                           },
-                          child: Text(l10n.register)),
+                          label: Text(l10n.register)),
                     ),
                   ],
                 )),

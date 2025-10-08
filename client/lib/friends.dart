@@ -28,15 +28,20 @@ class Friends extends StatelessWidget {
           flex: 1,
           child: ListView.builder(
             itemBuilder: (context, index) {
-              return ElevatedButton(
-                  onPressed: () {
-                    showDialog(
-                        context: context,
-                        builder: (context) {
-                          return FriendRequestDialog();
-                        });
-                  },
-                  child: Text(l10n!.friendRequest));
+              return Padding(
+                padding: EdgeInsets.all(AppStyles.mediumPadding),
+                child: ElevatedButton.icon(
+                    style: AppStyles.defaultButtonStyle,
+                    icon: Icon(Icons.person_add),
+                    onPressed: () {
+                      showDialog(
+                          context: context,
+                          builder: (context) {
+                            return FriendRequestDialog();
+                          });
+                    },
+                    label: Text(l10n!.friendRequest)),
+              );
             },
             itemCount: 1,
           ),
@@ -48,8 +53,40 @@ class Friends extends StatelessWidget {
                 var account = OurChatAccount(ourchatAppState);
                 account.id = ourchatAppState.thisAccount!.friends[index];
                 account.recreateStub();
-                return ElevatedButton(
-                    onPressed: () {
+                return Card(
+                  margin: EdgeInsets.symmetric(
+                    vertical: AppStyles.smallPadding,
+                    horizontal: AppStyles.mediumPadding,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.circular(AppStyles.defaultBorderRadius),
+                  ),
+                  child: ListTile(
+                    leading: FutureBuilder(
+                        future: account.getAccountInfo(),
+                        builder: (context, snapshot) {
+                          return UserAvatar(
+                            imageUrl: account.avatarUrl(),
+                            size: AppStyles.smallAvatarSize,
+                          );
+                        }),
+                    title: FutureBuilder(
+                        future: account.getAccountInfo(),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.done) {
+                            return Text(
+                              account.displayName!.isNotEmpty
+                                  ? account.displayName!
+                                  : account.username,
+                              style: TextStyle(
+                                  fontSize: AppStyles.defaultFontSize),
+                            );
+                          }
+                          return Text(l10n!.loading);
+                        }),
+                    onTap: () {
                       showDialog(
                           context: context,
                           builder: (context) {
@@ -74,17 +111,8 @@ class Friends extends StatelessWidget {
                             );
                           });
                     },
-                    child: FutureBuilder(
-                        future: account.getAccountInfo(),
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState ==
-                              ConnectionState.done) {
-                            return Text(account.displayName!.isNotEmpty
-                                ? account.displayName!
-                                : account.username);
-                          }
-                          return Text(l10n!.loading);
-                        }));
+                  ),
+                );
               },
               itemCount: ourchatAppState.thisAccount!.friends.length),
         ),

@@ -17,6 +17,8 @@
     "verifyNotCompleted": "验证未完成",
     "email": "邮箱",
     "ocid": "OCID",
+    "search": "搜索",
+    "others": "其他",
     "password": "密码",
     "showPassword": "显示密码",
     "username": "用户名",

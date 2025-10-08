@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ourchat/core/log.dart';
+import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/main.dart';
 import 'package:provider/provider.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
@@ -181,8 +182,10 @@ class DialogButtons extends StatelessWidget {
     var appState = context.watch<OurChatAppState>();
     var l10n = AppLocalizations.of(context)!;
     return Padding(
-      padding: const EdgeInsets.all(5.0),
-      child: ElevatedButton(
+      padding: EdgeInsets.all(AppStyles.mediumPadding),
+      child: ElevatedButton.icon(
+        style: AppStyles.defaultButtonStyle,
+        icon: Icon(Icons.refresh),
         onPressed: () {
           var defaultConfig = appState.config.getDefaultConfig();
           List keys = ["color", "log_level"];
@@ -191,7 +194,7 @@ class DialogButtons extends StatelessWidget {
           }
           appState.update();
         },
-        child: Text(l10n.reset),
+        label: Text(l10n.reset),
       ),
     );
   }

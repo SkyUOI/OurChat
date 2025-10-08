@@ -12,6 +12,7 @@ import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
 import 'package:provider/provider.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:ourchat/core/chore.dart';
 import 'main.dart';
 
 class User extends StatelessWidget {
@@ -27,32 +28,11 @@ class User extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Padding(
-          padding: const EdgeInsets.all(10.0),
-          child: InkWell(
-            child: Stack(
-              children: [
-                SizedBox(
-                  width: 100.0,
-                  height: 100.0,
-                  child: Image(
-                      image: NetworkImage(appState.thisAccount!.avatarUrl())),
-                ),
-                Positioned(
-                    right: 0,
-                    bottom: 0,
-                    child: Container(
-                      width: 30,
-                      height: 30,
-                      decoration: BoxDecoration(
-                        backgroundBlendMode: BlendMode.overlay,
-                        color: Theme.of(context).cardColor,
-                        borderRadius:
-                            BorderRadius.only(topLeft: Radius.circular(5)),
-                      ),
-                      child: Icon(Icons.edit, size: 20),
-                    ))
-              ],
-            ),
+          padding: const EdgeInsets.all(AppStyles.mediumPadding),
+          child: UserAvatar(
+            imageUrl: appState.thisAccount!.avatarUrl(),
+            size: AppStyles.largeAvatarSize,
+            showEditIcon: true,
             onTap: () async {
               ImagePicker picker = ImagePicker();
               XFile? image =
@@ -85,28 +65,41 @@ class User extends StatelessWidget {
             Container(
               width: 50,
             ),
-            Column(
-              children: [
-                Text(
-                  appState.thisAccount!.username,
-                  style: TextStyle(fontSize: 20),
+            Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius:
+                      BorderRadius.circular(AppStyles.defaultBorderRadius),
                 ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text("${l10n.email}: "),
-                    SelectableText(appState.thisAccount!.email!),
-                  ],
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text("${l10n.ocid}: "),
-                    SelectableText(appState.thisAccount!.ocid),
-                  ],
-                ),
-              ],
-            ),
+                margin: EdgeInsets.all(AppStyles.mediumPadding),
+                child: Padding(
+                    padding: EdgeInsets.all(AppStyles.mediumPadding),
+                    child: Column(
+                      children: [
+                        Text(
+                          appState.thisAccount!.username,
+                          style: TextStyle(
+                              fontSize: AppStyles.titleFontSize,
+                              fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(height: AppStyles.smallPadding),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text("${l10n.email}: ",
+                                style: TextStyle(color: Colors.grey)),
+                            SelectableText(appState.thisAccount!.email!),
+                          ],
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text("${l10n.ocid}: "),
+                            SelectableText(appState.thisAccount!.ocid),
+                          ],
+                        ),
+                      ],
+                    ))),
             IconButton(
                 onPressed: () {
                   showDialog(
@@ -186,8 +179,10 @@ class User extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Padding(
-              padding: const EdgeInsets.all(5.0),
-              child: ElevatedButton(
+              padding: EdgeInsets.all(AppStyles.smallPadding),
+              child: ElevatedButton.icon(
+                  style: AppStyles.defaultButtonStyle,
+                  icon: Icon(Icons.logout),
                   onPressed: () {
                     appState.thisAccount = null;
                     appState.server = null;
@@ -202,16 +197,18 @@ class User extends StatelessWidget {
                         MaterialPageRoute(
                             builder: (context) => ServerSetting()));
                   },
-                  child: Text(l10n.logout)),
+                  label: Text(l10n.logout)),
             ),
             Padding(
-              padding: const EdgeInsets.all(5.0),
-              child: ElevatedButton(
+              padding: EdgeInsets.all(AppStyles.smallPadding),
+              child: ElevatedButton.icon(
+                  style: AppStyles.defaultButtonStyle,
+                  icon: Icon(Icons.info_outline),
                   onPressed: () {
                     Navigator.push(context,
                         MaterialPageRoute(builder: (context) => About()));
                   },
-                  child: Text(l10n.about)),
+                  label: Text(l10n.about)),
             )
           ],
         ),

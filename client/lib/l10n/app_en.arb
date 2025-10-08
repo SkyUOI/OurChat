@@ -65,6 +65,14 @@
     "@ocid": {
         "description": "uid of OurChat"
     },
+    "search": "Search",
+    "@search": {
+        "description": "Search text for search box"
+    },
+    "others": "Others",
+    "@others": {
+        "description": "Others category label"
+    },
     "password": "Password",
     "@password": {
         "description": "Password"
