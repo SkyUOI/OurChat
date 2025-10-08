@@ -10,7 +10,8 @@ import 'package:ourchat/core/config.dart';
 import 'package:ourchat/server_setting.dart';
 import 'package:ourchat/core/server.dart';
 import 'package:ourchat/core/event.dart';
-import 'core/log.dart';
+import 'package:ourchat/core/log.dart';
+import 'package:ourchat/launch.dart';
 import 'dart:core';
 
 void main() async {
@@ -31,7 +32,6 @@ class OurChatAppState extends ChangeNotifier {
 
   OurChatAppState() : config = OurChatConfig() {
     logger.i("init OurChat");
-    constructLogger(convertStrIntoLevel(config["log_level"]));
     publicDB = database.PublicOurChatDatabase();
     notifyListeners();
     logger.i("init OurChat done");
@@ -52,7 +52,7 @@ class MainApp extends StatelessWidget {
         var appState = OurChatAppState();
         return appState;
       },
-      child: const Controller(),
+      child: Launch(),
     );
   }
 }
@@ -64,6 +64,31 @@ class Controller extends StatelessWidget {
   Widget build(BuildContext context) {
     var appState = context.watch<OurChatAppState>();
     return MaterialApp(
+      localeResolutionCallback: (locale, supportedLocales) {
+        Locale useLanguage = Locale("en");
+        Locale? setLanguage = locale;
+        if (appState.config["language"] != null) {
+          setLanguage = Locale.fromSubtags(
+              languageCode: appState.config["language"][0],
+              scriptCode: appState.config["language"][1],
+              countryCode: appState.config["language"][2]);
+        }
+        for (int i = 0; i < supportedLocales.length; i++) {
+          var availableLanguage = supportedLocales.elementAt(i);
+          if (availableLanguage.languageCode == setLanguage!.languageCode) {
+            useLanguage = availableLanguage;
+            break;
+          }
+        }
+        logger.i(
+            "use language (${useLanguage.languageCode},${useLanguage.scriptCode},${useLanguage.countryCode})");
+        appState.config["language"] = [
+          useLanguage.languageCode,
+          useLanguage.scriptCode,
+          useLanguage.countryCode
+        ];
+        return useLanguage;
+      },
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: LayoutBuilder(

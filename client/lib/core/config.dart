@@ -12,13 +12,14 @@ class OurChatConfig {
     // 默认配置
     return {
       "servers": [
-        {"host": "localhost", "port": 7777},
+        {"host": "skyuoi.org", "port": 7777},
       ],
       "color": 0xFF2196F3,
       "log_level": defaultLogLevel,
       "recent_account": "",
       "recent_password": "",
-      "recent_avatar_url": ""
+      "recent_avatar_url": "",
+      "language": null
     };
   }
 
@@ -57,14 +58,7 @@ class OurChatConfig {
   }
 
   OurChatConfig() {
-    SharedPreferencesWithCache.create(
-            cacheOptions: const SharedPreferencesWithCacheOptions())
-        .then((prefs) {
-      prefsWithCache = prefs;
-      reload();
-    });
     data = getDefaultConfig();
-    reload();
   }
 
   void saveConfig() {

@@ -348,5 +348,13 @@
     "copiedToClipboard": "Copied to clipboard",
     "@copiedToClipboard": {
         "description": "Copied to clipboard"
+    },
+    "needRestart": "Need restart OurChat",
+    "@needRestart": {
+        "description": "Need restart OurChat"
+    },
+    "language": "Language",
+    "@language": {
+        "description": "Language"
     }
 }

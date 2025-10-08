@@ -80,5 +80,7 @@
     "about": "关于",
     "donate": "捐赠",
     "contribute": "贡献",
-    "copiedToClipboard": "已复制到剪贴板"
+    "copiedToClipboard": "已复制到剪贴板",
+    "needRestart": "需要重启OurChat",
+    "language": "语言"
 }

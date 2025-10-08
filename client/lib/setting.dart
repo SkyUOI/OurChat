@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ourchat/core/log.dart';
-import 'main.dart';
+import 'package:ourchat/main.dart';
 import 'package:provider/provider.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
 
@@ -21,7 +21,11 @@ class Setting extends StatelessWidget {
                 child: SingleChildScrollView(
                   // 可滚动
                   child: Column(
-                    children: [SeedColorEditor(), LogLevelSelector()],
+                    children: [
+                      SeedColorEditor(),
+                      LogLevelSelector(),
+                      LanguageEditor()
+                    ],
                   ),
                 ),
               ),
@@ -30,6 +34,69 @@ class Setting extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class LanguageEditor extends StatelessWidget {
+  const LanguageEditor({
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    var ourchatAppState = context.watch<OurChatAppState>();
+    var l10n = AppLocalizations.of(context)!;
+    var language = ourchatAppState.config["language"];
+    List<DropdownMenuItem> languages = [];
+    for (int i = 0; i < AppLocalizations.supportedLocales.length; i++) {
+      languages.add(DropdownMenuItem(
+          value:
+              "${AppLocalizations.supportedLocales.elementAt(i).languageCode}-${AppLocalizations.supportedLocales.elementAt(i).scriptCode}-${AppLocalizations.supportedLocales.elementAt(i).countryCode}",
+          child: Text(
+              AppLocalizations.supportedLocales.elementAt(i).languageCode)));
+    }
+    return Row(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(5.0),
+          child: SizedBox(
+            width: 30.0,
+            height: 30.0,
+            child: Icon(Icons.translate),
+          ),
+        ),
+        Expanded(
+          child: DropdownButtonFormField(
+            decoration: InputDecoration(label: Text(l10n.language)),
+            initialValue: "${language[0]}-${language[1]}-${language[2]}",
+            items: languages,
+            onChanged: (value) {
+              List languageStringData = value.split("-");
+              List languageData = [];
+              for (int i = 0; i < languageStringData.length; i++) {
+                if (languageStringData[i] == "null") {
+                  languageData.add(null);
+                } else {
+                  languageData.add(languageStringData[i]);
+                }
+              }
+              ourchatAppState.config["language"] = languageData;
+
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Localizations.override(
+                      context: context,
+                      locale: Locale.fromSubtags(
+                          languageCode: languageData[0]!,
+                          scriptCode: languageData[1],
+                          countryCode: languageData[2]),
+                      child: Builder(builder: (context) {
+                        return Text(AppLocalizations.of(context)!.needRestart);
+                      }))));
+            },
+          ),
+        ),
+      ],
     );
   }
 }
@@ -117,9 +184,11 @@ class DialogButtons extends StatelessWidget {
       padding: const EdgeInsets.all(5.0),
       child: ElevatedButton(
         onPressed: () {
-          var servers = appState.config["servers"];
-          appState.config.reset();
-          appState.config["servers"] = servers;
+          var defaultConfig = appState.config.getDefaultConfig();
+          List keys = ["color", "log_level"];
+          for (String key in keys) {
+            appState.config.data[key] = defaultConfig[key];
+          }
           appState.update();
         },
         child: Text(l10n.reset),
