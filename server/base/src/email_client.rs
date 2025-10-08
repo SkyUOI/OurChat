@@ -2,7 +2,7 @@ use crate::consts;
 use crate::setting::read_config_and_deserialize;
 use anyhow::bail;
 use lettre::message::header::ContentType;
-use lettre::message::{Mailbox, SinglePart, MultiPart};
+use lettre::message::{Mailbox, MultiPart, SinglePart};
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{AsyncSmtpTransport, AsyncTransport};
 use serde::{Deserialize, Serialize};
@@ -29,25 +29,46 @@ impl EmailClient {
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait EmailSender: Send + Sync + std::fmt::Debug + 'static {
-    async fn send(&self, to: Mailbox, subject: String, body: String) -> anyhow::Result<()>;
+    async fn send(
+        &self,
+        to: Mailbox,
+        subject: String,
+        text_body: String,
+        html_body: Option<String>,
+    ) -> anyhow::Result<()>;
 
     async fn send_low(&self, msg: lettre::Message) -> anyhow::Result<()>;
 }
 
 #[async_trait::async_trait]
 impl EmailSender for EmailClient {
-    async fn send(&self, to: Mailbox, subject: String, body: String) -> anyhow::Result<()> {
+    async fn send(
+        &self,
+        to: Mailbox,
+        subject: String,
+        text_body: String,
+        html_body: Option<String>,
+    ) -> anyhow::Result<()> {
+        let mut multipart = MultiPart::alternative().singlepart(
+            SinglePart::builder()
+                .header(ContentType::TEXT_PLAIN)
+                .body(text_body),
+        );
+
+        if let Some(html) = html_body {
+            multipart = multipart.singlepart(
+                SinglePart::builder()
+                    .header(ContentType::TEXT_HTML)
+                    .body(html_body),
+            )
+        };
+
         let email = lettre::Message::builder()
             .from(self.from.clone())
             .to(to.clone())
-            .subject(subject).multipart(
-                MultiPart::alternative()
-                .singlepart(
-                    SinglePart::builder().header(ContentType::TEXT_PLAIN).body(body.clone()),
-            )
-            .singlepart(
-                SinglePart::builder().header(ContentType::TEXT_HTML).body(body)
-            ))?;
+            .subject(subject)
+            .multipart(multipart);
+
         self.send_low(email).await?;
         Ok(())
     }
