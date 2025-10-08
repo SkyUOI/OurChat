@@ -364,5 +364,9 @@
     "language": "Language",
     "@language": {
         "description": "Language"
+    },
+    "autoLogin": "Auto Login",
+    "@autoLogin": {
+        "description": "Auto Login"
     }
 }

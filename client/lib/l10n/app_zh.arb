@@ -84,5 +84,6 @@
     "contribute": "贡献",
     "copiedToClipboard": "已复制到剪贴板",
     "needRestart": "需要重启OurChat",
-    "language": "语言"
+    "language": "语言",
+    "autoLogin": "自动登录"
 }

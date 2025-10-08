@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:ourchat/main.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ourchat/core/log.dart';
-import 'package:ourchat/main.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
 
 class Launch extends StatelessWidget {
