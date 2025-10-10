@@ -54,15 +54,30 @@ pub async fn verify_client(
             Err(e) => Err(e)?,
         };
 
+        let text_body = format!(
+            "please click \"{}v1/verify/confirm?token={}\" to verify your email",
+            shared_data.cfg.http_cfg.base_url(),
+            data.token
+        );
+
+        let html_template = std::fs::read_to_string("templates/email.html")
+            .with_context(|| "Failed to read email.html template")?;
+        
+        let html_body = Some(html_template.replace(
+            "[verification_link]",
+            &format!(
+                "{}v1/verify/confirm?token={}",
+                shared_data.cfg.http_cfg.base_url(),
+                data.token
+            ),
+        ));
+
         if let Err(e) = email_client
             .send(
                 user_mailbox,
                 format!("{} Verification", consts::APP_NAME),
-                format!(
-                    "please click \"{}v1/verify/confirm?token={}\" to verify your email",
-                    shared_data.cfg.http_cfg.base_url(),
-                    data.token
-                ),
+                text_body,
+                html_body,
             )
             .await
         {
