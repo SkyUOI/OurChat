@@ -60,8 +60,15 @@ class MainApp extends StatelessWidget {
   }
 }
 
-class Controller extends StatelessWidget {
+class Controller extends StatefulWidget {
   const Controller({super.key});
+
+  @override
+  State<Controller> createState() => _ControllerState();
+}
+
+class _ControllerState extends State<Controller> {
+  bool logined = false;
 
   Future autoLogin(BuildContext context) async {
     logger.i("AUTO login");
@@ -156,8 +163,10 @@ class Controller extends StatelessWidget {
               ? desktop
               : mobile; // 通过屏幕比例判断桌面端/移动端
           if (appState.config["recent_password"].isNotEmpty) {
-            logger.i("AUTO login");
-            autoLogin(context);
+            if (!logined) {
+              autoLogin(context);
+              logined = true;
+            }
             return Scaffold(
               body: Center(
                   child: Column(
