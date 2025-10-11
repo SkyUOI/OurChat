@@ -181,7 +181,7 @@ class _ControllerState extends State<Controller> {
               )),
             );
           } else {
-            return SafeArea(child: ServerSetting());
+            return ServerSetting();
           }
         },
       ),

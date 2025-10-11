@@ -216,9 +216,7 @@ class _ServerSettingState extends State<ServerSetting> {
                       Navigator.pop(context);
                       Navigator.push(context,
                           MaterialPageRoute(builder: (context) {
-                        return const Scaffold(
-                          body: Auth(),
-                        );
+                        return Auth();
                       }));
                       return;
                     }
@@ -298,28 +296,30 @@ class _ServerSettingState extends State<ServerSetting> {
     );
 
     return Scaffold(
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          if (ourchatAppState.device == mobile) {
-            // 移动端，纵向展示
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            if (ourchatAppState.device == mobile) {
+              // 移动端，纵向展示
+              return Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [serverInfoLabels, serverForm]),
+              );
+            }
             return Padding(
+              // 桌面端，横向展示
               padding: const EdgeInsets.all(20.0),
-              child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [serverInfoLabels, serverForm]),
+              child: Row(
+                children: [
+                  Flexible(flex: 1, child: serverInfoLabels),
+                  Flexible(flex: 2, child: serverForm),
+                ],
+              ),
             );
-          }
-          return Padding(
-            // 桌面端，横向展示
-            padding: const EdgeInsets.all(20.0),
-            child: Row(
-              children: [
-                Flexible(flex: 1, child: serverInfoLabels),
-                Flexible(flex: 2, child: serverForm),
-              ],
-            ),
-          );
-        },
+          },
+        ),
       ),
     );
   }

@@ -17,18 +17,21 @@ class Auth extends StatelessWidget {
   Widget build(BuildContext context) {
     var l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      body: DefaultTabController(
-        length: 2,
-        child: Column(
-          children: [
-            TabBar(
-              tabs: [
-                Tab(text: l10n.login),
-                Tab(text: l10n.register),
-              ],
-            ),
-            const Expanded(child: TabBarView(children: [Login(), Register()])),
-          ],
+      body: SafeArea(
+        child: DefaultTabController(
+          length: 2,
+          child: Column(
+            children: [
+              TabBar(
+                tabs: [
+                  Tab(text: l10n.login),
+                  Tab(text: l10n.register),
+                ],
+              ),
+              const Expanded(
+                  child: TabBarView(children: [Login(), Register()])),
+            ],
+          ),
         ),
       ),
     );
@@ -57,132 +60,134 @@ class _LoginState extends State<Login> {
       inited = true;
     }
     var l10n = AppLocalizations.of(context)!;
-    return Form(
-        key: key,
-        child: Row(
-          children: [
-            Flexible(flex: 1, child: Container()),
-            Flexible(
-                flex: 3,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Padding(
-                      padding: EdgeInsets.all(10.0),
-                      child: SizedBox(
-                          height: 100.0,
-                          width: 100.0,
-                          child: (avatarUrl.isEmpty
-                              ? Image.asset("assets/images/logo.png")
-                              : UserAvatar(
-                                  imageUrl: avatarUrl,
-                                  size: AppStyles.largeAvatarSize,
-                                ))),
-                    ),
-                    TextFormField(
-                      // 账号输入框
-                      initialValue: account,
-                      decoration: InputDecoration(
-                          label: Text("${l10n.ocid}/${l10n.email}")),
-                      onSaved: (newValue) {
-                        setState(() {
-                          account = newValue!;
-                        });
-                      },
-                    ),
-                    TextFormField(
-                      // 密码输入框
-                      initialValue: password,
-                      decoration: InputDecoration(
-                        label: Text(l10n.password),
+    return SafeArea(
+      child: Form(
+          key: key,
+          child: Row(
+            children: [
+              Flexible(flex: 1, child: Container()),
+              Flexible(
+                  flex: 3,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.all(10.0),
+                        child: SizedBox(
+                            height: 100.0,
+                            width: 100.0,
+                            child: (avatarUrl.isEmpty
+                                ? Image.asset("assets/images/logo.png")
+                                : UserAvatar(
+                                    imageUrl: avatarUrl,
+                                    size: AppStyles.largeAvatarSize,
+                                  ))),
                       ),
-                      onSaved: (newValue) {
-                        setState(() {
-                          password = newValue!;
-                        });
-                      },
-                      obscureText: true,
-                    ),
-                    CheckboxListTile(
-                        // 保存密码checkbox
-                        dense: true,
-                        contentPadding: const EdgeInsets.all(0.0),
-                        controlAffinity: ListTileControlAffinity.leading,
-                        title: Text(l10n.savePassword),
-                        value: savePassword,
-                        onChanged: (value) {
+                      TextFormField(
+                        // 账号输入框
+                        initialValue: account,
+                        decoration: InputDecoration(
+                            label: Text("${l10n.ocid}/${l10n.email}")),
+                        onSaved: (newValue) {
                           setState(() {
-                            key.currentState!.save();
-                            savePassword = !savePassword;
+                            account = newValue!;
                           });
-                        }),
-                    Padding(
-                      padding: EdgeInsets.all(AppStyles.mediumPadding),
-                      child: ElevatedButton.icon(
-                          style: AppStyles.defaultButtonStyle,
-                          icon: Icon(Icons.login),
-                          onPressed: () async {
-                            key.currentState!.save(); // 保存表单信息
-                            // 创建ocAccount对象并登录
-                            OurChatAccount ocAccount =
-                                OurChatAccount(ourchatAppState);
-                            String? email, ocid;
-                            if (account.contains('@')) {
-                              // 判断邮箱/ocid登录
-                              email = account;
-                            } else {
-                              ocid = account;
-                            }
-                            var res =
-                                await ocAccount.login(password, ocid, email);
-                            var code = res.$1, message = res.$2;
-                            if (code == okStatusCode) {
-                              ourchatAppState.config["recent_account"] =
-                                  account;
-                              ourchatAppState.config["recent_password"] =
-                                  (savePassword ? password : "");
-                              ourchatAppState.config["recent_avatar_url"] =
-                                  ocAccount.avatarUrl();
-                              ourchatAppState.config.saveConfig();
-                              ourchatAppState.thisAccount = ocAccount;
-                              ourchatAppState.privateDB =
-                                  OurChatDatabase(ocAccount.id);
-                              ourchatAppState.eventSystem =
-                                  OurChatEventSystem(ourchatAppState);
-                              await ourchatAppState.thisAccount!
-                                  .getAccountInfo();
-                              ourchatAppState.eventSystem!.listenEvents();
-                              ourchatAppState.update();
-                              if (context.mounted) {
-                                // 跳转主界面
-                                Navigator.pop(context);
-                                Navigator.push(context, MaterialPageRoute(
-                                  builder: (context) {
-                                    return const Scaffold(
-                                      body: Home(),
-                                    );
-                                  },
-                                ));
+                        },
+                      ),
+                      TextFormField(
+                        // 密码输入框
+                        initialValue: password,
+                        decoration: InputDecoration(
+                          label: Text(l10n.password),
+                        ),
+                        onSaved: (newValue) {
+                          setState(() {
+                            password = newValue!;
+                          });
+                        },
+                        obscureText: true,
+                      ),
+                      CheckboxListTile(
+                          // 保存密码checkbox
+                          dense: true,
+                          contentPadding: const EdgeInsets.all(0.0),
+                          controlAffinity: ListTileControlAffinity.leading,
+                          title: Text(l10n.savePassword),
+                          value: savePassword,
+                          onChanged: (value) {
+                            setState(() {
+                              key.currentState!.save();
+                              savePassword = !savePassword;
+                            });
+                          }),
+                      Padding(
+                        padding: EdgeInsets.all(AppStyles.mediumPadding),
+                        child: ElevatedButton.icon(
+                            style: AppStyles.defaultButtonStyle,
+                            icon: Icon(Icons.login),
+                            onPressed: () async {
+                              key.currentState!.save(); // 保存表单信息
+                              // 创建ocAccount对象并登录
+                              OurChatAccount ocAccount =
+                                  OurChatAccount(ourchatAppState);
+                              String? email, ocid;
+                              if (account.contains('@')) {
+                                // 判断邮箱/ocid登录
+                                email = account;
+                              } else {
+                                ocid = account;
                               }
-                            } else {
-                              logger.w("login fail: code $code");
-                              // 处理报错
-                              if (context.mounted) {
-                                showResultMessage(context, code, message,
-                                    notFoundStatus: l10n.notFound(l10n.user),
-                                    invalidArgumentStatus: l10n.internalError,
-                                    unauthenticatedStatus:
-                                        l10n.incorrectPassword);
+                              var res =
+                                  await ocAccount.login(password, ocid, email);
+                              var code = res.$1, message = res.$2;
+                              if (code == okStatusCode) {
+                                ourchatAppState.config["recent_account"] =
+                                    account;
+                                ourchatAppState.config["recent_password"] =
+                                    (savePassword ? password : "");
+                                ourchatAppState.config["recent_avatar_url"] =
+                                    ocAccount.avatarUrl();
+                                ourchatAppState.config.saveConfig();
+                                ourchatAppState.thisAccount = ocAccount;
+                                ourchatAppState.privateDB =
+                                    OurChatDatabase(ocAccount.id);
+                                ourchatAppState.eventSystem =
+                                    OurChatEventSystem(ourchatAppState);
+                                await ourchatAppState.thisAccount!
+                                    .getAccountInfo();
+                                ourchatAppState.eventSystem!.listenEvents();
+                                ourchatAppState.update();
+                                if (context.mounted) {
+                                  // 跳转主界面
+                                  Navigator.pop(context);
+                                  Navigator.push(context, MaterialPageRoute(
+                                    builder: (context) {
+                                      return const Scaffold(
+                                        body: Home(),
+                                      );
+                                    },
+                                  ));
+                                }
+                              } else {
+                                logger.w("login fail: code $code");
+                                // 处理报错
+                                if (context.mounted) {
+                                  showResultMessage(context, code, message,
+                                      notFoundStatus: l10n.notFound(l10n.user),
+                                      invalidArgumentStatus: l10n.internalError,
+                                      unauthenticatedStatus:
+                                          l10n.incorrectPassword);
+                                }
                               }
-                            }
-                          },
-                          label: Text(l10n.login)),
-                    )
-                  ],
-                )),
-            Flexible(flex: 1, child: Container())
-          ],
-        ));
+                            },
+                            label: Text(l10n.login)),
+                      )
+                    ],
+                  )),
+              Flexible(flex: 1, child: Container())
+            ],
+          )),
+    );
   }
 }
 
