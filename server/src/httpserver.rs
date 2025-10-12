@@ -346,6 +346,7 @@ pub struct HttpCfg {
     #[serde(default = "base::consts::default_port")]
     pub port: u16,
     pub logo_path: PathBuf,
+    pub verification_html_template_path: Option<PathBuf>,
     pub default_avatar_path: PathBuf,
     #[serde(default = "base::consts::default_http_run_migration")]
     pub run_migration: bool,

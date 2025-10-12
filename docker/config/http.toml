@@ -11,6 +11,7 @@ rabbitmq_cfg = "rabbitmq.toml"
 # The logo of this server
 logo_path = "/root/resource/logo.png"
 default_avatar_path = "/root/resource/logo.png"
+verification_html_template_path = "/root/resource/email.html"
 run_migration = false
 # enable Matrix Api
 enable_matrix = false

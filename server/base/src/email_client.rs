@@ -59,7 +59,7 @@ impl EmailSender for EmailClient {
             multipart = multipart.singlepart(
                 SinglePart::builder()
                     .header(ContentType::TEXT_HTML)
-                    .body(html_body),
+                    .body(html),
             )
         };
 
@@ -67,7 +67,7 @@ impl EmailSender for EmailClient {
             .from(self.from.clone())
             .to(to.clone())
             .subject(subject)
-            .multipart(multipart);
+            .multipart(multipart)?;
 
         self.send_low(email).await?;
         Ok(())

@@ -12,6 +12,7 @@ use base::database::DbPool;
 use base::rabbitmq::http_server::VerifyRecord;
 use deadpool_redis::redis::AsyncCommands;
 use serde::Deserialize;
+use tokio::fs::read_to_string;
 
 #[derive(Debug, Deserialize)]
 struct Param {
@@ -53,24 +54,33 @@ pub async fn verify_client(
             Ok(mailbox) => mailbox,
             Err(e) => Err(e)?,
         };
-
-        let text_body = format!(
-            "please click \"{}v1/verify/confirm?token={}\" to verify your email",
+        let verification_link = format!(
+            "{}v1/verify/confirm?token={}",
             shared_data.cfg.http_cfg.base_url(),
             data.token
         );
 
-        let html_template = std::fs::read_to_string("templates/email.html")
-            .with_context(|| "Failed to read email.html template")?;
-        
-        let html_body = Some(html_template.replace(
-            "[verification_link]",
-            &format!(
-                "{}v1/verify/confirm?token={}",
-                shared_data.cfg.http_cfg.base_url(),
-                data.token
-            ),
-        ));
+        let text_body = format!(
+            "please click \"{}\" to verify your email",
+            verification_link
+        );
+
+        let html_body = if let Some(html_template_path) = shared_data
+            .cfg
+            .http_cfg
+            .verification_html_template_path
+            .as_ref()
+        {
+            match read_to_string(&html_template_path).await {
+                Err(e) => {
+                    tracing::error!("Failed to read {}: {:?}", html_template_path.display(), e);
+                    None
+                }
+                Ok(template) => Some(template.replace("[verification_link]", &verification_link)),
+            }
+        } else {
+            None
+        };
 
         if let Err(e) = email_client
             .send(

@@ -12,11 +12,15 @@ async fn test_verify() {
     let mut mock_smtp = MockEmailSender::new();
     let email_body = Arc::new(Mutex::new(String::new()));
     let mock_body = email_body.clone();
+    let html_email_body = Arc::new(Mutex::new(None));
+    let mock_html_body = html_email_body.clone();
     mock_smtp
         .expect_send()
         .times(1)
-        .returning(move |_to, _title, body| {
+        .returning(move |_to, _title, body, html_body| {
             *mock_body.lock() = body;
+            dbg!(&html_body);
+            *mock_html_body.lock() = html_body;
             anyhow::Ok(())
         });
     let (config, args) = TestApp::get_test_config().unwrap();
@@ -54,20 +58,22 @@ async fn test_verify() {
     assert_eq!(res.status(), reqwest::StatusCode::BAD_REQUEST);
 
     // check email in mock server
-    let link_finder = linkify::LinkFinder::new();
-    let link = {
-        let email_body = email_body.lock();
-        let links: Vec<_> = link_finder
-            .links(&email_body)
-            .filter(|x| *x.kind() == linkify::LinkKind::Url)
-            .collect();
-        assert_eq!(links.len(), 1);
-        links.first().unwrap().as_str().to_owned()
-    };
 
+    let link1 = {
+        let binding = email_body.lock();
+        let links = get_link(binding.as_str());
+
+        assert_eq!(links.len(), 1);
+        links.into_iter().next().unwrap()
+    };
+    if let Some(ref text) = *html_email_body.lock() {
+        let link2 = get_link(text);
+        assert_eq!(link2.len(), 2);
+        assert_eq!(link1, link2[1]);
+    }
     // check the link
     app.http_client
-        .get(link)
+        .get(link1.as_str())
         .send()
         .await
         .unwrap()
@@ -76,5 +82,15 @@ async fn test_verify() {
     // get status
     let mut ret = ret.into_inner();
     ret.next().await.unwrap().unwrap();
+
     app.async_drop().await;
+}
+
+fn get_link(text: &str) -> Vec<String> {
+    let link_finder = linkify::LinkFinder::new();
+    link_finder
+        .links(text)
+        .filter(|x| *x.kind() == linkify::LinkKind::Url)
+        .map(|x| x.as_str().to_string())
+        .collect()
 }
