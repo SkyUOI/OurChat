@@ -16,6 +16,7 @@ import 'package:ourchat/launch.dart';
 import 'package:ourchat/auth.dart';
 import 'package:ourchat/home.dart';
 import 'dart:core';
+import 'dart:io';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -186,6 +187,7 @@ class _ControllerState extends State<Controller> {
         },
       ),
       theme: ThemeData(
+        fontFamily: Platform.isWindows ? "微软雅黑" : null,
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
           seedColor: Color(appState.config["color"]),
