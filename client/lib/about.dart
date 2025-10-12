@@ -130,174 +130,181 @@ class _AboutState extends State<About> {
       itemCount: donorsList.length,
     );
     if (ourchatAppState.device == mobile) {
-      return DefaultTabController(
-          length: 3,
-          child: Scaffold(
-            appBar: TabBar(tabs: [
-              Tab(
-                text: l10n.about,
-              ),
-              Tab(text: l10n.donate),
-              Tab(text: l10n.contribute)
-            ]),
-            body: Column(
-              children: [
-                Expanded(
-                  child: TabBarView(children: [
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        SizedBox(
-                            width: 200,
-                            child: Image.asset(
-                              "assets/images/logo.png",
-                            )),
-                        info
-                      ],
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(10.0),
-                      child: Card(
-                        child: Stack(
-                          children: [
-                            donors,
-                            Align(
-                              alignment: Alignment.bottomRight,
-                              child: FloatingActionButton(
-                                onPressed: () {
-                                  launchUrl(Uri.parse(
-                                      "https://www.afdian.com/a/ourchat"));
-                                },
-                                child: Icon(Icons.coffee),
-                              ),
-                            )
-                          ],
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(5.0),
-                      child: Card(
-                        child: Stack(
-                          children: [
-                            contributors,
-                            Align(
-                              alignment: Alignment.bottomRight,
-                              child: FloatingActionButton(
-                                onPressed: () {
-                                  launchUrl(Uri.parse(
-                                      "https://github.com/skyuoi/ourchat"));
-                                },
-                                child: Icon(Icons.code),
-                              ),
-                            )
-                          ],
-                        ),
-                      ),
-                    )
-                  ]),
+      return SafeArea(
+        child: DefaultTabController(
+            length: 3,
+            child: Scaffold(
+              appBar: TabBar(tabs: [
+                Tab(
+                  text: l10n.about,
                 ),
-                Row(
-                  children: [
-                    BackButton(onPressed: () => Navigator.pop(context)),
-                  ],
-                )
-              ],
-            ),
-          ));
+                Tab(text: l10n.donate),
+                Tab(text: l10n.contribute)
+              ]),
+              body: Column(
+                children: [
+                  Expanded(
+                    child: TabBarView(children: [
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          SizedBox(
+                              width: 200,
+                              child: Image.asset(
+                                "assets/images/logo.png",
+                              )),
+                          info
+                        ],
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(10.0),
+                        child: Card(
+                          child: Stack(
+                            children: [
+                              donors,
+                              Align(
+                                alignment: Alignment.bottomRight,
+                                child: FloatingActionButton(
+                                  onPressed: () {
+                                    launchUrl(Uri.parse(
+                                        "https://www.afdian.com/a/ourchat"));
+                                  },
+                                  child: Icon(Icons.coffee),
+                                ),
+                              )
+                            ],
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(5.0),
+                        child: Card(
+                          child: Stack(
+                            children: [
+                              contributors,
+                              Align(
+                                alignment: Alignment.bottomRight,
+                                child: FloatingActionButton(
+                                  onPressed: () {
+                                    launchUrl(Uri.parse(
+                                        "https://github.com/skyuoi/ourchat"));
+                                  },
+                                  child: Icon(Icons.code),
+                                ),
+                              )
+                            ],
+                          ),
+                        ),
+                      )
+                    ]),
+                  ),
+                  Row(
+                    children: [
+                      BackButton(onPressed: () => Navigator.pop(context)),
+                    ],
+                  )
+                ],
+              ),
+            )),
+      );
     }
 
     // Desktop
     return Scaffold(
-      body: Column(
-        children: [
-          Row(
-            children: [
-              BackButton(onPressed: () => Navigator.pop(context)),
-            ],
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      SizedBox(
-                          width: 600,
-                          child: Image.asset(
-                            "assets/images/logo.png",
-                          )),
-                      Expanded(
-                        child: info,
-                      )
-                    ],
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      Column(
-                        children: [
-                          ElevatedButton.icon(
-                              style: AppStyles.defaultButtonStyle,
-                              onPressed: () {
-                                launchUrl(Uri.parse(
-                                    "https://github.com/skyuoi/ourchat"));
-                              },
-                              label: Text("Github"),
-                              icon: Icon(Icons.code)),
-                          Card(
-                            child: Column(
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 10.0),
-                                  child: Text(
-                                    "Contributors",
-                                    style: TextStyle(fontSize: 25),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Row(
+              children: [
+                BackButton(onPressed: () => Navigator.pop(context)),
+              ],
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        SizedBox(
+                            width: 600,
+                            child: Image.asset(
+                              "assets/images/logo.png",
+                            )),
+                        Expanded(
+                          child: info,
+                        )
+                      ],
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        Column(
+                          children: [
+                            ElevatedButton.icon(
+                                style: AppStyles.defaultButtonStyle,
+                                onPressed: () {
+                                  launchUrl(Uri.parse(
+                                      "https://github.com/skyuoi/ourchat"));
+                                },
+                                label: Text("Github"),
+                                icon: Icon(Icons.code)),
+                            Card(
+                              child: Column(
+                                children: [
+                                  Padding(
+                                    padding:
+                                        const EdgeInsets.only(bottom: 10.0),
+                                    child: Text(
+                                      "Contributors",
+                                      style: TextStyle(fontSize: 25),
+                                    ),
                                   ),
-                                ),
-                                SizedBox(
-                                    height: 500,
-                                    width: 400,
-                                    child: contributors)
-                              ],
-                            ),
-                          )
-                        ],
-                      ),
-                      Column(
-                        children: [
-                          ElevatedButton.icon(
-                              style: AppStyles.defaultButtonStyle,
-                              onPressed: () {
-                                launchUrl(Uri.parse(
-                                    "https://www.afdian.com/a/ourchat"));
-                              },
-                              label: Text(l10n.donate),
-                              icon: Icon(Icons.coffee)),
-                          Card(
-                            child: Column(
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 10.0),
-                                  child: Text(
-                                    "Donor",
-                                    style: TextStyle(fontSize: 25),
+                                  SizedBox(
+                                      height: 500,
+                                      width: 400,
+                                      child: contributors)
+                                ],
+                              ),
+                            )
+                          ],
+                        ),
+                        Column(
+                          children: [
+                            ElevatedButton.icon(
+                                style: AppStyles.defaultButtonStyle,
+                                onPressed: () {
+                                  launchUrl(Uri.parse(
+                                      "https://www.afdian.com/a/ourchat"));
+                                },
+                                label: Text(l10n.donate),
+                                icon: Icon(Icons.coffee)),
+                            Card(
+                              child: Column(
+                                children: [
+                                  Padding(
+                                    padding:
+                                        const EdgeInsets.only(bottom: 10.0),
+                                    child: Text(
+                                      "Donor",
+                                      style: TextStyle(fontSize: 25),
+                                    ),
                                   ),
-                                ),
-                                SizedBox(height: 500, width: 400, child: donors)
-                              ],
-                            ),
-                          )
-                        ],
-                      )
-                    ],
-                  ),
-                ],
+                                  SizedBox(
+                                      height: 500, width: 400, child: donors)
+                                ],
+                              ),
+                            )
+                          ],
+                        )
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

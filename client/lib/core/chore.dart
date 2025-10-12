@@ -3,6 +3,7 @@ import 'package:ourchat/google/protobuf/timestamp.pb.dart';
 import 'package:flutter/material.dart';
 import 'package:ourchat/core/const.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class OurChatTime {
   /*
@@ -251,8 +252,8 @@ class UserAvatar extends StatelessWidget {
             height: size,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(size / 4),
-              child: Image(
-                image: NetworkImage(imageUrl),
+              child: CachedNetworkImage(
+                imageUrl: imageUrl,
                 fit: BoxFit.cover,
               ),
             ),

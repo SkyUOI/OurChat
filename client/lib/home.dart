@@ -35,64 +35,67 @@ class _HomeState extends State<Home> {
         page = const User();
     }
 
-    return Scaffold(body: LayoutBuilder(builder: (context, constraints) {
-      if (ourchatAppState.device == mobile) {
-        return Column(
+    return Scaffold(body: SafeArea(
+      child: LayoutBuilder(builder: (context, constraints) {
+        if (ourchatAppState.device == mobile) {
+          return Column(
+            children: [
+              Expanded(
+                  child: Padding(
+                padding: EdgeInsets.all(AppStyles.mediumPadding),
+                child: page,
+              )),
+              BottomNavigationBar(
+                items: const [
+                  BottomNavigationBarItem(
+                      label: "Sessions", icon: Icon(Icons.chat)),
+                  BottomNavigationBarItem(
+                      label: "Friends", icon: Icon(Icons.people)),
+                  BottomNavigationBarItem(
+                      label: "Settings", icon: Icon(Icons.settings)),
+                  BottomNavigationBarItem(
+                      label: "Me", icon: Icon(Icons.person)),
+                ],
+                currentIndex: index,
+                onTap: (value) {
+                  setState(() {
+                    index = value;
+                  });
+                },
+                type: BottomNavigationBarType.fixed,
+              )
+            ],
+          );
+        }
+        return Row(
           children: [
+            NavigationRail(
+              destinations: const [
+                NavigationRailDestination(
+                    label: Text("Sessions"), icon: Icon(Icons.chat)),
+                NavigationRailDestination(
+                    label: Text("Friends"), icon: Icon(Icons.people)),
+                NavigationRailDestination(
+                    label: Text("Settings"), icon: Icon(Icons.settings)),
+                NavigationRailDestination(
+                    label: Text("Me"), icon: Icon(Icons.person)),
+              ],
+              selectedIndex: index,
+              onDestinationSelected: (value) {
+                setState(() {
+                  index = value;
+                });
+              },
+              labelType: NavigationRailLabelType.selected,
+            ),
             Expanded(
                 child: Padding(
               padding: EdgeInsets.all(AppStyles.mediumPadding),
               child: page,
             )),
-            BottomNavigationBar(
-              items: const [
-                BottomNavigationBarItem(
-                    label: "Sessions", icon: Icon(Icons.chat)),
-                BottomNavigationBarItem(
-                    label: "Friends", icon: Icon(Icons.people)),
-                BottomNavigationBarItem(
-                    label: "Settings", icon: Icon(Icons.settings)),
-                BottomNavigationBarItem(label: "Me", icon: Icon(Icons.person)),
-              ],
-              currentIndex: index,
-              onTap: (value) {
-                setState(() {
-                  index = value;
-                });
-              },
-              type: BottomNavigationBarType.fixed,
-            )
           ],
         );
-      }
-      return Row(
-        children: [
-          NavigationRail(
-            destinations: const [
-              NavigationRailDestination(
-                  label: Text("Sessions"), icon: Icon(Icons.chat)),
-              NavigationRailDestination(
-                  label: Text("Friends"), icon: Icon(Icons.people)),
-              NavigationRailDestination(
-                  label: Text("Settings"), icon: Icon(Icons.settings)),
-              NavigationRailDestination(
-                  label: Text("Me"), icon: Icon(Icons.person)),
-            ],
-            selectedIndex: index,
-            onDestinationSelected: (value) {
-              setState(() {
-                index = value;
-              });
-            },
-            labelType: NavigationRailLabelType.selected,
-          ),
-          Expanded(
-              child: Padding(
-            padding: EdgeInsets.all(AppStyles.mediumPadding),
-            child: page,
-          )),
-        ],
-      );
-    }));
+      }),
+    ));
   }
 }
