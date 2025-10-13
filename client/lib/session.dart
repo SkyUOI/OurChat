@@ -10,6 +10,7 @@ import 'package:ourchat/service/basic/v1/basic.pbgrpc.dart';
 import 'package:ourchat/service/ourchat/friends/add_friend/v1/add_friend.pb.dart';
 import 'package:ourchat/service/ourchat/friends/set_friend_info/v1/set_friend_info.pb.dart';
 import 'package:ourchat/service/ourchat/msg_delivery/v1/msg_delivery.pb.dart';
+import 'package:ourchat/service/ourchat/session/get_session_info/v1/get_session_info.pb.dart';
 import 'package:ourchat/service/ourchat/session/new_session/v1/session.pb.dart';
 import 'package:ourchat/service/ourchat/session/set_session_info/v1/set_session_info.pb.dart';
 import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
@@ -526,7 +527,6 @@ class SessionList extends StatefulWidget {
 
 class _SessionListState extends State<SessionList> {
   Timer? _debounceTimer = Timer(Duration.zero, () {}); // 搜索timer
-  bool showSearchResults = false; // 正在显示搜索结果
   bool search = false; // 搜索中
   String searchKeyword = "";
   late OurChatAppState ourchatAppState;
@@ -570,14 +570,13 @@ class _SessionListState extends State<SessionList> {
                 onChanged: (value) {
                   setState(() {
                     searchKeyword = value;
-                    showSearchResults = value.isNotEmpty;
                     search = false;
                   });
                   _debounceTimer!.cancel();
                   _debounceTimer = Timer(
                       const Duration(seconds: 1),
                       () => setState(() {
-                            search = true; // 一秒内没输入，搜索
+                            search = true && value.isNotEmpty; // 一秒内没输入，搜索
                           }));
                 },
               )),
@@ -594,11 +593,11 @@ class _SessionListState extends State<SessionList> {
                   icon: const Icon(Icons.add)) // 创建会话
             ],
           ),
-          if (showSearchResults)
-            const Align(alignment: Alignment.centerLeft, child: Text("OCID")),
-          if (showSearchResults && search)
+          if (search)
+            Align(alignment: Alignment.centerLeft, child: Text(l10n.user)),
+          if (search)
             FutureBuilder(
-                future: getAccountInfo(ourchatAppState, searchKeyword, context),
+                future: searchAccount(ourchatAppState, searchKeyword, context),
                 builder: (BuildContext context, AsyncSnapshot snapshot) {
                   if (snapshot.connectionState != ConnectionState.done) {
                     // 未完成
@@ -607,173 +606,270 @@ class _SessionListState extends State<SessionList> {
                       color: Theme.of(context).primaryColor,
                     );
                   }
-                  OurChatAccount? account = snapshot.data; // 获取搜索到的账号
-                  if (account == null) {
-                    // 查无此人
+                  List<OurChatAccount> accountList = snapshot.data; // 获取搜索到的账号
+                  if (accountList.isEmpty) {
+                    // NotFound
                     return Padding(
                         padding: const EdgeInsets.only(top: 5.0),
                         child: Text(l10n.notFound(l10n.user)));
                   }
-                  bool isFriend =
-                      ourchatAppState.thisAccount!.friends.contains(account.id);
                   return SizedBox(
-                      // 显示匹配账号
-                      height: 50.0,
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 5.0),
-                        child: ElevatedButton(
-                            style: ButtonStyle(
-                                shape: WidgetStateProperty.all(
-                                    RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(10.0)))),
+                    height: accountList.length * 50,
+                    child: ListView.builder(
+                        itemBuilder: (context, index) {
+                          OurChatAccount account = accountList[index];
+                          return SessionListItem(
+                            avatar: UserAvatar(
+                              imageUrl: account.avatarUrl(),
+                            ),
+                            name: account.getNameWithDisplayName(),
                             onPressed: () {
                               sessionState.currentUserId = account.id;
                               sessionState.tabIndex = userTab;
                               sessionState.tabTitle = l10n.userInfo;
                               sessionState.update();
                             },
+                          );
+                        },
+                        itemCount: accountList.length),
+                  );
+                }),
+          if (search) const Divider(),
+          if (search)
+            Align(alignment: Alignment.centerLeft, child: Text(l10n.session)),
+          if (search)
+            FutureBuilder(
+                future: searchSession(ourchatAppState, searchKeyword, context),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState != ConnectionState.done) {
+                    // 未完成
+                    return CircularProgressIndicator(
+                      // 显示加载图标
+                      color: Theme.of(context).primaryColor,
+                    );
+                  }
+                  List<OurChatSession> sessionList = snapshot.data; // 获取搜索到的会话
+                  if (sessionList.isEmpty) {
+                    // NotFount
+                    return Padding(
+                        padding: const EdgeInsets.only(top: 5.0),
+                        child: Text(l10n.notFound(l10n.user)));
+                  }
+                  return SizedBox(
+                    height: sessionList.length * 50,
+                    child: ListView.builder(
+                        itemBuilder: (context, index) {
+                          OurChatSession session = sessionList[index];
+                          return SessionListItem(
+                            avatar: Placeholder(),
+                            name: session.getDisplayName(l10n),
+                            onPressed: () {
+                              sessionState.currentSession = session;
+                              sessionState.tabIndex = sessionTab;
+                              sessionState.tabTitle =
+                                  session.getDisplayName(l10n);
+                              sessionState.update();
+                            },
+                          );
+                        },
+                        itemCount: sessionList.length),
+                  );
+                }),
+          if (!search)
+            Expanded(
+              child: ListView.builder(
+                itemBuilder: (context, index) {
+                  OurChatSession currentSession =
+                      sessionState.sessionsList[index];
+                  return SizedBox(
+                      height: 80.0,
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 10.0),
+                        child: ElevatedButton(
+                            style: ButtonStyle(
+                                shape: WidgetStateProperty.all(
+                                    RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(10.0)))),
+                            onPressed: () async {
+                              sessionState.currentSession = currentSession;
+                              sessionState.tabIndex = sessionTab;
+                              sessionState.tabTitle =
+                                  currentSession.getDisplayName(l10n);
+                              sessionState.update();
+                              sessionState.currentSessionRecords =
+                                  await ourchatAppState.eventSystem!
+                                      .getSessionEvent(
+                                          ourchatAppState, currentSession);
+                              sessionState.update();
+                            },
                             child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              mainAxisAlignment: MainAxisAlignment.start,
                               children: [
                                 SizedBox(
-                                    width: 40.0,
-                                    height: 40.0,
-                                    child: UserAvatar(
-                                        imageUrl: account.avatarUrl())),
-                                if (isFriend)
-                                  Text(
-                                      "${account.displayName} (${account.username})")
-                                else
-                                  Text(account.username)
+                                  height: 40,
+                                  width: 40,
+                                  child: Image(
+                                      image:
+                                          AssetImage("assets/images/logo.png")),
+                                ),
+                                Expanded(
+                                  child: Padding(
+                                      padding: EdgeInsets.only(left: 8.0),
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Align(
+                                              alignment: Alignment.centerLeft,
+                                              child: Text(
+                                                currentSession
+                                                    .getDisplayName(l10n),
+                                                style: TextStyle(
+                                                    fontSize: 20,
+                                                    color: Colors.black),
+                                              )),
+                                          if (sessionState.sessionRecentMsg
+                                              .containsKey(currentSession))
+                                            Align(
+                                              alignment: Alignment.centerLeft,
+                                              child: Text(
+                                                "${sessionState.sessionRecentMsg[currentSession]!.sender!.username}: ${sessionState.sessionRecentMsg[currentSession]!.msgs[0].text}",
+                                                style: TextStyle(
+                                                    color: Colors.grey),
+                                              ),
+                                            )
+                                        ],
+                                      )),
+                                )
                               ],
                             )),
                       ));
-                }),
-          if (showSearchResults) const Divider(),
-          if (showSearchResults)
-            Align(alignment: Alignment.centerLeft, child: Text(l10n.sessionId)),
-          if (showSearchResults)
-            SizedBox(
-                height: 50.0,
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 5.0),
-                  child: ElevatedButton(
-                      style: ButtonStyle(
-                          shape: WidgetStateProperty.all(RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10.0)))),
-                      onPressed: () {},
-                      child: const Placeholder()),
-                )),
-          if (showSearchResults) const Divider(),
-          if (showSearchResults)
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(l10n.others),
-            ),
-          Expanded(
-            child: ListView.builder(
-              itemBuilder: (context, index) {
-                OurChatSession currentSession =
-                    sessionState.sessionsList[index];
-                return SizedBox(
-                    height: 80.0,
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 10.0),
-                      child: ElevatedButton(
-                          style: ButtonStyle(
-                              shape: WidgetStateProperty.all(
-                                  RoundedRectangleBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(10.0)))),
-                          onPressed: () async {
-                            sessionState.currentSession = currentSession;
-                            sessionState.tabIndex = sessionTab;
-                            sessionState.tabTitle = (currentSession.name == ""
-                                ? l10n.newSession
-                                : currentSession.name);
-                            sessionState.update();
-                            sessionState.currentSessionRecords =
-                                await ourchatAppState.eventSystem!
-                                    .getSessionEvent(
-                                        ourchatAppState, currentSession);
-                            sessionState.update();
-                          },
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              SizedBox(
-                                height: 40,
-                                width: 40,
-                                child: Image(
-                                    image:
-                                        AssetImage("assets/images/logo.png")),
-                              ),
-                              Expanded(
-                                child: Padding(
-                                    padding: EdgeInsets.only(left: 8.0),
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Align(
-                                            alignment: Alignment.centerLeft,
-                                            child: Text(
-                                              (currentSession.name == ""
-                                                  ? l10n.newSession
-                                                  : currentSession.name),
-                                              style: TextStyle(
-                                                  fontSize: 20,
-                                                  color: Colors.black),
-                                            )),
-                                        if (sessionState.sessionRecentMsg
-                                            .containsKey(currentSession))
-                                          Align(
-                                            alignment: Alignment.centerLeft,
-                                            child: Text(
-                                              "${sessionState.sessionRecentMsg[currentSession]!.sender!.username}: ${sessionState.sessionRecentMsg[currentSession]!.msgs[0].text}",
-                                              style:
-                                                  TextStyle(color: Colors.grey),
-                                            ),
-                                          )
-                                      ],
-                                    )),
-                              )
-                            ],
-                          )),
-                    ));
-              },
-              itemCount: sessionState.sessionsList.length,
-            ),
-          )
+                },
+                itemCount: sessionState.sessionsList.length,
+              ),
+            )
         ],
       );
     });
   }
 
-  Future getAccountInfo(OurChatAppState ourchatAppState, String ocid,
+  Future searchAccount(OurChatAppState ourchatAppState, String ocid,
       BuildContext context) async {
+    List<OurChatAccount> matchAccounts = [];
     BasicServiceClient stub =
         BasicServiceClient(ourchatAppState.server!.channel!, interceptors: []);
     var l10n = AppLocalizations.of(context)!;
+
+    // By OCID
     try {
       var res = await stub.getId(GetIdRequest(ocid: ocid));
       OurChatAccount account = OurChatAccount(ourchatAppState);
       account.id = res.id;
       account.recreateStub();
       await account.getAccountInfo();
-      return account;
+      matchAccounts.add(account);
     } on grpc.GrpcError catch (e) {
       if (context.mounted) {
         showResultMessage(context, e.code, e.message,
             // getAccountInfo
             permissionDeniedStatus: l10n.permissionDenied("Get Account Info"),
             invalidArgumentStatus: l10n.internalError,
-            // getId
-            notFoundStatus: l10n.notFound(l10n.user));
+            notFoundStatus: "");
       }
     }
-    return null;
+
+    // By username/display_name
+    for (Int64 friendsId in ourchatAppState.thisAccount!.friends) {
+      OurChatAccount account = OurChatAccount(ourchatAppState);
+      account.id = friendsId;
+      account.recreateStub();
+      await account.getAccountInfo();
+      if (!matchAccounts.contains(account) &&
+          account
+              .getNameWithDisplayName()
+              .toLowerCase()
+              .contains(searchKeyword)) {
+        matchAccounts.add(account);
+      }
+    }
+
+    return matchAccounts;
+  }
+
+  Future searchSession(OurChatAppState appState, String searchKeyword,
+      BuildContext context) async {
+    Int64? sessionId = Int64.tryParseInt(searchKeyword);
+    List<OurChatSession> matchSessions = [];
+    var l10n = AppLocalizations.of(context)!;
+
+    if (sessionId != null) {
+      // By sessionId
+      var stub = OurChatServiceClient(appState.server!.channel!,
+          interceptors: [appState.server!.interceptor!]);
+      try {
+        await stub.getSessionInfo(
+            GetSessionInfoRequest(sessionId: Int64.parseInt(searchKeyword)));
+        OurChatSession session = OurChatSession(appState, sessionId);
+        await session.getSessionInfo();
+        matchSessions.add(session);
+      } on grpc.GrpcError catch (e) {
+        if (context.mounted) {
+          showResultMessage(context, e.code, e.message, notFoundStatus: "");
+        }
+      }
+    }
+
+    // by name/description
+    for (Int64 sessionId in appState.thisAccount!.sessions) {
+      OurChatSession session = OurChatSession(ourchatAppState, sessionId);
+      await session.getSessionInfo();
+      // print(session.name);
+      if ((session.description.toLowerCase().contains(searchKeyword) ||
+              session.name.toLowerCase().contains(searchKeyword) ||
+              session
+                  .getDisplayName(l10n)
+                  .toLowerCase()
+                  .contains(searchKeyword)) &&
+          !matchSessions.contains(session)) {
+        matchSessions.add(session);
+      }
+    }
+    return matchSessions;
+  }
+}
+
+class SessionListItem extends StatelessWidget {
+  const SessionListItem(
+      {super.key,
+      required this.avatar,
+      required this.name,
+      required this.onPressed});
+
+  final Function onPressed;
+  final Widget avatar;
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+        // 显示匹配账号
+        height: 50.0,
+        child: Padding(
+          padding: const EdgeInsets.only(top: 5.0),
+          child: ElevatedButton(
+              style: ButtonStyle(
+                  shape: WidgetStateProperty.all(RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10.0)))),
+              onPressed: () => onPressed(),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  SizedBox(width: 40.0, height: 40.0, child: avatar),
+                  Text(name),
+                ],
+              )),
+        ));
   }
 }
 

@@ -167,7 +167,7 @@ void showResultMessage(
     default:
       break;
   }
-  if (message is String) {
+  if (message is String && message.isNotEmpty) {
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
   } else if (message is Map) {

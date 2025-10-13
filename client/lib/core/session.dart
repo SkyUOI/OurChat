@@ -1,13 +1,14 @@
 import 'dart:convert';
-
 import 'package:drift/drift.dart';
 import 'package:fixnum/fixnum.dart';
+import 'package:ourchat/core/account.dart';
 import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/core/database.dart';
 import 'package:ourchat/core/server.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/service/ourchat/session/get_session_info/v1/get_session_info.pb.dart';
 import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
+import 'package:ourchat/l10n/app_localizations.dart';
 
 class OurChatSession {
   OurChatAppState ourchatAppState;
@@ -20,6 +21,7 @@ class OurChatSession {
   late List<Int64> members = [];
   late Map<Int64, int> roles = {};
   late int size;
+  String? displayName;
   DateTime lastCheckTime = DateTime(0);
 
   OurChatSession(this.ourchatAppState, this.sessionId) {
@@ -45,6 +47,7 @@ class OurChatSession {
         size = sessionCache.size;
         description = sessionCache.description;
         lastCheckTime = sessionCache.lastCheckTime;
+        displayName = sessionCache.displayName;
         return;
       }
     }
@@ -167,6 +170,15 @@ class OurChatSession {
       intRoles.forEach((key, value) => roles[Int64.parseInt(key)] = value);
     }
 
+    if (members.length == 2) {
+      Int64 otherUserId = members
+          .firstWhere((element) => element != ourchatAppState.thisAccount!.id);
+      OurChatAccount otherAccount = OurChatAccount(ourchatAppState);
+      otherAccount.id = otherUserId;
+      otherAccount.recreateStub();
+      await otherAccount.getAccountInfo();
+      displayName = otherAccount.displayName;
+    }
     lastCheckTime = DateTime.now();
     ourchatAppState.sessionCachePool[sessionId] = this;
   }
@@ -180,5 +192,15 @@ class OurChatSession {
       return sessionId == other.sessionId;
     }
     return false;
+  }
+
+  String getDisplayName(AppLocalizations l10n) {
+    if (name.isNotEmpty) {
+      return name;
+    }
+    if (displayName == null) {
+      return l10n.newSession;
+    }
+    return displayName!;
   }
 }

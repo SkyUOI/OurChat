@@ -287,4 +287,26 @@ class OurChatAccount {
   String avatarUrl() {
     return "http${ourchatAppState.server!.isTLS! ? 's' : ''}://${ourchatAppState.server!.host}:${ourchatAppState.server!.port.toString()}/v1/avatar?user_id=${id.toString()}";
   }
+
+  String getNameWithDisplayName() {
+    if (displayName != null && displayName != "" && displayName != username) {
+      return "$displayName ($username)";
+    }
+    return username;
+  }
+
+  String getDisplayNameOrName() {
+    if (displayName != null && displayName != "") {
+      return displayName!;
+    }
+    return username;
+  }
+
+  @override
+  bool operator ==(other) {
+    return (other is OurChatAccount) && other.id == id;
+  }
+
+  @override
+  int get hashCode => id.toInt();
 }
