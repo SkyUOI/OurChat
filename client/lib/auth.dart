@@ -199,7 +199,7 @@ class Register extends StatefulWidget {
 
 class _RegisterState extends State<Register> {
   String email = "", password = "", username = "";
-  bool showPassword = false;
+  bool showPassword = false, savePassword = false;
   @override
   Widget build(BuildContext context) {
     var key = GlobalKey<FormState>();
@@ -251,7 +251,6 @@ class _RegisterState extends State<Register> {
                     CheckboxListTile(
                         // 显示密码checkbox
                         dense: true,
-                        contentPadding: const EdgeInsets.all(0.0),
                         controlAffinity: ListTileControlAffinity.leading,
                         title: Text(l10n.showPassword),
                         value: showPassword,
@@ -259,6 +258,17 @@ class _RegisterState extends State<Register> {
                           setState(() {
                             key.currentState!.save();
                             showPassword = !showPassword;
+                          });
+                        }),
+                    CheckboxListTile(
+                        dense: true,
+                        controlAffinity: ListTileControlAffinity.leading,
+                        title: Text(l10n.savePassword),
+                        value: savePassword,
+                        onChanged: (value) {
+                          setState(() {
+                            key.currentState!.save();
+                            savePassword = !savePassword;
                           });
                         }),
                     Padding(
@@ -283,6 +293,12 @@ class _RegisterState extends State<Register> {
                                   OurChatEventSystem(ourchatAppState);
                               await ourchatAppState.thisAccount!
                                   .getAccountInfo();
+
+                              ourchatAppState.config["recent_account"] = email;
+                              ourchatAppState.config["recent_password"] =
+                                  (savePassword ? password : "");
+                              ourchatAppState.config["recent_avatar_url"] =
+                                  ocAccount.avatarUrl();
 
                               ourchatAppState.eventSystem!.listenEvents();
                               ourchatAppState.update();
