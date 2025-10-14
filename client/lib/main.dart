@@ -18,6 +18,9 @@ import 'package:ourchat/home.dart';
 import 'dart:core';
 import 'dart:io';
 
+final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const MainApp());
@@ -118,9 +121,7 @@ class _ControllerState extends State<Controller> {
       Navigator.pop(context);
       Navigator.push(context, MaterialPageRoute(
         builder: (context) {
-          return const Scaffold(
-            body: Home(),
-          );
+          return Home();
         },
       ));
     }
@@ -130,6 +131,7 @@ class _ControllerState extends State<Controller> {
   Widget build(BuildContext context) {
     var appState = context.watch<OurChatAppState>();
     return MaterialApp(
+      scaffoldMessengerKey: rootScaffoldMessengerKey,
       localeResolutionCallback: (locale, supportedLocales) {
         Locale useLanguage = Locale("en");
         Locale? setLanguage = locale;

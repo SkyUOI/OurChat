@@ -1,9 +1,11 @@
 import 'package:fixnum/fixnum.dart';
+import 'package:ourchat/core/log.dart';
 import 'package:ourchat/google/protobuf/timestamp.pb.dart';
 import 'package:flutter/material.dart';
 import 'package:ourchat/core/const.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:ourchat/main.dart';
 
 class OurChatTime {
   /*
@@ -167,12 +169,16 @@ void showResultMessage(
     default:
       break;
   }
-  if (message is String && message.isNotEmpty) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
-  } else if (message is Map) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message[errorMessage])));
+  try {
+    if (message is String && message.isNotEmpty) {
+      rootScaffoldMessengerKey.currentState!
+          .showSnackBar(SnackBar(content: Text(message)));
+    } else if (message is Map) {
+      rootScaffoldMessengerKey.currentState!
+          .showSnackBar(SnackBar(content: Text(message[errorMessage])));
+    }
+  } catch (e) {
+    logger.w("showResultMessage error:$e");
   }
 }
 

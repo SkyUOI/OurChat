@@ -162,9 +162,7 @@ class _LoginState extends State<Login> {
                                   Navigator.pop(context);
                                   Navigator.push(context, MaterialPageRoute(
                                     builder: (context) {
-                                      return const Scaffold(
-                                        body: Home(),
-                                      );
+                                      return const Home();
                                     },
                                   ));
                                 }
@@ -293,9 +291,7 @@ class _RegisterState extends State<Register> {
                                 Navigator.pop(context);
                                 Navigator.push(context, MaterialPageRoute(
                                   builder: (context) {
-                                    return const Scaffold(
-                                      body: Home(),
-                                    );
+                                    return const Home();
                                   },
                                 ));
                               }
