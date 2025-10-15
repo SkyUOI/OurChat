@@ -40,7 +40,7 @@ void main() async {
 }
 
 class OurChatAppState extends ChangeNotifier {
-  int device = desktop;
+  int screenMode = desktop;
   OurChatServer? server;
   OurChatAccount? thisAccount;
   late database.PublicOurChatDatabase publicDB;
@@ -175,7 +175,7 @@ class _ControllerState extends State<Controller> {
       home: LayoutBuilder(
         builder: (context, constraints) {
           var l10n = AppLocalizations.of(context)!;
-          appState.device = (constraints.maxHeight < constraints.maxWidth)
+          appState.screenMode = (constraints.maxHeight < constraints.maxWidth)
               ? desktop
               : mobile; // 通过屏幕比例判断桌面端/移动端
           if (appState.config["recent_password"].isNotEmpty) {

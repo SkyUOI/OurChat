@@ -105,7 +105,7 @@ class _SessionState extends State<Session> {
           builder: (context, constraints) {
             Widget page = const Placeholder();
             // 匹配不同设备类型
-            if (appState.device == mobile) {
+            if (appState.screenMode == mobile) {
               if (sessionState.currentSession != null ||
                   sessionState.currentUserId != null) {
                 page = Column(
@@ -141,7 +141,7 @@ class _SessionState extends State<Session> {
               } else {
                 page = SessionList();
               }
-            } else if (appState.device == desktop) {
+            } else if (appState.screenMode == desktop) {
               page = Row(
                 children: [
                   Flexible(
@@ -1050,7 +1050,7 @@ class _SessionTabState extends State<SessionTab> {
 
   @override
   void dispose() {
-    if (ourchatAppState.device == mobile) {
+    if (ourchatAppState.screenMode == mobile) {
       ourchatAppState.eventSystem!.removeListener(
           FetchMsgsResponse_RespondEventType.msg, sessionState.receiveMsg);
     }
@@ -1061,7 +1061,7 @@ class _SessionTabState extends State<SessionTab> {
   Widget build(BuildContext context) {
     ourchatAppState = context.watch<OurChatAppState>();
     sessionState = context.watch<SessionState>();
-    if (!inited && ourchatAppState.device == mobile) {
+    if (!inited && ourchatAppState.screenMode == mobile) {
       ourchatAppState.eventSystem!.addListener(
           FetchMsgsResponse_RespondEventType.msg, sessionState.receiveMsg);
       sessionState.getSessions(ourchatAppState);

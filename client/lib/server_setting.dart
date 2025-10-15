@@ -299,7 +299,7 @@ class _ServerSettingState extends State<ServerSetting> {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            if (ourchatAppState.device == mobile) {
+            if (ourchatAppState.screenMode == mobile) {
               // 移动端，纵向展示
               return Padding(
                 padding: const EdgeInsets.all(20.0),

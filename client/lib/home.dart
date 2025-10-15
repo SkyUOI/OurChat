@@ -37,7 +37,7 @@ class _HomeState extends State<Home> {
 
     return Scaffold(body: SafeArea(
       child: LayoutBuilder(builder: (context, constraints) {
-        if (ourchatAppState.device == mobile) {
+        if (ourchatAppState.screenMode == mobile) {
           return Column(
             children: [
               Expanded(

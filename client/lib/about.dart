@@ -129,7 +129,7 @@ class _AboutState extends State<About> {
       },
       itemCount: donorsList.length,
     );
-    if (ourchatAppState.device == mobile) {
+    if (ourchatAppState.screenMode == mobile) {
       return SafeArea(
         child: DefaultTabController(
             length: 3,
