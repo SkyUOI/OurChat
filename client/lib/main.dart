@@ -16,6 +16,7 @@ import 'package:ourchat/launch.dart';
 import 'package:ourchat/auth.dart';
 import 'package:ourchat/home.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:tray_manager/tray_manager.dart';
 import 'dart:core';
 import 'dart:io';
 
@@ -34,7 +35,6 @@ void main() async {
   );
   windowManager.waitUntilReadyToShow(windowOptions, () async {
     await windowManager.show();
-    await windowManager.focus();
   });
   runApp(const MainApp());
 }
@@ -84,8 +84,27 @@ class Controller extends StatefulWidget {
   State<Controller> createState() => _ControllerState();
 }
 
-class _ControllerState extends State<Controller> {
+class _ControllerState extends State<Controller>
+    with WindowListener, TrayListener {
   bool logined = false;
+
+  @override
+  void initState() {
+    super.initState();
+    windowManager.addListener(this);
+    windowManager.setPreventClose(true);
+    trayManager.addListener(this);
+    trayManager.setIcon(Platform.isWindows
+        ? "assets/images/logo_without_text.ico"
+        : "assets/images/logo_without_text.png");
+  }
+
+  @override
+  void dispose() {
+    windowManager.removeListener(this);
+    trayManager.removeListener(this);
+    super.dispose();
+  }
 
   Future autoLogin(BuildContext context) async {
     logger.i("AUTO login");
@@ -175,6 +194,10 @@ class _ControllerState extends State<Controller> {
       home: LayoutBuilder(
         builder: (context, constraints) {
           var l10n = AppLocalizations.of(context)!;
+          trayManager.setContextMenu(Menu(items: [
+            MenuItem(key: "show", label: l10n.show("")),
+            MenuItem(key: "exit", label: l10n.exit)
+          ]));
           appState.device = (constraints.maxHeight < constraints.maxWidth)
               ? desktop
               : mobile; // 通过屏幕比例判断桌面端/移动端
@@ -209,5 +232,29 @@ class _ControllerState extends State<Controller> {
         ),
       ),
     );
+  }
+
+  @override
+  void onWindowClose() async {
+    windowManager.hide();
+    super.onWindowClose();
+  }
+
+  @override
+  void onTrayIconRightMouseDown() {
+    trayManager.popUpContextMenu();
+    super.onTrayIconRightMouseDown();
+  }
+
+  @override
+  void onTrayMenuItemClick(MenuItem menuItem) {
+    if (menuItem.key == "show") {
+      windowManager.show();
+      windowManager.focus();
+    } else if (menuItem.key == "exit") {
+      trayManager.destroy();
+      windowManager.destroy();
+    }
+    super.onTrayMenuItemClick(menuItem);
   }
 }

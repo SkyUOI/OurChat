@@ -77,9 +77,15 @@
     "@password": {
         "description": "Password"
     },
-    "showPassword": "Show password",
-    "@showPassword": {
-        "description": "Show password"
+    "show": "Show {sth}",
+    "@show": {
+        "placeholders": {
+            "sth": {
+                "type": "String",
+                "example": "Password"
+            }
+        },
+        "description": "Show sth"
     },
     "username": "username",
     "@username": {
@@ -368,5 +374,9 @@
     "autoLogin": "Auto Login",
     "@autoLogin": {
         "description": "Auto Login"
+    },
+    "exit": "Exit",
+    "@exit": {
+        "description": "Exit"
     }
 }
