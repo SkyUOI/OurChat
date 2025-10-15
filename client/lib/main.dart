@@ -15,6 +15,7 @@ import 'package:ourchat/core/log.dart';
 import 'package:ourchat/launch.dart';
 import 'package:ourchat/auth.dart';
 import 'package:ourchat/home.dart';
+import 'package:window_manager/window_manager.dart';
 import 'dart:core';
 import 'dart:io';
 
@@ -23,6 +24,18 @@ final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await windowManager.ensureInitialized();
+
+  WindowOptions windowOptions = const WindowOptions(
+    minimumSize: Size(900, 600),
+    center: true,
+    skipTaskbar: false,
+    title: "OurChat",
+  );
+  windowManager.waitUntilReadyToShow(windowOptions, () async {
+    await windowManager.show();
+    await windowManager.focus();
+  });
   runApp(const MainApp());
 }
 
