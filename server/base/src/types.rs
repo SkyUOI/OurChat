@@ -3,8 +3,8 @@
 use migration::m20241229_022701_add_role_for_session::{PredefinedPermissions, PredefinedRoles};
 use utils::impl_newtype_int;
 
-impl_newtype_int!(RoleId, i64,);
-impl_newtype_int!(PermissionId, i64,);
+impl_newtype_int!(RoleId, u64,);
+impl_newtype_int!(PermissionId, u64,);
 
 impl From<PredefinedRoles> for RoleId {
     fn from(value: PredefinedRoles) -> Self {
@@ -14,7 +14,7 @@ impl From<PredefinedRoles> for RoleId {
 
 impl From<RoleId> for sea_orm::Value {
     fn from(value: RoleId) -> Self {
-        sea_orm::Value::BigInt(Some(value.0))
+        sea_orm::Value::BigUnsigned(Some(value.0))
     }
 }
 
@@ -26,6 +26,6 @@ impl From<PredefinedPermissions> for PermissionId {
 
 impl From<PermissionId> for sea_orm::Value {
     fn from(value: PermissionId) -> Self {
-        sea_orm::Value::BigInt(Some(value.0))
+        sea_orm::Value::BigUnsigned(Some(value.0))
     }
 }

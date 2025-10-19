@@ -130,6 +130,7 @@ pub enum Role {
     CreatorId,
     Name,
     Description,
+    SessionId,
 }
 
 #[derive(DeriveIden)]
@@ -147,7 +148,7 @@ enum RolePermissions {
 }
 
 #[derive(num_enum::TryFromPrimitive, num_enum::IntoPrimitive)]
-#[repr(i64)]
+#[repr(u64)]
 pub enum PredefinedPermissions {
     SendMsg = 1,
     RecallMsg = 2,
@@ -166,7 +167,7 @@ pub enum PredefinedPermissions {
 }
 
 #[derive(num_enum::TryFromPrimitive, num_enum::IntoPrimitive)]
-#[repr(i64)]
+#[repr(u64)]
 pub enum PredefinedRoles {
     Member = 1,
     Admin = 2,
@@ -175,7 +176,7 @@ pub enum PredefinedRoles {
 
 impl From<PredefinedRoles> for Value {
     fn from(value: PredefinedRoles) -> Self {
-        Value::BigInt(Some(value.into()))
+        Value::BigUnsigned(Some(value.into()))
     }
 }
 

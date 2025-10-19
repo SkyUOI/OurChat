@@ -208,7 +208,7 @@ async fn get_session_info() {
     let roles: HashSet<(ID, RoleId)> = info
         .roles
         .into_iter()
-        .map(|x| (x.user_id.into(), RoleId(x.role)))
+        .map(|x| (x.user_id.into(), RoleId(x.role as u64)))
         .collect();
     assert_eq!(
         roles,

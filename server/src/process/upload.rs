@@ -223,6 +223,7 @@ async fn upload_impl(
             tracing::trace!("received size:{}, expected size {}", metadata.size, sz);
             return Err(UploadError::FileSizeError);
         }
+        #[allow(deprecated)]
         if hash.as_slice() != metadata.hash {
             tracing::trace!(
                 "received hash:{:?}, expected hash {:?}",

@@ -1,6 +1,6 @@
 use crate::process::error_msg::{ROLE_NAME_EMPTY, SERVER_ERROR};
 use crate::server::RpcServer;
-use base::consts::ID;
+use base::consts::{ID, SessionID};
 use pb::service::ourchat::session::add_role::v1::{AddRoleRequest, AddRoleResponse};
 use sea_orm::{ActiveModelTrait, ActiveValue, EntityTrait, TransactionTrait};
 use tonic::{Request, Response, Status};
@@ -38,6 +38,7 @@ async fn add_role_impl(
     request: Request<AddRoleRequest>,
 ) -> Result<AddRoleResponse, AddRoleErr> {
     let req = request.into_inner();
+    let session_id: SessionID = req.session_id.into();
 
     // validate name
     if req.name.trim().is_empty() {
@@ -54,6 +55,7 @@ async fn add_role_impl(
         creator_id: ActiveValue::Set(Some(id.into())),
         description: ActiveValue::Set(req.description),
         name: ActiveValue::Set(req.name),
+        session_id: ActiveValue::Set(Some(session_id.into())),
         ..Default::default()
     };
 
@@ -63,7 +65,7 @@ async fn add_role_impl(
     entities::role_permissions::Entity::insert_many(req.permissions.into_iter().map(|x| {
         entities::role_permissions::ActiveModel {
             role_id: ActiveValue::Set(role.id),
-            permission_id: ActiveValue::Set(x),
+            permission_id: ActiveValue::Set(x as i64),
         }
     }))
     .exec(&txn)
@@ -72,6 +74,8 @@ async fn add_role_impl(
     // commit transaction
     txn.commit().await?;
 
-    let res = AddRoleResponse { role_id: role.id };
+    let res = AddRoleResponse {
+        role_id: role.id as u64,
+    };
     Ok(res)
 }

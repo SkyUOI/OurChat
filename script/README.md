@@ -27,15 +27,15 @@ The first argument is the test flag(default is `--release`).The second one is th
 
 Build production docker container
 
-### `push_docker_images.py`
-
-Push docker images to docker hub
-
 ## Client Usage
 
 ### `generate.pb.dart.py`
 
 Run this script to generate dart protobuf files.
+
+### `generate_about_code.py`
+
+This script is to fetch the contributors and donors to compose the about page in client.
 
 ## Daily
 

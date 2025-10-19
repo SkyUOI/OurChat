@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package service.ourchat.session.get_role.v1;
+
+message GetRoleRequest {
+  uint64 role_id = 1;
+}
+
+message GetRoleResponse {
+  optional string description = 1;
+  repeated uint64 permissions = 2;
+  string name = 3;
+  // null is for builtin role
+  optional uint64 session_id = 4;
+}

@@ -250,6 +250,7 @@ impl TestUser {
         let hash = hasher.finalize();
         let mut files_content = vec![UploadRequest::new_header(
             size,
+            #[allow(deprecated)]
             bytes::Bytes::copy_from_slice(hash.as_slice()),
             false,
         )];

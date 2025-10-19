@@ -8,6 +8,7 @@ pub mod not_found {
     pub const SESSION_INVITATION: &str = "Session Invitation Not Found";
     pub const FRIEND: &str = "Friend Not Found";
     pub const FRIEND_INVITATION: &str = "Friend Invitation Not Found";
+    pub const ROLE: &str = "Role Not Found";
 }
 
 pub mod exist {
@@ -28,6 +29,7 @@ pub mod invalid {
 pub const SERVER_ERROR: &str = "Server Error";
 pub const PERMISSION_DENIED: &str = "Permission Denied";
 pub const REQUEST_INVALID_VALUE: &str = "Request Invalid Value";
+pub const NOT_IN_SESSION: &str = "Not In Session";
 pub const CONFLICT: &str = "Conflict";
 pub const MAINTAINING: &str = "Server Maintaining";
 pub const MUTE: &str = "User Muted";

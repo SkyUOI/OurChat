@@ -1,7 +1,4 @@
-use std::{
-    path::{Path, PathBuf},
-    time::Duration,
-};
+use std::{path::PathBuf, time::Duration};
 
 use anyhow::bail;
 use serde::{Deserialize, Serialize};
@@ -16,7 +13,7 @@ use base::{
     setting::{self, PathConvert, Setting, UserSetting, debug::DebugCfg},
 };
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, derive::PathConvert)]
 pub struct MainCfg {
     pub redis_cfg: PathBuf,
     pub db_cfg: PathBuf,
@@ -204,28 +201,5 @@ impl Cfg {
             user_setting,
             http_cfg,
         })
-    }
-}
-
-impl PathConvert for MainCfg {
-    /// convert config paths to absolute path
-    ///
-    /// the base path is the first config file's parent directory
-    ///
-    /// the paths to be converted:
-    ///
-    /// - `redis_cfg`
-    /// - `db_cfg`
-    /// - `rabbitmq_cfg`
-    /// - `user_setting`
-    fn convert_to_abs_path(&mut self, full_basepath: &Path) -> anyhow::Result<()> {
-        self.redis_cfg = utils::resolve_relative_path(full_basepath, Path::new(&self.redis_cfg))?;
-        self.db_cfg = utils::resolve_relative_path(full_basepath, Path::new(&self.db_cfg))?;
-        self.rabbitmq_cfg =
-            utils::resolve_relative_path(full_basepath, Path::new(&self.rabbitmq_cfg))?;
-        self.user_setting =
-            utils::resolve_relative_path(full_basepath, Path::new(&self.user_setting))?;
-        self.http_cfg = utils::resolve_relative_path(full_basepath, Path::new(&self.http_cfg))?;
-        Ok(())
     }
 }

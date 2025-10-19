@@ -31,6 +31,7 @@ mod m20250710_090847_add_session_id_to_friend_relation;
 mod m20250712_025238_add_e2eeize_and_dee2eeize_session_permission;
 mod m20250714_000446_session_invitation;
 mod m20250924_053530_webrtc_room;
+mod m20251012_075804_role_session_relate;
 
 pub struct Migrator;
 
@@ -73,6 +74,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20250712_025238_add_e2eeize_and_dee2eeize_session_permission::Migration),
             Box::new(m20250714_000446_session_invitation::Migration),
             Box::new(m20250924_053530_webrtc_room::Migration),
+            Box::new(m20251012_075804_role_session_relate::Migration),
         ]
     }
 }

@@ -55,6 +55,12 @@ pub mod session {
         }
     }
 
+    pub mod get_role {
+        pub mod v1 {
+            include!("../generated/service.ourchat.session.get_role.v1.rs");
+        }
+    }
+
     pub mod mute {
         pub mod v1 {
             include!("../generated/service.ourchat.session.mute.v1.rs");

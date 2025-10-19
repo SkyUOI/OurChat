@@ -250,7 +250,7 @@ pub async fn join_in_session(
         return Err(SessionError::SessionNotFound);
     };
     let size = session_info.size;
-    let default_role = RoleId(session_info.default_role);
+    let default_role = RoleId(session_info.default_role as u64);
     let mut session_info: session::ActiveModel = session_info.into();
     session_info.size = ActiveValue::Set(size + 1);
     session_info.update(db_conn).await?;
@@ -265,7 +265,7 @@ pub async fn join_in_session(
     let role_relation = user_role_relation::ActiveModel {
         user_id: ActiveValue::Set(id.into()),
         session_id: ActiveValue::Set(session_id.into()),
-        role_id: ActiveValue::Set(role.unwrap_or(default_role).0),
+        role_id: ActiveValue::Set(role.unwrap_or(default_role).0 as i64),
     };
     role_relation.insert(db_conn).await?;
     // Modify the info update time

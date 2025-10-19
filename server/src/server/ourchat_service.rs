@@ -5,6 +5,7 @@ use pb::service::ourchat::session::e2eeize_and_dee2eeize_session::v1::{
     Dee2eeizeSessionRequest, Dee2eeizeSessionResponse, E2eeizeSessionRequest,
     E2eeizeSessionResponse,
 };
+use pb::service::ourchat::session::get_role::v1::{GetRoleRequest, GetRoleResponse};
 use pb::service::ourchat::session::invite_user_to_session::v1::{
     InviteUserToSessionRequest, InviteUserToSessionResponse,
 };
@@ -243,6 +244,16 @@ impl OurChatService for RpcServer {
         let id = get_id_from_req(&request).unwrap();
         self.check_account_status(id).await?;
         process::add_role(self, id, request).await
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn get_role(
+        &self,
+        request: Request<GetRoleRequest>,
+    ) -> Result<Response<GetRoleResponse>, Status> {
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::get_role(self, id, request).await
     }
 
     /// Mute a user in a session

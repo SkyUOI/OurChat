@@ -4,10 +4,12 @@ package service.ourchat.session.add_role.v1;
 
 message AddRoleRequest {
   optional string description = 1;
-  repeated int64 permissions = 2;
+  repeated uint64 permissions = 2;
   string name = 3;
+  // the session it belongs to
+  uint64 session_id = 4;
 }
 
 message AddRoleResponse {
-  int64 role_id = 1;
+  uint64 role_id = 1;
 }

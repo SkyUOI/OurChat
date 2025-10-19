@@ -21,10 +21,7 @@ use rustls::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::Duration;
-use std::{
-    net::SocketAddr,
-    path::{Path, PathBuf},
-};
+use std::{net::SocketAddr, path::PathBuf};
 use tokio::{select, signal};
 use tokio_stream::StreamExt;
 use tower::ServiceBuilder;
@@ -339,7 +336,7 @@ impl Default for HttpServer {
     }
 }
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug, derive::PathConvert)]
 pub struct HttpCfg {
     #[serde(default = "base::consts::default_ip")]
     pub ip: String,
@@ -387,16 +384,6 @@ impl Default for RateLimitCfg {
 }
 
 impl base::setting::Setting for HttpCfg {}
-impl base::setting::PathConvert for HttpCfg {
-    fn convert_to_abs_path(&mut self, full_basepath: &Path) -> anyhow::Result<()> {
-        self.logo_path = utils::resolve_relative_path(full_basepath, &self.logo_path)?;
-        self.email_cfg = match &self.email_cfg {
-            Some(email_cfg) => Some(utils::resolve_relative_path(full_basepath, email_cfg)?),
-            None => None,
-        };
-        Ok(())
-    }
-}
 
 impl HttpCfg {
     pub fn protocol_http(&self) -> &'static str {
