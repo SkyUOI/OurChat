@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:ourchat/core/database.dart' as database;
@@ -22,6 +24,9 @@ import 'dart:io';
 
 final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
+Timer flashTrayTimer = Timer.periodic(Duration.zero, (_) {});
+bool trayStatus = true, isFlashing = false;
+// true means icon is normal, false means icon is empty
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -59,6 +64,39 @@ class OurChatAppState extends ChangeNotifier {
 
   void update() {
     notifyListeners();
+  }
+}
+
+void changeTrayIcon() {
+  if (trayStatus) {
+    trayManager.setIcon(Platform.isWindows
+        ? "assets/images/empty.ico"
+        : "assets/images/empty.png");
+  } else {
+    trayManager.setIcon(Platform.isWindows
+        ? "assets/images/logo_without_text.ico"
+        : "assets/images/logo_without_text.png");
+  }
+  trayStatus = !trayStatus;
+}
+
+void startFlashTray() {
+  if (isFlashing) {
+    return;
+  }
+  flashTrayTimer =
+      Timer.periodic(Duration(milliseconds: 500), (_) => changeTrayIcon());
+  isFlashing = true;
+}
+
+void stopFlashTray() {
+  if (isFlashing = false) {
+    flashTrayTimer.cancel();
+    trayStatus = true;
+    trayManager.setIcon(Platform.isWindows
+        ? "assets/images/logo_without_text.ico"
+        : "assets/images/logo_without_text.png");
+    isFlashing = false;
   }
 }
 
@@ -251,10 +289,19 @@ class _ControllerState extends State<Controller>
     if (menuItem.key == "show") {
       windowManager.show();
       windowManager.focus();
+      stopFlashTray();
     } else if (menuItem.key == "exit") {
       trayManager.destroy();
       windowManager.destroy();
     }
     super.onTrayMenuItemClick(menuItem);
+  }
+
+  @override
+  void onTrayIconMouseDown() {
+    windowManager.show();
+    windowManager.focus();
+    stopFlashTray();
+    super.onTrayIconMouseDown();
   }
 }
