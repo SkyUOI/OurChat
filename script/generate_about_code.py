@@ -86,13 +86,17 @@ with open("./client/lib/about.dart", "w", encoding="utf-8") as f:
     f.write(
         f"const List<Map<String, String>> contributorsList = {json.dumps(get_github_contributors(), ensure_ascii=False)};\n"
     )
-    print(
-        "write "
-        + f"const List<Map<String, String>> donorsList = {json.dumps(get_afdian_donors(USERID=args.afdian_userid, TOKEN=args.afdian_token), ensure_ascii=False)};"
-    )
-    f.write(
-        f"const List<Map<String, String>> donorsList = {json.dumps(get_afdian_donors(USERID=args.afdian_userid, TOKEN=args.afdian_token), ensure_ascii=False)};\n"
-    )
+    if args.afdian_userid and args.afdian_token:
+        print(
+            "write "
+            + f"const List<Map<String, String>> donorsList = {json.dumps(get_afdian_donors(USERID=args.afdian_userid, TOKEN=args.afdian_token), ensure_ascii=False)};"
+        )
+        f.write(
+            f"const List<Map<String, String>> donorsList = {json.dumps(get_afdian_donors(USERID=args.afdian_userid, TOKEN=args.afdian_token), ensure_ascii=False)};\n"
+        )
+    else:
+        print("write const List<Map<String, String>> donorsList = [];")
+        f.write("const List<Map<String, String>> donorsList = [];\n")
     print("write " + f'const version = "{args.version}";')
     f.write(f'const version = "{args.version}";\n')
     print("write " + f'const commitSha = "{args.commit_sha}";')
