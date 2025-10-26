@@ -61,7 +61,7 @@ async-trait = { version = "0" }
 
 # Grpc
 prost = { version = "0.14.1" }
-jsonwebtoken = "9.3.1"
+jsonwebtoken = "10.1.0"
 tower = { version = "0", features = ["full"] }
 
 linkify = "0"
