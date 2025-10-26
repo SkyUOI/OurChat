@@ -87,6 +87,14 @@ class OurChatAccount {
   }
 
   Future getAccountInfo({bool ignoreCache = false}) async {
+    if (ourchatAppState.gettingInfoAccountList.contains(id)) {
+      while (ourchatAppState.gettingInfoAccountList.contains(id)) {
+        await Future.delayed(Duration(milliseconds: 100));
+      }
+      await getAccountInfo(ignoreCache: ignoreCache);
+      return;
+    }
+    ourchatAppState.gettingInfoAccountList.add(id);
     if (ourchatAppState.accountCachePool.containsKey(id)) {
       OurChatAccount accountCache = ourchatAppState.accountCachePool[id]!;
       if (!ignoreCache &&
@@ -107,6 +115,7 @@ class OurChatAccount {
           friends = accountCache.friends;
           sessions = accountCache.sessions;
         }
+        ourchatAppState.gettingInfoAccountList.remove(id);
         return;
       }
     }
@@ -174,7 +183,6 @@ class OurChatAccount {
       }
       registerTime = OurChatTime(inputDatetime: privateData.registerTime);
     }
-
     if (publicDataNeedUpdate) await updatePublicData(publicData != null);
     if (privateDataNeedUpdate) {
       await updatePrivateData(privateData != null);
@@ -188,6 +196,7 @@ class OurChatAccount {
     }
     lastCheckTime = DateTime.now();
     ourchatAppState.accountCachePool[id] = this;
+    ourchatAppState.gettingInfoAccountList.remove(id);
     logger.d("save account info to cache");
   }
 

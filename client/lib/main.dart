@@ -49,6 +49,7 @@ class OurChatAppState extends ChangeNotifier {
   OurChatConfig config;
   Map<Int64, OurChatAccount> accountCachePool = {};
   Map<Int64, OurChatSession> sessionCachePool = {};
+  List<Int64> gettingInfoAccountList = [], gettingInfoSessionList = [];
 
   OurChatAppState() : config = OurChatConfig() {
     logger.i("init OurChat");

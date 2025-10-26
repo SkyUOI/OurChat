@@ -4,6 +4,7 @@ import 'package:fixnum/fixnum.dart';
 import 'package:ourchat/core/account.dart';
 import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/core/database.dart';
+import 'package:ourchat/core/log.dart';
 import 'package:ourchat/core/server.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/service/ourchat/session/get_session_info/v1/get_session_info.pb.dart';
@@ -19,7 +20,7 @@ class OurChatSession {
   late String? avatarKey;
   late OurChatTime createdTime, updatedTime;
   late List<Int64> members = [];
-  late Map<Int64, int> roles = {};
+  late Map<Int64, Int64> roles = {};
   late int size;
   String? displayName;
   DateTime lastCheckTime = DateTime(0);
@@ -31,6 +32,14 @@ class OurChatSession {
   }
 
   Future getSessionInfo({bool ignoreCache = false}) async {
+    if (ourchatAppState.gettingInfoSessionList.contains(sessionId)) {
+      while (ourchatAppState.gettingInfoSessionList.contains(sessionId)) {
+        await Future.delayed(Duration(milliseconds: 100));
+      }
+      getSessionInfo(ignoreCache: ignoreCache);
+      return;
+    }
+    ourchatAppState.gettingInfoSessionList.add(sessionId);
     if (ourchatAppState.sessionCachePool.keys.contains(sessionId)) {
       OurChatSession sessionCache =
           ourchatAppState.sessionCachePool[sessionId]!;
@@ -48,6 +57,7 @@ class OurChatSession {
         description = sessionCache.description;
         lastCheckTime = sessionCache.lastCheckTime;
         displayName = sessionCache.displayName;
+        ourchatAppState.gettingInfoSessionList.remove(sessionId);
         return;
       }
     }
@@ -59,9 +69,6 @@ class OurChatSession {
     bool publicNeedUpdate = false, privateNeedUpdate = false;
     if (localSessionData == null) {
       publicNeedUpdate = true;
-      privateNeedUpdate =
-          ourchatAppState.thisAccount!.sessions.contains(sessionId) &&
-              publicNeedUpdate;
     } else {
       GetSessionInfoResponse res = await stub.getSessionInfo(
           GetSessionInfoRequest(sessionId: sessionId, queryValues: [
@@ -69,10 +76,10 @@ class OurChatSession {
       ]));
       publicNeedUpdate = (OurChatTime(inputTimestamp: res.updatedTime) !=
           OurChatTime(inputDatetime: localSessionData.updatedTime));
-      privateNeedUpdate =
-          ourchatAppState.thisAccount!.sessions.contains(sessionId) &&
-              publicNeedUpdate;
     }
+    privateNeedUpdate =
+        ourchatAppState.thisAccount!.sessions.contains(sessionId) &&
+            publicNeedUpdate;
 
     if (publicNeedUpdate) {
       GetSessionInfoResponse res = await stub.getSessionInfo(
@@ -125,7 +132,8 @@ class OurChatSession {
     var localSessionPrivateData = await (privateDB.select(privateDB.session)
           ..where((u) => u.sessionId.equals(BigInt.from(sessionId.toInt()))))
         .getSingleOrNull();
-    if (localSessionPrivateData == null) {
+    if (localSessionPrivateData == null &&
+        ourchatAppState.thisAccount!.sessions.contains(sessionId)) {
       privateNeedUpdate = true;
     }
     if (privateNeedUpdate) {
@@ -136,14 +144,15 @@ class OurChatSession {
       ]));
       members = res.members;
       for (int i = 0; i < res.roles.length; i++) {
-        roles[res.roles[i].userId] = res.roles[i].role.toInt();
+        roles[res.roles[i].userId] = res.roles[i].role;
       }
+
       var intMembers = [];
       for (int i = 0; i < members.length; i++) {
         intMembers.add(members[i].toInt());
       }
       var jsonRoles = {};
-      roles.forEach((key, value) => jsonRoles[key.toString()] = value);
+      roles.forEach((key, value) => jsonRoles[key.toString()] = value.toInt());
       if (localSessionPrivateData == null) {
         privateDB.into(privateDB.session).insert(SessionData(
             sessionId: BigInt.from(sessionId.toInt()),
@@ -167,7 +176,8 @@ class OurChatSession {
       for (int i = 0; i < intMembers.length; i++) {
         members.add(Int64.parseInt(intMembers[i].toString()));
       }
-      intRoles.forEach((key, value) => roles[Int64.parseInt(key)] = value);
+      intRoles.forEach((key, value) =>
+          roles[Int64.parseInt(key)] = Int64.parseInt(value.toString()));
     }
 
     if (members.length == 2) {
@@ -179,8 +189,11 @@ class OurChatSession {
       await otherAccount.getAccountInfo();
       displayName = otherAccount.displayName;
     }
+
     lastCheckTime = DateTime.now();
     ourchatAppState.sessionCachePool[sessionId] = this;
+    ourchatAppState.gettingInfoSessionList.remove(sessionId);
+    logger.d("save session info to cache");
   }
 
   @override
