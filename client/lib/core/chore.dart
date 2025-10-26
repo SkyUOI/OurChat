@@ -261,6 +261,13 @@ class UserAvatar extends StatelessWidget {
               child: CachedNetworkImage(
                 imageUrl: imageUrl,
                 fit: BoxFit.cover,
+                errorWidget: (context, url, error) {
+                  return Icon(
+                    Icons.account_circle,
+                    size: size,
+                    color: Theme.of(context).disabledColor,
+                  );
+                },
               ),
             ),
           ),
