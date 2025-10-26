@@ -29,13 +29,13 @@ jobs:
   mac_test:
     needs: pre_job
     if: needs.pre_job.outputs.should_skip != 'true'
-    runs-on: macos-13
+    runs-on: macos-15
 
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@nightly
       - name: Setup Docker on macOS
-        uses: douglascamata/setup-docker-macos-action@v1.0.0
+        uses: douglascamata/setup-docker-macos-action@main
       - name: Install Protoc
         uses: arduino/setup-protoc@v3
         with:
