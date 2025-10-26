@@ -1,10 +1,8 @@
-import 'dart:async';
-
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:ourchat/core/database.dart' as database;
 import 'package:ourchat/core/session.dart';
-import 'core/account.dart';
+import 'package:ourchat/core/account.dart';
 import 'package:provider/provider.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
 import 'package:ourchat/core/const.dart';
@@ -21,6 +19,7 @@ import 'package:window_manager/window_manager.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'dart:core';
 import 'dart:io';
+import 'dart:async';
 
 final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
