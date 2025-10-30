@@ -9,7 +9,7 @@ plugins {
 
 android {
     ndkVersion = "27.0.12077973"
-    namespace = "com.skyuoi.ourchat"
+    namespace = "org.skyuoi.ourchat"
     compileSdk = flutter.compileSdkVersion
 
     compileOptions {
@@ -42,7 +42,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.skyuoi.ourchat"
+        applicationId = "org.skyuoi.ourchat"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

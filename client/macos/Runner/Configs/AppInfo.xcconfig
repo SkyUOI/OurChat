@@ -8,7 +8,7 @@
 PRODUCT_NAME = OurChat
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.skyuoi.ourchat
+PRODUCT_BUNDLE_IDENTIFIER = org.skyuoi.ourchat
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2024 com.skyuoi. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2024 org.skyuoi. All rights reserved.

@@ -1,4 +1,4 @@
-package com.skyuoi.ourchat
+package org.skyuoi.ourchat
 
 import io.flutter.embedding.android.FlutterActivity
 
