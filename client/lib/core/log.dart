@@ -30,7 +30,12 @@ Future<void> constructLogger(Level logLevel) async {
   file.openWrite(mode: FileMode.writeOnlyAppend);
   logger = Logger(
       output: MultiOutput([FileOutput(file: file), ConsoleOutput()]),
-      level: logLevel);
+      level: logLevel,
+      printer: PrettyPrinter(
+        dateTimeFormat: (time) {
+          return "${time.year}-${time.month}-${time.day} ${time.hour}:${time.minute}:${time.second}.${time.millisecond}";
+        },
+      ));
   logger.i("Logger has been initialized successfully, File ${path.path}");
 }
 
