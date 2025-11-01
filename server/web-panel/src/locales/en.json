@@ -44,5 +44,6 @@
   "usernameRequired": "Username is required",
   "passwordRequired": "Password is required",
   "loginSuccess": "Login successful",
-  "allRightsReserved": "All rights reserved"
+  "allRightsReserved": "All rights reserved",
+  "serverSettings": "Server Settings"
 }

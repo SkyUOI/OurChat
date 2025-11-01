@@ -1,13 +1,12 @@
 import { defineStore } from 'pinia'
 import { OurChatServiceClient } from '../api/service/ourchat/v1/OurchatServiceClientPb'
-import { computed, type Ref } from 'vue'
+import { computed, ref, type Ref } from 'vue'
 
-export var BackendIp: null | Ref<string> = null
-export var BackendPort: null | Ref<string> = null
+export const BackendIp: Ref<string> = ref("localhost")
+export const BackendPort: Ref<number> = ref(7777)
 
 export const useGrpcStore = defineStore('grpc', () => {
-  let backendConn = computed(() => {
-    if (BackendIp == null || BackendPort == null) return null
+  const backendConn = computed(() => {
     return new OurChatServiceClient(BackendIp.value + ':' + BackendPort.value)
   })
   return { backendConn }

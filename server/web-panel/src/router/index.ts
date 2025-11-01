@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory, type RouteLocationNormalized } from 'vue-router'
 import Dashboard from '@/views/DashboardView.vue'
 
-// 检查token是否存在
+// Check if token exists
 const hasToken = (): boolean => {
   return !!localStorage.getItem('token')
 }
@@ -49,9 +49,9 @@ const router = createRouter({
   routes,
 })
 
-// 添加路由守卫
-router.beforeEach((to: RouteLocationNormalized, from: RouteLocationNormalized) => {
-  // 如果目标路由不是登录页且没有token，则重定向到登录页
+// Add route gurantee
+router.beforeEach((to: RouteLocationNormalized, _from: RouteLocationNormalized) => {
+  // Without token, redirect to Login page
   if (to.name !== 'Login' && !hasToken()) {
     return { name: 'Login' }
   }

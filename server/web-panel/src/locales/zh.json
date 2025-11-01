@@ -44,5 +44,6 @@
   "usernameRequired": "请输入用户名",
   "passwordRequired": "请输入密码",
   "loginSuccess": "登录成功",
-  "allRightsReserved": "版权所有"
+  "allRightsReserved": "版权所有",
+  "serverSettings": "服务器设置"
 }

@@ -1,10 +1,10 @@
 <template>
   <div
-    class="flex justify-center items-center min-h-screen bg-gradient-to-br from-[#f5f7fa] to-[#c3cfe2] p-5"
+    class="flex justify-center items-center min-h-screen bg-linear-to-br from-[#f5f7fa] to-[#c3cfe2] p-5"
   >
     <el-card class="w-full max-w-md rounded-lg shadow-lg">
       <div class="text-center mb-6">
-        <img src="../../assets/logo.png" alt="Logo" class="w-20 h-20 mx-auto mb-4" />
+        <!-- <img src="../assets/logo.png" alt="Logo" class="w-20 h-20 mx-auto mb-4" /> -->
         <h2 class="text-2xl font-bold">{{ $t('adminLogin') }}</h2>
       </div>
 
@@ -43,11 +43,17 @@
           <el-link type="primary">{{ $t('forgotPassword') }}</el-link>
         </div>
       </el-form>
+      <el-tooltip :content="$t('serverSettings')" placement="bottom">
+        <el-button :icon="Setting" @click="settingPanelVisible = true" />
+      </el-tooltip>
     </el-card>
+
+    <el-dialog v-model="settingPanelVisible" :title="$t('serverSettings')"> </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
+import { Setting } from '@element-plus/icons-vue'
 import { ElMessage, type ElForm } from 'element-plus'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -66,6 +72,7 @@ const loginRules = {
   password: [{ required: true, message: t('passwordRequired'), trigger: 'blur' }],
 }
 const router = useRouter()
+const settingPanelVisible = ref(false)
 
 const handleLogin = () => {
   loginFormRef.value?.validate((valid) => {
