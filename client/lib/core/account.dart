@@ -43,6 +43,7 @@ class OurChatAccount {
   Future login(String password, String? ocid, String? email) async {
     AuthServiceClient authStub = AuthServiceClient(server.channel!);
     try {
+      logger.d("login");
       var res = await authStub.auth(
         AuthRequest(email: email, ocid: ocid, password: password),
       );
@@ -62,8 +63,8 @@ class OurChatAccount {
 
   Future register(String password, String name, String email) async {
     AuthServiceClient authStub = AuthServiceClient(server.channel!);
-
     try {
+      logger.d("register");
       var res = await authStub.register(
         RegisterRequest(
           email: email,
@@ -87,6 +88,7 @@ class OurChatAccount {
   }
 
   Future getAccountInfo({bool ignoreCache = false}) async {
+    logger.d("get account info for id: ${id.toString()}");
     if (ourchatAppState.gettingInfoAccountList.contains(id)) {
       while (ourchatAppState.gettingInfoAccountList.contains(id)) {
         await Future.delayed(Duration(milliseconds: 100));
@@ -120,6 +122,7 @@ class OurChatAccount {
       }
     }
 
+    List<QueryValues> requestValues = [];
     PublicOurChatDatabase db = ourchatAppState.publicDB;
     OurChatDatabase pdb = ourchatAppState.privateDB!;
     if (ourchatAppState.thisAccount != null &&
@@ -136,6 +139,7 @@ class OurChatAccount {
     if (publicData == null) {
       publicDataNeedUpdate = true;
     } else {
+      logger.d("get account public updated time");
       GetAccountInfoResponse res = await stub.getAccountInfo(
           GetAccountInfoRequest(
               id: id,
@@ -159,6 +163,7 @@ class OurChatAccount {
         privateDataNeedUpdate = true;
       }
     } else {
+      logger.d("get account private updated time");
       GetAccountInfoResponse res = await stub.getAccountInfo(
           GetAccountInfoRequest(
               id: id, requestValues: [QueryValues.QUERY_VALUES_UPDATED_TIME]));
@@ -183,32 +188,54 @@ class OurChatAccount {
       }
       registerTime = OurChatTime(inputDatetime: privateData.registerTime);
     }
-    if (publicDataNeedUpdate) await updatePublicData(publicData != null);
+
+    if (publicDataNeedUpdate) {
+      requestValues.addAll([
+        QueryValues.QUERY_VALUES_AVATAR_KEY,
+        QueryValues.QUERY_VALUES_USER_NAME,
+        QueryValues.QUERY_VALUES_PUBLIC_UPDATED_TIME,
+        QueryValues.QUERY_VALUES_STATUS,
+        QueryValues.QUERY_VALUES_OCID
+      ]);
+    }
     if (privateDataNeedUpdate) {
-      await updatePrivateData(privateData != null);
+      requestValues.addAll([
+        QueryValues.QUERY_VALUES_UPDATED_TIME,
+        QueryValues.QUERY_VALUES_SESSIONS,
+        QueryValues.QUERY_VALUES_FRIENDS,
+        QueryValues.QUERY_VALUES_EMAIL,
+        QueryValues.QUERY_VALUES_REGISTER_TIME,
+      ]);
+    }
+    if (publicDataNeedUpdate ||
+        privateDataNeedUpdate ||
+        ourchatAppState.thisAccount!.friends.contains(id)) {
+      logger.d("get account info");
+      GetAccountInfoResponse res = await stub.getAccountInfo(
+          GetAccountInfoRequest(id: id, requestValues: requestValues));
+      if (publicDataNeedUpdate) {
+        await updatePublicData(res, publicData != null);
+      }
+      if (privateDataNeedUpdate) {
+        await updatePrivateData(res, privateData != null);
+      }
+      if (ourchatAppState.thisAccount!.friends.contains(id)) {
+        // get displayname
+        logger.d("get account display_name info");
+        res = await stub.getAccountInfo(GetAccountInfoRequest(
+            id: id, requestValues: [QueryValues.QUERY_VALUES_DISPLAY_NAME]));
+        displayName = res.displayName;
+      }
     }
 
-    if (ourchatAppState.thisAccount!.friends.contains(id)) {
-      // get displayname
-      var res = await stub.getAccountInfo(GetAccountInfoRequest(
-          id: id, requestValues: [QueryValues.QUERY_VALUES_DISPLAY_NAME]));
-      displayName = res.displayName;
-    }
     lastCheckTime = DateTime.now();
     ourchatAppState.accountCachePool[id] = this;
     ourchatAppState.gettingInfoAccountList.remove(id);
     logger.d("save account info to cache");
   }
 
-  Future updatePublicData(bool isDataExist) async {
-    GetAccountInfoResponse res =
-        await stub.getAccountInfo(GetAccountInfoRequest(id: id, requestValues: [
-      QueryValues.QUERY_VALUES_AVATAR_KEY,
-      QueryValues.QUERY_VALUES_USER_NAME,
-      QueryValues.QUERY_VALUES_PUBLIC_UPDATED_TIME,
-      QueryValues.QUERY_VALUES_STATUS,
-      QueryValues.QUERY_VALUES_OCID
-    ]));
+  Future updatePublicData(GetAccountInfoResponse res, bool isDataExist) async {
+    logger.d("get account public info");
     avatarKey = res.avatarKey;
     username = res.userName;
     publicUpdateTime = OurChatTime(inputTimestamp: res.publicUpdatedTime);
@@ -237,19 +264,8 @@ class OurChatAccount {
     }
   }
 
-  Future updatePrivateData(bool isDataExist) async {
-    var res = await stub.getAccountInfo(
-      GetAccountInfoRequest(
-        id: id,
-        requestValues: [
-          QueryValues.QUERY_VALUES_UPDATED_TIME,
-          QueryValues.QUERY_VALUES_SESSIONS,
-          QueryValues.QUERY_VALUES_FRIENDS,
-          QueryValues.QUERY_VALUES_EMAIL,
-          QueryValues.QUERY_VALUES_REGISTER_TIME,
-        ],
-      ),
-    );
+  Future updatePrivateData(GetAccountInfoResponse res, bool isDataExist) async {
+    logger.d("update account private info");
     updatedTime = OurChatTime(inputTimestamp: res.updatedTime);
     email = res.email;
     friends = res.friends;

@@ -32,6 +32,7 @@ class OurChatSession {
   }
 
   Future getSessionInfo({bool ignoreCache = false}) async {
+    logger.d("get session info for id: ${sessionId.toString()}");
     if (ourchatAppState.gettingInfoSessionList.contains(sessionId)) {
       while (ourchatAppState.gettingInfoSessionList.contains(sessionId)) {
         await Future.delayed(Duration(milliseconds: 100));
@@ -62,6 +63,7 @@ class OurChatSession {
       }
     }
 
+    List<QueryValues> queryValues = [];
     var localSessionData = await (ourchatAppState.publicDB
             .select(ourchatAppState.publicDB.publicSession)
           ..where((u) => u.sessionId.equals(BigInt.from(sessionId.toInt()))))
@@ -70,6 +72,7 @@ class OurChatSession {
     if (localSessionData == null) {
       publicNeedUpdate = true;
     } else {
+      logger.d("get session updated time");
       GetSessionInfoResponse res = await stub.getSessionInfo(
           GetSessionInfoRequest(sessionId: sessionId, queryValues: [
         QueryValues.QUERY_VALUES_UPDATED_TIME,
@@ -82,15 +85,53 @@ class OurChatSession {
             publicNeedUpdate;
 
     if (publicNeedUpdate) {
-      GetSessionInfoResponse res = await stub.getSessionInfo(
-          GetSessionInfoRequest(sessionId: sessionId, queryValues: [
+      logger.d("get session public info");
+      queryValues.addAll([
         QueryValues.QUERY_VALUES_NAME,
         QueryValues.QUERY_VALUES_AVATAR_KEY,
         QueryValues.QUERY_VALUES_CREATED_TIME,
         QueryValues.QUERY_VALUES_UPDATED_TIME,
         QueryValues.QUERY_VALUES_SIZE,
         QueryValues.QUERY_VALUES_DESCRIPTION,
-      ]));
+      ]);
+    } else {
+      name = localSessionData!.name;
+      avatarKey = localSessionData.avatarKey;
+      createdTime = OurChatTime(inputDatetime: localSessionData.createdTime);
+      updatedTime = OurChatTime(inputDatetime: localSessionData.updatedTime);
+      size = localSessionData.size;
+      description = localSessionData.description;
+    }
+    var privateDB = ourchatAppState.privateDB!;
+    var localSessionPrivateData = await (privateDB.select(privateDB.session)
+          ..where((u) => u.sessionId.equals(BigInt.from(sessionId.toInt()))))
+        .getSingleOrNull();
+    if (localSessionPrivateData == null &&
+        ourchatAppState.thisAccount!.sessions.contains(sessionId)) {
+      privateNeedUpdate = true;
+    }
+    if (privateNeedUpdate) {
+      logger.d("get session private info");
+      queryValues.addAll(
+          [QueryValues.QUERY_VALUES_MEMBERS, QueryValues.QUERY_VALUES_ROLES]);
+    } else if (ourchatAppState.thisAccount!.sessions.contains(sessionId)) {
+      var privateDB = ourchatAppState.privateDB!;
+      var localSessionPrivateData = await (privateDB.select(privateDB.session)
+            ..where((u) => u.sessionId.equals(BigInt.from(sessionId.toInt()))))
+          .getSingle();
+      var intMembers = jsonDecode(localSessionPrivateData.members);
+      var intRoles = jsonDecode(localSessionPrivateData.roles);
+      for (int i = 0; i < intMembers.length; i++) {
+        members.add(Int64.parseInt(intMembers[i].toString()));
+      }
+      intRoles.forEach((key, value) =>
+          roles[Int64.parseInt(key)] = Int64.parseInt(value.toString()));
+    }
+
+    GetSessionInfoResponse res = await stub.getSessionInfo(
+        GetSessionInfoRequest(sessionId: sessionId, queryValues: queryValues));
+
+    if (publicNeedUpdate) {
       name = res.name;
       avatarKey = res.avatarKey;
       createdTime = OurChatTime(inputTimestamp: res.createdTime);
@@ -120,64 +161,32 @@ class OurChatSession {
                 size: Value(size),
                 description: Value(description)));
       }
-    } else {
-      name = localSessionData!.name;
-      avatarKey = localSessionData.avatarKey;
-      createdTime = OurChatTime(inputDatetime: localSessionData.createdTime);
-      updatedTime = OurChatTime(inputDatetime: localSessionData.updatedTime);
-      size = localSessionData.size;
-      description = localSessionData.description;
     }
-    var privateDB = ourchatAppState.privateDB!;
-    var localSessionPrivateData = await (privateDB.select(privateDB.session)
-          ..where((u) => u.sessionId.equals(BigInt.from(sessionId.toInt()))))
-        .getSingleOrNull();
-    if (localSessionPrivateData == null &&
-        ourchatAppState.thisAccount!.sessions.contains(sessionId)) {
-      privateNeedUpdate = true;
-    }
+
     if (privateNeedUpdate) {
-      GetSessionInfoResponse res = await stub.getSessionInfo(
-          GetSessionInfoRequest(sessionId: sessionId, queryValues: [
-        QueryValues.QUERY_VALUES_MEMBERS,
-        QueryValues.QUERY_VALUES_ROLES,
-      ]));
       members = res.members;
       for (int i = 0; i < res.roles.length; i++) {
         roles[res.roles[i].userId] = res.roles[i].role;
       }
+    }
 
-      var intMembers = [];
-      for (int i = 0; i < members.length; i++) {
-        intMembers.add(members[i].toInt());
-      }
-      var jsonRoles = {};
-      roles.forEach((key, value) => jsonRoles[key.toString()] = value.toInt());
-      if (localSessionPrivateData == null) {
-        privateDB.into(privateDB.session).insert(SessionData(
-            sessionId: BigInt.from(sessionId.toInt()),
-            members: jsonEncode(intMembers),
-            roles: jsonEncode(jsonRoles)));
-      } else {
-        (privateDB.update(privateDB.session)
-              ..where(
-                  (u) => u.sessionId.equals(BigInt.from(sessionId.toInt()))))
-            .write(SessionCompanion(
-                members: Value(jsonEncode(intMembers)),
-                roles: Value(jsonEncode(jsonRoles))));
-      }
-    } else if (ourchatAppState.thisAccount!.sessions.contains(sessionId)) {
-      var privateDB = ourchatAppState.privateDB!;
-      var localSessionPrivateData = await (privateDB.select(privateDB.session)
+    var intMembers = [];
+    for (int i = 0; i < members.length; i++) {
+      intMembers.add(members[i].toInt());
+    }
+    var jsonRoles = {};
+    roles.forEach((key, value) => jsonRoles[key.toString()] = value.toInt());
+    if (localSessionPrivateData == null) {
+      privateDB.into(privateDB.session).insert(SessionData(
+          sessionId: BigInt.from(sessionId.toInt()),
+          members: jsonEncode(intMembers),
+          roles: jsonEncode(jsonRoles)));
+    } else {
+      (privateDB.update(privateDB.session)
             ..where((u) => u.sessionId.equals(BigInt.from(sessionId.toInt()))))
-          .getSingle();
-      var intMembers = jsonDecode(localSessionPrivateData.members);
-      var intRoles = jsonDecode(localSessionPrivateData.roles);
-      for (int i = 0; i < intMembers.length; i++) {
-        members.add(Int64.parseInt(intMembers[i].toString()));
-      }
-      intRoles.forEach((key, value) =>
-          roles[Int64.parseInt(key)] = Int64.parseInt(value.toString()));
+          .write(SessionCompanion(
+              members: Value(jsonEncode(intMembers)),
+              roles: Value(jsonEncode(jsonRoles))));
     }
 
     if (members.length == 2) {
