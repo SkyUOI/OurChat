@@ -26,7 +26,9 @@ use tower::ServiceBuilder;
 use tower_governor::{GovernorLayer, governor::GovernorConfigBuilder};
 use tracing::{debug, info, warn};
 
-pub struct HttpServer {}
+pub struct HttpServer {
+    pub started_notify: Arc<tokio::sync::Notify>,
+}
 
 pub struct ServerRunningData {
     shared_data: Arc<SharedData>,
@@ -35,8 +37,10 @@ pub struct ServerRunningData {
 }
 
 impl HttpServer {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(started_notify: Arc<tokio::sync::Notify>) -> Self {
+        Self {
+            started_notify,
+        }
     }
 
     pub async fn run_forever(
@@ -102,13 +106,12 @@ impl HttpServer {
             .merge(verify::config().with_state(db_pool.clone()));
         let mut router: axum::Router = axum::Router::new()
             .nest("/v1", v1.with_state((db_pool.clone(), shared_data.clone())))
-            .merge(grpc_service.into_axum_router())
+            .merge(grpc_service.into_axum_router().layer(tonic_web::GrpcWebLayer::new()))
             .layer(
                 ServiceBuilder::new()
                     .layer(tower_http::trace::TraceLayer::new_for_http())
                     .layer(tower_http::trace::TraceLayer::new_for_grpc())
                     .layer(cors)
-                    .layer(tonic_web::GrpcWebLayer::new())
                     .layer(tower_http::normalize_path::NormalizePathLayer::trim_trailing_slash()),
             );
         if shared_data.cfg.http_cfg.rate_limit.enable {
@@ -154,6 +157,7 @@ impl HttpServer {
         });
         info!("Http server setup done");
         let mut rev = shutdown_sdr.new_receiver("http server", "http server");
+        let shot = self.started_notify.clone();
 
         let running_server = async move {
             info!("Listening on {}", listener.local_addr().unwrap());
@@ -180,6 +184,11 @@ impl HttpServer {
             }
             anyhow::Ok(())
         };
+        tokio::spawn(async move {
+            tokio::time::sleep(Duration::from_millis(500)).await;
+            info!("Sending started notification");
+            shot.notify_waiters();
+        });
         select! {
             _ = rev.wait_shutting_down() => {
                 Ok(())
@@ -329,12 +338,6 @@ impl HttpServer {
     }
 }
 
-impl Default for HttpServer {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 #[derive(Debug)]
 pub struct Launcher {
     pub email_client: Option<EmailClientType>,
@@ -375,7 +378,7 @@ impl Launcher {
         grpc_service: tonic::service::Routes,
         abort_sender: ShutdownSdr,
     ) -> anyhow::Result<()> {
-        let mut server = HttpServer::new();
+        let mut server = HttpServer::new(self.started_notify.clone());
 
         info!("Starting http server");
         let tcplistener = self.tcplistener.take().unwrap();
@@ -395,8 +398,7 @@ impl Launcher {
                 )
                 .await
         });
-        info!("Sending started notification");
-        self.started_notify.notify_waiters();
+        self.started_notify.notified().await;
         info!("Http Server started");
         http_server.await??;
         Ok(())

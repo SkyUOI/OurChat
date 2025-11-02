@@ -429,15 +429,16 @@ impl Application {
                 .await
         });
 
-        wait_http_setup.notified().await;
         // Start the database file system
         file_storage::FileSys::new(self.pool.db_pool.clone(), self.shared.clone())
             .start()
             .await?;
         self.shared.sched.lock().await.start().await?;
         info!("Start to register service to registry");
-        info!("Server started");
+        info!("Waiting http server to be ready");
+        wait_http_setup.notified().await;
         self.started_notify.notify_waiters();
+        info!("Server is running now");
         match handle.await {
             Ok(result) => match result {
                 Ok(_) => {}

@@ -96,7 +96,7 @@ impl ClientCore {
         };
 
         let remote_url = format!(
-            "{}://{}/grpc",
+            "{}://{}",
             if enabled_tls { "https" } else { "http" },
             url_without_scheme
         );
