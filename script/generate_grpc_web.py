@@ -3,17 +3,17 @@ import os
 commands = []
 
 
-def generate(dir, to_path):
+def generate(dir):
     for root, dirs, files in os.walk(dir):
         for file in files:
             commands.append(
-                f"protoc {os.path.join(root, file)} \
-  --js_out=import_style=commonjs:server/web-panel/src/api \
-  --grpc-web_out=import_style=typescript,mode=grpcwebtext:server/web-panel/src/api"
+                f"npx protoc {os.path.join(root, file)} \
+--ts_out=server/web-panel/src/api \
+--ts_opt eslint_disable"
             )
 
 
-generate("serviceclient/lib")
+generate("service")
 for index in range(len(commands)):
     command = commands[index]
     os.system(command)
@@ -23,11 +23,3 @@ for index in range(len(commands)):
         end="",
     )
 print(f"\r|{'#' * 20}| 100.00%")
-# os.system(
-#     "protoc --dart_out=grpc:client/lib \
-#     google/protobuf/timestamp.proto \
-#     google/protobuf/empty.proto \
-#     google/protobuf/duration.proto"
-# )
-# os.system("dart format client/lib/google")
-# os.system("dart format client/lib/service")

@@ -48,6 +48,7 @@ color-eyre.workspace = true
 async-trait.workspace = true
 # serde_plain = "1"
 dotenvy.workspace = true
+tonic-web.workspace = true
 
 # Protobuf definitions
 pb = { path = "pb" }

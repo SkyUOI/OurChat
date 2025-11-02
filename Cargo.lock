@@ -5411,6 +5411,7 @@ dependencies = [
  "tokio-cron-scheduler",
  "tokio-stream",
  "tonic",
+ "tonic-web",
  "tower",
  "tower-http",
  "tower_governor",
@@ -6428,6 +6429,24 @@ dependencies = [
  "syn 2.0.108",
  "tempfile",
  "tonic-build",
+]
+
+[[package]]
+name = "tonic-web"
+version = "0.14.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "75214f6b6bd28c19aa752ac09fdf0eea546095670906c21fe3940e180a4c43f2"
+dependencies = [
+ "base64 0.22.1",
+ "bytes",
+ "http",
+ "http-body",
+ "pin-project",
+ "tokio-stream",
+ "tonic",
+ "tower-layer",
+ "tower-service",
+ "tracing",
 ]
 
 [[package]]

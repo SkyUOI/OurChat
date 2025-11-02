@@ -1,3 +1,5 @@
+mod http;
+
 use std::{path::PathBuf, time::Duration};
 
 use anyhow::bail;
@@ -5,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use size::Size;
 use utils::merge_json;
 
-use crate::{ParserCfg, httpserver::HttpCfg};
+use crate::{ParserCfg, config::http::HttpCfg};
 use base::{
     consts::{self, CONFIG_FILE_ENV_VAR},
     database::{postgres::PostgresDbCfg, redis::RedisCfg},

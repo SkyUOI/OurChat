@@ -1,14 +1,16 @@
 import { defineStore } from 'pinia'
-import { OurChatServiceClient } from '../api/service/ourchat/v1/OurchatServiceClientPb'
-import { computed, type Ref } from 'vue'
-
-export var BackendIp: null | Ref<string> = null
-export var BackendPort: null | Ref<string> = null
+import { OurChatServiceClient } from '../api/service/ourchat/v1/ourchat.client'
+import { BasicServiceClient } from '../api/service/basic/v1/basic.client'
+import { ServerManageServiceClient } from '../api/service/server_manage/v1/server_manage.client';
+import { GrpcWebFetchTransport } from '@protobuf-ts/grpcweb-transport'
 
 export const useGrpcStore = defineStore('grpc', () => {
-  let backendConn = computed(() => {
-    if (BackendIp == null || BackendPort == null) return null
-    return new OurChatServiceClient(BackendIp.value + ':' + BackendPort.value)
-  })
-  return { backendConn }
+  const transport = new GrpcWebFetchTransport({
+      baseUrl: `/backend`
+    });
+  const ourchatConn = new OurChatServiceClient(transport)
+  const basicConn = new BasicServiceClient(transport);
+  const serverManageConn = new ServerManageServiceClient(transport);
+
+  return { ourchatConn, basicConn, serverManageConn }
 })
