@@ -38,9 +38,7 @@ pub struct ServerRunningData {
 
 impl HttpServer {
     pub fn new(started_notify: Arc<tokio::sync::Notify>) -> Self {
-        Self {
-            started_notify,
-        }
+        Self { started_notify }
     }
 
     pub async fn run_forever(
@@ -106,7 +104,11 @@ impl HttpServer {
             .merge(verify::config().with_state(db_pool.clone()));
         let mut router: axum::Router = axum::Router::new()
             .nest("/v1", v1.with_state((db_pool.clone(), shared_data.clone())))
-            .merge(grpc_service.into_axum_router().layer(tonic_web::GrpcWebLayer::new()))
+            .merge(
+                grpc_service
+                    .into_axum_router()
+                    .layer(tonic_web::GrpcWebLayer::new()),
+            )
             .layer(
                 ServiceBuilder::new()
                     .layer(tower_http::trace::TraceLayer::new_for_http())
