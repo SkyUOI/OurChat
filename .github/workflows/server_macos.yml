@@ -52,7 +52,7 @@ jobs:
           export SCCACHE_OSS_BUCKET=$SCCACHE_OSS_BUCKET
           export SCCACHE_OSS_ENDPOINT=$SCCACHE_OSS_ENDPOINT
           export SCCACHE_OSS_NO_CREDENTIALS=1
-          export RUSTC_WRAPPER=/usr/bin/sccache
+          export RUSTC_WRAPPER=/usr/local/bin/sccache
           
           export OURCHAT_CONFIG_FILE=$(pwd)/config/ourchat.toml
           cargo test
