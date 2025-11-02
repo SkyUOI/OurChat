@@ -37,7 +37,9 @@ if args.sccache_bucket and args.sccache_endpoint:
     print("Enable sccache for building.")
     enable_sccache = True
 elif args.sccache_bucket or args.sccache_endpoint:
-    print("Both --sccache-bucket and --sccache-endpoint must be provided to enable sccache.")
+    print(
+        "Both --sccache-bucket and --sccache-endpoint must be provided to enable sccache."
+    )
     exit(1)
 
 extension = args.extension or ["latest"]

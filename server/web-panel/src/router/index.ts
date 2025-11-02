@@ -49,7 +49,7 @@ const router = createRouter({
   routes,
 })
 
-// Add route gurantee
+// Add route guarantee
 router.beforeEach((to: RouteLocationNormalized, _from: RouteLocationNormalized) => {
   // Without token, redirect to Login page
   if (to.name !== 'Login' && !hasToken()) {
