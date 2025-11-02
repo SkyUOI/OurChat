@@ -20,7 +20,25 @@ parser.add_argument(
 parser.add_argument(
     "--push", default=False, action="store_true", help="Push the images to Docker Hub."
 )
+parser.add_argument(
+    "--sccache-bucket",
+    default="",
+    help="The OSS bucket name for sccache.",
+)
+parser.add_argument(
+    "--sccache-endpoint",
+    default="",
+    help="The OSS endpoint for sccache.",
+)
 args = parser.parse_args()
+
+enable_sccache = False
+if args.sccache_bucket and args.sccache_endpoint:
+    print("Enable sccache for building.")
+    enable_sccache = True
+elif args.sccache_bucket or args.sccache_endpoint:
+    print("Both --sccache-bucket and --sccache-endpoint must be provided to enable sccache.")
+    exit(1)
 
 extension = args.extension or ["latest"]
 skip_base = args.skip_base
@@ -34,6 +52,13 @@ for i in extension:
 args_tags_debian = ""
 for i in extension:
     args_tags_debian += f"-t skyuoi/ourchat:{i}-debian "
+
+if enable_sccache:
+    args_pass += (
+        f"--build-arg SCCACHE_OSS_BUCKET={args.sccache_bucket} "
+        f"--build-arg SCCACHE_OSS_ENDPOINT={args.sccache_endpoint} "
+        f"--build-arg SCCACHE_ENABLED=true "
+    )
 
 if not skip_base:
     # build alpine base image

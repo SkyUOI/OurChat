@@ -40,9 +40,19 @@ jobs:
         uses: arduino/setup-protoc@v3
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install sccache
+        run: brew install sccache
       - name: Set Up Environment
         run: docker compose -f docker/compose.devenv.yml up -d
       - name: Test
+        env:
+          SCCACHE_OSS_BUCKET: ${{ secrets.SCCACHE_BUCKET }}
+          SCCACHE_OSS_ENDPOINT: ${{ secrets.SCCACHE_OSS_ENDPOINT }}
         run: |
+          export SCCACHE_OSS_BUCKET=$SCCACHE_OSS_BUCKET
+          export SCCACHE_OSS_ENDPOINT=$SCCACHE_OSS_ENDPOINT
+          export SCCACHE_OSS_NO_CREDENTIALS=1
+          export RUSTC_WRAPPER=/usr/bin/sccache
+          
           export OURCHAT_CONFIG_FILE=$(pwd)/config/ourchat.toml
           cargo test

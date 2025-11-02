@@ -1,26 +1,29 @@
 FROM skyuoi/ourchat:alpine-base AS chef
 WORKDIR /app
 
-FROM chef AS planner
-
-COPY server /app/server
-COPY Cargo.toml /app/Cargo.toml
-COPY Cargo.lock /app/Cargo.lock
-RUN cargo chef prepare --recipe-path recipe.json
-
 FROM chef AS builder
 
-COPY --from=planner /app/recipe.json recipe.json
+ARG SCCACHE_OSS_BUCKET=""
+ARG SCCACHE_OSS_ENDPOINT=""
+ARG SCCACHE_ENABLED="false"
+
+ENV SCCACHE_OSS_BUCKET=${SCCACHE_OSS_BUCKET}
+ENV SCCACHE_OSS_ENDPOINT=${SCCACHE_OSS_ENDPOINT}
+ENV SCCACHE_OSS_NO_CREDENTIALS=1
 
 COPY .cargo /app/.cargo
-RUN cargo chef cook --release --recipe-path recipe.json --bin server
 
 COPY server /app/server
 COPY Cargo.toml /app/Cargo.toml
 COPY Cargo.lock /app/Cargo.lock
 COPY service /app/service
 
-RUN cargo build --release --bin server --features=official
+RUN if [ "$SCCACHE_ENABLED" = "true" ]; then \
+        export RUSTC_WRAPPER=/usr/bin/sccache && \
+        cargo build --release --bin server --features=official; \
+    else \
+        cargo build --release --bin server --features=official; \
+    fi
 
 FROM alpine:latest AS ourchat-server
 

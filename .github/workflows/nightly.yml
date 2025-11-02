@@ -44,5 +44,8 @@ jobs:
           password: ${{ secrets.DOCKER_TOKEN }}
 
       - name: Build and push Docker images
+        env:
+          SCCACHE_OSS_BUCKET: ${{ secrets.SCCACHE_BUCKET }}
+          SCCACHE_OSS_ENDPOINT: ${{ secrets.SCCACHE_OSS_ENDPOINT }}
         run: |
-          python3 script/build_production_container.py --extension nightly --skip-base --push
+          python3 script/build_production_container.py --extension nightly --skip-base --push --sccache-bucket $SCCACHE_OSS_BUCKET --sccache-endpoint $SCCACHE_OSS_ENDPOINT

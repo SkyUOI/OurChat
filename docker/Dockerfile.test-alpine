@@ -1,15 +1,13 @@
 FROM skyuoi/ourchat:alpine-base AS chef
 WORKDIR /app
 
-FROM chef AS planner
-
-COPY server /app/server
-COPY Cargo.toml /app/Cargo.toml
-COPY Cargo.lock /app/Cargo.lock
-RUN cargo chef prepare  --recipe-path recipe.json
-
 FROM chef AS builder
-COPY --from=planner /app/recipe.json recipe.json
-COPY .cargo /app/.cargo
-RUN cargo chef cook --tests --recipe-path recipe.json
+
+ARG SCCACHE_OSS_BUCKET
+ARG SCCACHE_OSS_ENDPOINT
+
+ENV SCCACHE_OSS_BUCKET=${SCCACHE_OSS_BUCKET}
+ENV SCCACHE_OSS_ENDPOINT=${SCCACHE_OSS_ENDPOINT}
+ENV SCCACHE_OSS_NO_CREDENTIALS=1
+
 COPY . .
