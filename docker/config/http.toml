@@ -2,12 +2,8 @@
 ip = "0.0.0.0"
 # The http server listening port
 port = 7777
-redis_cfg = "redis.toml"
-db_cfg = "database.toml"
-user_setting = "user_setting.toml"
 # If not set, the email will be disabled
 email_cfg = "email.toml"
-rabbitmq_cfg = "rabbitmq.toml"
 # The logo of this server
 logo_path = "/root/resource/logo.png"
 default_avatar_path = "/root/resource/logo.png"
