@@ -223,11 +223,20 @@ pub const fn default_rate_limit_enable() -> bool {
 }
 
 pub const fn default_rate_limit_burst() -> u32 {
-    8
+    16
 }
 
 pub const fn default_rate_limit_replenish_duration() -> Duration {
     Duration::from_millis(500)
+}
+
+pub const fn default_web_panel_enable() -> bool {
+    true
+}
+
+/// Placeholder
+pub fn default_web_panel_dist_path() -> PathBuf {
+    PathBuf::default()
 }
 
 pub mod option {

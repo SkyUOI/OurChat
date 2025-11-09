@@ -1,6 +1,8 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{Data, DeriveInput, Fields, Type, parse_macro_input};
+use syn::{Attribute, Data, DeriveInput, Fields, Type, parse_macro_input};
+
+use crate::helper::is_option_type;
 
 pub fn path_convert_derive_internal(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -19,6 +21,11 @@ pub fn path_convert_derive_internal(input: TokenStream) -> TokenStream {
                 .iter()
                 .filter_map(|field| {
                     let field_name = field.ident.as_ref()?;
+
+                    // Skip if marked with #[path_convert]
+                    if has_path_convert_attr(&field.attrs) {
+                        return None;
+                    }
 
                     // check if it is PathBuf
                     if is_pathbuf_type(&field.ty) {
@@ -43,13 +50,18 @@ pub fn path_convert_derive_internal(input: TokenStream) -> TokenStream {
         })
         .collect();
 
-    // Generate convert code for Option<PathBuf>
+    // Collect all Option<PathBuf> fields
     let option_pathbuf_fields: Vec<_> = match &fields {
         Fields::Named(fields_named) => fields_named
             .named
             .iter()
             .filter_map(|field| {
                 let field_name = field.ident.as_ref()?;
+
+                // Skip if marked with #[path_convert]
+                if has_path_convert_attr(&field.attrs) {
+                    return None;
+                }
 
                 if is_option_pathbuf_type(&field.ty) {
                     Some(field_name)
@@ -74,11 +86,75 @@ pub fn path_convert_derive_internal(input: TokenStream) -> TokenStream {
         })
         .collect();
 
+    // Collect all fields marked with #[path_convert]
+    let path_convert_fields: Vec<_> = match &fields {
+        Fields::Named(fields_named) => fields_named
+            .named
+            .iter()
+            .filter_map(|field| {
+                let field_name = field.ident.as_ref()?;
+
+                // Only include if marked with #[path_convert]
+                if has_path_convert_attr(&field.attrs) {
+                    Some(field_name)
+                } else {
+                    None
+                }
+            })
+            .collect(),
+        Fields::Unnamed(_) => vec![],
+        Fields::Unit => vec![],
+    };
+
+    // Generate conversion code for #[path_convert] fields
+    let path_convert_field_conversions: Vec<_> = path_convert_fields
+        .iter()
+        .map(|field_name| {
+            quote! {
+                self.#field_name.convert_to_abs_path(full_basepath)?;
+            }
+        })
+        .collect();
+
+    // Collect all Option<T> fields marked with #[path_convert] where T: PathConvert
+    let option_path_convert_fields: Vec<_> = match &fields {
+        Fields::Named(fields_named) => fields_named
+            .named
+            .iter()
+            .filter_map(|field| {
+                let field_name = field.ident.as_ref()?;
+
+                // Only include if marked with #[path_convert] and is Option<T>
+                if has_path_convert_attr(&field.attrs) && is_option_type(&field.ty) {
+                    Some(field_name)
+                } else {
+                    None
+                }
+            })
+            .collect(),
+        Fields::Unnamed(_) => vec![],
+        Fields::Unit => vec![],
+    };
+
+    // Generate conversion code for Option<T> fields marked with #[path_convert]
+    let option_path_convert_field_conversions: Vec<_> = option_path_convert_fields
+        .iter()
+        .map(|field_name| {
+            quote! {
+                if let Some(ref mut value) = self.#field_name {
+                    value.convert_to_abs_path(full_basepath)?;
+                }
+            }
+        })
+        .collect();
+
     let output = quote! {
         impl base::setting::PathConvert for #name {
             fn convert_to_abs_path(&mut self, full_basepath: &std::path::Path) -> anyhow::Result<()> {
                 #(#field_conversions)*
                 #(#option_field_conversions)*
+                #(#path_convert_field_conversions)*
+                #(#option_path_convert_field_conversions)*
                 Ok(())
             }
         }
@@ -111,4 +187,11 @@ fn is_option_pathbuf_type(ty: &Type) -> bool {
         return is_pathbuf_type(inner_ty);
     }
     false
+}
+
+/// Check if a field has the #[path_convert] attribute
+fn has_path_convert_attr(attrs: &[Attribute]) -> bool {
+    attrs
+        .iter()
+        .any(|attr| attr.path().is_ident("path_convert"))
 }

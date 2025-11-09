@@ -9,6 +9,7 @@ use base::database::DbPool;
 use entities::user;
 use migration::m20220101_000001_create_table::USERNAME_MAX_LEN;
 use pb::service::auth::register::v1::{RegisterRequest, RegisterResponse};
+use rand::rngs::OsRng;
 use sea_orm::{ActiveModelTrait, ActiveValue, DbErr};
 use snowdon::ClassicLayoutSnowflakeExtension;
 use std::num::TryFromIntError;
@@ -104,7 +105,7 @@ enum RegisterError {
 ///
 /// Panics if the password is too long or if the salt generation fails.
 fn compute_password_hash(password: &str, params: Params) -> anyhow::Result<String> {
-    let salt = SaltString::try_from_rng(&mut argon2::password_hash::rand_core::OsRng)?;
+    let salt = SaltString::try_from_rng(&mut OsRng)?;
 
     Ok(
         argon2::Argon2::new(argon2::Algorithm::Argon2id, argon2::Version::V0x13, params)

@@ -49,6 +49,7 @@ async-trait.workspace = true
 # serde_plain = "1"
 dotenvy.workspace = true
 tonic-web.workspace = true
+tonic-reflection.workspace = true
 
 # Protobuf definitions
 pb = { path = "pb" }

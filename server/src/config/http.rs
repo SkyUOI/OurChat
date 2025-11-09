@@ -28,6 +28,9 @@ pub struct HttpCfg {
     pub tls: TlsConfig,
     #[serde(default)]
     pub rate_limit: RateLimitCfg,
+    #[serde(default)]
+    #[path_convert]
+    pub web_panel: WebPanelCfg,
     pub email_cfg: Option<PathBuf>,
 }
 
@@ -45,6 +48,21 @@ pub struct RateLimitCfg {
 }
 
 impl Default for RateLimitCfg {
+    fn default() -> Self {
+        let empty = serde_json::json!({});
+        serde_json::from_value(empty).unwrap()
+    }
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, derive::PathConvert)]
+pub struct WebPanelCfg {
+    #[serde(default = "base::consts::default_web_panel_enable")]
+    pub enable: bool,
+    #[serde(default = "base::consts::default_web_panel_dist_path")]
+    pub dist_path: PathBuf,
+}
+
+impl Default for WebPanelCfg {
     fn default() -> Self {
         let empty = serde_json::json!({});
         serde_json::from_value(empty).unwrap()

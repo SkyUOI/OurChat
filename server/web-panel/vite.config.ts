@@ -25,5 +25,6 @@ export default defineConfig({
         rewrite: path => path.replace(/^\/backend/, '')
       },
     }
-  }
+  },
+  base: "/panel"
 })

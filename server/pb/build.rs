@@ -124,6 +124,7 @@ fn main() -> anyhow::Result<()> {
         .compile_well_known_types(true)
         .bytes(".")
         .out_dir("./src/generated/")
+        .file_descriptor_set_path("./src/generated/GRPC_FILE_DESCRIPTOR")
         .compile_protos(
             &[
                 "../../service/ourchat/v1/ourchat.proto",

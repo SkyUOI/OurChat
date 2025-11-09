@@ -17,9 +17,14 @@ enable_matrix = false
 # Enable rate limit
 enable = true
 # The maximum number of requests allowed per duration from a single IP address
-num_of_burst_requests = 8
+num_of_burst_requests = 16
 # replenish one request every duration seconds
 replenish_duration = "500ms"
+
+# Web Control Panel
+[web_panel]
+enable = true
+dist_path = "/root/resource/web-panel"
 
 [tls]
 # Enable tls encryption

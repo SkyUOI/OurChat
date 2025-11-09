@@ -33,7 +33,7 @@ pub fn redis_hset_derive(input: TokenStream) -> TokenStream {
     redis::redis_hset_derive_internal(input)
 }
 
-#[proc_macro_derive(PathConvert)]
+#[proc_macro_derive(PathConvert, attributes(path_convert))]
 pub fn path_convert_derive(input: TokenStream) -> TokenStream {
     path::path_convert_derive_internal(input)
 }

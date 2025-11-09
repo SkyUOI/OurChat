@@ -4,3 +4,6 @@ ip = "localhost"
 logo_path = "../resource/logo.png"
 default_avatar_path = "../resource/logo.png"
 verification_html_template_path = "../resource/email.html"
+
+[web_panel]
+dist_path = "../server/web-panel/dist"

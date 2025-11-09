@@ -4,7 +4,12 @@ pub mod verify;
 
 use crate::{Cfg, SharedData};
 use anyhow::anyhow;
-use axum::routing::get;
+use axum::{
+    extract::Request,
+    middleware::{self, Next},
+    response::{IntoResponse, Redirect, Response},
+    routing::get,
+};
 use axum_server::tls_rustls::RustlsConfig;
 use base::{
     database::DbPool,
@@ -12,7 +17,7 @@ use base::{
     shutdown::{ShutdownRev, ShutdownSdr},
 };
 use deadpool_lapin::lapin::options::{BasicAckOptions, BasicRejectOptions};
-use http::Method;
+use http::{Method, StatusCode};
 use rustls::{
     RootCertStore, ServerConfig,
     pki_types::{CertificateDer, PrivateKeyDer, pem::PemObject},
@@ -102,6 +107,15 @@ impl HttpServer {
             )
             .route("/avatar", get(avatar::avatar))
             .merge(verify::config().with_state(db_pool.clone()));
+
+        let mut index_html_path = shared_data.cfg.http_cfg.web_panel.dist_path.clone();
+        index_html_path.push("index.html");
+        let resources_path = shared_data.cfg.http_cfg.web_panel.dist_path.clone();
+        let panel = axum::Router::new().nest_service(
+            "/panel",
+            tower_http::services::ServeDir::new(&resources_path),
+        );
+
         let mut router: axum::Router = axum::Router::new()
             .nest("/v1", v1.with_state((db_pool.clone(), shared_data.clone())))
             .merge(
@@ -114,7 +128,8 @@ impl HttpServer {
                     .layer(tower_http::trace::TraceLayer::new_for_http())
                     .layer(tower_http::trace::TraceLayer::new_for_grpc())
                     .layer(cors)
-                    .layer(tower_http::normalize_path::NormalizePathLayer::trim_trailing_slash()),
+                    .layer(tower_http::normalize_path::NormalizePathLayer::trim_trailing_slash())
+                    .layer(middleware::from_fn(redirect_middleware)),
             );
         if shared_data.cfg.http_cfg.rate_limit.enable {
             info!("Http rate limit enabled");
@@ -131,6 +146,12 @@ impl HttpServer {
                     crate::matrix::route::wellknown::configure_route()
                         .with_state(shared_data.clone()),
                 );
+        }
+        if shared_data.cfg.http_cfg.web_panel.enable {
+            info!("web panel enabled");
+            info!("index.html: {}", index_html_path.display());
+            info!("resources path: {}", resources_path.display());
+            router = router.merge(panel)
         }
 
         info!("Start creating rabbitmq consumer");
@@ -440,4 +461,15 @@ async fn exit_signal() {
 async fn exit_signal_handle_wrapper(handle: axum_server::Handle) {
     exit_signal().await;
     handle.graceful_shutdown(Some(Duration::from_secs(10)));
+}
+
+async fn redirect_middleware(request: Request, next: Next) -> Result<Response, StatusCode> {
+    let path = request.uri().path();
+
+    if path.starts_with("/backend") {
+        let new_path = path.replacen("/backend", "", 1);
+        let new_uri = http::uri::Uri::try_from(new_path).map_err(|_| StatusCode::BAD_REQUEST)?;
+        return Ok(Redirect::permanent(&new_uri.to_string()).into_response());
+    }
+    Ok(next.run(request).await)
 }

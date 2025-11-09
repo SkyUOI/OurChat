@@ -132,12 +132,18 @@ impl RpcServer {
                 Ok(req)
             });
 
+        // enable reflection
+        let reflection_service = tonic_reflection::server::Builder::configure()
+            .register_encoded_file_descriptor_set(pb::FILE_DESCRIPTOR)
+            .build_v1()?;
         // Build the gRPC router with all services
         let mut builder = Routes::builder();
-        builder.add_service(main_svc);
-        builder.add_service(basic_svc);
-        builder.add_service(auth_svc);
-        builder.add_service(server_manage_svc);
+        builder
+            .add_service(main_svc)
+            .add_service(basic_svc)
+            .add_service(auth_svc)
+            .add_service(server_manage_svc)
+            .add_service(reflection_service);
         let routes = builder.routes();
         let svc = routes.prepare();
         Ok(svc)
