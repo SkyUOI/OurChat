@@ -20,7 +20,7 @@
     "search": "搜索",
     "others": "其他",
     "password": "密码",
-    "showPassword": "显示密码",
+    "show": "显示{sth}",
     "username": "用户名",
     "serverAddress": "服务器地址",
     "port": "端口",
@@ -85,5 +85,6 @@
     "copiedToClipboard": "已复制到剪贴板",
     "needRestart": "需要重启OurChat",
     "language": "语言",
-    "autoLogin": "自动登录"
+    "autoLogin": "自动登录",
+    "exit": "退出"
 }

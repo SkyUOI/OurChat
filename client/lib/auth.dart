@@ -252,7 +252,7 @@ class _RegisterState extends State<Register> {
                         // 显示密码checkbox
                         dense: true,
                         controlAffinity: ListTileControlAffinity.leading,
-                        title: Text(l10n.showPassword),
+                        title: Text(l10n.show(l10n.password)),
                         value: showPassword,
                         onChanged: (value) {
                           setState(() {
