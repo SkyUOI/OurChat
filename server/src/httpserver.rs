@@ -72,8 +72,15 @@ impl HttpServer {
             .allow_headers([
                 http::header::CONTENT_TYPE,
                 http::header::AUTHORIZATION,
+                http::header::ACCEPT,
+                http::header::ORIGIN,
                 http::HeaderName::from_static("x-requested-with"),
-            ]);
+                http::HeaderName::from_static("x-grpc-web"),
+                http::HeaderName::from_static("grpc-timeout"),
+                http::HeaderName::from_static("user-agent"),
+                http::HeaderName::from_static("x-user-agent"),
+            ])
+            .max_age(std::time::Duration::from_secs(86400));
         let rate_governor_config = GovernorConfigBuilder::default()
             .burst_size(shared_data.cfg.http_cfg.rate_limit.num_of_burst_requests)
             .per_millisecond(
@@ -118,15 +125,12 @@ impl HttpServer {
 
         let mut router: axum::Router = axum::Router::new()
             .nest("/v1", v1.with_state((db_pool.clone(), shared_data.clone())))
-            .merge(
-                grpc_service
-                    .into_axum_router()
-                    .layer(tonic_web::GrpcWebLayer::new()),
-            )
+            .merge(grpc_service.into_axum_router())
             .layer(
                 ServiceBuilder::new()
                     .layer(tower_http::trace::TraceLayer::new_for_http())
                     .layer(tower_http::trace::TraceLayer::new_for_grpc())
+                    .layer(tonic_web::GrpcWebLayer::new())
                     .layer(cors)
                     .layer(tower_http::normalize_path::NormalizePathLayer::trim_trailing_slash())
                     .layer(middleware::from_fn(redirect_middleware)),

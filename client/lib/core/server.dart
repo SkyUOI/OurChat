@@ -1,4 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:grpc/grpc.dart';
+import 'package:grpc/grpc_connection_interface.dart';
+import 'package:grpc/grpc_web.dart';
 import 'package:ourchat/core/const.dart';
 import 'package:ourchat/core/log.dart';
 import 'package:ourchat/service/basic/server/v1/server.pb.dart';
@@ -38,7 +41,7 @@ class OurChatServer {
   int port;
   int? ping;
   RunningStatus? serverStatus;
-  ClientChannel? channel;
+  ClientChannelBase? channel;
   ServerVersion? serverVersion;
   OurChatInterceptor? interceptor;
   bool? isTLS;
@@ -54,11 +57,17 @@ class OurChatServer {
       credentials = ChannelCredentials.secure();
       isTLS = true;
     }
-    channel = ClientChannel(host,
-        port: port,
-        options: ChannelOptions(
-          credentials: credentials,
-        ));
+    if (!kIsWeb) {
+      channel = ClientChannel(host,
+          port: port,
+          options: ChannelOptions(
+            credentials: credentials,
+          ));
+    } else {
+      channel = GrpcWebClientChannel.xhr(
+        Uri.parse("${ssl ? 'https' : 'http'}://$host:$port"),
+      );
+    }
   }
 
   static Future<bool> tlsEnabled(String host, int port) async {

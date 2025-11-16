@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:fixnum/fixnum.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:ourchat/core/database.dart' as database;
 import 'package:ourchat/core/session.dart';
@@ -15,10 +18,14 @@ import 'package:ourchat/core/log.dart';
 import 'package:ourchat/launch.dart';
 import 'package:ourchat/auth.dart';
 import 'package:ourchat/home.dart';
-import 'package:window_manager/window_manager.dart';
-import 'package:tray_manager/tray_manager.dart';
+
+// Conditionally import desktop-specific packages only when not on web
+import 'package:window_manager/window_manager.dart'
+    if (dart.library.html) 'package:ourchat/core/stubs/window_manager_stub.dart';
+import 'package:tray_manager/tray_manager.dart'
+    if (dart.library.html) 'package:ourchat/core/stubs/tray_manager_stub.dart';
+
 import 'dart:core';
-import 'dart:io';
 import 'dart:async';
 
 final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
@@ -29,17 +36,22 @@ bool trayStatus = true, isFlashing = false;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await windowManager.ensureInitialized();
 
-  WindowOptions windowOptions = const WindowOptions(
-    minimumSize: Size(900, 600),
-    center: true,
-    skipTaskbar: false,
-    title: "OurChat",
-  );
-  windowManager.waitUntilReadyToShow(windowOptions, () async {
-    await windowManager.show();
-  });
+  // Only initialize window manager on desktop platforms
+  if (!kIsWeb) {
+    await windowManager.ensureInitialized();
+
+    WindowOptions windowOptions = const WindowOptions(
+      minimumSize: Size(900, 600),
+      center: true,
+      skipTaskbar: false,
+      title: "OurChat",
+    );
+    windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.show();
+    });
+  }
+
   runApp(const MainApp());
 }
 
@@ -68,20 +80,22 @@ class OurChatAppState extends ChangeNotifier {
 }
 
 void changeTrayIcon() {
-  if (trayStatus) {
-    trayManager.setIcon(Platform.isWindows
-        ? "assets/images/empty.ico"
-        : "assets/images/empty.png");
-  } else {
-    trayManager.setIcon(Platform.isWindows
-        ? "assets/images/logo_without_text.ico"
-        : "assets/images/logo_without_text.png");
+  if (!kIsWeb) {
+    if (trayStatus) {
+      trayManager.setIcon(Platform.isWindows
+          ? "assets/images/empty.ico"
+          : "assets/images/empty.png");
+    } else {
+      trayManager.setIcon(Platform.isWindows
+          ? "assets/images/logo_without_text.ico"
+          : "assets/images/logo_without_text.png");
+    }
+    trayStatus = !trayStatus;
   }
-  trayStatus = !trayStatus;
 }
 
 void startFlashTray() {
-  if (isFlashing) {
+  if (isFlashing || kIsWeb) {
     return;
   }
   flashTrayTimer =
@@ -90,7 +104,7 @@ void startFlashTray() {
 }
 
 void stopFlashTray() {
-  if (isFlashing = false) {
+  if (!kIsWeb && !isFlashing) {
     flashTrayTimer.cancel();
     trayStatus = true;
     trayManager.setIcon(Platform.isWindows
@@ -129,18 +143,24 @@ class _ControllerState extends State<Controller>
   @override
   void initState() {
     super.initState();
-    windowManager.addListener(this);
-    windowManager.setPreventClose(true);
-    trayManager.addListener(this);
-    trayManager.setIcon(Platform.isWindows
-        ? "assets/images/logo_without_text.ico"
-        : "assets/images/logo_without_text.png");
+
+    // Only initialize window and tray managers on desktop platforms
+    if (!kIsWeb) {
+      windowManager.addListener(this);
+      windowManager.setPreventClose(true);
+      trayManager.addListener(this);
+      trayManager.setIcon(Platform.isWindows
+          ? "assets/images/logo_without_text.ico"
+          : "assets/images/logo_without_text.png");
+    }
   }
 
   @override
   void dispose() {
-    windowManager.removeListener(this);
-    trayManager.removeListener(this);
+    if (!kIsWeb) {
+      windowManager.removeListener(this);
+      trayManager.removeListener(this);
+    }
     super.dispose();
   }
 
@@ -232,10 +252,15 @@ class _ControllerState extends State<Controller>
       home: LayoutBuilder(
         builder: (context, constraints) {
           var l10n = AppLocalizations.of(context)!;
-          trayManager.setContextMenu(Menu(items: [
-            MenuItem(key: "show", label: l10n.show("")),
-            MenuItem(key: "exit", label: l10n.exit)
-          ]));
+
+          // Only set context menu on desktop platforms
+          if (!kIsWeb) {
+            trayManager.setContextMenu(Menu(items: [
+              MenuItem(key: "show", label: l10n.show("")),
+              MenuItem(key: "exit", label: l10n.exit)
+            ]));
+          }
+
           appState.screenMode = (constraints.maxHeight < constraints.maxWidth)
               ? desktop
               : mobile; // 通过屏幕比例判断桌面端/移动端
@@ -263,7 +288,7 @@ class _ControllerState extends State<Controller>
         },
       ),
       theme: ThemeData(
-        fontFamily: Platform.isWindows ? "微软雅黑" : null,
+        fontFamily: kIsWeb ? null : (Platform.isWindows ? "微软雅黑" : null),
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
           seedColor: Color(appState.config["color"]),
@@ -272,36 +297,45 @@ class _ControllerState extends State<Controller>
     );
   }
 
+  // Desktop-only window and tray event handlers
   @override
   void onWindowClose() async {
-    windowManager.hide();
-    super.onWindowClose();
+    if (!kIsWeb) {
+      windowManager.hide();
+      super.onWindowClose();
+    }
   }
 
   @override
   void onTrayIconRightMouseDown() {
-    trayManager.popUpContextMenu();
-    super.onTrayIconRightMouseDown();
+    if (!kIsWeb) {
+      trayManager.popUpContextMenu();
+      super.onTrayIconRightMouseDown();
+    }
   }
 
   @override
   void onTrayMenuItemClick(MenuItem menuItem) {
-    if (menuItem.key == "show") {
-      windowManager.show();
-      windowManager.focus();
-      stopFlashTray();
-    } else if (menuItem.key == "exit") {
-      trayManager.destroy();
-      windowManager.destroy();
+    if (!kIsWeb) {
+      if (menuItem.key == "show") {
+        windowManager.show();
+        windowManager.focus();
+        stopFlashTray();
+      } else if (menuItem.key == "exit") {
+        trayManager.destroy();
+        windowManager.destroy();
+      }
+      super.onTrayMenuItemClick(menuItem);
     }
-    super.onTrayMenuItemClick(menuItem);
   }
 
   @override
   void onTrayIconMouseDown() {
-    windowManager.show();
-    windowManager.focus();
-    stopFlashTray();
-    super.onTrayIconMouseDown();
+    if (!kIsWeb) {
+      windowManager.show();
+      windowManager.focus();
+      stopFlashTray();
+      super.onTrayIconMouseDown();
+    }
   }
 }

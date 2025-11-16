@@ -1,7 +1,9 @@
-import 'dart:io';
-
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:logger/logger.dart';
-import 'package:path_provider/path_provider.dart';
+
+// Conditionally import platform-specific logger implementations
+import 'package:ourchat/core/log_desktop.dart'
+    if (dart.library.io) 'package:ourchat/core/log_web.dart';
 
 Logger logger = Logger();
 
@@ -25,18 +27,15 @@ Level convertStrIntoLevel(String level) {
 }
 
 Future<void> constructLogger(Level logLevel) async {
-  var path = await getApplicationDocumentsDirectory();
-  var file = File('${path.path}/ourchat.log');
-  file.openWrite(mode: FileMode.writeOnlyAppend);
-  logger = Logger(
-      output: MultiOutput([FileOutput(file: file), ConsoleOutput()]),
-      level: logLevel,
-      printer: PrettyPrinter(
-        dateTimeFormat: (time) {
-          return "${time.year}-${time.month}-${time.day} ${time.hour}:${time.minute}:${time.second}.${time.millisecond}";
-        },
-      ));
-  logger.i("Logger has been initialized successfully, File ${path.path}");
+  if (kIsWeb) {
+    // Web platform: Use console output only
+    logger = createWebLogger(logLevel);
+    logger.i("Web Logger has been initialized successfully (console only)");
+  } else {
+    // Desktop/Mobile platforms: Use file + console output
+    logger = await createDesktopLogger(logLevel);
+    logger.i("Logger has been initialized successfully");
+  }
 }
 
 const logLevels = ["debug", "info", "warning", "error", "trace", "fatal"];
