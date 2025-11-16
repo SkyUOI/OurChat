@@ -44,7 +44,8 @@ class OurChatAccount {
     AuthServiceClient authStub = AuthServiceClient(server.channel!);
     try {
       logger.d("login");
-      var res = await authStub.auth(
+      var res = await safeRequest(
+        authStub.auth,
         AuthRequest(email: email, ocid: ocid, password: password),
       );
       email = email;
@@ -65,7 +66,8 @@ class OurChatAccount {
     AuthServiceClient authStub = AuthServiceClient(server.channel!);
     try {
       logger.d("register");
-      var res = await authStub.register(
+      var res = await safeRequest(
+        authStub.register,
         RegisterRequest(
           email: email,
           password: password,
@@ -140,7 +142,8 @@ class OurChatAccount {
       publicDataNeedUpdate = true;
     } else {
       logger.d("get account public updated time");
-      GetAccountInfoResponse res = await stub.getAccountInfo(
+      GetAccountInfoResponse res = await safeRequest(
+          stub.getAccountInfo,
           GetAccountInfoRequest(
               id: id,
               requestValues: [QueryValues.QUERY_VALUES_PUBLIC_UPDATED_TIME]));
@@ -164,7 +167,8 @@ class OurChatAccount {
       }
     } else {
       logger.d("get account private updated time");
-      GetAccountInfoResponse res = await stub.getAccountInfo(
+      GetAccountInfoResponse res = await safeRequest(
+          stub.getAccountInfo,
           GetAccountInfoRequest(
               id: id, requestValues: [QueryValues.QUERY_VALUES_UPDATED_TIME]));
       if (OurChatTime(inputTimestamp: res.updatedTime) !=
@@ -211,7 +215,7 @@ class OurChatAccount {
         privateDataNeedUpdate ||
         ourchatAppState.thisAccount!.friends.contains(id)) {
       logger.d("get account info");
-      GetAccountInfoResponse res = await stub.getAccountInfo(
+      GetAccountInfoResponse res = await safeRequest(stub.getAccountInfo,
           GetAccountInfoRequest(id: id, requestValues: requestValues));
       if (publicDataNeedUpdate) {
         await updatePublicData(res, publicData != null);
@@ -222,8 +226,11 @@ class OurChatAccount {
       if (ourchatAppState.thisAccount!.friends.contains(id)) {
         // get displayname
         logger.d("get account display_name info");
-        res = await stub.getAccountInfo(GetAccountInfoRequest(
-            id: id, requestValues: [QueryValues.QUERY_VALUES_DISPLAY_NAME]));
+        res = await safeRequest(
+            stub.getAccountInfo,
+            GetAccountInfoRequest(
+                id: id,
+                requestValues: [QueryValues.QUERY_VALUES_DISPLAY_NAME]));
         displayName = res.displayName;
       }
     }

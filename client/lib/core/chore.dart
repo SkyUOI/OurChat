@@ -1,4 +1,5 @@
 import 'package:fixnum/fixnum.dart';
+import 'package:grpc/grpc.dart';
 import 'package:ourchat/core/log.dart';
 import 'package:ourchat/google/protobuf/timestamp.pb.dart';
 import 'package:flutter/material.dart';
@@ -293,5 +294,26 @@ class UserAvatar extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+Future safeRequest(Function func, var args) async {
+  bool retryFlag = false;
+  while (true) {
+    try {
+      var res = await func(args);
+      if (retryFlag) {
+        logger.i("Request succeeded after retry");
+      }
+      return res;
+    } on GrpcError catch (e) {
+      if (e.code == resourceExhaustedStatusCode) {
+        retryFlag = true;
+        logger.w("Rate limit exceeded, sleeping for a while");
+        await Future.delayed(Duration(milliseconds: 500));
+      } else {
+        rethrow;
+      }
+    }
   }
 }

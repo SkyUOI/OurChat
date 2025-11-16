@@ -73,10 +73,11 @@ class OurChatSession {
       publicNeedUpdate = true;
     } else {
       logger.d("get session updated time");
-      GetSessionInfoResponse res = await stub.getSessionInfo(
+      GetSessionInfoResponse res = await safeRequest(
+          stub.getSessionInfo,
           GetSessionInfoRequest(sessionId: sessionId, queryValues: [
-        QueryValues.QUERY_VALUES_UPDATED_TIME,
-      ]));
+            QueryValues.QUERY_VALUES_UPDATED_TIME,
+          ]));
       publicNeedUpdate = (OurChatTime(inputTimestamp: res.updatedTime) !=
           OurChatTime(inputDatetime: localSessionData.updatedTime));
     }
@@ -128,7 +129,7 @@ class OurChatSession {
           roles[Int64.parseInt(key)] = Int64.parseInt(value.toString()));
     }
 
-    GetSessionInfoResponse res = await stub.getSessionInfo(
+    GetSessionInfoResponse res = await safeRequest(stub.getSessionInfo,
         GetSessionInfoRequest(sessionId: sessionId, queryValues: queryValues));
 
     if (publicNeedUpdate) {

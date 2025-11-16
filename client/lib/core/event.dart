@@ -147,10 +147,12 @@ class BundleMsgs extends OurChatEvent {
   Future<SendMsgResponse> send(OurChatSession session) async {
     var stub = OurChatServiceClient(ourchatAppState.server!.channel!,
         interceptors: [ourchatAppState.server!.interceptor!]);
-    var res = await stub.sendMsg(SendMsgRequest(
-        sessionId: session.sessionId,
-        bundleMsgs: msgs.map((u) => OneMsg(text: u.text)),
-        isEncrypted: false));
+    var res = await safeRequest(
+        stub.sendMsg,
+        SendMsgRequest(
+            sessionId: session.sessionId,
+            bundleMsgs: msgs.map((u) => OneMsg(text: u.text)),
+            isEncrypted: false));
     return res;
   }
 

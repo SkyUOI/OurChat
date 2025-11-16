@@ -178,7 +178,8 @@ class FriendRequestDialog extends StatelessWidget {
                                               ]);
                                           Navigator.pop(context);
                                           try {
-                                            await stub.acceptFriendInvitation(
+                                            await safeRequest(
+                                                stub.acceptFriendInvitation,
                                                 AcceptFriendInvitationRequest(
                                                     friendId:
                                                         data[index].sender!.id,
@@ -242,15 +243,18 @@ class FriendRequestDialog extends StatelessWidget {
                                                                       .interceptor!
                                                                 ]);
                                                             try {
-                                                              await stub.acceptFriendInvitation(AcceptFriendInvitationRequest(
-                                                                  friendId: data[
-                                                                          index]
-                                                                      .sender!
-                                                                      .id,
-                                                                  status: AcceptFriendInvitationResult
-                                                                      .ACCEPT_FRIEND_INVITATION_RESULT_FAIL,
-                                                                  leaveMessage:
-                                                                      newValue));
+                                                              await safeRequest(
+                                                                  stub
+                                                                      .acceptFriendInvitation,
+                                                                  AcceptFriendInvitationRequest(
+                                                                      friendId: data[
+                                                                              index]
+                                                                          .sender!
+                                                                          .id,
+                                                                      status: AcceptFriendInvitationResult
+                                                                          .ACCEPT_FRIEND_INVITATION_RESULT_FAIL,
+                                                                      leaveMessage:
+                                                                          newValue));
                                                             } on grpc
                                                             .GrpcError catch (e) {
                                                               if (context

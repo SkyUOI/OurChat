@@ -10,7 +10,6 @@ import 'package:ourchat/service/basic/v1/basic.pbgrpc.dart';
 import 'package:ourchat/service/ourchat/friends/add_friend/v1/add_friend.pb.dart';
 import 'package:ourchat/service/ourchat/friends/set_friend_info/v1/set_friend_info.pb.dart';
 import 'package:ourchat/service/ourchat/msg_delivery/v1/msg_delivery.pb.dart';
-import 'package:ourchat/service/ourchat/session/get_session_info/v1/get_session_info.pb.dart';
 import 'package:ourchat/service/ourchat/session/new_session/v1/session.pb.dart';
 import 'package:ourchat/service/ourchat/session/set_session_info/v1/set_session_info.pb.dart';
 import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
@@ -237,10 +236,12 @@ class _SessionState extends State<Session> {
                     var stub = OurChatServiceClient(appState.server!.channel!,
                         interceptors: [appState.server!.interceptor!]);
                     try {
-                      await stub.setSessionInfo(SetSessionInfoRequest(
-                          sessionId: sessionState.currentSession!.sessionId,
-                          name: name,
-                          description: description));
+                      await safeRequest(
+                          stub.setSessionInfo,
+                          SetSessionInfoRequest(
+                              sessionId: sessionState.currentSession!.sessionId,
+                              name: name,
+                              description: description));
                       await sessionState.currentSession!
                           .getSessionInfo(ignoreCache: true);
                       sessionState.tabTitle = sessionState.currentSession!.name;
@@ -369,10 +370,12 @@ class _UserTabState extends State<UserTab> {
                         interceptors: [ourchatAppState.server!.interceptor!]);
                     Navigator.pop(context);
                     try {
-                      await stub.addFriend(AddFriendRequest(
-                          friendId: account.id,
-                          displayName: addFriendDisplayName,
-                          leaveMessage: addFriendLeaveMessage));
+                      await safeRequest(
+                          stub.addFriend,
+                          AddFriendRequest(
+                              friendId: account.id,
+                              displayName: addFriendDisplayName,
+                              leaveMessage: addFriendLeaveMessage));
                       if (context.mounted) {
                         showResultMessage(context, okStatusCode, null);
                       }
@@ -481,8 +484,10 @@ class _UserTabState extends State<UserTab> {
                     var stub = OurChatServiceClient(appState.server!.channel!,
                         interceptors: [appState.server!.interceptor!]);
                     try {
-                      await stub.setFriendInfo(SetFriendInfoRequest(
-                          id: account.id, displayName: newValue));
+                      await safeRequest(
+                          stub.setFriendInfo,
+                          SetFriendInfoRequest(
+                              id: account.id, displayName: newValue));
                       if (context.mounted) {
                         showResultMessage(context, okStatusCode, null);
                       }
@@ -763,7 +768,7 @@ class _SessionListState extends State<SessionList> {
 
     // By OCID
     try {
-      var res = await stub.getId(GetIdRequest(ocid: ocid));
+      var res = await safeRequest(stub.getId, GetIdRequest(ocid: ocid));
       OurChatAccount account = OurChatAccount(ourchatAppState);
       account.id = res.id;
       account.recreateStub();
@@ -805,11 +810,7 @@ class _SessionListState extends State<SessionList> {
 
     if (sessionId != null) {
       // By sessionId
-      var stub = OurChatServiceClient(appState.server!.channel!,
-          interceptors: [appState.server!.interceptor!]);
       try {
-        await stub.getSessionInfo(
-            GetSessionInfoRequest(sessionId: Int64.parseInt(searchKeyword)));
         OurChatSession session = OurChatSession(appState, sessionId);
         await session.getSessionInfo();
         matchSessions.add(session);
@@ -1007,8 +1008,10 @@ class _NewSessionDialogState extends State<NewSessionDialog> {
                       ourchatAppState!.server!.channel!,
                       interceptors: [ourchatAppState!.server!.interceptor!]);
                   try {
-                    await stub.newSession(NewSessionRequest(
-                        members: members, e2eeOn: enableE2EE));
+                    await safeRequest(
+                        stub.newSession,
+                        NewSessionRequest(
+                            members: members, e2eeOn: enableE2EE));
                     await ourchatAppState!.thisAccount!
                         .getAccountInfo(ignoreCache: true);
                     sessionState.getSessions(ourchatAppState!);

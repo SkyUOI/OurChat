@@ -43,7 +43,7 @@ class User extends StatelessWidget {
                   interceptors: [appState.server!.interceptor!]);
               StreamController<UploadRequest> controller =
                   StreamController<UploadRequest>();
-              var call = stub.upload(controller.stream);
+              var call = safeRequest(stub.upload, controller.stream);
               controller.add(UploadRequest(
                 metadata: Header(
                     hash: sha3_256.convert(biData.toList()).bytes,
@@ -54,7 +54,8 @@ class User extends StatelessWidget {
               controller.close();
               var res = await call;
 
-              await stub.setSelfInfo(SetSelfInfoRequest(avatarKey: res.key));
+              await safeRequest(
+                  stub.setSelfInfo, SetSelfInfoRequest(avatarKey: res.key));
               await appState.thisAccount!.getAccountInfo(ignoreCache: true);
             },
           ),
@@ -154,8 +155,10 @@ class User extends StatelessWidget {
                                         interceptors: [
                                           appState.server!.interceptor!
                                         ]);
-                                    await stub.setSelfInfo(SetSelfInfoRequest(
-                                        userName: username, ocid: ocid));
+                                    await safeRequest(
+                                        stub.setSelfInfo,
+                                        SetSelfInfoRequest(
+                                            userName: username, ocid: ocid));
                                     await appState.thisAccount!
                                         .getAccountInfo(ignoreCache: true);
                                     appState.update();
