@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:grpc/grpc.dart' as grpc;
 import 'package:ourchat/core/chore.dart';
@@ -686,6 +688,17 @@ class _SessionListState extends State<SessionList> {
                 itemBuilder: (context, index) {
                   OurChatSession currentSession =
                       sessionState.sessionsList[index];
+                  String recentMsgText = "";
+                  if (sessionState.sessionRecentMsg
+                      .containsKey(currentSession)) {
+                    recentMsgText =
+                        "${sessionState.sessionRecentMsg[currentSession]!.sender!.username}: ${sessionState.sessionRecentMsg[currentSession]!.msgs[0].text}";
+                    if (recentMsgText.length > 25) {
+                      recentMsgText = recentMsgText.substring(
+                          0, min(25, recentMsgText.length));
+                      recentMsgText += "...";
+                    }
+                  }
                   return SizedBox(
                       height: 80.0,
                       child: Padding(
@@ -739,7 +752,7 @@ class _SessionListState extends State<SessionList> {
                                             Align(
                                               alignment: Alignment.centerLeft,
                                               child: Text(
-                                                "${sessionState.sessionRecentMsg[currentSession]!.sender!.username}: ${sessionState.sessionRecentMsg[currentSession]!.msgs[0].text}",
+                                                recentMsgText,
                                                 style: TextStyle(
                                                     color: Colors.grey),
                                               ),
@@ -1172,21 +1185,24 @@ class _SessionRecordState extends State<SessionRecord> {
         Widget avatar = UserAvatar(
             imageUrl:
                 sessionState.currentSessionRecords[index].sender!.avatarUrl());
-        Widget message = Column(
-          crossAxisAlignment:
-              (isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start),
-          children: [
-            Text(name),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: messages,
+        Widget message = ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: 500.0),
+          child: Column(
+            crossAxisAlignment:
+                (isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start),
+            children: [
+              Text(name),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: messages,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         );
         return Container(
           margin: const EdgeInsets.all(5.0),
