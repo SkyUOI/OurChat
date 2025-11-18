@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:drift/drift.dart';
-import 'package:ourchat/core/const.dart';
+import 'package:grpc/grpc.dart';
 import 'package:ourchat/core/log.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/core/chore.dart';
@@ -13,7 +13,6 @@ import 'package:ourchat/service/ourchat/get_account_info/v1/get_account_info.pb.
 import 'package:ourchat/service/auth/v1/auth.pbgrpc.dart';
 import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
 import 'package:fixnum/fixnum.dart';
-import 'package:grpc/grpc.dart';
 
 class OurChatAccount {
   OurChatAppState ourchatAppState;
@@ -40,14 +39,24 @@ class OurChatAccount {
         interceptors: [server.interceptor!]);
   }
 
-  Future login(String password, String? ocid, String? email) async {
+  Future<bool> login(String password, String? ocid, String? email) async {
     AuthServiceClient authStub = AuthServiceClient(server.channel!);
+    var l10n = ourchatAppState.l10n;
     try {
       logger.d("login");
       var res = await safeRequest(
-        authStub.auth,
-        AuthRequest(email: email, ocid: ocid, password: password),
-      );
+          authStub.auth,
+          AuthRequest(
+            email: email,
+            ocid: ocid,
+            password: password,
+          ), (GrpcError e) {
+        showResultMessage(ourchatAppState, e.code, e.message,
+            notFoundStatus: l10n.notFound(l10n.user),
+            invalidArgumentStatus: l10n.internalError,
+            unauthenticatedStatus: l10n.incorrectPassword);
+      }, rethrowError: true);
+
       email = email;
       id = res.id;
       ocid = res.ocid;
@@ -56,24 +65,34 @@ class OurChatAccount {
       interceptor.setToken(res.token);
       server.interceptor = interceptor;
       recreateStub();
-      return (okStatusCode, null);
-    } on GrpcError catch (e) {
-      return (e.code, e.message);
+      return true;
+    } catch (e) {
+      return false;
     }
   }
 
-  Future register(String password, String name, String email) async {
+  Future<bool> register(String password, String name, String email) async {
     AuthServiceClient authStub = AuthServiceClient(server.channel!);
+    var l10n = ourchatAppState.l10n;
     try {
       logger.d("register");
       var res = await safeRequest(
-        authStub.register,
-        RegisterRequest(
-          email: email,
-          password: password,
-          name: name,
-        ),
-      );
+          authStub.register,
+          RegisterRequest(
+            email: email,
+            password: password,
+            name: name,
+          ), (GrpcError e) {
+        logger.w("register fail: code ${e.code}, message: ${e.message}");
+        // 处理报错
+        showResultMessage(ourchatAppState, e.code, e.message,
+            alreadyExistsStatus: l10n.alreadyExists(l10n.email),
+            invalidArgumentStatus: {
+              "Password Is Not Strong Enough": l10n.passwordIsNotStrongEnough,
+              "Username Is Invalid": l10n.invalid(l10n.username),
+              "Email Address Is Invalid": l10n.invalid(l10n.email),
+            });
+      }, rethrowError: true);
       email = email;
       username = name;
       id = res.id;
@@ -83,9 +102,9 @@ class OurChatAccount {
       interceptor.setToken(res.token);
       server.interceptor = interceptor;
       recreateStub();
-      return (okStatusCode, null);
-    } on GrpcError catch (e) {
-      return (e.code, e.message);
+      return true;
+    } catch (e) {
+      return false;
     }
   }
 
@@ -120,7 +139,7 @@ class OurChatAccount {
           sessions = accountCache.sessions;
         }
         ourchatAppState.gettingInfoAccountList.remove(id);
-        return;
+        return true;
       }
     }
 
@@ -142,14 +161,21 @@ class OurChatAccount {
       publicDataNeedUpdate = true;
     } else {
       logger.d("get account public updated time");
-      GetAccountInfoResponse res = await safeRequest(
-          stub.getAccountInfo,
-          GetAccountInfoRequest(
-              id: id,
-              requestValues: [QueryValues.QUERY_VALUES_PUBLIC_UPDATED_TIME]));
-      if (OurChatTime(inputTimestamp: res.publicUpdatedTime) !=
-          OurChatTime(inputDatetime: publicData.publicUpdateTime)) {
-        publicDataNeedUpdate = true;
+      try {
+        GetAccountInfoResponse res = await safeRequest(
+            stub.getAccountInfo,
+            GetAccountInfoRequest(
+                id: id,
+                requestValues: [QueryValues.QUERY_VALUES_PUBLIC_UPDATED_TIME]),
+            getAccountInfoOnError,
+            rethrowError: true);
+        if (OurChatTime(inputTimestamp: res.publicUpdatedTime) !=
+            OurChatTime(inputDatetime: publicData.publicUpdateTime)) {
+          publicDataNeedUpdate = true;
+        }
+      } catch (e) {
+        ourchatAppState.gettingInfoAccountList.remove(id);
+        return false;
       }
     }
     if (!publicDataNeedUpdate) {
@@ -167,13 +193,20 @@ class OurChatAccount {
       }
     } else {
       logger.d("get account private updated time");
-      GetAccountInfoResponse res = await safeRequest(
-          stub.getAccountInfo,
-          GetAccountInfoRequest(
-              id: id, requestValues: [QueryValues.QUERY_VALUES_UPDATED_TIME]));
-      if (OurChatTime(inputTimestamp: res.updatedTime) !=
-          OurChatTime(inputDatetime: privateData.updateTime)) {
-        privateDataNeedUpdate = true;
+      try {
+        GetAccountInfoResponse res = await safeRequest(
+            stub.getAccountInfo,
+            GetAccountInfoRequest(
+                id: id, requestValues: [QueryValues.QUERY_VALUES_UPDATED_TIME]),
+            getAccountInfoOnError,
+            rethrowError: true);
+        if (OurChatTime(inputTimestamp: res.updatedTime) !=
+            OurChatTime(inputDatetime: privateData.updateTime)) {
+          privateDataNeedUpdate = true;
+        }
+      } catch (e) {
+        ourchatAppState.gettingInfoAccountList.remove(id);
+        return false;
       }
     }
     if (!privateDataNeedUpdate && isMe) {
@@ -215,30 +248,40 @@ class OurChatAccount {
         privateDataNeedUpdate ||
         ourchatAppState.thisAccount!.friends.contains(id)) {
       logger.d("get account info");
-      GetAccountInfoResponse res = await safeRequest(stub.getAccountInfo,
-          GetAccountInfoRequest(id: id, requestValues: requestValues));
-      if (publicDataNeedUpdate) {
-        await updatePublicData(res, publicData != null);
-      }
-      if (privateDataNeedUpdate) {
-        await updatePrivateData(res, privateData != null);
-      }
-      if (ourchatAppState.thisAccount!.friends.contains(id)) {
-        // get displayname
-        logger.d("get account display_name info");
-        res = await safeRequest(
+      try {
+        GetAccountInfoResponse res = await safeRequest(
             stub.getAccountInfo,
-            GetAccountInfoRequest(
-                id: id,
-                requestValues: [QueryValues.QUERY_VALUES_DISPLAY_NAME]));
-        displayName = res.displayName;
+            GetAccountInfoRequest(id: id, requestValues: requestValues),
+            getAccountInfoOnError,
+            rethrowError: true);
+        if (publicDataNeedUpdate) {
+          await updatePublicData(res, publicData != null);
+        }
+        if (privateDataNeedUpdate) {
+          await updatePrivateData(res, privateData != null);
+        }
+        if (ourchatAppState.thisAccount!.friends.contains(id)) {
+          // get displayname
+          logger.d("get account display_name info");
+          res = await safeRequest(
+              stub.getAccountInfo,
+              GetAccountInfoRequest(
+                  id: id,
+                  requestValues: [QueryValues.QUERY_VALUES_DISPLAY_NAME]),
+              getAccountInfoOnError,
+              rethrowError: true);
+          displayName = res.displayName;
+        }
+      } catch (e) {
+        ourchatAppState.gettingInfoAccountList.remove(id);
+        return false;
       }
     }
-
     lastCheckTime = DateTime.now();
     ourchatAppState.accountCachePool[id] = this;
     ourchatAppState.gettingInfoAccountList.remove(id);
     logger.d("save account info to cache");
+    return true;
   }
 
   Future updatePublicData(GetAccountInfoResponse res, bool isDataExist) async {
@@ -341,4 +384,16 @@ class OurChatAccount {
 
   @override
   int get hashCode => id.toInt();
+
+  void getAccountInfoOnError(GrpcError e) {
+    var l10n = ourchatAppState.l10n;
+    showResultMessage(
+      ourchatAppState,
+      e.code,
+      e.message,
+      notFoundStatus: l10n.notFound(l10n.user),
+      permissionDeniedStatus: l10n.permissionDenied("Get Account Info"),
+      invalidArgumentStatus: l10n.internalError,
+    );
+  }
 }

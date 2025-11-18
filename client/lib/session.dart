@@ -1,5 +1,4 @@
 import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:grpc/grpc.dart' as grpc;
 import 'package:ourchat/core/chore.dart';
@@ -180,8 +179,8 @@ class _SessionState extends State<Session> {
     );
   }
 
-  void showSetSessionInfoDialog(BuildContext context, OurChatAppState appState,
-      SessionState sessionState) {
+  void showSetSessionInfoDialog(BuildContext context,
+      OurChatAppState ourchatAppState, SessionState sessionState) {
     String name = sessionState.currentSession!.name,
         description = sessionState.currentSession!.description;
     var l10n = AppLocalizations.of(context)!;
@@ -235,30 +234,30 @@ class _SessionState extends State<Session> {
               IconButton(
                   onPressed: () async {
                     key.currentState!.save();
-                    var stub = OurChatServiceClient(appState.server!.channel!,
-                        interceptors: [appState.server!.interceptor!]);
-                    try {
-                      await safeRequest(
-                          stub.setSessionInfo,
-                          SetSessionInfoRequest(
-                              sessionId: sessionState.currentSession!.sessionId,
-                              name: name,
-                              description: description));
-                      await sessionState.currentSession!
-                          .getSessionInfo(ignoreCache: true);
-                      sessionState.tabTitle = sessionState.currentSession!.name;
+                    var stub = OurChatServiceClient(
+                        ourchatAppState.server!.channel!,
+                        interceptors: [ourchatAppState.server!.interceptor!]);
+
+                    await safeRequest(
+                        stub.setSessionInfo,
+                        SetSessionInfoRequest(
+                            sessionId: sessionState.currentSession!.sessionId,
+                            name: name,
+                            description: description), (grpc.GrpcError e) {
+                      showResultMessage(ourchatAppState, e.code, e.message,
+                          alreadyExistsStatus: l10n.conflict,
+                          permissionDeniedStatus:
+                              l10n.permissionDenied(e.message!));
                       if (context.mounted) {
-                        showResultMessage(context, okStatusCode, null);
                         Navigator.pop(context);
                       }
-                    } on grpc.GrpcError catch (e) {
-                      if (context.mounted) {
-                        showResultMessage(context, e.code, e.message,
-                            alreadyExistsStatus: l10n.conflict,
-                            permissionDeniedStatus:
-                                l10n.permissionDenied(e.message!));
-                        Navigator.pop(context);
-                      }
+                    });
+                    await sessionState.currentSession!
+                        .getSessionInfo(ignoreCache: true);
+                    sessionState.tabTitle = sessionState.currentSession!.name;
+                    showResultMessage(ourchatAppState, okStatusCode, null);
+                    if (context.mounted) {
+                      Navigator.pop(context);
                     }
                   },
                   icon: Icon(Icons.check)),
@@ -371,25 +370,20 @@ class _UserTabState extends State<UserTab> {
                         ourchatAppState.server!.channel!,
                         interceptors: [ourchatAppState.server!.interceptor!]);
                     Navigator.pop(context);
-                    try {
-                      await safeRequest(
-                          stub.addFriend,
-                          AddFriendRequest(
-                              friendId: account.id,
-                              displayName: addFriendDisplayName,
-                              leaveMessage: addFriendLeaveMessage));
-                      if (context.mounted) {
-                        showResultMessage(context, okStatusCode, null);
-                      }
-                    } on grpc.GrpcError catch (e) {
-                      if (context.mounted) {
-                        showResultMessage(context, e.code, e.message,
-                            permissionDeniedStatus:
-                                l10n.permissionDenied(l10n.addFriend),
-                            alreadyExistsStatus: l10n.friendAlreadyExists,
-                            notFoundStatus: l10n.notFound(l10n.user));
-                      }
-                    }
+                    await safeRequest(
+                        stub.addFriend,
+                        AddFriendRequest(
+                            friendId: account.id,
+                            displayName: addFriendDisplayName,
+                            leaveMessage: addFriendLeaveMessage),
+                        (grpc.GrpcError e) {
+                      showResultMessage(ourchatAppState, e.code, e.message,
+                          permissionDeniedStatus:
+                              l10n.permissionDenied(l10n.addFriend),
+                          alreadyExistsStatus: l10n.friendAlreadyExists,
+                          notFoundStatus: l10n.notFound(l10n.user));
+                    });
+                    showResultMessage(ourchatAppState, okStatusCode, null);
                   },
                   label: Text(l10n.send))
             ],
@@ -468,8 +462,8 @@ class _UserTabState extends State<UserTab> {
         });
   }
 
-  void showSetDisplayNameDialog(
-      BuildContext context, OurChatAppState appState, OurChatAccount account) {
+  void showSetDisplayNameDialog(BuildContext context,
+      OurChatAppState ourchatAppState, OurChatAccount account) {
     var l10n = AppLocalizations.of(context)!;
     showDialog(
         context: context,
@@ -483,26 +477,25 @@ class _UserTabState extends State<UserTab> {
                   initialValue: account.displayName,
                   decoration: InputDecoration(label: Text(l10n.displayName)),
                   onSaved: (newValue) async {
-                    var stub = OurChatServiceClient(appState.server!.channel!,
-                        interceptors: [appState.server!.interceptor!]);
-                    try {
-                      await safeRequest(
-                          stub.setFriendInfo,
-                          SetFriendInfoRequest(
-                              id: account.id, displayName: newValue));
-                      if (context.mounted) {
-                        showResultMessage(context, okStatusCode, null);
-                      }
-                      await account.getAccountInfo(ignoreCache: true);
-                      appState.update();
-                    } on grpc.GrpcError catch (e) {
-                      if (context.mounted) {
-                        showResultMessage(context, e.code, e.message);
-                      }
-                    } finally {
-                      if (context.mounted) {
-                        Navigator.pop(context);
-                      }
+                    var stub = OurChatServiceClient(
+                        ourchatAppState.server!.channel!,
+                        interceptors: [ourchatAppState.server!.interceptor!]);
+
+                    await safeRequest(
+                        stub.setFriendInfo,
+                        SetFriendInfoRequest(
+                            id: account.id,
+                            displayName: newValue), (grpc.GrpcError e) {
+                      showResultMessage(ourchatAppState, e.code, e.message);
+                    });
+
+                    showResultMessage(ourchatAppState, okStatusCode, null);
+
+                    await account.getAccountInfo(ignoreCache: true);
+                    ourchatAppState.update();
+
+                    if (context.mounted) {
+                      Navigator.pop(context);
                     }
                   },
                 ),
@@ -559,7 +552,7 @@ class _SessionListState extends State<SessionList> {
       try {
         sessionState.getSessions(ourchatAppState);
       } on grpc.GrpcError catch (e) {
-        showResultMessage(context, e.code, e.message,
+        showResultMessage(ourchatAppState, e.code, e.message,
             notFoundStatus: l10n.notFound(l10n.session),
             invalidArgumentStatus: l10n.invalid(l10n.argument));
       }
@@ -781,29 +774,32 @@ class _SessionListState extends State<SessionList> {
 
     // By OCID
     try {
-      var res = await safeRequest(stub.getId, GetIdRequest(ocid: ocid));
-      OurChatAccount account = OurChatAccount(ourchatAppState);
-      account.id = res.id;
-      account.recreateStub();
-      await account.getAccountInfo();
-      matchAccounts.add(account);
-    } on grpc.GrpcError catch (e) {
-      if (context.mounted) {
-        showResultMessage(context, e.code, e.message,
+      var res = await safeRequest(stub.getId, GetIdRequest(ocid: ocid),
+          (grpc.GrpcError e) {
+        showResultMessage(ourchatAppState, e.code, e.message,
             // getAccountInfo
             permissionDeniedStatus: l10n.permissionDenied("Get Account Info"),
             invalidArgumentStatus: l10n.internalError,
             notFoundStatus: "");
+      }, rethrowError: true);
+      OurChatAccount account = OurChatAccount(ourchatAppState);
+      account.id = res.id;
+      account.recreateStub();
+      if (await account.getAccountInfo()) {
+        matchAccounts.add(account);
       }
+    } catch (e) {
+      // not found
     }
 
     // By username/display_name
+
     for (Int64 friendsId in ourchatAppState.thisAccount!.friends) {
       OurChatAccount account = OurChatAccount(ourchatAppState);
       account.id = friendsId;
       account.recreateStub();
-      await account.getAccountInfo();
-      if (!matchAccounts.contains(account) &&
+      if (await account.getAccountInfo() &&
+          !matchAccounts.contains(account) &&
           account
               .getNameWithDisplayName()
               .toLowerCase()
@@ -828,9 +824,8 @@ class _SessionListState extends State<SessionList> {
         await session.getSessionInfo();
         matchSessions.add(session);
       } on grpc.GrpcError catch (e) {
-        if (context.mounted) {
-          showResultMessage(context, e.code, e.message, notFoundStatus: "");
-        }
+        showResultMessage(ourchatAppState, e.code, e.message,
+            notFoundStatus: "");
       }
     }
 
@@ -1021,18 +1016,16 @@ class _NewSessionDialogState extends State<NewSessionDialog> {
                       ourchatAppState!.server!.channel!,
                       interceptors: [ourchatAppState!.server!.interceptor!]);
                   try {
-                    await safeRequest(
-                        stub.newSession,
-                        NewSessionRequest(
-                            members: members, e2eeOn: enableE2EE));
+                    await safeRequest(stub.newSession,
+                        NewSessionRequest(members: members, e2eeOn: enableE2EE),
+                        (grpc.GrpcError e) {
+                      showResultMessage(ourchatAppState!, e.code, e.message,
+                          notFoundStatus: l10n.notFound(l10n.user));
+                    }, rethrowError: true);
                     await ourchatAppState!.thisAccount!
                         .getAccountInfo(ignoreCache: true);
                     sessionState.getSessions(ourchatAppState!);
-                  } on grpc.GrpcError catch (e) {
-                    if (context.mounted) {
-                      showResultMessage(context, e.code, e.message,
-                          notFoundStatus: l10n.notFound(l10n.user));
-                    }
+                  } catch (e) {
                     return;
                   }
                   if (context.mounted) {
@@ -1122,12 +1115,10 @@ class _SessionTabState extends State<SessionTab> {
                         try {
                           await bundleMsgs.send(sessionState.currentSession!);
                         } on grpc.GrpcError catch (e) {
-                          if (context.mounted) {
-                            showResultMessage(context, e.code, e.message,
-                                permissionDeniedStatus:
-                                    l10n.permissionDenied(l10n.send),
-                                notFoundStatus: l10n.notFound(l10n.session));
-                          }
+                          showResultMessage(ourchatAppState, e.code, e.message,
+                              permissionDeniedStatus:
+                                  l10n.permissionDenied(l10n.send),
+                              notFoundStatus: l10n.notFound(l10n.session));
                         }
                       },
                       controller: controller,

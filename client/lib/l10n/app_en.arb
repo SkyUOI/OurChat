@@ -49,9 +49,15 @@
     "@verifyTimeout": {
         "description": "Verify timeout"
     },
-    "emailExists": "Email already exists",
-    "@emailExists": {
-        "description": "Email already exists"
+    "alreadyExists": "{sth} already exists",
+    "@alreadyExists": {
+        "description": "sth already exists",
+        "placeholders": {
+            "sth": {
+                "type": "String",
+                "example": "Email"
+            }
+        }
     },
     "verifyNotCompleted": "Verify not completed",
     "@verifyNotCompleted": {
@@ -378,5 +384,27 @@
     "exit": "Exit",
     "@exit": {
         "description": "Exit"
+    },
+    "storageSpaceFull": "The storage space is full",
+    "@storageSpaceFull": {
+        "description": "The storage space is full"
+    },
+    "tooLong": "{sth} is too long",
+    "@tooLong": {
+        "description": "Something is too long",
+        "placeholders": {
+            "sth": {
+                "type": "String",
+                "example": "OCID"
+            }
+        }
+    },
+    "status": "Status",
+    "@status": {
+        "description": "Status"
+    },
+    "info": "Info",
+    "@info": {
+        "description": "Info"
     }
 }

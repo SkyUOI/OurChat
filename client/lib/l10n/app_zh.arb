@@ -13,7 +13,7 @@
     "emailAddressUnreachable": "邮箱地址不可达",
     "requestRefused": "请求被拒绝",
     "verifyTimeout": "验证超时",
-    "emailExists": "邮箱已存在",
+    "alreadyExists": "{sth}已存在",
     "verifyNotCompleted": "验证未完成",
     "email": "邮箱",
     "ocid": "OCID",
@@ -86,5 +86,9 @@
     "needRestart": "需要重启OurChat",
     "language": "语言",
     "autoLogin": "自动登录",
-    "exit": "退出"
+    "exit": "退出",
+    "storageSpaceFull": "存储空间已满",
+    "tooLong": "{sth}过长",
+    "status": "状态",
+    "info": "信息"
 }

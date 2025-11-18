@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:grpc/grpc.dart';
 import 'package:hashlib/hashlib.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
@@ -22,7 +23,7 @@ class User extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var appState = context.watch<OurChatAppState>();
+    var ourchatAppState = context.watch<OurChatAppState>();
     var l10n = AppLocalizations.of(context)!;
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -30,7 +31,7 @@ class User extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.all(AppStyles.mediumPadding),
           child: UserAvatar(
-            imageUrl: appState.thisAccount!.avatarUrl(),
+            imageUrl: ourchatAppState.thisAccount!.avatarUrl(),
             size: AppStyles.largeAvatarSize,
             showEditIcon: true,
             onTap: () async {
@@ -39,11 +40,20 @@ class User extends StatelessWidget {
                   await picker.pickImage(source: ImageSource.gallery);
               if (image == null) return;
               Uint8List biData = await image.readAsBytes();
-              var stub = OurChatServiceClient(appState.server!.channel!,
-                  interceptors: [appState.server!.interceptor!]);
+              var stub = OurChatServiceClient(ourchatAppState.server!.channel!,
+                  interceptors: [ourchatAppState.server!.interceptor!]);
               StreamController<UploadRequest> controller =
                   StreamController<UploadRequest>();
-              var call = safeRequest(stub.upload, controller.stream);
+              var call =
+                  safeRequest(stub.upload, controller.stream, (GrpcError e) {
+                showResultMessage(
+                  ourchatAppState,
+                  e.code,
+                  e.message,
+                  invalidArgumentStatus: "${l10n.internalError}(${e.message})",
+                  resourceExhaustedStatus: l10n.storageSpaceFull,
+                );
+              });
               controller.add(UploadRequest(
                 metadata: Header(
                     hash: sha3_256.convert(biData.toList()).bytes,
@@ -53,10 +63,18 @@ class User extends StatelessWidget {
               controller.add(UploadRequest(content: biData.toList()));
               controller.close();
               var res = await call;
-
               await safeRequest(
-                  stub.setSelfInfo, SetSelfInfoRequest(avatarKey: res.key));
-              await appState.thisAccount!.getAccountInfo(ignoreCache: true);
+                  stub.setSelfInfo, SetSelfInfoRequest(avatarKey: res.key),
+                  (GrpcError e) {
+                showResultMessage(ourchatAppState, e.code, e.message,
+                    invalidArgumentStatus: {
+                      "Ocid Too Long": l10n.tooLong(l10n.ocid),
+                      "Status Too Long": l10n.tooLong(l10n.status),
+                    },
+                    alreadyExistsStatus: l10n.alreadyExists(l10n.info));
+              });
+              await ourchatAppState.thisAccount!
+                  .getAccountInfo(ignoreCache: true);
             },
           ),
         ),
@@ -78,7 +96,7 @@ class User extends StatelessWidget {
                     child: Column(
                       children: [
                         Text(
-                          appState.thisAccount!.username,
+                          ourchatAppState.thisAccount!.username,
                           style: TextStyle(
                               fontSize: AppStyles.titleFontSize,
                               fontWeight: FontWeight.bold),
@@ -89,14 +107,14 @@ class User extends StatelessWidget {
                           children: [
                             Text("${l10n.email}: ",
                                 style: TextStyle(color: Colors.grey)),
-                            SelectableText(appState.thisAccount!.email!),
+                            SelectableText(ourchatAppState.thisAccount!.email!),
                           ],
                         ),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text("${l10n.ocid}: "),
-                            SelectableText(appState.thisAccount!.ocid),
+                            SelectableText(ourchatAppState.thisAccount!.ocid),
                           ],
                         ),
                       ],
@@ -116,7 +134,7 @@ class User extends StatelessWidget {
                                 children: [
                                   TextFormField(
                                     initialValue:
-                                        appState.thisAccount!.username,
+                                        ourchatAppState.thisAccount!.username,
                                     decoration: InputDecoration(
                                         label: Text(l10n.username)),
                                     validator: (value) {
@@ -130,7 +148,8 @@ class User extends StatelessWidget {
                                     },
                                   ),
                                   TextFormField(
-                                    initialValue: appState.thisAccount!.ocid,
+                                    initialValue:
+                                        ourchatAppState.thisAccount!.ocid,
                                     decoration:
                                         InputDecoration(label: Text(l10n.ocid)),
                                     validator: (value) {
@@ -151,17 +170,30 @@ class User extends StatelessWidget {
                                   if (key.currentState!.validate()) {
                                     key.currentState!.save();
                                     var stub = OurChatServiceClient(
-                                        appState.server!.channel!,
+                                        ourchatAppState.server!.channel!,
                                         interceptors: [
-                                          appState.server!.interceptor!
+                                          ourchatAppState.server!.interceptor!
                                         ]);
+
                                     await safeRequest(
                                         stub.setSelfInfo,
                                         SetSelfInfoRequest(
-                                            userName: username, ocid: ocid));
-                                    await appState.thisAccount!
+                                            userName: username,
+                                            ocid: ocid), (GrpcError e) {
+                                      showResultMessage(
+                                          ourchatAppState, e.code, e.message,
+                                          invalidArgumentStatus: {
+                                            "Ocid Too Long":
+                                                l10n.tooLong(l10n.ocid),
+                                            "Status Too Long":
+                                                l10n.tooLong(l10n.status),
+                                          },
+                                          alreadyExistsStatus:
+                                              l10n.alreadyExists(l10n.info));
+                                    });
+                                    await ourchatAppState.thisAccount!
                                         .getAccountInfo(ignoreCache: true);
-                                    appState.update();
+                                    ourchatAppState.update();
                                     if (context.mounted) {
                                       Navigator.pop(context);
                                     }
@@ -187,13 +219,13 @@ class User extends StatelessWidget {
                   style: AppStyles.defaultButtonStyle,
                   icon: Icon(Icons.logout),
                   onPressed: () {
-                    appState.thisAccount = null;
-                    appState.server = null;
-                    appState.privateDB!.close();
-                    appState.privateDB = null;
-                    appState.accountCachePool = {};
-                    appState.sessionCachePool = {};
-                    appState.eventSystem!.stopListening();
+                    ourchatAppState.thisAccount = null;
+                    ourchatAppState.server = null;
+                    ourchatAppState.privateDB!.close();
+                    ourchatAppState.privateDB = null;
+                    ourchatAppState.accountCachePool = {};
+                    ourchatAppState.sessionCachePool = {};
+                    ourchatAppState.eventSystem!.stopListening();
                     Navigator.pop(context);
                     Navigator.push(
                         context,

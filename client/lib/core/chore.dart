@@ -4,7 +4,6 @@ import 'package:ourchat/core/log.dart';
 import 'package:ourchat/google/protobuf/timestamp.pb.dart';
 import 'package:flutter/material.dart';
 import 'package:ourchat/core/const.dart';
-import 'package:ourchat/l10n/app_localizations.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:ourchat/main.dart';
 
@@ -55,7 +54,7 @@ class OurChatTime {
 }
 
 void showResultMessage(
-  BuildContext context,
+  OurChatAppState ourchatAppState,
   int code,
   String? errorMessage, {
   dynamic okStatus,
@@ -76,7 +75,7 @@ void showResultMessage(
   dynamic dataLossStatus,
   dynamic unauthenticatedStatus,
 }) {
-  var l10n = AppLocalizations.of(context)!;
+  var l10n = ourchatAppState.l10n;
   dynamic message = l10n.unknownError;
   switch (code) {
     case okStatusCode:
@@ -297,7 +296,8 @@ class UserAvatar extends StatelessWidget {
   }
 }
 
-Future safeRequest(Function func, var args) async {
+Future safeRequest(Function func, var args, Function onError,
+    {bool rethrowError = false}) async {
   bool retryFlag = false;
   while (true) {
     try {
@@ -307,12 +307,16 @@ Future safeRequest(Function func, var args) async {
       }
       return res;
     } on GrpcError catch (e) {
-      if (e.code == resourceExhaustedStatusCode) {
+      if (e.code == resourceExhaustedStatusCode &&
+          e.message == "HTTP connection completed with 429 instead of 200") {
         retryFlag = true;
         logger.w("Rate limit exceeded, sleeping for a while");
         await Future.delayed(Duration(milliseconds: 500));
       } else {
-        rethrow;
+        onError(e);
+        if (rethrowError) {
+          rethrow;
+        }
       }
     }
   }

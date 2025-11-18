@@ -54,6 +54,7 @@ class OurChatAppState extends ChangeNotifier {
   Map<Int64, OurChatAccount> accountCachePool = {};
   Map<Int64, OurChatSession> sessionCachePool = {};
   List<Int64> gettingInfoAccountList = [], gettingInfoSessionList = [];
+  late AppLocalizations l10n;
 
   OurChatAppState() : config = OurChatConfig() {
     logger.i("init OurChat");
@@ -146,12 +147,14 @@ class _ControllerState extends State<Controller>
 
   Future autoLogin(BuildContext context) async {
     logger.i("AUTO login");
-    var appState = context.watch<OurChatAppState>();
+    var ourchatAppState = context.watch<OurChatAppState>();
     bool isTLS = await OurChatServer.tlsEnabled(
-        appState.config["servers"][0]["host"],
-        appState.config["servers"][0]["port"]);
-    OurChatServer server = OurChatServer(appState.config["servers"][0]["host"],
-        appState.config["servers"][0]["port"], isTLS);
+        ourchatAppState.config["servers"][0]["host"],
+        ourchatAppState.config["servers"][0]["port"]);
+    OurChatServer server = OurChatServer(
+        ourchatAppState.config["servers"][0]["host"],
+        ourchatAppState.config["servers"][0]["port"],
+        isTLS);
     var connectRes = await server.getServerInfo();
     if (connectRes != okStatusCode) {
       logger.w("fiailed to connect to server");
@@ -161,31 +164,37 @@ class _ControllerState extends State<Controller>
       }
       return;
     }
-    appState.server = server;
-    OurChatAccount ocAccount = OurChatAccount(appState);
+    ourchatAppState.server = server;
+    OurChatAccount ocAccount = OurChatAccount(ourchatAppState);
     String? email, ocid;
-    if (appState.config["recent_account"].contains('@')) {
+    if (ourchatAppState.config["recent_account"].contains('@')) {
       // 判断邮箱/ocid登录
-      email = appState.config["recent_account"];
+      email = ourchatAppState.config["recent_account"];
     } else {
-      ocid = appState.config["recent_account"];
+      ocid = ourchatAppState.config["recent_account"];
     }
-    var loginRes =
-        await ocAccount.login(appState.config["recent_password"], ocid, email);
-    if (loginRes.$1 != okStatusCode) {
-      logger.w("failed to login");
+
+    bool loginRes = await ocAccount.login(
+      ourchatAppState.config["recent_password"],
+      ocid,
+      email,
+    );
+    if (!loginRes) {
+      logger.w("failed to auto-login");
       if (context.mounted) {
         Navigator.push(
             context, MaterialPageRoute(builder: (context) => Auth()));
       }
       return;
     }
-    appState.thisAccount = ocAccount;
-    appState.privateDB = database.OurChatDatabase(ocAccount.id);
-    appState.eventSystem = OurChatEventSystem(appState);
-    await appState.thisAccount!.getAccountInfo();
-    appState.eventSystem!.listenEvents();
-    appState.update();
+
+    ourchatAppState.thisAccount = ocAccount;
+    ourchatAppState.privateDB = database.OurChatDatabase(ocAccount.id);
+    ourchatAppState.eventSystem = OurChatEventSystem(ourchatAppState);
+    await ourchatAppState.thisAccount!.getAccountInfo();
+
+    ourchatAppState.eventSystem!.listenEvents();
+    ourchatAppState.update();
     if (context.mounted) {
       // 跳转主界面
       Navigator.pop(context);
@@ -199,17 +208,17 @@ class _ControllerState extends State<Controller>
 
   @override
   Widget build(BuildContext context) {
-    var appState = context.watch<OurChatAppState>();
+    var ourchatAppState = context.watch<OurChatAppState>();
     return MaterialApp(
       scaffoldMessengerKey: rootScaffoldMessengerKey,
       localeResolutionCallback: (locale, supportedLocales) {
         Locale useLanguage = Locale("en");
         Locale? setLanguage = locale;
-        if (appState.config["language"] != null) {
+        if (ourchatAppState.config["language"] != null) {
           setLanguage = Locale.fromSubtags(
-              languageCode: appState.config["language"][0],
-              scriptCode: appState.config["language"][1],
-              countryCode: appState.config["language"][2]);
+              languageCode: ourchatAppState.config["language"][0],
+              scriptCode: ourchatAppState.config["language"][1],
+              countryCode: ourchatAppState.config["language"][2]);
         }
         for (int i = 0; i < supportedLocales.length; i++) {
           var availableLanguage = supportedLocales.elementAt(i);
@@ -220,7 +229,7 @@ class _ControllerState extends State<Controller>
         }
         logger.i(
             "use language (${useLanguage.languageCode},${useLanguage.scriptCode},${useLanguage.countryCode})");
-        appState.config["language"] = [
+        ourchatAppState.config["language"] = [
           useLanguage.languageCode,
           useLanguage.scriptCode,
           useLanguage.countryCode
@@ -231,15 +240,16 @@ class _ControllerState extends State<Controller>
       supportedLocales: AppLocalizations.supportedLocales,
       home: LayoutBuilder(
         builder: (context, constraints) {
-          var l10n = AppLocalizations.of(context)!;
+          var l10n = ourchatAppState.l10n = AppLocalizations.of(context)!;
           trayManager.setContextMenu(Menu(items: [
             MenuItem(key: "show", label: l10n.show("")),
             MenuItem(key: "exit", label: l10n.exit)
           ]));
-          appState.screenMode = (constraints.maxHeight < constraints.maxWidth)
-              ? desktop
-              : mobile; // 通过屏幕比例判断桌面端/移动端
-          if (appState.config["recent_password"].isNotEmpty) {
+          ourchatAppState.screenMode =
+              (constraints.maxHeight < constraints.maxWidth)
+                  ? desktop
+                  : mobile; // 通过屏幕比例判断桌面端/移动端
+          if (ourchatAppState.config["recent_password"].isNotEmpty) {
             if (!logined) {
               autoLogin(context);
               logined = true;
@@ -266,7 +276,7 @@ class _ControllerState extends State<Controller>
         fontFamily: Platform.isWindows ? "微软雅黑" : null,
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Color(appState.config["color"]),
+          seedColor: Color(ourchatAppState.config["color"]),
         ),
       ),
     );
