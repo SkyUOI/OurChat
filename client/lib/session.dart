@@ -1156,6 +1156,7 @@ class _SessionRecordState extends State<SessionRecord> {
   @override
   Widget build(BuildContext context) {
     SessionState sessionState = context.watch<SessionState>();
+    OurChatAppState ourchatAppState = context.watch<OurChatAppState>();
     return ListView.builder(
       itemBuilder: (context, index) {
         String name =
@@ -1177,7 +1178,8 @@ class _SessionRecordState extends State<SessionRecord> {
             imageUrl:
                 sessionState.currentSessionRecords[index].sender!.avatarUrl());
         Widget message = ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: 500.0),
+          constraints: BoxConstraints(
+              maxWidth: ourchatAppState.screenMode == desktop ? 500.0 : 300.0),
           child: Column(
             crossAxisAlignment:
                 (isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start),

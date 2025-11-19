@@ -29,17 +29,18 @@ bool trayStatus = true, isFlashing = false;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await windowManager.ensureInitialized();
-
-  WindowOptions windowOptions = const WindowOptions(
-    minimumSize: Size(900, 600),
-    center: true,
-    skipTaskbar: false,
-    title: "OurChat",
-  );
-  windowManager.waitUntilReadyToShow(windowOptions, () async {
-    await windowManager.show();
-  });
+  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    await windowManager.ensureInitialized();
+    WindowOptions windowOptions = const WindowOptions(
+      minimumSize: Size(900, 600),
+      center: true,
+      skipTaskbar: false,
+      title: "OurChat",
+    );
+    windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.show();
+    });
+  }
   runApp(const MainApp());
 }
 
@@ -130,12 +131,14 @@ class _ControllerState extends State<Controller>
   @override
   void initState() {
     super.initState();
-    windowManager.addListener(this);
-    windowManager.setPreventClose(true);
-    trayManager.addListener(this);
-    trayManager.setIcon(Platform.isWindows
-        ? "assets/images/logo_without_text.ico"
-        : "assets/images/logo_without_text.png");
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      windowManager.addListener(this);
+      windowManager.setPreventClose(true);
+      trayManager.addListener(this);
+      trayManager.setIcon(Platform.isWindows
+          ? "assets/images/logo_without_text.ico"
+          : "assets/images/logo_without_text.png");
+    }
   }
 
   @override
