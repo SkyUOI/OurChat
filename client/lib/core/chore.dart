@@ -313,10 +313,16 @@ Future safeRequest(Function func, var args, Function onError,
         logger.w("Rate limit exceeded, sleeping for a while");
         await Future.delayed(Duration(milliseconds: 500));
       } else {
+        logger.w("GrpcError caught: $e");
         onError(e);
         if (rethrowError) {
           rethrow;
         }
+      }
+    } catch (e) {
+      logger.w("Error caught: $e");
+      if (rethrowError) {
+        rethrow;
       }
     }
   }
