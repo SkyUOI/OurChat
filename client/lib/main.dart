@@ -138,6 +138,7 @@ class _ControllerState extends State<Controller>
       trayManager.setIcon(Platform.isWindows
           ? "assets/images/logo_without_text.ico"
           : "assets/images/logo_without_text.png");
+      trayManager.setToolTip("OurChat");
     }
   }
 
