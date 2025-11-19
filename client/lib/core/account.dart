@@ -112,7 +112,7 @@ class OurChatAccount {
     logger.d("get account info for id: ${id.toString()}");
     if (ourchatAppState.gettingInfoAccountList.contains(id)) {
       while (ourchatAppState.gettingInfoAccountList.contains(id)) {
-        await Future.delayed(Duration(milliseconds: 100));
+        await Future.delayed(Duration(milliseconds: 10));
       }
       await getAccountInfo(ignoreCache: ignoreCache);
       return;
@@ -139,6 +139,7 @@ class OurChatAccount {
           sessions = accountCache.sessions;
         }
         ourchatAppState.gettingInfoAccountList.remove(id);
+        logger.d("use account info cache");
         return true;
       }
     }
@@ -209,6 +210,8 @@ class OurChatAccount {
         return false;
       }
     }
+    logger.d(
+        "accountId: $id,isMe: $isMe, private data need update: $privateDataNeedUpdate, public data need update: $publicDataNeedUpdate");
     if (!privateDataNeedUpdate && isMe) {
       // 使用本地缓存
       updatedTime = OurChatTime(inputDatetime: privateData!.updateTime);

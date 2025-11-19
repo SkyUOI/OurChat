@@ -298,6 +298,7 @@ class UserAvatar extends StatelessWidget {
 
 Future safeRequest(Function func, var args, Function onError,
     {bool rethrowError = false}) async {
+  logger.d("safeRequest called $func with args: $args");
   bool retryFlag = false;
   while (true) {
     try {

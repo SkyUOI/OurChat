@@ -36,7 +36,7 @@ class OurChatSession {
     logger.d("get session info for id: ${sessionId.toString()}");
     if (ourchatAppState.gettingInfoSessionList.contains(sessionId)) {
       while (ourchatAppState.gettingInfoSessionList.contains(sessionId)) {
-        await Future.delayed(Duration(milliseconds: 100));
+        await Future.delayed(Duration(milliseconds: 10));
       }
       getSessionInfo(ignoreCache: ignoreCache);
       return;
@@ -60,6 +60,7 @@ class OurChatSession {
         lastCheckTime = sessionCache.lastCheckTime;
         displayName = sessionCache.displayName;
         ourchatAppState.gettingInfoSessionList.remove(sessionId);
+        logger.d("use session info cache");
         return;
       }
     }
@@ -92,7 +93,8 @@ class OurChatSession {
     privateNeedUpdate =
         ourchatAppState.thisAccount!.sessions.contains(sessionId) &&
             publicNeedUpdate;
-
+    logger.d(
+        "sessionId: $sessionId, session public need update: $publicNeedUpdate, private need update: $privateNeedUpdate");
     if (publicNeedUpdate) {
       logger.d("get session public info");
       queryValues.addAll([
