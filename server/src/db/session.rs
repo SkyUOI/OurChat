@@ -368,7 +368,7 @@ pub async fn delete_session(
             .await?;
         // Modify the info update time
         let user = entities::user::ActiveModel {
-            id: ActiveValue::Set(user_id.into()),
+            id: ActiveValue::Set(member.user_id.into()),
             update_time: ActiveValue::Set(time.into()),
             ..Default::default()
         };
