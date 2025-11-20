@@ -363,12 +363,12 @@ pub async fn delete_session(
     let members = get_members(session_id, db_conn).await?;
     let time = chrono::Utc::now();
     for member in members {
-        session_relation::Entity::delete_by_id((session_id.into(), member.user_id.into()))
+        session_relation::Entity::delete_by_id((session_id.into(), member.user_id))
             .exec(db_conn)
             .await?;
         // Modify the info update time
         let user = entities::user::ActiveModel {
-            id: ActiveValue::Set(member.user_id.into()),
+            id: ActiveValue::Set(member.user_id),
             update_time: ActiveValue::Set(time.into()),
             ..Default::default()
         };
