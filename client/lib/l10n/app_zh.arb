@@ -90,5 +90,9 @@
     "storageSpaceFull": "存储空间已满",
     "tooLong": "{sth}过长",
     "status": "状态",
-    "info": "信息"
+    "info": "信息",
+    "againToConfirm": "再次按下以确认",
+    "delete": "删除",
+    "role": "角色",
+    "notInSession": "不在会话中"
 }

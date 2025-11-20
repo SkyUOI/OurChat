@@ -406,5 +406,21 @@
     "info": "Info",
     "@info": {
         "description": "Info"
+    },
+    "againToConfirm": "Press again to confirm",
+    "@againToConfirm": {
+        "description": "Press again to confirm"
+    },
+    "delete": "Delete",
+    "@delete": {
+        "description": "Delete"
+    },
+    "role": "Role",
+    "@role": {
+        "description": "Role"
+    },
+    "notInSession": "Not in session",
+    "@notInSession": {
+        "description": "Not in session"
     }
 }

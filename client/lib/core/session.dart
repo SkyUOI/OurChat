@@ -8,6 +8,7 @@ import 'package:ourchat/core/database.dart';
 import 'package:ourchat/core/log.dart';
 import 'package:ourchat/core/server.dart';
 import 'package:ourchat/main.dart';
+import 'package:ourchat/service/ourchat/session/get_role/v1/get_role.pb.dart';
 import 'package:ourchat/service/ourchat/session/get_session_info/v1/get_session_info.pb.dart';
 import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
@@ -23,6 +24,7 @@ class OurChatSession {
   late List<Int64> members = [];
   late Map<Int64, Int64> roles = {};
   late int size;
+  late List<int> myPermissions = [];
   String? displayName;
   DateTime lastCheckTime = DateTime(0);
 
@@ -60,6 +62,7 @@ class OurChatSession {
         lastCheckTime = sessionCache.lastCheckTime;
         displayName = sessionCache.displayName;
         ourchatAppState.gettingInfoSessionList.remove(sessionId);
+        myPermissions = sessionCache.myPermissions;
         logger.d("use session info cache");
         return;
       }
@@ -126,16 +129,26 @@ class OurChatSession {
       queryValues.addAll(
           [QueryValues.QUERY_VALUES_MEMBERS, QueryValues.QUERY_VALUES_ROLES]);
     } else if (ourchatAppState.thisAccount!.sessions.contains(sessionId)) {
+      // get from local db
       var privateDB = ourchatAppState.privateDB!;
       var localSessionPrivateData = await (privateDB.select(privateDB.session)
             ..where((u) => u.sessionId.equals(BigInt.from(sessionId.toInt()))))
           .getSingle();
-      var intMembers = jsonDecode(localSessionPrivateData.members);
-      var intRoles = jsonDecode(localSessionPrivateData.roles);
-      for (int i = 0; i < intMembers.length; i++) {
-        members.add(Int64.parseInt(intMembers[i].toString()));
+      var jsonMembers = jsonDecode(localSessionPrivateData.members);
+      var jsonRoles = jsonDecode(localSessionPrivateData.roles);
+      var jsonMyPermissions = jsonDecode(localSessionPrivateData.myPermissions);
+
+      myPermissions = [];
+      for (int i = 0; i < jsonMyPermissions.length; i++) {
+        myPermissions.add(jsonMyPermissions[i]);
       }
-      intRoles.forEach((key, value) =>
+
+      members = [];
+      for (int i = 0; i < jsonMembers.length; i++) {
+        members.add(Int64.parseInt(jsonMembers[i].toString()));
+      }
+      roles = {};
+      jsonRoles.forEach((key, value) =>
           roles[Int64.parseInt(key)] = Int64.parseInt(value.toString()));
     }
     try {
@@ -182,36 +195,58 @@ class OurChatSession {
         for (int i = 0; i < res.roles.length; i++) {
           roles[res.roles[i].userId] = res.roles[i].role;
         }
-      }
+        var l10n = ourchatAppState.l10n;
+        try {
+          var roleRes = await safeRequest(stub.getRole,
+              GetRoleRequest(roleId: roles[ourchatAppState.thisAccount!.id]),
+              (GrpcError e) {
+            showResultMessage(
+              ourchatAppState,
+              e.code,
+              e.message,
+              notFoundStatus: l10n.notFound(l10n.role),
+              permissionDeniedStatus: l10n.permissionDenied(l10n.notInSession),
+            );
+          });
+          myPermissions = [];
+          for (int i = 0; i < roleRes.permissions.length; i++) {
+            myPermissions.add(roleRes.permissions[i].toInt());
+          }
+        } catch (e) {
+          // continue
+        }
 
-      var intMembers = [];
-      for (int i = 0; i < members.length; i++) {
-        intMembers.add(members[i].toInt());
-      }
-      var jsonRoles = {};
-      roles.forEach((key, value) => jsonRoles[key.toString()] = value.toInt());
-      if (localSessionPrivateData == null) {
-        privateDB.into(privateDB.session).insert(SessionData(
-            sessionId: BigInt.from(sessionId.toInt()),
-            members: jsonEncode(intMembers),
-            roles: jsonEncode(jsonRoles)));
-      } else {
-        (privateDB.update(privateDB.session)
-              ..where(
-                  (u) => u.sessionId.equals(BigInt.from(sessionId.toInt()))))
-            .write(SessionCompanion(
-                members: Value(jsonEncode(intMembers)),
-                roles: Value(jsonEncode(jsonRoles))));
-      }
+        var intMembers = [];
+        for (int i = 0; i < members.length; i++) {
+          intMembers.add(members[i].toInt());
+        }
+        var intRoles = {};
+        roles.forEach((key, value) => intRoles[key.toString()] = value.toInt());
+        if (localSessionPrivateData == null) {
+          privateDB.into(privateDB.session).insert(SessionData(
+              sessionId: BigInt.from(sessionId.toInt()),
+              members: jsonEncode(intMembers),
+              roles: jsonEncode(intRoles),
+              myPermissions: jsonEncode(myPermissions)));
+        } else {
+          (privateDB.update(privateDB.session)
+                ..where(
+                    (u) => u.sessionId.equals(BigInt.from(sessionId.toInt()))))
+              .write(SessionCompanion(
+                  members: Value(jsonEncode(intMembers)),
+                  roles: Value(jsonEncode(intRoles)),
+                  myPermissions: Value(jsonEncode(myPermissions))));
+        }
 
-      if (members.length == 2) {
-        Int64 otherUserId = members.firstWhere(
-            (element) => element != ourchatAppState.thisAccount!.id);
-        OurChatAccount otherAccount = OurChatAccount(ourchatAppState);
-        otherAccount.id = otherUserId;
-        otherAccount.recreateStub();
-        await otherAccount.getAccountInfo();
-        displayName = otherAccount.displayName;
+        if (members.length == 2) {
+          Int64 otherUserId = members.firstWhere(
+              (element) => element != ourchatAppState.thisAccount!.id);
+          OurChatAccount otherAccount = OurChatAccount(ourchatAppState);
+          otherAccount.id = otherUserId;
+          otherAccount.recreateStub();
+          await otherAccount.getAccountInfo();
+          displayName = otherAccount.displayName;
+        }
       }
     } catch (e) {
       ourchatAppState.gettingInfoSessionList.remove(sessionId);
