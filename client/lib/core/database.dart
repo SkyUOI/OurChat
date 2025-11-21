@@ -62,6 +62,7 @@ class Session extends Table {
   Int64Column get sessionId => int64()();
   TextColumn get members => text()();
   TextColumn get roles => text()();
+  TextColumn get myPermissions => text()();
 
   @override
   Set<Column> get primaryKey => {sessionId};

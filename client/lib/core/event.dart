@@ -144,16 +144,25 @@ class BundleMsgs extends OurChatEvent {
     }
   }
 
-  Future<SendMsgResponse> send(OurChatSession session) async {
+  Future<SendMsgResponse?> send(OurChatSession session) async {
     var stub = OurChatServiceClient(ourchatAppState.server!.channel!,
         interceptors: [ourchatAppState.server!.interceptor!]);
-    var res = await safeRequest(
-        stub.sendMsg,
-        SendMsgRequest(
-            sessionId: session.sessionId,
-            bundleMsgs: msgs.map((u) => OneMsg(text: u.text)),
-            isEncrypted: false));
-    return res;
+    var l10n = ourchatAppState.l10n;
+    try {
+      var res = await safeRequest(
+          stub.sendMsg,
+          SendMsgRequest(
+              sessionId: session.sessionId,
+              bundleMsgs: msgs.map((u) => OneMsg(text: u.text)),
+              isEncrypted: false), (GrpcError e) {
+        showResultMessage(ourchatAppState, e.code, e.message,
+            notFoundStatus: l10n.notFound(l10n.session),
+            permissionDeniedStatus: l10n.permissionDenied(l10n.send));
+      }, rethrowError: true);
+      return res;
+    } catch (e) {
+      return null;
+    }
   }
 
   OneMessage operator [](int index) {
