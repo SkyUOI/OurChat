@@ -138,7 +138,7 @@ async fn oauth_configuration_loaded() {
 
     // Test that OAuth configuration is properly loaded
     // The default config should have empty client ID and secret and disabled
-    assert_eq!(app.app_config.main_cfg.oauth.enable, false);
+    assert!(!app.app_config.main_cfg.oauth.enable);
     assert_eq!(app.app_config.main_cfg.oauth.github_client_id, "");
     assert_eq!(app.app_config.main_cfg.oauth.github_client_secret, "");
 
@@ -185,8 +185,8 @@ async fn oauth_with_custom_config() {
 fn extract_state_from_url(url: &str) -> String {
     let url_parts: Vec<&str> = url.split('&').collect();
     for part in url_parts {
-        if part.starts_with("state=") {
-            return part[6..].to_string();
+        if let Some(stripped) = part.strip_prefix("state=") {
+            return stripped.to_string();
         }
     }
     panic!("State parameter not found in URL: {}", url);

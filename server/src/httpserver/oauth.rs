@@ -323,8 +323,8 @@ mod tests {
     fn extract_state_from_url(url: &str) -> String {
         let url_parts: Vec<&str> = url.split('&').collect();
         for part in url_parts {
-            if part.starts_with("state=") {
-                return part[6..].to_string();
+            if let Some(stripped) = part.strip_prefix("state=") {
+                return stripped.to_string();
             }
         }
         panic!("State parameter not found in URL: {}", url);
