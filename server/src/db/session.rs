@@ -356,7 +356,10 @@ pub async fn leave_session(
             .exec(db_conn)
             .await?;
 
-        tracing::info!("Session {} deleted automatically as last user left", session_id);
+        tracing::info!(
+            "Session {} deleted automatically as last user left",
+            session_id
+        );
     } else {
         // Update session size normally
         let mut session_info: session::ActiveModel = session_info.into();

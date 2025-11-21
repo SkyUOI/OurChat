@@ -109,19 +109,27 @@ impl HttpServer {
             .route("/avatar", get(avatar::avatar))
             .merge(verify::config().with_state(db_pool.clone()));
 
-        // OAuth routes
-        let oauth_config = oauth::OAuthConfig {
-            github_client_id: "your_github_client_id".to_string(),
-            github_client_secret: "your_github_client_secret".to_string(),
-            github_redirect_uri: format!("{}/oauth/github/callback", shared_data.cfg.http_cfg.base_url()),
+        // OAuth routes - only setup if enabled
+        let oauth_routes = if shared_data.cfg.main_cfg.oauth.enable {
+            let oauth_config = oauth::OAuthConfig {
+                github_client_id: shared_data.cfg.main_cfg.oauth.github_client_id.clone(),
+                github_client_secret: shared_data.cfg.main_cfg.oauth.github_client_secret.clone(),
+                github_redirect_uri: format!(
+                    "{}/oauth/github/callback",
+                    shared_data.cfg.http_cfg.base_url()
+                ),
+            };
+
+            let oauth_state = Arc::new(oauth::OAuthState {
+                db_pool: db_pool.clone(),
+                oauth_config,
+                oauth_states: dashmap::DashMap::new(),
+            });
+
+            Some(oauth::config().with_state(oauth_state))
+        } else {
+            None
         };
-        
-        let oauth_state = Arc::new(oauth::OAuthState {
-            db_pool: db_pool.clone(),
-            oauth_config,
-        });
-        
-        let oauth_routes = oauth::config().with_state(oauth_state);
 
         let mut index_html_path = shared_data.cfg.http_cfg.web_panel.dist_path.clone();
         index_html_path.push("index.html");
@@ -131,9 +139,15 @@ impl HttpServer {
             tower_http::services::ServeDir::new(&resources_path),
         );
 
-        let mut router: axum::Router = axum::Router::new()
-            .nest("/v1", v1.with_state((db_pool.clone(), shared_data.clone())))
-            .merge(oauth_routes)
+        let mut router: axum::Router =
+            axum::Router::new().nest("/v1", v1.with_state((db_pool.clone(), shared_data.clone())));
+
+        // Add OAuth routes if enabled
+        if let Some(oauth_routes) = oauth_routes {
+            router = router.merge(oauth_routes);
+        }
+
+        router = router
             .merge(
                 grpc_service
                     .into_axum_router()

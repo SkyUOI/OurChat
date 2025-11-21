@@ -257,3 +257,16 @@ pub static VERSION_SPLIT: LazyLock<ServerVersion> = LazyLock::new(|| {
 });
 
 pub const JWT_HEADER: &str = "authorization";
+
+// OAuth defaults
+pub const fn default_oauth_enable() -> bool {
+    false
+}
+
+pub fn default_oauth_github_client_id() -> String {
+    "".to_string()
+}
+
+pub fn default_oauth_github_client_secret() -> String {
+    "".to_string()
+}

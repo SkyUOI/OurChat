@@ -1,7 +1,7 @@
-use pb::service::ourchat::session::leave_session::v1::LeaveSessionRequest;
-use server::db::session::{get_all_session_relations, get_session_by_id, get_members};
 use entities::user_role_relation;
-use sea_orm::{EntityTrait, ColumnTrait, QueryFilter};
+use pb::service::ourchat::session::leave_session::v1::LeaveSessionRequest;
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+use server::db::session::{get_all_session_relations, get_members, get_session_by_id};
 
 /// Test that when the last user leaves a session, the session is automatically deleted
 #[tokio::test]
@@ -11,7 +11,10 @@ async fn last_user_leaves_session_deletes_session() {
         .unwrap();
 
     // Create a session with only one user
-    let (session_user, session) = app.new_session_db_level(1, "single_user_session", false).await.unwrap();
+    let (session_user, session) = app
+        .new_session_db_level(1, "single_user_session", false)
+        .await
+        .unwrap();
     let user = session_user[0].clone();
     let user_id = user.lock().await.id;
     let session_id = session.session_id;
@@ -48,11 +51,12 @@ async fn last_user_leaves_session_deletes_session() {
     assert_eq!(relations, vec![]);
 
     // Verify no role relations exist for this session
-    let role_relations: Vec<entities::user_role_relation::Model> = user_role_relation::Entity::find()
-        .filter(user_role_relation::Column::SessionId.eq(session_id))
-        .all(app.get_db_connection())
-        .await
-        .unwrap();
+    let role_relations: Vec<entities::user_role_relation::Model> =
+        user_role_relation::Entity::find()
+            .filter(user_role_relation::Column::SessionId.eq(session_id))
+            .all(app.get_db_connection())
+            .await
+            .unwrap();
     assert_eq!(role_relations, vec![]);
 
     app.async_drop().await;
@@ -66,7 +70,10 @@ async fn multiple_users_leaving_does_not_delete_session() {
         .unwrap();
 
     // Create a session with multiple users
-    let (session_user, session) = app.new_session_db_level(3, "multi_user_session", false).await.unwrap();
+    let (session_user, session) = app
+        .new_session_db_level(3, "multi_user_session", false)
+        .await
+        .unwrap();
     let user_a = session_user[0].clone();
     let user_b = session_user[1].clone();
     let user_c = session_user[2].clone();
@@ -85,7 +92,8 @@ async fn multiple_users_leaving_does_not_delete_session() {
     assert_eq!(session_info.size, 3);
 
     // User A leaves session
-    user_a.lock()
+    user_a
+        .lock()
         .await
         .oc()
         .leave_session(LeaveSessionRequest {
@@ -121,7 +129,8 @@ async fn multiple_users_leaving_does_not_delete_session() {
     assert_eq!(user_c_relations.len(), 1);
 
     // User B leaves session
-    user_b.lock()
+    user_b
+        .lock()
         .await
         .oc()
         .leave_session(LeaveSessionRequest {
@@ -162,7 +171,10 @@ async fn last_user_leaves_cleans_up_all_session_data() {
         .unwrap();
 
     // Create a session with multiple users
-    let (session_user, session) = app.new_session_db_level(2, "cleanup_test_session", false).await.unwrap();
+    let (session_user, session) = app
+        .new_session_db_level(2, "cleanup_test_session", false)
+        .await
+        .unwrap();
     let user_a = session_user[0].clone();
     let user_b = session_user[1].clone();
     let (user_a_id, user_b_id) = (user_a.lock().await.id, user_b.lock().await.id);
@@ -180,15 +192,17 @@ async fn last_user_leaves_cleans_up_all_session_data() {
         .unwrap();
     assert_eq!(members.len(), 2);
 
-    let role_relations: Vec<entities::user_role_relation::Model> = user_role_relation::Entity::find()
-        .filter(user_role_relation::Column::SessionId.eq(session_id))
-        .all(app.get_db_connection())
-        .await
-        .unwrap();
+    let role_relations: Vec<entities::user_role_relation::Model> =
+        user_role_relation::Entity::find()
+            .filter(user_role_relation::Column::SessionId.eq(session_id))
+            .all(app.get_db_connection())
+            .await
+            .unwrap();
     assert_eq!(role_relations.len(), 2);
 
     // User A leaves (not the last user)
-    user_a.lock()
+    user_a
+        .lock()
         .await
         .oc()
         .leave_session(LeaveSessionRequest {
@@ -207,7 +221,8 @@ async fn last_user_leaves_cleans_up_all_session_data() {
     assert_eq!(session_info.size, 1);
 
     // User B leaves (last user - should trigger cleanup)
-    user_b.lock()
+    user_b
+        .lock()
         .await
         .oc()
         .leave_session(LeaveSessionRequest {
@@ -231,11 +246,12 @@ async fn last_user_leaves_cleans_up_all_session_data() {
     assert_eq!(all_session_relations, vec![]);
 
     // Verify no role relations exist
-    let role_relations: Vec<entities::user_role_relation::Model> = user_role_relation::Entity::find()
-        .filter(user_role_relation::Column::SessionId.eq(session_id))
-        .all(app.get_db_connection())
-        .await
-        .unwrap();
+    let role_relations: Vec<entities::user_role_relation::Model> =
+        user_role_relation::Entity::find()
+            .filter(user_role_relation::Column::SessionId.eq(session_id))
+            .all(app.get_db_connection())
+            .await
+            .unwrap();
     assert_eq!(role_relations, vec![]);
 
     // Verify users have no session relations
@@ -286,7 +302,10 @@ async fn user_not_in_session_cannot_leave() {
         .unwrap();
 
     // Create a session with one user
-    let (session_user, session) = app.new_session_db_level(1, "single_user_session", false).await.unwrap();
+    let (_not_joined_session_user, session) = app
+        .new_session_db_level(1, "single_user_session", false)
+        .await
+        .unwrap();
     let session_id = session.session_id;
 
     // Create a different user not in the session
