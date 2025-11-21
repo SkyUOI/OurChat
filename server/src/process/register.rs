@@ -49,7 +49,7 @@ async fn add_new_user(
     let user = user::ActiveModel {
         id: ActiveValue::Set(id.into()),
         ocid: ActiveValue::Set(ocid),
-        passwd: ActiveValue::Set(passwd),
+        passwd: ActiveValue::Set(Some(passwd)),
         name: ActiveValue::Set(request.name),
         email: ActiveValue::Set(request.email),
         time: ActiveValue::Set(chrono::Utc::now().into()),

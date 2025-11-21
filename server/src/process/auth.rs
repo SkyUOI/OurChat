@@ -56,7 +56,9 @@ async fn auth_db(request: AuthRequest, db_connection: &DbPool) -> Result<AuthRes
     match user {
         Ok(data) => match data {
             Some(user) => {
-                let passwd = user.passwd;
+                let Some(passwd) = user.passwd else {
+                    return Err(AuthError::WrongPassword);
+                };
                 if helper::spawn_blocking_with_tracing(move || {
                     verify_password_hash(&request.password, &passwd)
                 })
