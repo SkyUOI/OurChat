@@ -183,6 +183,8 @@ pub enum User {
     AccountStatus,
     DeletedAt,
     PublicKey,
+    GithubId,
+    OauthProvider,
 }
 
 #[derive(DeriveIden)]

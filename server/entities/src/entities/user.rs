@@ -9,8 +9,8 @@ pub struct Model {
     pub id: i64,
     #[sea_orm(unique)]
     pub ocid: String,
-    #[sea_orm(column_type = "Text")]
-    pub passwd: String,
+    #[sea_orm(column_type = "Text", nullable)]
+    pub passwd: Option<String>,
     pub name: String,
     #[sea_orm(unique)]
     pub email: String,
@@ -25,6 +25,9 @@ pub struct Model {
     pub deleted_at: Option<DateTimeWithTimeZone>,
     #[sea_orm(column_type = "VarBinary(StringLen::None)")]
     pub public_key: Vec<u8>,
+    #[sea_orm(unique)]
+    pub github_id: String,
+    pub oauth_provider: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

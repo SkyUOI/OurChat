@@ -82,6 +82,11 @@ pub enum UnregisterPolicy {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct OAuth {
+
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PasswordHash {
     #[serde(default = "consts::default_m_cost")]
     pub m_cost: u32,

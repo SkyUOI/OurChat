@@ -35,6 +35,7 @@ email_address.workspace = true
 tower.workspace = true
 #secrecy.workspace = true
 utils = { path = "utils" }
+reqwest = { version = "0.12", features = ["json"] }
 webrtc.workspace = true
 tokio-cron-scheduler.workspace = true
 croner.workspace = true

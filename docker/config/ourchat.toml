@@ -57,3 +57,12 @@ debug_console_port = 7776
 
 [voip]
 empty_room_keep_duration = "1h"
+
+[oauth]
+# GitHub OAuth configuration
+# Create an OAuth App in GitHub Developer Settings: https://github.com/settings/developers
+github_client_id = "your_github_client_id_here"
+github_client_secret = "your_github_client_secret_here"
+# The redirect URI must match exactly what you set in your GitHub OAuth App settings
+# Example: http://localhost:8080/oauth/github/callback
+github_redirect_uri = "http://localhost:8080/oauth/github/callback"

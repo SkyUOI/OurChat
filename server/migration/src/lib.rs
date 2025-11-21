@@ -32,6 +32,7 @@ mod m20250712_025238_add_e2eeize_and_dee2eeize_session_permission;
 mod m20250714_000446_session_invitation;
 mod m20250924_053530_webrtc_room;
 mod m20251012_075804_role_session_relate;
+mod m20251116_064500_add_oauth_fields_to_user;
 
 pub struct Migrator;
 
@@ -75,6 +76,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20250714_000446_session_invitation::Migration),
             Box::new(m20250924_053530_webrtc_room::Migration),
             Box::new(m20251012_075804_role_session_relate::Migration),
+            Box::new(m20251116_064500_add_oauth_fields_to_user::Migration)
         ]
     }
 }
