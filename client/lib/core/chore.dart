@@ -319,6 +319,7 @@ Future safeRequest(Function func, var args, Function onError,
         if (rethrowError) {
           rethrow;
         }
+        return;
       }
     } catch (e) {
       logger.w("Error caught: $e");
