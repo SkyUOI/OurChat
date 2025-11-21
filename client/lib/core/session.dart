@@ -11,7 +11,6 @@ import 'package:ourchat/main.dart';
 import 'package:ourchat/service/ourchat/session/get_role/v1/get_role.pb.dart';
 import 'package:ourchat/service/ourchat/session/get_session_info/v1/get_session_info.pb.dart';
 import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
-import 'package:ourchat/l10n/app_localizations.dart';
 
 class OurChatSession {
   OurChatAppState ourchatAppState;
@@ -270,12 +269,12 @@ class OurChatSession {
     return false;
   }
 
-  String getDisplayName(AppLocalizations l10n) {
+  String getDisplayName() {
     if (name.isNotEmpty) {
       return name;
     }
     if (displayName == null) {
-      return l10n.newSession;
+      return ourchatAppState.l10n.newSession;
     }
     return displayName!;
   }

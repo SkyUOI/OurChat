@@ -766,12 +766,11 @@ class _SessionListState extends State<SessionList> {
                           OurChatSession session = sessionList[index];
                           return SessionListItem(
                             avatar: Placeholder(),
-                            name: session.getDisplayName(l10n),
+                            name: session.getDisplayName(),
                             onPressed: () {
                               sessionState.currentSession = session;
                               sessionState.tabIndex = sessionTab;
-                              sessionState.tabTitle =
-                                  session.getDisplayName(l10n);
+                              sessionState.tabTitle = session.getDisplayName();
                               sessionState.update();
                             },
                           );
@@ -810,7 +809,7 @@ class _SessionListState extends State<SessionList> {
                               sessionState.currentSession = currentSession;
                               sessionState.tabIndex = sessionTab;
                               sessionState.tabTitle =
-                                  currentSession.getDisplayName(l10n);
+                                  currentSession.getDisplayName();
                               sessionState.update();
                               sessionState.currentSessionRecords =
                                   await ourchatAppState.eventSystem!
@@ -838,8 +837,7 @@ class _SessionListState extends State<SessionList> {
                                           Align(
                                               alignment: Alignment.centerLeft,
                                               child: Text(
-                                                currentSession
-                                                    .getDisplayName(l10n),
+                                                currentSession.getDisplayName(),
                                                 style: TextStyle(
                                                     fontSize: 20,
                                                     color: Colors.black),
@@ -919,7 +917,6 @@ class _SessionListState extends State<SessionList> {
       BuildContext context) async {
     Int64? sessionId = Int64.tryParseInt(searchKeyword);
     List<OurChatSession> matchSessions = [];
-    var l10n = AppLocalizations.of(context)!;
 
     if (sessionId != null) {
       // By sessionId
@@ -940,10 +937,7 @@ class _SessionListState extends State<SessionList> {
       // print(session.name);
       if ((session.description.toLowerCase().contains(searchKeyword) ||
               session.name.toLowerCase().contains(searchKeyword) ||
-              session
-                  .getDisplayName(l10n)
-                  .toLowerCase()
-                  .contains(searchKeyword)) &&
+              session.getDisplayName().toLowerCase().contains(searchKeyword)) &&
           !matchSessions.contains(session)) {
         matchSessions.add(session);
       }
