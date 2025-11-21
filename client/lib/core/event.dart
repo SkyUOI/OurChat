@@ -86,61 +86,31 @@ class OurChatEvent {
   }
 }
 
-class OneMessage {
-  int? messageType;
-  String? text;
-  String? imageKey;
-  OneMessage({this.messageType, this.text, this.imageKey});
-
-  Map<String, dynamic> serialize() {
-    switch (messageType) {
-      case textMsg:
-        return {"message_type": messageType, "text": text};
-      case imageMsg:
-        return {"message_type": messageType, "image_key": imageKey};
-      default:
-        logger.w("serialize fail: unknown message_type($messageType)");
-        return {"message_type": messageType, "error": "unknown message_type"};
-    }
-  }
-
-  void deserialize(Map<String, dynamic> data) {
-    messageType = data["message_type"];
-    switch (messageType) {
-      case textMsg:
-        text = data["text"];
-      case imageMsg:
-        imageKey = data["image_key"];
-      default:
-        logger.w("deserialize fail: unknown message_type($messageType)");
-    }
-  }
-}
-
-class BundleMsgs extends OurChatEvent {
-  List<OneMessage> msgs;
-  BundleMsgs(OurChatAppState ourchatAppState,
+class UserMsg extends OurChatEvent {
+  String markdownText;
+  List<String> involvedFiles;
+  UserMsg(OurChatAppState ourchatAppState,
       {Int64? eventId,
       OurChatAccount? sender,
       OurChatSession? session,
       OurChatTime? sendTime,
-      this.msgs = const []})
+      this.markdownText = "",
+      this.involvedFiles = const []})
       : super(ourchatAppState,
             eventId: eventId,
             eventType: msgEvent,
             sender: sender,
             session: session,
             sendTime: sendTime,
-            data: {"msgs": msgs.map((u) => u.serialize()).toList()});
+            data: {"markdown_text": markdownText, "involved_files": []});
 
   @override
   Future loadFromDB(OurChatDatabase privateDB, RecordData row) async {
     await super.loadFromDB(privateDB, row);
-    msgs = [];
-    for (int i = 0; i < data!["msgs"].length; i++) {
-      OneMessage oneMessage = OneMessage();
-      oneMessage.deserialize(data!["msgs"][i]);
-      msgs.add(oneMessage);
+    markdownText = data!["markdown_text"];
+    involvedFiles = [];
+    for (int i = 0; i < data!["involved_files"].length; i++) {
+      involvedFiles.add(data!["involved_files"]);
     }
   }
 
@@ -153,7 +123,8 @@ class BundleMsgs extends OurChatEvent {
           stub.sendMsg,
           SendMsgRequest(
               sessionId: session.sessionId,
-              bundleMsgs: msgs.map((u) => OneMsg(text: u.text)),
+              msg:
+                  Msg(markdownText: markdownText, involvedFiles: involvedFiles),
               isEncrypted: false), (GrpcError e) {
         showResultMessage(ourchatAppState, e.code, e.message,
             notFoundStatus: l10n.notFound(l10n.session),
@@ -163,10 +134,6 @@ class BundleMsgs extends OurChatEvent {
     } catch (e) {
       return null;
     }
-  }
-
-  OneMessage operator [](int index) {
-    return msgs[index];
   }
 }
 
@@ -356,25 +323,13 @@ class OurChatEventSystem {
 
           case FetchMsgsResponse_RespondEventType.msg:
             sender.id = event.msg.senderId;
-            List<OneMessage> msgs = [];
-            for (int i = 0; i < event.msg.bundleMsgs.length; i++) {
-              OneMsg oneMsg = event.msg.bundleMsgs[i]; // OneMsg 为grpc对象
-              OneMessage oneMessage = OneMessage(); // OneMessage为OurChat对象
-              if (oneMsg.text.isNotEmpty) {
-                oneMessage.messageType = textMsg;
-                oneMessage.text = oneMsg.text;
-              } else if (oneMsg.image.isNotEmpty) {
-                oneMessage.messageType = imageMsg;
-                oneMessage.imageKey = oneMsg.image;
-              }
-              msgs.add(oneMessage);
-            }
-            eventObj = BundleMsgs(ourchatAppState,
+            eventObj = UserMsg(ourchatAppState,
                 eventId: event.msgId,
                 sender: sender,
                 session: OurChatSession(ourchatAppState, event.msg.sessionId),
                 sendTime: OurChatTime(inputTimestamp: event.time),
-                msgs: msgs);
+                markdownText: event.msg.markdownText,
+                involvedFiles: event.msg.involvedFiles);
 
           default:
             break;
@@ -415,7 +370,7 @@ class OurChatEventSystem {
     return eventObjList;
   }
 
-  Future<List<BundleMsgs>> getSessionEvent(
+  Future<List<UserMsg>> getSessionEvent(
       OurChatAppState ourchatAppState, OurChatSession session,
       {int offset = 0, int num = 0}) async {
     var privateDB = ourchatAppState.privateDB!;
@@ -427,13 +382,13 @@ class OurChatEventSystem {
           ])
           ..limit((num == 0 ? 50 : num), offset: offset))
         .get();
-    List<BundleMsgs> bundleMsgsList = [];
+    List<UserMsg> msgsList = [];
     for (int i = 0; i < res.length; i++) {
-      BundleMsgs bundleMsgs = BundleMsgs(ourchatAppState);
-      await bundleMsgs.loadFromDB(privateDB, res[i]);
-      bundleMsgsList.add(bundleMsgs);
+      UserMsg msg = UserMsg(ourchatAppState);
+      await msg.loadFromDB(privateDB, res[i]);
+      msgsList.add(msg);
     }
-    return bundleMsgsList;
+    return msgsList;
   }
 
   void addListener(

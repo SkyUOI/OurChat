@@ -12,19 +12,10 @@ import "service/ourchat/session/invite_user_to_session/v1/invite_user_to_session
 import "service/ourchat/session/join_session/v1/join_session.proto";
 import "service/ourchat/session/session_room_key/v1/session_room_key.proto";
 
-// One piece of message
-message OneMsg {
-  // Type of the message
-  oneof data {
-    string text = 2;
-    string image = 3;
-  }
-}
-
 message SendMsgRequest {
   // from which session
   uint64 session_id = 1;
-  repeated OneMsg bundle_msgs = 3;
+  Msg msg = 3;
   bool is_encrypted = 4;
 }
 
@@ -56,7 +47,8 @@ message FetchMsgsResponse {
 }
 
 message Msg {
-  repeated OneMsg bundle_msgs = 3;
+  string markdown_text = 2;
+  repeated string involved_files = 3;
   // from which session
   uint64 session_id = 4;
   // Sender id

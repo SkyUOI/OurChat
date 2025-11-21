@@ -422,5 +422,20 @@
     "notInSession": "Not in session",
     "@notInSession": {
         "description": "Not in session"
+    },
+    "areUSure": "Are you sure?",
+    "@areUSure": {
+        "description": "Are you sure?"
+    },
+    "toExternalWebsite": "Going to external website: {website}",
+    "@toExternalWebsite": {
+        "description": "Going to external website: website",
+        "placeholders": {
+            "website": {
+                "type": "String",
+                "example": "https://ourchat.skyuoi.org",
+                "description": "url of website"
+            }
+        }
     }
 }

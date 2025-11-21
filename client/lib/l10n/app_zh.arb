@@ -94,5 +94,7 @@
     "againToConfirm": "再次按下以确认",
     "delete": "删除",
     "role": "角色",
-    "notInSession": "不在会话中"
+    "notInSession": "不在会话中",
+    "areUSure": "你确定吗？",
+    "toExternalWebsite": "即将去往外部网站：{website}"
 }

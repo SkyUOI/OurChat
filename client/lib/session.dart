@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:grpc/grpc.dart' as grpc;
 import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/core/const.dart';
@@ -21,6 +22,7 @@ import 'package:ourchat/l10n/app_localizations.dart';
 import 'dart:async';
 import 'package:ourchat/core/ui.dart';
 import 'package:fixnum/fixnum.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 const emptyTab = 0;
 const sessionTab = 1;
@@ -31,18 +33,20 @@ class SessionState extends ChangeNotifier {
   OurChatSession? currentSession;
   Int64? currentUserId;
   String tabTitle = "";
-  List<BundleMsgs> currentSessionRecords = [];
+  List<UserMsg> currentSessionRecords = [];
   List<OurChatSession> sessionsList = [];
-  Map<OurChatSession, BundleMsgs> sessionRecentMsg = {};
+  Map<OurChatSession, UserMsg> sessionLatestMsg = {};
   bool alreadyDispose = false;
+  final ValueNotifier<String> inputText = ValueNotifier<String>("");
+
   void update() {
     if (alreadyDispose) return;
     notifyListeners();
   }
 
-  void receiveMsg(BundleMsgs eventObj) async {
+  void receiveMsg(UserMsg eventObj) async {
     await eventObj.sender!.getAccountInfo();
-    sessionRecentMsg[eventObj.session!] = eventObj;
+    sessionLatestMsg[eventObj.session!] = eventObj;
     if (currentSession == eventObj.session) {
       currentSessionRecords.insert(0, eventObj);
     }
@@ -55,11 +59,11 @@ class SessionState extends ChangeNotifier {
       OurChatSession session = OurChatSession(
           ourchatAppState, ourchatAppState.thisAccount!.sessions[i]);
       await session.getSessionInfo();
-      List<BundleMsgs> record = await ourchatAppState.eventSystem!
+      List<UserMsg> record = await ourchatAppState.eventSystem!
           .getSessionEvent(ourchatAppState, session, num: 1);
       sessionsList.add(session);
       if (record.isNotEmpty) {
-        sessionRecentMsg[session] = record[0];
+        sessionLatestMsg[session] = record[0];
       }
     }
     if (sessionsList.isNotEmpty) {
@@ -786,10 +790,10 @@ class _SessionListState extends State<SessionList> {
                   OurChatSession currentSession =
                       sessionState.sessionsList[index];
                   String recentMsgText = "";
-                  if (sessionState.sessionRecentMsg
+                  if (sessionState.sessionLatestMsg
                       .containsKey(currentSession)) {
                     recentMsgText =
-                        "${sessionState.sessionRecentMsg[currentSession]!.sender!.username}: ${sessionState.sessionRecentMsg[currentSession]!.msgs[0].text}";
+                        "${sessionState.sessionLatestMsg[currentSession]!.sender!.username}: ${MarkdownToText.convert(sessionState.sessionLatestMsg[currentSession]!.markdownText)}";
                     if (recentMsgText.length > 25) {
                       recentMsgText = recentMsgText.substring(
                           0, min(25, recentMsgText.length));
@@ -844,7 +848,7 @@ class _SessionListState extends State<SessionList> {
                                                     fontSize: 20,
                                                     color: Colors.black),
                                               )),
-                                          if (sessionState.sessionRecentMsg
+                                          if (sessionState.sessionLatestMsg
                                               .containsKey(currentSession))
                                             Align(
                                               alignment: Alignment.centerLeft,
@@ -1160,6 +1164,7 @@ class _SessionTabState extends State<SessionTab> {
   bool inited = false;
   late OurChatAppState ourchatAppState;
   late SessionState sessionState;
+  TextEditingController controller = TextEditingController();
 
   @override
   void dispose() {
@@ -1182,67 +1187,75 @@ class _SessionTabState extends State<SessionTab> {
     }
     var l10n = AppLocalizations.of(context)!;
     var key = GlobalKey<FormState>();
-    TextEditingController controller = TextEditingController();
+
     return Form(
       key: key,
-      child: Stack(
+      child: Column(
+        mainAxisSize: MainAxisSize.max,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Column(
-            mainAxisSize: MainAxisSize.max,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Flexible(
-                  flex: 10,
-                  child: cardWithPadding(const SessionRecord())), //聊天记录
-              Flexible(
-                // 输入框
-                flex: 2,
-                child: cardWithPadding(Align(
-                  alignment: Alignment.bottomCenter,
-                  child: SingleChildScrollView(
-                    child: TextFormField(
-                      decoration: InputDecoration(hintText: "Type here..."),
-                      maxLines: null,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return l10n.cantBeEmpty;
-                        }
-                        return null;
-                      },
-                      onSaved: (value) async {
-                        BundleMsgs bundleMsgs = BundleMsgs(ourchatAppState,
-                            sender: ourchatAppState.thisAccount!,
-                            msgs: [
-                              OneMessage(messageType: textMsg, text: value)
-                            ]);
-                        controller.text = "";
-                        try {
-                          await bundleMsgs.send(sessionState.currentSession!);
-                        } on grpc.GrpcError catch (e) {
-                          showResultMessage(ourchatAppState, e.code, e.message,
-                              permissionDeniedStatus:
-                                  l10n.permissionDenied(l10n.send),
-                              notFoundStatus: l10n.notFound(l10n.session));
-                        }
-                      },
-                      controller: controller,
+          Flexible(
+              flex: 10, child: cardWithPadding(const SessionRecord())), //聊天记录
+          Flexible(
+            // 输入框
+            flex: 2,
+            child: Row(
+              children: [
+                Expanded(
+                  child: cardWithPadding(Align(
+                    alignment: Alignment.bottomCenter,
+                    child: SingleChildScrollView(
+                      child: TextFormField(
+                        decoration: InputDecoration(hintText: "Type here..."),
+                        maxLines: null,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return l10n.cantBeEmpty;
+                          }
+                          return null;
+                        },
+                        onSaved: (value) async {
+                          UserMsg msg = UserMsg(ourchatAppState,
+                              sender: ourchatAppState.thisAccount!,
+                              markdownText: value!);
+                          controller.text = "";
+                          try {
+                            await msg.send(sessionState.currentSession!);
+                          } on grpc.GrpcError catch (e) {
+                            showResultMessage(
+                                ourchatAppState, e.code, e.message,
+                                permissionDeniedStatus:
+                                    l10n.permissionDenied(l10n.send),
+                                notFoundStatus: l10n.notFound(l10n.session));
+                          }
+                        },
+                        onChanged: (value) {
+                          sessionState.inputText.value = value;
+                        },
+                        controller: controller,
+                      ),
                     ),
-                  ),
-                )),
-              ),
-            ],
+                  )),
+                ),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    IconButton(onPressed: () {}, icon: Icon(Icons.add)),
+                    ElevatedButton.icon(
+                      style: AppStyles.defaultButtonStyle,
+                      onPressed: () {
+                        if (key.currentState!.validate()) {
+                          key.currentState!.save();
+                        }
+                      },
+                      label: Text(l10n.send),
+                      icon: Icon(Icons.send),
+                    ),
+                  ],
+                )
+              ],
+            ),
           ),
-          Positioned(
-            right: 20,
-            bottom: 20,
-            child: FloatingActionButton.extended(
-                onPressed: () {
-                  if (key.currentState!.validate()) {
-                    key.currentState!.save();
-                  }
-                },
-                label: Text(l10n.send)),
-          )
         ],
       ),
     );
@@ -1263,56 +1276,114 @@ class _SessionRecordState extends State<SessionRecord> {
     OurChatAppState ourchatAppState = context.watch<OurChatAppState>();
     return ListView.builder(
       itemBuilder: (context, index) {
-        String name =
-            sessionState.currentSessionRecords[index].sender!.displayName !=
-                        null &&
-                    sessionState.currentSessionRecords[index].sender!
-                        .displayName!.isNotEmpty
-                ? sessionState.currentSessionRecords[index].sender!.displayName!
-                : sessionState.currentSessionRecords[index].sender!.username;
-        List<Widget> messages = [];
-        for (int i = 0;
-            i < sessionState.currentSessionRecords[index].msgs.length;
-            i++) {
-          messages.add(
-              Text(sessionState.currentSessionRecords[index].msgs[i].text!));
+        if (index == 0) {
+          return ValueListenableBuilder(
+            valueListenable: sessionState.inputText,
+            builder: (context, value, child) {
+              if (value.isEmpty) {
+                return Container();
+              }
+              return MessageWidget(
+                  msg: UserMsg(ourchatAppState,
+                      sender: ourchatAppState.thisAccount, markdownText: value),
+                  opacity: 0.3);
+            },
+          );
+        } else {
+          return MessageWidget(
+              msg: sessionState.currentSessionRecords[index - 1], opacity: 1.0);
         }
-        bool isMe = sessionState.currentSessionRecords[index].sender!.isMe;
-        Widget avatar = UserAvatar(
-            imageUrl:
-                sessionState.currentSessionRecords[index].sender!.avatarUrl());
-        Widget message = ConstrainedBox(
-          constraints: BoxConstraints(
-              maxWidth: ourchatAppState.screenMode == desktop ? 500.0 : 300.0),
-          child: Column(
-            crossAxisAlignment:
-                (isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start),
-            children: [
-              Text(name),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: messages,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-        return Container(
-          margin: const EdgeInsets.all(5.0),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: // 根据是否为本账号的发言决定左右对齐
-                (isMe ? MainAxisAlignment.end : MainAxisAlignment.start),
-            children: [(isMe ? message : avatar), (isMe ? avatar : message)],
-          ),
-        );
       },
-      itemCount: sessionState.currentSessionRecords.length,
+      itemCount: sessionState.currentSessionRecords.length + 1,
       reverse: true,
+    );
+  }
+}
+
+class MessageWidget extends StatefulWidget {
+  final UserMsg msg;
+  final double opacity;
+  const MessageWidget({super.key, required this.msg, required this.opacity});
+
+  @override
+  State<MessageWidget> createState() => _MessageWidgetState();
+}
+
+class _MessageWidgetState extends State<MessageWidget> {
+  @override
+  Widget build(BuildContext context) {
+    UserMsg msg = widget.msg;
+    double opacity = widget.opacity;
+    var ourchatAppState = context.watch<OurChatAppState>();
+    String name =
+        msg.sender!.displayName != null && msg.sender!.displayName!.isNotEmpty
+            ? msg.sender!.displayName!
+            : msg.sender!.username;
+    bool isMe = msg.sender!.isMe;
+    Widget avatar = UserAvatar(imageUrl: msg.sender!.avatarUrl());
+    Widget message = ConstrainedBox(
+      constraints: BoxConstraints(
+          maxWidth: ourchatAppState.screenMode == desktop ? 500.0 : 300.0),
+      child: Column(
+        crossAxisAlignment:
+            (isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start),
+        children: [
+          Text(name),
+          Markdown(
+            styleSheet: MarkdownStyleSheet(
+              textAlign: isMe ? WrapAlignment.end : WrapAlignment.start,
+              h1Align: isMe ? WrapAlignment.end : WrapAlignment.start,
+              h2Align: isMe ? WrapAlignment.end : WrapAlignment.start,
+              h3Align: isMe ? WrapAlignment.end : WrapAlignment.start,
+              h4Align: isMe ? WrapAlignment.end : WrapAlignment.start,
+              h5Align: isMe ? WrapAlignment.end : WrapAlignment.start,
+              h6Align: isMe ? WrapAlignment.end : WrapAlignment.start,
+            ),
+            selectable: true,
+            shrinkWrap: true,
+            softLineBreak: true,
+            data: msg.markdownText,
+            onTapLink: (text, href, title) {
+              if (href == null) return;
+              showDialog(
+                  context: context,
+                  builder: (context) {
+                    return AlertDialog(
+                      title: Text(ourchatAppState.l10n.areUSure),
+                      content:
+                          Text(ourchatAppState.l10n.toExternalWebsite(href)),
+                      actions: [
+                        IconButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              launchUrl(Uri.parse(href));
+                            },
+                            icon: Icon(Icons.check)),
+                        IconButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                            },
+                            icon: Icon(Icons.close)),
+                      ],
+                    );
+                  });
+            },
+          ),
+        ],
+      ),
+    );
+    return Opacity(
+      opacity: opacity,
+      child: Container(
+        margin: const EdgeInsets.all(5.0),
+        decoration: BoxDecoration(),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: // 根据是否为本账号的发言决定左右对齐
+              (isMe ? MainAxisAlignment.end : MainAxisAlignment.start),
+          children: [(isMe ? message : avatar), (isMe ? avatar : message)],
+        ),
+      ),
     );
   }
 }

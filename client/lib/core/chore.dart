@@ -1,4 +1,5 @@
 import 'package:fixnum/fixnum.dart';
+import 'package:markdown/markdown.dart' as md;
 import 'package:grpc/grpc.dart';
 import 'package:ourchat/core/log.dart';
 import 'package:ourchat/google/protobuf/timestamp.pb.dart';
@@ -328,4 +329,67 @@ Future safeRequest(Function func, var args, Function onError,
       }
     }
   }
+}
+
+/// MarkDown -> PlainText (GENERATE BY AI)
+class MarkdownToText {
+  /// 将 Markdown 文本转为纯文本，忽略所有语法（支持 flutter_markdown_plus 增强语法）
+  static String convert(String markdownText) {
+    if (markdownText.isEmpty) return "";
+
+    // 1. 用 flutter_markdown_plus 兼容的规则解析 Markdown
+    final document = md.Document(extensionSet: md.ExtensionSet.gitHubFlavored);
+    final nodes = document.parseLines(markdownText.split('\n'));
+
+    // 2. 用访问器遍历节点，只提取文本节点内容（避免重复）
+    final StringBuffer textBuffer = StringBuffer();
+    for (final node in nodes) {
+      node.accept(_NodeTextExtractor(textBuffer));
+    }
+
+    // 3. 清理并返回纯文本
+    return _cleanText(textBuffer.toString());
+  }
+
+  /// 清理多余空格和换行（优化：保留单个换行，更贴近原文结构）
+  static String _cleanText(String text) {
+    return text
+        .replaceAll(RegExp(r'\n+'), '\n') // 多个换行 → 单个换行
+        .replaceAll(RegExp(r'\s+\n'), '\n') // 换行前的多余空格 → 仅保留换行
+        .replaceAll(RegExp(r'\n\s+'), '\n') // 换行后的多余空格 → 仅保留换行
+        .replaceAll(RegExp(r'[ \t]+'), ' ') // 多个空格/制表符 → 单个空格
+        .trim(); // 去除首尾空格和换行
+  }
+}
+
+/// 修复重复文本：仅提取最底层文本节点（Text）的内容，忽略父节点
+class _NodeTextExtractor implements md.NodeVisitor {
+  final StringBuffer buffer;
+
+  _NodeTextExtractor(this.buffer);
+
+  /// 只处理文本节点：这是最底层的文本来源，不会重复
+  @override
+  void visitText(md.Text text) {
+    final textContent = text.text.trim();
+    if (textContent.isNotEmpty) {
+      buffer.write(textContent);
+      // 文本节点之间添加单个空格（避免连在一起）
+      buffer.write(" ");
+    }
+  }
+
+  /// 访问元素节点之前：不提取父节点文本，只返回 true 继续遍历子节点
+  @override
+  bool visitElementBefore(md.Element element) {
+    // 特殊处理：列表项、段落、表格等节点，添加换行分隔（优化格式）
+    if (element.tag == 'li' || element.tag == 'p' || element.tag == 'tr') {
+      buffer.write("\n");
+    }
+    return true; // 必须返回 true，才会继续遍历子节点
+  }
+
+  /// 访问元素节点之后：无需处理
+  @override
+  void visitElementAfter(md.Element element) {}
 }
