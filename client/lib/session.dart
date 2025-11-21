@@ -1,7 +1,11 @@
 import 'dart:math';
+import 'dart:typed_data';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:grpc/grpc.dart' as grpc;
+import 'package:hashlib/hashlib.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/core/const.dart';
 import 'package:ourchat/core/event.dart';
@@ -16,6 +20,7 @@ import 'package:ourchat/service/ourchat/session/delete_session/v1/delete_session
 import 'package:ourchat/service/ourchat/session/leave_session/v1/leave_session.pb.dart';
 import 'package:ourchat/service/ourchat/session/new_session/v1/session.pb.dart';
 import 'package:ourchat/service/ourchat/session/set_session_info/v1/set_session_info.pb.dart';
+import 'package:ourchat/service/ourchat/upload/v1/upload.pb.dart';
 import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
 import 'package:provider/provider.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
@@ -37,6 +42,8 @@ class SessionState extends ChangeNotifier {
   List<OurChatSession> sessionsList = [];
   Map<OurChatSession, UserMsg> sessionLatestMsg = {};
   bool alreadyDispose = false;
+  Map<String, Uint8List> cacheFiles = {};
+  List<String> needuploadFiles = [];
   final ValueNotifier<String> inputText = ValueNotifier<String>("");
 
   void update() {
@@ -735,6 +742,7 @@ class _SessionListState extends State<SessionList> {
                               sessionState.currentUserId = account.id;
                               sessionState.tabIndex = userTab;
                               sessionState.tabTitle = l10n.userInfo;
+                              sessionState.cacheFiles = {};
                               sessionState.update();
                             },
                           );
@@ -776,6 +784,7 @@ class _SessionListState extends State<SessionList> {
                               sessionState.tabIndex = sessionTab;
                               sessionState.tabTitle =
                                   session.getDisplayName(l10n);
+                              sessionState.cacheFiles = {};
                               sessionState.update();
                             },
                           );
@@ -820,6 +829,7 @@ class _SessionListState extends State<SessionList> {
                                   await ourchatAppState.eventSystem!
                                       .getSessionEvent(
                                           ourchatAppState, currentSession);
+                              sessionState.cacheFiles = {};
                               sessionState.update();
                             },
                             child: Row(
@@ -1215,19 +1225,64 @@ class _SessionTabState extends State<SessionTab> {
                           return null;
                         },
                         onSaved: (value) async {
+                          List<String> involvedFiles = [];
+                          for (String path in sessionState.needuploadFiles) {
+                            var stub = OurChatServiceClient(
+                                ourchatAppState.server!.channel!,
+                                interceptors: [
+                                  ourchatAppState.server!.interceptor!
+                                ]);
+                            StreamController<UploadRequest> uploadController =
+                                StreamController<UploadRequest>();
+                            try {
+                              var call = safeRequest(
+                                  stub.upload, uploadController.stream,
+                                  (grpc.GrpcError e) {
+                                showResultMessage(
+                                  ourchatAppState,
+                                  e.code,
+                                  e.message,
+                                  invalidArgumentStatus:
+                                      "${l10n.internalError}(${e.message})",
+                                  resourceExhaustedStatus:
+                                      l10n.storageSpaceFull,
+                                );
+                              }, rethrowError: true);
+                              if (!sessionState.cacheFiles.containsKey(path)) {
+                                showResultMessage(
+                                    ourchatAppState, notFoundStatusCode, null,
+                                    notFoundStatus:
+                                        l10n.notFound("${l10n.image}($path)"));
+                                continue;
+                              }
+                              uploadController.add(UploadRequest(
+                                metadata: Header(
+                                    hash: sha3_256
+                                        .convert(sessionState.cacheFiles[path]!
+                                            .toList())
+                                        .bytes,
+                                    size: Int64.parseInt(sessionState
+                                        .cacheFiles[path]!.length
+                                        .toString()),
+                                    autoClean: false),
+                              ));
+                              uploadController.add(UploadRequest(
+                                  content: sessionState.cacheFiles[path]!));
+                              uploadController.close();
+                              var res = await call;
+                              involvedFiles.add(res.key);
+                            } catch (e) {
+                              // do nothing
+                            }
+                          }
                           UserMsg msg = UserMsg(ourchatAppState,
                               sender: ourchatAppState.thisAccount!,
-                              markdownText: value!);
+                              markdownText: value!,
+                              involvedFiles: involvedFiles,
+                              session: sessionState.currentSession);
                           controller.text = "";
-                          try {
-                            await msg.send(sessionState.currentSession!);
-                          } on grpc.GrpcError catch (e) {
-                            showResultMessage(
-                                ourchatAppState, e.code, e.message,
-                                permissionDeniedStatus:
-                                    l10n.permissionDenied(l10n.send),
-                                notFoundStatus: l10n.notFound(l10n.session));
-                          }
+                          sessionState.inputText.value = "";
+                          await msg.send(sessionState.currentSession!);
                         },
                         onChanged: (value) {
                           sessionState.inputText.value = value;
@@ -1240,7 +1295,21 @@ class _SessionTabState extends State<SessionTab> {
                 Column(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    IconButton(onPressed: () {}, icon: Icon(Icons.add)),
+                    IconButton(
+                        onPressed: () async {
+                          var picker = ImagePicker();
+                          List<XFile> images = await picker.pickMultiImage();
+                          for (XFile i in images) {
+                            var uri = Uri.parse(i.path);
+                            sessionState.cacheFiles[
+                                    Uri.decodeFull(uri.toString())] =
+                                await i.readAsBytes();
+                            controller.text =
+                                "${controller.text}\n![${i.name}](${Uri.decodeFull(uri.toString())})";
+                            sessionState.inputText.value = controller.text;
+                          }
+                        },
+                        icon: Icon(Icons.add)),
                     ElevatedButton.icon(
                       style: AppStyles.defaultButtonStyle,
                       onPressed: () {
@@ -1283,6 +1352,7 @@ class _SessionRecordState extends State<SessionRecord> {
               if (value.isEmpty) {
                 return Container();
               }
+              sessionState.needuploadFiles = [];
               return MessageWidget(
                   msg: UserMsg(ourchatAppState,
                       sender: ourchatAppState.thisAccount, markdownText: value),
@@ -1315,6 +1385,7 @@ class _MessageWidgetState extends State<MessageWidget> {
     UserMsg msg = widget.msg;
     double opacity = widget.opacity;
     var ourchatAppState = context.watch<OurChatAppState>();
+    var sessionState = context.watch<SessionState>();
     String name =
         msg.sender!.displayName != null && msg.sender!.displayName!.isNotEmpty
             ? msg.sender!.displayName!
@@ -1367,6 +1438,23 @@ class _MessageWidgetState extends State<MessageWidget> {
                       ],
                     );
                   });
+            },
+            imageBuilder: (uri, title, alt) {
+              try {
+                if (["http", "https"].contains(uri.scheme)) {
+                  return CachedNetworkImage(
+                    imageUrl: uri.toString(),
+                  );
+                } else {
+                  sessionState.needuploadFiles
+                      .add(Uri.decodeFull(uri.toString()));
+                  return Image.memory(
+                      sessionState.cacheFiles[Uri.decodeFull(uri.toString())]!);
+                }
+              } catch (e) {
+                return Text(ourchatAppState.l10n
+                    .failToLoad("${ourchatAppState.l10n.image}($alt)"));
+              }
             },
           ),
         ],

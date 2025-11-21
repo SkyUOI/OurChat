@@ -437,5 +437,19 @@
                 "description": "url of website"
             }
         }
+    },
+    "failToLoad": "Fail to load {sth}",
+    "@failToLoad": {
+        "description": "Fail to load sth",
+        "placeholders": {
+            "sth": {
+                "example": "image",
+                "type": "String"
+            }
+        }
+    },
+    "image": "image",
+    "@image": {
+        "description": "Image"
     }
 }
