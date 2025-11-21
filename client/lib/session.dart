@@ -239,7 +239,7 @@ class _SessionState extends State<Session> {
                 if (sessionState.currentSession!.myPermissions
                     .contains(deleteSessionPermission))
                   IconButton(
-                      onPressed: () {
+                      onPressed: () async {
                         if (!confirmDelete) {
                           setState(() {
                             confirmLeave = false;
@@ -267,12 +267,12 @@ class _SessionState extends State<Session> {
                                 permissionDeniedStatus:
                                     l10n.permissionDenied(l10n.delete));
                           });
+                          Navigator.pop(context);
                           showResultMessage(
                               ourchatAppState, okStatusCode, null);
-                          ourchatAppState.thisAccount!
+                          await ourchatAppState.thisAccount!
                               .getAccountInfo(ignoreCache: true);
                           sessionState.getSessions(ourchatAppState);
-                          Navigator.pop(context);
                         } catch (e) {
                           // do nothing
                         }
@@ -282,7 +282,7 @@ class _SessionState extends State<Session> {
                         color: (confirmDelete ? Colors.redAccent : null),
                       )),
                 IconButton(
-                    onPressed: () {
+                    onPressed: () async {
                       if (!confirmLeave) {
                         setState(() {
                           confirmDelete = false;
@@ -306,10 +306,10 @@ class _SessionState extends State<Session> {
                               notFoundStatus: l10n.notFound(l10n.session));
                         });
                         showResultMessage(ourchatAppState, okStatusCode, null);
-                        ourchatAppState.thisAccount!
+                        Navigator.pop(context);
+                        await ourchatAppState.thisAccount!
                             .getAccountInfo(ignoreCache: true);
                         sessionState.getSessions(ourchatAppState);
-                        Navigator.pop(context);
                       } catch (e) {
                         // do nothing
                       }

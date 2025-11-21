@@ -245,7 +245,7 @@ class OurChatSession {
           otherAccount.id = otherUserId;
           otherAccount.recreateStub();
           await otherAccount.getAccountInfo();
-          displayName = otherAccount.displayName;
+          displayName = otherAccount.getDisplayNameOrName();
         }
       }
     } catch (e) {
