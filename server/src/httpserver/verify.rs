@@ -11,6 +11,8 @@ use base::consts;
 use base::database::DbPool;
 use base::rabbitmq::http_server::VerifyRecord;
 use deadpool_redis::redis::AsyncCommands;
+use entities::user;
+use sea_orm::{ActiveModelTrait, ActiveValue, EntityTrait, QueryFilter, ColumnTrait};
 use serde::Deserialize;
 use tokio::fs::read_to_string;
 
@@ -25,18 +27,26 @@ async fn verify_token(
     State(pool): State<DbPool>,
     Query(param): Query<Param>,
 ) -> Result<(), StatusCode> {
-    // check if the token is valid
-    if match check_token_exist_and_del_token(&param.token, &pool.redis_pool).await {
-        Ok(data) => data,
+    // check if the token is valid and get the email
+    let email = match check_token_exist_and_del_token(&param.token, &pool.redis_pool).await {
+        Ok(Some(email)) => email,
+        Ok(None) => {
+            tracing::warn!("Token not found or expired: {}", param.token);
+            return Err(StatusCode::BAD_REQUEST);
+        }
         Err(e) => {
             tracing::error!("Error while checking token:{:?}", e);
             return Err(StatusCode::INTERNAL_SERVER_ERROR);
         }
-    } {
-        Ok(())
-    } else {
-        Err(StatusCode::BAD_REQUEST)
+    };
+
+    // Update the user's email_verified field
+    if let Err(e) = update_user_email_verified(&email, &pool.db_pool).await {
+        tracing::error!("Failed to update user email verification status: {:?}", e);
+        return Err(StatusCode::INTERNAL_SERVER_ERROR);
     }
+
+    Ok(())
 }
 
 pub async fn verify_client(
@@ -96,6 +106,7 @@ pub async fn verify_client(
     }
     add_token(
         &data.token,
+        &data.email,
         shared_data.cfg.user_setting.verify_email_expiry,
         &db.redis_pool,
     )
@@ -110,22 +121,44 @@ fn mapped_to_redis(key: &str) -> String {
 pub async fn check_token_exist_and_del_token(
     token: &str,
     conn: &deadpool_redis::Pool,
-) -> anyhow::Result<bool> {
+) -> anyhow::Result<Option<String>> {
     let mut conn = conn.get().await?;
-    let ret: bool = conn.exists(mapped_to_redis(token)).await?;
-    let _: () = conn.del(token).await?;
-    Ok(ret)
+    let key = mapped_to_redis(token);
+    let email: Option<String> = conn.get(&key).await?;
+    let _: () = conn.del(&key).await?;
+    Ok(email)
 }
 
 async fn add_token(
     token: &str,
+    email: &str,
     ex_time: Duration,
     conn: &deadpool_redis::Pool,
 ) -> anyhow::Result<()> {
     let mut conn = conn.get().await?;
     let _: () = conn
-        .set_ex(mapped_to_redis(token), 1, ex_time.as_secs())
+        .set_ex(mapped_to_redis(token), email, ex_time.as_secs())
         .await?;
+    Ok(())
+}
+
+async fn update_user_email_verified(email: &str, db_pool: &sea_orm::DatabaseConnection) -> anyhow::Result<()> {
+    // Find the user by email
+    let user = user::Entity::find()
+        .filter(user::Column::Email.eq(email))
+        .one(db_pool)
+        .await?;
+
+    if let Some(user) = user {
+        // Update the email_verified field to true
+        let mut user_active: user::ActiveModel = user.into();
+        user_active.email_verified = ActiveValue::Set(true);
+        user_active.update(db_pool).await?;
+        tracing::info!("Successfully verified email for user: {}", email);
+    } else {
+        tracing::warn!("User not found for email: {}", email);
+    }
+
     Ok(())
 }
 

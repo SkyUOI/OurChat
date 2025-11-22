@@ -70,6 +70,8 @@ pub struct MainCfg {
     pub voip: VOIP,
     #[serde(default)]
     pub oauth: OAuthCfg,
+    #[serde(default = "consts::default_require_email_verification")]
+    pub require_email_verification: bool,
 
     #[serde(skip)]
     pub cmd_args: ParserCfg,

@@ -144,3 +144,4 @@ cargo run --bin migration
 - Multi-instance deployment with leader election
 - TLS/SSL support available
 - Log rotation and cleanup configured
+- please use scripts/db_migration.py and scripts/regenerate_entities.py to maintain the sea-orm file. for example, run sea migrate generate xxx and then run python scripts/db_migration.py down -n 100 and then run python scripts/regenerate_entities.py. this is a correct flow of new migration creation

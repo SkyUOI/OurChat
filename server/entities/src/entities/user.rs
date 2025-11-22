@@ -28,6 +28,7 @@ pub struct Model {
     #[sea_orm(unique)]
     pub github_id: Option<String>,
     pub oauth_provider: Option<String>,
+    pub email_verified: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

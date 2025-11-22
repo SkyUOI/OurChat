@@ -57,6 +57,7 @@ async fn add_new_user(
         friends_num: ActiveValue::Set(0),
         friend_limit: ActiveValue::Set(shared_state::get_friends_number_limit().try_into()?),
         public_key: ActiveValue::Set(request.public_key.into()),
+        email_verified: ActiveValue::Set(!shared_state::get_require_email_verification()),
         ..Default::default()
     };
     match user.insert(&db_connection.db_pool).await {

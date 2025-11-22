@@ -355,20 +355,20 @@ impl HttpServer {
                             }
                         }
                     };
-                    let status = match verify::check_token_exist_and_del_token(
+                    let token_exists = match verify::check_token_exist_and_del_token(
                         &verify_record.token,
                         &redis_conn,
                     )
                     .await
                     {
-                        Ok(data) => data,
+                        Ok(data) => data.is_some(),
                         Err(e) => {
                             reject.await;
                             tracing::error!("check token error:{e}");
                             return;
                         }
                     };
-                    if status {
+                    if token_exists {
                         reject.await;
                     } else {
                         match delivery.ack(BasicAckOptions::default()).await {

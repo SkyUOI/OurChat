@@ -270,3 +270,7 @@ pub fn default_oauth_github_client_id() -> String {
 pub fn default_oauth_github_client_secret() -> String {
     "".to_string()
 }
+
+pub const fn default_require_email_verification() -> bool {
+    false
+}

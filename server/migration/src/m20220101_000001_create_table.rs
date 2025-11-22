@@ -185,6 +185,7 @@ pub enum User {
     PublicKey,
     GithubId,
     OauthProvider,
+    EmailVerified,
 }
 
 #[derive(DeriveIden)]

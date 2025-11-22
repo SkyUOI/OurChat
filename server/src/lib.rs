@@ -318,6 +318,7 @@ impl Application {
         let maintaining = main_cfg.cmd_args.maintaining;
         // Set up shared state
         shared_state::set_friends_number_limit(main_cfg.friends_number_limit);
+        shared_state::set_require_email_verification(main_cfg.require_email_verification);
 
         if let Some(new_ip) = parser.ip {
             cfg.http_cfg.ip = new_ip;

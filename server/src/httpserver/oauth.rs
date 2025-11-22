@@ -205,6 +205,7 @@ async fn create_or_update_user_from_github(
             public_key: Set(vec![]), // TODO: Generate public key for OAuth users
             github_id: Set(Some(github_id)),
             oauth_provider: Set(Some("github".to_string())),
+            email_verified: Set(true), // OAuth users from trusted providers are automatically verified
         };
 
         UserEntity::insert(new_user).exec(&db_pool.db_pool).await?;

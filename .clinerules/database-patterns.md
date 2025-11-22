@@ -43,6 +43,42 @@ pub struct User {
 - **Descriptive**: Include table/feature name in migration
 - **Sequential**: Maintain chronological order
 
+### Migration Workflow
+When creating a new database migration, follow this workflow:
+
+1. **Generate migration**:
+   ```bash
+   sea migrate generate add_feature_name
+   ```
+
+2. **Rollback existing migrations** (if needed):
+   ```bash
+   python script/db_migration.py down -n 100
+   ```
+
+3. **Regenerate entities**:
+   ```bash
+   python script/regenerate_entity.py
+   ```
+
+4. **Apply migrations**:
+   ```bash
+   python script/db_migration.py up
+   ```
+
+### Migration Registration
+After creating a migration file in `server/migration/src/`, you must:
+
+1. Add the module declaration in `server/migration/src/lib.rs`:
+   ```rust
+   mod m20251122_130843_add_feature_name;
+   ```
+
+2. Add the migration to the migrations vector:
+   ```rust
+   Box::new(m20251122_130843_add_feature_name::Migration),
+   ```
+
 ## Caching Patterns
 
 ### Redis Usage
