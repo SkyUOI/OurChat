@@ -203,7 +203,7 @@ async fn create_or_update_user_from_github(
             account_status: Set(1), // Active
             deleted_at: Set(None),
             public_key: Set(vec![]), // TODO: Generate public key for OAuth users
-            github_id: Set(github_id),
+            github_id: Set(Some(github_id)),
             oauth_provider: Set(Some("github".to_string())),
         };
 

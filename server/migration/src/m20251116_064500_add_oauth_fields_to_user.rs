@@ -12,7 +12,7 @@ impl MigrationTrait for Migration {
             .alter_table(
                 Table::alter()
                     .table(User::Table)
-                    .add_column_if_not_exists(string_uniq(User::GithubId).default(""))
+                    .add_column_if_not_exists(string_null(User::GithubId).unique_key())
                     .add_column_if_not_exists(string_null(User::OauthProvider))
                     .modify_column(text_null(User::Passwd))
                     .to_owned(),

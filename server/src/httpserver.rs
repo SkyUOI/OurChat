@@ -255,9 +255,11 @@ impl HttpServer {
 
     fn load_rustls_config(&self, cfg: Arc<SharedData>) -> anyhow::Result<ServerConfig> {
         let mut cert_store = RootCertStore::empty();
-        CertificateDer::pem_file_iter(cfg.cfg.http_cfg.tls.ca_tls_cert_path.as_ref().unwrap())?
-            .flatten()
-            .for_each(|der| cert_store.add(der).unwrap());
+        if let Some(ref ca) = cfg.cfg.http_cfg.tls.ca_tls_cert_path {
+            CertificateDer::pem_file_iter(ca)?
+                .flatten()
+                .for_each(|der| cert_store.add(der).unwrap());
+        }
 
         // let client_auth = WebPkiClientVerifier::builder(Arc::new(cert_store)).build()?;
 

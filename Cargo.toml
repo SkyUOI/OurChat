@@ -81,7 +81,6 @@ humantime-serde = "1"
 secrecy = "0"
 tower-http = { version = "0", features = ["full"] }
 color-eyre = "0"
-axum = { version = "0.8", features = ["macros", "http2"] }
 axum-server = { version = "0.7.2", features = ["tls-rustls"] }
 tower_http = { version = "0.6", features = ["cors", "normalize-path", "fs"] }
 
@@ -182,3 +181,8 @@ features = ["rt_tokio_1"]
 version = "0"
 default-features = false
 features = ["ring", "aws_lc_rs"]
+
+[workspace.dependencies.axum]
+version = "0.8"
+default-features = false
+features = ["macros", "http2"]
