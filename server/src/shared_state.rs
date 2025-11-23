@@ -14,7 +14,8 @@ pub fn get_friends_number_limit() -> u32 {
     *FRIENDS_NUMBER_LIMIT.lock()
 }
 
-static REQUIRE_EMAIL_VERIFICATION: Mutex<bool> = Mutex::new(consts::default_require_email_verification());
+static REQUIRE_EMAIL_VERIFICATION: Mutex<bool> =
+    Mutex::new(consts::default_require_email_verification());
 
 pub fn set_require_email_verification(require: bool) {
     *REQUIRE_EMAIL_VERIFICATION.lock() = require;

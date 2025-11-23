@@ -12,7 +12,7 @@ use base::database::DbPool;
 use base::rabbitmq::http_server::VerifyRecord;
 use deadpool_redis::redis::AsyncCommands;
 use entities::user;
-use sea_orm::{ActiveModelTrait, ActiveValue, EntityTrait, QueryFilter, ColumnTrait};
+use sea_orm::{ActiveModelTrait, ActiveValue, ColumnTrait, EntityTrait, QueryFilter};
 use serde::Deserialize;
 use tokio::fs::read_to_string;
 
@@ -142,7 +142,10 @@ async fn add_token(
     Ok(())
 }
 
-async fn update_user_email_verified(email: &str, db_pool: &sea_orm::DatabaseConnection) -> anyhow::Result<()> {
+async fn update_user_email_verified(
+    email: &str,
+    db_pool: &sea_orm::DatabaseConnection,
+) -> anyhow::Result<()> {
     // Find the user by email
     let user = user::Entity::find()
         .filter(user::Column::Email.eq(email))

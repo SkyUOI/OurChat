@@ -1,5 +1,6 @@
 use super::{error_msg::not_found, generate_access_token};
 use crate::process::error_msg::{MISSING_AUTH_TYPE, WRONG_PASSWORD};
+use crate::shared_state;
 use crate::{
     db::helper::is_conflict, helper, process::error_msg::SERVER_ERROR, server::AuthServiceProvider,
 };
@@ -56,6 +57,11 @@ async fn auth_db(request: AuthRequest, db_connection: &DbPool) -> Result<AuthRes
     match user {
         Ok(data) => match data {
             Some(user) => {
+                // Check if email verification is required and if the user's email is verified
+                if shared_state::get_require_email_verification() && !user.email_verified {
+                    return Err(AuthError::UserNotFound); // Treat unverified users as not found
+                }
+
                 let Some(passwd) = user.passwd else {
                     return Err(AuthError::WrongPassword);
                 };

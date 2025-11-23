@@ -2,7 +2,7 @@ use crate::helper::rabbitmq::{create_random_vhost, delete_vhost};
 use crate::oc_helper::Clients;
 use crate::oc_helper::TestSession;
 use crate::oc_helper::user::{TestUser, TestUserShared};
-use base::consts::{ID, OCID, SessionID};
+use base::consts::{CONFIG_FILE_ENV_VAR, ID, OCID, SessionID};
 use base::database::DbPool;
 use base::shutdown::ShutdownSdr;
 use migration::m20241229_022701_add_role_for_session::PredefinedRoles;
@@ -121,7 +121,11 @@ pub struct ClientCoreConfig {
 
 impl TestApp {
     pub fn get_test_config() -> anyhow::Result<ConfigWithArgs> {
-        let args = ArgsParser::test();
+        let mut args = ArgsParser::test();
+        // Set the configuration file path explicitly for tests
+        if let Ok(config_path) = std::env::var(CONFIG_FILE_ENV_VAR) {
+            args.shared_cfg.config = vec![std::path::PathBuf::from(config_path)];
+        }
         let mut config = server::get_configuration(args.shared_cfg.config.clone())?;
         config.http_cfg.rate_limit.enable = false;
         Ok((config, args))
