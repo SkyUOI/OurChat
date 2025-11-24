@@ -1,6 +1,5 @@
 use super::{error_msg::not_found, generate_access_token};
 use crate::process::error_msg::{MISSING_AUTH_TYPE, WRONG_PASSWORD};
-use crate::shared_state;
 use crate::{
     db::helper::is_conflict, helper, process::error_msg::SERVER_ERROR, server::AuthServiceProvider,
 };
@@ -32,7 +31,11 @@ enum AuthError {
 /// together with the user info.
 ///
 /// Errors if the user is not found, the password is wrong, or any database error occurs.
-async fn auth_db(request: AuthRequest, db_connection: &DbPool) -> Result<AuthResponse, AuthError> {
+async fn auth_db(
+    request: AuthRequest,
+    db_connection: &DbPool,
+    require_email_verification: bool,
+) -> Result<AuthResponse, AuthError> {
     // Judge login type
     let login_type = match request.account {
         None => {
@@ -58,7 +61,7 @@ async fn auth_db(request: AuthRequest, db_connection: &DbPool) -> Result<AuthRes
         Ok(data) => match data {
             Some(user) => {
                 // Check if email verification is required and if the user's email is verified
-                if shared_state::get_require_email_verification() && !user.email_verified {
+                if require_email_verification && !user.email_verified {
                     return Err(AuthError::UserNotFound); // Treat unverified users as not found
                 }
 
@@ -99,7 +102,13 @@ pub async fn auth(
     server: &AuthServiceProvider,
     request: tonic::Request<AuthRequest>,
 ) -> Result<Response<AuthResponse>, Status> {
-    match auth_db(request.into_inner(), &server.db).await {
+    match auth_db(
+        request.into_inner(),
+        &server.db,
+        server.shared_data.cfg.main_cfg.require_email_verification,
+    )
+    .await
+    {
         Ok(ok_resp) => Ok(Response::new(ok_resp)),
         Err(e) => Err(match e {
             AuthError::WrongPassword => Status::unauthenticated(WRONG_PASSWORD),

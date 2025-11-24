@@ -1,7 +1,7 @@
 use super::error_msg::{NOT_STRONG_PASSWORD, invalid};
 use super::generate_access_token;
 use crate::process::error_msg::{SERVER_ERROR, exist};
-use crate::{db, helper, server::AuthServiceProvider, shared_state};
+use crate::{db, helper, server::AuthServiceProvider};
 use anyhow::Context;
 use argon2::{Params, PasswordHasher, password_hash::SaltString};
 use base::consts::{self, ID};
@@ -32,6 +32,8 @@ async fn add_new_user(
     request: RegisterRequest,
     db_connection: &DbPool,
     params: Params,
+    require_email_verification: bool,
+    friends_number_limit: u32,
 ) -> Result<RegisterResponse, RegisterError> {
     // Generate snowflake id
     let id = ID(helper::USER_ID_GENERATOR
@@ -55,9 +57,9 @@ async fn add_new_user(
         time: ActiveValue::Set(chrono::Utc::now().into()),
         resource_used: ActiveValue::Set(0),
         friends_num: ActiveValue::Set(0),
-        friend_limit: ActiveValue::Set(shared_state::get_friends_number_limit().try_into()?),
+        friend_limit: ActiveValue::Set(friends_number_limit.try_into()?),
         public_key: ActiveValue::Set(request.public_key.into()),
-        email_verified: ActiveValue::Set(!shared_state::get_require_email_verification()),
+        email_verified: ActiveValue::Set(!require_email_verification),
         ..Default::default()
     };
     match user.insert(&db_connection.db_pool).await {
@@ -159,6 +161,8 @@ async fn register_impl(
             password_hash.output_len,
         )
         .unwrap(),
+        server.shared_data.cfg.main_cfg.require_email_verification,
+        server.shared_data.cfg.main_cfg.friends_number_limit,
     )
     .await?;
     Ok(response)

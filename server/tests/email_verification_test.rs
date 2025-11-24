@@ -7,11 +7,6 @@ async fn test_email_verification_configuration() {
     // Test with email verification disabled (default behavior)
     let mut app = TestApp::new_with_launching_instance().await.unwrap();
 
-    tracing::debug!(
-        "App config.require_email_verification: {}",
-        app.app_config.main_cfg.require_email_verification
-    );
-
     // Register a user with email verification disabled
     let user = app.new_user().await.unwrap();
 
@@ -22,8 +17,6 @@ async fn test_email_verification_configuration() {
         .await
         .expect("Failed to query user")
         .expect("User not found");
-
-    tracing::debug!("User email_verified: {}", user_record.email_verified);
     assert!(
         user_record.email_verified,
         "User should be email verified when verification is disabled"
@@ -36,24 +29,11 @@ async fn test_email_verification_configuration() {
 async fn test_email_verification_enabled() {
     // Test with email verification enabled
     let (mut config, args) = TestApp::get_test_config().unwrap();
-    tracing::debug!(
-        "Initial config.require_email_verification: {}",
-        config.main_cfg.require_email_verification
-    );
     config.main_cfg.require_email_verification = true;
-    tracing::debug!(
-        "After setting config.require_email_verification: {}",
-        config.main_cfg.require_email_verification
-    );
 
     let mut app = TestApp::new_with_launching_instance_custom_cfg((config, args), |_| {})
         .await
         .unwrap();
-
-    tracing::debug!(
-        "App config.require_email_verification: {}",
-        app.app_config.main_cfg.require_email_verification
-    );
 
     // Register a user with email verification enabled
     let user = app.new_user().await.unwrap();
@@ -66,7 +46,6 @@ async fn test_email_verification_enabled() {
         .expect("Failed to query user")
         .expect("User not found");
 
-    tracing::debug!("User email_verified: {}", user_record.email_verified);
     assert!(
         !user_record.email_verified,
         "User should not be email verified when verification is enabled"
