@@ -7,7 +7,7 @@ use argon2::{Params, PasswordHasher, password_hash::SaltString};
 use base::consts::{self, ID};
 use base::database::DbPool;
 use entities::user;
-use migration::m20220101_000001_create_table::USERNAME_MAX_LEN;
+use migration::constants::USERNAME_MAX_LEN;
 use pb::service::auth::register::v1::{RegisterRequest, RegisterResponse};
 use rand::rngs::OsRng;
 use sea_orm::{ActiveModelTrait, ActiveValue, DbErr};

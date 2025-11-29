@@ -8,7 +8,7 @@ use anyhow::Context;
 use base::consts::{ID, SessionID};
 use base::database::DbPool;
 use entities::{friend, prelude::*};
-use migration::m20241229_022701_add_role_for_session::PredefinedRoles;
+use migration::predefined::PredefinedRoles;
 use pb::google;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;

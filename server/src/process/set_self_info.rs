@@ -15,7 +15,7 @@ use base::consts::ID;
 use chrono::Duration;
 use deadpool_redis::redis::AsyncCommands;
 use entities::user;
-use migration::m20220101_000001_create_table::{OCID_MAX_LEN, USERNAME_MAX_LEN};
+use migration::constants::{OCID_MAX_LEN, USERNAME_MAX_LEN};
 use pb::service::ourchat::set_account_info::v1::{SetSelfInfoRequest, SetSelfInfoResponse};
 use sea_orm::{
     ActiveModelTrait, ActiveValue, DatabaseConnection, DbErr, EntityTrait, TransactionTrait,
@@ -124,15 +124,14 @@ async fn update_account(
     if let Some(avatar_key) = request_data.avatar_key
         && Some(&avatar_key) != original_user.avatar.as_ref()
     {
-        if let Some(original_avatar) = &original_user.avatar {
-            // reduce the refcount
-            file_storage::dec_file_refcnt(original_avatar, &txn)
-                .await
-                .context("cannot reduce the refcount of file")?;
+        // Simple ownership model: delete old avatar file if it exists
+        if let Some(old_avatar_key) = original_user.avatar {
+            // Delete the old avatar file - no reference counting needed
+            if let Err(e) = file_storage::delete_file(&old_avatar_key, &txn).await {
+                tracing::warn!("Failed to delete old avatar file {}: {}", old_avatar_key, e);
+                // Continue anyway - the file will be cleaned up by auto-cleanup later
+            }
         }
-        file_storage::inc_file_refcnt(&avatar_key, &txn)
-            .await
-            .context("cannot increase the refcount of file")?;
 
         user.avatar = ActiveValue::Set(Some(avatar_key));
         public_updated = true;

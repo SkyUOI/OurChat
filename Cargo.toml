@@ -30,67 +30,228 @@ version = "0.1.0"
 edition = "2024"
 rust-version = "1.91"
 
-[workspace.dependencies]
-anyhow = "1"
-serde_json = "1"
-rand = "0.10.0-rc.5"
-snowdon = "0"
-zxcvbn = { version = "3", features = ["ser"] }
-tokio-cron-scheduler = "0.15.0"
-croner = { version = "3.0.0", features = ["serde"] }
+[workspace.dependencies.anyhow]
+version = "1"
+default-features = false
 
-thiserror = "2"
-tracing = { version = "0" }
-tracing-appender = "0"
-tracing-subscriber = { version = "0", features = ["tracing-log", "env-filter"] }
-mimalloc = "0"
-parking_lot = "0"
-sha3 = "0"
-config = "0"
-console-subscriber = { version = "0", features = ["parking_lot"] }
-ring = "0"
+[workspace.dependencies.serde_json]
+version = "1"
+default-features = false
+
+[workspace.dependencies.rand]
+version = "0.10.0-rc.5"
+default-features = false
+features = ["thread_rng"]
+
+[workspace.dependencies.snowdon]
+version = "0"
+default-features = false
+features = ["lock-free"]
+
+[workspace.dependencies.zxcvbn]
+version = "3"
+default-features = false
+features = ["ser"]
+
+[workspace.dependencies.tokio-cron-scheduler]
+version = "0.15.0"
+default-features = false
+
+[workspace.dependencies.croner]
+version = "3.0.0"
+default-features = false
+features = ["serde"]
+
+[workspace.dependencies.thiserror]
+version = "2"
+default-features = false
+
+[workspace.dependencies.tracing]
+version = "0"
+default-features = false
+
+[workspace.dependencies.tracing-appender]
+version = "0"
+default-features = false
+
+[workspace.dependencies.tracing-subscriber]
+version = "0"
+default-features = false
+features = ["tracing-log", "ansi"]
+
+[workspace.dependencies.mimalloc]
+version = "0"
+default-features = false
+
+[workspace.dependencies.parking_lot]
+version = "0"
+default-features = false
+
+[workspace.dependencies.sha3]
+version = "0"
+default-features = false
+
+[workspace.dependencies.config]
+version = "0"
+
+[workspace.dependencies.console-subscriber]
+version = "0"
+default-features = false
+features = ["parking_lot"]
+
+[workspace.dependencies.ring]
+version = "0"
+default-features = false
 
 # Useful crates
-collection_literals = "1"
-size = { version = "0", features = ["serde"] }
+[workspace.dependencies.collection_literals]
+version = "1"
+default-features = false
 
-num_enum = "0"
-mockall = "0"
-async-trait = { version = "0" }
+[workspace.dependencies.size]
+version = "0"
+default-features = false
+features = ["serde"]
+
+[workspace.dependencies.num_enum]
+version = "0"
+default-features = false
+
+[workspace.dependencies.mockall]
+version = "0"
+default-features = false
+
+[workspace.dependencies.async-trait]
+version = "0"
+default-features = false
+
 # serde_plain = "1"
 
 # Grpc
-prost = { version = "0.14.1" }
-jsonwebtoken = "9.3.1"
-tower = { version = "0", features = ["full"] }
+[workspace.dependencies.prost]
+version = "0.14.1"
+default-features = false
 
-linkify = "0"
-claims = "0"
-urlencoding = "2"
-dotenvy = "0"
-ctor = "0"
-fake = "4"
-walkdir = "2"
-tonic-prost-build = "0"
-tonic-prost = "0"
-http = "1"
-http-serde = "2"
-email_address = "0"
-humantime = "2"
-humantime-serde = "1"
-secrecy = "0"
-tower-http = { version = "0", features = ["full"] }
-color-eyre = "0"
-axum-server = { version = "0.7.2", features = ["tls-rustls"] }
-tower_http = { version = "0.6", features = ["cors", "normalize-path", "fs"] }
+[workspace.dependencies.jsonwebtoken]
+version = "9.3.1"
+default-features = false
 
-webrtc = "0.14.0"
-rsa = "0.10.0-rc.5"
-cfg-if = "1"
-const_format = "0"
-tower_governor = { version = "0", features = ["tracing"] }
-tonic-web = "0.14.2"
-tonic-reflection = "0.14.2"
+[workspace.dependencies.tower]
+version = "0"
+default-features = false
+features = ["full"]
+
+[workspace.dependencies.linkify]
+version = "0"
+default-features = false
+
+[workspace.dependencies.claims]
+version = "0"
+default-features = false
+
+[workspace.dependencies.urlencoding]
+version = "2"
+default-features = false
+
+[workspace.dependencies.dotenvy]
+version = "0"
+default-features = false
+
+[workspace.dependencies.ctor]
+version = "0"
+default-features = false
+features = ["proc_macro"]
+
+[workspace.dependencies.fake]
+version = "4"
+default-features = false
+
+[workspace.dependencies.walkdir]
+version = "2"
+default-features = false
+
+[workspace.dependencies.tonic-prost-build]
+version = "0"
+default-features = false
+
+[workspace.dependencies.tonic-prost]
+version = "0"
+default-features = false
+
+[workspace.dependencies.http]
+version = "1"
+default-features = false
+
+[workspace.dependencies.http-serde]
+version = "2"
+default-features = false
+
+[workspace.dependencies.email_address]
+version = "0"
+default-features = false
+features = ["serde_support"]
+
+[workspace.dependencies.humantime]
+version = "2"
+default-features = false
+
+[workspace.dependencies.humantime-serde]
+version = "1"
+default-features = false
+
+[workspace.dependencies.secrecy]
+version = "0"
+default-features = false
+
+[workspace.dependencies.tower-http]
+version = "0"
+default-features = false
+features = ["full"]
+
+[workspace.dependencies.color-eyre]
+version = "0"
+default-features = false
+
+[workspace.dependencies.axum-server]
+version = "0.7.2"
+default-features = false
+features = ["tls-rustls"]
+
+[workspace.dependencies.tower_http]
+version = "0.6"
+default-features = false
+features = ["cors", "normalize-path", "fs"]
+
+[workspace.dependencies.webrtc]
+version = "0.14.0"
+default-features = false
+
+[workspace.dependencies.rsa]
+version = "0.10.0-rc.8"
+default-features = false
+features = ["encoding"]
+
+[workspace.dependencies.cfg-if]
+version = "1"
+default-features = false
+
+[workspace.dependencies.const_format]
+version = "0"
+default-features = false
+
+[workspace.dependencies.tower_governor]
+version = "0"
+default-features = false
+features = ["axum"]
+
+[workspace.dependencies.tonic-web]
+version = "0.14.2"
+default-features = false
+
+[workspace.dependencies.tonic-reflection]
+version = "0.14.2"
+default-features = false
+features = ["server"]
 
 # matrix-sdk = "0.11.0"
 
@@ -185,4 +346,4 @@ features = ["ring", "aws_lc_rs"]
 [workspace.dependencies.axum]
 version = "0.8"
 default-features = false
-features = ["macros", "http2"]
+features = ["macros", "http2", "http1", "json","tokio", "query"]

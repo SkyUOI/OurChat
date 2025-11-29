@@ -1,5 +1,5 @@
 use base::consts::{ID, SessionID};
-use migration::m20241229_022701_add_role_for_session::PredefinedRoles;
+use migration::predefined::PredefinedRoles;
 use sea_orm::{ActiveModelTrait, ActiveValue, ConnectionTrait, EntityTrait};
 
 use crate::{db, helper};

@@ -5,7 +5,7 @@ use crate::oc_helper::user::{TestUser, TestUserShared};
 use base::consts::{CONFIG_FILE_ENV_VAR, ID, OCID, SessionID};
 use base::database::DbPool;
 use base::shutdown::ShutdownSdr;
-use migration::m20241229_022701_add_role_for_session::PredefinedRoles;
+use migration::predefined::PredefinedRoles;
 use pb::service::auth::v1::auth_service_client::AuthServiceClient;
 use pb::service::basic::v1::basic_service_client::BasicServiceClient;
 use pb::service::basic::v1::{GetIdRequest, TimestampRequest};

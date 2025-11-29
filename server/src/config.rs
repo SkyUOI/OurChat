@@ -32,6 +32,14 @@ pub struct MainCfg {
     pub friends_number_limit: u32,
     #[serde(default = "consts::default_files_storage_path")]
     pub files_storage_path: PathBuf,
+    #[serde(default = "consts::default_enable_file_cache")]
+    pub enable_file_cache: bool,
+    #[serde(default = "consts::default_enable_hierarchical_storage")]
+    pub enable_hierarchical_storage: bool,
+    #[serde(default = "consts::default_enable_file_deduplication")]
+    pub enable_file_deduplication: bool,
+    #[serde(default = "consts::default_cache_max_size")]
+    pub cache_max_size: Size,
     #[serde(
         default = "consts::default_verification_expire_time",
         with = "humantime_serde"

@@ -6,7 +6,7 @@ use crate::{
 };
 use base::consts::{ID, SessionID};
 use entities::{role_permissions, user_role_relation};
-use migration::m20241229_022701_add_role_for_session::PredefinedPermissions;
+use migration::predefined::PredefinedPermissions;
 use pb::service::ourchat::session::set_session_info::v1::{
     SetSessionInfoRequest, SetSessionInfoResponse,
 };
@@ -94,10 +94,17 @@ async fn set_session_info_impl(
                 CANNOT_SET_DESCRIPTION,
             )));
         }
-        let description = ActiveValue::Set(description);
-        if model.description != description {
-            model.description = description;
-            modified = true;
+        match model.description {
+            ActiveValue::Set(Some(ref original_description)) => {
+                if original_description != &description {
+                    model.description = ActiveValue::Set(Some(description));
+                    modified = true;
+                }
+            }
+            _ => {
+                model.description = ActiveValue::Set(Some(description));
+                modified = true;
+            }
         }
     }
     if let Some(avatar_key) = request.avatar_key {

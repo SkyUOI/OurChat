@@ -1,7 +1,7 @@
 use base::consts::SessionID;
 use claims::{assert_none, assert_some};
 use client::TestApp;
-use migration::m20241229_022701_add_role_for_session::PredefinedRoles;
+use migration::predefined::PredefinedRoles;
 use pb::service::ourchat::friends::accept_friend_invitation::v1::{
     AcceptFriendInvitationRequest, AcceptFriendInvitationResult,
 };
