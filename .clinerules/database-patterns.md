@@ -66,19 +66,6 @@ When creating a new database migration, follow this workflow:
    python script/db_migration.py up
    ```
 
-### Migration Registration
-After creating a migration file in `server/migration/src/`, you must:
-
-1. Add the module declaration in `server/migration/src/lib.rs`:
-   ```rust
-   mod m20251122_130843_add_feature_name;
-   ```
-
-2. Add the migration to the migrations vector:
-   ```rust
-   Box::new(m20251122_130843_add_feature_name::Migration),
-   ```
-
 ## Caching Patterns
 
 ### Redis Usage

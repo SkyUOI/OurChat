@@ -12,6 +12,7 @@ pub struct Model {
     pub path: String,
     pub user_id: i64,
     pub ref_cnt: i32,
+    pub hash: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

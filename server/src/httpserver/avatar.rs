@@ -55,7 +55,13 @@ pub async fn avatar(
     };
     match user.avatar {
         Some(avatar_key) => {
-            let path = shared_data.cfg.main_cfg.get_file_path_from_key(&avatar_key);
+            // Use hierarchical storage path for better filesystem performance
+            let base_path = &shared_data.cfg.main_cfg.files_storage_path;
+            let path = crate::db::file_storage::generate_hierarchical_path(
+                base_path,
+                params.user_id.0,
+                &avatar_key,
+            );
             let bytes = tokio::fs::read(&path)
                 .await
                 .with_context(|| format!("read avatar file failed: {}", path.display()))?;

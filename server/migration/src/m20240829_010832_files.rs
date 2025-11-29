@@ -41,7 +41,7 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(DeriveIden)]
-enum Files {
+pub enum Files {
     Table,
     Key,
     Date,
@@ -49,4 +49,5 @@ enum Files {
     Path,
     UserId,
     RefCnt,
+    Hash,
 }
