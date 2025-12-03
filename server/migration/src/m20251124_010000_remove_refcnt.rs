@@ -12,35 +12,19 @@ impl MigrationTrait for Migration {
             .alter_table(
                 Table::alter()
                     .table(Files::Table)
-                    .add_column_if_not_exists(string_null(Files::Hash))
+                    .drop_column(Files::RefCnt)
                     .to_owned(),
             )
             .await?;
-
-        // Create index on hash column for faster duplicate detection
-        manager
-            .create_index(
-                Index::create()
-                    .name("idx_files_hash")
-                    .table(Files::Table)
-                    .col(Files::Hash)
-                    .to_owned(),
-            )
-            .await?;
-
         Ok(())
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_index(Index::drop().name("idx_files_hash").to_owned())
-            .await?;
-
-        manager
             .alter_table(
                 Table::alter()
                     .table(Files::Table)
-                    .drop_column(Files::Hash)
+                    .add_column_if_not_exists(unsigned(Files::RefCnt))
                     .to_owned(),
             )
             .await?;

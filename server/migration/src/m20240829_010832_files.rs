@@ -49,5 +49,4 @@ pub enum Files {
     Path,
     UserId,
     RefCnt,
-    Hash,
 }

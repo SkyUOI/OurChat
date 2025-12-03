@@ -1,8 +1,7 @@
-//! Manage the file storage
+//! Manage the file storage with simple ownership model
 
 use crate::SharedData;
 use entities::{files, prelude::*};
-use sea_orm::prelude::Expr;
 use sea_orm::{ColumnTrait, ConnectionTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -164,114 +163,25 @@ pub enum FileStorageError {
     NotFound,
 }
 
-/// Enhanced reference counting with atomic operations
-/// Each file has a ref count, when the ref count is 0, the file will be deleted
+/// Delete a file immediately - no reference counting needed
 #[instrument(skip(db_conn))]
-pub async fn dec_file_refcnt(
+pub async fn delete_file(
     key: impl Into<String> + std::fmt::Debug,
     db_conn: &impl ConnectionTrait,
 ) -> Result<(), FileStorageError> {
     let key = key.into();
 
-    // First, get the current file to check ref_cnt and path
+    // Get the file to find its path
     let file = match Files::find_by_id(&key).one(db_conn).await? {
         Some(f) => f,
         None => return Err(FileStorageError::NotFound),
     };
 
-    if file.ref_cnt <= 0 {
-        tracing::error!("invalid file record:{:?}", file);
-        Files::delete_by_id(&key).exec(db_conn).await?;
-    } else if file.ref_cnt == 1 {
-        // If ref_cnt will become 0, delete the file
-        remove_file(&file.path).await?;
-        Files::delete_by_id(&key).exec(db_conn).await?;
-    } else {
-        // Use direct SQL update for atomic reference counting
-        let update_result = files::Entity::update_many()
-            .col_expr(
-                files::Column::RefCnt,
-                Expr::col(files::Column::RefCnt).sub(1),
-            )
-            .filter(files::Column::Key.eq(&key))
-            .exec(db_conn)
-            .await?;
+    // Delete file from database
+    Files::delete_by_id(&key).exec(db_conn).await?;
 
-        if update_result.rows_affected == 0 {
-            return Err(FileStorageError::NotFound);
-        }
-    }
-
-    Ok(())
-}
-
-/// Increase the file ref count with atomic operations
-#[instrument(skip(db_conn))]
-pub async fn inc_file_refcnt(
-    key: impl Into<String> + std::fmt::Debug,
-    db_conn: &impl ConnectionTrait,
-) -> Result<(), FileStorageError> {
-    let key = key.into();
-
-    // Use direct SQL update for atomic reference counting
-    let update_result = files::Entity::update_many()
-        .col_expr(
-            files::Column::RefCnt,
-            Expr::col(files::Column::RefCnt).add(1),
-        )
-        .filter(files::Column::Key.eq(&key))
-        .exec(db_conn)
-        .await?;
-
-    if update_result.rows_affected == 0 {
-        return Err(FileStorageError::NotFound);
-    }
-
-    Ok(())
-}
-
-/// Batch operation to update multiple file reference counts
-#[instrument(skip(db_conn))]
-pub async fn batch_update_refcnt(
-    operations: Vec<(String, i32)>, // (file_key, delta)
-    db_conn: &impl ConnectionTrait,
-) -> Result<(), FileStorageError> {
-    for (key, delta) in operations {
-        // First, get the current file to check ref_cnt and path
-        let file = match Files::find_by_id(&key).one(db_conn).await? {
-            Some(f) => f,
-            None => {
-                tracing::warn!("File not found during batch operation: {}", key);
-                continue;
-            }
-        };
-
-        let new_ref_cnt = file.ref_cnt + delta;
-        if new_ref_cnt <= 0 {
-            // Delete file if reference count becomes zero or negative
-            let path = file.path.clone();
-            Files::delete_by_id(&key).exec(db_conn).await?;
-
-            // Remove file from disk
-            if let Err(e) = remove_file(&path).await {
-                tracing::error!("Failed to delete file {}: {}", path, e);
-            }
-        } else {
-            // Use direct SQL update for atomic reference counting
-            let update_result = files::Entity::update_many()
-                .col_expr(
-                    files::Column::RefCnt,
-                    Expr::col(files::Column::RefCnt).add(delta),
-                )
-                .filter(files::Column::Key.eq(&key))
-                .exec(db_conn)
-                .await?;
-
-            if update_result.rows_affected == 0 {
-                tracing::warn!("Failed to update file during batch operation: {}", key);
-            }
-        }
-    }
+    // Delete file from filesystem
+    remove_file(&file.path).await?;
 
     Ok(())
 }
@@ -289,46 +199,6 @@ pub fn generate_hierarchical_path(
     base_path.join(&user_prefix).join(key_prefix).join(key)
 }
 
-/// Detect and handle duplicate files using content hashing
-#[instrument(skip(db_conn))]
-pub async fn deduplicate_files(
-    db_conn: &impl ConnectionTrait,
-    files_storage_path: &std::path::Path,
-) -> Result<usize, FileStorageError> {
-    // Find files with same hash
-    let all_files = Files::find().all(db_conn).await?;
-
-    let mut duplicates_found = 0;
-    let mut hash_groups: HashMap<String, Vec<files::Model>> = HashMap::new();
-
-    // Group files by hash
-    for file in all_files {
-        if let Some(ref hash) = file.hash {
-            hash_groups.entry(hash.clone()).or_default().push(file);
-        }
-    }
-
-    // For each hash group with multiple files, keep only one and update references
-    for (hash, files) in hash_groups {
-        if files.len() > 1 {
-            tracing::info!("Found {} duplicate files with hash {}", files.len(), hash);
-
-            // Keep the first file and delete the rest
-            let mut files_iter = files.into_iter();
-            let _keep_file = files_iter.next().unwrap();
-
-            for duplicate_file in files_iter {
-                // Update all references to point to the kept file
-                // This would require updating other tables that reference files
-                // For now, we'll just log and count the duplicates
-                tracing::info!("Would delete duplicate file: {}", duplicate_file.key);
-                duplicates_found += 1;
-            }
-        }
-    }
-
-    Ok(duplicates_found)
-}
 
 /// Clean up orphaned files (files that exist on disk but not in database)
 #[instrument(skip(db_conn))]

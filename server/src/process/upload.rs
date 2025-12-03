@@ -30,7 +30,6 @@ pub struct AddFileRecordConfig {
     pub auto_clean: bool,
     pub files_storage_path: PathBuf,
     pub limit_size: Size,
-    pub file_hash: Vec<u8>,
 }
 
 const PREFIX_LEN: usize = 20;
@@ -94,8 +93,6 @@ pub async fn add_file_record(
         date: sea_orm::Set(timestamp),
         auto_clean: sea_orm::Set(config.auto_clean),
         user_id: sea_orm::Set(config.id.into()),
-        ref_cnt: sea_orm::Set(1),
-        hash: sea_orm::Set(Some(hex::encode(config.file_hash))),
     };
     file.insert(db_connection).await?;
     Ok(())
@@ -250,7 +247,6 @@ async fn upload_impl(
             auto_clean: metadata.auto_clean,
             files_storage_path: files_storage_path.clone(),
             limit_size,
-            file_hash: hash.to_vec(),
         };
         add_file_record(config, &server.db.db_pool).await?;
         temp_file.flush().await?;
