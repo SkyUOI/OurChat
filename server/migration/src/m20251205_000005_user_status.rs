@@ -1,5 +1,7 @@
 use sea_orm_migration::{prelude::*, schema::*};
 
+use crate::enums::UserStatus;
+
 #[derive(DeriveMigrationName)]
 pub struct Migration;
 
@@ -10,6 +12,7 @@ impl MigrationTrait for Migration {
             .create_table(
                 Table::create()
                     .table(UserStatus::Table)
+                    .if_not_exists()
                     .col(string(UserStatus::Name).primary_key())
                     .to_owned(),
             )
@@ -21,10 +24,4 @@ impl MigrationTrait for Migration {
             .drop_table(Table::drop().table(UserStatus::Table).to_owned())
             .await
     }
-}
-
-#[derive(DeriveIden)]
-pub enum UserStatus {
-    Table,
-    Name,
 }

@@ -15,7 +15,7 @@ use base::consts::ID;
 use chrono::Duration;
 use deadpool_redis::redis::AsyncCommands;
 use entities::user;
-use migration::m20220101_000001_create_table::{OCID_MAX_LEN, USERNAME_MAX_LEN};
+use migration::constants::{OCID_MAX_LEN, USERNAME_MAX_LEN};
 use pb::service::ourchat::set_account_info::v1::{SetSelfInfoRequest, SetSelfInfoResponse};
 use sea_orm::{
     ActiveModelTrait, ActiveValue, DatabaseConnection, DbErr, EntityTrait, TransactionTrait,

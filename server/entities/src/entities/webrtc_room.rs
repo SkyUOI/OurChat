@@ -23,4 +23,13 @@ impl Related<super::webrtc_room_member::Entity> for Entity {
     }
 }
 
+impl Related<super::user::Entity> for Entity {
+    fn to() -> RelationDef {
+        super::webrtc_room_member::Relation::User.def()
+    }
+    fn via() -> Option<RelationDef> {
+        Some(super::webrtc_room_member::Relation::WebrtcRoom.def().rev())
+    }
+}
+
 impl ActiveModelBehavior for ActiveModel {}

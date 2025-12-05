@@ -19,8 +19,6 @@ pub struct Model {
     pub friend_limit: i32,
     pub friends_num: i32,
     pub avatar: Option<String>,
-    pub public_update_time: DateTimeWithTimeZone,
-    pub update_time: DateTimeWithTimeZone,
     pub account_status: i32,
     pub deleted_at: Option<DateTimeWithTimeZone>,
     #[sea_orm(column_type = "VarBinary(StringLen::None)")]
@@ -29,6 +27,8 @@ pub struct Model {
     pub github_id: Option<String>,
     pub oauth_provider: Option<String>,
     pub email_verified: bool,
+    pub public_update_time: DateTimeWithTimeZone,
+    pub update_time: DateTimeWithTimeZone,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -47,6 +47,8 @@ pub enum Relation {
     SessionRelation,
     #[sea_orm(has_many = "super::user_role_relation::Entity")]
     UserRoleRelation,
+    #[sea_orm(has_many = "super::webrtc_room_member::Entity")]
+    WebrtcRoomMember,
 }
 
 impl Related<super::announcement::Entity> for Entity {
@@ -91,12 +93,27 @@ impl Related<super::user_role_relation::Entity> for Entity {
     }
 }
 
+impl Related<super::webrtc_room_member::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::WebrtcRoomMember.def()
+    }
+}
+
 impl Related<super::session::Entity> for Entity {
     fn to() -> RelationDef {
         super::session_relation::Relation::Session.def()
     }
     fn via() -> Option<RelationDef> {
         Some(super::session_relation::Relation::User.def().rev())
+    }
+}
+
+impl Related<super::webrtc_room::Entity> for Entity {
+    fn to() -> RelationDef {
+        super::webrtc_room_member::Relation::WebrtcRoom.def()
+    }
+    fn via() -> Option<RelationDef> {
+        Some(super::webrtc_room_member::Relation::User.def().rev())
     }
 }
 

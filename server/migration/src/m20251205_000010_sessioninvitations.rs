@@ -1,6 +1,6 @@
 use sea_orm_migration::{prelude::*, schema::*};
 
-use crate::m20220101_000001_create_table::{Session, User};
+use crate::enums::{Session, SessionInvitation, User};
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -50,15 +50,4 @@ impl MigrationTrait for Migration {
             .drop_table(Table::drop().table(SessionInvitation::Table).to_owned())
             .await
     }
-}
-
-#[derive(DeriveIden)]
-enum SessionInvitation {
-    Table,
-    Id,
-    Inviter,
-    Invitee,
-    SessionId,
-    LeaveMessage,
-    ExpireAt,
 }

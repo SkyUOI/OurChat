@@ -11,7 +11,7 @@ use crate::process::{self, ErrAuth};
 use crate::{SERVER_INFO, SharedData};
 use base::consts::{ID, JWT_HEADER, OCID, VERSION_SPLIT};
 use base::database::DbPool;
-use migration::m20250301_005919_add_soft_delete_columns::AccountStatus;
+use migration::predefined::AccountStatus;
 use pb::service::auth::authorize::v1::{AuthRequest, AuthResponse};
 use pb::service::auth::email_verify::v1::{VerifyRequest, VerifyResponse};
 use pb::service::auth::register::v1::{RegisterRequest, RegisterResponse};

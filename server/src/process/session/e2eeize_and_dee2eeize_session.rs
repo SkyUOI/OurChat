@@ -1,7 +1,7 @@
 use anyhow::{Context, anyhow};
 use base::consts::ID;
 use chrono::Utc;
-use migration::m20241229_022701_add_role_for_session::PredefinedPermissions;
+use migration::predefined::PredefinedPermissions;
 use pb::service::ourchat::{
     msg_delivery::v1::fetch_msgs_response::RespondEventType,
     session::{

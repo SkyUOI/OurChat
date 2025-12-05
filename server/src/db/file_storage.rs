@@ -199,7 +199,6 @@ pub fn generate_hierarchical_path(
     base_path.join(&user_prefix).join(key_prefix).join(key)
 }
 
-
 /// Clean up orphaned files (files that exist on disk but not in database)
 #[instrument(skip(db_conn))]
 pub async fn cleanup_orphaned_files(

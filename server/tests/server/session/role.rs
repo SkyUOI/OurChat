@@ -1,6 +1,6 @@
 use base::{consts::ID, types::RoleId};
 use client::TestApp;
-use migration::m20241229_022701_add_role_for_session::{PredefinedPermissions, PredefinedRoles};
+use migration::predefined::{PredefinedPermissions, PredefinedRoles};
 use pb::service::ourchat::session::{
     add_role::v1::AddRoleRequest, get_role::v1::GetRoleRequest, set_role::v1::SetRoleRequest,
 };

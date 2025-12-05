@@ -1,7 +1,7 @@
 use crate::{process::error_msg::SERVER_ERROR, server::RpcServer};
 use base::consts::ID;
 use entities::user;
-use migration::m20250301_005919_add_soft_delete_columns::AccountStatus;
+use migration::predefined::AccountStatus;
 use pb::service::ourchat::unregister::v1::{UnregisterRequest, UnregisterResponse};
 use sea_orm::{ActiveModelTrait, ActiveValue, ConnectionTrait};
 use tonic::{Request, Response, Status};

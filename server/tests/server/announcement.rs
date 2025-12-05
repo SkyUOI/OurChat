@@ -2,7 +2,7 @@ use std::{sync::Arc, time::Duration};
 
 use client::TestApp;
 use client::oc_helper::server_manager::TestServerManager;
-use migration::m20250218_093632_server_manage_permission::PredefinedServerManagementRole;
+use migration::predefined::PredefinedServerManagementRole;
 use pb::service::{
     ourchat::msg_delivery::{
         announcement::v1::{Announcement, AnnouncementResponse},
