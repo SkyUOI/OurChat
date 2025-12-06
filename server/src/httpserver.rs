@@ -73,8 +73,15 @@ impl HttpServer {
             .allow_headers([
                 http::header::CONTENT_TYPE,
                 http::header::AUTHORIZATION,
+                http::header::ACCEPT,
+                http::header::ORIGIN,
                 http::HeaderName::from_static("x-requested-with"),
-            ]);
+                http::HeaderName::from_static("x-grpc-web"),
+                http::HeaderName::from_static("grpc-timeout"),
+                http::HeaderName::from_static("user-agent"),
+                http::HeaderName::from_static("x-user-agent"),
+            ])
+            .max_age(std::time::Duration::from_secs(86400));
         let rate_governor_config = GovernorConfigBuilder::default()
             .burst_size(shared_data.cfg.http_cfg.rate_limit.num_of_burst_requests)
             .per_millisecond(
