@@ -15,7 +15,7 @@ dependencies:
   intl: any
   logger: ^2.4.0
   protobuf: ^5.1.0
-  grpc: ^4.1.0
+  grpc: ^5.0.0
   fixnum: ^1.1.1
   path_provider: ^2.1.5
   drift: ^2.26.1
