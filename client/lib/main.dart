@@ -1,7 +1,6 @@
 import 'dart:io';
-
 import 'package:fixnum/fixnum.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:ourchat/core/database.dart' as database;
 import 'package:ourchat/core/session.dart';
@@ -308,34 +307,28 @@ class _ControllerState extends State<Controller>
 
   @override
   void onTrayIconRightMouseDown() {
-    if (!kIsWeb) {
-      trayManager.popUpContextMenu();
-      super.onTrayIconRightMouseDown();
-    }
+    trayManager.popUpContextMenu();
+    super.onTrayIconRightMouseDown();
   }
 
   @override
   void onTrayMenuItemClick(MenuItem menuItem) {
-    if (!kIsWeb) {
-      if (menuItem.key == "show") {
-        windowManager.show();
-        windowManager.focus();
-        stopFlashTray();
-      } else if (menuItem.key == "exit") {
-        trayManager.destroy();
-        windowManager.destroy();
-      }
-      super.onTrayMenuItemClick(menuItem);
+    if (menuItem.key == "show") {
+      windowManager.show();
+      windowManager.focus();
+      stopFlashTray();
+    } else if (menuItem.key == "exit") {
+      trayManager.destroy();
+      windowManager.destroy();
     }
+    super.onTrayMenuItemClick(menuItem);
   }
 
   @override
   void onTrayIconMouseDown() {
-    if (!kIsWeb) {
-      windowManager.show();
-      windowManager.focus();
-      stopFlashTray();
-      super.onTrayIconMouseDown();
-    }
+    windowManager.show();
+    windowManager.focus();
+    stopFlashTray();
+    super.onTrayIconMouseDown();
   }
 }
