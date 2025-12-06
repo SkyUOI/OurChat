@@ -173,6 +173,7 @@ default-features = false
 [workspace.dependencies.tonic-prost-build]
 version = "0"
 default-features = false
+features = ["transport", "cleanup-markdown"]
 
 [workspace.dependencies.tonic-prost]
 version = "0"
