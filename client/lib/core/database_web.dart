@@ -1,7 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:drift/wasm.dart';
 import 'package:fixnum/fixnum.dart';
-import 'package:flutter/foundation.dart' show kReleaseMode;
+import 'package:flutter/foundation.dart';
 import 'package:sqlite3/wasm.dart' show InMemoryFileSystem, WasmSqlite3;
 
 part 'database_web.g.dart';
