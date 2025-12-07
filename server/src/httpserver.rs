@@ -157,13 +157,16 @@ impl HttpServer {
         }
 
         router = router
-            .merge(grpc_service.into_axum_router())
-            .layer(tonic_web::GrpcWebLayer::new())
+            .merge(
+                grpc_service
+                    .into_axum_router()
+                    .layer(tonic_web::GrpcWebLayer::new())
+                    .layer(cors),
+            )
             .layer(
                 ServiceBuilder::new()
                     .layer(tower_http::trace::TraceLayer::new_for_http())
                     .layer(tower_http::trace::TraceLayer::new_for_grpc())
-                    .layer(cors)
                     .layer(tower_http::normalize_path::NormalizePathLayer::trim_trailing_slash())
                     .layer(middleware::from_fn(redirect_middleware)),
             );
@@ -175,13 +178,35 @@ impl HttpServer {
         }
         if enable_matrix {
             info!("matrix api enabled");
-            router = router
+            let matrix_cors = tower_http::cors::CorsLayer::new()
+                .allow_origin(tower_http::cors::Any)
+                .allow_methods([
+                    Method::GET,
+                    Method::POST,
+                    Method::PUT,
+                    Method::DELETE,
+                    Method::OPTIONS,
+                ])
+                .allow_headers([
+                    http::header::CONTENT_TYPE,
+                    http::header::AUTHORIZATION,
+                    http::header::ACCEPT,
+                    http::header::ORIGIN,
+                    http::header::ACCEPT,
+                    http::header::ORIGIN,
+                    http::HeaderName::from_static("x-requested-with"),
+                    http::HeaderName::from_static("user-agent"),
+                    http::HeaderName::from_static("x-user-agent"),
+                ]);
+
+            let matrix_router = axum::Router::new()
                 .nest("/_matrix", crate::matrix::configure_matrix())
                 .nest(
                     "/.well-known",
                     crate::matrix::route::wellknown::configure_route()
                         .with_state(shared_data.clone()),
                 );
+            router = router.merge(matrix_router.layer(matrix_cors));
         }
         if shared_data.cfg.http_cfg.web_panel.enable {
             info!("web panel enabled");
