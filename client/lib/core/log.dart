@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
 // Conditionally import platform-specific logger implementations
 import 'package:ourchat/core/log_desktop.dart'
-    if (dart.library.io) 'package:ourchat/core/log_web.dart';
+    if (dart.library.html) 'package:ourchat/core/log_web.dart';
 
 Logger logger = Logger();
 

@@ -35,7 +35,7 @@ bool trayStatus = true, isFlashing = false;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+  if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
     await windowManager.ensureInitialized();
     WindowOptions windowOptions = const WindowOptions(
       minimumSize: Size(900, 600),
@@ -139,7 +139,8 @@ class _ControllerState extends State<Controller>
   @override
   void initState() {
     super.initState();
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    if (!kIsWeb &&
+        (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
       windowManager.addListener(this);
       windowManager.setPreventClose(true);
       trayManager.addListener(this);
@@ -256,10 +257,10 @@ class _ControllerState extends State<Controller>
         builder: (context, constraints) {
           var l10n = ourchatAppState.l10n = AppLocalizations.of(context)!;
           if (!kIsWeb) {
-          trayManager.setContextMenu(Menu(items: [
-            MenuItem(key: "show", label: l10n.show("")),
-            MenuItem(key: "exit", label: l10n.exit)
-          ]));
+            trayManager.setContextMenu(Menu(items: [
+              MenuItem(key: "show", label: l10n.show("")),
+              MenuItem(key: "exit", label: l10n.exit)
+            ]));
           }
           ourchatAppState.screenMode =
               (constraints.maxHeight < constraints.maxWidth)

@@ -1,7 +1,6 @@
-import 'package:flutter/foundation.dart';
 import 'package:grpc/grpc.dart';
 import 'package:grpc/grpc_connection_interface.dart';
-import 'package:grpc/grpc_web.dart';
+import 'package:grpc/grpc_or_grpcweb.dart';
 import 'package:ourchat/core/const.dart';
 import 'package:ourchat/core/log.dart';
 import 'package:ourchat/service/basic/server/v1/server.pb.dart';
@@ -51,31 +50,22 @@ class OurChatServer {
     if (!ssl) {
       logger.w("Switch to insecure connection");
       isTLS = false;
-    }
-    ChannelCredentials credentials = ChannelCredentials.insecure();
-    if (ssl) {
-      credentials = ChannelCredentials.secure();
+    } else {
       isTLS = true;
     }
-    if (!kIsWeb) {
-      channel = ClientChannel(host,
-          port: port,
-          options: ChannelOptions(
-            credentials: credentials,
-          ));
-    } else {
-      channel = GrpcWebClientChannel.xhr(
-        Uri.parse("${ssl ? 'https' : 'http'}://$host:$port"),
-      );
-    }
+    channel = GrpcOrGrpcWebClientChannel.toSingleEndpoint(
+      host: host,
+      port: port,
+      transportSecure: ssl,
+    );
   }
 
   static Future<bool> tlsEnabled(String host, int port) async {
     try {
-      var channel = ClientChannel(
-        host,
+      var channel = GrpcOrGrpcWebClientChannel.toSingleEndpoint(
+        host: host,
         port: port,
-        options: const ChannelOptions(credentials: ChannelCredentials.secure()),
+        transportSecure: true,
       );
       var stub = BasicServiceClient(channel);
       await stub.ping(PingRequest());

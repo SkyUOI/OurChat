@@ -31,6 +31,10 @@ class TrayManager {
   Future<void> destroy() async {
     // No-op for web
   }
+
+  Future<void> setToolTip(String toolTip) async {
+    // No-op for web
+  }
 }
 
 class Menu {
