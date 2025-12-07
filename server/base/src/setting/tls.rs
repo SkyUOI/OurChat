@@ -19,27 +19,13 @@ impl TlsConfig {
     pub fn is_tls_on(&self) -> anyhow::Result<bool> {
         let ret = self.enable
             && self.server_tls_cert_path.is_some()
-            && self.server_key_cert_path.is_some()
-            && self.client_tls_cert_path.is_some()
-            && self.client_key_cert_path.is_some();
+            && self.server_key_cert_path.is_some();
         if ret {
             if !self.server_tls_cert_path.as_ref().unwrap().exists() {
                 anyhow::bail!("tls_cert_path does not exist");
             }
             if !self.server_key_cert_path.as_ref().unwrap().exists() {
                 anyhow::bail!("key_cert_path does not exist");
-            }
-            if !self.client_tls_cert_path.as_ref().unwrap().exists() {
-                anyhow::bail!("client_tls_cert_path does not exist");
-            }
-            if !self.client_key_cert_path.as_ref().unwrap().exists() {
-                anyhow::bail!("client_key_cert_path does not exist");
-            }
-            if !self.ca_tls_cert_path.as_ref().unwrap().exists() {
-                anyhow::bail!("ca_tls_cert_path does not exist");
-            }
-            if !self.client_ca_tls_cert_path.as_ref().unwrap().exists() {
-                anyhow::bail!("client_ca_tls_cert_path does not exist");
             }
             Ok(true)
         } else {

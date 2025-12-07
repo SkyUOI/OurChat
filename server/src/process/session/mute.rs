@@ -6,7 +6,7 @@ use crate::server::RpcServer;
 use anyhow::Context;
 use base::consts::ID;
 use deadpool_redis::redis::AsyncCommands;
-use migration::m20241229_022701_add_role_for_session::PredefinedPermissions;
+use migration::predefined::PredefinedPermissions;
 use pb::service::ourchat::session::mute::v1::{
     MuteUserRequest, MuteUserResponse, UnmuteUserRequest, UnmuteUserResponse,
 };

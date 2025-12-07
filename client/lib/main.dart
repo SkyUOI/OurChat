@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:fixnum/fixnum.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:ourchat/core/database.dart' as database;
 import 'package:ourchat/core/session.dart';
@@ -15,10 +17,14 @@ import 'package:ourchat/core/log.dart';
 import 'package:ourchat/launch.dart';
 import 'package:ourchat/auth.dart';
 import 'package:ourchat/home.dart';
-import 'package:window_manager/window_manager.dart';
-import 'package:tray_manager/tray_manager.dart';
+
+// Conditionally import desktop-specific packages only when not on web
+import 'package:window_manager/window_manager.dart'
+    if (dart.library.html) 'package:ourchat/core/stubs/window_manager_stub.dart';
+import 'package:tray_manager/tray_manager.dart'
+    if (dart.library.html) 'package:ourchat/core/stubs/tray_manager_stub.dart';
+
 import 'dart:core';
-import 'dart:io';
 import 'dart:async';
 
 final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
@@ -29,7 +35,7 @@ bool trayStatus = true, isFlashing = false;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+  if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
     await windowManager.ensureInitialized();
     WindowOptions windowOptions = const WindowOptions(
       minimumSize: Size(900, 600),
@@ -70,20 +76,22 @@ class OurChatAppState extends ChangeNotifier {
 }
 
 void changeTrayIcon() {
-  if (trayStatus) {
-    trayManager.setIcon(Platform.isWindows
-        ? "assets/images/empty.ico"
-        : "assets/images/empty.png");
-  } else {
-    trayManager.setIcon(Platform.isWindows
-        ? "assets/images/logo_without_text.ico"
-        : "assets/images/logo_without_text.png");
+  if (!kIsWeb) {
+    if (trayStatus) {
+      trayManager.setIcon(Platform.isWindows
+          ? "assets/images/empty.ico"
+          : "assets/images/empty.png");
+    } else {
+      trayManager.setIcon(Platform.isWindows
+          ? "assets/images/logo_without_text.ico"
+          : "assets/images/logo_without_text.png");
+    }
+    trayStatus = !trayStatus;
   }
-  trayStatus = !trayStatus;
 }
 
 void startFlashTray() {
-  if (isFlashing) {
+  if (isFlashing || kIsWeb) {
     return;
   }
   flashTrayTimer =
@@ -92,7 +100,7 @@ void startFlashTray() {
 }
 
 void stopFlashTray() {
-  if (isFlashing = false) {
+  if (!kIsWeb && !isFlashing) {
     flashTrayTimer.cancel();
     trayStatus = true;
     trayManager.setIcon(Platform.isWindows
@@ -131,7 +139,8 @@ class _ControllerState extends State<Controller>
   @override
   void initState() {
     super.initState();
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    if (!kIsWeb &&
+        (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
       windowManager.addListener(this);
       windowManager.setPreventClose(true);
       trayManager.addListener(this);
@@ -144,8 +153,10 @@ class _ControllerState extends State<Controller>
 
   @override
   void dispose() {
-    windowManager.removeListener(this);
-    trayManager.removeListener(this);
+    if (!kIsWeb) {
+      windowManager.removeListener(this);
+      trayManager.removeListener(this);
+    }
     super.dispose();
   }
 
@@ -245,10 +256,12 @@ class _ControllerState extends State<Controller>
       home: LayoutBuilder(
         builder: (context, constraints) {
           var l10n = ourchatAppState.l10n = AppLocalizations.of(context)!;
-          trayManager.setContextMenu(Menu(items: [
-            MenuItem(key: "show", label: l10n.show("")),
-            MenuItem(key: "exit", label: l10n.exit)
-          ]));
+          if (!kIsWeb) {
+            trayManager.setContextMenu(Menu(items: [
+              MenuItem(key: "show", label: l10n.show("")),
+              MenuItem(key: "exit", label: l10n.exit)
+            ]));
+          }
           ourchatAppState.screenMode =
               (constraints.maxHeight < constraints.maxWidth)
                   ? desktop
@@ -277,7 +290,7 @@ class _ControllerState extends State<Controller>
         },
       ),
       theme: ThemeData(
-        fontFamily: Platform.isWindows ? "微软雅黑" : null,
+        fontFamily: kIsWeb ? null : (Platform.isWindows ? "微软雅黑" : null),
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
           seedColor: Color(ourchatAppState.config["color"]),
@@ -286,10 +299,13 @@ class _ControllerState extends State<Controller>
     );
   }
 
+  // Desktop-only window and tray event handlers
   @override
   void onWindowClose() async {
-    windowManager.hide();
-    super.onWindowClose();
+    if (!kIsWeb) {
+      windowManager.hide();
+      super.onWindowClose();
+    }
   }
 
   @override

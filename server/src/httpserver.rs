@@ -1,4 +1,5 @@
 mod avatar;
+mod oauth;
 mod status;
 pub mod verify;
 
@@ -72,8 +73,17 @@ impl HttpServer {
             .allow_headers([
                 http::header::CONTENT_TYPE,
                 http::header::AUTHORIZATION,
+                http::header::ACCEPT,
+                http::header::ORIGIN,
+                http::header::ACCEPT,
+                http::header::ORIGIN,
                 http::HeaderName::from_static("x-requested-with"),
-            ]);
+                http::HeaderName::from_static("x-grpc-web"),
+                http::HeaderName::from_static("grpc-timeout"),
+                http::HeaderName::from_static("user-agent"),
+                http::HeaderName::from_static("x-user-agent"),
+            ])
+            .max_age(std::time::Duration::from_secs(86400));
         let rate_governor_config = GovernorConfigBuilder::default()
             .burst_size(shared_data.cfg.http_cfg.rate_limit.num_of_burst_requests)
             .per_millisecond(
@@ -108,6 +118,28 @@ impl HttpServer {
             .route("/avatar", get(avatar::avatar))
             .merge(verify::config().with_state(db_pool.clone()));
 
+        // OAuth routes - only setup if enabled
+        let oauth_routes = if shared_data.cfg.main_cfg.oauth.enable {
+            let oauth_config = oauth::OAuthConfig {
+                github_client_id: shared_data.cfg.main_cfg.oauth.github_client_id.clone(),
+                github_client_secret: shared_data.cfg.main_cfg.oauth.github_client_secret.clone(),
+                github_redirect_uri: format!(
+                    "{}/oauth/github/callback",
+                    shared_data.cfg.http_cfg.base_url()
+                ),
+            };
+
+            let oauth_state = Arc::new(oauth::OAuthState {
+                db_pool: db_pool.clone(),
+                oauth_config,
+                oauth_states: dashmap::DashMap::new(),
+            });
+
+            Some(oauth::config().with_state(oauth_state))
+        } else {
+            None
+        };
+
         let mut index_html_path = shared_data.cfg.http_cfg.web_panel.dist_path.clone();
         index_html_path.push("index.html");
         let resources_path = shared_data.cfg.http_cfg.web_panel.dist_path.clone();
@@ -116,18 +148,25 @@ impl HttpServer {
             tower_http::services::ServeDir::new(&resources_path),
         );
 
-        let mut router: axum::Router = axum::Router::new()
-            .nest("/v1", v1.with_state((db_pool.clone(), shared_data.clone())))
+        let mut router: axum::Router =
+            axum::Router::new().nest("/v1", v1.with_state((db_pool.clone(), shared_data.clone())));
+
+        // Add OAuth routes if enabled
+        if let Some(oauth_routes) = oauth_routes {
+            router = router.merge(oauth_routes);
+        }
+
+        router = router
             .merge(
                 grpc_service
                     .into_axum_router()
-                    .layer(tonic_web::GrpcWebLayer::new()),
+                    .layer(tonic_web::GrpcWebLayer::new())
+                    .layer(cors),
             )
             .layer(
                 ServiceBuilder::new()
                     .layer(tower_http::trace::TraceLayer::new_for_http())
                     .layer(tower_http::trace::TraceLayer::new_for_grpc())
-                    .layer(cors)
                     .layer(tower_http::normalize_path::NormalizePathLayer::trim_trailing_slash())
                     .layer(middleware::from_fn(redirect_middleware)),
             );
@@ -139,13 +178,35 @@ impl HttpServer {
         }
         if enable_matrix {
             info!("matrix api enabled");
-            router = router
+            let matrix_cors = tower_http::cors::CorsLayer::new()
+                .allow_origin(tower_http::cors::Any)
+                .allow_methods([
+                    Method::GET,
+                    Method::POST,
+                    Method::PUT,
+                    Method::DELETE,
+                    Method::OPTIONS,
+                ])
+                .allow_headers([
+                    http::header::CONTENT_TYPE,
+                    http::header::AUTHORIZATION,
+                    http::header::ACCEPT,
+                    http::header::ORIGIN,
+                    http::header::ACCEPT,
+                    http::header::ORIGIN,
+                    http::HeaderName::from_static("x-requested-with"),
+                    http::HeaderName::from_static("user-agent"),
+                    http::HeaderName::from_static("x-user-agent"),
+                ]);
+
+            let matrix_router = axum::Router::new()
                 .nest("/_matrix", crate::matrix::configure_matrix())
                 .nest(
                     "/.well-known",
                     crate::matrix::route::wellknown::configure_route()
                         .with_state(shared_data.clone()),
                 );
+            router = router.merge(matrix_router.layer(matrix_cors));
         }
         if shared_data.cfg.http_cfg.web_panel.enable {
             info!("web panel enabled");
@@ -225,9 +286,11 @@ impl HttpServer {
 
     fn load_rustls_config(&self, cfg: Arc<SharedData>) -> anyhow::Result<ServerConfig> {
         let mut cert_store = RootCertStore::empty();
-        CertificateDer::pem_file_iter(cfg.cfg.http_cfg.tls.ca_tls_cert_path.as_ref().unwrap())?
-            .flatten()
-            .for_each(|der| cert_store.add(der).unwrap());
+        if let Some(ref ca) = cfg.cfg.http_cfg.tls.ca_tls_cert_path {
+            CertificateDer::pem_file_iter(ca)?
+                .flatten()
+                .for_each(|der| cert_store.add(der).unwrap());
+        }
 
         // let client_auth = WebPkiClientVerifier::builder(Arc::new(cert_store)).build()?;
 
@@ -323,20 +386,20 @@ impl HttpServer {
                             }
                         }
                     };
-                    let status = match verify::check_token_exist_and_del_token(
+                    let token_exists = match verify::check_token_exist_and_del_token(
                         &verify_record.token,
                         &redis_conn,
                     )
                     .await
                     {
-                        Ok(data) => data,
+                        Ok(data) => data.is_some(),
                         Err(e) => {
                             reject.await;
                             tracing::error!("check token error:{e}");
                             return;
                         }
                     };
-                    if status {
+                    if token_exists {
                         reject.await;
                     } else {
                         match delivery.ack(BasicAckOptions::default()).await {

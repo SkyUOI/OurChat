@@ -222,6 +222,7 @@ pub struct Application {
 pub struct SharedData {
     pub cfg: Cfg,
     pub verify_record: DashMap<String, Arc<tokio::sync::Notify>>,
+    pub file_sys: Option<crate::db::file_storage::FileSys>,
     maintaining: Mutex<bool>,
     sched: tokio::sync::Mutex<JobSchedulerWrapper>,
 }
@@ -362,14 +363,33 @@ impl Application {
         )
         .await?;
 
+        // Create temporary SharedData for FileSys initialization with a new scheduler
+        let temp_sched = tokio::sync::Mutex::new(JobSchedulerWrapper::new(
+            tokio_cron_scheduler::JobScheduler::new().await?,
+        ));
+        let temp_shared = Arc::new(SharedData {
+            cfg: cfg.clone(),
+            verify_record: DashMap::new(),
+            file_sys: None,
+            maintaining: Mutex::new(maintaining),
+            sched: temp_sched,
+        });
+
+        // Create FileSys with the temporary SharedData
+        let file_sys = crate::db::file_storage::FileSys::new(db_pool.db_pool.clone(), temp_shared);
+
+        // Create final SharedData with the FileSys
+        let shared = Arc::new(SharedData {
+            cfg,
+            verify_record: DashMap::new(),
+            file_sys: Some(file_sys),
+            maintaining: Mutex::new(maintaining),
+            sched,
+        });
+
         Ok(Self {
             http_launcher: Some(http_launcher),
-            shared: Arc::new(SharedData {
-                cfg,
-                verify_record: DashMap::new(),
-                maintaining: Mutex::new(maintaining),
-                sched,
-            }),
+            shared: shared.clone(),
             pool: db_pool,
             abort_sender,
             started_notify: Arc::new(tokio::sync::Notify::new()),

@@ -15,10 +15,10 @@ dependencies:
   intl: any
   logger: ^2.4.0
   protobuf: ^5.1.0
-  grpc: ^4.1.0
+  grpc: ^5.0.0
   fixnum: ^1.1.1
   path_provider: ^2.1.5
-  drift: ^2.26.1
+  drift: ^2.30.0
   drift_flutter: ^0.2.4
   shared_preferences: ^2.5.3
   url_launcher: ^6.3.2
@@ -29,16 +29,22 @@ dependencies:
   tray_manager: ^0.5.1
   flutter_markdown_plus: ^1.0.5
   markdown: ^7.3.0
+  sqlite3: ^2.9.4 # Required for drift on Web
+  http: ^1.2.2
 
 dev_dependencies:
   # flutter_test:
   #   sdk: flutter
   flutter_lints: ^6.0.0
-  drift_dev: ^2.26.1
+  drift_dev: ^2.30.0
   build_runner: ^2.4.15
+  build_web_compilers: ^4.0.3
 
 flutter:
   uses-material-design: true
   generate: true
   assets:
     - assets/images/
+    - web/sqlite3.wasm
+    - web/drift_worker.js
+    - web/drift_worker.min.js

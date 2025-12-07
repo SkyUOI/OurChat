@@ -1,5 +1,5 @@
 use entities::{message_records, prelude::MessageRecords};
-use migration::m20241229_022701_add_role_for_session::PredefinedPermissions;
+use migration::predefined::PredefinedPermissions;
 use pb::time::TimeStamp;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ConnectionTrait, DatabaseBackend, EntityTrait, ModelTrait,

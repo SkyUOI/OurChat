@@ -1,4 +1,5 @@
 use crate::{
+    db::file_storage::generate_hierarchical_path,
     helper::{create_file_with_dirs_if_not_exist, generate_random_string},
     process::error_msg::{
         FILE_HASH_ERROR, FILE_SIZE_ERROR, INCORRECT_ORDER, METADATA_ERROR, SERVER_ERROR,
@@ -20,6 +21,17 @@ use tokio::{fs, io::AsyncWriteExt};
 use tokio_stream::StreamExt;
 use tonic::{Response, Status};
 
+/// Configuration for adding a file record
+#[derive(Debug)]
+pub struct AddFileRecordConfig {
+    pub id: ID,
+    pub size: Size,
+    pub key: String,
+    pub auto_clean: bool,
+    pub files_storage_path: PathBuf,
+    pub limit_size: Size,
+}
+
 const PREFIX_LEN: usize = 20;
 
 /// Generate a unique key name which refers to the file
@@ -35,61 +47,52 @@ fn generate_key_name(hash: impl AsRef<str>) -> String {
 ///
 /// # Arguments
 ///
-/// * `id` - User ID who uploads the file
-/// * `sz` - Size of the file being uploaded
-/// * `key` - Unique identifier for the file
-/// * `auto_clean` - Whether this file should be automatically cleaned when storage is full
+/// * `config` - Configuration containing file upload parameters
 /// * `db_connection` - Database connection handle
-/// * `files_storage_path` - Base path where files are stored
-/// * `limit_size` - Maximum allowed storage size for the user
 pub async fn add_file_record(
-    id: ID,
-    sz: Size,
-    key: String,
-    auto_clean: bool,
+    config: AddFileRecordConfig,
     db_connection: &DatabaseConnection,
-    files_storage_path: impl Into<PathBuf>,
-    limit_size: Size,
 ) -> Result<(), UploadError> {
-    if sz > limit_size {
+    if config.size > config.limit_size {
         return Err(UploadError::FileSizeOverflow);
     }
-    let user_info = match User::find_by_id(id).one(db_connection).await? {
+    let user_info = match User::find_by_id(config.id).one(db_connection).await? {
         Some(user) => user,
         None => Err(anyhow::anyhow!(
             "User {} should exist in database, but not found",
-            id
+            config.id
         ))?,
     };
     // first check if the limit has been reached
     let res_used = Size::from_bytes(user_info.resource_used);
-    let will_used = res_used + sz;
-    tracing::debug!("will used: {}, bytes_num: {}", will_used, limit_size);
-    if will_used > limit_size {
+    let will_used = res_used + config.size;
+    tracing::debug!("will used: {}, bytes_num: {}", will_used, config.limit_size);
+    if will_used > config.limit_size {
         // reach the limit,delete some files to preserve the limit
-        clean_files(will_used - limit_size, db_connection, id).await?;
+        clean_files(will_used - config.limit_size, db_connection, config.id).await?;
     }
-    let updated_res_lim = res_used + sz;
+    let updated_res_lim = res_used + config.size;
     let mut user_info: user::ActiveModel = user_info.into();
     user_info.resource_used = ActiveValue::Set(updated_res_lim.bytes());
     user_info.update(db_connection).await?;
 
     let timestamp = chrono::Utc::now().timestamp();
-    let path: PathBuf = files_storage_path.into();
-    let path = path.join(&key);
-    let path = match path.to_str() {
+
+    // Use hierarchical storage path for better filesystem performance
+    let hierarchical_path =
+        generate_hierarchical_path(&config.files_storage_path, config.id.0, &config.key);
+    let path = match hierarchical_path.to_str() {
         Some(path) => path,
         None => {
             return Err(UploadError::InvalidPathError);
         }
     };
     let file = files::ActiveModel {
-        key: sea_orm::Set(key),
+        key: sea_orm::Set(config.key),
         path: sea_orm::Set(path.to_string()),
         date: sea_orm::Set(timestamp),
-        auto_clean: sea_orm::Set(auto_clean),
-        user_id: sea_orm::Set(id.into()),
-        ref_cnt: sea_orm::Set(1),
+        auto_clean: sea_orm::Set(config.auto_clean),
+        user_id: sea_orm::Set(config.id.into()),
     };
     file.insert(db_connection).await?;
     Ok(())
@@ -191,9 +194,9 @@ async fn upload_impl(
     let files_storage_path = &server.shared_data.cfg.main_cfg.files_storage_path;
     let limit_size = server.shared_data.cfg.main_cfg.user_files_limit;
 
-    // Create temporary file path for streaming
+    // Create temporary file path for streaming using hierarchical structure
     let temp_key = format!("{}.tmp", key);
-    let temp_path = files_storage_path.join(&temp_key);
+    let temp_path = generate_hierarchical_path(files_storage_path, id.0, &temp_key);
     let temp_path_clone = temp_path.clone();
 
     // Create temporary file and stream content
@@ -234,19 +237,18 @@ async fn upload_impl(
         }
 
         // All verifications passed, now create the database record and move file
-        let final_path = files_storage_path.join(&key);
+        let final_path = generate_hierarchical_path(files_storage_path, id.0, &key);
 
         // Create database record - this will handle storage limits and cleanup
-        add_file_record(
+        let config = AddFileRecordConfig {
             id,
-            Size::from_bytes(metadata.size),
-            key.clone(),
-            metadata.auto_clean,
-            &server.db.db_pool,
-            &files_storage_path,
+            size: Size::from_bytes(metadata.size),
+            key: key.clone(),
+            auto_clean: metadata.auto_clean,
+            files_storage_path: files_storage_path.clone(),
             limit_size,
-        )
-        .await?;
+        };
+        add_file_record(config, &server.db.db_pool).await?;
         temp_file.flush().await?;
         temp_file.sync_all().await?;
 

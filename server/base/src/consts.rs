@@ -181,6 +181,22 @@ pub fn default_files_storage_path() -> PathBuf {
     PathBuf::from("files_storage/")
 }
 
+pub const fn default_enable_file_cache() -> bool {
+    true
+}
+
+pub const fn default_enable_hierarchical_storage() -> bool {
+    true
+}
+
+pub const fn default_enable_file_deduplication() -> bool {
+    true
+}
+
+pub fn default_cache_max_size() -> Size {
+    Size::from_mebibytes(100)
+}
+
 /// default user files store limit(MB)
 pub fn default_user_files_store_limit() -> Size {
     Size::from_mebibytes(100)
@@ -257,3 +273,20 @@ pub static VERSION_SPLIT: LazyLock<ServerVersion> = LazyLock::new(|| {
 });
 
 pub const JWT_HEADER: &str = "authorization";
+
+// OAuth defaults
+pub const fn default_oauth_enable() -> bool {
+    false
+}
+
+pub fn default_oauth_github_client_id() -> String {
+    "".to_string()
+}
+
+pub fn default_oauth_github_client_secret() -> String {
+    "".to_string()
+}
+
+pub const fn default_require_email_verification() -> bool {
+    false
+}

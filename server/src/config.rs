@@ -32,6 +32,14 @@ pub struct MainCfg {
     pub friends_number_limit: u32,
     #[serde(default = "consts::default_files_storage_path")]
     pub files_storage_path: PathBuf,
+    #[serde(default = "consts::default_enable_file_cache")]
+    pub enable_file_cache: bool,
+    #[serde(default = "consts::default_enable_hierarchical_storage")]
+    pub enable_hierarchical_storage: bool,
+    #[serde(default = "consts::default_enable_file_deduplication")]
+    pub enable_file_deduplication: bool,
+    #[serde(default = "consts::default_cache_max_size")]
+    pub cache_max_size: Size,
     #[serde(
         default = "consts::default_verification_expire_time",
         with = "humantime_serde"
@@ -68,6 +76,10 @@ pub struct MainCfg {
     pub debug: DebugCfg,
     #[serde(default)]
     pub voip: VOIP,
+    #[serde(default)]
+    pub oauth: OAuthCfg,
+    #[serde(default = "consts::default_require_email_verification")]
+    pub require_email_verification: bool,
 
     #[serde(skip)]
     pub cmd_args: ParserCfg,
@@ -79,6 +91,23 @@ pub enum UnregisterPolicy {
     #[default]
     Disable,
     Delete,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct OAuthCfg {
+    #[serde(default = "base::consts::default_oauth_enable")]
+    pub enable: bool,
+    #[serde(default = "base::consts::default_oauth_github_client_id")]
+    pub github_client_id: String,
+    #[serde(default = "base::consts::default_oauth_github_client_secret")]
+    pub github_client_secret: String,
+}
+
+impl Default for OAuthCfg {
+    fn default() -> Self {
+        let empty = serde_json::json!({});
+        serde_json::from_value(empty).unwrap()
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

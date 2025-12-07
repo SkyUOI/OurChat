@@ -250,7 +250,7 @@ class _SessionState extends State<Session> {
                 if (sessionState.currentSession!.myPermissions
                     .contains(deleteSessionPermission))
                   IconButton(
-                      onPressed: () {
+                      onPressed: () async {
                         if (!confirmDelete) {
                           setState(() {
                             confirmLeave = false;
@@ -278,12 +278,12 @@ class _SessionState extends State<Session> {
                                 permissionDeniedStatus:
                                     l10n.permissionDenied(l10n.delete));
                           });
+                          Navigator.pop(context);
                           showResultMessage(
                               ourchatAppState, okStatusCode, null);
-                          ourchatAppState.thisAccount!
+                          await ourchatAppState.thisAccount!
                               .getAccountInfo(ignoreCache: true);
                           sessionState.getSessions(ourchatAppState);
-                          Navigator.pop(context);
                         } catch (e) {
                           // do nothing
                         }
@@ -293,7 +293,7 @@ class _SessionState extends State<Session> {
                         color: (confirmDelete ? Colors.redAccent : null),
                       )),
                 IconButton(
-                    onPressed: () {
+                    onPressed: () async {
                       if (!confirmLeave) {
                         setState(() {
                           confirmDelete = false;
@@ -317,10 +317,10 @@ class _SessionState extends State<Session> {
                               notFoundStatus: l10n.notFound(l10n.session));
                         });
                         showResultMessage(ourchatAppState, okStatusCode, null);
-                        ourchatAppState.thisAccount!
+                        Navigator.pop(context);
+                        await ourchatAppState.thisAccount!
                             .getAccountInfo(ignoreCache: true);
                         sessionState.getSessions(ourchatAppState);
-                        Navigator.pop(context);
                       } catch (e) {
                         // do nothing
                       }
@@ -778,12 +778,11 @@ class _SessionListState extends State<SessionList> {
                           OurChatSession session = sessionList[index];
                           return SessionListItem(
                             avatar: Placeholder(),
-                            name: session.getDisplayName(l10n),
+                            name: session.getDisplayName(),
                             onPressed: () {
                               sessionState.currentSession = session;
                               sessionState.tabIndex = sessionTab;
-                              sessionState.tabTitle =
-                                  session.getDisplayName(l10n);
+                              sessionState.tabTitle = session.getDisplayName();
                               sessionState.cacheFiles = {};
                               sessionState.update();
                             },
@@ -823,7 +822,7 @@ class _SessionListState extends State<SessionList> {
                               sessionState.currentSession = currentSession;
                               sessionState.tabIndex = sessionTab;
                               sessionState.tabTitle =
-                                  currentSession.getDisplayName(l10n);
+                                  currentSession.getDisplayName();
                               sessionState.update();
                               sessionState.currentSessionRecords =
                                   await ourchatAppState.eventSystem!
@@ -852,8 +851,7 @@ class _SessionListState extends State<SessionList> {
                                           Align(
                                               alignment: Alignment.centerLeft,
                                               child: Text(
-                                                currentSession
-                                                    .getDisplayName(l10n),
+                                                currentSession.getDisplayName(),
                                                 style: TextStyle(
                                                     fontSize: 20,
                                                     color: Colors.black),
@@ -933,7 +931,6 @@ class _SessionListState extends State<SessionList> {
       BuildContext context) async {
     Int64? sessionId = Int64.tryParseInt(searchKeyword);
     List<OurChatSession> matchSessions = [];
-    var l10n = AppLocalizations.of(context)!;
 
     if (sessionId != null) {
       // By sessionId
@@ -954,10 +951,7 @@ class _SessionListState extends State<SessionList> {
       // print(session.name);
       if ((session.description.toLowerCase().contains(searchKeyword) ||
               session.name.toLowerCase().contains(searchKeyword) ||
-              session
-                  .getDisplayName(l10n)
-                  .toLowerCase()
-                  .contains(searchKeyword)) &&
+              session.getDisplayName().toLowerCase().contains(searchKeyword)) &&
           !matchSessions.contains(session)) {
         matchSessions.add(session);
       }

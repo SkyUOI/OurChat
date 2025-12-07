@@ -31,6 +31,10 @@ log_clean_duration = "30d"
 log_keep = "3d"
 # E2EE room key available duration
 room_key_duration = "30d"
+# Require email verification for new user registrations
+# When set to true, users must verify their email address before their account is fully activated
+# When set to false, users can register without email verification (default behavior)
+require_email_verification = false
 # ungister policy includes two options: "disable", "delete"
 # "disable" means to disable the account and keep the data
 # "delete" means to delete the account and all related data
@@ -57,3 +61,13 @@ debug_console_port = 7776
 
 [voip]
 empty_room_keep_duration = "1h"
+
+[oauth]
+# Enable GitHub OAuth authentication
+enable = false
+# GitHub OAuth configuration
+# Create an OAuth App in GitHub Developer Settings: https://github.com/settings/developers
+github_client_id = ""
+github_client_secret = ""
+# Note: The redirect URI is automatically generated based on your server's base URL
+# Example: http://localhost:7777/oauth/github/callback

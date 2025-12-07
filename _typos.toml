@@ -1,2 +1,9 @@
 [files]
-extend-exclude = ["*.pbxproj", "*.xib", "*.storyboard", "*.csr"]
+extend-exclude = [
+    "*.pbxproj",
+    "*.xib",
+    "*.storyboard",
+    "*.csr",
+    "client/web/drift_worker.js",
+    "client/web/drift_worker.min.js",
+]

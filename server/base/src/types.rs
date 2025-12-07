@@ -1,6 +1,6 @@
 //! For Data-Driven Development
 
-use migration::m20241229_022701_add_role_for_session::{PredefinedPermissions, PredefinedRoles};
+use migration::predefined::{PredefinedPermissions, PredefinedRoles};
 use utils::impl_newtype_int;
 
 impl_newtype_int!(RoleId, u64,);
