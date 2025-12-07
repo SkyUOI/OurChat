@@ -27,6 +27,8 @@ dependencies:
   cached_network_image: ^3.4.1
   window_manager: ^0.5.1
   tray_manager: ^0.5.1
+  flutter_markdown_plus: ^1.0.5
+  markdown: ^7.3.0
   sqlite3: ^2.9.4 # Required for drift on Web
   http: ^1.2.2
 
