@@ -126,11 +126,11 @@ impl HttpServer {
         let mut router: axum::Router = axum::Router::new()
             .nest("/v1", v1.with_state((db_pool.clone(), shared_data.clone())))
             .merge(grpc_service.into_axum_router())
+            .layer(tonic_web::GrpcWebLayer::new())
             .layer(
                 ServiceBuilder::new()
                     .layer(tower_http::trace::TraceLayer::new_for_http())
                     .layer(tower_http::trace::TraceLayer::new_for_grpc())
-                    .layer(tonic_web::GrpcWebLayer::new())
                     .layer(cors)
                     .layer(tower_http::normalize_path::NormalizePathLayer::trim_trailing_slash())
                     .layer(middleware::from_fn(redirect_middleware)),
