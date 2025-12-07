@@ -71,6 +71,7 @@ async fn send_msg_impl(
     request: Request<SendMsgRequest>,
 ) -> Result<SendMsgResponse, SendMsgErr> {
     let req = request.into_inner();
+
     let db_conn = server.db.clone();
     // check
     if !in_session(id, req.session_id.into(), &db_conn.db_pool).await? {
@@ -97,7 +98,8 @@ async fn send_msg_impl(
         Err(Status::permission_denied(error_msg::E2EE_NOT_ON))?
     }
     let respond_msg = RespondEventType::Msg(Msg {
-        bundle_msgs: req.bundle_msgs,
+        markdown_text: req.markdown_text,
+        involved_files: req.involved_files,
         session_id: req.session_id,
         is_encrypted: req.is_encrypted,
         sender_id: id.into(),

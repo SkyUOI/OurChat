@@ -1,9 +1,9 @@
 use claims::assert_lt;
 use client::TestApp;
 use parking_lot::Mutex;
+use pb::service::ourchat::msg_delivery::recall::v1::RecallMsgRequest;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
-use pb::service::ourchat::msg_delivery::{self, recall::v1::RecallMsgRequest, v1::OneMsg};
 use pb::time::TimeStampUtc;
 use std::sync::Arc;
 use std::time::Duration;
@@ -26,13 +26,7 @@ async fn test_recall() {
     let ret = a
         .lock()
         .await
-        .send_msg(
-            session.session_id,
-            vec![OneMsg {
-                data: Some(msg_delivery::v1::one_msg::Data::Text("hello".to_owned())),
-            }],
-            false,
-        )
+        .send_msg(session.session_id, "hello", vec![], false)
         .await
         .unwrap();
     let msg_id = ret.into_inner().msg_id;

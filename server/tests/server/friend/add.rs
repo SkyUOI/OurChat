@@ -7,7 +7,6 @@ use pb::service::ourchat::friends::accept_friend_invitation::v1::{
 };
 use pb::service::ourchat::friends::add_friend::v1::AddFriendRequest;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
-use pb::service::ourchat::msg_delivery::v1::{OneMsg, one_msg};
 use server::db::friend::query_friend;
 use server::db::session::get_all_roles_of_session;
 use server::process::error_msg;
@@ -98,13 +97,7 @@ async fn add_friend_accept() {
     inviter
         .lock()
         .await
-        .send_msg(
-            session_id1,
-            vec![OneMsg {
-                data: Some(one_msg::Data::Text("hello".to_owned())),
-            }],
-            false,
-        )
+        .send_msg(session_id1, "hello", vec![], false)
         .await
         .unwrap()
         .into_inner();

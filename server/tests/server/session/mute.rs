@@ -1,8 +1,6 @@
 use claims::{assert_gt, assert_none};
 use client::TestApp;
 use client::oc_helper::ClientErr;
-use pb::service::ourchat::msg_delivery;
-use pb::service::ourchat::msg_delivery::v1::OneMsg;
 use server::db::session::MuteStatus;
 use server::process::error_msg;
 use server::process::error_msg::PERMISSION_DENIED;
@@ -64,13 +62,7 @@ async fn mute_user() {
     let ClientErr::RpcStatus(ret) = a
         .lock()
         .await
-        .send_msg(
-            session.session_id,
-            vec![OneMsg {
-                data: Some(msg_delivery::v1::one_msg::Data::Text("hello".to_owned())),
-            }],
-            false,
-        )
+        .send_msg(session.session_id, "hello", vec![], false)
         .await
         .unwrap_err()
     else {

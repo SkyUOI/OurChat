@@ -2,7 +2,7 @@ use bytes::Bytes;
 use claims::assert_err;
 use client::{TestApp, oc_helper::TestSession};
 use pb::service::ourchat::{
-    msg_delivery::v1::{OneMsg, fetch_msgs_response::RespondEventType, one_msg::Data},
+    msg_delivery::v1::fetch_msgs_response::RespondEventType,
     session::{
         e2eeize_and_dee2eeize_session::v1::{Dee2eeizeSessionRequest, E2eeizeSessionRequest},
         session_room_key::v1::SendRoomKeyRequest,
@@ -124,13 +124,7 @@ pub async fn test_dee2eeize_session() {
     assert_err!(
         a.lock()
             .await
-            .send_msg(
-                session.session_id.into(),
-                vec![OneMsg {
-                    data: Some(Data::Text("encrypted Hi".to_owned())),
-                }],
-                true,
-            )
+            .send_msg(session.session_id.into(), "encrypted Hi", vec![], true,)
             .await
     );
     app.async_drop().await

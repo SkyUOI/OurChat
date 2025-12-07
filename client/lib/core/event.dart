@@ -123,8 +123,8 @@ class UserMsg extends OurChatEvent {
           stub.sendMsg,
           SendMsgRequest(
               sessionId: session.sessionId,
-              msg:
-                  Msg(markdownText: markdownText, involvedFiles: involvedFiles),
+              markdownText: markdownText,
+              involvedFiles: involvedFiles,
               isEncrypted: false), (GrpcError e) {
         showResultMessage(ourchatAppState, e.code, e.message,
             notFoundStatus: l10n.notFound(l10n.session),

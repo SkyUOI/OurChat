@@ -3,7 +3,7 @@ use std::time::Duration;
 use bytes::Bytes;
 use client::{TestApp, oc_helper::TestSession};
 use pb::service::ourchat::{
-    msg_delivery::v1::{OneMsg, fetch_msgs_response::RespondEventType, one_msg::Data},
+    msg_delivery::v1::fetch_msgs_response::RespondEventType,
     session::{leave_session::v1::LeaveSessionRequest, session_room_key::v1::SendRoomKeyRequest},
 };
 use rsa::{Pkcs1v15Encrypt, RsaPublicKey, pkcs1::DecodeRsaPublicKey as _};
@@ -24,13 +24,7 @@ async fn e2ee_update_timeout() {
     let (_aid, bid) = (a.lock().await.id, b.lock().await.id);
     a.lock()
         .await
-        .send_msg(
-            session.session_id,
-            vec![OneMsg {
-                data: Some(Data::Text("encrypted Hi".to_owned())),
-            }],
-            true,
-        )
+        .send_msg(session.session_id, "encrypted Hi", vec![], true)
         .await
         .unwrap();
     let msgs = a.lock().await.fetch_msgs().fetch(3).await.unwrap();
@@ -112,13 +106,7 @@ async fn e2ee_update_member_leaving() {
     assert!(session_model.leaving_to_process);
     a.lock()
         .await
-        .send_msg(
-            session.session_id,
-            vec![OneMsg {
-                data: Some(Data::Text("encrypted Hi".to_owned())),
-            }],
-            true,
-        )
+        .send_msg(session.session_id, "encrypted Hi", vec![], true)
         .await
         .unwrap();
     let msgs = a.lock().await.fetch_msgs().fetch(3).await.unwrap();

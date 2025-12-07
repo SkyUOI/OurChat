@@ -15,7 +15,8 @@ import "service/ourchat/session/session_room_key/v1/session_room_key.proto";
 message SendMsgRequest {
   // from which session
   uint64 session_id = 1;
-  Msg msg = 3;
+  string markdown_text = 2;
+  repeated string involved_files = 3;
   bool is_encrypted = 4;
 }
 

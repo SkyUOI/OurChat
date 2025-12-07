@@ -1,9 +1,6 @@
 use std::collections::HashSet;
 
-use pb::service::ourchat::msg_delivery::{
-    self,
-    v1::{OneMsg, fetch_msgs_response, one_msg},
-};
+use pb::service::ourchat::msg_delivery::{self, v1::fetch_msgs_response};
 use sea_orm::prelude::DateTimeUtc;
 
 #[tokio::test]
@@ -23,13 +20,7 @@ async fn test_text_sent() {
     let ret: tonic::Response<msg_delivery::v1::SendMsgResponse> = a
         .lock()
         .await
-        .send_msg(
-            session.session_id,
-            vec![OneMsg {
-                data: Some(one_msg::Data::Text("hello".to_owned())),
-            }],
-            false,
-        )
+        .send_msg(session.session_id, "hello", vec![], false)
         .await
         .unwrap();
     let _msg_id = ret.into_inner().msg_id;
@@ -51,13 +42,11 @@ async fn test_text_get() {
         session_user[2].clone(),
     );
     // send a message
-    let msg_should_sent = OneMsg {
-        data: Some(one_msg::Data::Text("hello".to_owned())),
-    };
+    let msg_should_sent = "hello";
     let ret = a
         .lock()
         .await
-        .send_msg(session.session_id, vec![msg_should_sent.clone()], false)
+        .send_msg(session.session_id, msg_should_sent, vec![], false)
         .await
         .unwrap();
     let mut msg_id = vec![ret.into_inner().msg_id];
@@ -65,7 +54,7 @@ async fn test_text_get() {
     let ret = a
         .lock()
         .await
-        .send_msg(session.session_id, vec![msg_should_sent.clone()], false)
+        .send_msg(session.session_id, msg_should_sent, vec![], false)
         .await
         .unwrap()
         .into_inner();
@@ -76,7 +65,7 @@ async fn test_text_get() {
         if let fetch_msgs_response::RespondEventType::Msg(ref item) = i.respond_event_type.unwrap()
         {
             assert_eq!(item.session_id, u64::from(session.session_id));
-            assert_eq!(item.bundle_msgs, vec![msg_should_sent.clone()]);
+            assert_eq!(item.markdown_text, msg_should_sent);
             assert_eq!(i.msg_id, *msg_id);
         }
     }
@@ -101,7 +90,7 @@ async fn test_text_get() {
         msg_sent_myself.respond_event_type.unwrap()
     {
         assert_eq!(item.session_id, u64::from(session.session_id));
-        assert_eq!(item.bundle_msgs, vec![msg_should_sent.clone()]);
+        assert_eq!(item.markdown_text, msg_should_sent);
         assert_eq!(msg_sent_myself.msg_id, msg_id[0]);
     }
     app.async_drop().await;
@@ -123,24 +112,12 @@ async fn test_repeated_msg() {
     );
     a.lock()
         .await
-        .send_msg(
-            session.session_id,
-            vec![OneMsg {
-                data: Some(one_msg::Data::Text("hello".to_owned())),
-            }],
-            false,
-        )
+        .send_msg(session.session_id, "hello", vec![], false)
         .await
         .unwrap();
     b.lock()
         .await
-        .send_msg(
-            session.session_id,
-            vec![OneMsg {
-                data: Some(one_msg::Data::Text("hello".to_owned())),
-            }],
-            false,
-        )
+        .send_msg(session.session_id, "hello", vec![], false)
         .await
         .unwrap();
     let check = async |msgs: Vec<msg_delivery::v1::FetchMsgsResponse>| {
