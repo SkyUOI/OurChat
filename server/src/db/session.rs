@@ -279,6 +279,34 @@ pub async fn join_in_session(
     Ok(())
 }
 
+/// Adds a user to a session with a specified role. If the session does not exist, creates a new session.
+///
+/// # Arguments
+///
+/// * `session_id` - The ID of the session to which the user is being added.
+/// * `id` - The ID of the user being added to the session.
+/// * `role` - The role ID to be assigned to the user within the session.
+///   If not specified, the default role will be set.
+/// * `db_conn` - A reference to the database connection implementing the `ConnectionTrait`.
+/// * `e2ee_on` - Whether this session is E2EE encrypted.
+///
+/// # Returns
+///
+/// * `anyhow::Result<()>` - An empty result if the operation is successful, or an error
+///   if the operation fails.
+pub async fn join_in_session_or_create(
+    session_id: SessionID,
+    id: ID,
+    role: Option<RoleId>,
+    db_conn: &DatabaseTransaction,
+    e2ee_on: bool,
+) -> Result<(), SessionError> {
+    if get_session_by_id(session_id, db_conn).await?.is_none() {
+        create_session_db(session_id, 0, "", db_conn, e2ee_on).await?;
+    }
+    join_in_session(session_id, id, role, db_conn).await
+}
+
 /// Adds multiple users to a session with a specified role.
 ///
 /// This function calls the `add_to_session` function for each user ID in the given slice,
@@ -417,14 +445,14 @@ pub async fn delete_session(
 pub async fn create_session_db(
     session_id: SessionID,
     people_num: usize,
-    session_name: String,
+    session_name: impl Into<String>,
     db_conn: &impl ConnectionTrait,
     e2ee_on: bool,
 ) -> Result<session::Model, DbErr> {
     let time_now = chrono::Utc::now();
     let session = session::ActiveModel {
         session_id: ActiveValue::Set(session_id.into()),
-        name: ActiveValue::Set(session_name),
+        name: ActiveValue::Set(session_name.into()),
         size: ActiveValue::Set(people_num as i32),
         created_time: ActiveValue::Set(time_now.into()),
         updated_time: ActiveValue::Set(time_now.into()),

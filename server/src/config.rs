@@ -9,7 +9,7 @@ use utils::merge_json;
 
 use crate::{ParserCfg, config::http::HttpCfg};
 use base::{
-    consts::{self, CONFIG_FILE_ENV_VAR},
+    consts::{self, CONFIG_FILE_ENV_VAR, SessionID},
     database::{postgres::PostgresDbCfg, redis::RedisCfg},
     rabbitmq::RabbitMQCfg,
     setting::{self, PathConvert, Setting, UserSetting, debug::DebugCfg},
@@ -80,6 +80,8 @@ pub struct MainCfg {
     pub oauth: OAuthCfg,
     #[serde(default = "consts::default_require_email_verification")]
     pub require_email_verification: bool,
+    #[serde(default)]
+    pub default_session: Option<SessionID>,
 
     #[serde(skip)]
     pub cmd_args: ParserCfg,

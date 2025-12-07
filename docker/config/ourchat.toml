@@ -39,6 +39,9 @@ require_email_verification = false
 # "disable" means to disable the account and keep the data
 # "delete" means to delete the account and all related data
 unregister_policy = "disable"
+# User will be joined to a default session after registration
+# if the session ID does not exist, server will create one with the given session ID
+# default_session = 0
 
 [password_hash]
 # The memory size in 1 KiB blocks. Between 8*`p_cost` and (2^32)-1

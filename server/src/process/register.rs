@@ -1,5 +1,6 @@
 use super::error_msg::{NOT_STRONG_PASSWORD, invalid};
 use super::generate_access_token;
+use crate::db::session::join_in_session_or_create;
 use crate::process::error_msg::{SERVER_ERROR, exist};
 use crate::{db, helper, server::AuthServiceProvider};
 use anyhow::Context;
@@ -10,7 +11,7 @@ use entities::user;
 use migration::constants::USERNAME_MAX_LEN;
 use pb::service::auth::register::v1::{RegisterRequest, RegisterResponse};
 use rand::rngs::OsRng;
-use sea_orm::{ActiveModelTrait, ActiveValue, DbErr};
+use sea_orm::{ActiveModelTrait, ActiveValue, DbErr, TransactionTrait};
 use snowdon::ClassicLayoutSnowflakeExtension;
 use std::num::TryFromIntError;
 use tonic::{Request, Response, Status};
@@ -165,6 +166,28 @@ async fn register_impl(
         server.shared_data.cfg.main_cfg.friends_number_limit,
     )
     .await?;
+    // join default session if configured
+    if let Some(default_session_id) = server.shared_data.cfg.main_cfg.default_session {
+        let logic = async {
+            let transaction = server.db.db_pool.begin().await?;
+            join_in_session_or_create(
+                default_session_id,
+                ID(response.id),
+                None,
+                &transaction,
+                false,
+            )
+            .await?;
+            transaction.commit().await?;
+            anyhow::Ok(())
+        };
+        if let Err(e) = logic.await {
+            error!(
+                "failed to join default session for new user {}: {:?}",
+                response.id, e
+            );
+        }
+    }
     Ok(response)
 }
 

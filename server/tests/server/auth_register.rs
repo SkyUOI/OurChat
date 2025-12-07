@@ -170,3 +170,55 @@ fn assert_status_message(err: ClientErr, expected_msg: &str) {
     assert_eq!(err.message(), expected_msg);
     assert_eq!(err.code(), tonic::Code::InvalidArgument);
 }
+
+#[tokio::test]
+async fn register_with_default_session() {
+    use base::consts::SessionID;
+    use server::db::session::{get_session_by_id, in_session};
+
+    let (mut config, args) = client::TestApp::get_test_config().unwrap();
+    // Set default session ID
+    config.main_cfg.default_session = Some(SessionID(12345));
+    let mut app = client::TestApp::new_with_launching_instance_custom_cfg((config, args), |_| {})
+        .await
+        .unwrap();
+
+    // Register a new user
+    let user = app.new_user().await.unwrap();
+    let user_id = user.lock().await.id;
+
+    // Verify user is in the default session
+    let default_session_id = SessionID(12345);
+    assert!(
+        in_session(user_id, default_session_id, app.get_db_connection())
+            .await
+            .unwrap()
+    );
+
+    // Verify session was created (if it didn't exist)
+    let session = get_session_by_id(default_session_id, app.get_db_connection())
+        .await
+        .unwrap()
+        .expect("default session should exist");
+    assert_eq!(session.session_id, default_session_id.0 as i64);
+    assert_eq!(session.size, 1); // only the new user
+    assert!(!session.e2ee_on); // e2ee_on should be false for default session creation
+
+    // Register another user and verify they also join the same session
+    let user2 = app.new_user().await.unwrap();
+    let user2_id = user2.lock().await.id;
+    assert!(
+        in_session(user2_id, default_session_id, app.get_db_connection())
+            .await
+            .unwrap()
+    );
+
+    // Verify session size increased
+    let session = get_session_by_id(default_session_id, app.get_db_connection())
+        .await
+        .unwrap()
+        .expect("default session should exist");
+    assert_eq!(session.size, 2); // both users
+
+    app.async_drop().await;
+}
