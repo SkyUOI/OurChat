@@ -177,31 +177,30 @@ class FriendRequestDialog extends StatelessWidget {
                                                     .server!.interceptor!
                                               ]);
                                           Navigator.pop(context);
-                                          try {
-                                            await stub.acceptFriendInvitation(
-                                                AcceptFriendInvitationRequest(
-                                                    friendId:
-                                                        data[index].sender!.id,
-                                                    status: AcceptFriendInvitationResult
-                                                        .ACCEPT_FRIEND_INVITATION_RESULT_SUCCESS));
-                                          } on grpc.GrpcError catch (e) {
-                                            if (context.mounted) {
-                                              showResultMessage(
-                                                  context, e.code, e.message,
-                                                  permissionDeniedStatus:
-                                                      AppLocalizations.of(
-                                                              context)!
-                                                          .permissionDenied(
-                                                              "Accept friend invitation"),
-                                                  notFoundStatus:
-                                                      AppLocalizations.of(
-                                                              context)!
-                                                          .notFound(
-                                                              AppLocalizations.of(
-                                                                      context)!
-                                                                  .invitation));
-                                            }
-                                          }
+
+                                          await safeRequest(
+                                              stub.acceptFriendInvitation,
+                                              AcceptFriendInvitationRequest(
+                                                  friendId:
+                                                      data[index].sender!.id,
+                                                  status: AcceptFriendInvitationResult
+                                                      .ACCEPT_FRIEND_INVITATION_RESULT_SUCCESS),
+                                              (grpc.GrpcError e) {
+                                            showResultMessage(ourchatAppState,
+                                                e.code, e.message,
+                                                permissionDeniedStatus:
+                                                    AppLocalizations.of(
+                                                            context)!
+                                                        .permissionDenied(
+                                                            "Accept friend invitation"),
+                                                notFoundStatus:
+                                                    AppLocalizations.of(
+                                                            context)!
+                                                        .notFound(
+                                                            AppLocalizations.of(
+                                                                    context)!
+                                                                .invitation));
+                                          });
                                           await ourchatAppState.thisAccount!
                                               .getAccountInfo(
                                                   ignoreCache: true);
@@ -241,36 +240,33 @@ class FriendRequestDialog extends StatelessWidget {
                                                                       .server!
                                                                       .interceptor!
                                                                 ]);
-                                                            try {
-                                                              await stub.acceptFriendInvitation(AcceptFriendInvitationRequest(
-                                                                  friendId: data[
-                                                                          index]
-                                                                      .sender!
-                                                                      .id,
-                                                                  status: AcceptFriendInvitationResult
-                                                                      .ACCEPT_FRIEND_INVITATION_RESULT_FAIL,
-                                                                  leaveMessage:
-                                                                      newValue));
-                                                            } on grpc
-                                                            .GrpcError catch (e) {
-                                                              if (context
-                                                                  .mounted) {
-                                                                showResultMessage(
-                                                                    context,
-                                                                    e.code,
-                                                                    e.message,
-                                                                    permissionDeniedStatus: AppLocalizations.of(
-                                                                            context)!
-                                                                        .permissionDenied(
-                                                                            "Refuse friend invitation"),
-                                                                    notFoundStatus: AppLocalizations.of(
-                                                                            context)!
-                                                                        .notFound(
-                                                                            l10n.invitation));
-                                                                Navigator.pop(
-                                                                    context);
-                                                              }
-                                                            }
+                                                            await safeRequest(
+                                                                stub
+                                                                    .acceptFriendInvitation,
+                                                                AcceptFriendInvitationRequest(
+                                                                    friendId: data[
+                                                                            index]
+                                                                        .sender!
+                                                                        .id,
+                                                                    status: AcceptFriendInvitationResult
+                                                                        .ACCEPT_FRIEND_INVITATION_RESULT_FAIL,
+                                                                    leaveMessage:
+                                                                        newValue),
+                                                                (grpc.GrpcError
+                                                                    e) {
+                                                              showResultMessage(
+                                                                  ourchatAppState,
+                                                                  e.code,
+                                                                  e.message,
+                                                                  permissionDeniedStatus: AppLocalizations.of(
+                                                                          context)!
+                                                                      .permissionDenied(
+                                                                          "Refuse friend invitation"),
+                                                                  notFoundStatus: AppLocalizations.of(
+                                                                          context)!
+                                                                      .notFound(
+                                                                          l10n.invitation));
+                                                            });
                                                           },
                                                         ),
                                                       )

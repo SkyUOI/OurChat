@@ -1,6 +1,6 @@
 use sea_orm_migration::{prelude::*, schema::*};
 
-use crate::m20220101_000001_create_table::{Friend, User};
+use crate::enums::{User, UserContactInfo};
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -38,14 +38,6 @@ impl MigrationTrait for Migration {
                     .to_owned(),
             )
             .await?;
-        manager
-            .alter_table(
-                Table::alter()
-                    .table(Friend::Table)
-                    .drop_column(Friend::DisplayName)
-                    .to_owned(),
-            )
-            .await?;
         Ok(())
     }
 
@@ -53,22 +45,6 @@ impl MigrationTrait for Migration {
         manager
             .drop_table(Table::drop().table(UserContactInfo::Table).to_owned())
             .await?;
-        manager
-            .alter_table(
-                Table::alter()
-                    .table(Friend::Table)
-                    .add_column(string_null(Friend::DisplayName))
-                    .to_owned(),
-            )
-            .await?;
         Ok(())
     }
-}
-
-#[derive(DeriveIden)]
-enum UserContactInfo {
-    Table,
-    UserId,
-    ContactUserId,
-    DisplayName,
 }

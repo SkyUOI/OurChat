@@ -1,51 +1,58 @@
 use sea_orm_migration::{prelude::*, schema::*};
 
+use crate::enums::{
+    ManagerRoleRelation, ServerManagementPermission, ServerManagementRole,
+    ServerManagementRolePermissions, User,
+};
+
 #[derive(DeriveMigrationName)]
 pub struct Migration;
 
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        // Create ServerManagementPermission table
         manager
             .create_table(
                 Table::create()
-                    .if_not_exists()
                     .table(ServerManagementPermission::Table)
+                    .if_not_exists()
                     .col(
                         big_integer(ServerManagementPermission::Id)
                             .primary_key()
                             .auto_increment(),
                     )
-                    .col(string(ServerManagementPermission::Description))
+                    .col(string(ServerManagementPermission::Name))
+                    .col(string_null(ServerManagementPermission::Description))
                     .to_owned(),
             )
             .await?;
+
+        // Create ServerManagementRole table
         manager
             .create_table(
                 Table::create()
-                    .if_not_exists()
                     .table(ServerManagementRole::Table)
+                    .if_not_exists()
                     .col(
                         big_integer(ServerManagementRole::Id)
                             .primary_key()
                             .auto_increment(),
                     )
-                    .col(string(ServerManagementRole::Description))
+                    .col(string(ServerManagementRole::Name))
+                    .col(string_null(ServerManagementRole::Description))
                     .to_owned(),
             )
             .await?;
+
+        // Create ServerManagementRolePermissions table
         manager
             .create_table(
                 Table::create()
-                    .if_not_exists()
                     .table(ServerManagementRolePermissions::Table)
+                    .if_not_exists()
                     .col(big_integer(ServerManagementRolePermissions::RoleId))
                     .col(big_integer(ServerManagementRolePermissions::PermissionId))
-                    .primary_key(
-                        Index::create()
-                            .col(ServerManagementRolePermissions::RoleId)
-                            .col(ServerManagementRolePermissions::PermissionId),
-                    )
                     .foreign_key(
                         ForeignKey::create()
                             .from(
@@ -69,14 +76,51 @@ impl MigrationTrait for Migration {
                             .on_update(ForeignKeyAction::Cascade)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
+                    .primary_key(
+                        Index::create()
+                            .col(ServerManagementRolePermissions::RoleId)
+                            .col(ServerManagementRolePermissions::PermissionId),
+                    )
                     .to_owned(),
             )
             .await?;
-        init_role_table(manager).await?;
+
+        // Create ManagerRoleRelation table
+        manager
+            .create_table(
+                Table::create()
+                    .table(ManagerRoleRelation::Table)
+                    .if_not_exists()
+                    .col(big_unsigned(ManagerRoleRelation::UserId).primary_key())
+                    .col(big_integer(ManagerRoleRelation::RoleId))
+                    .foreign_key(
+                        ForeignKey::create()
+                            .from(ManagerRoleRelation::Table, ManagerRoleRelation::UserId)
+                            .to(User::Table, User::Id)
+                            .on_update(ForeignKeyAction::Cascade)
+                            .on_delete(ForeignKeyAction::Cascade),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .from(ManagerRoleRelation::Table, ManagerRoleRelation::RoleId)
+                            .to(ServerManagementRole::Table, ServerManagementRole::Id)
+                            .on_update(ForeignKeyAction::Cascade)
+                            .on_delete(ForeignKeyAction::Cascade),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        // Insert predefined server management roles and permissions
+        init_server_management_tables(manager).await?;
+
         Ok(())
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .drop_table(Table::drop().table(ManagerRoleRelation::Table).to_owned())
+            .await?;
         manager
             .drop_table(
                 Table::drop()
@@ -98,60 +142,26 @@ impl MigrationTrait for Migration {
     }
 }
 
-#[derive(num_enum::TryFromPrimitive, num_enum::IntoPrimitive)]
-#[repr(i64)]
-pub enum PredefinedServerManagementPermission {
-    PublishAnnouncement = 1,
-    BanUser = 2,
-    MuteUser = 3,
-}
-
-#[derive(num_enum::TryFromPrimitive, num_enum::IntoPrimitive)]
-#[repr(i64)]
-pub enum PredefinedServerManagementRole {
-    Admin = 1,
-}
-
-#[derive(DeriveIden)]
-pub enum ServerManagementPermission {
-    Table,
-    Id,
-    Name,
-    Description,
-}
-
-#[derive(DeriveIden)]
-pub enum ServerManagementRole {
-    Table,
-    Id,
-    Name,
-    Description,
-}
-
-#[derive(DeriveIden)]
-enum ServerManagementRolePermissions {
-    Table,
-    RoleId,
-    PermissionId,
-}
-
-async fn init_role_table(manager: &SchemaManager<'_>) -> Result<(), DbErr> {
+async fn init_server_management_tables(manager: &SchemaManager<'_>) -> Result<(), DbErr> {
     let conn = manager.get_connection();
 
+    // Insert admin role
     conn.execute_unprepared(
         r#"
-INSERT INTO server_management_role (description) VALUES ('admin');
+INSERT INTO server_management_role (name, description) VALUES ('admin', 'administrator');
     "#,
     )
     .await?;
+
+    // Insert permissions
     conn.execute_unprepared(r#"
-INSERT INTO server_management_permission (id, description) VALUES (1, 'publish announcement'), (2, 'ban user'), (3, 'mute user');
+INSERT INTO server_management_permission (id, name, description) VALUES (1, 'publish_announcement', 'publish announcement'), (2, 'ban_user', 'ban user'), (3, 'mute_user', 'mute user');
     "#).await?;
-    conn.execute_unprepared(
-        r#"
-    INSERT INTO server_management_role_permissions (role_id, permission_id) VALUES (1, 1), (1, 2), (1, 3);
-"#,
-    )
-    .await?;
+
+    // Link role to permissions
+    conn.execute_unprepared(r#"
+INSERT INTO server_management_role_permissions (role_id, permission_id) VALUES (1, 1), (1, 2), (1, 3);
+    "#).await?;
+
     Ok(())
 }

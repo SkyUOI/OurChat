@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:grpc/grpc.dart' as grpc;
 import 'package:ourchat/core/chore.dart';
@@ -10,7 +11,8 @@ import 'package:ourchat/service/basic/v1/basic.pbgrpc.dart';
 import 'package:ourchat/service/ourchat/friends/add_friend/v1/add_friend.pb.dart';
 import 'package:ourchat/service/ourchat/friends/set_friend_info/v1/set_friend_info.pb.dart';
 import 'package:ourchat/service/ourchat/msg_delivery/v1/msg_delivery.pb.dart';
-import 'package:ourchat/service/ourchat/session/get_session_info/v1/get_session_info.pb.dart';
+import 'package:ourchat/service/ourchat/session/delete_session/v1/delete_session.pb.dart';
+import 'package:ourchat/service/ourchat/session/leave_session/v1/leave_session.pb.dart';
 import 'package:ourchat/service/ourchat/session/new_session/v1/session.pb.dart';
 import 'package:ourchat/service/ourchat/session/set_session_info/v1/set_session_info.pb.dart';
 import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
@@ -179,93 +181,189 @@ class _SessionState extends State<Session> {
     );
   }
 
-  void showSetSessionInfoDialog(BuildContext context, OurChatAppState appState,
-      SessionState sessionState) {
+  void showSetSessionInfoDialog(BuildContext context,
+      OurChatAppState ourchatAppState, SessionState sessionState) {
     String name = sessionState.currentSession!.name,
         description = sessionState.currentSession!.description;
     var l10n = AppLocalizations.of(context)!;
+    var key = GlobalKey<FormState>();
 
     showDialog(
         context: context,
         builder: (BuildContext context) {
-          var key = GlobalKey<FormState>();
-          return AlertDialog(
-            title: Text(sessionState.currentSession!.name.isEmpty
-                ? l10n.newSession
-                : sessionState.currentSession!.name),
-            content: Form(
-              key: key,
-              child: SizedBox(
-                width: 150,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(right: 5.0),
-                          child: Text(l10n.sessionId),
-                        ),
-                        SelectableText(
-                            sessionState.currentSession!.sessionId.toString())
-                      ],
-                    ),
-                    TextFormField(
-                      initialValue: name,
-                      decoration:
-                          InputDecoration(label: Text(l10n.sessionName)),
-                      onSaved: (newValue) {
-                        name = newValue!;
-                      },
-                    ),
-                    TextFormField(
-                      initialValue: description,
-                      decoration:
-                          InputDecoration(label: Text(l10n.description)),
-                      onSaved: (newValue) {
-                        description = newValue!;
-                      },
-                    )
-                  ],
+          bool confirmLeave = false;
+          bool confirmDelete = false;
+          return StatefulBuilder(builder: (context, setState) {
+            return AlertDialog(
+              title: Text(sessionState.currentSession!.name.isEmpty
+                  ? l10n.newSession
+                  : sessionState.currentSession!.name),
+              content: Form(
+                key: key,
+                child: SizedBox(
+                  width: 150,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(right: 5.0),
+                            child: Text(l10n.sessionId),
+                          ),
+                          SelectableText(
+                              sessionState.currentSession!.sessionId.toString())
+                        ],
+                      ),
+                      TextFormField(
+                        initialValue: name,
+                        decoration:
+                            InputDecoration(label: Text(l10n.sessionName)),
+                        onSaved: (newValue) {
+                          name = newValue!;
+                        },
+                      ),
+                      TextFormField(
+                        initialValue: description,
+                        decoration:
+                            InputDecoration(label: Text(l10n.description)),
+                        onSaved: (newValue) {
+                          description = newValue!;
+                        },
+                      )
+                    ],
+                  ),
                 ),
               ),
-            ),
-            actions: [
-              IconButton(
-                  onPressed: () async {
-                    key.currentState!.save();
-                    var stub = OurChatServiceClient(appState.server!.channel!,
-                        interceptors: [appState.server!.interceptor!]);
-                    try {
-                      await stub.setSessionInfo(SetSessionInfoRequest(
-                          sessionId: sessionState.currentSession!.sessionId,
-                          name: name,
-                          description: description));
-                      await sessionState.currentSession!
-                          .getSessionInfo(ignoreCache: true);
-                      sessionState.tabTitle = sessionState.currentSession!.name;
+              actions: [
+                if (sessionState.currentSession!.myPermissions
+                    .contains(deleteSessionPermission))
+                  IconButton(
+                      onPressed: () async {
+                        if (!confirmDelete) {
+                          setState(() {
+                            confirmLeave = false;
+                            confirmDelete = true;
+                          });
+                          rootScaffoldMessengerKey.currentState!.showSnackBar(
+                              SnackBar(content: Text(l10n.againToConfirm)));
+                          return;
+                        }
+
+                        var stub = OurChatServiceClient(
+                            ourchatAppState.server!.channel!,
+                            interceptors: [
+                              ourchatAppState.server!.interceptor!
+                            ]);
+                        try {
+                          safeRequest(
+                              stub.deleteSession,
+                              DeleteSessionRequest(
+                                  sessionId: sessionState.currentSession!
+                                      .sessionId), (grpc.GrpcError e) {
+                            showResultMessage(
+                                ourchatAppState, e.code, e.message,
+                                notFoundStatus: l10n.notFound(l10n.session),
+                                permissionDeniedStatus:
+                                    l10n.permissionDenied(l10n.delete));
+                          });
+                          Navigator.pop(context);
+                          showResultMessage(
+                              ourchatAppState, okStatusCode, null);
+                          await ourchatAppState.thisAccount!
+                              .getAccountInfo(ignoreCache: true);
+                          sessionState.getSessions(ourchatAppState);
+                        } catch (e) {
+                          // do nothing
+                        }
+                      },
+                      icon: Icon(
+                        Icons.delete_forever,
+                        color: (confirmDelete ? Colors.redAccent : null),
+                      )),
+                IconButton(
+                    onPressed: () async {
+                      if (!confirmLeave) {
+                        setState(() {
+                          confirmDelete = false;
+                          confirmLeave = true;
+                        });
+                        rootScaffoldMessengerKey.currentState!.showSnackBar(
+                            SnackBar(content: Text(l10n.againToConfirm)));
+                        return;
+                      }
+
+                      var stub = OurChatServiceClient(
+                          ourchatAppState.server!.channel!,
+                          interceptors: [ourchatAppState.server!.interceptor!]);
+                      try {
+                        safeRequest(
+                            stub.leaveSession,
+                            LeaveSessionRequest(
+                                sessionId: sessionState.currentSession!
+                                    .sessionId), (grpc.GrpcError e) {
+                          showResultMessage(ourchatAppState, e.code, e.message,
+                              notFoundStatus: l10n.notFound(l10n.session));
+                        });
+                        showResultMessage(ourchatAppState, okStatusCode, null);
+                        Navigator.pop(context);
+                        await ourchatAppState.thisAccount!
+                            .getAccountInfo(ignoreCache: true);
+                        sessionState.getSessions(ourchatAppState);
+                      } catch (e) {
+                        // do nothing
+                      }
+                    },
+                    icon: Icon(
+                      Icons.exit_to_app,
+                      color: (confirmLeave ? Colors.redAccent : null),
+                    )),
+                IconButton(
+                    onPressed: () async {
+                      key.currentState!.save();
+                      var stub = OurChatServiceClient(
+                          ourchatAppState.server!.channel!,
+                          interceptors: [ourchatAppState.server!.interceptor!]);
+
+                      try {
+                        await safeRequest(
+                            stub.setSessionInfo,
+                            SetSessionInfoRequest(
+                                sessionId:
+                                    sessionState.currentSession!.sessionId,
+                                name: name,
+                                description: description), (grpc.GrpcError e) {
+                          showResultMessage(ourchatAppState, e.code, e.message,
+                              alreadyExistsStatus: l10n.conflict,
+                              permissionDeniedStatus:
+                                  l10n.permissionDenied(e.message!));
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                          }
+                        }, rethrowError: true);
+                        await sessionState.currentSession!
+                            .getSessionInfo(ignoreCache: true);
+                        setState(() {
+                          sessionState.tabTitle =
+                              sessionState.currentSession!.name;
+                        });
+                        showResultMessage(ourchatAppState, okStatusCode, null);
+                      } catch (e) {
+                        // do nothing
+                      }
                       if (context.mounted) {
-                        showResultMessage(context, okStatusCode, null);
                         Navigator.pop(context);
                       }
-                    } on grpc.GrpcError catch (e) {
-                      if (context.mounted) {
-                        showResultMessage(context, e.code, e.message,
-                            alreadyExistsStatus: l10n.conflict,
-                            permissionDeniedStatus:
-                                l10n.permissionDenied(e.message!));
-                        Navigator.pop(context);
-                      }
-                    }
-                  },
-                  icon: Icon(Icons.check)),
-              IconButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  icon: Icon(Icons.close)),
-            ],
-          );
+                    },
+                    icon: Icon(Icons.check)),
+                IconButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    icon: Icon(Icons.close)),
+              ],
+            );
+          });
         });
   }
 }
@@ -369,21 +467,22 @@ class _UserTabState extends State<UserTab> {
                         interceptors: [ourchatAppState.server!.interceptor!]);
                     Navigator.pop(context);
                     try {
-                      await stub.addFriend(AddFriendRequest(
-                          friendId: account.id,
-                          displayName: addFriendDisplayName,
-                          leaveMessage: addFriendLeaveMessage));
-                      if (context.mounted) {
-                        showResultMessage(context, okStatusCode, null);
-                      }
-                    } on grpc.GrpcError catch (e) {
-                      if (context.mounted) {
-                        showResultMessage(context, e.code, e.message,
+                      await safeRequest(
+                          stub.addFriend,
+                          AddFriendRequest(
+                              friendId: account.id,
+                              displayName: addFriendDisplayName,
+                              leaveMessage: addFriendLeaveMessage),
+                          (grpc.GrpcError e) {
+                        showResultMessage(ourchatAppState, e.code, e.message,
                             permissionDeniedStatus:
                                 l10n.permissionDenied(l10n.addFriend),
                             alreadyExistsStatus: l10n.friendAlreadyExists,
                             notFoundStatus: l10n.notFound(l10n.user));
-                      }
+                      }, rethrowError: true);
+                      showResultMessage(ourchatAppState, okStatusCode, null);
+                    } catch (e) {
+                      // do nothing
                     }
                   },
                   label: Text(l10n.send))
@@ -463,8 +562,8 @@ class _UserTabState extends State<UserTab> {
         });
   }
 
-  void showSetDisplayNameDialog(
-      BuildContext context, OurChatAppState appState, OurChatAccount account) {
+  void showSetDisplayNameDialog(BuildContext context,
+      OurChatAppState ourchatAppState, OurChatAccount account) {
     var l10n = AppLocalizations.of(context)!;
     showDialog(
         context: context,
@@ -478,24 +577,29 @@ class _UserTabState extends State<UserTab> {
                   initialValue: account.displayName,
                   decoration: InputDecoration(label: Text(l10n.displayName)),
                   onSaved: (newValue) async {
-                    var stub = OurChatServiceClient(appState.server!.channel!,
-                        interceptors: [appState.server!.interceptor!]);
+                    var stub = OurChatServiceClient(
+                        ourchatAppState.server!.channel!,
+                        interceptors: [ourchatAppState.server!.interceptor!]);
+
                     try {
-                      await stub.setFriendInfo(SetFriendInfoRequest(
-                          id: account.id, displayName: newValue));
-                      if (context.mounted) {
-                        showResultMessage(context, okStatusCode, null);
-                      }
+                      await safeRequest(
+                          stub.setFriendInfo,
+                          SetFriendInfoRequest(
+                              id: account.id,
+                              displayName: newValue), (grpc.GrpcError e) {
+                        showResultMessage(ourchatAppState, e.code, e.message);
+                      });
+
+                      showResultMessage(ourchatAppState, okStatusCode, null);
+
                       await account.getAccountInfo(ignoreCache: true);
-                      appState.update();
-                    } on grpc.GrpcError catch (e) {
-                      if (context.mounted) {
-                        showResultMessage(context, e.code, e.message);
-                      }
-                    } finally {
-                      if (context.mounted) {
-                        Navigator.pop(context);
-                      }
+                      ourchatAppState.update();
+                    } catch (e) {
+                      // do nothing
+                    }
+
+                    if (context.mounted) {
+                      Navigator.pop(context);
                     }
                   },
                 ),
@@ -552,7 +656,7 @@ class _SessionListState extends State<SessionList> {
       try {
         sessionState.getSessions(ourchatAppState);
       } on grpc.GrpcError catch (e) {
-        showResultMessage(context, e.code, e.message,
+        showResultMessage(ourchatAppState, e.code, e.message,
             notFoundStatus: l10n.notFound(l10n.session),
             invalidArgumentStatus: l10n.invalid(l10n.argument));
       }
@@ -662,12 +766,11 @@ class _SessionListState extends State<SessionList> {
                           OurChatSession session = sessionList[index];
                           return SessionListItem(
                             avatar: Placeholder(),
-                            name: session.getDisplayName(l10n),
+                            name: session.getDisplayName(),
                             onPressed: () {
                               sessionState.currentSession = session;
                               sessionState.tabIndex = sessionTab;
-                              sessionState.tabTitle =
-                                  session.getDisplayName(l10n);
+                              sessionState.tabTitle = session.getDisplayName();
                               sessionState.update();
                             },
                           );
@@ -681,6 +784,17 @@ class _SessionListState extends State<SessionList> {
                 itemBuilder: (context, index) {
                   OurChatSession currentSession =
                       sessionState.sessionsList[index];
+                  String recentMsgText = "";
+                  if (sessionState.sessionRecentMsg
+                      .containsKey(currentSession)) {
+                    recentMsgText =
+                        "${sessionState.sessionRecentMsg[currentSession]!.sender!.username}: ${sessionState.sessionRecentMsg[currentSession]!.msgs[0].text}";
+                    if (recentMsgText.length > 25) {
+                      recentMsgText = recentMsgText.substring(
+                          0, min(25, recentMsgText.length));
+                      recentMsgText += "...";
+                    }
+                  }
                   return SizedBox(
                       height: 80.0,
                       child: Padding(
@@ -695,7 +809,7 @@ class _SessionListState extends State<SessionList> {
                               sessionState.currentSession = currentSession;
                               sessionState.tabIndex = sessionTab;
                               sessionState.tabTitle =
-                                  currentSession.getDisplayName(l10n);
+                                  currentSession.getDisplayName();
                               sessionState.update();
                               sessionState.currentSessionRecords =
                                   await ourchatAppState.eventSystem!
@@ -723,8 +837,7 @@ class _SessionListState extends State<SessionList> {
                                           Align(
                                               alignment: Alignment.centerLeft,
                                               child: Text(
-                                                currentSession
-                                                    .getDisplayName(l10n),
+                                                currentSession.getDisplayName(),
                                                 style: TextStyle(
                                                     fontSize: 20,
                                                     color: Colors.black),
@@ -734,7 +847,7 @@ class _SessionListState extends State<SessionList> {
                                             Align(
                                               alignment: Alignment.centerLeft,
                                               child: Text(
-                                                "${sessionState.sessionRecentMsg[currentSession]!.sender!.username}: ${sessionState.sessionRecentMsg[currentSession]!.msgs[0].text}",
+                                                recentMsgText,
                                                 style: TextStyle(
                                                     color: Colors.grey),
                                               ),
@@ -763,29 +876,32 @@ class _SessionListState extends State<SessionList> {
 
     // By OCID
     try {
-      var res = await stub.getId(GetIdRequest(ocid: ocid));
-      OurChatAccount account = OurChatAccount(ourchatAppState);
-      account.id = res.id;
-      account.recreateStub();
-      await account.getAccountInfo();
-      matchAccounts.add(account);
-    } on grpc.GrpcError catch (e) {
-      if (context.mounted) {
-        showResultMessage(context, e.code, e.message,
+      var res = await safeRequest(stub.getId, GetIdRequest(ocid: ocid),
+          (grpc.GrpcError e) {
+        showResultMessage(ourchatAppState, e.code, e.message,
             // getAccountInfo
             permissionDeniedStatus: l10n.permissionDenied("Get Account Info"),
             invalidArgumentStatus: l10n.internalError,
             notFoundStatus: "");
+      }, rethrowError: true);
+      OurChatAccount account = OurChatAccount(ourchatAppState);
+      account.id = res.id;
+      account.recreateStub();
+      if (await account.getAccountInfo()) {
+        matchAccounts.add(account);
       }
+    } catch (e) {
+      // not found
     }
 
     // By username/display_name
+
     for (Int64 friendsId in ourchatAppState.thisAccount!.friends) {
       OurChatAccount account = OurChatAccount(ourchatAppState);
       account.id = friendsId;
       account.recreateStub();
-      await account.getAccountInfo();
-      if (!matchAccounts.contains(account) &&
+      if (await account.getAccountInfo() &&
+          !matchAccounts.contains(account) &&
           account
               .getNameWithDisplayName()
               .toLowerCase()
@@ -801,22 +917,16 @@ class _SessionListState extends State<SessionList> {
       BuildContext context) async {
     Int64? sessionId = Int64.tryParseInt(searchKeyword);
     List<OurChatSession> matchSessions = [];
-    var l10n = AppLocalizations.of(context)!;
 
     if (sessionId != null) {
       // By sessionId
-      var stub = OurChatServiceClient(appState.server!.channel!,
-          interceptors: [appState.server!.interceptor!]);
       try {
-        await stub.getSessionInfo(
-            GetSessionInfoRequest(sessionId: Int64.parseInt(searchKeyword)));
         OurChatSession session = OurChatSession(appState, sessionId);
         await session.getSessionInfo();
         matchSessions.add(session);
       } on grpc.GrpcError catch (e) {
-        if (context.mounted) {
-          showResultMessage(context, e.code, e.message, notFoundStatus: "");
-        }
+        showResultMessage(ourchatAppState, e.code, e.message,
+            notFoundStatus: "");
       }
     }
 
@@ -827,10 +937,7 @@ class _SessionListState extends State<SessionList> {
       // print(session.name);
       if ((session.description.toLowerCase().contains(searchKeyword) ||
               session.name.toLowerCase().contains(searchKeyword) ||
-              session
-                  .getDisplayName(l10n)
-                  .toLowerCase()
-                  .contains(searchKeyword)) &&
+              session.getDisplayName().toLowerCase().contains(searchKeyword)) &&
           !matchSessions.contains(session)) {
         matchSessions.add(session);
       }
@@ -1007,16 +1114,16 @@ class _NewSessionDialogState extends State<NewSessionDialog> {
                       ourchatAppState!.server!.channel!,
                       interceptors: [ourchatAppState!.server!.interceptor!]);
                   try {
-                    await stub.newSession(NewSessionRequest(
-                        members: members, e2eeOn: enableE2EE));
+                    await safeRequest(stub.newSession,
+                        NewSessionRequest(members: members, e2eeOn: enableE2EE),
+                        (grpc.GrpcError e) {
+                      showResultMessage(ourchatAppState!, e.code, e.message,
+                          notFoundStatus: l10n.notFound(l10n.user));
+                    }, rethrowError: true);
                     await ourchatAppState!.thisAccount!
                         .getAccountInfo(ignoreCache: true);
                     sessionState.getSessions(ourchatAppState!);
-                  } on grpc.GrpcError catch (e) {
-                    if (context.mounted) {
-                      showResultMessage(context, e.code, e.message,
-                          notFoundStatus: l10n.notFound(l10n.user));
-                    }
+                  } catch (e) {
                     return;
                   }
                   if (context.mounted) {
@@ -1106,12 +1213,10 @@ class _SessionTabState extends State<SessionTab> {
                         try {
                           await bundleMsgs.send(sessionState.currentSession!);
                         } on grpc.GrpcError catch (e) {
-                          if (context.mounted) {
-                            showResultMessage(context, e.code, e.message,
-                                permissionDeniedStatus:
-                                    l10n.permissionDenied(l10n.send),
-                                notFoundStatus: l10n.notFound(l10n.session));
-                          }
+                          showResultMessage(ourchatAppState, e.code, e.message,
+                              permissionDeniedStatus:
+                                  l10n.permissionDenied(l10n.send),
+                              notFoundStatus: l10n.notFound(l10n.session));
                         }
                       },
                       controller: controller,
@@ -1149,6 +1254,7 @@ class _SessionRecordState extends State<SessionRecord> {
   @override
   Widget build(BuildContext context) {
     SessionState sessionState = context.watch<SessionState>();
+    OurChatAppState ourchatAppState = context.watch<OurChatAppState>();
     return ListView.builder(
       itemBuilder: (context, index) {
         String name =
@@ -1169,21 +1275,25 @@ class _SessionRecordState extends State<SessionRecord> {
         Widget avatar = UserAvatar(
             imageUrl:
                 sessionState.currentSessionRecords[index].sender!.avatarUrl());
-        Widget message = Column(
-          crossAxisAlignment:
-              (isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start),
-          children: [
-            Text(name),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: messages,
+        Widget message = ConstrainedBox(
+          constraints: BoxConstraints(
+              maxWidth: ourchatAppState.screenMode == desktop ? 500.0 : 300.0),
+          child: Column(
+            crossAxisAlignment:
+                (isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start),
+            children: [
+              Text(name),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: messages,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         );
         return Container(
           margin: const EdgeInsets.all(5.0),

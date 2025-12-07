@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/core/event.dart';
-import 'package:ourchat/core/log.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
-import 'package:ourchat/core/const.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/core/database.dart';
 import 'core/account.dart';
@@ -137,10 +135,13 @@ class _LoginState extends State<Login> {
                               } else {
                                 ocid = account;
                               }
-                              var res =
-                                  await ocAccount.login(password, ocid, email);
-                              var code = res.$1, message = res.$2;
-                              if (code == okStatusCode) {
+                              bool res = await ocAccount.login(
+                                password,
+                                ocid,
+                                email,
+                              );
+
+                              if (res) {
                                 ourchatAppState.config["recent_account"] =
                                     account;
                                 ourchatAppState.config["recent_password"] =
@@ -165,16 +166,6 @@ class _LoginState extends State<Login> {
                                       return const Home();
                                     },
                                   ));
-                                }
-                              } else {
-                                logger.w("login fail: code $code");
-                                // 处理报错
-                                if (context.mounted) {
-                                  showResultMessage(context, code, message,
-                                      notFoundStatus: l10n.notFound(l10n.user),
-                                      invalidArgumentStatus: l10n.internalError,
-                                      unauthenticatedStatus:
-                                          l10n.incorrectPassword);
                                 }
                               }
                             },
@@ -281,10 +272,12 @@ class _RegisterState extends State<Register> {
                             // 创建ocAccount对象并注册
                             OurChatAccount ocAccount =
                                 OurChatAccount(ourchatAppState);
-                            var res = await ocAccount.register(
-                                password, username, email);
-                            var code = res.$1, message = res.$2;
-                            if (code == okStatusCode) {
+                            bool res = await ocAccount.register(
+                              password,
+                              username,
+                              email,
+                            );
+                            if (res) {
                               // 注册成功
                               ourchatAppState.thisAccount = ocAccount;
                               ourchatAppState.privateDB =
@@ -310,21 +303,6 @@ class _RegisterState extends State<Register> {
                                     return const Home();
                                   },
                                 ));
-                              }
-                            } else {
-                              logger.w("register fail: code $code");
-                              // 处理报错
-                              if (context.mounted) {
-                                showResultMessage(context, code, message,
-                                    alreadyExistsStatus: l10n.emailExists,
-                                    invalidArgumentStatus: {
-                                      "Password Is Not Strong Enough":
-                                          l10n.passwordIsNotStrongEnough,
-                                      "Username Is Invalid":
-                                          l10n.invalid(l10n.username),
-                                      "Email Address Is Invalid":
-                                          l10n.invalid(l10n.email),
-                                    });
                               }
                             }
                           },

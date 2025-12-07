@@ -5,7 +5,7 @@ use crate::{
 };
 use base::consts::ID;
 use base::types::RoleId;
-use migration::m20241229_022701_add_role_for_session::PredefinedPermissions;
+use migration::predefined::PredefinedPermissions;
 use pb::service::ourchat::session::set_role::v1::{SetRoleRequest, SetRoleResponse};
 use sea_orm::{ActiveModelTrait, ActiveValue};
 use tonic::{Request, Response, Status};

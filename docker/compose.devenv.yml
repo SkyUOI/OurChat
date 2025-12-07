@@ -7,7 +7,8 @@ services:
     environment:
       POSTGRES_DB: OurChat
       POSTGRES_PASSWORD: 123456
-    network_mode: host
+    ports:
+      - "5432:5432"
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 10s
@@ -19,11 +20,14 @@ services:
     command: redis-server /usr/local/etc/redis/redis.conf
     volumes:
       - ./config/redis.conf:/usr/local/etc/redis/redis.conf
-    network_mode: host
+    ports:
+      - "6379:6379"
   mq:
     image: rabbitmq:4-management-alpine
     restart: always
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: 123456
-    network_mode: host
+    ports:
+      - "5672:5672"
+      - "15672:15672"

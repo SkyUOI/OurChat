@@ -2,10 +2,10 @@ use crate::helper::rabbitmq::{create_random_vhost, delete_vhost};
 use crate::oc_helper::Clients;
 use crate::oc_helper::TestSession;
 use crate::oc_helper::user::{TestUser, TestUserShared};
-use base::consts::{ID, OCID, SessionID};
+use base::consts::{CONFIG_FILE_ENV_VAR, ID, OCID, SessionID};
 use base::database::DbPool;
 use base::shutdown::ShutdownSdr;
-use migration::m20241229_022701_add_role_for_session::PredefinedRoles;
+use migration::predefined::PredefinedRoles;
 use pb::service::auth::v1::auth_service_client::AuthServiceClient;
 use pb::service::basic::v1::basic_service_client::BasicServiceClient;
 use pb::service::basic::v1::{GetIdRequest, TimestampRequest};
@@ -121,7 +121,11 @@ pub struct ClientCoreConfig {
 
 impl TestApp {
     pub fn get_test_config() -> anyhow::Result<ConfigWithArgs> {
-        let args = ArgsParser::test();
+        let mut args = ArgsParser::test();
+        // Set the configuration file path explicitly for tests
+        if let Ok(config_path) = std::env::var(CONFIG_FILE_ENV_VAR) {
+            args.shared_cfg.config = vec![std::path::PathBuf::from(config_path)];
+        }
         let mut config = server::get_configuration(args.shared_cfg.config.clone())?;
         config.http_cfg.rate_limit.enable = false;
         Ok((config, args))
@@ -210,10 +214,13 @@ impl TestApp {
         // Construct http client
         let mut http_client = reqwest::Client::builder().timeout(Duration::from_secs(2));
         if shared.cfg.http_cfg.tls.is_tls_on()? {
+            // TODO: remove the danger_accept_invalid_certs (I think it is a bug of reqwest)
             let pem =
                 tokio::fs::read(shared.cfg.http_cfg.tls.ca_tls_cert_path.as_ref().unwrap()).await?;
             let cert = reqwest::Certificate::from_pem(&pem)?;
-            http_client = http_client.add_root_certificate(cert)
+            http_client = http_client
+                .add_root_certificate(cert)
+                .danger_accept_invalid_certs(true)
         }
         let http_client = http_client.build()?;
 

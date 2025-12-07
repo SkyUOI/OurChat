@@ -1,4 +1,5 @@
 mod ban;
+mod cleanup;
 mod delete;
 mod e2ee_update;
 mod e2eeize_and_dee2eeize_session;
@@ -12,7 +13,7 @@ use base::consts::{ID, SessionID};
 use base::types::RoleId;
 use claims::{assert_lt, assert_ok};
 use client::TestApp;
-use migration::m20241229_022701_add_role_for_session::PredefinedRoles;
+use migration::predefined::PredefinedRoles;
 use parking_lot::Mutex;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;

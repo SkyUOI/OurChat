@@ -49,7 +49,7 @@ jobs:
           dart format lib/l10n/app_localizations.dart
           dart format ./ --set-exit-if-changed
       - name: Grpc generate
-        run: dart pub global activate protoc_plugin && python script/generate.pb.dart.py
+        run: dart pub global activate protoc_plugin 23.0.0 && python script/generate.pb.dart.py
       - name: Drift generate
         run: cd client && dart run build_runner build
       - name: Flutter Check

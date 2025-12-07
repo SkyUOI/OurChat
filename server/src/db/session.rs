@@ -312,6 +312,7 @@ pub async fn batch_join_in_session(
 /// This function deletes the user's relation to the session and decrements
 /// the session's size in the database. It ensures that both the session relation
 /// and the session size are updated atomically within a transaction.
+/// If this was the last user in the session, the session is automatically deleted.
 ///
 /// # Arguments
 ///
@@ -335,9 +336,45 @@ pub async fn leave_session(
         return Err(SessionError::SessionNotFound);
     };
     let size = session_info.size;
-    let mut session_info: session::ActiveModel = session_info.into();
-    session_info.size = ActiveValue::Set(size - 1);
-    session_info.update(db_conn).await?;
+
+    // If this was the last user, delete the entire session
+    if size == 1 {
+        // Delete all session relations (should be none left after this user)
+        session_relation::Entity::delete_many()
+            .filter(session_relation::Column::SessionId.eq(session_id))
+            .exec(db_conn)
+            .await?;
+
+        // Delete all user role relations for this session
+        user_role_relation::Entity::delete_many()
+            .filter(user_role_relation::Column::SessionId.eq(session_id))
+            .exec(db_conn)
+            .await?;
+
+        // Delete the session itself
+        session::Entity::delete_by_id(session_id)
+            .exec(db_conn)
+            .await?;
+
+        tracing::info!(
+            "Session {} deleted automatically as last user left",
+            session_id
+        );
+    } else {
+        // Update session size normally
+        let mut session_info: session::ActiveModel = session_info.into();
+        session_info.size = ActiveValue::Set(size - 1);
+        session_info.update(db_conn).await?;
+    }
+
+    // Modify the info update time
+    let time = chrono::Utc::now();
+    let user = entities::user::ActiveModel {
+        id: ActiveValue::Set(user_id.into()),
+        update_time: ActiveValue::Set(time.into()),
+        ..Default::default()
+    };
+    user.update(db_conn).await?;
     Ok(())
 }
 
@@ -352,6 +389,21 @@ pub async fn delete_session(
     session_id: SessionID,
     db_conn: &impl ConnectionTrait,
 ) -> Result<(), SessionError> {
+    let members = get_members(session_id, db_conn).await?;
+    let time = chrono::Utc::now();
+    for member in members {
+        session_relation::Entity::delete_by_id((session_id.into(), member.user_id))
+            .exec(db_conn)
+            .await?;
+        // Modify the info update time
+        let user = entities::user::ActiveModel {
+            id: ActiveValue::Set(member.user_id),
+            update_time: ActiveValue::Set(time.into()),
+            ..Default::default()
+        };
+        user.update(db_conn).await?;
+    }
+
     let res = session::Entity::delete_by_id(session_id)
         .exec(db_conn)
         .await?;

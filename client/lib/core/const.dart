@@ -38,3 +38,17 @@ const announcementResponseEvent = 7;
 // MsgTypes
 const textMsg = 0;
 const imageMsg = 1;
+
+// Session Permissions
+const sendMsgPermission = 1;
+const reCallMsgPermission = 2;
+const banUserPermission = 3;
+const unbanUserPermission = 4;
+const kickUserPermission = 5;
+const setTitlePermission = 6;
+const setAvatarPermission = 7;
+const setDescriptionPermission = 8;
+const deleteSessionPermission = 9;
+const setRolePermission = 10;
+const muteUserPermission = 11;
+const unmuteUserPermission = 12;
