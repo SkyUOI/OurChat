@@ -10,16 +10,8 @@
         </div>
         <div class="chart-container">
           <!-- 这里放置图表 -->
-          <div class="mock-chart">
-            <div class="chart-line" style="height: 30%"></div>
-            <div class="chart-line" style="height: 70%"></div>
-            <div class="chart-line" style="height: 45%"></div>
-            <div class="chart-line" style="height: 60%"></div>
-            <div class="chart-line" style="height: 85%"></div>
-          </div>
-          <div class="network-stats">
-            <div>上传: 12.4 Mbps</div>
-            <div>下载: 24.8 Mbps</div>
+          <div class="chart-placeholder">
+            图表数据将在此显示
           </div>
         </div>
       </el-card>
@@ -31,16 +23,8 @@
         </div>
         <div class="chart-container">
           <!-- 这里放置图表 -->
-          <div class="mock-chart">
-            <div class="chart-bar" style="height: 40%"></div>
-            <div class="chart-bar" style="height: 75%"></div>
-            <div class="chart-bar" style="height: 55%"></div>
-            <div class="chart-bar" style="height: 90%"></div>
-            <div class="chart-bar" style="height: 65%"></div>
-          </div>
-          <div class="io-stats">
-            <div>读取: 120 IOPS</div>
-            <div>写入: 85 IOPS</div>
+          <div class="chart-placeholder">
+            图表数据将在此显示
           </div>
         </div>
       </el-card>
@@ -84,46 +68,8 @@ export default {
   name: 'ResourceMonitor',
   data() {
     return {
-      disks: [
-        { name: '/dev/sda1', mount: '/', total: '120GB', used: '85GB', free: '35GB', usage: '71' },
-        {
-          name: '/dev/sdb1',
-          mount: '/data',
-          total: '500GB',
-          used: '320GB',
-          free: '180GB',
-          usage: '64',
-        },
-        {
-          name: '/dev/sdc1',
-          mount: '/backup',
-          total: '1TB',
-          used: '250GB',
-          free: '750GB',
-          usage: '25',
-        },
-      ],
-      processes: [
-        {
-          pid: '1234',
-          name: 'nginx',
-          user: 'www-data',
-          cpu: '12.5',
-          memory: '3.2',
-          uptime: '12:34:56',
-        },
-        {
-          pid: '5678',
-          name: 'mysql',
-          user: 'mysql',
-          cpu: '8.2',
-          memory: '15.7',
-          uptime: '1 day 2:30',
-        },
-        { pid: '9012', name: 'redis', user: 'redis', cpu: '2.1', memory: '1.8', uptime: '5:20:10' },
-        { pid: '3456', name: 'node', user: 'app', cpu: '4.5', memory: '8.3', uptime: '3:45:22' },
-        { pid: '7890', name: 'python', user: 'app', cpu: '1.8', memory: '2.1', uptime: '2:15:33' },
-      ],
+      disks: [] as Array<{name: string, mount: string, total: string, used: string, free: string, usage: string}>,
+      processes: [] as Array<{pid: string, name: string, user: string, cpu: string, memory: string, uptime: string}>,
     }
   },
   methods: {
@@ -171,26 +117,18 @@ export default {
   align-items: center;
 }
 
-.mock-chart {
+.chart-placeholder {
   width: 100%;
   height: 180px;
   display: flex;
-  align-items: flex-end;
-  justify-content: space-around;
-  padding: 0 20px;
+  align-items: center;
+  justify-content: center;
+  color: #909399;
+  font-size: 14px;
 }
 
-.chart-line {
-  width: 30px;
-  background: linear-gradient(to top, #e6a23c, #f0c78a);
-  border-radius: 4px 4px 0 0;
-}
 
-.chart-bar {
-  width: 30px;
-  background: linear-gradient(to top, #e6a23c, #f0c78a);
-  border-radius: 4px 4px 0 0;
-}
+
 
 .network-stats,
 .io-stats {

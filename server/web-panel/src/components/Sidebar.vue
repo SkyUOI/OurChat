@@ -25,7 +25,8 @@ export default {
         { id: 3, titleKey: 'monitor', path: '/monitor', icon: 'el-icon-data-line' },
         { id: 4, titleKey: 'logs', path: '/logs', icon: 'el-icon-document' },
         { id: 5, titleKey: 'users', path: '/users', icon: 'el-icon-user' },
-        { id: 6, titleKey: 'config', path: '/config', icon: 'el-icon-files' },
+        { id: 6, titleKey: 'sessionsManagement', path: '/sessions', icon: 'el-icon-chat-dot-round' },
+        { id: 7, titleKey: 'config', path: '/config', icon: 'el-icon-files' },
       ],
     }
   },

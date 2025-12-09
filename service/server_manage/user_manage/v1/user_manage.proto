@@ -1,0 +1,92 @@
+syntax = "proto3";
+
+package service.server_manage.user_manage.v1;
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+// User list filtering options
+message UserFilter {
+  // Filter by account status (0=Active, 1=Deleted, etc.)
+  optional int32 account_status = 1;
+  // Filter by email (partial match)
+  optional string email = 2;
+  // Filter by username (partial match)
+  optional string user_name = 3;
+  // Filter by registration time range
+  optional google.protobuf.Timestamp registered_after = 4;
+  optional google.protobuf.Timestamp registered_before = 5;
+}
+
+// Pagination parameters
+message Pagination {
+  uint32 page = 1;
+  uint32 page_size = 2;
+}
+
+// List users request
+message ListUsersRequest {
+  optional UserFilter filter = 1;
+  optional Pagination pagination = 2;
+}
+
+// User information for listing
+message UserInfo {
+  uint64 id = 1;
+  string ocid = 2;
+  string email = 3;
+  string user_name = 4;
+  int32 account_status = 5;
+  google.protobuf.Timestamp register_time = 6;
+  google.protobuf.Timestamp last_seen = 7; // TODO: need last_seen field in user table?
+  uint32 sessions_count = 8;
+}
+
+// List users response
+message ListUsersResponse {
+  repeated UserInfo users = 1;
+  uint32 total_count = 2;
+  uint32 page = 3;
+  uint32 page_size = 4;
+}
+
+// Ban user request
+message BanUserRequest {
+  uint64 user_id = 1;
+  optional string reason = 2;
+  optional google.protobuf.Duration duration = 3;
+}
+
+message BanUserResponse {}
+
+// Unban user request
+message UnbanUserRequest {
+  uint64 user_id = 1;
+}
+
+message UnbanUserResponse {}
+
+// Server role assignment
+message AssignServerRoleRequest {
+  uint64 user_id = 1;
+  uint64 role_id = 2;
+}
+
+message AssignServerRoleResponse {}
+
+// Remove server role
+message RemoveServerRoleRequest {
+  uint64 user_id = 1;
+  uint64 role_id = 2;
+}
+
+message RemoveServerRoleResponse {}
+
+// List server roles for a user
+message ListUserServerRolesRequest {
+  uint64 user_id = 1;
+}
+
+message ListUserServerRolesResponse {
+  repeated uint64 role_ids = 1;
+}

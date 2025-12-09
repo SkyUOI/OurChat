@@ -27,6 +27,7 @@ use pb::service::basic::v1::{
     TimestampResponse,
 };
 use pb::service::ourchat::v1::our_chat_service_server::OurChatServiceServer;
+use pb::service::server_manage::config::v1::{GetConfigRequest, GetConfigResponse, SetConfigRequest, SetConfigResponse};
 use pb::service::server_manage::delete_account::v1::{DeleteAccountRequest, DeleteAccountResponse};
 use pb::service::server_manage::publish_announcement::v1::{
     PublishAnnouncementRequest, PublishAnnouncementResponse,
@@ -358,6 +359,14 @@ impl ServerManageService for ServerManageServiceProvider {
         request: Request<PublishAnnouncementRequest>,
     ) -> Result<Response<PublishAnnouncementResponse>, Status> {
         process::publish_announcement(self, request).await
+    }
+    
+    async fn get_config(&self, request: Request<GetConfigRequest>) -> Result<Response<GetConfigResponse>, Status> {
+        todo!()
+    }
+
+    async fn set_config(&self, request: Request<SetConfigRequest>) -> Result<Response<SetConfigResponse>, Status> {
+        todo!()
     }
 }
 
