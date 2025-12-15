@@ -235,9 +235,9 @@ checksum = "69f7f8c3906b62b754cd5326047894316021dcfe5a194c8ea52bdd94934a3457"
 
 [[package]]
 name = "argon2"
-version = "0.6.0-rc.2"
+version = "0.6.0-rc.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e1a213fe583d472f454ae47407edc78848bebd950493528b1d4f7327a7dc335f"
+checksum = "2318b1fbcb6d8ebe255091dce62990be001b47711191a9400225de50a208fec8"
 dependencies = [
  "base64ct",
  "blake2 0.11.0-rc.3",
@@ -3630,13 +3630,11 @@ dependencies = [
 
 [[package]]
 name = "password-hash"
-version = "0.6.0-rc.2"
+version = "0.6.0-rc.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7d47a2d1aee5a339aa6c740d9128211a8a3d2bdf06a13e01b3f8a0b5c49b9db"
+checksum = "383d290055c99f2dd7dece082088d89494dff6d79277fbac4a7da21c1bf2ab6b"
 dependencies = [
- "base64ct",
- "rand_core 0.10.0-rc-2",
- "subtle",
+ "phc",
 ]
 
 [[package]]
@@ -3762,6 +3760,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc58e2d255979a31caa7cabfa7aac654af0354220719ab7a68520ae7a91e8c0b"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "phc"
+version = "0.6.0-rc.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c61f960577aaac5c259bc0866d685ba315c0ed30793c602d7287f54980913863"
+dependencies = [
+ "base64ct",
+ "subtle",
 ]
 
 [[package]]
