@@ -22,7 +22,11 @@
           <el-row :gutter="20">
             <el-col :span="8">
               <el-form-item :label="$t('userStatus')">
-                <el-select v-model="searchForm.account_status" clearable :placeholder="$t('selectStatus')">
+                <el-select
+                  v-model="searchForm.account_status"
+                  clearable
+                  :placeholder="$t('selectStatus')"
+                >
                   <el-option :label="$t('statusActive')" :value="0"></el-option>
                   <el-option :label="$t('statusDeleted')" :value="1"></el-option>
                 </el-select>
@@ -30,12 +34,20 @@
             </el-col>
             <el-col :span="8">
               <el-form-item :label="$t('email')">
-                <el-input v-model="searchForm.email" :placeholder="$t('emailPlaceholder')" clearable></el-input>
+                <el-input
+                  v-model="searchForm.email"
+                  :placeholder="$t('emailPlaceholder')"
+                  clearable
+                ></el-input>
               </el-form-item>
             </el-col>
             <el-col :span="8">
               <el-form-item :label="$t('userName')">
-                <el-input v-model="searchForm.user_name" :placeholder="$t('userNamePlaceholder')" clearable></el-input>
+                <el-input
+                  v-model="searchForm.user_name"
+                  :placeholder="$t('userNamePlaceholder')"
+                  clearable
+                ></el-input>
               </el-form-item>
             </el-col>
           </el-row>
@@ -125,11 +137,18 @@
             {{ formatDate(scope.row.registerTime?.seconds) }}
           </template>
         </el-table-column>
-        <el-table-column prop="sessionsCount" :label="$t('sessionsCount')" width="120" sortable></el-table-column>
+        <el-table-column
+          prop="sessionsCount"
+          :label="$t('sessionsCount')"
+          width="120"
+          sortable
+        ></el-table-column>
         <el-table-column :label="$t('actions')" width="300" fixed="right">
           <template #default="scope">
             <div class="flex flex-wrap gap-1">
-              <el-button size="small" icon="el-icon-view" @click="viewUser(scope.row)">{{ $t('view') }}</el-button>
+              <el-button size="small" icon="el-icon-view" @click="viewUser(scope.row)">{{
+                $t('view')
+              }}</el-button>
               <el-button
                 size="small"
                 type="warning"
@@ -172,7 +191,12 @@
           <el-option :label="$t('deleteSelected')" value="delete"></el-option>
           <el-option :label="$t('forceLogoutSelected')" value="forceLogout"></el-option>
         </el-select>
-        <el-button type="primary" @click="executeBatchAction" :disabled="!batchAction || selectedUsers.length === 0 || batchLoading" :loading="batchLoading">
+        <el-button
+          type="primary"
+          @click="executeBatchAction"
+          :disabled="!batchAction || selectedUsers.length === 0 || batchLoading"
+          :loading="batchLoading"
+        >
           {{ $t('execute') }}
         </el-button>
         <el-button @click="clearSelection">{{ $t('clearSelection') }}</el-button>
@@ -202,7 +226,12 @@
         </el-tag>
         <div class="mt-4">
           <el-select v-model="newRole" :placeholder="$t('selectRole')" style="width: 300px">
-            <el-option v-for="role in availableRoles" :key="role.id" :label="role.name" :value="role.id"></el-option>
+            <el-option
+              v-for="role in availableRoles"
+              :key="role.id"
+              :label="role.name"
+              :value="role.id"
+            ></el-option>
           </el-select>
           <el-button type="primary" @click="assignRole" class="ml-2">{{ $t('assign') }}</el-button>
         </div>
@@ -221,15 +250,23 @@
           <el-descriptions-item :label="$t('userId')">{{ selectedUser.id }}</el-descriptions-item>
           <el-descriptions-item :label="$t('ocid')">{{ selectedUser.ocid }}</el-descriptions-item>
           <el-descriptions-item :label="$t('email')">{{ selectedUser.email }}</el-descriptions-item>
-          <el-descriptions-item :label="$t('userName')">{{ selectedUser.userName }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('userName')">{{
+            selectedUser.userName
+          }}</el-descriptions-item>
           <el-descriptions-item :label="$t('status')">
             <el-tag :type="getStatusType(selectedUser.accountStatus)" size="small">
               {{ getStatusText(selectedUser.accountStatus) }}
             </el-tag>
           </el-descriptions-item>
-          <el-descriptions-item :label="$t('registerTime')">{{ formatDate(selectedUser.registerTime?.seconds) }}</el-descriptions-item>
-          <el-descriptions-item :label="$t('sessionsCount')">{{ selectedUser.sessionsCount }}</el-descriptions-item>
-          <el-descriptions-item :label="$t('lastSeen')">{{ formatDate(selectedUser.lastSeen?.seconds) }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('registerTime')">{{
+            formatDate(selectedUser.registerTime?.seconds)
+          }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('sessionsCount')">{{
+            selectedUser.sessionsCount
+          }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('lastSeen')">{{
+            formatDate(selectedUser.lastSeen?.seconds)
+          }}</el-descriptions-item>
         </el-descriptions>
       </div>
     </el-dialog>
@@ -280,7 +317,12 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useGrpcStore } from '@/stores/grpc'
-import type { UserInfo, ListUsersRequest, BanUserRequest, AssignServerRoleRequest } from '@/api/service/server_manage/user_manage/v1/user_manage'
+import type {
+  UserInfo,
+  ListUsersRequest,
+  BanUserRequest,
+  AssignServerRoleRequest,
+} from '@/api/service/server_manage/user_manage/v1/user_manage'
 
 // Reactive state
 const loading = ref(false)
@@ -298,7 +340,7 @@ const newRole = ref('')
 // Pagination
 const pagination = reactive({
   page: 1,
-  pageSize: 20
+  pageSize: 20,
 })
 const totalUsers = ref(0)
 
@@ -308,14 +350,14 @@ const searchForm = reactive({
   email: '',
   user_name: '',
   registered_after: undefined as number | undefined,
-  registered_before: undefined as number | undefined
+  registered_before: undefined as number | undefined,
 })
 
 // Action form
 const actionForm = reactive({
   reason: '',
   duration_unit: 'days',
-  duration_value: 7
+  duration_value: 7,
 })
 
 // User statistics
@@ -323,16 +365,14 @@ const userStats = reactive({
   totalUsers: 0,
   activeUsers: 0,
   bannedUsers: 0,
-  onlineUsers: 0
+  onlineUsers: 0,
 })
-
-
 
 // Users list
 const users = ref<UserInfo[]>([])
 
 // Available roles (to be fetched from server)
-const availableRoles = ref<{id: number, name: string}[]>([])
+const availableRoles = ref<{ id: number; name: string }[]>([])
 
 // User roles (to be fetched from server)
 const userRoles = ref<string[]>([])
@@ -349,37 +389,54 @@ const formatDate = (timestamp: number | bigint | undefined): string => {
 
 const getStatusType = (status: number): string => {
   switch (status) {
-    case 0: return 'success' // Active
-    case 1: return 'info'    // Deleted
-    case 2: return 'warning' // Banned
-    default: return 'default'
+    case 0:
+      return 'success' // Active
+    case 1:
+      return 'info' // Deleted
+    case 2:
+      return 'warning' // Banned
+    default:
+      return 'default'
   }
 }
 
 const getStatusText = (status: number): string => {
   switch (status) {
-    case 0: return 'Active'
-    case 1: return 'Deleted'
-    case 2: return 'Banned'
-    default: return 'Unknown'
+    case 0:
+      return 'Active'
+    case 1:
+      return 'Deleted'
+    case 2:
+      return 'Banned'
+    default:
+      return 'Unknown'
   }
 }
 
-
 // Perform user action (single user, used for batch operations)
-const performUserAction = async (user: UserInfo, action: string, reason?: string, durationUnit?: string, durationValue?: number) => {
+const performUserAction = async (
+  user: UserInfo,
+  action: string,
+  reason?: string,
+  durationUnit?: string,
+  durationValue?: number,
+) => {
   try {
     switch (action) {
       case 'ban':
         const banRequest: BanUserRequest = {
           userId: user.id,
           reason: reason || undefined,
-          duration: durationUnit === 'permanent' ? undefined : {
-            seconds: BigInt((durationValue || 1) *
-              (durationUnit === 'hours' ? 3600 :
-               durationUnit === 'days' ? 86400 : 604800)),
-            nanos: 0
-          }
+          duration:
+            durationUnit === 'permanent'
+              ? undefined
+              : {
+                  seconds: BigInt(
+                    (durationValue || 1) *
+                      (durationUnit === 'hours' ? 3600 : durationUnit === 'days' ? 86400 : 604800),
+                  ),
+                  nanos: 0,
+                },
         }
         await grpcStore.serverManageConn.banUser(banRequest)
         ElMessage.success(`User ${user.userName} banned successfully`)
@@ -416,13 +473,17 @@ const fetchUsers = async () => {
         accountStatus: searchForm.account_status,
         email: searchForm.email || undefined,
         userName: searchForm.user_name || undefined,
-        registeredAfter: searchForm.registered_after ? { seconds: BigInt(Math.floor(searchForm.registered_after / 1000)), nanos: 0 } : undefined,
-        registeredBefore: searchForm.registered_before ? { seconds: BigInt(Math.floor(searchForm.registered_before / 1000)), nanos: 0 } : undefined
+        registeredAfter: searchForm.registered_after
+          ? { seconds: BigInt(Math.floor(searchForm.registered_after / 1000)), nanos: 0 }
+          : undefined,
+        registeredBefore: searchForm.registered_before
+          ? { seconds: BigInt(Math.floor(searchForm.registered_before / 1000)), nanos: 0 }
+          : undefined,
       },
       pagination: {
         page: pagination.page,
-        pageSize: pagination.pageSize
-      }
+        pageSize: pagination.pageSize,
+      },
     }
 
     // Try gRPC call
@@ -447,8 +508,8 @@ const updateUserStats = () => {
   // Statistics computed from currently displayed users (paginated)
   const displayedUsers = users.value
   userStats.totalUsers = displayedUsers.length
-  userStats.activeUsers = displayedUsers.filter(u => u.accountStatus === 0).length
-  userStats.bannedUsers = displayedUsers.filter(u => u.accountStatus === 2).length
+  userStats.activeUsers = displayedUsers.filter((u) => u.accountStatus === 0).length
+  userStats.bannedUsers = displayedUsers.filter((u) => u.accountStatus === 2).length
   userStats.onlineUsers = 0 // Online count requires separate API
 }
 
@@ -494,7 +555,9 @@ const banUser = (user: UserInfo) => {
 
 const unbanUser = async (user: UserInfo) => {
   try {
-    await ElMessageBox.confirm(`Are you sure to unban user ${user.userName}?`, 'Confirm Unban', { type: 'warning' })
+    await ElMessageBox.confirm(`Are you sure to unban user ${user.userName}?`, 'Confirm Unban', {
+      type: 'warning',
+    })
 
     const request: BanUserRequest = { userId: user.id }
     await grpcStore.serverManageConn.unbanUser(request)
@@ -510,7 +573,11 @@ const unbanUser = async (user: UserInfo) => {
 
 const deleteUser = async (user: UserInfo) => {
   try {
-    await ElMessageBox.confirm(`Are you sure to delete user ${user.userName}? This action cannot be undone.`, 'Confirm Delete', { type: 'error' })
+    await ElMessageBox.confirm(
+      `Are you sure to delete user ${user.userName}? This action cannot be undone.`,
+      'Confirm Delete',
+      { type: 'error' },
+    )
 
     // Use existing DeleteAccount API
     await grpcStore.serverManageConn.deleteAccount({ userId: user.id })
@@ -537,7 +604,7 @@ const assignRole = async () => {
   try {
     const request: AssignServerRoleRequest = {
       userId: selectedUser.value.id,
-      roleId: BigInt(newRole.value)
+      roleId: BigInt(newRole.value),
     }
     await grpcStore.serverManageConn.assignServerRole(request)
     ElMessage.success('Role assigned successfully')
@@ -554,7 +621,7 @@ const removeRole = async (role: string) => {
   try {
     // TODO: Call RemoveServerRole RPC when implemented
     // For now, update local UI state
-    userRoles.value = userRoles.value.filter(r => r !== role)
+    userRoles.value = userRoles.value.filter((r) => r !== role)
     ElMessage.success(`Role ${role} removed from local UI`)
   } catch (error) {
     console.error('Remove role error:', error)
@@ -579,12 +646,20 @@ const confirmAction = async () => {
       const request: BanUserRequest = {
         userId: selectedUser.value.id,
         reason: actionForm.reason || undefined,
-        duration: actionForm.duration_unit === 'permanent' ? undefined : {
-          seconds: BigInt(actionForm.duration_value *
-            (actionForm.duration_unit === 'hours' ? 3600 :
-             actionForm.duration_unit === 'days' ? 86400 : 604800)),
-          nanos: 0
-        }
+        duration:
+          actionForm.duration_unit === 'permanent'
+            ? undefined
+            : {
+                seconds: BigInt(
+                  actionForm.duration_value *
+                    (actionForm.duration_unit === 'hours'
+                      ? 3600
+                      : actionForm.duration_unit === 'days'
+                        ? 86400
+                        : 604800),
+                ),
+                nanos: 0,
+              },
       }
       await grpcStore.serverManageConn.banUser(request)
       ElMessage.success(`User ${selectedUser.value.userName} banned successfully`)
@@ -603,11 +678,11 @@ const executeBatchAction = async () => {
   if (selectedUsers.value.length === 0 || !batchAction.value) return
 
   try {
-    const userNames = selectedUsers.value.map(u => u.userName).join(', ')
+    const userNames = selectedUsers.value.map((u) => u.userName).join(', ')
     await ElMessageBox.confirm(
       `Are you sure to ${batchAction.value} ${selectedUsers.value.length} user(s) (${userNames})?`,
       `Confirm ${batchAction.value}`,
-      { type: 'warning' }
+      { type: 'warning' },
     )
 
     batchLoading.value = true
@@ -616,7 +691,9 @@ const executeBatchAction = async () => {
     for (const user of selectedUsers.value) {
       await performUserAction(user, batchAction.value, '', 'permanent', 1)
     }
-    ElMessage.success(`Batch ${batchAction.value} completed for ${selectedUsers.value.length} user(s)`)
+    ElMessage.success(
+      `Batch ${batchAction.value} completed for ${selectedUsers.value.length} user(s)`,
+    )
 
     // Clear selection and refresh
     selectedUsers.value = []
@@ -652,23 +729,31 @@ const exportUsers = () => {
     }
 
     // Define CSV headers
-    const headers = ['ID', 'OCID', 'Email', 'Username', 'Account Status', 'Register Time', 'Sessions Count']
+    const headers = [
+      'ID',
+      'OCID',
+      'Email',
+      'Username',
+      'Account Status',
+      'Register Time',
+      'Sessions Count',
+    ]
 
     // Convert data to rows
-    const rows = data.map(user => [
+    const rows = data.map((user) => [
       user.id,
       user.ocid || '',
       user.email || '',
       user.userName || '',
       user.accountStatus !== undefined ? user.accountStatus : '',
       user.registerTime ? new Date(Number(user.registerTime.seconds) * 1000).toISOString() : '',
-      user.sessionsCount || ''
+      user.sessionsCount || '',
     ])
 
     // Combine headers and rows
     const csvContent = [
       headers.join(','),
-      ...rows.map(row => row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(','))
+      ...rows.map((row) => row.map((field) => `"${String(field).replace(/"/g, '""')}"`).join(',')),
     ].join('\n')
 
     // Create download link

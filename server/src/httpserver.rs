@@ -60,7 +60,7 @@ impl HttpServer {
         let db_pool = running_data.db_pool;
         let rabbitmq = running_data.rabbitmq;
 
-        let enable_matrix = shared_data.cfg.http_cfg.enable_matrix;
+        let enable_matrix = shared_data.cfg().http_cfg.enable_matrix;
         let cors = tower_http::cors::CorsLayer::new()
             .allow_origin(tower_http::cors::Any)
             .allow_methods([
@@ -85,10 +85,10 @@ impl HttpServer {
             ])
             .max_age(std::time::Duration::from_secs(86400));
         let rate_governor_config = GovernorConfigBuilder::default()
-            .burst_size(shared_data.cfg.http_cfg.rate_limit.num_of_burst_requests)
+            .burst_size(shared_data.cfg().http_cfg.rate_limit.num_of_burst_requests)
             .per_millisecond(
                 shared_data
-                    .cfg
+                    .cfg()
                     .http_cfg
                     .rate_limit
                     .replenish_duration
@@ -113,19 +113,24 @@ impl HttpServer {
             .route("/status", get(status::status))
             .route_service(
                 "/logo",
-                tower_http::services::ServeFile::new(shared_data.cfg.http_cfg.logo_path.clone()),
+                tower_http::services::ServeFile::new(shared_data.cfg().http_cfg.logo_path.clone()),
             )
             .route("/avatar", get(avatar::avatar))
             .merge(verify::config().with_state(db_pool.clone()));
 
         // OAuth routes - only setup if enabled
-        let oauth_routes = if shared_data.cfg.main_cfg.oauth.enable {
+        let oauth_routes = if shared_data.cfg().main_cfg.oauth.enable {
             let oauth_config = oauth::OAuthConfig {
-                github_client_id: shared_data.cfg.main_cfg.oauth.github_client_id.clone(),
-                github_client_secret: shared_data.cfg.main_cfg.oauth.github_client_secret.clone(),
+                github_client_id: shared_data.cfg().main_cfg.oauth.github_client_id.clone(),
+                github_client_secret: shared_data
+                    .cfg()
+                    .main_cfg
+                    .oauth
+                    .github_client_secret
+                    .clone(),
                 github_redirect_uri: format!(
                     "{}/oauth/github/callback",
-                    shared_data.cfg.http_cfg.base_url()
+                    shared_data.cfg().http_cfg.base_url()
                 ),
             };
 
@@ -140,9 +145,9 @@ impl HttpServer {
             None
         };
 
-        let mut index_html_path = shared_data.cfg.http_cfg.web_panel.dist_path.clone();
+        let mut index_html_path = shared_data.cfg().http_cfg.web_panel.dist_path.clone();
         index_html_path.push("index.html");
-        let resources_path = shared_data.cfg.http_cfg.web_panel.dist_path.clone();
+        let resources_path = shared_data.cfg().http_cfg.web_panel.dist_path.clone();
         let panel = axum::Router::new().nest_service(
             "/panel",
             tower_http::services::ServeDir::new(&resources_path),
@@ -170,7 +175,7 @@ impl HttpServer {
                     .layer(tower_http::normalize_path::NormalizePathLayer::trim_trailing_slash())
                     .layer(middleware::from_fn(redirect_middleware)),
             );
-        if shared_data.cfg.http_cfg.rate_limit.enable {
+        if shared_data.cfg().http_cfg.rate_limit.enable {
             info!("Http rate limit enabled");
             router = router.layer(GovernorLayer::new(rate_governor_config));
         } else {
@@ -208,7 +213,7 @@ impl HttpServer {
                 );
             router = router.merge(matrix_router.layer(matrix_cors));
         }
-        if shared_data.cfg.http_cfg.web_panel.enable {
+        if shared_data.cfg().http_cfg.web_panel.enable {
             info!("web panel enabled");
             info!("index.html: {}", index_html_path.display());
             info!("resources path: {}", resources_path.display());
@@ -243,18 +248,19 @@ impl HttpServer {
         let mut rev = shutdown_sdr.new_receiver("http server", "http server");
         let shot = self.started_notify.clone();
 
+        let shared_data_clone = shared_data.clone();
         let running_server = async move {
             info!("Listening on {}", listener.local_addr().unwrap());
-            if shared_data.cfg.http_cfg.tls.is_tls_on()? {
+            if shared_data.cfg().http_cfg.tls.is_tls_on()? {
                 let handle = axum_server::Handle::new();
                 let handle_clone = handle.clone();
                 tokio::spawn(async move { exit_signal_handle_wrapper(handle_clone).await });
-                let mut config = self.load_rustls_config(shared_data)?;
+                let mut config = self.load_rustls_config(&shared_data_clone)?;
                 config.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
                 axum_server::from_tcp_rustls(
                     listener.into_std()?,
                     RustlsConfig::from_config(Arc::new(config)),
-                )
+                )?
                 .handle(handle)
                 .serve(router.into_make_service_with_connect_info::<SocketAddr>())
                 .await?;
@@ -284,9 +290,10 @@ impl HttpServer {
         }
     }
 
-    fn load_rustls_config(&self, cfg: Arc<SharedData>) -> anyhow::Result<ServerConfig> {
+    fn load_rustls_config(&self, cfg: &Arc<SharedData>) -> anyhow::Result<ServerConfig> {
         let mut cert_store = RootCertStore::empty();
-        if let Some(ref ca) = cfg.cfg.http_cfg.tls.ca_tls_cert_path {
+        let cfg_read = cfg.cfg();
+        if let Some(ref ca) = cfg_read.http_cfg.tls.ca_tls_cert_path {
             CertificateDer::pem_file_iter(ca)?
                 .flatten()
                 .for_each(|der| cert_store.add(der).unwrap());
@@ -295,10 +302,10 @@ impl HttpServer {
         // let client_auth = WebPkiClientVerifier::builder(Arc::new(cert_store)).build()?;
 
         let key_der = PrivateKeyDer::from_pem_file(
-            cfg.cfg.http_cfg.tls.server_key_cert_path.as_ref().unwrap(),
+            cfg_read.http_cfg.tls.server_key_cert_path.as_ref().unwrap(),
         )?;
         let cert_chain = CertificateDer::pem_file_iter(
-            cfg.cfg.http_cfg.tls.server_tls_cert_path.as_ref().unwrap(),
+            cfg_read.http_cfg.tls.server_tls_cert_path.as_ref().unwrap(),
         )?
         .flatten()
         .collect();
@@ -375,7 +382,7 @@ impl HttpServer {
                     }
                 }
                 let redis_conn = db_pool.redis_pool.clone();
-                let verify_email_expiry = shared_data.cfg.user_setting.verify_email_expiry;
+                let verify_email_expiry = shared_data.cfg().user_setting.verify_email_expiry;
                 tokio::spawn(async move {
                     tokio::time::sleep(verify_email_expiry).await;
                     let reject = async {
@@ -521,7 +528,7 @@ async fn exit_signal() {
     }
 }
 
-async fn exit_signal_handle_wrapper(handle: axum_server::Handle) {
+async fn exit_signal_handle_wrapper(handle: axum_server::Handle<SocketAddr>) {
     exit_signal().await;
     handle.graceful_shutdown(Some(Duration::from_secs(10)));
 }

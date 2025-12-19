@@ -191,12 +191,12 @@ async fn upload_impl(
 
     let key = generate_key_name(format!("{:x}", metadata.hash));
     let key_clone = key.clone();
-    let files_storage_path = &server.shared_data.cfg.main_cfg.files_storage_path;
-    let limit_size = server.shared_data.cfg.main_cfg.user_files_limit;
+    let files_storage_path = server.shared_data.cfg().main_cfg.files_storage_path.clone();
+    let limit_size = server.shared_data.cfg().main_cfg.user_files_limit;
 
     // Create temporary file path for streaming using hierarchical structure
     let temp_key = format!("{}.tmp", key);
-    let temp_path = generate_hierarchical_path(files_storage_path, id.0, &temp_key);
+    let temp_path = generate_hierarchical_path(&files_storage_path, id.0, &temp_key);
     let temp_path_clone = temp_path.clone();
 
     // Create temporary file and stream content
@@ -237,7 +237,7 @@ async fn upload_impl(
         }
 
         // All verifications passed, now create the database record and move file
-        let final_path = generate_hierarchical_path(files_storage_path, id.0, &key);
+        let final_path = generate_hierarchical_path(&files_storage_path, id.0, &key);
 
         // Create database record - this will handle storage limits and cleanup
         let config = AddFileRecordConfig {

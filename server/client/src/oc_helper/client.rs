@@ -213,10 +213,10 @@ impl TestApp {
 
         // Construct http client
         let mut http_client = reqwest::Client::builder().timeout(Duration::from_secs(2));
-        if shared.cfg.http_cfg.tls.is_tls_on()? {
+        if shared.cfg().http_cfg.tls.is_tls_on()? {
             // TODO: remove the danger_accept_invalid_certs (I think it is a bug of reqwest)
-            let pem =
-                tokio::fs::read(shared.cfg.http_cfg.tls.ca_tls_cert_path.as_ref().unwrap()).await?;
+            let cert_path = shared.cfg().http_cfg.tls.ca_tls_cert_path.clone().unwrap();
+            let pem = tokio::fs::read(&cert_path).await?;
             let cert = reqwest::Certificate::from_pem(&pem)?;
             http_client = http_client
                 .add_root_certificate(cert)

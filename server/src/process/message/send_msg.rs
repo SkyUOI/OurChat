@@ -129,7 +129,8 @@ async fn send_msg_impl(
     if session.e2ee_on {
         let last_time = session.room_key_time.with_timezone(&Utc);
         let expire_time: chrono::TimeDelta =
-            chrono::Duration::from_std(server.shared_data.cfg.main_cfg.room_key_duration).unwrap();
+            chrono::Duration::from_std(server.shared_data.cfg().main_cfg.room_key_duration)
+                .unwrap();
         if Utc::now() - last_time > expire_time || session.leaving_to_process {
             let msg = RespondEventType::UpdateRoomKey(UpdateRoomKeyNotification {
                 session_id: session_id.into(),

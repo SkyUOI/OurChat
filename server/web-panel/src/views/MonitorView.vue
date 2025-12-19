@@ -81,7 +81,15 @@
         <el-table-column prop="description" :label="$t('description')"></el-table-column>
         <el-table-column :label="$t('status')" width="120">
           <template #default="scope">
-            <el-tag :type="scope.row.status === 'healthy' ? 'success' : scope.row.status === 'warning' ? 'warning' : 'danger'">
+            <el-tag
+              :type="
+                scope.row.status === 'healthy'
+                  ? 'success'
+                  : scope.row.status === 'warning'
+                    ? 'warning'
+                    : 'danger'
+              "
+            >
               {{ scope.row.status }}
             </el-tag>
           </template>
@@ -141,7 +149,7 @@ const metrics = reactive<Partial<MonitoringMetrics>>({
   activeSessions: 0,
   databaseConnections: 0,
   redisConnections: 0,
-  rabbitmqConnections: 0
+  rabbitmqConnections: 0,
 })
 
 // gRPC store
@@ -154,66 +162,96 @@ const keyStats = computed(() => [
     value: metrics.activeConnections || 0,
     icon: 'el-icon-connection',
     color: '#409EFF',
-    trend: { icon: 'el-icon-top', value: '+5', color: '#67C23A' }
+    trend: { icon: 'el-icon-top', value: '+5', color: '#67C23A' },
   },
   {
     title: 'Total Users',
     value: metrics.totalUsers || 0,
     icon: 'el-icon-user',
     color: '#67C23A',
-    trend: { icon: 'el-icon-top', value: '+12', color: '#67C23A' }
+    trend: { icon: 'el-icon-top', value: '+12', color: '#67C23A' },
   },
   {
     title: 'Message Rate',
     value: `${(metrics.messagesPerSecond || 0).toFixed(1)}/s`,
     icon: 'el-icon-chat-line-round',
     color: '#E6A23C',
-    trend: { icon: 'el-icon-bottom', value: '-2.3', color: '#F56C6C' }
+    trend: { icon: 'el-icon-bottom', value: '-2.3', color: '#F56C6C' },
   },
   {
     title: 'Server Uptime',
     value: formatUptime(Number(metrics.uptimeSeconds || 0)),
     icon: 'el-icon-time',
     color: '#909399',
-    trend: null
+    trend: null,
   },
   {
     title: 'CPU Usage',
     value: `${(metrics.cpuUsagePercent || 0).toFixed(1)}%`,
     icon: 'el-icon-cpu',
     color: '#F56C6C',
-    trend: { icon: 'el-icon-top', value: '+3.2%', color: '#F56C6C' }
+    trend: { icon: 'el-icon-top', value: '+3.2%', color: '#F56C6C' },
   },
   {
     title: 'Memory Usage',
     value: `${(metrics.memoryUsagePercent || 0).toFixed(1)}%`,
     icon: 'el-icon-memory',
     color: '#8E44AD',
-    trend: { icon: 'el-icon-bottom', value: '-1.5%', color: '#67C23A' }
+    trend: { icon: 'el-icon-bottom', value: '-1.5%', color: '#67C23A' },
   },
   {
     title: 'Database Connections',
     value: metrics.databaseConnections || 0,
     icon: 'el-icon-database',
     color: '#3498DB',
-    trend: { icon: 'el-icon-top', value: '+2', color: '#67C23A' }
+    trend: { icon: 'el-icon-top', value: '+2', color: '#67C23A' },
   },
   {
     title: 'Redis Connections',
     value: metrics.redisConnections || 0,
     icon: 'el-icon-data-board',
     color: '#E74C3C',
-    trend: { icon: 'el-icon-bottom', value: '-1', color: '#F56C6C' }
-  }
+    trend: { icon: 'el-icon-bottom', value: '-1', color: '#F56C6C' },
+  },
 ])
 
 // Computed detailed metrics for table
 const detailedMetrics = computed(() => [
-  { name: 'Active Sessions', value: metrics.activeSessions || 0, unit: 'count', description: 'Currently connected user sessions', status: 'healthy' },
-  { name: 'Total Sessions', value: metrics.totalSessions || 0, unit: 'count', description: 'Total sessions created', status: 'healthy' },
-  { name: 'RabbitMQ Connections', value: metrics.rabbitmqConnections || 0, unit: 'count', description: 'Active RabbitMQ connections', status: 'healthy' },
-  { name: 'Disk Usage', value: `${(metrics.diskUsagePercent || 0).toFixed(1)}%`, unit: 'percent', description: 'Storage disk usage', status: (metrics.diskUsagePercent || 0) > 90 ? 'warning' : 'healthy' },
-  { name: 'Server Timestamp', value: new Date(Number(metrics.timestamp || 0) * 1000).toLocaleString(), unit: 'datetime', description: 'Time when metrics were collected', status: 'healthy' }
+  {
+    name: 'Active Sessions',
+    value: metrics.activeSessions || 0,
+    unit: 'count',
+    description: 'Currently connected user sessions',
+    status: 'healthy',
+  },
+  {
+    name: 'Total Sessions',
+    value: metrics.totalSessions || 0,
+    unit: 'count',
+    description: 'Total sessions created',
+    status: 'healthy',
+  },
+  {
+    name: 'RabbitMQ Connections',
+    value: metrics.rabbitmqConnections || 0,
+    unit: 'count',
+    description: 'Active RabbitMQ connections',
+    status: 'healthy',
+  },
+  {
+    name: 'Disk Usage',
+    value: `${(metrics.diskUsagePercent || 0).toFixed(1)}%`,
+    unit: 'percent',
+    description: 'Storage disk usage',
+    status: (metrics.diskUsagePercent || 0) > 90 ? 'warning' : 'healthy',
+  },
+  {
+    name: 'Server Timestamp',
+    value: new Date(Number(metrics.timestamp || 0) * 1000).toLocaleString(),
+    unit: 'datetime',
+    description: 'Time when metrics were collected',
+    status: 'healthy',
+  },
 ])
 
 // Helper functions
@@ -229,7 +267,6 @@ const formatUptime = (seconds: number): string => {
 // Services data will be populated from server
 const services = ref([])
 
-
 // Fetch metrics via gRPC
 const fetchMetrics = async () => {
   try {
@@ -238,7 +275,7 @@ const fetchMetrics = async () => {
 
     try {
       const response = await grpcStore.serverManageConn.getMonitoringMetrics({
-        includeSystemMetrics: showSystemMetrics.value
+        includeSystemMetrics: showSystemMetrics.value,
       })
 
       const receivedMetrics = response.response.metrics
@@ -258,7 +295,6 @@ const fetchMetrics = async () => {
     loading.value = false
   }
 }
-
 
 // Refresh metrics (called by button)
 const refreshMetrics = () => {
@@ -399,10 +435,6 @@ onMounted(() => {
   color: #909399;
   font-size: 14px;
 }
-
-
-
-
 
 .detailed-metrics {
   margin-bottom: 30px;

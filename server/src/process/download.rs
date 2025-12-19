@@ -1,9 +1,7 @@
 use std::path::PathBuf;
-use std::sync::Arc;
 
 use super::{Files, error_msg::PERMISSION_DENIED};
 use crate::{
-    db::file_storage::FileCache,
     process::error_msg::SERVER_ERROR,
     server::{DownloadStream, RpcServer},
 };
@@ -35,7 +33,6 @@ async fn download_impl(
     tx: &mpsc::Sender<Result<DownloadResponse, Status>>,
     db_conn: &DbPool,
     files_storage_path: impl Into<PathBuf>,
-    file_cache: Option<Arc<FileCache>>,
 ) -> Result<(), DownloadError> {
     let _files_storage_path = files_storage_path.into();
 
@@ -48,19 +45,6 @@ async fn download_impl(
         Some(f) => f,
         None => return Err(DownloadError::PermissionDenied),
     };
-
-    // Check cache first if available
-    if let Some(cache) = &file_cache
-        && let Some(cached_data) = cache.get(&req.key).await
-    {
-        // Send cached data directly
-        tx.send(Ok(DownloadResponse {
-            data: cached_data.into(),
-        }))
-        .await
-        .ok();
-        return Ok(());
-    }
 
     // Use the stored path from database (which should be hierarchical)
     let path = PathBuf::from(&file_info.path);
@@ -78,12 +62,6 @@ async fn download_impl(
         file_data.extend_from_slice(&chunk);
         tx.send(Ok(DownloadResponse { data: chunk })).await.ok();
     }
-
-    // Add file to cache if cache is available
-    if let Some(cache) = &file_cache {
-        cache.put(req.key.clone(), file_data).await;
-    }
-
     Ok(())
 }
 
@@ -95,14 +73,10 @@ pub async fn download(
     let req = request.into_inner();
     let (tx, rx) = mpsc::channel(16);
     let db_conn = server.db.clone();
-    let files_storage_path = server.shared_data.cfg.main_cfg.files_storage_path.clone();
-    let file_cache = server
-        .shared_data
-        .file_sys
-        .as_ref()
-        .map(|fs| fs.get_cache());
+    let files_storage_path = server.shared_data.cfg().main_cfg.files_storage_path.clone();
+
     tokio::spawn(async move {
-        match download_impl(id, req, &tx, &db_conn, files_storage_path, file_cache).await {
+        match download_impl(id, req, &tx, &db_conn, files_storage_path).await {
             Ok(_) => {}
             Err(e) => match e {
                 DownloadError::PermissionDenied => {

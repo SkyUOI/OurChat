@@ -215,7 +215,7 @@ version = "0"
 default-features = false
 
 [workspace.dependencies.axum-server]
-version = "0.7.2"
+version = "0.8"
 default-features = false
 features = ["tls-rustls"]
 
@@ -315,7 +315,7 @@ features = ["derive"]
 [workspace.dependencies.argon2]
 version = "0.6.0-rc"
 default-features = false
-features = ["std", "password-hash"]
+features = ["rand_core", "password-hash", "alloc"]
 
 [workspace.dependencies.dashmap]
 version = "6"
@@ -348,4 +348,4 @@ features = ["ring", "aws_lc_rs"]
 [workspace.dependencies.axum]
 version = "0.8"
 default-features = false
-features = ["macros", "http2", "http1", "json","tokio", "query"]
+features = ["macros", "http2", "http1", "json", "tokio", "query"]

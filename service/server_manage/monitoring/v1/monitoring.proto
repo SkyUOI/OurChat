@@ -65,6 +65,4 @@ message GetHistoricalMetricsResponse {
 }
 
 // Monitoring service
-service MonitoringService {
-  
-}
+service MonitoringService {}

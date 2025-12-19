@@ -2,32 +2,17 @@ syntax = "proto3";
 
 package service.server_manage.config.v1;
 
-// Configuration file types
-enum ConfigType {
-  CONFIG_TYPE_UNSPECIFIED = 0;
-  CONFIG_TYPE_SERVER = 1;      // ourchat.toml
-  CONFIG_TYPE_HTTP = 2;        // http.toml
-  CONFIG_TYPE_DATABASE = 3;    // database.toml
-  CONFIG_TYPE_REDIS = 4;       // redis.toml
-  CONFIG_TYPE_RABBITMQ = 5;    // rabbitmq.toml
-  CONFIG_TYPE_PASSWORD_HASH = 6; // password hash config
-  CONFIG_TYPE_ADVANCED = 7;    // advanced config
-}
-
 // Request to get configuration
 message GetConfigRequest {
-  ConfigType config_type = 1;
 }
 
 // Response with configuration content
 message GetConfigResponse {
   string content = 1; // TOML content of the configuration file
-  ConfigType config_type = 2;
 }
 
 // Request to set configuration
 message SetConfigRequest {
-  ConfigType config_type = 1;
   string content = 2; // TOML content to write
 }
 

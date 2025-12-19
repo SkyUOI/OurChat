@@ -2,13 +2,13 @@ syntax = "proto3";
 
 package service.server_manage.v1;
 
-import "service/server_manage/delete_account/v1/delete_account.proto";
-import "service/server_manage/publish_announcement/v1/publish_announcement.proto";
-import "service/server_manage/set_server_status/v1/set_server_status.proto";
 import "service/server_manage/config/v1/config.proto";
+import "service/server_manage/delete_account/v1/delete_account.proto";
 import "service/server_manage/monitoring/v1/monitoring.proto";
-import "service/server_manage/user_manage/v1/user_manage.proto";
+import "service/server_manage/publish_announcement/v1/publish_announcement.proto";
 import "service/server_manage/session_manage/v1/session_manage.proto";
+import "service/server_manage/set_server_status/v1/set_server_status.proto";
+import "service/server_manage/user_manage/v1/user_manage.proto";
 
 service ServerManageService {
   rpc DeleteAccount(delete_account.v1.DeleteAccountRequest) returns (delete_account.v1.DeleteAccountResponse);

@@ -76,8 +76,14 @@ export default {
   name: 'SystemOverview',
   data() {
     return {
-      stats: [] as Array<{titleKey: string, value: string, icon: string, color: string}>,
-      services: [] as Array<{name: string, statusKey: string, uptime: string, cpu: string, memory: string}>,
+      stats: [] as Array<{ titleKey: string; value: string; icon: string; color: string }>,
+      services: [] as Array<{
+        name: string
+        statusKey: string
+        uptime: string
+        cpu: string
+        memory: string
+      }>,
     }
   },
 }
@@ -160,14 +166,6 @@ export default {
   color: #909399;
   font-size: 14px;
 }
-
-
-
-
-
-
-
-
 
 .service-status {
   margin-top: 20px;

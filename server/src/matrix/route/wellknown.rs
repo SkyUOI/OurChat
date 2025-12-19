@@ -52,16 +52,16 @@ pub struct SupportResponse {
 }
 
 pub async fn support(State(cfg): State<Arc<SharedData>>) -> Json<SupportResponse> {
-    let contacts = cfg
-        .cfg
+    let read = cfg.cfg();
+    let contacts = read
         .user_setting
         .contacts
         .iter()
-        .map(|x| Contact::try_from(x.clone(), cfg.cfg.http_cfg.domain()))
+        .map(|x| Contact::try_from(x.clone(), read.http_cfg.domain()))
         .collect();
     let response = SupportResponse {
         contacts,
-        support_page: cfg.cfg.user_setting.support_page.clone(),
+        support_page: read.user_setting.support_page.clone(),
     };
     Json(response)
 }
@@ -89,7 +89,7 @@ pub struct ClientResponse {
 async fn client(State(cfg): State<Arc<SharedData>>) -> Json<ClientResponse> {
     let ret = ClientResponse {
         m_homeserver: HomeserverInfo {
-            base_url: cfg.cfg.http_cfg.base_url().clone(),
+            base_url: cfg.cfg().http_cfg.base_url().clone(),
         },
         m_identity_server: None,
     };

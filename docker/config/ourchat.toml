@@ -7,7 +7,7 @@ rabbitmq_cfg = "rabbitmq.toml"
 user_setting = "user_setting.toml"
 http_cfg = "http.toml"
 # The duration of cleaning the files which are out-of-date
-auto_clean_duration = "0 0 * * *"
+auto_clean_duration = "0 0 0 * * *"
 # The total file size limit of a single user
 user_files_limit = "100MiB"
 # A single user's The number of the friend's limit

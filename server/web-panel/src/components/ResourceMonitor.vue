@@ -10,9 +10,7 @@
         </div>
         <div class="chart-container">
           <!-- 这里放置图表 -->
-          <div class="chart-placeholder">
-            图表数据将在此显示
-          </div>
+          <div class="chart-placeholder">图表数据将在此显示</div>
         </div>
       </el-card>
 
@@ -23,9 +21,7 @@
         </div>
         <div class="chart-container">
           <!-- 这里放置图表 -->
-          <div class="chart-placeholder">
-            图表数据将在此显示
-          </div>
+          <div class="chart-placeholder">图表数据将在此显示</div>
         </div>
       </el-card>
     </div>
@@ -68,8 +64,22 @@ export default {
   name: 'ResourceMonitor',
   data() {
     return {
-      disks: [] as Array<{name: string, mount: string, total: string, used: string, free: string, usage: string}>,
-      processes: [] as Array<{pid: string, name: string, user: string, cpu: string, memory: string, uptime: string}>,
+      disks: [] as Array<{
+        name: string
+        mount: string
+        total: string
+        used: string
+        free: string
+        usage: string
+      }>,
+      processes: [] as Array<{
+        pid: string
+        name: string
+        user: string
+        cpu: string
+        memory: string
+        uptime: string
+      }>,
     }
   },
   methods: {
@@ -126,9 +136,6 @@ export default {
   color: #909399;
   font-size: 14px;
 }
-
-
-
 
 .network-stats,
 .io-stats {

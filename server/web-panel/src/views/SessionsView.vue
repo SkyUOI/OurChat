@@ -3,7 +3,12 @@
     <div class="header mb-6">
       <h1 class="text-2xl font-bold">{{ $t('sessionsManagement') }}</h1>
       <div class="actions flex gap-2">
-        <el-button type="primary" icon="el-icon-refresh" @click="refreshSessions" :loading="loading">
+        <el-button
+          type="primary"
+          icon="el-icon-refresh"
+          @click="refreshSessions"
+          :loading="loading"
+        >
           {{ $t('refresh') }}
         </el-button>
         <el-button icon="el-icon-search" @click="showSearch = !showSearch">
@@ -22,7 +27,11 @@
           <el-row :gutter="20">
             <el-col :span="8">
               <el-form-item :label="$t('sessionType')">
-                <el-select v-model="searchForm.session_type" clearable :placeholder="$t('selectSessionType')">
+                <el-select
+                  v-model="searchForm.session_type"
+                  clearable
+                  :placeholder="$t('selectSessionType')"
+                >
                   <el-option :label="$t('sessionTypePrivate')" :value="1"></el-option>
                   <el-option :label="$t('sessionTypeGroup')" :value="2"></el-option>
                   <el-option :label="$t('sessionTypeChannel')" :value="3"></el-option>
@@ -31,12 +40,20 @@
             </el-col>
             <el-col :span="8">
               <el-form-item :label="$t('sessionName')">
-                <el-input v-model="searchForm.session_name" :placeholder="$t('sessionNamePlaceholder')" clearable></el-input>
+                <el-input
+                  v-model="searchForm.session_name"
+                  :placeholder="$t('sessionNamePlaceholder')"
+                  clearable
+                ></el-input>
               </el-form-item>
             </el-col>
             <el-col :span="8">
               <el-form-item :label="$t('ownerId')">
-                <el-input v-model="searchForm.owner_id" :placeholder="$t('ownerIdPlaceholder')" clearable></el-input>
+                <el-input
+                  v-model="searchForm.owner_id"
+                  :placeholder="$t('ownerIdPlaceholder')"
+                  clearable
+                ></el-input>
               </el-form-item>
             </el-col>
           </el-row>
@@ -108,11 +125,7 @@
           />
         </div>
       </div>
-      <el-table
-        v-loading="loading"
-        :data="sessions"
-        @selection-change="handleSelectionChange"
-      >
+      <el-table v-loading="loading" :data="sessions" @selection-change="handleSelectionChange">
         <el-table-column type="selection" width="55" />
         <el-table-column prop="sessionId" :label="$t('sessionId')" width="120" />
         <el-table-column prop="sessionName" :label="$t('sessionName')" min-width="180" />
@@ -140,7 +153,12 @@
             <el-button type="primary" size="small" icon="el-icon-view" @click="viewSession(row)">
               {{ $t('view') }}
             </el-button>
-            <el-button type="warning" size="small" icon="el-icon-remove" @click="removeUserFromSession(row)">
+            <el-button
+              type="warning"
+              size="small"
+              icon="el-icon-remove"
+              @click="removeUserFromSession(row)"
+            >
               {{ $t('removeUser') }}
             </el-button>
             <el-button type="danger" size="small" icon="el-icon-delete" @click="deleteSession(row)">
@@ -161,7 +179,12 @@
           <el-select v-model="batchAction" :placeholder="$t('selectAction')" style="width: 180px">
             <el-option :label="$t('deleteSelected')" value="delete"></el-option>
           </el-select>
-          <el-button type="primary" @click="executeBatchAction" :loading="batchLoading" :disabled="!batchAction || selectedSessions.length === 0 || batchLoading">
+          <el-button
+            type="primary"
+            @click="executeBatchAction"
+            :loading="batchLoading"
+            :disabled="!batchAction || selectedSessions.length === 0 || batchLoading"
+          >
             {{ $t('execute') }}
           </el-button>
           <el-button @click="clearSelection">{{ $t('clearSelection') }}</el-button>
@@ -178,30 +201,41 @@
     >
       <div v-if="selectedSessionDetails">
         <el-descriptions :column="2" border>
-          <el-descriptions-item :label="$t('sessionId')">{{ selectedSessionDetails.sessionId.toString() }}</el-descriptions-item>
-          <el-descriptions-item :label="$t('sessionName')">{{ selectedSessionDetails.sessionName }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('sessionId')">{{
+            selectedSessionDetails.sessionId.toString()
+          }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('sessionName')">{{
+            selectedSessionDetails.sessionName
+          }}</el-descriptions-item>
           <el-descriptions-item :label="$t('sessionType')">
             <el-tag :type="getSessionTypeTag(selectedSessionDetails.sessionType)" size="small">
               {{ getSessionTypeText(selectedSessionDetails.sessionType) }}
             </el-tag>
           </el-descriptions-item>
-          <el-descriptions-item :label="$t('ownerId')">{{ selectedSessionDetails.ownerId?.toString() }}</el-descriptions-item>
-          <el-descriptions-item :label="$t('memberCount')">{{ selectedSessionDetails.memberCount }}</el-descriptions-item>
-          <el-descriptions-item :label="$t('createdAt')">{{ formatDate(selectedSessionDetails.createdAt) }}</el-descriptions-item>
-          <el-descriptions-item :label="$t('lastActivity')">{{ formatDate(selectedSessionDetails.lastActivity) }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('ownerId')">{{
+            selectedSessionDetails.ownerId?.toString()
+          }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('memberCount')">{{
+            selectedSessionDetails.memberCount
+          }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('createdAt')">{{
+            formatDate(selectedSessionDetails.createdAt)
+          }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('lastActivity')">{{
+            formatDate(selectedSessionDetails.lastActivity)
+          }}</el-descriptions-item>
         </el-descriptions>
       </div>
     </el-dialog>
 
     <!-- Remove User Dialog -->
-    <el-dialog
-      v-model="removeUserDialogVisible"
-      :title="$t('removeUserFromSession')"
-      width="500px"
-    >
+    <el-dialog v-model="removeUserDialogVisible" :title="$t('removeUserFromSession')" width="500px">
       <el-form :model="removeUserForm" label-width="120px">
         <el-form-item :label="$t('userId')">
-          <el-input v-model="removeUserForm.user_id" :placeholder="$t('userIdPlaceholder')"></el-input>
+          <el-input
+            v-model="removeUserForm.user_id"
+            :placeholder="$t('userIdPlaceholder')"
+          ></el-input>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -224,12 +258,10 @@ import type {
   SessionInfo,
   ListSessionsRequest,
   DeleteSessionRequest as ServerManageDeleteSessionRequest,
-  RemoveUserFromSessionRequest
+  RemoveUserFromSessionRequest,
 } from '@/api/service/server_manage/session_manage/v1/session_manage'
 import { SessionType } from '@/api/service/server_manage/session_manage/v1/session_manage'
-import type {
-  DeleteSessionRequest as OurChatDeleteSessionRequest
-} from '@/api/service/ourchat/session/delete_session/v1/delete_session'
+import type { DeleteSessionRequest as OurChatDeleteSessionRequest } from '@/api/service/ourchat/session/delete_session/v1/delete_session'
 
 // gRPC store
 const grpcStore = useGrpcStore()
@@ -246,13 +278,13 @@ const searchForm = reactive({
   created_after: undefined as number | undefined,
   created_before: undefined as number | undefined,
   min_members: undefined as number | undefined,
-  max_members: undefined as number | undefined
+  max_members: undefined as number | undefined,
 })
 
 // Pagination
 const pagination = reactive({
   page: 1,
-  pageSize: 20
+  pageSize: 20,
 })
 const totalSessions = ref(0)
 
@@ -271,7 +303,7 @@ const sessionStats = reactive({
   totalSessions: 0,
   privateSessions: 0,
   groupSessions: 0,
-  channelSessions: 0
+  channelSessions: 0,
 })
 
 // Remove user dialog
@@ -279,9 +311,8 @@ const removeUserDialogVisible = ref(false)
 const removeUserLoading = ref(false)
 const selectedSession = ref<SessionInfo | null>(null)
 const removeUserForm = reactive({
-  user_id: ''
+  user_id: '',
 })
-
 
 // Helper functions
 const formatDate = (timestamp: { seconds: bigint } | undefined): string => {
@@ -292,22 +323,29 @@ const formatDate = (timestamp: { seconds: bigint } | undefined): string => {
 
 const getSessionTypeTag = (type: SessionType): string => {
   switch (type) {
-    case SessionType.PRIVATE: return 'success'
-    case SessionType.GROUP: return 'warning'
-    case SessionType.CHANNEL: return 'info'
-    default: return 'default'
+    case SessionType.PRIVATE:
+      return 'success'
+    case SessionType.GROUP:
+      return 'warning'
+    case SessionType.CHANNEL:
+      return 'info'
+    default:
+      return 'default'
   }
 }
 
 const getSessionTypeText = (type: SessionType): string => {
   switch (type) {
-    case SessionType.PRIVATE: return 'Private'
-    case SessionType.GROUP: return 'Group'
-    case SessionType.CHANNEL: return 'Channel'
-    default: return 'Unknown'
+    case SessionType.PRIVATE:
+      return 'Private'
+    case SessionType.GROUP:
+      return 'Group'
+    case SessionType.CHANNEL:
+      return 'Channel'
+    default:
+      return 'Unknown'
   }
 }
-
 
 // Perform session action (single session, used for batch operations)
 const performSessionAction = async (session: SessionInfo, action: string, userId?: bigint) => {
@@ -315,7 +353,9 @@ const performSessionAction = async (session: SessionInfo, action: string, userId
     case 'delete':
       // First try server manage API
       try {
-        const serverManageRequest: ServerManageDeleteSessionRequest = { sessionId: session.sessionId }
+        const serverManageRequest: ServerManageDeleteSessionRequest = {
+          sessionId: session.sessionId,
+        }
         await grpcStore.serverManageConn.deleteSession(serverManageRequest)
         ElMessage.success(`Session "${session.sessionName}" deleted successfully`)
       } catch {
@@ -323,7 +363,9 @@ const performSessionAction = async (session: SessionInfo, action: string, userId
         try {
           const ourchatRequest: OurChatDeleteSessionRequest = { sessionId: session.sessionId }
           await grpcStore.ourchatConn.deleteSession(ourchatRequest)
-          ElMessage.success(`Session "${session.sessionName}" deleted successfully (via ourchat API)`)
+          ElMessage.success(
+            `Session "${session.sessionName}" deleted successfully (via ourchat API)`,
+          )
         } catch (error) {
           console.error('Both delete APIs failed:', error)
           ElMessage.error('Failed to delete session: server APIs not available')
@@ -359,15 +401,19 @@ const fetchSessions = async () => {
         sessionType: searchForm.session_type,
         sessionName: searchForm.session_name || undefined,
         ownerId: searchForm.owner_id ? BigInt(searchForm.owner_id) : undefined,
-        createdAfter: searchForm.created_after ? { seconds: BigInt(Math.floor(searchForm.created_after / 1000)), nanos: 0 } : undefined,
-        createdBefore: searchForm.created_before ? { seconds: BigInt(Math.floor(searchForm.created_before / 1000)), nanos: 0 } : undefined,
+        createdAfter: searchForm.created_after
+          ? { seconds: BigInt(Math.floor(searchForm.created_after / 1000)), nanos: 0 }
+          : undefined,
+        createdBefore: searchForm.created_before
+          ? { seconds: BigInt(Math.floor(searchForm.created_before / 1000)), nanos: 0 }
+          : undefined,
         minMembers: searchForm.min_members,
-        maxMembers: searchForm.max_members
+        maxMembers: searchForm.max_members,
       },
       pagination: {
         page: pagination.page,
-        pageSize: pagination.pageSize
-      }
+        pageSize: pagination.pageSize,
+      },
     }
 
     // Try gRPC call
@@ -392,9 +438,15 @@ const updateSessionStats = () => {
   // Statistics computed from currently displayed sessions (paginated)
   const displayedSessions = sessions.value
   sessionStats.totalSessions = displayedSessions.length
-  sessionStats.privateSessions = displayedSessions.filter(s => s.sessionType === SessionType.PRIVATE).length
-  sessionStats.groupSessions = displayedSessions.filter(s => s.sessionType === SessionType.GROUP).length
-  sessionStats.channelSessions = displayedSessions.filter(s => s.sessionType === SessionType.CHANNEL).length
+  sessionStats.privateSessions = displayedSessions.filter(
+    (s) => s.sessionType === SessionType.PRIVATE,
+  ).length
+  sessionStats.groupSessions = displayedSessions.filter(
+    (s) => s.sessionType === SessionType.GROUP,
+  ).length
+  sessionStats.channelSessions = displayedSessions.filter(
+    (s) => s.sessionType === SessionType.CHANNEL,
+  ).length
 }
 
 // Search handlers
@@ -448,7 +500,7 @@ const deleteSession = async (session: SessionInfo) => {
     await ElMessageBox.confirm(
       `Are you sure to delete session "${session.sessionName}"? This action cannot be undone.`,
       'Confirm Delete',
-      { type: 'error' }
+      { type: 'error' },
     )
 
     // First try server manage API
@@ -491,7 +543,7 @@ const confirmRemoveUser = async () => {
     removeUserLoading.value = true
     const request: RemoveUserFromSessionRequest = {
       sessionId: selectedSession.value.sessionId,
-      userId: BigInt(removeUserForm.user_id)
+      userId: BigInt(removeUserForm.user_id),
     }
     await grpcStore.serverManageConn.removeUserFromSession(request)
     ElMessage.success('User removed from session successfully')
@@ -513,7 +565,7 @@ const executeBatchAction = async () => {
     await ElMessageBox.confirm(
       `Are you sure to ${batchAction.value} ${selectedSessions.value.length} session(s)?`,
       `Confirm ${batchAction.value}`,
-      { type: 'warning' }
+      { type: 'warning' },
     )
 
     batchLoading.value = true
@@ -521,7 +573,9 @@ const executeBatchAction = async () => {
     for (const session of selectedSessions.value) {
       await performSessionAction(session, batchAction.value)
     }
-    ElMessage.success(`Batch ${batchAction.value} completed for ${selectedSessions.value.length} session(s)`)
+    ElMessage.success(
+      `Batch ${batchAction.value} completed for ${selectedSessions.value.length} session(s)`,
+    )
 
     // Clear selection and refresh
     selectedSessions.value = []
@@ -557,23 +611,33 @@ const exportSessions = () => {
     }
 
     // Define CSV headers
-    const headers = ['Session ID', 'Session Name', 'Session Type', 'Owner ID', 'Member Count', 'Created At', 'Last Activity']
+    const headers = [
+      'Session ID',
+      'Session Name',
+      'Session Type',
+      'Owner ID',
+      'Member Count',
+      'Created At',
+      'Last Activity',
+    ]
 
     // Convert data to rows
-    const rows = data.map(session => [
+    const rows = data.map((session) => [
       session.sessionId.toString(),
       session.sessionName || '',
       session.sessionType !== undefined ? session.sessionType : '',
       session.ownerId ? session.ownerId.toString() : '',
       session.memberCount || '',
       session.createdAt ? new Date(Number(session.createdAt.seconds) * 1000).toISOString() : '',
-      session.lastActivity ? new Date(Number(session.lastActivity.seconds) * 1000).toISOString() : ''
+      session.lastActivity
+        ? new Date(Number(session.lastActivity.seconds) * 1000).toISOString()
+        : '',
     ])
 
     // Combine headers and rows
     const csvContent = [
       headers.join(','),
-      ...rows.map(row => row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(','))
+      ...rows.map((row) => row.map((field) => `"${String(field).replace(/"/g, '""')}"`).join(',')),
     ].join('\n')
 
     // Create download link
