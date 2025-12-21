@@ -75,41 +75,6 @@ class OurChatAppState extends ChangeNotifier {
   }
 }
 
-void changeTrayIcon() {
-  if (!kIsWeb) {
-    if (trayStatus) {
-      trayManager.setIcon(Platform.isWindows
-          ? "assets/images/empty.ico"
-          : "assets/images/empty.png");
-    } else {
-      trayManager.setIcon(Platform.isWindows
-          ? "assets/images/logo_without_text.ico"
-          : "assets/images/logo_without_text.png");
-    }
-    trayStatus = !trayStatus;
-  }
-}
-
-void startFlashTray() {
-  if (isFlashing || kIsWeb) {
-    return;
-  }
-  flashTrayTimer =
-      Timer.periodic(Duration(milliseconds: 500), (_) => changeTrayIcon());
-  isFlashing = true;
-}
-
-void stopFlashTray() {
-  if (!kIsWeb && !isFlashing) {
-    flashTrayTimer.cancel();
-    trayStatus = true;
-    trayManager.setIcon(Platform.isWindows
-        ? "assets/images/logo_without_text.ico"
-        : "assets/images/logo_without_text.png");
-    isFlashing = false;
-  }
-}
-
 class MainApp extends StatelessWidget {
   const MainApp({super.key});
 
@@ -132,33 +97,8 @@ class Controller extends StatefulWidget {
   State<Controller> createState() => _ControllerState();
 }
 
-class _ControllerState extends State<Controller>
-    with WindowListener, TrayListener {
+class _ControllerState extends State<Controller> {
   bool logined = false;
-
-  @override
-  void initState() {
-    super.initState();
-    if (!kIsWeb &&
-        (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
-      windowManager.addListener(this);
-      windowManager.setPreventClose(true);
-      trayManager.addListener(this);
-      trayManager.setIcon(Platform.isWindows
-          ? "assets/images/logo_without_text.ico"
-          : "assets/images/logo_without_text.png");
-      trayManager.setToolTip("OurChat");
-    }
-  }
-
-  @override
-  void dispose() {
-    if (!kIsWeb) {
-      windowManager.removeListener(this);
-      trayManager.removeListener(this);
-    }
-    super.dispose();
-  }
 
   Future autoLogin(BuildContext context) async {
     logger.i("AUTO login");
@@ -251,7 +191,7 @@ class _ControllerState extends State<Controller>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   CircularProgressIndicator(),
-                  Text(l10n.autoLogin,
+                  Text(ourchatAppState.l10n.autoLogin,
                       style: TextStyle(
                           fontSize: AppStyles.smallFontSize,
                           color: Theme.of(context).hintColor))
@@ -264,41 +204,5 @@ class _ControllerState extends State<Controller>
         },
       ),
     );
-  }
-
-  // Desktop-only window and tray event handlers
-  @override
-  void onWindowClose() async {
-    if (!kIsWeb) {
-      windowManager.hide();
-      super.onWindowClose();
-    }
-  }
-
-  @override
-  void onTrayIconRightMouseDown() {
-    trayManager.popUpContextMenu();
-    super.onTrayIconRightMouseDown();
-  }
-
-  @override
-  void onTrayMenuItemClick(MenuItem menuItem) {
-    if (menuItem.key == "show") {
-      windowManager.show();
-      windowManager.focus();
-      stopFlashTray();
-    } else if (menuItem.key == "exit") {
-      trayManager.destroy();
-      windowManager.destroy();
-    }
-    super.onTrayMenuItemClick(menuItem);
-  }
-
-  @override
-  void onTrayIconMouseDown() {
-    windowManager.show();
-    windowManager.focus();
-    stopFlashTray();
-    super.onTrayIconMouseDown();
   }
 }

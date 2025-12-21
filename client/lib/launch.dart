@@ -6,6 +6,48 @@ import 'package:ourchat/core/log.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'dart:async';
+
+// Conditionally import desktop-specific packages only when not on web
+import 'package:window_manager/window_manager.dart'
+    if (dart.library.html) 'package:ourchat/core/stubs/window_manager_stub.dart';
+import 'package:tray_manager/tray_manager.dart'
+    if (dart.library.html) 'package:ourchat/core/stubs/tray_manager_stub.dart';
+
+void changeTrayIcon() {
+  if (!kIsWeb) {
+    if (trayStatus) {
+      trayManager.setIcon(Platform.isWindows
+          ? "assets/images/empty.ico"
+          : "assets/images/empty.png");
+    } else {
+      trayManager.setIcon(Platform.isWindows
+          ? "assets/images/logo_without_text.ico"
+          : "assets/images/logo_without_text.png");
+    }
+    trayStatus = !trayStatus;
+  }
+}
+
+void startFlashTray() {
+  if (isFlashing || kIsWeb) {
+    return;
+  }
+  flashTrayTimer =
+      Timer.periodic(Duration(milliseconds: 500), (_) => changeTrayIcon());
+  isFlashing = true;
+}
+
+void stopFlashTray() {
+  if (!kIsWeb && !isFlashing) {
+    flashTrayTimer.cancel();
+    trayStatus = true;
+    trayManager.setIcon(Platform.isWindows
+        ? "assets/images/logo_without_text.ico"
+        : "assets/images/logo_without_text.png");
+    isFlashing = false;
+  }
+}
 
 class Launch extends StatefulWidget {
   const Launch({
@@ -16,7 +58,7 @@ class Launch extends StatefulWidget {
   State<Launch> createState() => _LaunchState();
 }
 
-class _LaunchState extends State<Launch> {
+class _LaunchState extends State<Launch> with WindowListener, TrayListener {
   Future initConfig(OurChatAppState appState) async {
     appState.config.prefsWithCache = await SharedPreferencesWithCache.create(
         cacheOptions: const SharedPreferencesWithCacheOptions());
@@ -25,8 +67,33 @@ class _LaunchState extends State<Launch> {
   bool inited = false;
 
   @override
+  void initState() {
+    super.initState();
+    if (!kIsWeb &&
+        (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+      windowManager.addListener(this);
+      windowManager.setPreventClose(true);
+      trayManager.addListener(this);
+      trayManager.setIcon(Platform.isWindows
+          ? "assets/images/logo_without_text.ico"
+          : "assets/images/logo_without_text.png");
+      trayManager.setToolTip("OurChat");
+    }
+  }
+
+  @override
+  void dispose() {
+    if (!kIsWeb) {
+      windowManager.removeListener(this);
+      trayManager.removeListener(this);
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     var ourchatAppState = context.watch<OurChatAppState>();
+
     return MaterialApp(
       scaffoldMessengerKey: rootScaffoldMessengerKey,
       localeResolutionCallback: (locale, supportedLocales) {
@@ -83,5 +150,41 @@ class _LaunchState extends State<Launch> {
         ),
       ),
     );
+  }
+
+  // Desktop-only window and tray event handlers
+  @override
+  void onWindowClose() async {
+    if (!kIsWeb) {
+      windowManager.hide();
+      super.onWindowClose();
+    }
+  }
+
+  @override
+  void onTrayIconRightMouseDown() {
+    trayManager.popUpContextMenu();
+    super.onTrayIconRightMouseDown();
+  }
+
+  @override
+  void onTrayMenuItemClick(MenuItem menuItem) {
+    if (menuItem.key == "show") {
+      windowManager.show();
+      windowManager.focus();
+      stopFlashTray();
+    } else if (menuItem.key == "exit") {
+      trayManager.destroy();
+      windowManager.destroy();
+    }
+    super.onTrayMenuItemClick(menuItem);
+  }
+
+  @override
+  void onTrayIconMouseDown() {
+    windowManager.show();
+    windowManager.focus();
+    stopFlashTray();
+    super.onTrayIconMouseDown();
   }
 }
