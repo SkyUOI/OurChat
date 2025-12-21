@@ -38,7 +38,7 @@ void main() async {
   if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
     await windowManager.ensureInitialized();
     WindowOptions windowOptions = const WindowOptions(
-      // minimumSize: Size(900, 600),
+      minimumSize: Size(900, 600),
       center: true,
       skipTaskbar: false,
       title: "OurChat",
