@@ -38,7 +38,7 @@ void main() async {
   if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
     await windowManager.ensureInitialized();
     WindowOptions windowOptions = const WindowOptions(
-      minimumSize: Size(900, 600),
+      // minimumSize: Size(900, 600),
       center: true,
       skipTaskbar: false,
       title: "OurChat",
@@ -174,6 +174,7 @@ class _ControllerState extends State<Controller>
     if (connectRes != okStatusCode) {
       logger.w("fiailed to connect to server");
       if (context.mounted) {
+        Navigator.pop(context);
         Navigator.push(
             context, MaterialPageRoute(builder: (context) => ServerSetting()));
       }
@@ -197,6 +198,7 @@ class _ControllerState extends State<Controller>
     if (!loginRes) {
       logger.w("failed to auto-login");
       if (context.mounted) {
+        Navigator.pop(context);
         Navigator.push(
             context, MaterialPageRoute(builder: (context) => Auth()));
       }
@@ -224,36 +226,8 @@ class _ControllerState extends State<Controller>
   @override
   Widget build(BuildContext context) {
     var ourchatAppState = context.watch<OurChatAppState>();
-    return MaterialApp(
-      scaffoldMessengerKey: rootScaffoldMessengerKey,
-      localeResolutionCallback: (locale, supportedLocales) {
-        Locale useLanguage = Locale("en");
-        Locale? setLanguage = locale;
-        if (ourchatAppState.config["language"] != null) {
-          setLanguage = Locale.fromSubtags(
-              languageCode: ourchatAppState.config["language"][0],
-              scriptCode: ourchatAppState.config["language"][1],
-              countryCode: ourchatAppState.config["language"][2]);
-        }
-        for (int i = 0; i < supportedLocales.length; i++) {
-          var availableLanguage = supportedLocales.elementAt(i);
-          if (availableLanguage.languageCode == setLanguage!.languageCode) {
-            useLanguage = availableLanguage;
-            break;
-          }
-        }
-        logger.i(
-            "use language (${useLanguage.languageCode},${useLanguage.scriptCode},${useLanguage.countryCode})");
-        ourchatAppState.config["language"] = [
-          useLanguage.languageCode,
-          useLanguage.scriptCode,
-          useLanguage.countryCode
-        ];
-        return useLanguage;
-      },
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      home: LayoutBuilder(
+    return Scaffold(
+      body: LayoutBuilder(
         builder: (context, constraints) {
           var l10n = ourchatAppState.l10n = AppLocalizations.of(context)!;
           if (!kIsWeb) {
@@ -288,13 +262,6 @@ class _ControllerState extends State<Controller>
             return ServerSetting();
           }
         },
-      ),
-      theme: ThemeData(
-        fontFamily: kIsWeb ? null : (Platform.isWindows ? "微软雅黑" : null),
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Color(ourchatAppState.config["color"]),
-        ),
       ),
     );
   }

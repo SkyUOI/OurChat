@@ -95,287 +95,28 @@ class Session extends StatefulWidget {
 class _SessionState extends State<Session> {
   @override
   Widget build(BuildContext context) {
-    OurChatAppState appState = context.watch<OurChatAppState>();
-
     return ChangeNotifierProvider(
       create: (context) => SessionState(),
       builder: (context, child) {
-        var sessionState = context.watch<SessionState>();
-        Widget tab;
-        switch (sessionState.tabIndex) {
-          case sessionTab:
-            tab = SessionTab();
-            break;
-          case userTab:
-            tab = UserTab();
-            break;
-          default:
-            tab = EmptyTab();
-            break;
-        }
         return LayoutBuilder(
           // 此builder可以在尺寸发生变化时重新构建
           builder: (context, constraints) {
-            Widget page = const Placeholder();
-            // 匹配不同设备类型
-            if (appState.screenMode == mobile) {
-              if (sessionState.currentSession != null ||
-                  sessionState.currentUserId != null) {
-                page = Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            BackButton(
-                              onPressed: () {
-                                sessionState.tabTitle = "";
-                                sessionState.currentUserId = null;
-                                sessionState.currentSession = null;
-                                sessionState.currentSessionRecords = [];
-                                sessionState.update();
-                              },
-                            ),
-                            Text(sessionState.tabTitle,
-                                style: TextStyle(fontSize: 20))
-                          ],
-                        ),
-                        if (sessionState.tabIndex == sessionTab)
-                          IconButton(
-                              onPressed: () => showSetSessionInfoDialog(
-                                  context, appState, sessionState),
-                              icon: Icon(Icons.more_horiz))
-                      ],
-                    ),
-                    Expanded(child: tab)
-                  ],
-                );
-              } else {
-                page = SessionList();
-              }
-            } else if (appState.screenMode == desktop) {
-              page = Row(
+            var ourchatAppState = context.watch<OurChatAppState>();
+            if (ourchatAppState.screenMode == desktop) {
+              return Row(
                 children: [
                   Flexible(
                       flex: 1, child: cardWithPadding(const SessionList())),
-                  Flexible(
-                      flex: 3,
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              Expanded(
-                                child: Center(
-                                  child: Text(sessionState.tabTitle,
-                                      style: TextStyle(fontSize: 30)),
-                                ),
-                              ),
-                              if (sessionState.tabIndex == sessionTab)
-                                IconButton(
-                                    onPressed: () => showSetSessionInfoDialog(
-                                        context, appState, sessionState),
-                                    icon: Icon(Icons.more_horiz))
-                            ],
-                          ),
-                          Expanded(child: tab)
-                        ],
-                      )),
+                  Flexible(flex: 3, child: TabWidget()),
                 ],
               );
+            } else {
+              return SessionList();
             }
-            return page;
           },
         );
       },
     );
-  }
-
-  void showSetSessionInfoDialog(BuildContext context,
-      OurChatAppState ourchatAppState, SessionState sessionState) {
-    String name = sessionState.currentSession!.name,
-        description = sessionState.currentSession!.description;
-    var l10n = AppLocalizations.of(context)!;
-    var key = GlobalKey<FormState>();
-
-    showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          bool confirmLeave = false;
-          bool confirmDelete = false;
-          return StatefulBuilder(builder: (context, setState) {
-            return AlertDialog(
-              title: Text(sessionState.currentSession!.name.isEmpty
-                  ? l10n.newSession
-                  : sessionState.currentSession!.name),
-              content: Form(
-                key: key,
-                child: SizedBox(
-                  width: 150,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(right: 5.0),
-                            child: Text(l10n.sessionId),
-                          ),
-                          SelectableText(
-                              sessionState.currentSession!.sessionId.toString())
-                        ],
-                      ),
-                      TextFormField(
-                        initialValue: name,
-                        decoration:
-                            InputDecoration(label: Text(l10n.sessionName)),
-                        onSaved: (newValue) {
-                          name = newValue!;
-                        },
-                      ),
-                      TextFormField(
-                        initialValue: description,
-                        decoration:
-                            InputDecoration(label: Text(l10n.description)),
-                        onSaved: (newValue) {
-                          description = newValue!;
-                        },
-                      )
-                    ],
-                  ),
-                ),
-              ),
-              actions: [
-                if (sessionState.currentSession!.myPermissions
-                    .contains(deleteSessionPermission))
-                  IconButton(
-                      onPressed: () async {
-                        if (!confirmDelete) {
-                          setState(() {
-                            confirmLeave = false;
-                            confirmDelete = true;
-                          });
-                          rootScaffoldMessengerKey.currentState!.showSnackBar(
-                              SnackBar(content: Text(l10n.againToConfirm)));
-                          return;
-                        }
-
-                        var stub = OurChatServiceClient(
-                            ourchatAppState.server!.channel!,
-                            interceptors: [
-                              ourchatAppState.server!.interceptor!
-                            ]);
-                        try {
-                          safeRequest(
-                              stub.deleteSession,
-                              DeleteSessionRequest(
-                                  sessionId: sessionState.currentSession!
-                                      .sessionId), (grpc.GrpcError e) {
-                            showResultMessage(
-                                ourchatAppState, e.code, e.message,
-                                notFoundStatus: l10n.notFound(l10n.session),
-                                permissionDeniedStatus:
-                                    l10n.permissionDenied(l10n.delete));
-                          });
-                          Navigator.pop(context);
-                          showResultMessage(
-                              ourchatAppState, okStatusCode, null);
-                          await ourchatAppState.thisAccount!
-                              .getAccountInfo(ignoreCache: true);
-                          sessionState.getSessions(ourchatAppState);
-                        } catch (e) {
-                          // do nothing
-                        }
-                      },
-                      icon: Icon(
-                        Icons.delete_forever,
-                        color: (confirmDelete ? Colors.redAccent : null),
-                      )),
-                IconButton(
-                    onPressed: () async {
-                      if (!confirmLeave) {
-                        setState(() {
-                          confirmDelete = false;
-                          confirmLeave = true;
-                        });
-                        rootScaffoldMessengerKey.currentState!.showSnackBar(
-                            SnackBar(content: Text(l10n.againToConfirm)));
-                        return;
-                      }
-
-                      var stub = OurChatServiceClient(
-                          ourchatAppState.server!.channel!,
-                          interceptors: [ourchatAppState.server!.interceptor!]);
-                      try {
-                        safeRequest(
-                            stub.leaveSession,
-                            LeaveSessionRequest(
-                                sessionId: sessionState.currentSession!
-                                    .sessionId), (grpc.GrpcError e) {
-                          showResultMessage(ourchatAppState, e.code, e.message,
-                              notFoundStatus: l10n.notFound(l10n.session));
-                        });
-                        showResultMessage(ourchatAppState, okStatusCode, null);
-                        Navigator.pop(context);
-                        await ourchatAppState.thisAccount!
-                            .getAccountInfo(ignoreCache: true);
-                        sessionState.getSessions(ourchatAppState);
-                      } catch (e) {
-                        // do nothing
-                      }
-                    },
-                    icon: Icon(
-                      Icons.exit_to_app,
-                      color: (confirmLeave ? Colors.redAccent : null),
-                    )),
-                IconButton(
-                    onPressed: () async {
-                      key.currentState!.save();
-                      var stub = OurChatServiceClient(
-                          ourchatAppState.server!.channel!,
-                          interceptors: [ourchatAppState.server!.interceptor!]);
-
-                      try {
-                        await safeRequest(
-                            stub.setSessionInfo,
-                            SetSessionInfoRequest(
-                                sessionId:
-                                    sessionState.currentSession!.sessionId,
-                                name: name,
-                                description: description), (grpc.GrpcError e) {
-                          showResultMessage(ourchatAppState, e.code, e.message,
-                              alreadyExistsStatus: l10n.conflict,
-                              permissionDeniedStatus:
-                                  l10n.permissionDenied(e.message!));
-                          if (context.mounted) {
-                            Navigator.pop(context);
-                          }
-                        }, rethrowError: true);
-                        await sessionState.currentSession!
-                            .getSessionInfo(ignoreCache: true);
-                        setState(() {
-                          sessionState.tabTitle =
-                              sessionState.currentSession!.name;
-                        });
-                        showResultMessage(ourchatAppState, okStatusCode, null);
-                      } catch (e) {
-                        // do nothing
-                      }
-                      if (context.mounted) {
-                        Navigator.pop(context);
-                      }
-                    },
-                    icon: Icon(Icons.check)),
-                IconButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    icon: Icon(Icons.close)),
-              ],
-            );
-          });
-        });
   }
 }
 
@@ -673,6 +414,7 @@ class _SessionListState extends State<SessionList> {
       }
       inited = true;
     }
+    var context_ = context;
     return LayoutBuilder(builder: (context, constraints) {
       return Column(
         children: [
@@ -823,6 +565,15 @@ class _SessionListState extends State<SessionList> {
                               sessionState.tabIndex = sessionTab;
                               sessionState.tabTitle =
                                   currentSession.getDisplayName();
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) =>
+                                          ChangeNotifierProvider.value(
+                                            value: Provider.of<SessionState>(
+                                                context_),
+                                            child: TabWidget(),
+                                          )));
                               sessionState.update();
                               sessionState.currentSessionRecords =
                                   await ourchatAppState.eventSystem!
@@ -1322,6 +1073,276 @@ class _SessionTabState extends State<SessionTab> {
         ],
       ),
     );
+  }
+}
+
+class TabWidget extends StatefulWidget {
+  const TabWidget({super.key});
+
+  @override
+  State<TabWidget> createState() => _TabWidgetState();
+}
+
+class _TabWidgetState extends State<TabWidget> {
+  @override
+  Widget build(BuildContext context) {
+    OurChatAppState ourchatAppState = context.watch<OurChatAppState>();
+    SessionState sessionState = context.watch<SessionState>();
+    Widget tab;
+    switch (sessionState.tabIndex) {
+      case sessionTab:
+        tab = SessionTab();
+        break;
+      case userTab:
+        tab = UserTab();
+        break;
+      default:
+        tab = EmptyTab();
+        break;
+    }
+    Widget page = const Placeholder();
+    // 匹配不同设备类型
+    if (ourchatAppState.screenMode == mobile) {
+      page = Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  BackButton(
+                    onPressed: () {
+                      sessionState.tabTitle = "";
+                      sessionState.currentUserId = null;
+                      sessionState.currentSession = null;
+                      sessionState.currentSessionRecords = [];
+                      Navigator.pop(context);
+                      sessionState.update();
+                    },
+                  ),
+                  Text(sessionState.tabTitle, style: TextStyle(fontSize: 20))
+                ],
+              ),
+              if (sessionState.tabIndex == sessionTab)
+                IconButton(
+                    onPressed: () => showSetSessionInfoDialog(
+                        context, ourchatAppState, sessionState),
+                    icon: Icon(Icons.more_horiz))
+            ],
+          ),
+          Expanded(child: tab)
+        ],
+      );
+    } else if (ourchatAppState.screenMode == desktop) {
+      page = Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Expanded(
+                child: Center(
+                  child: Text(sessionState.tabTitle,
+                      style: TextStyle(fontSize: 30)),
+                ),
+              ),
+              if (sessionState.tabIndex == sessionTab)
+                IconButton(
+                    onPressed: () => showSetSessionInfoDialog(
+                        context, ourchatAppState, sessionState),
+                    icon: Icon(Icons.more_horiz))
+            ],
+          ),
+          Expanded(child: tab)
+        ],
+      );
+    }
+    return Scaffold(body: page);
+  }
+
+  void showSetSessionInfoDialog(BuildContext context,
+      OurChatAppState ourchatAppState, SessionState sessionState) {
+    String name = sessionState.currentSession!.name,
+        description = sessionState.currentSession!.description;
+    var l10n = AppLocalizations.of(context)!;
+    var key = GlobalKey<FormState>();
+
+    showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          bool confirmLeave = false;
+          bool confirmDelete = false;
+          return StatefulBuilder(builder: (context, setState) {
+            return AlertDialog(
+              title: Text(sessionState.currentSession!.name.isEmpty
+                  ? l10n.newSession
+                  : sessionState.currentSession!.name),
+              content: Form(
+                key: key,
+                child: SizedBox(
+                  width: 150,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(right: 5.0),
+                            child: Text(l10n.sessionId),
+                          ),
+                          SelectableText(
+                              sessionState.currentSession!.sessionId.toString())
+                        ],
+                      ),
+                      TextFormField(
+                        initialValue: name,
+                        decoration:
+                            InputDecoration(label: Text(l10n.sessionName)),
+                        onSaved: (newValue) {
+                          name = newValue!;
+                        },
+                      ),
+                      TextFormField(
+                        initialValue: description,
+                        decoration:
+                            InputDecoration(label: Text(l10n.description)),
+                        onSaved: (newValue) {
+                          description = newValue!;
+                        },
+                      )
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                if (sessionState.currentSession!.myPermissions
+                    .contains(deleteSessionPermission))
+                  IconButton(
+                      onPressed: () async {
+                        if (!confirmDelete) {
+                          setState(() {
+                            confirmLeave = false;
+                            confirmDelete = true;
+                          });
+                          rootScaffoldMessengerKey.currentState!.showSnackBar(
+                              SnackBar(content: Text(l10n.againToConfirm)));
+                          return;
+                        }
+
+                        var stub = OurChatServiceClient(
+                            ourchatAppState.server!.channel!,
+                            interceptors: [
+                              ourchatAppState.server!.interceptor!
+                            ]);
+                        try {
+                          safeRequest(
+                              stub.deleteSession,
+                              DeleteSessionRequest(
+                                  sessionId: sessionState.currentSession!
+                                      .sessionId), (grpc.GrpcError e) {
+                            showResultMessage(
+                                ourchatAppState, e.code, e.message,
+                                notFoundStatus: l10n.notFound(l10n.session),
+                                permissionDeniedStatus:
+                                    l10n.permissionDenied(l10n.delete));
+                          });
+                          Navigator.pop(context);
+                          showResultMessage(
+                              ourchatAppState, okStatusCode, null);
+                          await ourchatAppState.thisAccount!
+                              .getAccountInfo(ignoreCache: true);
+                          sessionState.getSessions(ourchatAppState);
+                        } catch (e) {
+                          // do nothing
+                        }
+                      },
+                      icon: Icon(
+                        Icons.delete_forever,
+                        color: (confirmDelete ? Colors.redAccent : null),
+                      )),
+                IconButton(
+                    onPressed: () async {
+                      if (!confirmLeave) {
+                        setState(() {
+                          confirmDelete = false;
+                          confirmLeave = true;
+                        });
+                        rootScaffoldMessengerKey.currentState!.showSnackBar(
+                            SnackBar(content: Text(l10n.againToConfirm)));
+                        return;
+                      }
+
+                      var stub = OurChatServiceClient(
+                          ourchatAppState.server!.channel!,
+                          interceptors: [ourchatAppState.server!.interceptor!]);
+                      try {
+                        safeRequest(
+                            stub.leaveSession,
+                            LeaveSessionRequest(
+                                sessionId: sessionState.currentSession!
+                                    .sessionId), (grpc.GrpcError e) {
+                          showResultMessage(ourchatAppState, e.code, e.message,
+                              notFoundStatus: l10n.notFound(l10n.session));
+                        });
+                        showResultMessage(ourchatAppState, okStatusCode, null);
+                        Navigator.pop(context);
+                        await ourchatAppState.thisAccount!
+                            .getAccountInfo(ignoreCache: true);
+                        sessionState.getSessions(ourchatAppState);
+                      } catch (e) {
+                        // do nothing
+                      }
+                    },
+                    icon: Icon(
+                      Icons.exit_to_app,
+                      color: (confirmLeave ? Colors.redAccent : null),
+                    )),
+                IconButton(
+                    onPressed: () async {
+                      key.currentState!.save();
+                      var stub = OurChatServiceClient(
+                          ourchatAppState.server!.channel!,
+                          interceptors: [ourchatAppState.server!.interceptor!]);
+
+                      try {
+                        await safeRequest(
+                            stub.setSessionInfo,
+                            SetSessionInfoRequest(
+                                sessionId:
+                                    sessionState.currentSession!.sessionId,
+                                name: name,
+                                description: description), (grpc.GrpcError e) {
+                          showResultMessage(ourchatAppState, e.code, e.message,
+                              alreadyExistsStatus: l10n.conflict,
+                              permissionDeniedStatus:
+                                  l10n.permissionDenied(e.message!));
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                          }
+                        }, rethrowError: true);
+                        await sessionState.currentSession!
+                            .getSessionInfo(ignoreCache: true);
+                        setState(() {
+                          sessionState.tabTitle =
+                              sessionState.currentSession!.name;
+                        });
+                        showResultMessage(ourchatAppState, okStatusCode, null);
+                      } catch (e) {
+                        // do nothing
+                      }
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                      }
+                    },
+                    icon: Icon(Icons.check)),
+                IconButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    icon: Icon(Icons.close)),
+              ],
+            );
+          });
+        });
   }
 }
 
