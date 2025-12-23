@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:fixnum/fixnum.dart';
 import 'package:markdown/markdown.dart' as md;
 import 'package:grpc/grpc.dart';
@@ -7,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:ourchat/core/const.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:ourchat/main.dart';
+import 'package:http/http.dart' as http;
 
 class OurChatTime {
   /*
@@ -392,4 +394,49 @@ class _NodeTextExtractor implements md.NodeVisitor {
   /// 访问元素节点之后：无需处理
   @override
   void visitElementAfter(md.Element element) {}
+}
+
+List analyzeVersionString(String version) {
+  List<String> versionList = version.replaceAll("v", "").split(".");
+  int latestX, latestY, latestZ;
+  latestX = int.parse(versionList[0]);
+  latestY = int.parse(versionList[1]);
+  latestZ = int.parse(versionList[2].replaceAll(RegExp("-.*"), ""));
+  String other = version.replaceAll("v$latestX.$latestY.$latestZ-", "");
+  return [
+    latestX,
+    latestY,
+    latestZ,
+    other,
+    other.contains("alpha"),
+    other.contains("beta")
+  ];
+}
+
+Future needUpdate(Uri source, bool acceptAlpha, bool acceptBeta) async {
+  http.Response res = await http.get(source);
+  var data = jsonDecode(res.body);
+  for (int i = 0; i < data.length; i++) {
+    String? version = data[i]["tag_name"];
+    if (version == null) return null;
+    if (version == currentVersion) return null;
+    List latestVersionList = analyzeVersionString(version);
+    List currentVersionList = analyzeVersionString(currentVersion);
+    for (int i = 0; i < 3; i++) {
+      if (latestVersionList[i] > currentVersionList[i] &&
+          (acceptAlpha || !latestVersionList[4]) &&
+          (acceptBeta || !latestVersionList[5])) {
+        return data[i];
+      } else if (latestVersionList[i] < currentVersionList[i]) {
+        return null;
+      }
+    }
+    if (latestVersionList[4] && acceptAlpha) {
+      return data[i];
+    }
+    if (latestVersionList[5] && acceptBeta) {
+      return data[i];
+    }
+  }
+  return null;
 }

@@ -98,5 +98,8 @@
     "areUSure": "你确定吗？",
     "toExternalWebsite": "即将去往外部网站：{website}",
     "failToLoad": "加载{sth}失败",
-    "image": "图片"
+    "image": "图片",
+    "newVersionAvailable": "新版本可用！",
+    "updateGettingInfo": "正在获取更新信息...",
+    "updateDownloading": "正在下载更新..."
 }

@@ -1,0 +1,3 @@
+[submodule "client/lib/ota_update"]
+	path = client/lib/ota_update
+	url = https://github.com/senlinjun/ota_update

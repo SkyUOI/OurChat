@@ -15,26 +15,25 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
+        jvmTarget = "1.8"
     }
 
-    // 配置release签名信息（仅在指定参数时使用）
     signingConfigs {
         create("release") {
-            // 从key.properties加载签名信息
             val keystorePropertiesFile = rootProject.file("app/key.properties")
             if (keystorePropertiesFile.exists()) {
                 val keystoreProperties = Properties().apply {
                     load(FileInputStream(keystorePropertiesFile))
                 }
-                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                storeFile = file(keystoreProperties.getProperty("storeFile")!!)
                 storePassword = keystoreProperties.getProperty("storePassword")
                 keyAlias = keystoreProperties.getProperty("keyAlias")
                 keyPassword = keystoreProperties.getProperty("keyPassword")
-                
+
                 enableV1Signing = true
                 enableV2Signing = true
             }
@@ -47,20 +46,23 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        if (flutter.minSdkVersion < 21) {
+            multiDexEnabled = true
+        }
     }
 
     buildTypes {
         release {
-            // 判断是否有签名参数，决定使用哪种签名
-            // 命令行传递 -PuseReleaseSigning=true 时使用release签名
-            val useReleaseSigning = project.hasProperty("useReleaseSigning") 
-                    && project.property("useReleaseSigning") == "true"
+            isMinifyEnabled = true
+            isShrinkResources = true
 
-            // 默认使用debug签名，指定参数时使用release签名
+            val useReleaseSigning = project.hasProperty("useReleaseSigning")
+                    && project.property("useReleaseSigning") == "true"
             signingConfig = if (useReleaseSigning) {
                 signingConfigs.getByName("release")
             } else {
-                signingConfigs.getByName("debug") // 使用默认的debug签名
+                signingConfigs.getByName("debug")
             }
 
             proguardFiles(
@@ -71,7 +73,13 @@ android {
     }
 }
 
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    if (flutter.minSdkVersion < 21) {
+        implementation("androidx.multidex:multidex:2.0.1")
+    }
+}
+
 flutter {
     source = "../.."
 }
-    

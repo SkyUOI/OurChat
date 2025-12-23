@@ -1,40 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
 import 'package:ourchat/main.dart';
+import 'package:ourchat/update.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import 'package:ourchat/core/const.dart';
 import 'package:ourchat/core/chore.dart';
 import 'package:flutter/services.dart';
-
-// 将会在生成发行版时由脚本填入贡献者&赞助者名单
-// ===== AUTO GENERATED CODE BEGIN =====
-const List<Map<String, String>> contributorsList = [
-  {
-    "user": "limuy2022",
-    "avatar": "https://avatars.githubusercontent.com/u/97649454?v=4",
-    "url": "https://github.com/limuy2022"
-  },
-  {
-    "user": "senlinjun",
-    "avatar": "https://avatars.githubusercontent.com/u/78007298?v=4",
-    "url": "https://github.com/senlinjun"
-  },
-  {
-    "user": "OMObuan",
-    "avatar": "https://avatars.githubusercontent.com/u/150120115?v=4",
-    "url": "https://github.com/OMObuan"
-  },
-  {
-    "user": "liya123",
-    "avatar": "https://avatars.githubusercontent.com/u/12387755?v=4",
-    "url": "https://github.com/liya123"
-  }
-];
-const List<Map<String, String>> donorsList = [];
-const version = "v0.1.0.beta";
-const commitSha = "4c31dd44a1cbe7e454f26b359408b0e4201f8780";
-// ===== AUTO GENERATED CODE END =====
 
 class About extends StatefulWidget {
   const About({
@@ -46,31 +18,66 @@ class About extends StatefulWidget {
 }
 
 class _AboutState extends State<About> {
-  bool showFullCommit = false;
+  bool showFullCommit = false, isNeedUpdate = false, inited = false;
+  dynamic updateData;
   @override
   Widget build(BuildContext context) {
     var l10n = AppLocalizations.of(context)!;
     var ourchatAppState = context.watch<OurChatAppState>();
+    if (!inited) {
+      needUpdate(
+              Uri.parse(
+                  "https://gitee.com/api/v5/repos/skyuoi/ourchat/releases"),
+              true,
+              true)
+          .then((value) {
+        setState(() {
+          updateData = value;
+          isNeedUpdate = value != null;
+        });
+      });
+      inited = true;
+    }
     Widget info = Column(
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.start,
           children: [
             Text("Version: "),
-            Text(version, style: TextStyle(fontSize: 20)),
+            Text(currentVersion, style: TextStyle(fontSize: 20)),
+            if (isNeedUpdate)
+              Padding(
+                padding: const EdgeInsets.all(AppStyles.smallPadding),
+                child: ElevatedButton.icon(
+                  style: AppStyles.defaultButtonStyle,
+                  onPressed: () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => UpdateWidget(
+                                  updateData: updateData,
+                                )));
+                  },
+                  icon: Icon(Icons.system_update),
+                  label: Text(
+                    l10n.newVersionAvailable,
+                    style: TextStyle(fontSize: 13),
+                  ),
+                ),
+              )
           ],
         ),
         Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.start,
           children: [
             Text("Commit: "),
             InkWell(
               onTap: () {
-                Clipboard.setData(ClipboardData(text: commitSha));
+                Clipboard.setData(ClipboardData(text: currentCommitSha));
                 ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text(l10n.copiedToClipboard)));
               },
-              child: Text(commitSha.substring(0, 7),
+              child: Text(currentCommitSha.substring(0, 7),
                   style: TextStyle(fontSize: 20)),
             ),
           ],
@@ -224,7 +231,7 @@ class _AboutState extends State<About> {
                 child: Column(
                   children: [
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         SizedBox(
                             width: 600,
@@ -232,7 +239,7 @@ class _AboutState extends State<About> {
                               "assets/images/logo.png",
                             )),
                         Expanded(
-                          child: info,
+                          child: Center(child: info),
                         )
                       ],
                     ),

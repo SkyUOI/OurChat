@@ -59,7 +59,7 @@ def get_afdian_donors(USERID, TOKEN, total_pages=-1):
 
 
 def splitCode():
-    with open("./client/lib/about.dart", "r", encoding="utf-8") as f:
+    with open("./client/lib/core/const.dart", "r", encoding="utf-8") as f:
         code = f.readlines()
     return (
         code[: code.index("// ===== AUTO GENERATED CODE BEGIN =====\n") + 1],
@@ -76,7 +76,7 @@ args = argparser.parse_args()
 
 code = splitCode()
 
-with open("./client/lib/about.dart", "w", encoding="utf-8") as f:
+with open("./client/lib/core/const.dart", "w", encoding="utf-8") as f:
     for i in code[0]:
         f.write(i)
     print(
@@ -97,12 +97,12 @@ with open("./client/lib/about.dart", "w", encoding="utf-8") as f:
     else:
         print("write const List<Map<String, String>> donorsList = [];")
         f.write("const List<Map<String, String>> donorsList = [];\n")
-    print("write " + f'const version = "{args.version}";')
-    f.write(f'const version = "{args.version}";\n')
-    print("write " + f'const commitSha = "{args.commit_sha}";')
-    f.write(f'const commitSha = "{args.commit_sha}";\n')
+    print("write " + f'const currentVersion = "{args.version}";')
+    f.write(f'const currentVersion = "{args.version}";\n')
+    print("write " + f'const currentCommitSha = "{args.commit_sha}";')
+    f.write(f'const currentCommitSha = "{args.commit_sha}";\n')
     for i in code[1]:
         f.write(i)
 
 
-os.system("dart format ./client/lib/about.dart")
+os.system("dart format ./client/lib/core/const.dart")

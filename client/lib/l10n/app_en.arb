@@ -451,5 +451,17 @@
     "image": "image",
     "@image": {
         "description": "Image"
+    },
+    "newVersionAvailable": "New version available!",
+    "@newVersionAvailable": {
+        "description": "New version is available"
+    },
+    "updateGettingInfo": "Getting update info...",
+    "@updateGettingInfo": {
+        "description": "Getting update info..."
+    },
+    "updateDownloading": "Downloading update...",
+    "@updateDownloading": {
+        "description": "Downloading update..."
     }
 }
