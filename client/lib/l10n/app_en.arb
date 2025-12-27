@@ -463,5 +463,9 @@
     "updateDownloading": "Downloading update...",
     "@updateDownloading": {
         "description": "Downloading update..."
+    },
+    "installationPackage": "Installation Package",
+    "@installationPackage": {
+        "description": "Installation Package"
     }
 }

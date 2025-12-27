@@ -207,7 +207,7 @@ class _AboutState extends State<About> {
                   ),
                   Row(
                     children: [
-                      BackButton(onPressed: () => Navigator.pop(context)),
+                      BackButton(),
                     ],
                   )
                 ],
@@ -223,7 +223,7 @@ class _AboutState extends State<About> {
           children: [
             Row(
               children: [
-                BackButton(onPressed: () => Navigator.pop(context)),
+                BackButton(),
               ],
             ),
             Expanded(

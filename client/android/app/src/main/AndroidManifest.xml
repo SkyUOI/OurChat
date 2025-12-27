@@ -11,6 +11,9 @@
     <!-- 如果使用相机 -->
     <uses-permission android:name="android.permission.CAMERA" />
 
+    <!-- 允许安装包 -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
     <!-- 允许 HTTP 请求 -->
     <application
         android:usesCleartextTraffic="true" 
@@ -41,6 +44,11 @@
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
+        <receiver android:name="sk.fourq.otaupdate.InstallResultReceiver"  android:exported="false">
+            <intent-filter>
+                <action android:name="${applicationId}.ACTION_INSTALL_COMPLETE"/>
+            </intent-filter>
+        </receiver>
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
