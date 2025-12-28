@@ -27,10 +27,17 @@ dependencies:
   cached_network_image: ^3.4.1
   window_manager: ^0.5.1
   tray_manager: ^0.5.1
-  flutter_markdown_plus: ^1.0.5
+  # wait for PR
+  # flutter_markdown_plus: ^1.0.5
+  flutter_markdown_plus:
+    git:
+      url: git@github.com:senlinjun/flutter_markdown_plus.git
+      ref: noScroll
   markdown: ^7.3.0
   sqlite3: ^2.9.4 # Required for drift on Web
   http: ^1.2.2
+  # wait for PR
+  # ota_update: ^7.1.0
   ota_update:
     git:
       url: git@github.com:senlinjun/ota_update.git

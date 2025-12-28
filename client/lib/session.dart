@@ -1471,7 +1471,8 @@ class _MessageWidgetState extends State<MessageWidget> {
                     .failToLoad("${ourchatAppState.l10n.image}($alt)"));
               }
             },
-          ),
+            noScroll: true,
+          )
         ],
       ),
     );
