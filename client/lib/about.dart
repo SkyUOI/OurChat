@@ -25,17 +25,19 @@ class _AboutState extends State<About> {
     var l10n = AppLocalizations.of(context)!;
     var ourchatAppState = context.watch<OurChatAppState>();
     if (!inited) {
-      needUpdate(
-              Uri.parse(
-                  "https://gitee.com/api/v5/repos/skyuoi/ourchat/releases"),
-              true,
-              true)
-          .then((value) {
-        setState(() {
-          updateData = value;
-          isNeedUpdate = value != null;
+      if (enableVersionCheck) {
+        needUpdate(
+                Uri.parse(
+                    "https://gitee.com/api/v5/repos/skyuoi/ourchat/releases"),
+                true,
+                true)
+            .then((value) {
+          setState(() {
+            updateData = value;
+            isNeedUpdate = value != null;
+          });
         });
-      });
+      }
       inited = true;
     }
     Widget info = Column(
@@ -45,7 +47,7 @@ class _AboutState extends State<About> {
           children: [
             Text("Version: "),
             Text(currentVersion, style: TextStyle(fontSize: 20)),
-            if (isNeedUpdate)
+            if (enableVersionCheck && isNeedUpdate)
               Padding(
                 padding: const EdgeInsets.all(AppStyles.smallPadding),
                 child: ElevatedButton.icon(
@@ -64,7 +66,15 @@ class _AboutState extends State<About> {
                     style: TextStyle(fontSize: 13),
                   ),
                 ),
-              )
+              ),
+            if (!enableVersionCheck)
+              Padding(
+                  padding: const EdgeInsets.all(AppStyles.smallPadding),
+                  child: Text(
+                    l10n.disableUpdate,
+                    style: TextStyle(
+                        fontSize: 13, color: Theme.of(context).hintColor),
+                  ))
           ],
         ),
         Row(

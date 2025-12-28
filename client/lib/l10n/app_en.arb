@@ -467,5 +467,9 @@
     "installationPackage": "Installation Package",
     "@installationPackage": {
         "description": "Installation Package"
+    },
+    "disableUpdate": "This release version disabled update",
+    "@disableUpdate": {
+        "description": "This release version disabled update"
     }
 }

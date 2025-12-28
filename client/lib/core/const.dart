@@ -17,6 +17,11 @@ const List<Map<String, String>> contributorsList = [
     "url": "https://github.com/OMObuan"
   },
   {
+    "user": "Hemenguelbindi",
+    "avatar": "https://avatars.githubusercontent.com/u/20486626?v=4",
+    "url": "https://github.com/Hemenguelbindi"
+  },
+  {
     "user": "liya123",
     "avatar": "https://avatars.githubusercontent.com/u/12387755?v=4",
     "url": "https://github.com/liya123"
@@ -25,6 +30,7 @@ const List<Map<String, String>> contributorsList = [
 const List<Map<String, String>> donorsList = [];
 const currentVersion = "v0.0.0.beta";
 const currentCommitSha = "4c31dd44a1cbe7e454f26b359408b0e4201f8780";
+const enableVersionCheck = false;
 // ===== AUTO GENERATED CODE END =====
 
 // Status Code
