@@ -259,7 +259,7 @@ impl TestUser {
         let mut files_content = vec![UploadRequest::new_header(
             size,
             #[allow(deprecated)]
-            bytes::Bytes::copy_from_slice(hash.as_slice()),
+            Bytes::copy_from_slice(hash.as_slice()),
             false,
             session_id.map(|x| x.0),
         )];
@@ -421,8 +421,7 @@ impl TestUser {
             .await?
             .updated_time
             .unwrap()
-            .try_into()
-            .unwrap())
+            .try_into()?)
     }
 }
 

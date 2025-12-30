@@ -221,7 +221,7 @@ pub struct Application {
 pub struct SharedData {
     pub cfg: Arc<RwLock<Cfg>>,
     pub verify_record: DashMap<String, Arc<tokio::sync::Notify>>,
-    pub file_sys: crate::db::file_storage::FileSys,
+    pub file_sys: db::file_storage::FileSys,
     maintaining: Mutex<bool>,
     sched: tokio::sync::Mutex<JobSchedulerWrapper>,
 }
@@ -359,7 +359,7 @@ impl Application {
         let http_launcher = Launcher::build_from_config(&mut cfg).await?;
 
         // init some regular tasks
-        crate::process::webrtc::clean_rooms(
+        process::webrtc::clean_rooms(
             cfg.main_cfg.voip.empty_room_keep_duration,
             db_pool.clone(),
             sched.lock().await,
@@ -368,7 +368,7 @@ impl Application {
 
         let cfg = Arc::new(RwLock::new(cfg));
         // Create FileSys with the temporary SharedData
-        let file_sys = crate::db::file_storage::FileSys::new(db_pool.db_pool.clone(), cfg.clone());
+        let file_sys = db::file_storage::FileSys::new(db_pool.db_pool.clone(), cfg.clone());
 
         // Create final SharedData with the FileSys
         let shared = Arc::new(SharedData {

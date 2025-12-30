@@ -83,7 +83,7 @@ impl HttpServer {
                 http::HeaderName::from_static("user-agent"),
                 http::HeaderName::from_static("x-user-agent"),
             ])
-            .max_age(std::time::Duration::from_secs(86400));
+            .max_age(Duration::from_secs(86400));
         let rate_governor_config = GovernorConfigBuilder::default()
             .burst_size(shared_data.cfg().http_cfg.rate_limit.num_of_burst_requests)
             .per_millisecond(
@@ -101,7 +101,7 @@ impl HttpServer {
         // copy the example of tower_governor
         tokio::spawn(async move {
             loop {
-                tokio::time::sleep(std::time::Duration::from_mins(1)).await;
+                tokio::time::sleep(Duration::from_mins(1)).await;
                 info!(
                     "rate limiting storage size: {}",
                     rate_governor_limiter.len()
@@ -522,7 +522,7 @@ async fn exit_signal() {
     #[cfg(not(unix))]
     let terminate = std::future::pending::<()>();
 
-    tokio::select! {
+    select! {
         _ = ctrl_c => {},
         _ = terminate => {},
     }
