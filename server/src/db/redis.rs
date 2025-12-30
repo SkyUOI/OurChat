@@ -15,3 +15,7 @@ pub fn map_ban_to_redis(session: SessionID, user_id: ID) -> String {
 pub fn map_ban_all_to_redis(session: SessionID) -> String {
     format!("ban:{session}:all")
 }
+
+pub fn map_server_ban_to_redis(user_id: ID) -> String {
+    format!("server_ban:{user_id}")
+}

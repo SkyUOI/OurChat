@@ -158,7 +158,7 @@ pub async fn send_verification_request(
     session_id: SessionID,
     leave_message: Option<String>,
 ) -> anyhow::Result<()> {
-    let expire_at = chrono::Utc::now() + server.shared_data.cfg.main_cfg.verification_expire_time;
+    let expire_at = chrono::Utc::now() + server.shared_data.cfg().main_cfg.verification_expire_time;
     let expire_at_google: google::protobuf::Timestamp = expire_at.into();
     // save to the database
     let respond_msg = InviteUserToSession {

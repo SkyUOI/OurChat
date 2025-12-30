@@ -208,7 +208,7 @@ impl MainCfg {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Cfg {
     pub main_cfg: MainCfg,
     pub db_cfg: PostgresDbCfg,

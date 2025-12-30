@@ -9,6 +9,7 @@ OurChat client is a cross-platform chat application built with Flutter, supporti
 ## Quick Reference
 
 ### Most Common Commands
+
 ```bash
 # Run on connected device/emulator
 flutter run
@@ -44,6 +45,7 @@ dart run build_runner build --delete-conflicting-outputs
 ### Dependencies
 
 Key dependencies (see `pubspec.yaml` for full list):
+
 - **provider**: State management
 - **grpc** & **protobuf**: Server communication
 - **drift** & **drift_flutter**: Local SQLite database
@@ -71,31 +73,37 @@ dart format lib/
 ## Platform-Specific Builds
 
 ### Linux
+
 - Requires GTK3 development libraries
 - AppImages can be generated with `flutter build linux`
 - System tray integration via `tray_manager`
 
 ### Windows
+
 - Requires Visual Studio build tools
 - MSIX/AppX packaging available
 - System tray integration with `.ico` icons
 
 ### macOS
+
 - Requires Xcode and CocoaPods
 - Notarization required for distribution
 - Menu bar integration supported
 
 ### Android
+
 - Requires Android SDK and NDK
 - Keystore required for release builds
 - Firebase integration possible
 
 ### iOS
+
 - Requires Xcode and macOS
 - App Store distribution requires Apple Developer account
 - Push notification configuration needed
 
 ### Web
+
 - Requires modern browser with WebAssembly support
 - gRPC-Web via Envoy proxy
 - Service Worker for offline functionality
@@ -152,10 +160,12 @@ dart format lib/
 ### Code Generation
 
 When protobuf definitions change (`service/` directory):
+
 1. Run `python script/generate.pb.dart.py` to regenerate Dart gRPC code.
 2. Ensure `protoc` with Dart plugin is installed.
 
 When database schema changes (`lib/core/database.dart`):
+
 1. Update the drift table definitions.
 2. Run `dart run build_runner build --delete-conflicting-outputs`.
 3. Commit the generated `.g.dart` files.

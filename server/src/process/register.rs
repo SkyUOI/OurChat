@@ -4,7 +4,7 @@ use crate::db::session::join_in_session_or_create;
 use crate::process::error_msg::{SERVER_ERROR, exist};
 use crate::{db, helper, server::AuthServiceProvider};
 use anyhow::Context;
-use argon2::{Params, PasswordHasher, password_hash::SaltString};
+use argon2::{Params, PasswordHasher};
 use base::consts::{self, ID};
 use base::database::DbPool;
 use entities::user;
@@ -109,11 +109,9 @@ enum RegisterError {
 ///
 /// Panics if the password is too long or if the salt generation fails.
 fn compute_password_hash(password: &str, params: Params) -> anyhow::Result<String> {
-    let salt = SaltString::try_from_rng(&mut OsRng)?;
-
     Ok(
         argon2::Argon2::new(argon2::Algorithm::Argon2id, argon2::Version::V0x13, params)
-            .hash_password(password.as_bytes(), &salt)?
+            .hash_password_with_rng(&mut OsRng, password.as_bytes())?
             .to_string(),
     )
 }
@@ -136,7 +134,11 @@ async fn register_impl(
 
     // Check strong password
     if zxcvbn::zxcvbn(&req.password, &[&req.name, &req.email]).score()
-        < server.shared_data.cfg.user_setting.password_strength_limit
+        < server
+            .shared_data
+            .cfg()
+            .user_setting
+            .password_strength_limit
     {
         return Err(RegisterError::PasswordNotStrong);
     }
@@ -151,23 +153,26 @@ async fn register_impl(
         return Err(RegisterError::InvalidUsername);
     }
 
-    let password_hash = &server.shared_data.cfg.main_cfg.password_hash;
+    let parmams = Params::new(
+        server.shared_data.cfg().main_cfg.password_hash.m_cost,
+        server.shared_data.cfg().main_cfg.password_hash.t_cost,
+        server.shared_data.cfg().main_cfg.password_hash.p_cost,
+        server.shared_data.cfg().main_cfg.password_hash.output_len,
+    )
+    .unwrap();
+    let require_email_verification = server.shared_data.cfg().main_cfg.require_email_verification;
+    let friends_number_limit = server.shared_data.cfg().main_cfg.friends_number_limit;
     let response = add_new_user(
         req,
         &server.db,
-        Params::new(
-            password_hash.m_cost,
-            password_hash.t_cost,
-            password_hash.p_cost,
-            password_hash.output_len,
-        )
-        .unwrap(),
-        server.shared_data.cfg.main_cfg.require_email_verification,
-        server.shared_data.cfg.main_cfg.friends_number_limit,
+        parmams,
+        require_email_verification,
+        friends_number_limit,
     )
     .await?;
     // join default session if configured
-    if let Some(default_session_id) = server.shared_data.cfg.main_cfg.default_session {
+    let default_session = server.shared_data.cfg().main_cfg.default_session;
+    if let Some(default_session_id) = default_session {
         let logic = async {
             let transaction = server.db.db_pool.begin().await?;
             join_in_session_or_create(

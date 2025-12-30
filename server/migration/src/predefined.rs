@@ -43,6 +43,11 @@ pub enum PredefinedServerManagementPermission {
     PublishAnnouncement = 1,
     BanUser = 2,
     MuteUser = 3,
+    ViewConfiguration = 4,
+    ModifyConfiguration = 5,
+    ViewMonitoring = 6,
+    ViewUsers = 7,
+    ManageSessions = 8,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]

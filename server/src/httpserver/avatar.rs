@@ -42,6 +42,7 @@ impl IntoResponse for AppError {
     }
 }
 
+#[axum::debug_handler]
 pub async fn avatar(
     State((pool, shared_data)): State<(DbPool, Arc<SharedData>)>,
     Query(params): Query<AvatarParams>,
@@ -56,9 +57,9 @@ pub async fn avatar(
     match user.avatar {
         Some(avatar_key) => {
             // Use hierarchical storage path for better filesystem performance
-            let base_path = &shared_data.cfg.main_cfg.files_storage_path;
+            let base_path = shared_data.cfg().main_cfg.files_storage_path.clone();
             let path = crate::db::file_storage::generate_hierarchical_path(
-                base_path,
+                &base_path,
                 params.user_id.0,
                 &avatar_key,
             );
@@ -69,7 +70,8 @@ pub async fn avatar(
         }
         None => {
             // use default avatar
-            let bytes = tokio::fs::read(&shared_data.cfg.http_cfg.default_avatar_path)
+            let path = shared_data.cfg().http_cfg.default_avatar_path.clone();
+            let bytes = tokio::fs::read(path)
                 .await
                 .context("read default avatar failed")?;
             Ok(bytes)

@@ -21,7 +21,7 @@ async fn verify_file_download(
 
 /// Helper function to check if temporary files remain
 async fn no_temp_files_remain(app: &TestApp) -> bool {
-    let files_storage_path = &app.app_shared.cfg.main_cfg.files_storage_path;
+    let files_storage_path = app.app_shared.cfg().main_cfg.files_storage_path.clone();
     match fs::read_dir(files_storage_path).await {
         Ok(mut entries) => {
             while let Ok(Some(entry)) = entries.next_entry().await {

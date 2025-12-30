@@ -66,7 +66,7 @@ pub async fn verify_client(
         };
         let verification_link = format!(
             "{}v1/verify/confirm?token={}",
-            shared_data.cfg.http_cfg.base_url(),
+            shared_data.cfg().http_cfg.base_url(),
             data.token
         );
 
@@ -75,12 +75,13 @@ pub async fn verify_client(
             verification_link
         );
 
-        let html_body = if let Some(html_template_path) = shared_data
-            .cfg
+        let html_template_path = shared_data
+            .cfg()
             .http_cfg
             .verification_html_template_path
-            .as_ref()
-        {
+            .clone();
+
+        let html_body = if let Some(html_template_path) = html_template_path {
             match read_to_string(&html_template_path).await {
                 Err(e) => {
                     tracing::error!("Failed to read {}: {:?}", html_template_path.display(), e);
@@ -104,13 +105,8 @@ pub async fn verify_client(
             Err(e)?
         };
     }
-    add_token(
-        &data.token,
-        &data.email,
-        shared_data.cfg.user_setting.verify_email_expiry,
-        &db.redis_pool,
-    )
-    .await?;
+    let expiry = shared_data.cfg().user_setting.verify_email_expiry;
+    add_token(&data.token, &data.email, expiry, &db.redis_pool).await?;
     Ok(())
 }
 

@@ -27,12 +27,29 @@ use pb::service::basic::v1::{
     TimestampResponse,
 };
 use pb::service::ourchat::v1::our_chat_service_server::OurChatServiceServer;
+use pb::service::server_manage::config::v1::{
+    GetConfigRequest, GetConfigResponse, SetConfigRequest, SetConfigResponse,
+};
 use pb::service::server_manage::delete_account::v1::{DeleteAccountRequest, DeleteAccountResponse};
+use pb::service::server_manage::monitoring::v1::{
+    GetHistoricalMetricsRequest, GetHistoricalMetricsResponse, GetMonitoringMetricsRequest,
+    GetMonitoringMetricsResponse,
+};
 use pb::service::server_manage::publish_announcement::v1::{
     PublishAnnouncementRequest, PublishAnnouncementResponse,
 };
+use pb::service::server_manage::session_manage::v1::{
+    DeleteSessionRequest, DeleteSessionResponse, GetSessionDetailsRequest,
+    GetSessionDetailsResponse, ListSessionsRequest, ListSessionsResponse,
+    RemoveUserFromSessionRequest, RemoveUserFromSessionResponse,
+};
 use pb::service::server_manage::set_server_status::v1::{
     SetServerStatusRequest, SetServerStatusResponse,
+};
+use pb::service::server_manage::user_manage::v1::{
+    AssignServerRoleRequest, AssignServerRoleResponse, BanUserRequest, BanUserResponse,
+    ListUserServerRolesRequest, ListUserServerRolesResponse, ListUsersRequest, ListUsersResponse,
+    RemoveServerRoleRequest, RemoveServerRoleResponse, UnbanUserRequest, UnbanUserResponse,
 };
 use pb::service::server_manage::v1::server_manage_service_server::{
     ServerManageService, ServerManageServiceServer,
@@ -353,11 +370,125 @@ impl ServerManageService for ServerManageServiceProvider {
     ) -> Result<Response<SetServerStatusResponse>, Status> {
         process::set_server_status(self, request).await
     }
+
+    #[tracing::instrument(skip(self))]
     async fn publish_announcement(
         &self,
         request: Request<PublishAnnouncementRequest>,
     ) -> Result<Response<PublishAnnouncementResponse>, Status> {
         process::publish_announcement(self, request).await
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn get_config(
+        &self,
+        request: Request<GetConfigRequest>,
+    ) -> Result<Response<GetConfigResponse>, Status> {
+        process::get_config(self, request).await
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn set_config(
+        &self,
+        request: Request<SetConfigRequest>,
+    ) -> Result<Response<SetConfigResponse>, Status> {
+        process::set_config(self, request).await
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn get_monitoring_metrics(
+        &self,
+        _request: Request<GetMonitoringMetricsRequest>,
+    ) -> Result<Response<GetMonitoringMetricsResponse>, Status> {
+        todo!()
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn get_historical_metrics(
+        &self,
+        _request: Request<GetHistoricalMetricsRequest>,
+    ) -> Result<Response<GetHistoricalMetricsResponse>, Status> {
+        todo!()
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn list_users(
+        &self,
+        _request: Request<ListUsersRequest>,
+    ) -> Result<Response<ListUsersResponse>, Status> {
+        todo!()
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn ban_user(
+        &self,
+        _request: Request<BanUserRequest>,
+    ) -> Result<Response<BanUserResponse>, Status> {
+        process::server_ban_user(self, _request).await
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn unban_user(
+        &self,
+        _request: Request<UnbanUserRequest>,
+    ) -> Result<Response<UnbanUserResponse>, Status> {
+        process::server_unban_user(self, _request).await
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn assign_server_role(
+        &self,
+        _request: Request<AssignServerRoleRequest>,
+    ) -> Result<Response<AssignServerRoleResponse>, Status> {
+        process::assign_server_role(self, _request).await
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn remove_server_role(
+        &self,
+        _request: Request<RemoveServerRoleRequest>,
+    ) -> Result<Response<RemoveServerRoleResponse>, Status> {
+        process::remove_server_role(self, _request).await
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn list_user_server_roles(
+        &self,
+        request: Request<ListUserServerRolesRequest>,
+    ) -> Result<Response<ListUserServerRolesResponse>, Status> {
+        process::list_user_server_roles(self, request).await
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn list_sessions(
+        &self,
+        _request: Request<ListSessionsRequest>,
+    ) -> Result<Response<ListSessionsResponse>, Status> {
+        todo!()
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn get_session_details(
+        &self,
+        _request: Request<GetSessionDetailsRequest>,
+    ) -> Result<Response<GetSessionDetailsResponse>, Status> {
+        todo!()
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn delete_session(
+        &self,
+        _request: Request<DeleteSessionRequest>,
+    ) -> Result<Response<DeleteSessionResponse>, Status> {
+        todo!()
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn remove_user_from_session(
+        &self,
+        _request: Request<RemoveUserFromSessionRequest>,
+    ) -> Result<Response<RemoveUserFromSessionResponse>, Status> {
+        todo!()
     }
 }
 

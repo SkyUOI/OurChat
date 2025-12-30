@@ -118,10 +118,7 @@ const handleLogin = () => {
       setTimeout(() => {
         loading.value = false
         ElMessage.success(t('loginSuccess'))
-
-        // Set mock token
-        localStorage.setItem('token', 'mock-token-value')
-
+        // TODO: Store authentication token from server response
         // Redirect to home page
         router.push('/')
       }, 1500)
