@@ -32,7 +32,7 @@ jobs:
 
     steps:
       - name: Set SSH Key
-        run: echo ${{ secrets.SSH_PRIVATE_KEY }} > ~ssh/id_rsa
+        run: echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~ssh/id_rsa
       - uses: actions/checkout@v4
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
