@@ -3,8 +3,7 @@ syntax = "proto3";
 package service.server_manage.config.v1;
 
 // Request to get configuration
-message GetConfigRequest {
-}
+message GetConfigRequest {}
 
 // Response with configuration content
 message GetConfigResponse {
