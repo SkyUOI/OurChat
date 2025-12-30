@@ -1009,7 +1009,9 @@ class _SessionTabState extends State<SessionTab> {
                                     size: Int64.parseInt(sessionState
                                         .cacheFiles[path]!.length
                                         .toString()),
-                                    autoClean: false),
+                                    autoClean: false,
+                                    sessionId:
+                                        sessionState.currentSession!.sessionId),
                               ));
                               uploadController.add(UploadRequest(
                                   content: sessionState.cacheFiles[path]!));

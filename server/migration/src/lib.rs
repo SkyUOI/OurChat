@@ -20,6 +20,7 @@ pub mod m20251205_000008_webrtc;
 pub mod m20251205_000009_oauthverification;
 pub mod m20251205_000010_sessioninvitations;
 pub mod m20251205_000011_server_management_permissions_extended;
+mod m20251230_090033_add_session_in_file_load;
 
 pub struct Migrator;
 
@@ -38,6 +39,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20251205_000009_oauthverification::Migration),
             Box::new(m20251205_000010_sessioninvitations::Migration),
             Box::new(m20251205_000011_server_management_permissions_extended::Migration),
+            Box::new(m20251230_090033_add_session_in_file_load::Migration),
         ]
     }
 }

@@ -1,3 +1,3 @@
 #!/bin/sh
 
-python script/pre-commit.py
+just pre-commit

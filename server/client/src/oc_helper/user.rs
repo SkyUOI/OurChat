@@ -229,14 +229,22 @@ impl TestUser {
         Ok(())
     }
 
-    pub async fn post_file(&mut self, content: &[u8]) -> anyhow::Result<String> {
-        self.post_file_as_iter(content.chunks(1024 * 1024).map(|chunk| chunk.to_vec()))
-            .await
+    pub async fn post_file(
+        &mut self,
+        content: &[u8],
+        session_id: Option<SessionID>,
+    ) -> anyhow::Result<String> {
+        self.post_file_as_iter(
+            content.chunks(1024 * 1024).map(|chunk| chunk.to_vec()),
+            session_id,
+        )
+        .await
     }
 
     pub async fn post_file_as_iter(
         &mut self,
         content: impl Iterator<Item = Vec<u8>> + Clone,
+        session_id: Option<SessionID>,
     ) -> anyhow::Result<String> {
         use pb::service::ourchat::upload::v1::UploadRequest;
         use prost::bytes::Bytes;
@@ -253,6 +261,7 @@ impl TestUser {
             #[allow(deprecated)]
             bytes::Bytes::copy_from_slice(hash.as_slice()),
             false,
+            session_id.map(|x| x.0),
         )];
         for chunks in content {
             chunks.chunks(1024 * 1024).for_each(|chunk| {

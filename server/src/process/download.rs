@@ -8,7 +8,7 @@ use crate::{
 use base::consts::ID;
 use base::database::DbPool;
 use bytes::BytesMut;
-use entities::files;
+use entities::session_relation;
 use pb::service::ourchat::download::v1::{DownloadRequest, DownloadResponse};
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use tokio::{io::AsyncReadExt, sync::mpsc};
@@ -27,24 +27,47 @@ pub enum DownloadError {
     InternalIOError(#[from] std::io::Error),
 }
 
+/// Check if a user is in the specified session
+async fn is_user_in_session(
+    session_id: i64,
+    user_id: ID,
+    db: &DbPool,
+) -> Result<bool, sea_orm::DbErr> {
+    let result = session_relation::Entity::find()
+        .filter(session_relation::Column::SessionId.eq(session_id))
+        .filter(session_relation::Column::UserId.eq(i64::from(user_id)))
+        .one(&db.db_pool)
+        .await?;
+
+    Ok(result.is_some())
+}
+
 async fn download_impl(
     id: ID,
     req: DownloadRequest,
     tx: &mpsc::Sender<Result<DownloadResponse, Status>>,
     db_conn: &DbPool,
-    files_storage_path: impl Into<PathBuf>,
 ) -> Result<(), DownloadError> {
-    let _files_storage_path = files_storage_path.into();
-
-    // First check if the file can be downloaded by the user and get file info
-    let file_info = match Files::find_by_id(&req.key)
-        .filter(files::Column::UserId.eq(id))
-        .one(&db_conn.db_pool)
-        .await?
-    {
+    // First check if the file exists and get file info
+    let file_info = match Files::find_by_id(&req.key).one(&db_conn.db_pool).await? {
         Some(f) => f,
         None => return Err(DownloadError::PermissionDenied),
     };
+
+    // Check if user has permission:
+    // 1. User owns the file, OR
+    // 2. File has a session_id and user is in that session
+    let has_permission = if file_info.user_id == i64::from(id) {
+        true // File owner
+    } else if let Some(session_id) = file_info.session_id {
+        is_user_in_session(session_id, id, db_conn).await? // Session member
+    } else {
+        false // Neither owner nor in a session
+    };
+
+    if !has_permission {
+        return Err(DownloadError::PermissionDenied);
+    }
 
     // Use the stored path from database (which should be hierarchical)
     let path = PathBuf::from(&file_info.path);
@@ -73,10 +96,9 @@ pub async fn download(
     let req = request.into_inner();
     let (tx, rx) = mpsc::channel(16);
     let db_conn = server.db.clone();
-    let files_storage_path = server.shared_data.cfg().main_cfg.files_storage_path.clone();
 
     tokio::spawn(async move {
-        match download_impl(id, req, &tx, &db_conn, files_storage_path).await {
+        match download_impl(id, req, &tx, &db_conn).await {
             Ok(_) => {}
             Err(e) => match e {
                 DownloadError::PermissionDenied => {

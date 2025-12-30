@@ -48,7 +48,7 @@ async fn test_upload_and_download(
     let key = user1
         .lock()
         .await
-        .post_file_as_iter(small_file.clone())
+        .post_file_as_iter(small_file.clone(), None)
         .await
         .unwrap();
     verify_file_download(&user1, key, small_file_hash)
@@ -59,7 +59,7 @@ async fn test_upload_and_download(
     let key2 = user2
         .lock()
         .await
-        .post_file_as_iter(small_file)
+        .post_file_as_iter(small_file, None)
         .await
         .unwrap();
     assert_err!(user1.lock().await.download_file(key2).await);
@@ -80,7 +80,7 @@ async fn test_files_upload_overflow_and_delete(
         keys.push(
             user.lock()
                 .await
-                .post_file_as_iter(big_file.clone())
+                .post_file_as_iter(big_file.clone(), None)
                 .await
                 .unwrap(),
         );
@@ -89,7 +89,7 @@ async fn test_files_upload_overflow_and_delete(
     let small_file_key = user
         .lock()
         .await
-        .post_file_as_iter(small_file.clone())
+        .post_file_as_iter(small_file.clone(), None)
         .await
         .unwrap();
     assert_err!(user.lock().await.download_file(keys[0].clone()).await);
@@ -101,7 +101,91 @@ async fn test_files_upload_overflow_and_delete(
 async fn deny_too_big_file(app: &mut TestApp) {
     let user = app.new_user().await.unwrap();
     let super_big_file = generate_file(Size::from_mebibytes(20)).unwrap();
-    assert_err!(user.lock().await.post_file_as_iter(super_big_file).await);
+    assert_err!(
+        user.lock()
+            .await
+            .post_file_as_iter(super_big_file, None)
+            .await
+    );
+}
+
+/// Test session-based file download permissions:
+/// - File owner can download their own file
+/// - Users in the same session can download the file
+/// - Users not in the session cannot download the file
+#[tokio::test]
+async fn session_file_download_permission() {
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
+
+    // Create a session with two users
+    let (session_users, session) = app
+        .new_session_db_level(2, "test_session", false)
+        .await
+        .unwrap();
+    let user1 = &session_users[0]; // File owner
+    let user2 = &session_users[1]; // Session member
+
+    // Create a third user who is NOT in the session
+    let user3 = app.new_user().await.unwrap();
+
+    // Create a test file
+    let test_file = generate_file(Size::from_kibibytes(100)).unwrap();
+    let test_file_hash = get_hash_from_file(test_file.clone());
+
+    // User1 uploads a file associated with the session
+    let file_key = user1
+        .lock()
+        .await
+        .post_file_as_iter(test_file.clone(), Some(session.session_id))
+        .await
+        .unwrap();
+
+    // User1 (owner) should be able to download the file
+    verify_file_download(user1, file_key.clone(), &test_file_hash)
+        .await
+        .unwrap();
+
+    // User2 (session member) should be able to download the file
+    verify_file_download(user2, file_key.clone(), &test_file_hash)
+        .await
+        .unwrap();
+
+    // User3 (NOT in session) should NOT be able to download the file
+    assert_err!(user3.lock().await.download_file(file_key.clone()).await);
+
+    app.async_drop().await;
+}
+
+/// Test that files without session_id are only accessible to the owner
+#[tokio::test]
+async fn file_without_session_only_owner_access() {
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
+
+    // Create two users
+    let user1 = app.new_user().await.unwrap();
+    let user2 = app.new_user().await.unwrap();
+
+    // Create a test file
+    let test_file = generate_file(Size::from_kibibytes(100)).unwrap();
+    let test_file_hash = get_hash_from_file(test_file.clone());
+
+    // User1 uploads a file WITHOUT session_id
+    let file_key = user1
+        .lock()
+        .await
+        .post_file_as_iter(test_file.clone(), None)
+        .await
+        .unwrap();
+
+    // User1 (owner) should be able to download the file
+    verify_file_download(&user1, file_key.clone(), &test_file_hash)
+        .await
+        .unwrap();
+
+    // User2 should NOT be able to download the file (no session association)
+    assert_err!(user2.lock().await.download_file(file_key).await);
+
+    app.async_drop().await;
 }
 
 #[tokio::test]

@@ -78,6 +78,7 @@ pub enum Files {
     AutoClean,
     Path,
     UserId,
+    SessionId,
 }
 
 #[derive(DeriveIden)]

@@ -165,7 +165,7 @@ async fn test_upload(
             let keys = keys.clone();
             async move {
                 let user_id = user.lock().await.ocid.clone();
-                match user.lock().await.post_file_as_iter(content).await {
+                match user.lock().await.post_file_as_iter(content, None).await {
                     Ok(key) => {
                         keys.insert(user_id, key);
                         true
