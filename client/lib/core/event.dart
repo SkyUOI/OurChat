@@ -9,6 +9,7 @@ import 'package:ourchat/core/database.dart';
 import 'package:ourchat/core/log.dart';
 import 'package:ourchat/core/session.dart';
 import 'package:ourchat/main.dart';
+import 'package:ourchat/service/ourchat/download/v1/download.pb.dart';
 import 'package:ourchat/service/ourchat/friends/accept_friend_invitation/v1/accept_friend_invitation.pb.dart';
 import 'package:ourchat/service/ourchat/msg_delivery/v1/msg_delivery.pb.dart';
 import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
@@ -108,10 +109,8 @@ class UserMsg extends OurChatEvent {
   Future loadFromDB(OurChatDatabase privateDB, RecordData row) async {
     await super.loadFromDB(privateDB, row);
     markdownText = data!["markdown_text"];
-    involvedFiles = [];
-    for (int i = 0; i < data!["involved_files"].length; i++) {
-      involvedFiles.add(data!["involved_files"]);
-    }
+    // Convert the list from JSON to List<String>
+    involvedFiles = (data!["involved_files"] as List).cast<String>();
   }
 
   Future<SendMsgResponse?> send(OurChatSession session) async {
@@ -135,6 +134,83 @@ class UserMsg extends OurChatEvent {
       return null;
     }
   }
+
+  /// Download the involved files for this message.
+  /// Returns a map of file keys to downloaded bytes.
+  /// Only downloads files that are not already in the provided cache.
+  /// Throws an error if any download fails.
+  Future<Map<String, Uint8List>> downloadInvolvedFiles(
+      Map<String, Uint8List> existingCache) async {
+    if (involvedFiles.isEmpty) {
+      logger.i("No files to download");
+      return {};
+    }
+
+    logger.i(
+        "Starting download for ${involvedFiles.length} files: $involvedFiles");
+    Map<String, Uint8List> downloadedFiles = {};
+    List<String> failedKeys = [];
+    var stub = OurChatServiceClient(ourchatAppState.server!.channel!,
+        interceptors: [ourchatAppState.server!.interceptor!]);
+
+    for (String fileKey in involvedFiles) {
+      // Skip if already cached
+      if (existingCache.containsKey(fileKey)) {
+        logger.i("File $fileKey already cached, skipping");
+        continue;
+      }
+
+      try {
+        logger.i("Starting download for file: $fileKey");
+        var downloadStream = stub.download(DownloadRequest(key: fileKey));
+
+        // Collect all chunks from the stream
+        List<int> fileData = [];
+        int chunkCount = 0;
+        await for (var response in downloadStream) {
+          fileData.addAll(response.data);
+          chunkCount++;
+        }
+
+        logger.i(
+            "Received $chunkCount chunks for file $fileKey, total ${fileData.length} bytes");
+
+        if (fileData.isEmpty) {
+          logger.w("Downloaded file $fileKey but received no data");
+          failedKeys.add(fileKey);
+        } else {
+          downloadedFiles[fileKey] = Uint8List.fromList(fileData);
+          logger.i(
+              "Successfully downloaded file: $fileKey (${fileData.length} bytes)");
+        }
+      } catch (e, stackTrace) {
+        logger.w("Failed to download file $fileKey: $e\n$stackTrace");
+        failedKeys.add(fileKey);
+      }
+    }
+
+    // If any files failed, throw an error with the failed keys
+    if (failedKeys.isNotEmpty) {
+      logger.w("Download failed for files: $failedKeys");
+      throw DownloadException(
+          "Failed to download files: $failedKeys", failedKeys);
+    }
+
+    logger.i(
+        "Download completed successfully for ${downloadedFiles.length} files");
+    return downloadedFiles;
+  }
+}
+
+/// Exception thrown when file download fails
+class DownloadException implements Exception {
+  final String message;
+  final List<String> failedKeys;
+
+  DownloadException(this.message, this.failedKeys);
+
+  @override
+  String toString() => message;
 }
 
 class NewFriendInvitationNotification extends OurChatEvent {

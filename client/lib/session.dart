@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/core/const.dart';
 import 'package:ourchat/core/event.dart';
+import 'package:ourchat/core/log.dart';
 import 'package:ourchat/core/session.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/core/account.dart';
@@ -45,6 +46,10 @@ class SessionState extends ChangeNotifier {
   Map<String, Uint8List> cacheFiles = {};
   List<String> needuploadFiles = [];
   final ValueNotifier<String> inputText = ValueNotifier<String>("");
+  // Track files currently being downloaded
+  Set<String> downloadingFiles = {};
+  // Track files that failed to download
+  Set<String> failedFiles = {};
 
   void update() {
     if (alreadyDispose) return;
@@ -57,7 +62,87 @@ class SessionState extends ChangeNotifier {
     if (currentSession == eventObj.session) {
       currentSessionRecords.insert(0, eventObj);
     }
+
+    // Auto-download involved files if this is for the current session
+    if (eventObj.involvedFiles.isNotEmpty &&
+        currentSession == eventObj.session) {
+      downloadMessageFiles(eventObj);
+    }
+
     update();
+  }
+
+  /// Download files for a message in the background
+  void downloadMessageFiles(UserMsg msg) async {
+    // Collect files that need to be downloaded
+    List<String> filesToDownload = [];
+    for (String fileKey in msg.involvedFiles) {
+      // Skip if already cached, downloading, or failed
+      if (!cacheFiles.containsKey(fileKey) &&
+          !downloadingFiles.contains(fileKey) &&
+          !failedFiles.contains(fileKey)) {
+        filesToDownload.add(fileKey);
+        downloadingFiles.add(fileKey);
+      }
+    }
+
+    if (filesToDownload.isEmpty) {
+      logger.i(
+          "No new files to download for message (already cached/downloading/failed)");
+      return;
+    }
+
+    logger.i(
+        "Starting background download for ${filesToDownload.length} files: $filesToDownload");
+    update();
+
+    try {
+      // Download all files for this message at once
+      var downloaded = await msg.downloadInvolvedFiles(cacheFiles);
+
+      logger
+          .i("Download completed, adding ${downloaded.length} files to cache");
+      // Add downloaded files to cache
+      for (var entry in downloaded.entries) {
+        cacheFiles[entry.key] = entry.value;
+        downloadingFiles.remove(entry.key);
+        logger
+            .i("Added file ${entry.key} to cache, size: ${entry.value.length}");
+      }
+      update();
+    } catch (e) {
+      logger.w("Failed to download files for message: $e");
+
+      // Handle DownloadException - mark only the failed files
+      if (e is DownloadException) {
+        for (String fileKey in e.failedKeys) {
+          downloadingFiles.remove(fileKey);
+          failedFiles.add(fileKey);
+        }
+        // Successfully downloaded files should already be in cacheFiles from the download
+        for (String fileKey in filesToDownload) {
+          if (!e.failedKeys.contains(fileKey)) {
+            downloadingFiles.remove(fileKey);
+          }
+        }
+      } else {
+        // Unknown error - mark all as failed
+        for (String fileKey in filesToDownload) {
+          downloadingFiles.remove(fileKey);
+          failedFiles.add(fileKey);
+        }
+      }
+      update();
+    }
+  }
+
+  /// Download files for all messages in the current session records
+  void downloadAllSessionFiles() {
+    for (UserMsg msg in currentSessionRecords) {
+      if (msg.involvedFiles.isNotEmpty) {
+        downloadMessageFiles(msg);
+      }
+    }
   }
 
   void getSessions(OurChatAppState ourchatAppState) async {
@@ -485,6 +570,8 @@ class _SessionListState extends State<SessionList> {
                               sessionState.tabIndex = userTab;
                               sessionState.tabTitle = l10n.userInfo;
                               sessionState.cacheFiles = {};
+                              sessionState.downloadingFiles.clear();
+                              sessionState.failedFiles.clear();
                               sessionState.update();
                             },
                           );
@@ -526,6 +613,8 @@ class _SessionListState extends State<SessionList> {
                               sessionState.tabIndex = sessionTab;
                               sessionState.tabTitle = session.getDisplayName();
                               sessionState.cacheFiles = {};
+                              sessionState.downloadingFiles.clear();
+                              sessionState.failedFiles.clear();
                               sessionState.update();
                             },
                           );
@@ -580,7 +669,11 @@ class _SessionListState extends State<SessionList> {
                                       .getSessionEvent(
                                           ourchatAppState, currentSession);
                               sessionState.cacheFiles = {};
+                              sessionState.downloadingFiles.clear();
+                              sessionState.failedFiles.clear();
                               sessionState.update();
+                              // Download files for historical messages
+                              sessionState.downloadAllSessionFiles();
                             },
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.start,
@@ -971,6 +1064,9 @@ class _SessionTabState extends State<SessionTab> {
                         },
                         onSaved: (value) async {
                           List<String> involvedFiles = [];
+                          // Create a mapping from local paths to server keys
+                          Map<String, String> pathToKeyMap = {};
+
                           for (String path in sessionState.needuploadFiles) {
                             var stub = OurChatServiceClient(
                                 ourchatAppState.server!.channel!,
@@ -1018,13 +1114,45 @@ class _SessionTabState extends State<SessionTab> {
                               uploadController.close();
                               var res = await call;
                               involvedFiles.add(res.key);
+                              // Map local path to server key
+                              pathToKeyMap[path] = res.key;
                             } catch (e) {
                               // do nothing
                             }
                           }
+
+                          // Replace local file paths in markdown with server keys
+                          String processedMarkdown = value!;
+                          for (var entry in pathToKeyMap.entries) {
+                            // Escape special regex characters in the path for use in regex
+                            String escapedPath = entry.key
+                                .replaceAll(
+                                    '\\', '\\\\') // Backslash must be first
+                                .replaceAll('\$',
+                                    r'\$') // Dollar sign for end of string
+                                .replaceAll('.', r'\.') // Literal dot
+                                .replaceAll('^', r'\^') // Start of string
+                                .replaceAll('{', r'\{') // Literal {
+                                .replaceAll('}', r'\}') // Literal }
+                                .replaceAll('[', r'\[') // Literal [
+                                .replaceAll(']', r'\]') // Literal ]
+                                .replaceAll('(', r'\(') // Literal (
+                                .replaceAll(')', r'\)') // Literal )
+                                .replaceAll('|', r'\|') // Alternation
+                                .replaceAll('*', r'\*') // Zero or more
+                                .replaceAll('+', r'\+') // One or more
+                                .replaceAll('?', r'\?'); // Optional
+
+                            // Replace the local path with the server key in markdown image format
+                            // Need to escape $1 to avoid string interpolation
+                            processedMarkdown = processedMarkdown.replaceAll(
+                                RegExp(r'!\[(.*?)\]\(' + escapedPath + r'\)'),
+                                r'![$1](' + entry.value + r')');
+                          }
+
                           UserMsg msg = UserMsg(ourchatAppState,
                               sender: ourchatAppState.thisAccount!,
-                              markdownText: value!,
+                              markdownText: processedMarkdown,
                               involvedFiles: involvedFiles,
                               session: sessionState.currentSession);
                           controller.text = "";
@@ -1463,10 +1591,93 @@ class _MessageWidgetState extends State<MessageWidget> {
                     imageUrl: uri.toString(),
                   );
                 } else {
-                  sessionState.needuploadFiles
-                      .add(Uri.decodeFull(uri.toString()));
-                  return Image.memory(
-                      sessionState.cacheFiles[Uri.decodeFull(uri.toString())]!);
+                  String fileKey = Uri.decodeFull(uri.toString());
+                  sessionState.needuploadFiles.add(fileKey);
+
+                  // Check if file is currently downloading
+                  if (sessionState.downloadingFiles.contains(fileKey)) {
+                    return SizedBox(
+                      width: 200,
+                      height: 200,
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            CircularProgressIndicator(),
+                            SizedBox(height: 8),
+                            Text('Downloading...'),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
+                  // Check if download failed
+                  if (sessionState.failedFiles.contains(fileKey)) {
+                    return SizedBox(
+                      width: 200,
+                      height: 200,
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.error_outline, color: Colors.red),
+                            SizedBox(height: 8),
+                            Text(
+                              ourchatAppState.l10n.failToLoad(
+                                  '${ourchatAppState.l10n.image}($alt)'),
+                              style: TextStyle(color: Colors.red),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                // Retry download
+                                sessionState.failedFiles.remove(fileKey);
+                                sessionState.update();
+                                // Find the message that contains this file and trigger download
+                                for (UserMsg msg
+                                    in sessionState.currentSessionRecords) {
+                                  if (msg.involvedFiles.contains(fileKey)) {
+                                    sessionState.downloadMessageFiles(msg);
+                                    break;
+                                  }
+                                }
+                              },
+                              child: Text('Retry'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
+                  // Check if file is in cache
+                  if (sessionState.cacheFiles.containsKey(fileKey)) {
+                    return Image.memory(sessionState.cacheFiles[fileKey]!);
+                  }
+
+                  // File not in cache - show loading and trigger download
+                  // Find the message that contains this file and trigger download
+                  for (UserMsg msg in sessionState.currentSessionRecords) {
+                    if (msg.involvedFiles.contains(fileKey)) {
+                      sessionState.downloadMessageFiles(msg);
+                      break;
+                    }
+                  }
+
+                  return SizedBox(
+                    width: 200,
+                    height: 200,
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          CircularProgressIndicator(),
+                          SizedBox(height: 8),
+                          Text('Downloading...'),
+                        ],
+                      ),
+                    ),
+                  );
                 }
               } catch (e) {
                 return Text(ourchatAppState.l10n
