@@ -29,16 +29,14 @@ jobs:
     needs: pre_job
     if: needs.pre_job.outputs.should_skip != 'true'
     runs-on: ubuntu-latest
-
     steps:
-      - name: Setup SSH for GitHub private packages
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-      - name: Configure Git to use SSH
+      - name: Git PAT Auth
+        env:
+          PAT: ${{ secrets.PAT }}
+        shell: pwsh
         run: |
-          git config --global url."git@github.com:".insteadOf "https://github.com/"
-          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          git config --global url."https://${PAT}@github.com/".insteadOf "https://github.com/"
+          git config --global url."https://${PAT}@github.com/".insteadOf "git@github.com:"
       - uses: actions/checkout@v4
       - name: Set up Flutter
         uses: subosito/flutter-action@v2

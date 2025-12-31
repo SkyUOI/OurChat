@@ -112,9 +112,20 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           version: "32.x"
       - name: Install requests
-        run: pip install requests
+        run: |
+          sudo apt update
+          sudo apt install -y libayatana-appindicator3-dev
+          pip install requests
       - name: About code generate
         run: python script/generate_about_code.py --afdian_userid ${{ secrets.AFDIAN_USERID }} --afdian_token ${{ secrets.AFDIAN_TOKEN }} --version ${{ github.ref_name }} --commit_sha ${{ github.sha }} --enable_version_check
+
+      - name: Git PAT Auth
+        env:
+          PAT: ${{ secrets.PAT }}
+        shell: pwsh
+        run: |
+          git config --global url."https://${PAT}@github.com/".insteadOf "https://github.com/"
+          git config --global url."https://${PAT}@github.com/".insteadOf "git@github.com:"
       - name: Flutter Init
         run: cd client && flutter pub get
       - name: Grpc generate
@@ -122,9 +133,7 @@ jobs:
       - name: Drift generate
         run: cd client && dart run build_runner build
       - name: Install packages
-        run: |
-          sudo apt update
-          sudo apt install -y libgtk-3-dev
+        run: sudo apt install -y libgtk-3-dev
       - name: Build Release
         run: cd client && flutter build linux
       - name: Compress
@@ -167,6 +176,13 @@ jobs:
         run: pip install requests
       - name: About code generate
         run: python script/generate_about_code.py --afdian_userid ${{ secrets.AFDIAN_USERID }} --afdian_token ${{ secrets.AFDIAN_TOKEN }} --version ${{ github.ref_name }} --commit_sha ${{ github.sha }} --enable_version_check
+      - name: Git PAT Auth
+        env:
+          PAT: ${{ secrets.PAT }}
+        shell: pwsh
+        run: |
+          git config --global url."https://${PAT}@github.com/".insteadOf "https://github.com/"
+          git config --global url."https://${PAT}@github.com/".insteadOf "git@github.com:"
       - name: Flutter Init
         run: cd client && flutter pub get
       - name: Grpc generate
@@ -233,6 +249,13 @@ jobs:
         run: pip install requests
       - name: About code generate
         run: python script/generate_about_code.py --afdian_userid ${{ secrets.AFDIAN_USERID }} --afdian_token ${{ secrets.AFDIAN_TOKEN }} --version ${{ github.ref_name }} --commit_sha ${{ github.sha }} --enable_version_check
+      - name: Git PAT Auth
+        env:
+          PAT: ${{ secrets.PAT }}
+        shell: pwsh
+        run: |
+          git config --global url."https://${PAT}@github.com/".insteadOf "https://github.com/"
+          git config --global url."https://${PAT}@github.com/".insteadOf "git@github.com:"
       - name: Flutter Init
         run: cd client && flutter pub get
       - name: Grpc generate
@@ -283,6 +306,13 @@ jobs:
         run: pip install requests
       - name: About code generate
         run: python script/generate_about_code.py --afdian_userid ${{ secrets.AFDIAN_USERID }} --afdian_token ${{ secrets.AFDIAN_TOKEN }} --version ${{ github.ref_name }} --commit_sha ${{ github.sha }} --enable_version_check
+      - name: Git PAT Auth
+        env:
+          PAT: ${{ secrets.PAT }}
+        shell: pwsh
+        run: |
+          git config --global url."https://${PAT}@github.com/".insteadOf "https://github.com/"
+          git config --global url."https://${PAT}@github.com/".insteadOf "git@github.com:"
       - name: Flutter Init
         run: cd client && flutter pub get
       - name: Grpc generate
