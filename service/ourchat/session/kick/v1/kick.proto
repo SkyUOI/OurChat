@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package service.ourchat.session.kick.v1;
+
+// Kick a user from a session permanently
+// The user is removed from the session but can be invited back
+message KickUserRequest {
+  uint64 session_id = 1;
+  uint64 user_id = 2;
+}
+
+message KickUserResponse {}

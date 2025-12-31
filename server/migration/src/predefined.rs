@@ -48,6 +48,7 @@ pub enum PredefinedServerManagementPermission {
     ViewMonitoring = 6,
     ViewUsers = 7,
     ManageSessions = 8,
+    AssignRole = 9,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]

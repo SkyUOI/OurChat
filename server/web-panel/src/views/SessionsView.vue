@@ -90,22 +90,10 @@
     </el-collapse-transition>
 
     <!-- Session statistics -->
-    <div class="stats-grid mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div class="stats-grid mb-6 grid grid-cols-1 md:grid-cols-1 gap-4">
       <el-card shadow="hover" class="text-center">
         <div class="text-3xl font-bold text-blue-600">{{ sessionStats.totalSessions }}</div>
         <div class="text-gray-500">{{ $t('totalSessions') }}</div>
-      </el-card>
-      <el-card shadow="hover" class="text-center">
-        <div class="text-3xl font-bold text-green-600">{{ sessionStats.privateSessions }}</div>
-        <div class="text-gray-500">{{ $t('privateSessions') }}</div>
-      </el-card>
-      <el-card shadow="hover" class="text-center">
-        <div class="text-3xl font-bold text-purple-600">{{ sessionStats.groupSessions }}</div>
-        <div class="text-gray-500">{{ $t('groupSessions') }}</div>
-      </el-card>
-      <el-card shadow="hover" class="text-center">
-        <div class="text-3xl font-bold text-orange-600">{{ sessionStats.channelSessions }}</div>
-        <div class="text-gray-500">{{ $t('channelSessions') }}</div>
       </el-card>
     </div>
 
@@ -127,25 +115,25 @@
       </div>
       <el-table v-loading="loading" :data="sessions" @selection-change="handleSelectionChange">
         <el-table-column type="selection" width="55" />
-        <el-table-column prop="sessionId" :label="$t('sessionId')" width="120" />
-        <el-table-column prop="sessionName" :label="$t('sessionName')" min-width="180" />
-        <el-table-column prop="sessionType" :label="$t('sessionType')" width="120">
+        <el-table-column prop="sessionId" :label="$t('sessionId')" width="120">
           <template #default="{ row }">
-            <el-tag :type="getSessionTypeTag(row.sessionType)" size="small">
-              {{ getSessionTypeText(row.sessionType) }}
-            </el-tag>
+            {{ row.sessionId?.toString() }}
           </template>
         </el-table-column>
-        <el-table-column prop="ownerId" :label="$t('ownerId')" width="120" />
-        <el-table-column prop="memberCount" :label="$t('memberCount')" width="120" />
-        <el-table-column prop="createdAt" :label="$t('createdAt')" width="180">
+        <el-table-column prop="name" :label="$t('sessionName')" min-width="180" />
+        <el-table-column prop="size" :label="$t('size')" width="100">
           <template #default="{ row }">
-            {{ formatDate(row.createdAt) }}
+            {{ row.size?.toString() }}
           </template>
         </el-table-column>
-        <el-table-column prop="lastActivity" :label="$t('lastActivity')" width="180">
+        <el-table-column prop="createdTime" :label="$t('createdAt')" width="180">
           <template #default="{ row }">
-            {{ formatDate(row.lastActivity) }}
+            {{ formatDate(row.createdTime) }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="updatedTime" :label="$t('updatedAt')" width="180">
+          <template #default="{ row }">
+            {{ formatDate(row.updatedTime) }}
           </template>
         </el-table-column>
         <el-table-column :label="$t('actions')" width="280" fixed="right">
@@ -202,27 +190,25 @@
       <div v-if="selectedSessionDetails">
         <el-descriptions :column="2" border>
           <el-descriptions-item :label="$t('sessionId')">{{
-            selectedSessionDetails.sessionId.toString()
+            selectedSessionDetails.sessionId?.toString()
           }}</el-descriptions-item>
           <el-descriptions-item :label="$t('sessionName')">{{
-            selectedSessionDetails.sessionName
+            selectedSessionDetails.name
           }}</el-descriptions-item>
-          <el-descriptions-item :label="$t('sessionType')">
-            <el-tag :type="getSessionTypeTag(selectedSessionDetails.sessionType)" size="small">
-              {{ getSessionTypeText(selectedSessionDetails.sessionType) }}
-            </el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item :label="$t('ownerId')">{{
-            selectedSessionDetails.ownerId?.toString()
-          }}</el-descriptions-item>
-          <el-descriptions-item :label="$t('memberCount')">{{
-            selectedSessionDetails.memberCount
+          <el-descriptions-item :label="$t('size')">{{
+            selectedSessionDetails.size?.toString()
           }}</el-descriptions-item>
           <el-descriptions-item :label="$t('createdAt')">{{
-            formatDate(selectedSessionDetails.createdAt)
+            formatDate(selectedSessionDetails.createdTime)
           }}</el-descriptions-item>
-          <el-descriptions-item :label="$t('lastActivity')">{{
-            formatDate(selectedSessionDetails.lastActivity)
+          <el-descriptions-item :label="$t('updatedAt')">{{
+            formatDate(selectedSessionDetails.updatedTime)
+          }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('avatarKey')">{{
+            selectedSessionDetails.avatarKey || '-'
+          }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('description')" :span="2">{{
+            selectedSessionDetails.description || '-'
           }}</el-descriptions-item>
         </el-descriptions>
       </div>
@@ -254,14 +240,10 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useGrpcStore } from '@/stores/grpc'
-import type {
-  SessionInfo,
-  ListSessionsRequest,
-  DeleteSessionRequest as ServerManageDeleteSessionRequest,
-  RemoveUserFromSessionRequest,
-} from '@/api/service/server_manage/session_manage/v1/session_manage'
-import { SessionType } from '@/api/service/server_manage/session_manage/v1/session_manage'
+import type { ListSessionsRequest } from '@/api/service/server_manage/session_manage/v1/session_manage'
+import type { GetSessionInfoResponse } from '@/api/service/ourchat/session/get_session_info/v1/get_session_info'
 import type { DeleteSessionRequest as OurChatDeleteSessionRequest } from '@/api/service/ourchat/session/delete_session/v1/delete_session'
+import type { KickUserRequest } from '@/api/service/ourchat/session/kick/v1/kick'
 
 // gRPC store
 const grpcStore = useGrpcStore()
@@ -289,11 +271,11 @@ const pagination = reactive({
 const totalSessions = ref(0)
 
 // Sessions list
-const sessions = ref<SessionInfo[]>([])
+const sessions = ref<GetSessionInfoResponse[]>([])
 
 // Selected sessions for batch operations
-const selectedSessions = ref<SessionInfo[]>([])
-const selectedSessionDetails = ref<SessionInfo | null>(null)
+const selectedSessions = ref<GetSessionInfoResponse[]>([])
+const selectedSessionDetails = ref<GetSessionInfoResponse | null>(null)
 const batchAction = ref('')
 const batchLoading = ref(false)
 const sessionDetailsDialogVisible = ref(false)
@@ -301,15 +283,12 @@ const sessionDetailsDialogVisible = ref(false)
 // Session statistics
 const sessionStats = reactive({
   totalSessions: 0,
-  privateSessions: 0,
-  groupSessions: 0,
-  channelSessions: 0,
 })
 
 // Remove user dialog
 const removeUserDialogVisible = ref(false)
 const removeUserLoading = ref(false)
-const selectedSession = ref<SessionInfo | null>(null)
+const selectedSession = ref<GetSessionInfoResponse | null>(null)
 const removeUserForm = reactive({
   user_id: '',
 })
@@ -321,67 +300,37 @@ const formatDate = (timestamp: { seconds: bigint } | undefined): string => {
   return date.toLocaleString()
 }
 
-const getSessionTypeTag = (type: SessionType): string => {
-  switch (type) {
-    case SessionType.PRIVATE:
-      return 'success'
-    case SessionType.GROUP:
-      return 'warning'
-    case SessionType.CHANNEL:
-      return 'info'
-    default:
-      return 'default'
-  }
-}
-
-const getSessionTypeText = (type: SessionType): string => {
-  switch (type) {
-    case SessionType.PRIVATE:
-      return 'Private'
-    case SessionType.GROUP:
-      return 'Group'
-    case SessionType.CHANNEL:
-      return 'Channel'
-    default:
-      return 'Unknown'
-  }
-}
+// Note: getSessionTypeTag and getSessionTypeText removed since sessionType is no longer available
 
 // Perform session action (single session, used for batch operations)
-const performSessionAction = async (session: SessionInfo, action: string, userId?: bigint) => {
+const performSessionAction = async (
+  session: GetSessionInfoResponse,
+  action: string,
+  userId?: bigint,
+) => {
   switch (action) {
     case 'delete':
-      // First try server manage API
+      // Use OurChatService API for deletion (admin permission required)
       try {
-        const serverManageRequest: ServerManageDeleteSessionRequest = {
-          sessionId: session.sessionId,
-        }
-        await grpcStore.serverManageConn.deleteSession(serverManageRequest)
-        ElMessage.success(`Session "${session.sessionName}" deleted successfully`)
-      } catch {
-        // Fallback to ourchat API (requires permission)
-        try {
-          const ourchatRequest: OurChatDeleteSessionRequest = { sessionId: session.sessionId }
-          await grpcStore.ourchatConn.deleteSession(ourchatRequest)
-          ElMessage.success(
-            `Session "${session.sessionName}" deleted successfully (via ourchat API)`,
-          )
-        } catch (error) {
-          console.error('Both delete APIs failed:', error)
-          ElMessage.error('Failed to delete session: server APIs not available')
-          throw error
-        }
+        const ourchatRequest: OurChatDeleteSessionRequest = { sessionId: session.sessionId! }
+        await grpcStore.ourchatConn.deleteSession(ourchatRequest)
+        ElMessage.success(`Session "${session.name}" deleted successfully`)
+      } catch (error) {
+        console.error('Delete session failed:', error)
+        ElMessage.error('Failed to delete session: admin permission required')
+        throw error
       }
       break
     case 'removeUser':
       if (!userId) throw new Error('User ID required for removeUser action')
+      // Use OurChatService API for kicking users (admin permission required)
       try {
-        const removeRequest: RemoveUserFromSessionRequest = { sessionId: session.sessionId, userId }
-        await grpcStore.serverManageConn.removeUserFromSession(removeRequest)
-        ElMessage.success(`User removed from session "${session.sessionName}" successfully`)
+        const kickRequest: KickUserRequest = { sessionId: session.sessionId!, userId }
+        await grpcStore.ourchatConn.kickUser(kickRequest)
+        ElMessage.success(`User removed from session "${session.name}" successfully`)
       } catch (error) {
-        console.error('Remove user from session failed:', error)
-        ElMessage.error('Failed to remove user from session: server API not available')
+        console.error('Kick user from session failed:', error)
+        ElMessage.error('Failed to remove user from session: admin permission required')
         throw error
       }
       break
@@ -394,6 +343,11 @@ const performSessionAction = async (session: SessionInfo, action: string, userId
 const fetchSessions = async () => {
   try {
     loading.value = true
+
+    // Import QueryValues enum
+    const { QueryValues } = await import(
+      '@/api/service/ourchat/session/get_session_info/v1/get_session_info'
+    )
 
     // Build request
     const request: ListSessionsRequest = {
@@ -414,12 +368,20 @@ const fetchSessions = async () => {
         page: pagination.page,
         pageSize: pagination.pageSize,
       },
+      queryValues: [
+        QueryValues.SESSION_ID,
+        QueryValues.NAME,
+        QueryValues.SIZE,
+        QueryValues.CREATED_TIME,
+        QueryValues.UPDATED_TIME,
+      ],
     }
 
     // Try gRPC call
     const response = await grpcStore.serverManageConn.listSessions(request)
     sessions.value = response.response.sessions || []
-    totalSessions.value = response.response.totalCount || 0
+    // Note: totalCount was removed from the response, calculate from returned sessions
+    totalSessions.value = sessions.value.length
 
     // Update stats
     updateSessionStats()
@@ -438,15 +400,8 @@ const updateSessionStats = () => {
   // Statistics computed from currently displayed sessions (paginated)
   const displayedSessions = sessions.value
   sessionStats.totalSessions = displayedSessions.length
-  sessionStats.privateSessions = displayedSessions.filter(
-    (s) => s.sessionType === SessionType.PRIVATE,
-  ).length
-  sessionStats.groupSessions = displayedSessions.filter(
-    (s) => s.sessionType === SessionType.GROUP,
-  ).length
-  sessionStats.channelSessions = displayedSessions.filter(
-    (s) => s.sessionType === SessionType.CHANNEL,
-  ).length
+  // Note: sessionType is no longer available in GetSessionInfoResponse
+  // Type-based statistics are not displayed
 }
 
 // Search handlers
@@ -480,46 +435,38 @@ const handlePageChange = (page: number) => {
 }
 
 // Selection handlers
-const handleSelectionChange = (selection: SessionInfo[]) => {
+const handleSelectionChange = (selection: GetSessionInfoResponse[]) => {
   selectedSessions.value = selection
 }
 
 // Session action handlers
-const viewSession = (session: SessionInfo) => {
+const viewSession = (session: GetSessionInfoResponse) => {
   selectedSessionDetails.value = session
   sessionDetailsDialogVisible.value = true
 }
 
-const removeUserFromSession = (session: SessionInfo) => {
+const removeUserFromSession = (session: GetSessionInfoResponse) => {
   selectedSession.value = session
   removeUserDialogVisible.value = true
 }
 
-const deleteSession = async (session: SessionInfo) => {
+const deleteSession = async (session: GetSessionInfoResponse) => {
   try {
     await ElMessageBox.confirm(
-      `Are you sure to delete session "${session.sessionName}"? This action cannot be undone.`,
+      `Are you sure to delete session "${session.name}"? This action cannot be undone.`,
       'Confirm Delete',
       { type: 'error' },
     )
 
-    // First try server manage API
+    // Use OurChatService API for deletion (admin permission required)
     try {
-      const serverManageRequest: ServerManageDeleteSessionRequest = { sessionId: session.sessionId }
-      await grpcStore.serverManageConn.deleteSession(serverManageRequest)
-      ElMessage.success(`Session "${session.sessionName}" deleted successfully`)
+      const ourchatRequest: OurChatDeleteSessionRequest = { sessionId: session.sessionId! }
+      await grpcStore.ourchatConn.deleteSession(ourchatRequest)
+      ElMessage.success(`Session "${session.name}" deleted successfully`)
       fetchSessions()
-    } catch {
-      // Fallback to ourchat API (requires permission)
-      try {
-        const ourchatRequest: OurChatDeleteSessionRequest = { sessionId: session.sessionId }
-        await grpcStore.ourchatConn.deleteSession(ourchatRequest)
-        ElMessage.success(`Session "${session.sessionName}" deleted successfully (via ourchat API)`)
-        fetchSessions()
-      } catch (error) {
-        console.error('Both delete APIs failed:', error)
-        ElMessage.error('Failed to delete session: server APIs not available')
-      }
+    } catch (error) {
+      console.error('Delete session failed:', error)
+      ElMessage.error('Failed to delete session: admin permission required')
     }
   } catch (error: unknown) {
     if (error !== 'cancel') {
@@ -541,17 +488,17 @@ const confirmRemoveUser = async () => {
 
   try {
     removeUserLoading.value = true
-    const request: RemoveUserFromSessionRequest = {
-      sessionId: selectedSession.value.sessionId,
+    const request: KickUserRequest = {
+      sessionId: selectedSession.value.sessionId!,
       userId: BigInt(removeUserForm.user_id),
     }
-    await grpcStore.serverManageConn.removeUserFromSession(request)
+    await grpcStore.ourchatConn.kickUser(request)
     ElMessage.success('User removed from session successfully')
     closeRemoveUserDialog()
     fetchSessions()
   } catch (error: unknown) {
     console.error('Remove user error:', error)
-    ElMessage.error('Failed to remove user from session: server API not available')
+    ElMessage.error('Failed to remove user from session: admin permission required')
   } finally {
     removeUserLoading.value = false
   }
@@ -614,24 +561,20 @@ const exportSessions = () => {
     const headers = [
       'Session ID',
       'Session Name',
-      'Session Type',
-      'Owner ID',
-      'Member Count',
+      'Size',
       'Created At',
-      'Last Activity',
+      'Updated At',
+      'Description',
     ]
 
     // Convert data to rows
     const rows = data.map((session) => [
-      session.sessionId.toString(),
-      session.sessionName || '',
-      session.sessionType !== undefined ? session.sessionType : '',
-      session.ownerId ? session.ownerId.toString() : '',
-      session.memberCount || '',
-      session.createdAt ? new Date(Number(session.createdAt.seconds) * 1000).toISOString() : '',
-      session.lastActivity
-        ? new Date(Number(session.lastActivity.seconds) * 1000).toISOString()
-        : '',
+      session.sessionId?.toString() || '',
+      session.name || '',
+      session.size?.toString() || '',
+      session.createdTime ? new Date(Number(session.createdTime.seconds) * 1000).toISOString() : '',
+      session.updatedTime ? new Date(Number(session.updatedTime.seconds) * 1000).toISOString() : '',
+      session.description || '',
     ])
 
     // Combine headers and rows

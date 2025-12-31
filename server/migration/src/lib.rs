@@ -21,6 +21,7 @@ pub mod m20251205_000009_oauthverification;
 pub mod m20251205_000010_sessioninvitations;
 pub mod m20251205_000011_server_management_permissions_extended;
 mod m20251230_090033_add_session_in_file_load;
+mod m20251231_120000_add_assign_role_permission;
 
 pub struct Migrator;
 
@@ -40,6 +41,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20251205_000010_sessioninvitations::Migration),
             Box::new(m20251205_000011_server_management_permissions_extended::Migration),
             Box::new(m20251230_090033_add_session_in_file_load::Migration),
+            Box::new(m20251231_120000_add_assign_role_permission::Migration),
         ]
     }
 }

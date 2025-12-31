@@ -109,6 +109,7 @@ pub use session::{
     get_session_info::get_session_info,
     invite_user_to_session::invite_user_to_session,
     join_session::join_session,
+    kick::kick_user,
     leave_session::leave_session,
     mute::{mute_user, unmute_user},
     new_session::new_session,

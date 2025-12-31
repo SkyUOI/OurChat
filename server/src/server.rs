@@ -38,11 +38,7 @@ use pb::service::server_manage::monitoring::v1::{
 use pb::service::server_manage::publish_announcement::v1::{
     PublishAnnouncementRequest, PublishAnnouncementResponse,
 };
-use pb::service::server_manage::session_manage::v1::{
-    DeleteSessionRequest, DeleteSessionResponse, GetSessionDetailsRequest,
-    GetSessionDetailsResponse, ListSessionsRequest, ListSessionsResponse,
-    RemoveUserFromSessionRequest, RemoveUserFromSessionResponse,
-};
+use pb::service::server_manage::session_manage::v1::{ListSessionsRequest, ListSessionsResponse};
 use pb::service::server_manage::set_server_status::v1::{
     SetServerStatusRequest, SetServerStatusResponse,
 };
@@ -464,30 +460,6 @@ impl ServerManageService for ServerManageServiceProvider {
         &self,
         _request: Request<ListSessionsRequest>,
     ) -> Result<Response<ListSessionsResponse>, Status> {
-        todo!()
-    }
-
-    #[tracing::instrument(skip(self))]
-    async fn get_session_details(
-        &self,
-        _request: Request<GetSessionDetailsRequest>,
-    ) -> Result<Response<GetSessionDetailsResponse>, Status> {
-        todo!()
-    }
-
-    #[tracing::instrument(skip(self))]
-    async fn delete_session(
-        &self,
-        _request: Request<DeleteSessionRequest>,
-    ) -> Result<Response<DeleteSessionResponse>, Status> {
-        todo!()
-    }
-
-    #[tracing::instrument(skip(self))]
-    async fn remove_user_from_session(
-        &self,
-        _request: Request<RemoveUserFromSessionRequest>,
-    ) -> Result<Response<RemoveUserFromSessionResponse>, Status> {
         todo!()
     }
 }

@@ -34,7 +34,4 @@ service ServerManageService {
 
   // Session management
   rpc ListSessions(session_manage.v1.ListSessionsRequest) returns (session_manage.v1.ListSessionsResponse);
-  rpc GetSessionDetails(session_manage.v1.GetSessionDetailsRequest) returns (session_manage.v1.GetSessionDetailsResponse);
-  rpc DeleteSession(session_manage.v1.DeleteSessionRequest) returns (session_manage.v1.DeleteSessionResponse);
-  rpc RemoveUserFromSession(session_manage.v1.RemoveUserFromSessionRequest) returns (session_manage.v1.RemoveUserFromSessionResponse);
 }

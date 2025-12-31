@@ -3,6 +3,7 @@ syntax = "proto3";
 package service.server_manage.session_manage.v1;
 
 import "google/protobuf/timestamp.proto";
+import "service/ourchat/session/get_session_info/v1/get_session_info.proto";
 
 // Session types (from existing session type enum)
 enum SessionType {
@@ -33,56 +34,10 @@ message Pagination {
 message ListSessionsRequest {
   optional SessionFilter filter = 1;
   optional Pagination pagination = 2;
-}
-
-// Session information for listing
-message SessionInfo {
-  uint64 session_id = 1;
-  string session_name = 2;
-  SessionType session_type = 3;
-  uint64 owner_id = 4;
-  uint32 member_count = 5;
-  google.protobuf.Timestamp created_at = 6;
-  google.protobuf.Timestamp last_activity = 7; // TODO: need last_activity field?
+  repeated ourchat.session.get_session_info.v1.QueryValues query_values = 3;
 }
 
 // List sessions response
 message ListSessionsResponse {
-  repeated SessionInfo sessions = 1;
-  uint32 total_count = 2;
-  uint32 page = 3;
-  uint32 page_size = 4;
+  repeated ourchat.session.get_session_info.v1.GetSessionInfoResponse sessions = 1;
 }
-
-// Get session details request (admin version, can access any session)
-message GetSessionDetailsRequest {
-  uint64 session_id = 1;
-}
-
-// Extended session details
-message GetSessionDetailsResponse {
-  uint64 session_id = 1;
-  string session_name = 2;
-  SessionType session_type = 3;
-  uint64 owner_id = 4;
-  repeated uint64 member_ids = 5;
-  google.protobuf.Timestamp created_at = 6;
-  map<uint64, string> member_roles = 7; // user_id -> role name
-  optional string description = 8;
-  optional string avatar_key = 9;
-}
-
-// Delete session request (admin override)
-message DeleteSessionRequest {
-  uint64 session_id = 1;
-}
-
-message DeleteSessionResponse {}
-
-// Remove user from session request (admin kick)
-message RemoveUserFromSessionRequest {
-  uint64 session_id = 1;
-  uint64 user_id = 2;
-}
-
-message RemoveUserFromSessionResponse {}

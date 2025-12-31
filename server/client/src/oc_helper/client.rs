@@ -10,6 +10,7 @@ use pb::service::auth::v1::auth_service_client::AuthServiceClient;
 use pb::service::basic::v1::basic_service_client::BasicServiceClient;
 use pb::service::basic::v1::{GetIdRequest, TimestampRequest};
 use pb::service::ourchat::v1::our_chat_service_client::OurChatServiceClient;
+use pb::service::server_manage::v1::server_manage_service_client::ServerManageServiceClient;
 use pb::time::TimeStampUtc;
 use sea_orm::TransactionTrait;
 use server::config::Cfg;
@@ -24,6 +25,17 @@ use tonic::codegen::InterceptedService;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig, Endpoint, Identity};
 
 pub type OCClient = OurChatServiceClient<
+    InterceptedService<
+        Channel,
+        Box<
+            dyn FnMut(tonic::Request<()>) -> Result<tonic::Request<()>, tonic::Status>
+                + Send
+                + Sync,
+        >,
+    >,
+>;
+
+pub type ServerManageClient = ServerManageServiceClient<
     InterceptedService<
         Channel,
         Box<
@@ -106,6 +118,7 @@ impl ClientCore {
             clients: Clients {
                 auth: AuthServiceClient::connect(remote_url.clone()).await?,
                 basic: BasicServiceClient::connect(remote_url.clone()).await?,
+                server_manage: ServerManageServiceClient::connect(remote_url.clone()).await?,
             },
             enable_ssl: enabled_tls,
         })
@@ -238,7 +251,8 @@ impl TestApp {
                 port,
                 clients: Clients {
                     auth: AuthServiceClient::new(connected_channel.clone()),
-                    basic: BasicServiceClient::new(connected_channel),
+                    basic: BasicServiceClient::new(connected_channel.clone()),
+                    server_manage: ServerManageServiceClient::new(connected_channel),
                 },
                 rpc_url: rpc_url.clone(),
                 enable_ssl: enabled_tls,
