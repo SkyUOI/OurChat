@@ -17,7 +17,7 @@ verification_expire_time = "3d"
 # The expiry time in hours of the user defined status
 user_defined_status_expire_time = "24h"
 # The path of the users' files storage
-files_storage_path = "files_storage/"
+files_storage_path = "../files_storage/"
 # How long will the files be kept
 files_save_time = "10d"
 # Whether this is started in Single Instance Mode. If true, some actions like cleaning up files will be performed regularly
