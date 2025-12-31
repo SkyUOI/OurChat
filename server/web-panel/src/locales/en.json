@@ -279,5 +279,6 @@
   "removeUser": "Remove User",
   "removeUserFromSession": "Remove User from Session",
   "userId": "User ID",
-  "userIdPlaceholder": "Enter user ID"
+  "userIdPlaceholder": "Enter user ID",
+  "chinese": "Chinese"
 }

@@ -16,11 +16,11 @@
     <div class="right">
       <el-dropdown trigger="click" @command="changeLanguage">
         <el-button type="text" class="language-switch">
-          {{ currentLanguage === 'zh' ? '中文' : 'English' }}
+          {{ currentLanguage === 'zh' ? $t('chinese') : 'English' }}
         </el-button>
         <template #dropdown>
           <el-dropdown-menu>
-            <el-dropdown-item command="zh">中文</el-dropdown-item>
+            <el-dropdown-item command="zh">{{ $t('chinese') }}</el-dropdown-item>
             <el-dropdown-item command="en">English</el-dropdown-item>
           </el-dropdown-menu>
         </template>
@@ -61,7 +61,7 @@ export default {
     return {
       sidebarCollapsed: false,
       breadcrumb: [{ titleKey: 'systemOverview', path: '/' }],
-      currentLanguage: 'zh', // 默认语言
+      currentLanguage: 'en', // Default language
     }
   },
   methods: {

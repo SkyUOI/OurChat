@@ -435,7 +435,6 @@
 import { ref, reactive, computed } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { useGrpcStore } from '@/stores/grpc'
-import { ConfigType } from '@/api/service/server_manage/config/v1/config'
 
 // Active tab
 const activeTab = ref('server')
@@ -453,27 +452,8 @@ const advancedFormRef = ref<FormInstance>()
 // gRPC store
 const grpcStore = useGrpcStore()
 
-// Map tab names to ConfigType enum
-const tabToConfigType = (tabName: string): ConfigType => {
-  switch (tabName) {
-    case 'server':
-      return ConfigType.SERVER
-    case 'http':
-      return ConfigType.HTTP
-    case 'database':
-      return ConfigType.DATABASE
-    case 'redis':
-      return ConfigType.REDIS
-    case 'rabbitmq':
-      return ConfigType.RABBITMQ
-    case 'passwordHash':
-      return ConfigType.PASSWORD_HASH
-    case 'advanced':
-      return ConfigType.ADVANCED
-    default:
-      return ConfigType.UNSPECIFIED
-  }
-}
+// Note: ConfigType was removed from the proto - now using raw TOML content
+// Config sections are managed client-side for display purposes
 
 // Validation rules
 const serverRules: FormRules = {
@@ -781,11 +761,9 @@ const saveConfig = async () => {
 
     // Convert to string (JSON for now, should be TOML when server implements it)
     const content = JSON.stringify(configData, null, 2)
-    const configType = tabToConfigType(activeTab.value)
 
     try {
       const response = await grpcStore.serverManageConn.setConfig({
-        configType,
         content,
       })
 
@@ -815,12 +793,8 @@ const saveConfig = async () => {
 
 const loadConfig = async () => {
   try {
-    const configType = tabToConfigType(activeTab.value)
-
     try {
-      const response = await grpcStore.serverManageConn.getConfig({
-        configType,
-      })
+      const response = await grpcStore.serverManageConn.getConfig({})
 
       const content = response.response.content
       // Try to parse as JSON (for now, should be TOML when server implements it)

@@ -23,7 +23,7 @@
           <el-tag type="success">{{ $t('realtime') }}</el-tag>
         </div>
         <div class="chart-container">
-          <!-- 这里放置图表 -->
+          <!-- Chart will be placed here -->
           <div class="chart-placeholder">
             {{ $t('chartPlaceholder') }}
           </div>
@@ -36,7 +36,7 @@
           <el-tag type="info">{{ $t('last24Hours') }}</el-tag>
         </div>
         <div class="chart-container">
-          <!-- 这里放置图表 -->
+          <!-- Chart will be placed here -->
           <div class="chart-placeholder">
             {{ $t('chartPlaceholder') }}
           </div>

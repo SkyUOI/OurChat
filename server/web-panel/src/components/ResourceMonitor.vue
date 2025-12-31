@@ -9,8 +9,8 @@
           <el-tag type="primary">实时</el-tag>
         </div>
         <div class="chart-container">
-          <!-- 这里放置图表 -->
-          <div class="chart-placeholder">图表数据将在此显示</div>
+          <!-- Chart will be placed here -->
+          <div class="chart-placeholder">{{ $t('chartPlaceholder') }}</div>
         </div>
       </el-card>
 
@@ -20,8 +20,8 @@
           <el-tag type="warning">实时</el-tag>
         </div>
         <div class="chart-container">
-          <!-- 这里放置图表 -->
-          <div class="chart-placeholder">图表数据将在此显示</div>
+          <!-- Chart will be placed here -->
+          <div class="chart-placeholder">{{ $t('chartPlaceholder') }}</div>
         </div>
       </el-card>
     </div>

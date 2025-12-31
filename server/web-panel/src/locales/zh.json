@@ -232,5 +232,6 @@
   "userId": "用户ID",
   "userIdPlaceholder": "输入用户ID",
   "lastSeen": "最后上线",
-  "userDetails": "用户详情"
+  "userDetails": "用户详情",
+  "chinese": "中文"
 }
