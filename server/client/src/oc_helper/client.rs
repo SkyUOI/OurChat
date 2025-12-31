@@ -101,7 +101,12 @@ pub struct ClientCore {
 
 impl ClientCore {
     pub async fn new(cfg: ClientCoreConfig) -> anyhow::Result<Self> {
-        let url_without_scheme = format!("{}:{}", cfg.ip, cfg.port);
+        // IPv6 addresses need to be wrapped in brackets for URIs
+        let url_without_scheme = if cfg.ip.contains(':') {
+            format!("[{}]:{}", cfg.ip, cfg.port)
+        } else {
+            format!("{}:{}", cfg.ip, cfg.port)
+        };
         let enabled_tls = match cfg.enable_ssl {
             Some(data) => data,
             None => utils::http::test_and_get_http_status(&url_without_scheme).await?,
@@ -295,7 +300,9 @@ impl TestApp {
     }
 
     pub async fn new_user(&mut self) -> anyhow::Result<TestUserShared> {
-        let user = Arc::new(tokio::sync::Mutex::new(TestUser::random(&self.core).await));
+        let user = Arc::new(tokio::sync::Mutex::new(
+            TestUser::random_readable(&self.core).await,
+        ));
         if self.app_config.http_cfg.tls.is_tls_on()? {
             user.lock().await.tls = self.app_config.http_cfg.tls.clone();
         }

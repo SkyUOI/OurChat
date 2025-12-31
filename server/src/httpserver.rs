@@ -99,16 +99,19 @@ impl HttpServer {
         let rate_governor_limiter = rate_governor_config.limiter().clone();
         // background task to clean up
         // copy the example of tower_governor
-        tokio::spawn(async move {
-            loop {
-                tokio::time::sleep(Duration::from_mins(1)).await;
-                info!(
-                    "rate limiting storage size: {}",
-                    rate_governor_limiter.len()
-                );
-                rate_governor_limiter.retain_recent();
-            }
-        });
+        if shared_data.cfg().http_cfg.rate_limit.enable {
+            tokio::spawn(async move {
+                loop {
+                    tokio::time::sleep(Duration::from_mins(1)).await;
+                    info!(
+                        "rate limiting storage size: {}",
+                        rate_governor_limiter.len()
+                    );
+                    rate_governor_limiter.retain_recent();
+                }
+            });
+        }
+
         let v1 = axum::Router::new()
             .route("/status", get(status::status))
             .route_service(

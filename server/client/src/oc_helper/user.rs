@@ -28,6 +28,7 @@ use pb::time::TimeStampUtc;
 use rand::Rng;
 use rsa::pkcs1::EncodeRsaPublicKey as _;
 use rsa::{RsaPrivateKey, RsaPublicKey};
+use server::helper::generate_random_string;
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
@@ -65,22 +66,32 @@ pub struct TestUser {
 
 // Utils functions implemented
 impl TestUser {
-    pub async fn random(app: &ClientCore) -> Self {
+    pub async fn random_readable(app: &ClientCore) -> Self {
         let name = FAKE_MANAGER.lock().generate_unique_name();
         let email = FAKE_MANAGER.lock().generate_unique_email();
+        Self::new(name, email, app).await
+    }
+
+    pub async fn random_unreadable(app: &ClientCore) -> Self {
+        let name = generate_random_string(25);
+        let email = format!("{}@example.com", generate_random_string(25));
+        Self::new(name, email, app).await
+    }
+
+    async fn new(name: impl Into<String>, email: impl Into<String>, app: &ClientCore) -> Self {
         let url = app.rpc_url.clone();
         let mut rng = rand::rng();
         let bits = 2048;
         let private_key = RsaPrivateKey::new(&mut rng, bits).unwrap();
         let public_key = RsaPublicKey::from(&private_key);
         Self {
-            name,
+            name: name.into(),
             password: rand::rng()
                 .sample_iter(&rand::distr::Alphanumeric)
                 .take(40)
                 .map(char::from)
                 .collect(),
-            email,
+            email: email.into(),
             port: app.port,
             has_dropped: false,
             clients: app.clients.clone(),
@@ -173,7 +184,7 @@ impl TestUser {
         Ok(())
     }
 
-    pub(crate) async fn async_drop(&mut self) {
+    pub async fn async_drop(&mut self) {
         if !self.has_unregistered {
             if self.ensure_no_message_left {
                 claims::assert_err!(self.fetch_msgs().fetch(1).await);
