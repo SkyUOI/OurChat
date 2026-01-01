@@ -563,15 +563,17 @@ class _SessionListState extends State<SessionList> {
                               sessionState.tabIndex = sessionTab;
                               sessionState.tabTitle =
                                   currentSession.getDisplayName();
-                              Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (_) =>
-                                          ChangeNotifierProvider.value(
-                                            value: Provider.of<SessionState>(
-                                                context_),
-                                            child: TabWidget(),
-                                          )));
+                              if (ourchatAppState.screenMode == mobile) {
+                                Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) =>
+                                            ChangeNotifierProvider.value(
+                                              value: Provider.of<SessionState>(
+                                                  context_),
+                                              child: TabWidget(),
+                                            )));
+                              }
                               sessionState.update();
                               sessionState.currentSessionRecords =
                                   await ourchatAppState.eventSystem!
