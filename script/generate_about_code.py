@@ -66,12 +66,13 @@ def splitCode():
         code[code.index("// ===== AUTO GENERATED CODE END =====\n") :],
     )
 
+
 argparser = argparse.ArgumentParser()
 argparser.add_argument("--afdian_userid", type=str)
 argparser.add_argument("--afdian_token", type=str)
 argparser.add_argument("--version", type=str)
 argparser.add_argument("--commit_sha", type=str)
-argparser.add_argument("--enable_version_check", action='store_true')
+argparser.add_argument("--enable_version_check", action="store_true")
 args = argparser.parse_args()
 
 code = splitCode()
@@ -101,8 +102,13 @@ with open("./client/lib/core/const.dart", "w", encoding="utf-8") as f:
     f.write(f'const currentVersion = "{args.version}";\n')
     print("write " + f'const currentCommitSha = "{args.commit_sha}";')
     f.write(f'const currentCommitSha = "{args.commit_sha}";\n')
-    print("write " + f'const enableVersionCheck = "{"true" if args.enable_version_check else "false"}";\n')
-    f.write(f'const enableVersionCheck = {"true" if args.enable_version_check else "false"};\n')
+    print(
+        "write "
+        + f'const enableVersionCheck = "{"true" if args.enable_version_check else "false"}";\n'
+    )
+    f.write(
+        f"const enableVersionCheck = {'true' if args.enable_version_check else 'false'};\n"
+    )
     for i in code[1]:
         f.write(i)
 

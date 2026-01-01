@@ -8,13 +8,13 @@ use fake::locales::EN;
 use parking_lot::Mutex;
 use pb::service::auth::v1::auth_service_client::AuthServiceClient;
 use pb::service::basic::v1::basic_service_client::BasicServiceClient;
+use pb::service::server_manage::v1::server_manage_service_client::ServerManageServiceClient;
 use ring::rand::{SecureRandom as _, SystemRandom};
 use std::collections::HashSet;
 use std::sync::LazyLock;
 use tonic::transport::Channel;
 
 pub mod client;
-pub mod server_manager;
 pub mod user;
 
 #[derive(Debug, thiserror::Error)]
@@ -41,6 +41,7 @@ impl ClientErr {
 pub struct Clients {
     pub auth: AuthServiceClient<Channel>,
     pub basic: BasicServiceClient<Channel>,
+    pub server_manage: ServerManageServiceClient<Channel>,
 }
 
 struct FakeManager {

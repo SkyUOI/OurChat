@@ -7,7 +7,7 @@ use crate::{
     },
     server::RpcServer,
 };
-use base::consts::ID;
+use base::consts::{ID, SessionID};
 use entities::{files, prelude::*, user};
 use pb::service::ourchat::upload::v1::{UploadRequest, UploadResponse, upload_request};
 use sea_orm::{
@@ -30,6 +30,7 @@ pub struct AddFileRecordConfig {
     pub auto_clean: bool,
     pub files_storage_path: PathBuf,
     pub limit_size: Size,
+    pub session_id: Option<SessionID>,
 }
 
 const PREFIX_LEN: usize = 20;
@@ -93,6 +94,7 @@ pub async fn add_file_record(
         date: sea_orm::Set(timestamp),
         auto_clean: sea_orm::Set(config.auto_clean),
         user_id: sea_orm::Set(config.id.into()),
+        session_id: sea_orm::Set(config.session_id.map(|s| s.0 as i64)),
     };
     file.insert(db_connection).await?;
     Ok(())
@@ -191,12 +193,13 @@ async fn upload_impl(
 
     let key = generate_key_name(format!("{:x}", metadata.hash));
     let key_clone = key.clone();
-    let files_storage_path = &server.shared_data.cfg.main_cfg.files_storage_path;
-    let limit_size = server.shared_data.cfg.main_cfg.user_files_limit;
+    let files_storage_path = server.shared_data.cfg().main_cfg.files_storage_path.clone();
+    let limit_size = server.shared_data.cfg().main_cfg.user_files_limit;
+    let session_id = metadata.session_id.map(SessionID);
 
     // Create temporary file path for streaming using hierarchical structure
     let temp_key = format!("{}.tmp", key);
-    let temp_path = generate_hierarchical_path(files_storage_path, id.0, &temp_key);
+    let temp_path = generate_hierarchical_path(&files_storage_path, id.0, &temp_key);
     let temp_path_clone = temp_path.clone();
 
     // Create temporary file and stream content
@@ -237,7 +240,7 @@ async fn upload_impl(
         }
 
         // All verifications passed, now create the database record and move file
-        let final_path = generate_hierarchical_path(files_storage_path, id.0, &key);
+        let final_path = generate_hierarchical_path(&files_storage_path, id.0, &key);
 
         // Create database record - this will handle storage limits and cleanup
         let config = AddFileRecordConfig {
@@ -247,6 +250,7 @@ async fn upload_impl(
             auto_clean: metadata.auto_clean,
             files_storage_path: files_storage_path.clone(),
             limit_size,
+            session_id,
         };
         add_file_record(config, &server.db.db_pool).await?;
         temp_file.flush().await?;

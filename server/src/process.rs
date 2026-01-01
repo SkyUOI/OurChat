@@ -87,8 +87,15 @@ pub use server_manage::{
         get_announcement::{get_announcement_by_id, get_announcements_by_time},
         publish_announcement::publish_announcement,
     },
+    config::get_config::get_config,
+    config::set_config::set_config,
     delete_account::delete_account,
     set_server_status::set_server_status,
+    user_manage::assign_server_role::assign_server_role,
+    user_manage::ban_user::server_ban_user,
+    user_manage::list_user_server_roles::list_user_server_roles,
+    user_manage::remove_server_role::remove_server_role,
+    user_manage::unban_user::server_unban_user,
 };
 pub use session::{
     accept_join_session_invitation::accept_join_session_invitation,
@@ -102,6 +109,7 @@ pub use session::{
     get_session_info::get_session_info,
     invite_user_to_session::invite_user_to_session,
     join_session::join_session,
+    kick::kick_user,
     leave_session::leave_session,
     mute::{mute_user, unmute_user},
     new_session::new_session,

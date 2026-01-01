@@ -9,7 +9,7 @@ pub async fn support(
     // Convert contacts from user settings to proto format
     let contacts = server
         .shared_data
-        .cfg
+        .cfg()
         .user_setting
         .contacts
         .iter()
@@ -32,7 +32,7 @@ pub async fn support(
         contacts,
         support_page: server
             .shared_data
-            .cfg
+            .cfg()
             .user_setting
             .support_page
             .clone()

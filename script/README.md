@@ -44,14 +44,6 @@ This script is to fetch the contributors and donors to compose the about page in
 Run some checks(lint, format) locally before every commit, you can copy it to
 `.git/hooks`(if you are using linux,use `chmod +x .git/hooks/pre-commit` to make it runnable)
 
-### `pre-commit.py`
-
-Format your code or do other works. You can run it before you commit to prevent your code from being rejected by CI.
-
-### `merge_and_push_main.py`
-
-Merge the changes from `dev` into `main`,only for core developers to simplify daily chores.
-
 ## CI
 
 ## Other

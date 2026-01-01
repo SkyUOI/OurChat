@@ -215,7 +215,7 @@ version = "0"
 default-features = false
 
 [workspace.dependencies.axum-server]
-version = "0.7.2"
+version = "0.8"
 default-features = false
 features = ["tls-rustls"]
 
@@ -263,9 +263,9 @@ default-features = false
 features = ["tokio1", "tokio1-rustls-tls", "smtp-transport", "builder"]
 
 [workspace.dependencies.reqwest]
-version = "0"
+version = "0.13.1"
 default-features = false
-features = ["json", "rustls-tls"]
+features = ["json", "rustls"]
 
 [workspace.dependencies.tonic]
 version = "0.14.2"
@@ -315,7 +315,7 @@ features = ["derive"]
 [workspace.dependencies.argon2]
 version = "0.6.0-rc"
 default-features = false
-features = ["std", "password-hash"]
+features = ["rand_core", "password-hash", "alloc"]
 
 [workspace.dependencies.dashmap]
 version = "6"
@@ -348,4 +348,4 @@ features = ["ring", "aws_lc_rs"]
 [workspace.dependencies.axum]
 version = "0.8"
 default-features = false
-features = ["macros", "http2", "http1", "json","tokio", "query"]
+features = ["macros", "http2", "http1", "json", "tokio", "query"]

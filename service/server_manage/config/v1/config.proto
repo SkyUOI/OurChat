@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package service.server_manage.config.v1;
+
+// Request to get configuration
+message GetConfigRequest {}
+
+// Response with configuration content
+message GetConfigResponse {
+  string content = 1; // TOML content of the configuration file
+}
+
+// Request to set configuration
+message SetConfigRequest {
+  string content = 2; // TOML content to write
+}
+
+// Response after setting configuration
+message SetConfigResponse {
+  bool success = 1;
+  string message = 2;
+}

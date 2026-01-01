@@ -38,6 +38,11 @@ const routes = [
     component: () => import('@/views/UsersView.vue'),
   },
   {
+    path: '/sessions',
+    name: 'Sessions',
+    component: () => import('@/views/SessionsView.vue'),
+  },
+  {
     path: '/config',
     name: 'Config',
     component: () => import('@/views/ConfigView.vue'),

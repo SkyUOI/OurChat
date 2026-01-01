@@ -277,7 +277,7 @@ mod tests {
             state: "invalid_state".to_string(),
         };
 
-        let result = github_oauth_callback(State(state), axum::extract::Query(params)).await;
+        let result = github_oauth_callback(State(state), Query(params)).await;
         assert!(result.is_err());
         assert_eq!(result.err().unwrap(), StatusCode::BAD_REQUEST);
     }
@@ -305,7 +305,7 @@ mod tests {
             state: "expired_state".to_string(),
         };
 
-        let result = github_oauth_callback(State(state), axum::extract::Query(params)).await;
+        let result = github_oauth_callback(State(state), Query(params)).await;
         assert!(result.is_err());
         assert_eq!(result.err().unwrap(), StatusCode::BAD_REQUEST);
     }

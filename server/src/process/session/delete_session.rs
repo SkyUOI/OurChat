@@ -1,8 +1,9 @@
+use crate::db::manager::manage_permission_existed;
 use crate::db::session::{SessionError, get_session_by_id, if_permission_exist};
 use crate::process::error_msg::{PERMISSION_DENIED, not_found};
 use crate::{db, process::error_msg::SERVER_ERROR, server::RpcServer};
 use base::consts::{ID, SessionID};
-use migration::predefined::PredefinedPermissions;
+use migration::predefined::{PredefinedPermissions, PredefinedServerManagementPermission};
 use pb::service::ourchat::session::delete_session::v1::{
     DeleteSessionRequest, DeleteSessionResponse,
 };
@@ -49,16 +50,27 @@ async fn delete_session_impl(
     {
         Err(Status::not_found(not_found::SESSION))?;
     }
-    // check permission
-    if !if_permission_exist(
+    // Check if user has ManageSessions server management permission
+    // Admins with this permission can delete any session
+    let has_admin_permission = manage_permission_existed(
         id,
-        session_id,
-        PredefinedPermissions::DeleteSession.into(),
+        PredefinedServerManagementPermission::ManageSessions as i64,
         &server.db.db_pool,
     )
-    .await?
-    {
-        Err(Status::permission_denied(PERMISSION_DENIED))?
+    .await?;
+
+    if !has_admin_permission {
+        // Normal user - check session-level permission
+        if !if_permission_exist(
+            id,
+            session_id,
+            PredefinedPermissions::DeleteSession.into(),
+            &server.db.db_pool,
+        )
+        .await?
+        {
+            Err(Status::permission_denied(PERMISSION_DENIED))?
+        }
     }
     match db::session::delete_session(session_id, &server.db.db_pool).await {
         Ok(_) => {}

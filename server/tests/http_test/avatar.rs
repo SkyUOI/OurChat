@@ -7,7 +7,7 @@ async fn test_avatar() {
     let user = app.new_user().await.unwrap();
     let user_id = user.lock().await.id;
     let avatar = include_bytes!("../../test_data/test_avatar.png");
-    let key = user.lock().await.post_file(avatar).await.unwrap();
+    let key = user.lock().await.post_file(avatar, None).await.unwrap();
     user.lock()
         .await
         .oc()

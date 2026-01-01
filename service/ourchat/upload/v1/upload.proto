@@ -17,6 +17,8 @@ message Header {
   uint64 size = 2;
   // If the file should be cleaned automatically after several days
   bool auto_clean = 3;
+  // If blank, the file can be accessed by anyone with the key
+  optional uint64 session_id = 4;
 }
 
 message UploadResponse {

@@ -108,6 +108,12 @@ pub mod session {
             include!("../generated/service.ourchat.session.e2eeize_and_dee2eeize_session.v1.rs");
         }
     }
+
+    pub mod kick {
+        pub mod v1 {
+            include!("../generated/service.ourchat.session.kick.v1.rs");
+        }
+    }
 }
 
 pub mod set_account_info {

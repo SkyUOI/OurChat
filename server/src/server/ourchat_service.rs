@@ -47,6 +47,7 @@ use pb::service::ourchat::session::get_session_info::v1::{
     GetSessionInfoRequest, GetSessionInfoResponse,
 };
 use pb::service::ourchat::session::join_session::v1::{JoinSessionRequest, JoinSessionResponse};
+use pb::service::ourchat::session::kick::v1::{KickUserRequest, KickUserResponse};
 use pb::service::ourchat::session::leave_session::v1::{LeaveSessionRequest, LeaveSessionResponse};
 use pb::service::ourchat::session::mute::v1::{
     MuteUserRequest, MuteUserResponse, UnmuteUserRequest, UnmuteUserResponse,
@@ -345,6 +346,17 @@ impl OurChatService for RpcServer {
         let id = get_id_from_req(&request).unwrap();
         self.check_account_status(id).await?;
         process::join_session(self, id, request).await
+    }
+
+    /// Kick a user from a session permanently
+    #[tracing::instrument(skip(self))]
+    async fn kick_user(
+        &self,
+        request: Request<KickUserRequest>,
+    ) -> Result<Response<KickUserResponse>, Status> {
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::kick_user(self, id, request).await
     }
 
     /// Accept a pending session join request

@@ -51,12 +51,11 @@ async fn last_user_leaves_session_deletes_session() {
     assert_eq!(relations, vec![]);
 
     // Verify no role relations exist for this session
-    let role_relations: Vec<entities::user_role_relation::Model> =
-        user_role_relation::Entity::find()
-            .filter(user_role_relation::Column::SessionId.eq(session_id))
-            .all(app.get_db_connection())
-            .await
-            .unwrap();
+    let role_relations: Vec<user_role_relation::Model> = user_role_relation::Entity::find()
+        .filter(user_role_relation::Column::SessionId.eq(session_id))
+        .all(app.get_db_connection())
+        .await
+        .unwrap();
     assert_eq!(role_relations, vec![]);
 
     app.async_drop().await;
@@ -192,12 +191,11 @@ async fn last_user_leaves_cleans_up_all_session_data() {
         .unwrap();
     assert_eq!(members.len(), 2);
 
-    let role_relations: Vec<entities::user_role_relation::Model> =
-        user_role_relation::Entity::find()
-            .filter(user_role_relation::Column::SessionId.eq(session_id))
-            .all(app.get_db_connection())
-            .await
-            .unwrap();
+    let role_relations: Vec<user_role_relation::Model> = user_role_relation::Entity::find()
+        .filter(user_role_relation::Column::SessionId.eq(session_id))
+        .all(app.get_db_connection())
+        .await
+        .unwrap();
     assert_eq!(role_relations.len(), 2);
 
     // User A leaves (not the last user)
@@ -246,12 +244,11 @@ async fn last_user_leaves_cleans_up_all_session_data() {
     assert_eq!(all_session_relations, vec![]);
 
     // Verify no role relations exist
-    let role_relations: Vec<entities::user_role_relation::Model> =
-        user_role_relation::Entity::find()
-            .filter(user_role_relation::Column::SessionId.eq(session_id))
-            .all(app.get_db_connection())
-            .await
-            .unwrap();
+    let role_relations: Vec<user_role_relation::Model> = user_role_relation::Entity::find()
+        .filter(user_role_relation::Column::SessionId.eq(session_id))
+        .all(app.get_db_connection())
+        .await
+        .unwrap();
     assert_eq!(role_relations, vec![]);
 
     // Verify users have no session relations

@@ -1,8 +1,6 @@
-use std::{sync::Arc, time::Duration};
+use std::time::Duration;
 
 use client::TestApp;
-use client::oc_helper::server_manager::TestServerManager;
-use migration::predefined::PredefinedServerManagementRole;
 use pb::service::{
     ourchat::msg_delivery::{
         announcement::v1::{Announcement, AnnouncementResponse},
@@ -11,7 +9,7 @@ use pb::service::{
     server_manage::publish_announcement::v1::PublishAnnouncementRequest,
 };
 use server::process::{add_announcement, get_announcement_by_id, get_announcements_by_time};
-use tokio::{join, sync::Mutex, time::sleep};
+use tokio::{join, time::sleep};
 use tonic::Request;
 
 #[tokio::test]
@@ -74,46 +72,50 @@ async fn add_and_get_announcement() {
 async fn publish_and_fetch_announcement() {
     let mut app = TestApp::new_with_launching_instance().await.unwrap();
     let user = app.new_user().await.unwrap();
-    let user_id = user.lock().await.id;
-    tracing::info!("user id: {}", user.lock().await.id);
-
-    let server_manager = Arc::new(Mutex::new(
-        TestServerManager::new(&app, user_id, user.lock().await.token.clone())
-            .await
-            .unwrap(),
-    ));
-    server_manager
-        .lock()
+    let user_clone = app.new_user().await.unwrap();
+    let user_clone2 = app.new_user().await.unwrap();
+    user.lock()
         .await
-        .assign_role(PredefinedServerManagementRole::Admin as i64)
+        .promote_to_admin(app.get_db_connection())
         .await
         .unwrap();
+    user_clone
+        .lock()
+        .await
+        .promote_to_admin(app.get_db_connection())
+        .await
+        .unwrap();
+
     let announcement = Announcement {
         title: "test".to_string(),
         content: "test".to_string(),
         publisher_id: user.as_ref().lock().await.id.into(),
     };
     let announcement_clone = announcement.clone();
-    let server_manager_clone = server_manager.clone();
 
     let task = tokio::spawn(async move {
         let announcement_bef = Announcement {
             title: "testbef".to_string(),
             content: "testbef".to_string(),
-            publisher_id: user.as_ref().lock().await.id.into(),
+            publisher_id: user_clone2.as_ref().lock().await.id.into(),
         };
-        server_manager_clone
+        user_clone
             .lock()
             .await
-            .client
+            .server_manage()
             .publish_announcement(Request::new(PublishAnnouncementRequest {
                 announcement: Some(announcement_bef.clone()),
             }))
             .await
             .unwrap();
         sleep(Duration::from_millis(200)).await;
-        let receive = user.lock().await.fetch_msgs().fetch(2).await.unwrap();
-        assert_eq!(receive.len(), 2, "{receive:?}");
+        let receive = user_clone2
+            .lock()
+            .await
+            .fetch_msgs()
+            .fetch(2)
+            .await
+            .unwrap();
         match receive[0].to_owned().respond_event_type.unwrap() {
             RespondEventType::AnnouncementResponse(announcement) => {
                 assert_eq!(announcement.announcement.unwrap(), announcement_bef);
@@ -131,10 +133,9 @@ async fn publish_and_fetch_announcement() {
         };
     });
     sleep(Duration::from_millis(400)).await;
-    server_manager
-        .lock()
+    user.lock()
         .await
-        .client
+        .server_manage()
         .publish_announcement(Request::new(PublishAnnouncementRequest {
             announcement: Some(announcement),
         }))

@@ -7,7 +7,7 @@ rabbitmq_cfg = "rabbitmq.toml"
 user_setting = "user_setting.toml"
 http_cfg = "http.toml"
 # The duration of cleaning the files which are out-of-date
-auto_clean_duration = "0 0 * * *"
+auto_clean_duration = "0 0 0 * * *"
 # The total file size limit of a single user
 user_files_limit = "100MiB"
 # A single user's The number of the friend's limit
@@ -17,7 +17,7 @@ verification_expire_time = "3d"
 # The expiry time in hours of the user defined status
 user_defined_status_expire_time = "24h"
 # The path of the users' files storage
-files_storage_path = "files_storage/"
+files_storage_path = "../files_storage/"
 # How long will the files be kept
 files_save_time = "10d"
 # Whether this is started in Single Instance Mode. If true, some actions like cleaning up files will be performed regularly

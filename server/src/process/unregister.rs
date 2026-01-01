@@ -48,7 +48,8 @@ async fn unregister_impl(
 ) -> Result<UnregisterResponse, UnregisterError> {
     let db_conn = &server.db;
     let batch = async {
-        match server.shared_data.cfg.main_cfg.unregister_policy {
+        let policy = server.shared_data.cfg().main_cfg.unregister_policy.clone();
+        match policy {
             crate::config::UnregisterPolicy::Disable => {
                 set_account_deleted(id, &db_conn.db_pool).await?;
             }

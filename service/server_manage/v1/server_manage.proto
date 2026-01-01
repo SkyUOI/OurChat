@@ -2,13 +2,36 @@ syntax = "proto3";
 
 package service.server_manage.v1;
 
+import "service/server_manage/config/v1/config.proto";
 import "service/server_manage/delete_account/v1/delete_account.proto";
+import "service/server_manage/monitoring/v1/monitoring.proto";
 import "service/server_manage/publish_announcement/v1/publish_announcement.proto";
+import "service/server_manage/session_manage/v1/session_manage.proto";
 import "service/server_manage/set_server_status/v1/set_server_status.proto";
+import "service/server_manage/user_manage/v1/user_manage.proto";
 
 service ServerManageService {
   rpc DeleteAccount(delete_account.v1.DeleteAccountRequest) returns (delete_account.v1.DeleteAccountResponse);
 
   rpc SetServerStatus(set_server_status.v1.SetServerStatusRequest) returns (set_server_status.v1.SetServerStatusResponse);
   rpc PublishAnnouncement(publish_announcement.v1.PublishAnnouncementRequest) returns (publish_announcement.v1.PublishAnnouncementResponse);
+
+  // Configuration management
+  rpc GetConfig(config.v1.GetConfigRequest) returns (config.v1.GetConfigResponse);
+  rpc SetConfig(config.v1.SetConfigRequest) returns (config.v1.SetConfigResponse);
+
+  // Server monitoring
+  rpc GetMonitoringMetrics(monitoring.v1.GetMonitoringMetricsRequest) returns (monitoring.v1.GetMonitoringMetricsResponse);
+  rpc GetHistoricalMetrics(monitoring.v1.GetHistoricalMetricsRequest) returns (monitoring.v1.GetHistoricalMetricsResponse);
+
+  // User management
+  rpc ListUsers(user_manage.v1.ListUsersRequest) returns (user_manage.v1.ListUsersResponse);
+  rpc BanUser(user_manage.v1.BanUserRequest) returns (user_manage.v1.BanUserResponse);
+  rpc UnbanUser(user_manage.v1.UnbanUserRequest) returns (user_manage.v1.UnbanUserResponse);
+  rpc AssignServerRole(user_manage.v1.AssignServerRoleRequest) returns (user_manage.v1.AssignServerRoleResponse);
+  rpc RemoveServerRole(user_manage.v1.RemoveServerRoleRequest) returns (user_manage.v1.RemoveServerRoleResponse);
+  rpc ListUserServerRoles(user_manage.v1.ListUserServerRolesRequest) returns (user_manage.v1.ListUserServerRolesResponse);
+
+  // Session management
+  rpc ListSessions(session_manage.v1.ListSessionsRequest) returns (session_manage.v1.ListSessionsResponse);
 }

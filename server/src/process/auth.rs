@@ -102,13 +102,8 @@ pub async fn auth(
     server: &AuthServiceProvider,
     request: tonic::Request<AuthRequest>,
 ) -> Result<Response<AuthResponse>, Status> {
-    match auth_db(
-        request.into_inner(),
-        &server.db,
-        server.shared_data.cfg.main_cfg.require_email_verification,
-    )
-    .await
-    {
+    let require_email_verification = server.shared_data.cfg().main_cfg.require_email_verification;
+    match auth_db(request.into_inner(), &server.db, require_email_verification).await {
         Ok(ok_resp) => Ok(Response::new(ok_resp)),
         Err(e) => Err(match e {
             AuthError::WrongPassword => Status::unauthenticated(WRONG_PASSWORD),

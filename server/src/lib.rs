@@ -21,8 +21,7 @@ use base::shutdown::ShutdownSdr;
 use base::wrapper::JobSchedulerWrapper;
 use clap::Parser;
 use dashmap::DashMap;
-use db::file_storage;
-use parking_lot::{Mutex, Once};
+use parking_lot::{Mutex, Once, RwLock};
 use process::error_msg::MAINTAINING;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
@@ -220,9 +219,9 @@ pub struct Application {
 /// shared data along the whole application
 #[derive(Debug)]
 pub struct SharedData {
-    pub cfg: Cfg,
+    pub cfg: Arc<RwLock<Cfg>>,
     pub verify_record: DashMap<String, Arc<tokio::sync::Notify>>,
-    pub file_sys: Option<crate::db::file_storage::FileSys>,
+    pub file_sys: db::file_storage::FileSys,
     maintaining: Mutex<bool>,
     sched: tokio::sync::Mutex<JobSchedulerWrapper>,
 }
@@ -244,6 +243,10 @@ impl SharedData {
         } else {
             Ok(())
         }
+    }
+
+    pub fn cfg(&self) -> parking_lot::RwLockReadGuard<'_, Cfg> {
+        self.cfg.read()
     }
 }
 
@@ -356,33 +359,22 @@ impl Application {
         let http_launcher = Launcher::build_from_config(&mut cfg).await?;
 
         // init some regular tasks
-        crate::process::webrtc::clean_rooms(
+        process::webrtc::clean_rooms(
             cfg.main_cfg.voip.empty_room_keep_duration,
             db_pool.clone(),
             sched.lock().await,
         )
         .await?;
 
-        // Create temporary SharedData for FileSys initialization with a new scheduler
-        let temp_sched = tokio::sync::Mutex::new(JobSchedulerWrapper::new(
-            tokio_cron_scheduler::JobScheduler::new().await?,
-        ));
-        let temp_shared = Arc::new(SharedData {
-            cfg: cfg.clone(),
-            verify_record: DashMap::new(),
-            file_sys: None,
-            maintaining: Mutex::new(maintaining),
-            sched: temp_sched,
-        });
-
+        let cfg = Arc::new(RwLock::new(cfg));
         // Create FileSys with the temporary SharedData
-        let file_sys = crate::db::file_storage::FileSys::new(db_pool.db_pool.clone(), temp_shared);
+        let file_sys = db::file_storage::FileSys::new(db_pool.db_pool.clone(), cfg.clone());
 
         // Create final SharedData with the FileSys
         let shared = Arc::new(SharedData {
             cfg,
             verify_record: DashMap::new(),
-            file_sys: Some(file_sys),
+            file_sys,
             maintaining: Mutex::new(maintaining),
             sched,
         });
@@ -398,7 +390,7 @@ impl Application {
     }
 
     pub fn get_port(&self) -> u16 {
-        self.shared.cfg.http_cfg.port
+        self.shared.cfg().http_cfg.port
     }
 
     pub fn get_abort_handle(&self) -> ShutdownSdr {
@@ -417,9 +409,8 @@ impl Application {
     /// The server will not exit until all the tasks are finished.
     pub async fn run_forever(&mut self) -> anyhow::Result<()> {
         info!("Starting server");
-        let cfg = &self.shared.cfg.main_cfg;
-
-        if cfg.cmd_args.clear {
+        let clear_flag = self.shared.cfg().main_cfg.cmd_args.clear;
+        if clear_flag {
             clear()?;
         }
 
@@ -449,10 +440,9 @@ impl Application {
                 .await
         });
 
+        let job = self.shared.file_sys.generate_job().await?;
         // Start the database file system
-        file_storage::FileSys::new(self.pool.db_pool.clone(), self.shared.clone())
-            .start()
-            .await?;
+        self.shared.sched.lock().await.add(job).await?;
         self.shared.sched.lock().await.start().await?;
         info!("Start to register service to registry");
         info!("Waiting http server to be ready");

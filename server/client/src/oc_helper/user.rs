@@ -1,11 +1,12 @@
 use crate::ClientCore;
 use crate::oc_helper::FAKE_MANAGER;
-use crate::oc_helper::client::OCClient;
+use crate::oc_helper::client::{OCClient, ServerManageClient};
 use crate::oc_helper::{ClientErr, Clients};
 use anyhow::Context;
 use base::consts::{ID, JWT_HEADER, OCID, SessionID};
 use base::setting::tls::TlsConfig;
 use bytes::Bytes;
+use migration::predefined::PredefinedServerManagementRole;
 use pb::service::auth::authorize::v1::{AuthRequest, auth_request};
 use pb::service::auth::register::v1::RegisterRequest;
 use pb::service::basic::v1::TimestampRequest;
@@ -17,17 +18,22 @@ use pb::service::ourchat::msg_delivery::v1::{
 };
 use pb::service::ourchat::session::accept_join_session_invitation::v1::AcceptJoinSessionInvitationRequest;
 use pb::service::ourchat::session::ban::v1::{BanUserRequest, UnbanUserRequest};
+use pb::service::ourchat::session::kick::v1::KickUserRequest;
 use pb::service::ourchat::session::mute::v1::{MuteUserRequest, UnmuteUserRequest};
 use pb::service::ourchat::unregister::v1::UnregisterRequest;
 use pb::service::ourchat::v1::our_chat_service_client::OurChatServiceClient;
+use pb::service::server_manage::user_manage::v1::RemoveServerRoleRequest;
+use pb::service::server_manage::v1::server_manage_service_client::ServerManageServiceClient;
 use pb::time::TimeStampUtc;
 use rand::Rng;
 use rsa::pkcs1::EncodeRsaPublicKey as _;
 use rsa::{RsaPrivateKey, RsaPublicKey};
+use server::helper::generate_random_string;
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 use tokio::select;
+use tokio::sync::Mutex;
 use tokio::sync::Notify;
 use tokio_stream::StreamExt;
 use tonic::metadata::MetadataValue;
@@ -45,6 +51,7 @@ pub struct TestUser {
     pub clients: Clients,
     pub rpc_url: String,
     pub oc_server: Option<OCClient>,
+    pub server_manage_client: Option<ServerManageClient>,
     pub timestamp_receive_msg: TimeStampUtc,
     pub tls: TlsConfig,
     // Check whether message == 0 in the end
@@ -59,22 +66,32 @@ pub struct TestUser {
 
 // Utils functions implemented
 impl TestUser {
-    pub async fn random(app: &ClientCore) -> Self {
+    pub async fn random_readable(app: &ClientCore) -> Self {
         let name = FAKE_MANAGER.lock().generate_unique_name();
         let email = FAKE_MANAGER.lock().generate_unique_email();
+        Self::new(name, email, app).await
+    }
+
+    pub async fn random_unreadable(app: &ClientCore) -> Self {
+        let name = generate_random_string(25);
+        let email = format!("{}@example.com", generate_random_string(25));
+        Self::new(name, email, app).await
+    }
+
+    async fn new(name: impl Into<String>, email: impl Into<String>, app: &ClientCore) -> Self {
         let url = app.rpc_url.clone();
         let mut rng = rand::rng();
         let bits = 2048;
         let private_key = RsaPrivateKey::new(&mut rng, bits).unwrap();
         let public_key = RsaPublicKey::from(&private_key);
         Self {
-            name,
+            name: name.into(),
             password: rand::rng()
                 .sample_iter(&rand::distr::Alphanumeric)
                 .take(40)
                 .map(char::from)
                 .collect(),
-            email,
+            email: email.into(),
             port: app.port,
             has_dropped: false,
             clients: app.clients.clone(),
@@ -83,6 +100,7 @@ impl TestUser {
             ocid: OCID::default(),
             token: String::default(),
             oc_server: None,
+            server_manage_client: None,
             id: ID::default(),
             timestamp_receive_msg: chrono::Utc::now(),
             has_unregistered: false,
@@ -147,10 +165,18 @@ impl TestUser {
             .to_string()
             .parse()
             .context("token parse error")?;
+        let token_clone = token.clone();
         user.oc_server = Some(OurChatServiceClient::with_interceptor(
-            channel,
+            channel.clone(),
             Box::new(move |mut req: tonic::Request<()>| {
                 req.metadata_mut().insert(JWT_HEADER, token.clone());
+                Ok(req)
+            }),
+        ));
+        user.server_manage_client = Some(ServerManageServiceClient::with_interceptor(
+            channel,
+            Box::new(move |mut req: tonic::Request<()>| {
+                req.metadata_mut().insert(JWT_HEADER, token_clone.clone());
                 Ok(req)
             }),
         ));
@@ -158,7 +184,7 @@ impl TestUser {
         Ok(())
     }
 
-    pub(crate) async fn async_drop(&mut self) {
+    pub async fn async_drop(&mut self) {
         if !self.has_unregistered {
             if self.ensure_no_message_left {
                 claims::assert_err!(self.fetch_msgs().fetch(1).await);
@@ -202,6 +228,10 @@ impl TestUser {
         self.oc_server.as_mut().unwrap()
     }
 
+    pub fn server_manage(&mut self) -> &mut ServerManageClient {
+        self.server_manage_client.as_mut().unwrap()
+    }
+
     pub async fn ocid_auth(&mut self) -> Result<(), ClientErr> {
         let login_req = AuthRequest {
             account: Some(auth_request::Account::Ocid(self.ocid.0.clone())),
@@ -229,14 +259,22 @@ impl TestUser {
         Ok(())
     }
 
-    pub async fn post_file(&mut self, content: &[u8]) -> anyhow::Result<String> {
-        self.post_file_as_iter(content.chunks(1024 * 1024).map(|chunk| chunk.to_vec()))
-            .await
+    pub async fn post_file(
+        &mut self,
+        content: &[u8],
+        session_id: Option<SessionID>,
+    ) -> anyhow::Result<String> {
+        self.post_file_as_iter(
+            content.chunks(1024 * 1024).map(|chunk| chunk.to_vec()),
+            session_id,
+        )
+        .await
     }
 
     pub async fn post_file_as_iter(
         &mut self,
         content: impl Iterator<Item = Vec<u8>> + Clone,
+        session_id: Option<SessionID>,
     ) -> anyhow::Result<String> {
         use pb::service::ourchat::upload::v1::UploadRequest;
         use prost::bytes::Bytes;
@@ -251,8 +289,9 @@ impl TestUser {
         let mut files_content = vec![UploadRequest::new_header(
             size,
             #[allow(deprecated)]
-            bytes::Bytes::copy_from_slice(hash.as_slice()),
+            Bytes::copy_from_slice(hash.as_slice()),
             false,
+            session_id.map(|x| x.0),
         )];
         for chunks in content {
             chunks.chunks(1024 * 1024).for_each(|chunk| {
@@ -333,6 +372,15 @@ impl TestUser {
         Ok(())
     }
 
+    pub async fn kick_user(&mut self, user_id: ID, session_id: SessionID) -> Result<(), Status> {
+        let req = KickUserRequest {
+            session_id: session_id.into(),
+            user_id: user_id.into(),
+        };
+        self.oc().kick_user(req).await?;
+        Ok(())
+    }
+
     pub async fn mute_user(
         &mut self,
         user_ids: Vec<ID>,
@@ -407,13 +455,40 @@ impl TestUser {
     }
 
     pub async fn get_update_timestamp(&mut self) -> anyhow::Result<TimeStampUtc> {
-        Ok(self
-            .get_self_info(vec![get_account_info::v1::QueryValues::UpdatedTime])
+        self.get_self_info(vec![get_account_info::v1::QueryValues::UpdatedTime])
             .await?
             .updated_time
             .unwrap()
             .try_into()
-            .unwrap())
+    }
+
+    /// Promote this user to an admin (assigns Admin role) by directly modifying the database.
+    /// This bypasses the permission check, solving the chicken-and-egg problem where
+    /// the first admin needs AssignRole permission to assign themselves as admin.
+    ///
+    /// # Arguments
+    /// * `db` - The database connection to use for the role assignment
+    pub async fn promote_to_admin(
+        &mut self,
+        db: &sea_orm::DatabaseConnection,
+    ) -> Result<(), Status> {
+        server::db::manager::set_role(self.id, PredefinedServerManagementRole::Admin as i64, db)
+            .await
+            .map_err(|e| Status::internal(format!("failed to set role: {e:?}")))
+    }
+
+    /// Remove admin role from this user
+    pub async fn remove_admin_role(&mut self) -> Result<(), Status> {
+        let request = RemoveServerRoleRequest {
+            user_id: self.id.into(),
+            role_id: PredefinedServerManagementRole::Admin as u64,
+        };
+        self.server_manage_client
+            .as_mut()
+            .unwrap()
+            .remove_server_role(request)
+            .await?;
+        Ok(())
     }
 }
 
@@ -437,7 +512,7 @@ pub struct FetchMsgBuilder<'a> {
 #[derive(thiserror::Error, Debug)]
 pub enum FetchMsgErr {
     #[error("time limit exceeded")]
-    Timeout,
+    Timeout(String),
     #[error(transparent)]
     Other(#[from] anyhow::Error),
 }
@@ -458,24 +533,28 @@ impl<'a> FetchMsgBuilder<'a> {
             .await
             .context("error from server side")?;
         let mut ret_stream = ret.into_inner();
+        let msgs = Arc::new(Mutex::new(vec![]));
+        let msgs_clone = msgs.clone();
         let logic = async {
-            let mut msgs = vec![];
             while let Some(i) = ret_stream.next().await {
                 let i = i?;
                 self.user.timestamp_receive_msg = i.time.unwrap().try_into().unwrap();
+                let mut msgs = msgs_clone.lock().await;
                 msgs.push(i);
                 if msgs.len() == nums_limit {
                     break;
                 }
             }
-            anyhow::Ok(msgs)
+            anyhow::Ok(())
         };
         select! {
-            msgs = logic => {
-                Ok(msgs?)
+            err = logic => {
+                err?;
+                Ok(msgs.lock().await.to_vec())
             }
             _ = tokio::time::sleep(self.timeout_limit) => {
-                Err(FetchMsgErr::Timeout)
+                let lock = msgs.lock().await;
+                Err(FetchMsgErr::Timeout(format!("Received {} messages: {:?}", lock.len(), lock)))
             }
         }
     }

@@ -11,6 +11,7 @@ pub mod get_role;
 pub mod get_session_info;
 pub mod invite_user_to_session;
 pub mod join_session;
+pub mod kick;
 pub mod leave_session;
 pub mod mute;
 pub mod new_session;

@@ -1,4 +1,3 @@
-mod announcement;
 mod auth_register;
 mod basic;
 mod basic_services;
@@ -8,6 +7,7 @@ mod friend;
 mod log;
 mod msg_recall;
 mod msg_send;
+mod server_manage;
 mod session;
 mod tls;
 mod user_info;

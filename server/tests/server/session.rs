@@ -6,6 +6,7 @@ mod e2ee_update;
 mod e2eeize_and_dee2eeize_session;
 mod invite;
 mod join;
+mod kick;
 mod leave;
 mod mute;
 mod role;
@@ -343,5 +344,68 @@ async fn set_session_info() {
         .unwrap_err();
     assert_eq!(err.code(), tonic::Code::PermissionDenied);
     assert_eq!(err.message(), error_msg::CANNOT_SET_NAME);
+    app.async_drop().await;
+}
+
+#[tokio::test]
+async fn admin_can_get_any_session_info() {
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
+    let (session_user, session) = app
+        .new_session_db_level(3, "session1", false)
+        .await
+        .unwrap();
+    let a = session_user[0].clone();
+    let b = session_user[1].clone();
+    let c = session_user[2].clone();
+    let (aid, bid, cid) = (a.lock().await.id, b.lock().await.id, c.lock().await.id);
+
+    // Create an admin user (not in the session) and promote them
+    let admin = app.new_user().await.unwrap();
+    admin
+        .lock()
+        .await
+        .promote_to_admin(app.get_db_connection())
+        .await
+        .unwrap();
+
+    // Admin can view session info including members and roles (even though not in session)
+    let info = admin
+        .lock()
+        .await
+        .oc()
+        .get_session_info(GetSessionInfoRequest {
+            session_id: session.session_id.into(),
+            query_values: vec![
+                QueryValues::Members.into(),
+                QueryValues::Roles.into(),
+                QueryValues::Size.into(),
+            ],
+        })
+        .await
+        .unwrap()
+        .into_inner();
+
+    // Verify members
+    let members: HashSet<ID> = info.members.into_iter().map(|x| x.into()).collect();
+    assert_eq!(members, HashSet::from_iter([aid, bid, cid].into_iter()));
+
+    // Verify roles
+    let roles: HashSet<(ID, RoleId)> = info
+        .roles
+        .into_iter()
+        .map(|x| (x.user_id.into(), RoleId(x.role as u64)))
+        .collect();
+    assert_eq!(
+        roles,
+        HashSet::from_iter([
+            (aid, PredefinedRoles::Owner.into()),
+            (bid, PredefinedRoles::Member.into()),
+            (cid, PredefinedRoles::Member.into())
+        ])
+    );
+
+    // Verify size
+    assert_eq!(info.size.unwrap(), 3);
+
     app.async_drop().await;
 }

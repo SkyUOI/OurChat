@@ -1,8 +1,10 @@
 use super::query_session;
+use crate::db::manager::manage_permission_existed;
 use crate::db::session::in_session;
 use crate::process::error_msg::{self, REQUEST_INVALID_VALUE, SERVER_ERROR, not_found};
 use crate::{db, server::RpcServer};
 use base::consts::ID;
+use migration::predefined::PredefinedServerManagementPermission;
 use pb::service::ourchat::session::get_session_info::v1::RoleInfo;
 use pb::service::ourchat::session::get_session_info::v1::{
     GetSessionInfoRequest, GetSessionInfoResponse, QueryValues,
@@ -54,6 +56,16 @@ async fn get_session_info_impl(
         }
     };
     let in_session = in_session(id, session_id, &server.db.db_pool).await?;
+
+    // Check if user has ManageSessions server management permission
+    // Admins with this permission can view any session's members and roles
+    let has_admin_permission = manage_permission_existed(
+        id,
+        PredefinedServerManagementPermission::ManageSessions as i64,
+        &server.db.db_pool,
+    )
+    .await?;
+
     for i in req_inner.query_values {
         let i = match QueryValues::try_from(i) {
             Ok(i) => i,
@@ -81,7 +93,8 @@ async fn get_session_info_impl(
                 res.updated_time = Some(session_data.updated_time.into());
             }
             QueryValues::Members => {
-                if !in_session {
+                // Only allow if user is in session OR has admin permission
+                if !in_session && !has_admin_permission {
                     Err(Status::permission_denied(error_msg::PERMISSION_DENIED))?
                 }
                 res.members = db::session::get_members(session_id, &server.db.db_pool)
@@ -91,7 +104,8 @@ async fn get_session_info_impl(
                     .collect();
             }
             QueryValues::Roles => {
-                if !in_session {
+                // Only allow if user is in session OR has admin permission
+                if !in_session && !has_admin_permission {
                     Err(Status::permission_denied(error_msg::PERMISSION_DENIED))?
                 }
                 let all_users =

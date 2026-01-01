@@ -9,11 +9,11 @@ import en from './locales/en.json'
 import zh from './locales/zh.json'
 import { createPinia } from 'pinia'
 
-// 创建i18n实例
+// Create i18n instance
 const i18n = createI18n({
   legacy: false,
-  locale: 'en', // 默认语言
-  fallbackLocale: 'en', // 回退语言
+  locale: 'en', // Default language
+  fallbackLocale: 'en', // Fallback language
   messages: {
     en,
     zh,
@@ -22,7 +22,7 @@ const i18n = createI18n({
 
 const app = createApp(App)
 
-// 全局注册Element Plus图标
+// Globally register Element Plus icons
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component)
 }
@@ -32,5 +32,5 @@ const pinia = createPinia()
 app.use(pinia)
 app.use(router)
 app.use(ElementPlus)
-app.use(i18n) // 使用i18n插件
+app.use(i18n) // Use i18n plugin
 app.mount('#app')

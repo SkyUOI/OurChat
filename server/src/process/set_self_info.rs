@@ -46,19 +46,17 @@ pub async fn set_self_info(
     {
         return Err(Status::invalid_argument(STATUS_TOO_LONG));
     }
+    let expire_time = server
+        .shared_data
+        .cfg()
+        .main_cfg
+        .user_defined_status_expire_time;
     match update_account(
         id,
         request_data,
         &server.db.db_pool,
         server.db.redis_pool.get().await.unwrap(),
-        Duration::from_std(
-            server
-                .shared_data
-                .cfg
-                .main_cfg
-                .user_defined_status_expire_time,
-        )
-        .unwrap(),
+        Duration::from_std(expire_time).unwrap(),
     )
     .await
     {

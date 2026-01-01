@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package service.server_manage.monitoring.v1;
+
+// Server monitoring metrics
+message MonitoringMetrics {
+  // Number of active connections
+  int32 active_connections = 1;
+  // Total number of registered users
+  int32 total_users = 2;
+  // Messages processed per second (average)
+  double messages_per_second = 3;
+  // Server uptime in seconds
+  int64 uptime_seconds = 4;
+  // Timestamp when metrics were collected
+  int64 timestamp = 5;
+  // CPU usage percentage (0-100)
+  optional double cpu_usage_percent = 6;
+  // Memory usage percentage (0-100)
+  optional double memory_usage_percent = 7;
+  // Disk usage percentage (0-100)
+  optional double disk_usage_percent = 8;
+  // Total sessions
+  int32 total_sessions = 9;
+  // Active sessions (currently connected)
+  int32 active_sessions = 10;
+  // Database connections in pool
+  int32 database_connections = 11;
+  // Redis connections
+  int32 redis_connections = 12;
+  // RabbitMQ connections
+  int32 rabbitmq_connections = 13;
+}
+
+// Request for monitoring metrics
+message GetMonitoringMetricsRequest {
+  // If true, include system resource metrics (CPU, memory, disk)
+  bool include_system_metrics = 1;
+}
+
+// Response with monitoring metrics
+message GetMonitoringMetricsResponse {
+  MonitoringMetrics metrics = 1;
+}
+
+// Request for historical metrics over time range
+message GetHistoricalMetricsRequest {
+  // Start timestamp (Unix seconds)
+  int64 start_time = 1;
+  // End timestamp (Unix seconds)
+  int64 end_time = 2;
+  // Metrics aggregation interval in seconds (e.g., 60 for per-minute)
+  int32 interval_seconds = 3;
+}
+
+// Historical data point
+message MetricDataPoint {
+  int64 timestamp = 1;
+  MonitoringMetrics metrics = 2;
+}
+
+// Response with historical metrics
+message GetHistoricalMetricsResponse {
+  repeated MetricDataPoint data_points = 1;
+}

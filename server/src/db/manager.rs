@@ -28,7 +28,7 @@ pub async fn manage_permission_existed(
         )
         .join(
             sea_orm::JoinType::InnerJoin,
-            server_management_role::Relation::ManagerRoleRelation.def(),
+            server_management_role::Relation::ServerManagementRolePermissions.def(),
         )
         .filter(manager_role_relation::Column::UserId.eq(user_id))
         .filter(server_management_role_permissions::Column::PermissionId.eq(permission_checked))
@@ -98,5 +98,29 @@ pub async fn set_role(
     }
     .insert(db_conn)
     .await?;
+    Ok(())
+}
+
+/// Removes a server management role from a user.
+///
+/// # Arguments
+///
+/// * `user_id` - The ID of the user to remove the role from.
+/// * `role_id` - The ID of the role to remove from the user.
+/// * `db_conn` - A reference to the database connection implementing the `ConnectionTrait`.
+///
+/// # Returns
+///
+/// * `Result<(), sea_orm::DbErr>` - An empty result if the operation is successful, or a `DbErr` if the operation fails.
+pub async fn remove_role(
+    user_id: ID,
+    role_id: i64,
+    db_conn: &impl ConnectionTrait,
+) -> Result<(), DbErr> {
+    manager_role_relation::Entity::delete_many()
+        .filter(manager_role_relation::Column::UserId.eq(user_id))
+        .filter(manager_role_relation::Column::RoleId.eq(role_id))
+        .exec(db_conn)
+        .await?;
     Ok(())
 }

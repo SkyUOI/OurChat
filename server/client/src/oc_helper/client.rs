@@ -10,6 +10,7 @@ use pb::service::auth::v1::auth_service_client::AuthServiceClient;
 use pb::service::basic::v1::basic_service_client::BasicServiceClient;
 use pb::service::basic::v1::{GetIdRequest, TimestampRequest};
 use pb::service::ourchat::v1::our_chat_service_client::OurChatServiceClient;
+use pb::service::server_manage::v1::server_manage_service_client::ServerManageServiceClient;
 use pb::time::TimeStampUtc;
 use sea_orm::TransactionTrait;
 use server::config::Cfg;
@@ -24,6 +25,17 @@ use tonic::codegen::InterceptedService;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig, Endpoint, Identity};
 
 pub type OCClient = OurChatServiceClient<
+    InterceptedService<
+        Channel,
+        Box<
+            dyn FnMut(tonic::Request<()>) -> Result<tonic::Request<()>, tonic::Status>
+                + Send
+                + Sync,
+        >,
+    >,
+>;
+
+pub type ServerManageClient = ServerManageServiceClient<
     InterceptedService<
         Channel,
         Box<
@@ -89,7 +101,12 @@ pub struct ClientCore {
 
 impl ClientCore {
     pub async fn new(cfg: ClientCoreConfig) -> anyhow::Result<Self> {
-        let url_without_scheme = format!("{}:{}", cfg.ip, cfg.port);
+        // IPv6 addresses need to be wrapped in brackets for URIs
+        let url_without_scheme = if cfg.ip.contains(':') {
+            format!("[{}]:{}", cfg.ip, cfg.port)
+        } else {
+            format!("{}:{}", cfg.ip, cfg.port)
+        };
         let enabled_tls = match cfg.enable_ssl {
             Some(data) => data,
             None => utils::http::test_and_get_http_status(&url_without_scheme).await?,
@@ -106,6 +123,7 @@ impl ClientCore {
             clients: Clients {
                 auth: AuthServiceClient::connect(remote_url.clone()).await?,
                 basic: BasicServiceClient::connect(remote_url.clone()).await?,
+                server_manage: ServerManageServiceClient::connect(remote_url.clone()).await?,
             },
             enable_ssl: enabled_tls,
         })
@@ -213,14 +231,11 @@ impl TestApp {
 
         // Construct http client
         let mut http_client = reqwest::Client::builder().timeout(Duration::from_secs(2));
-        if shared.cfg.http_cfg.tls.is_tls_on()? {
-            // TODO: remove the danger_accept_invalid_certs (I think it is a bug of reqwest)
-            let pem =
-                tokio::fs::read(shared.cfg.http_cfg.tls.ca_tls_cert_path.as_ref().unwrap()).await?;
+        if shared.cfg().http_cfg.tls.is_tls_on()? {
+            let cert_path = shared.cfg().http_cfg.tls.ca_tls_cert_path.clone().unwrap();
+            let pem = tokio::fs::read(&cert_path).await?;
             let cert = reqwest::Certificate::from_pem(&pem)?;
-            http_client = http_client
-                .add_root_certificate(cert)
-                .danger_accept_invalid_certs(true)
+            http_client = http_client.add_root_certificate(cert)
         }
         let http_client = http_client.build()?;
 
@@ -238,7 +253,8 @@ impl TestApp {
                 port,
                 clients: Clients {
                     auth: AuthServiceClient::new(connected_channel.clone()),
-                    basic: BasicServiceClient::new(connected_channel),
+                    basic: BasicServiceClient::new(connected_channel.clone()),
+                    server_manage: ServerManageServiceClient::new(connected_channel),
                 },
                 rpc_url: rpc_url.clone(),
                 enable_ssl: enabled_tls,
@@ -284,7 +300,9 @@ impl TestApp {
     }
 
     pub async fn new_user(&mut self) -> anyhow::Result<TestUserShared> {
-        let user = Arc::new(tokio::sync::Mutex::new(TestUser::random(&self.core).await));
+        let user = Arc::new(tokio::sync::Mutex::new(
+            TestUser::random_readable(&self.core).await,
+        ));
         if self.app_config.http_cfg.tls.is_tls_on()? {
             user.lock().await.tls = self.app_config.http_cfg.tls.clone();
         }

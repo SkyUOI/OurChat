@@ -16,3 +16,7 @@ pb = { path = "../pb" }
 size.workspace = true
 base = { path = "../base" }
 dotenvy.workspace = true
+rand.workspace = true
+bytes.workspace = true
+migration ={ path = "../migration" }
+comfy-table = "7"

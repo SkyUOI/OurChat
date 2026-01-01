@@ -29,7 +29,7 @@ async fn test_exchange_rebuild() {
         .fetch(0)
         .await
     {
-        Err(FetchMsgErr::Timeout) => {}
+        Err(FetchMsgErr::Timeout(_)) => {}
         Err(e) => {
             panic!("{e}")
         }

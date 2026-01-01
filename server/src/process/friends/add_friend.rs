@@ -84,17 +84,13 @@ async fn add_friend_impl(
         .get()
         .await
         .context("cannot get redis connection")?;
+    let ex = server
+        .shared_data
+        .cfg()
+        .user_setting
+        .add_friend_request_expiry;
     let _: () = conn
-        .set_ex(
-            &key,
-            serde_json::to_string(&req).unwrap(),
-            server
-                .shared_data
-                .cfg
-                .user_setting
-                .add_friend_request_expiry
-                .as_secs(),
-        )
+        .set_ex(&key, serde_json::to_string(&req).unwrap(), ex.as_secs())
         .await?;
     // insert 2 messages
     let respond_msg =

@@ -27,6 +27,7 @@ cd docker && docker compose up -d
 ```
 
 ### Critical Notes
+
 - Uses **nightly Rust** toolchain (see `rust-toolchain.toml`)
 - **SeaORM** for database operations, **Axum** for HTTP, **Tonic** for gRPC
 - Configuration files in `docker/config/`
@@ -83,6 +84,7 @@ The server is a Rust workspace with multiple crates:
 - **`server/web-panel/`** - Web administration panel
 
 **Key source directories in `server/src/`:**
+
 - `process/` - Business logic (authentication, messaging, sessions)
 - `db/` - Database operations
 - `matrix/` - Matrix protocol integration
@@ -179,6 +181,10 @@ The server is a Rust workspace with multiple crates:
 3. Update entity models with `scripts/regenerate_entities.py` after migration has been run.
 4. For example, run `sea migrate generate xxx` and then run `python scripts/db_migration.py down -n 100` and then run `python scripts/regenerate_entities.py`. this is a correct flow of new migration creation
 
+### Setting Logs
+
+1. Use OURCHAT_LOG instead of RUST_LOG, for example, OURCHAT_LOG=trace
+
 ### Authentication Flow
 
 - JWT tokens with 5-day expiration
@@ -196,47 +202,43 @@ The server is a Rust workspace with multiple crates:
 - Configuration supports both single instance and distributed deployment
 - Rate limiting is implemented with `tower-governor`
 - CORS is configured for web client support
+- Don't use mod.rs
 
 ## Troubleshooting
 
 ### Common Issues
 
 **Database migration failures:**
-- Ensure PostgreSQL is running and accessible
+
 - Check `docker/config/database.toml` credentials
 - Run `python scripts/db_migration.py down -n 100` to rollback migrations, then re-apply
 
 **Server fails to start:**
+
 - Check `log/` directory for error logs
 - Verify Redis and RabbitMQ are running
 - Ensure configuration files exist in `docker/config/` or `config/`
 
 **gRPC connection issues:**
+
 - Verify server is running: `cargo run --bin server`
 - Check TLS configuration if using secure connections
-- Ensure firewall allows the configured port
 
 **Test failures:**
+
 - Tests require running PostgreSQL, Redis, and RabbitMQ instances
-- Use `cargo test -- --test-threads=1` for sequential test execution
 - Check `server/tests/` directory for test-specific configuration
 
 ### Performance Tuning
 
 **Database optimization:**
+
 - Configure connection pool size in `database.toml`
 - Enable query logging for slow queries
 - Consider adding indexes for frequently queried columns
 
 **Memory management:**
+
 - Monitor Redis memory usage
 - Configure RabbitMQ message TTL
 - Set appropriate file storage limits in `ourchat.toml`
-
-## Deployment
-
-- Docker Compose setup in `docker/` directory
-- Supports both development and production configurations
-- Multi-instance deployment with leader election
-- TLS/SSL support available
-- Log rotation and cleanup configured

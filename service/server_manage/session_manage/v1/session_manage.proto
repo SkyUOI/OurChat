@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package service.server_manage.session_manage.v1;
+
+import "google/protobuf/timestamp.proto";
+import "service/ourchat/session/get_session_info/v1/get_session_info.proto";
+
+// Session types (from existing session type enum)
+enum SessionType {
+  SESSION_TYPE_UNSPECIFIED = 0;
+  SESSION_TYPE_PRIVATE = 1;
+  SESSION_TYPE_GROUP = 2;
+  SESSION_TYPE_CHANNEL = 3;
+}
+
+// Session filter options
+message SessionFilter {
+  optional SessionType session_type = 1;
+  optional string session_name = 2; // partial match
+  optional google.protobuf.Timestamp created_after = 3;
+  optional google.protobuf.Timestamp created_before = 4;
+  optional uint64 owner_id = 5;
+  optional uint32 min_members = 6;
+  optional uint32 max_members = 7;
+}
+
+// Pagination parameters (same as user manage)
+message Pagination {
+  uint32 page = 1;
+  uint32 page_size = 2;
+}
+
+// List sessions request
+message ListSessionsRequest {
+  optional SessionFilter filter = 1;
+  optional Pagination pagination = 2;
+  repeated ourchat.session.get_session_info.v1.QueryValues query_values = 3;
+}
+
+// List sessions response
+message ListSessionsResponse {
+  repeated ourchat.session.get_session_info.v1.GetSessionInfoResponse sessions = 1;
+}
