@@ -1,5 +1,9 @@
 import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:fixnum/fixnum.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:hashlib/hashlib.dart';
 import 'package:markdown/markdown.dart' as md;
 import 'package:grpc/grpc.dart';
 import 'package:ourchat/core/log.dart';
@@ -7,8 +11,14 @@ import 'package:ourchat/google/protobuf/timestamp.pb.dart';
 import 'package:flutter/material.dart';
 import 'package:ourchat/core/const.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:ourchat/l10n/app_localizations.dart';
 import 'package:ourchat/main.dart';
 import 'package:http/http.dart' as http;
+import 'package:ourchat/service/ourchat/download/v1/download.pb.dart';
+import 'dart:async';
+
+import 'package:ourchat/service/ourchat/upload/v1/upload.pb.dart';
+import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
 
 class OurChatTime {
   /*
@@ -336,7 +346,7 @@ Future safeRequest(Function func, var args, Function onError,
 /// MarkDown -> PlainText (GENERATE BY AI)
 class MarkdownToText {
   /// 将 Markdown 文本转为纯文本，忽略所有语法（支持 flutter_markdown_plus 增强语法）
-  static String convert(String markdownText) {
+  static String convert(String markdownText, AppLocalizations l10n) {
     if (markdownText.isEmpty) return "";
 
     // 1. 用 flutter_markdown_plus 兼容的规则解析 Markdown
@@ -346,7 +356,7 @@ class MarkdownToText {
     // 2. 用访问器遍历节点，只提取文本节点内容（避免重复）
     final StringBuffer textBuffer = StringBuffer();
     for (final node in nodes) {
-      node.accept(_NodeTextExtractor(textBuffer));
+      node.accept(_NodeTextExtractor(textBuffer, l10n));
     }
 
     // 3. 清理并返回纯文本
@@ -367,8 +377,9 @@ class MarkdownToText {
 /// 修复重复文本：仅提取最底层文本节点（Text）的内容，忽略父节点
 class _NodeTextExtractor implements md.NodeVisitor {
   final StringBuffer buffer;
+  AppLocalizations l10n;
 
-  _NodeTextExtractor(this.buffer);
+  _NodeTextExtractor(this.buffer, this.l10n);
 
   /// 只处理文本节点：这是最底层的文本来源，不会重复
   @override
@@ -381,9 +392,14 @@ class _NodeTextExtractor implements md.NodeVisitor {
     }
   }
 
-  /// 访问元素节点之前：不提取父节点文本，只返回 true 继续遍历子节点
   @override
   bool visitElementBefore(md.Element element) {
+    // 处理图片节点：img 标签替换为 [图片]
+    if (element.tag == 'img') {
+      buffer.write("[${l10n.image}] "); // 添加空格避免和其他内容粘连
+      return false; // 图片节点无子节点，无需继续遍历
+    }
+
     // 特殊处理：列表项、段落、表格等节点，添加换行分隔（优化格式）
     if (element.tag == 'li' || element.tag == 'p' || element.tag == 'tr') {
       buffer.write("\n");
@@ -439,4 +455,234 @@ Future needUpdate(Uri source, bool acceptAlpha, bool acceptBeta) async {
     }
   }
   return null;
+}
+
+/// Replace urls in markdown text (GENERATE BY AI)
+String replaceMarkdownImageUrls(
+    String markdown, String Function(String oldUrl) replaceUrl) {
+  final doc = md.Document(encodeHtml: false);
+  final nodes = doc.parseLines(markdown.split('\n'));
+
+  // 遍历 AST 并替换 img 节点的 src
+  void walk(List<md.Node> list) {
+    for (var node in list) {
+      if (node is md.Element) {
+        if (node.tag == 'img') {
+          final old = node.attributes['src'] ?? '';
+          node.attributes['src'] = replaceUrl(old);
+        }
+        if (node.children != null && node.children!.isNotEmpty) {
+          walk(node.children!);
+        }
+      }
+    }
+  }
+
+  walk(nodes);
+
+  // 简单序列化回 Markdown（覆盖常见节点）
+  final renderer = _MiniRenderer();
+  return renderer.render(nodes);
+}
+
+class _MiniRenderer {
+  final StringBuffer _buf = StringBuffer();
+
+  String render(List<md.Node> nodes) {
+    _buf.clear();
+    for (var n in nodes) {
+      _render(n, parent: null);
+    }
+    var out = _buf.toString();
+    out = out.replaceAll(RegExp(r'\s+$'), '\n');
+    return out;
+  }
+
+  void _render(md.Node node, {md.Node? parent}) {
+    if (node is md.Text) {
+      _buf.write(node.text);
+      return;
+    }
+
+    if (node is md.Element) {
+      switch (node.tag) {
+        case 'p':
+          _renderInline(node);
+          _buf.writeln('\n');
+          return;
+        case 'h1':
+        case 'h2':
+        case 'h3':
+        case 'h4':
+        case 'h5':
+        case 'h6':
+          final lvl = int.parse(node.tag.substring(1));
+          _buf.write('${'#' * lvl} ');
+          _renderInline(node);
+          _buf.writeln('\n');
+          return;
+        case 'pre': // fenced code block
+          String lang = '';
+          String code = _collectText(node);
+          final first = (node.children != null && node.children!.isNotEmpty)
+              ? node.children!.first
+              : null;
+          if (first is md.Element && first.tag == 'code') {
+            final cls = first.attributes['class'] ?? '';
+            final m = RegExp(r'language-([^\s]+)').firstMatch(cls);
+            if (m != null) lang = m.group(1) ?? '';
+            code = _collectText(first);
+          }
+          _buf.writeln('```$lang');
+          _buf.writeln(code);
+          _buf.writeln('```');
+          _buf.writeln();
+          return;
+        case 'ul':
+        case 'ol':
+          final ordered = node.tag == 'ol';
+          var idx = 1;
+          for (var li in node.children ?? []) {
+            if (li.tag == 'li') {
+              final tmp = StringBuffer();
+              // 渲染 li 到临时 buffer
+              final old = _swapBuffer(tmp);
+              for (var c in li.children ?? []) {
+                _render(c, parent: li);
+              }
+              _restoreBuffer(old);
+              final lines = tmp.toString().trimRight().split('\n');
+              final prefix = ordered ? '$idx. ' : '- ';
+              _buf.write("$prefix${(lines.isNotEmpty ? lines.first : '')}\n");
+              for (var i = 1; i < lines.length; i++) {
+                _buf.write('  ${lines[i]}\n');
+              }
+              idx++;
+            }
+          }
+          _buf.writeln();
+          return;
+        case 'a':
+          final href = node.attributes['href'] ?? '';
+          _buf.write('[');
+          _renderInline(node);
+          _buf.write(']($href)');
+          return;
+        case 'img':
+          final alt = node.attributes['alt'] ?? '';
+          final src = node.attributes['src'] ?? '';
+          final title = node.attributes['title'];
+          if (title != null && title.isNotEmpty) {
+            _buf.write('![$alt]($src "$title")');
+          } else {
+            _buf.write('![$alt]($src)');
+          }
+          return;
+        case 'code':
+          if (parent is md.Element && parent.tag == 'pre') {
+            _buf.write(_collectText(node));
+          } else {
+            _buf.write('`');
+            _buf.write(_collectText(node));
+            _buf.write('`');
+          }
+          return;
+        default:
+          for (var c in node.children ?? []) {
+            _render(c, parent: node);
+          }
+          return;
+      }
+    }
+
+    _buf.write(node.toString());
+  }
+
+  void _renderInline(md.Element node) {
+    for (var c in node.children ?? []) {
+      _render(c, parent: node);
+    }
+  }
+
+  String _collectText(md.Node node) {
+    if (node is md.Text) return node.text;
+    if (node is md.Element) {
+      return (node.children ?? []).map((c) => _collectText(c)).join();
+    }
+
+    return '';
+  }
+
+  // 简化版 buffer swap（用于列表项临时收集）
+  StringBuffer _swapBuffer(StringBuffer newBuf) => _buf;
+  void _restoreBuffer(StringBuffer old) {}
+}
+
+Future<UploadResponse> upload(
+    OurChatAppState ourchatAppState, Uint8List biData) async {
+  var l10n = ourchatAppState.l10n;
+  var stub = OurChatServiceClient(ourchatAppState.server!.channel!,
+      interceptors: [ourchatAppState.server!.interceptor!]);
+  StreamController<UploadRequest> controller =
+      StreamController<UploadRequest>();
+  var call = safeRequest(stub.upload, controller.stream, (GrpcError e) {
+    showResultMessage(
+      ourchatAppState,
+      e.code,
+      e.message,
+      invalidArgumentStatus: "${l10n.internalError}(${e.message})",
+      resourceExhaustedStatus: l10n.storageSpaceFull,
+    );
+  }, rethrowError: true);
+  controller.add(UploadRequest(
+    metadata: Header(
+        hash: sha3_256.convert(biData.toList()).bytes,
+        size: Int64.parseInt(biData.length.toString()),
+        autoClean: false),
+  ));
+  int chunkSize = 1024 * 128;
+  for (int i = 0; i < biData.lengthInBytes; i += chunkSize) {
+    controller.add(UploadRequest(
+        content: biData
+            .sublist(
+                i,
+                biData.lengthInBytes > i + chunkSize
+                    ? i + chunkSize
+                    : biData.lengthInBytes)
+            .toList()));
+  }
+  controller.close();
+  return await call;
+}
+
+Future<Uint8List> getOurChatFile(
+    OurChatAppState ourchatAppState, String key) async {
+  try {
+    var manager = DefaultCacheManager();
+    FileInfo? cache = await manager.getFileFromCache(
+        "${ourchatAppState.server!.host}:${ourchatAppState.server!.port}/$key");
+    if (cache != null) {
+      return await cache.file.readAsBytes();
+    }
+    var stub = OurChatServiceClient(ourchatAppState.server!.channel!,
+        interceptors: [ourchatAppState.server!.interceptor!]);
+    var res = await safeRequest(stub.download, DownloadRequest(key: key),
+        (GrpcError e) {
+      showResultMessage(ourchatAppState, e.code, e.message);
+    }) as ResponseStream<DownloadResponse>;
+    Uint8List data = Uint8List(0);
+    for (DownloadResponse piece in await res.toList()) {
+      data.addAll(piece.data);
+    }
+
+    manager.putFile(
+        "${ourchatAppState.server!.host}:${ourchatAppState.server!.port}/$key",
+        Uint8List.fromList(data),
+        key:
+            "${ourchatAppState.server!.host}:${ourchatAppState.server!.port}/$key");
+    return Uint8List.fromList(data);
+  } catch (e) {
+    logger.e("getOurChatFile error:$e");
+    rethrow;
+  }
 }

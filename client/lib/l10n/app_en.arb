@@ -438,15 +438,19 @@
             }
         }
     },
-    "failToLoad": "Fail to load {sth}",
-    "@failToLoad": {
-        "description": "Fail to load sth",
+    "failTo": "Fail to {sth}",
+    "@failTo": {
+        "description": "Fail to sth",
         "placeholders": {
             "sth": {
-                "example": "image",
+                "example": "load image",
                 "type": "String"
             }
         }
+    },
+    "load": "load",
+    "@load": {
+        "description": "load"
     },
     "image": "image",
     "@image": {
@@ -471,5 +475,9 @@
     "disableUpdate": "This release version disabled update",
     "@disableUpdate": {
         "description": "This release version disabled update"
+    },
+    "upload": "upload",
+    "@upload": {
+        "description": "upload"
     }
 }

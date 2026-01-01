@@ -1,14 +1,10 @@
-import 'dart:async';
 import 'dart:typed_data';
-
 import 'package:grpc/grpc.dart';
-import 'package:hashlib/hashlib.dart';
-import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
+import 'package:ourchat/core/const.dart';
 import 'package:ourchat/server_setting.dart';
 import 'package:ourchat/about.dart';
 import 'package:ourchat/service/ourchat/set_account_info/v1/set_account_info.pb.dart';
-import 'package:ourchat/service/ourchat/upload/v1/upload.pb.dart';
 import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
 import 'package:provider/provider.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
@@ -42,39 +38,24 @@ class User extends StatelessWidget {
               Uint8List biData = await image.readAsBytes();
               var stub = OurChatServiceClient(ourchatAppState.server!.channel!,
                   interceptors: [ourchatAppState.server!.interceptor!]);
-              StreamController<UploadRequest> controller =
-                  StreamController<UploadRequest>();
-              var call =
-                  safeRequest(stub.upload, controller.stream, (GrpcError e) {
-                showResultMessage(
-                  ourchatAppState,
-                  e.code,
-                  e.message,
-                  invalidArgumentStatus: "${l10n.internalError}(${e.message})",
-                  resourceExhaustedStatus: l10n.storageSpaceFull,
-                );
-              });
-              controller.add(UploadRequest(
-                metadata: Header(
-                    hash: sha3_256.convert(biData.toList()).bytes,
-                    size: Int64.parseInt(biData.length.toString()),
-                    autoClean: false),
-              ));
-              controller.add(UploadRequest(content: biData.toList()));
-              controller.close();
-              var res = await call;
-              await safeRequest(
-                  stub.setSelfInfo, SetSelfInfoRequest(avatarKey: res.key),
-                  (GrpcError e) {
-                showResultMessage(ourchatAppState, e.code, e.message,
-                    invalidArgumentStatus: {
-                      "Ocid Too Long": l10n.tooLong(l10n.ocid),
-                      "Status Too Long": l10n.tooLong(l10n.status),
-                    },
-                    alreadyExistsStatus: l10n.alreadyExists(l10n.info));
-              });
-              await ourchatAppState.thisAccount!
-                  .getAccountInfo(ignoreCache: true);
+              try {
+                var res = await upload(ourchatAppState, biData);
+                await safeRequest(
+                    stub.setSelfInfo, SetSelfInfoRequest(avatarKey: res.key),
+                    (GrpcError e) {
+                  showResultMessage(ourchatAppState, e.code, e.message,
+                      invalidArgumentStatus: {
+                        "Ocid Too Long": l10n.tooLong(l10n.ocid),
+                        "Status Too Long": l10n.tooLong(l10n.status),
+                      },
+                      alreadyExistsStatus: l10n.alreadyExists(l10n.info));
+                });
+                await ourchatAppState.thisAccount!
+                    .getAccountInfo(ignoreCache: true);
+              } catch (e) {
+                showResultMessage(ourchatAppState, internalStatusCode, null,
+                    internalStatus: l10n.failTo(l10n.upload));
+              }
             },
           ),
         ),

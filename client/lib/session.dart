@@ -4,7 +4,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:grpc/grpc.dart' as grpc;
-import 'package:hashlib/hashlib.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/core/const.dart';
@@ -20,7 +19,6 @@ import 'package:ourchat/service/ourchat/session/delete_session/v1/delete_session
 import 'package:ourchat/service/ourchat/session/leave_session/v1/leave_session.pb.dart';
 import 'package:ourchat/service/ourchat/session/new_session/v1/session.pb.dart';
 import 'package:ourchat/service/ourchat/session/set_session_info/v1/set_session_info.pb.dart';
-import 'package:ourchat/service/ourchat/upload/v1/upload.pb.dart';
 import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
 import 'package:provider/provider.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
@@ -43,7 +41,7 @@ class SessionState extends ChangeNotifier {
   Map<OurChatSession, UserMsg> sessionLatestMsg = {};
   bool alreadyDispose = false;
   Map<String, Uint8List> cacheFiles = {};
-  List<String> needuploadFiles = [];
+  List<String> needUploadFiles = [];
   final ValueNotifier<String> inputText = ValueNotifier<String>("");
 
   void update() {
@@ -543,7 +541,7 @@ class _SessionListState extends State<SessionList> {
                   if (sessionState.sessionLatestMsg
                       .containsKey(currentSession)) {
                     recentMsgText =
-                        "${sessionState.sessionLatestMsg[currentSession]!.sender!.username}: ${MarkdownToText.convert(sessionState.sessionLatestMsg[currentSession]!.markdownText)}";
+                        "${sessionState.sessionLatestMsg[currentSession]!.sender!.username}: ${MarkdownToText.convert(sessionState.sessionLatestMsg[currentSession]!.markdownText, l10n)}";
                     if (recentMsgText.length > 25) {
                       recentMsgText = recentMsgText.substring(
                           0, min(25, recentMsgText.length));
@@ -971,28 +969,9 @@ class _SessionTabState extends State<SessionTab> {
                         },
                         onSaved: (value) async {
                           List<String> involvedFiles = [];
-                          for (String path in sessionState.needuploadFiles) {
-                            var stub = OurChatServiceClient(
-                                ourchatAppState.server!.channel!,
-                                interceptors: [
-                                  ourchatAppState.server!.interceptor!
-                                ]);
-                            StreamController<UploadRequest> uploadController =
-                                StreamController<UploadRequest>();
+                          String text = value!;
+                          for (String path in sessionState.needUploadFiles) {
                             try {
-                              var call = safeRequest(
-                                  stub.upload, uploadController.stream,
-                                  (grpc.GrpcError e) {
-                                showResultMessage(
-                                  ourchatAppState,
-                                  e.code,
-                                  e.message,
-                                  invalidArgumentStatus:
-                                      "${l10n.internalError}(${e.message})",
-                                  resourceExhaustedStatus:
-                                      l10n.storageSpaceFull,
-                                );
-                              }, rethrowError: true);
                               if (!sessionState.cacheFiles.containsKey(path)) {
                                 showResultMessage(
                                     ourchatAppState, notFoundStatusCode, null,
@@ -1000,33 +979,31 @@ class _SessionTabState extends State<SessionTab> {
                                         l10n.notFound("${l10n.image}($path)"));
                                 continue;
                               }
-                              uploadController.add(UploadRequest(
-                                metadata: Header(
-                                    hash: sha3_256
-                                        .convert(sessionState.cacheFiles[path]!
-                                            .toList())
-                                        .bytes,
-                                    size: Int64.parseInt(sessionState
-                                        .cacheFiles[path]!.length
-                                        .toString()),
-                                    autoClean: false),
-                              ));
-                              uploadController.add(UploadRequest(
-                                  content: sessionState.cacheFiles[path]!));
-                              uploadController.close();
-                              var res = await call;
+                              var res = await upload(ourchatAppState,
+                                  sessionState.cacheFiles[path]!);
+                              String newPath = "IO://${res.key}";
+                              text = replaceMarkdownImageUrls(text, (oldUrl) {
+                                if (oldUrl != path) {
+                                  return oldUrl;
+                                }
+                                return newPath;
+                              });
                               involvedFiles.add(res.key);
                             } catch (e) {
-                              // do nothing
+                              showResultMessage(
+                                  ourchatAppState, internalStatusCode, null,
+                                  internalStatus: l10n.failTo(l10n.upload));
                             }
                           }
                           UserMsg msg = UserMsg(ourchatAppState,
                               sender: ourchatAppState.thisAccount!,
-                              markdownText: value!,
+                              markdownText: text,
                               involvedFiles: involvedFiles,
                               session: sessionState.currentSession);
                           controller.text = "";
                           sessionState.inputText.value = "";
+                          sessionState.needUploadFiles = [];
+                          sessionState.cacheFiles = {};
                           await msg.send(sessionState.currentSession!);
                         },
                         onChanged: (value) {
@@ -1046,11 +1023,14 @@ class _SessionTabState extends State<SessionTab> {
                           List<XFile> images = await picker.pickMultiImage();
                           for (XFile i in images) {
                             var uri = Uri.parse(i.path);
-                            sessionState.cacheFiles[
-                                    Uri.decodeFull(uri.toString())] =
+                            sessionState.cacheFiles[uri.toString()] =
                                 await i.readAsBytes();
+                            String breakLine = controller.text.isEmpty ||
+                                    controller.text.endsWith("\n") // 已有换行
+                                ? ""
+                                : "\n";
                             controller.text =
-                                "${controller.text}\n![${i.name}](${Uri.decodeFull(uri.toString())})";
+                                "${controller.text}$breakLine![${i.name}](${uri.toString()})";
                             sessionState.inputText.value = controller.text;
                           }
                         },
@@ -1367,7 +1347,7 @@ class _SessionRecordState extends State<SessionRecord> {
               if (value.isEmpty) {
                 return Container();
               }
-              sessionState.needuploadFiles = [];
+              sessionState.needUploadFiles = [];
               return MessageWidget(
                   msg: UserMsg(ourchatAppState,
                       sender: ourchatAppState.thisAccount, markdownText: value),
@@ -1455,21 +1435,47 @@ class _MessageWidgetState extends State<MessageWidget> {
                   });
             },
             imageBuilder: (uri, title, alt) {
+              Widget widget = Text(ourchatAppState.l10n.internalError);
+              if (sessionState.cacheFiles.containsKey(uri.toString())) {
+                widget = Image.memory(sessionState.cacheFiles[uri.toString()]!);
+                sessionState.needUploadFiles.add(uri.toString());
+              }
               try {
-                if (["http", "https"].contains(uri.scheme)) {
-                  return CachedNetworkImage(
-                    imageUrl: uri.toString(),
-                  );
-                } else {
-                  sessionState.needuploadFiles
-                      .add(Uri.decodeFull(uri.toString()));
-                  return Image.memory(
-                      sessionState.cacheFiles[Uri.decodeFull(uri.toString())]!);
+                String content = uri.toString().split("://")[1];
+                if (uri.scheme[0] == 'i') {
+                  if (uri.scheme[1] == 'o') {
+                    widget = FutureBuilder(
+                        future: getOurChatFile(ourchatAppState, content),
+                        builder: (content, snapshot) {
+                          if (snapshot.hasError) {
+                            return Text(ourchatAppState.l10n.failTo(
+                                "${ourchatAppState.l10n.load} ${ourchatAppState.l10n.image}"));
+                          }
+                          if (snapshot.connectionState !=
+                                  ConnectionState.done ||
+                              snapshot.data == null) {
+                            return CircularProgressIndicator(
+                              color: Theme.of(context).primaryColor,
+                            );
+                          }
+                          Uint8List fileBytes = snapshot.data as Uint8List;
+                          return Image.memory(fileBytes);
+                        });
+                  } else if (uri.scheme[1] == 'n') {
+                    var path = content.split(",");
+                    String url = "${path[0]}://${path.sublist(1).join(',')}";
+                    widget = CachedNetworkImage(
+                      imageUrl: url,
+                      errorWidget: (context, url, error) => Text(
+                          ourchatAppState.l10n.failTo(
+                              "${ourchatAppState.l10n.load} ${ourchatAppState.l10n.image}($url) ")),
+                    );
+                  }
                 }
               } catch (e) {
-                return Text(ourchatAppState.l10n
-                    .failToLoad("${ourchatAppState.l10n.image}($alt)"));
+                // do nothing
               }
+              return widget;
             },
             noScroll: true,
           )

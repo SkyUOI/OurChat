@@ -43,6 +43,7 @@ dependencies:
       url: git@github.com:senlinjun/ota_update.git
       ref: desktop_dev
   device_info_plus: ^12.3.0
+  flutter_cache_manager: ^3.4.1
 
 dev_dependencies:
   # flutter_test:
