@@ -19,7 +19,8 @@ class OurChatConfig {
       "recent_account": "",
       "recent_password": "",
       "recent_avatar_url": "",
-      "language": null
+      "language": null,
+      "update_source": "https://api.github.com/repos/skyuoi/ourchat/releases"
     };
   }
 

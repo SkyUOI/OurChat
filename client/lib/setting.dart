@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ourchat/core/const.dart';
 import 'package:ourchat/core/log.dart';
 import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/main.dart';
@@ -25,7 +26,8 @@ class Setting extends StatelessWidget {
                     children: [
                       SeedColorEditor(),
                       LogLevelSelector(),
-                      LanguageEditor()
+                      LanguageEditor(),
+                      if (enableVersionCheck) UpdateSourceEditor(),
                     ],
                   ),
                 ),
@@ -35,6 +37,42 @@ class Setting extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class UpdateSourceEditor extends StatefulWidget {
+  const UpdateSourceEditor({super.key});
+
+  @override
+  State<UpdateSourceEditor> createState() => _UpdateSourceEditorState();
+}
+
+class _UpdateSourceEditorState extends State<UpdateSourceEditor> {
+  @override
+  Widget build(BuildContext context) {
+    OurChatAppState ourChatAppState = context.watch<OurChatAppState>();
+    return Row(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(AppStyles.defaultPadding),
+          child: SizedBox(
+            height: 30.0,
+            width: 30.0,
+            child: Icon(Icons.link),
+          ),
+        ),
+        Expanded(
+            child: TextFormField(
+          initialValue: ourChatAppState.config["update_source"],
+          decoration: InputDecoration(label: Text("URL")),
+          autovalidateMode: AutovalidateMode.onUnfocus,
+          validator: (value) {
+            ourChatAppState.config["update_source"] = value;
+            return null;
+          },
+        ))
+      ],
     );
   }
 }
@@ -60,7 +98,7 @@ class LanguageEditor extends StatelessWidget {
     return Row(
       children: [
         Padding(
-          padding: const EdgeInsets.all(5.0),
+          padding: const EdgeInsets.all(AppStyles.defaultPadding),
           child: SizedBox(
             width: 30.0,
             height: 30.0,
@@ -115,7 +153,7 @@ class SeedColorEditor extends StatelessWidget {
     return Row(
       children: [
         Padding(
-          padding: const EdgeInsets.all(5.0),
+          padding: const EdgeInsets.all(AppStyles.defaultPadding),
           child: SizedBox(
             width: 30.0,
             height: 30.0,
@@ -220,7 +258,7 @@ class LogLevelSelector extends StatelessWidget {
     return Row(
       children: [
         Padding(
-          padding: const EdgeInsets.all(5.0),
+          padding: const EdgeInsets.all(AppStyles.defaultPadding),
           child: SizedBox(
               width: 30.0,
               height: 30.0,

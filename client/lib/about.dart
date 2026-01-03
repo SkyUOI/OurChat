@@ -27,10 +27,7 @@ class _AboutState extends State<About> {
     if (!inited) {
       if (enableVersionCheck) {
         needUpdate(
-                Uri.parse(
-                    "https://gitee.com/api/v5/repos/skyuoi/ourchat/releases"),
-                true,
-                true)
+                Uri.parse(ourchatAppState.config["update_source"]), true, true)
             .then((value) {
           setState(() {
             updateData = value;
