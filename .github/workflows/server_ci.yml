@@ -32,7 +32,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@nightly
       - name: Rust Fmt
         run: |
           rustup component add rustfmt

@@ -205,21 +205,23 @@ impl StressTest {
         let success = correct.load(std::sync::atomic::Ordering::Relaxed);
         let failed_count = failed.load(std::sync::atomic::Ordering::Relaxed);
         let elapsed = total.elapsed();
+        let actual_executed = success + failed_count;
 
         tracing::info!(
-            "✅ Stress test completed: success={}, failed={}, total_time={:.2}s, qps={:.2}",
+            "✅ Stress test completed: executed={}, success={}, failed={}, total_time={:.2}s, qps={:.2}",
+            actual_executed,
             success,
             failed_count,
             elapsed.as_secs_f64(),
-            self.requests as f64 / elapsed.as_secs_f64()
+            actual_executed as f64 / elapsed.as_secs_f64()
         );
 
         Output {
             max_time: *max_time.lock(),
             min_time: *min_time.lock(),
-            qps: self.requests as f64 / elapsed.as_secs_f64(),
+            qps: actual_executed as f64 / elapsed.as_secs_f64(),
             success,
-            failed: self.requests - success,
+            failed: failed_count,
             total: elapsed,
         }
     }

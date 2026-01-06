@@ -33,7 +33,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@nightly
       - name: Setup Docker on macOS
         uses: douglascamata/setup-docker-macos-action@main
       - name: Install Protoc

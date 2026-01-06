@@ -10,7 +10,7 @@ use base::database::DbPool;
 use entities::user;
 use migration::constants::USERNAME_MAX_LEN;
 use pb::service::auth::register::v1::{RegisterRequest, RegisterResponse};
-use rand::rngs::OsRng;
+// use rand::rngs::OsRng;
 use sea_orm::{ActiveModelTrait, ActiveValue, DbErr, TransactionTrait};
 use snowdon::ClassicLayoutSnowflakeExtension;
 use std::num::TryFromIntError;
@@ -111,7 +111,7 @@ enum RegisterError {
 fn compute_password_hash(password: &str, params: Params) -> anyhow::Result<String> {
     Ok(
         argon2::Argon2::new(argon2::Algorithm::Argon2id, argon2::Version::V0x13, params)
-            .hash_password_with_rng(&mut OsRng, password.as_bytes())?
+            .hash_password(password.as_bytes())?
             .to_string(),
     )
 }

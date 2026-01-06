@@ -9,6 +9,9 @@ use std::sync::{
     atomic::{AtomicUsize, Ordering},
 };
 
+use derive::register_test;
+
+#[register_test("File Upload", WithUsers)]
 pub async fn test_upload(
     users: &UsersGroup,
     report: &mut Report,
@@ -48,6 +51,7 @@ pub async fn test_upload(
     Ok(keys_ret)
 }
 
+#[register_test("File Download", WithUsers)]
 pub async fn test_download(
     keys: Arc<DashMap<OCID, String>>,
     users: &UsersGroup,

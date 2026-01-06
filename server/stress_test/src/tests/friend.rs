@@ -7,6 +7,9 @@ use pb::service::ourchat::friends::add_friend::v1::AddFriendRequest;
 use pb::service::ourchat::friends::delete_friend::v1::DeleteFriendRequest;
 use pb::service::ourchat::friends::set_friend_info::v1::SetFriendInfoRequest;
 
+use derive::register_test;
+
+#[register_test("Add Friend", WithUsers)]
 pub async fn test_add_friend(users: &UsersGroup, report: &mut Report) {
     run_user_stress_test(
         report,
@@ -32,6 +35,7 @@ pub async fn test_add_friend(users: &UsersGroup, report: &mut Report) {
     .await;
 }
 
+#[register_test("Accept Friend Invitation", WithUsers)]
 pub async fn test_accept_friend_invitation(users: &UsersGroup, report: &mut Report) {
     run_user_stress_test(
         report,
@@ -57,6 +61,7 @@ pub async fn test_accept_friend_invitation(users: &UsersGroup, report: &mut Repo
     .await;
 }
 
+#[register_test("Delete Friend", WithUsers)]
 pub async fn test_delete_friend(users: &UsersGroup, report: &mut Report) {
     run_user_stress_test(
         report,
@@ -80,6 +85,7 @@ pub async fn test_delete_friend(users: &UsersGroup, report: &mut Report) {
     .await;
 }
 
+#[register_test("Set Friend Info", WithUsers)]
 pub async fn test_set_friend_info(users: &UsersGroup, report: &mut Report) {
     run_user_stress_test(
         report,

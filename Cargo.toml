@@ -315,7 +315,7 @@ features = ["derive"]
 [workspace.dependencies.argon2]
 version = "0.6.0-rc"
 default-features = false
-features = ["rand_core", "password-hash", "alloc"]
+features = ["getrandom", "password-hash", "alloc"]
 
 [workspace.dependencies.dashmap]
 version = "6"

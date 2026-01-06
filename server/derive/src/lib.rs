@@ -3,6 +3,7 @@ use proc_macro::TokenStream;
 mod helper;
 mod path;
 mod redis;
+mod stress_test;
 
 /// Derive macro for generating Redis HSET and HGET operations for a struct.
 ///
@@ -36,4 +37,10 @@ pub fn redis_hset_derive(input: TokenStream) -> TokenStream {
 #[proc_macro_derive(PathConvert, attributes(path_convert))]
 pub fn path_convert_derive(input: TokenStream) -> TokenStream {
     path::path_convert_derive_internal(input)
+}
+
+/// Attribute macro for automatic stress test registration
+#[proc_macro_attribute]
+pub fn register_test(args: TokenStream, input: TokenStream) -> TokenStream {
+    stress_test::register_test(args, input)
 }

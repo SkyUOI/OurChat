@@ -102,7 +102,10 @@ class UserMsg extends OurChatEvent {
             sender: sender,
             session: session,
             sendTime: sendTime,
-            data: {"markdown_text": markdownText, "involved_files": []});
+            data: {
+              "markdown_text": markdownText,
+              "involved_files": involvedFiles
+            });
 
   @override
   Future loadFromDB(OurChatDatabase privateDB, RecordData row) async {
@@ -110,7 +113,7 @@ class UserMsg extends OurChatEvent {
     markdownText = data!["markdown_text"];
     involvedFiles = [];
     for (int i = 0; i < data!["involved_files"].length; i++) {
-      involvedFiles.add(data!["involved_files"]);
+      involvedFiles.add(data!["involved_files"][i]);
     }
   }
 

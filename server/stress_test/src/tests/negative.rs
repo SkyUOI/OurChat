@@ -8,7 +8,9 @@ use pb::service::ourchat::session::get_session_info::v1::{
 };
 use pb::service::ourchat::session::join_session::v1::JoinSessionRequest;
 
-/// Test joining non-existent session
+use derive::register_test;
+
+#[register_test("Join Non-existent Session", WithUsers)]
 pub async fn test_join_nonexistent_session(users: &UsersGroup, report: &mut Report) {
     run_user_stress_test(
         report,
@@ -31,7 +33,7 @@ pub async fn test_join_nonexistent_session(users: &UsersGroup, report: &mut Repo
     .await;
 }
 
-/// Test sending message to non-existent session
+#[register_test("Send Message to Invalid Session", WithUsers)]
 pub async fn test_send_msg_invalid_session(users: &UsersGroup, report: &mut Report) {
     run_user_stress_test(
         report,
@@ -56,7 +58,7 @@ pub async fn test_send_msg_invalid_session(users: &UsersGroup, report: &mut Repo
     .await;
 }
 
-/// Test getting session info for non-existent session
+#[register_test("Get Session Info (Invalid)", WithUsers)]
 pub async fn test_get_session_info_invalid(users: &UsersGroup, report: &mut Report) {
     run_user_stress_test(
         report,
@@ -79,7 +81,7 @@ pub async fn test_get_session_info_invalid(users: &UsersGroup, report: &mut Repo
     .await;
 }
 
-/// Test adding friend with invalid user ID
+#[register_test("Add Friend (Invalid User)", WithUsers)]
 pub async fn test_add_friend_invalid_user(users: &UsersGroup, report: &mut Report) {
     run_user_stress_test(
         report,
@@ -103,7 +105,7 @@ pub async fn test_add_friend_invalid_user(users: &UsersGroup, report: &mut Repor
     .await;
 }
 
-/// Test sending empty message content
+#[register_test("Send Empty Message", WithUsers)]
 pub async fn test_send_empty_message(users: &UsersGroup, report: &mut Report) {
     run_user_stress_test(
         report,
@@ -128,7 +130,7 @@ pub async fn test_send_empty_message(users: &UsersGroup, report: &mut Report) {
     .await;
 }
 
-/// Test permission denied: non-owner trying to delete session
+#[register_test("Delete Session (Unauthorized)", WithUsers)]
 pub async fn test_delete_session_unauthorized(users: &UsersGroup, report: &mut Report) {
     run_user_stress_test(
         report,

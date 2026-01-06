@@ -3,6 +3,9 @@ use crate::framework::{Output, Record, Report, StressTest, run_user_stress_test}
 use pb::service::basic::preset_user_status::v1::GetPresetUserStatusRequest;
 use pb::service::basic::v1::{GetIdRequest, GetServerInfoRequest, TimestampRequest};
 
+use derive::register_test;
+
+#[register_test("Timestamp", AppOnly)]
 pub async fn test_timestamp(stress_test: &mut StressTest, app: &mut client::ClientCore) -> Output {
     let app = app.clients.clone();
     stress_test
@@ -13,6 +16,7 @@ pub async fn test_timestamp(stress_test: &mut StressTest, app: &mut client::Clie
         .await
 }
 
+#[register_test("Get Server Info", AppOnly)]
 pub async fn test_get_server_info(
     stress_test: &mut StressTest,
     app: &mut client::ClientCore,
@@ -31,6 +35,7 @@ pub async fn test_get_server_info(
         .await
 }
 
+#[register_test("Get ID", WithUsers)]
 pub async fn test_get_id(users: &UsersGroup, report: &mut Report) {
     run_user_stress_test(
         report,
@@ -50,6 +55,7 @@ pub async fn test_get_id(users: &UsersGroup, report: &mut Report) {
     .await;
 }
 
+#[register_test("Preset User Status", AppOnly)]
 pub async fn test_preset_user_status(report: &mut Report, app: &mut client::ClientCore) {
     tracing::info!("▶️  Running test: 'preset_user_status'");
     let app = app.clients.clone();
@@ -70,6 +76,7 @@ pub async fn test_preset_user_status(report: &mut Report, app: &mut client::Clie
     report.add_record(Record::new("preset_user_status", output));
 }
 
+#[register_test("Basic Service", AppOnly)]
 pub async fn test_basic_service(report: &mut Report, app: &mut client::ClientCore) {
     tracing::info!("▶️  Running test: 'timestamp'");
     let mut stress_test = StressTest::builder()

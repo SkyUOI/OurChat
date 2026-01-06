@@ -29,6 +29,9 @@ use std::sync::{
     atomic::{AtomicUsize, Ordering},
 };
 
+use derive::register_test;
+
+#[register_test("New Session", WithSessions)]
 pub async fn test_new_session(
     users: &UsersGroup,
     report: &mut Report,
@@ -80,6 +83,7 @@ pub async fn test_new_session(
     Ok(sessions_ret)
 }
 
+#[register_test("Get Session Info", WithSessions)]
 pub async fn test_get_session_info(
     sessions: Arc<DashMap<ID, SessionID>>,
     users: &UsersGroup,
@@ -122,6 +126,7 @@ pub async fn test_get_session_info(
     .await;
 }
 
+#[register_test("Set Session Info", WithSessions)]
 pub async fn test_set_session_info(
     sessions: Arc<DashMap<ID, SessionID>>,
     users: &UsersGroup,
@@ -160,6 +165,7 @@ pub async fn test_set_session_info(
     .await;
 }
 
+#[register_test("Invite User to Session", WithSessions)]
 pub async fn test_invite_user_to_session(
     sessions: Arc<DashMap<ID, SessionID>>,
     users: &UsersGroup,
@@ -200,6 +206,7 @@ pub async fn test_invite_user_to_session(
     .await;
 }
 
+#[register_test("Leave Session", WithSessions)]
 pub async fn test_leave_session(
     sessions: Arc<DashMap<ID, SessionID>>,
     users: &UsersGroup,
@@ -235,6 +242,7 @@ pub async fn test_leave_session(
     .await;
 }
 
+#[register_test("Delete Session", WithSessions)]
 pub async fn test_delete_session(
     sessions: Arc<DashMap<ID, SessionID>>,
     users: &UsersGroup,
@@ -271,6 +279,7 @@ pub async fn test_delete_session(
 }
 
 // Session moderation tests
+#[register_test("Ban User", WithSessions)]
 pub async fn test_ban(
     sessions: Arc<DashMap<ID, SessionID>>,
     users: &UsersGroup,
@@ -311,6 +320,7 @@ pub async fn test_ban(
     .await;
 }
 
+#[register_test("Mute User", WithSessions)]
 pub async fn test_mute(
     sessions: Arc<DashMap<ID, SessionID>>,
     users: &UsersGroup,
@@ -351,6 +361,7 @@ pub async fn test_mute(
     .await;
 }
 
+#[register_test("Kick User", WithSessions)]
 pub async fn test_kick(
     sessions: Arc<DashMap<ID, SessionID>>,
     users: &UsersGroup,
@@ -391,6 +402,7 @@ pub async fn test_kick(
 }
 
 // Session role tests
+#[register_test("Add Role", WithSessions)]
 pub async fn test_add_role(
     sessions: Arc<DashMap<ID, SessionID>>,
     users: &UsersGroup,
@@ -446,6 +458,7 @@ pub async fn test_add_role(
     Ok(role_ids_ret)
 }
 
+#[register_test("Set Role", WithSessions)]
 pub async fn test_set_role(
     sessions: Arc<DashMap<ID, SessionID>>,
     users: &UsersGroup,
@@ -488,6 +501,7 @@ pub async fn test_set_role(
     .await;
 }
 
+#[register_test("Get Role", WithSessions)]
 pub async fn test_get_role(
     role_ids: Arc<DashMap<ID, u64>>,
     users: &UsersGroup,
@@ -525,6 +539,7 @@ pub async fn test_get_role(
 }
 
 // Additional session tests
+#[register_test("Join Session", WithSessions)]
 pub async fn test_join_session(
     sessions: Arc<DashMap<ID, SessionID>>,
     users: &UsersGroup,
@@ -577,6 +592,7 @@ pub async fn test_join_session(
     .await;
 }
 
+#[register_test("Accept Join Session Invitation", WithSessions)]
 pub async fn test_accept_join_session_invitation(
     sessions: Arc<DashMap<ID, SessionID>>,
     users: &UsersGroup,
@@ -639,6 +655,7 @@ pub async fn test_accept_join_session_invitation(
     .await;
 }
 
+#[register_test("Allow User Join Session", WithSessions)]
 pub async fn test_allow_user_join_session(
     sessions: Arc<DashMap<ID, SessionID>>,
     users: &UsersGroup,
@@ -681,6 +698,7 @@ pub async fn test_allow_user_join_session(
     .await;
 }
 
+#[register_test("E2EEize Session", WithSessions)]
 pub async fn test_e2eeize_session(
     sessions: Arc<DashMap<ID, SessionID>>,
     users: &UsersGroup,
@@ -717,6 +735,7 @@ pub async fn test_e2eeize_session(
     .await;
 }
 
+#[register_test("Dee2eeize Session", WithSessions)]
 pub async fn test_dee2eeize_session(
     sessions: Arc<DashMap<ID, SessionID>>,
     users: &UsersGroup,
@@ -753,6 +772,7 @@ pub async fn test_dee2eeize_session(
     .await;
 }
 
+#[register_test("Send Room Key", WithSessions)]
 pub async fn test_send_room_key(
     sessions: Arc<DashMap<ID, SessionID>>,
     users: &UsersGroup,

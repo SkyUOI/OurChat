@@ -7,6 +7,9 @@ use std::sync::{
     atomic::{AtomicUsize, Ordering},
 };
 
+use derive::register_test;
+
+#[register_test("User Registration", AppOnly)]
 pub async fn test_register(report: &mut Report, app: &mut client::ClientCore) -> UsersGroup {
     tracing::info!("▶️  Running test: 'register'");
     let mut stress_test = StressTest::builder()
@@ -52,6 +55,7 @@ pub async fn test_register(report: &mut Report, app: &mut client::ClientCore) ->
     users_test
 }
 
+#[register_test("Authentication", WithUsers)]
 pub async fn test_auth(users: &UsersGroup, report: &mut Report) {
     run_user_stress_test(
         report,
@@ -64,6 +68,7 @@ pub async fn test_auth(users: &UsersGroup, report: &mut Report) {
     .await;
 }
 
+#[register_test("Get Account Info", WithUsers)]
 pub async fn test_get_info(users: &UsersGroup, report: &mut Report) {
     run_user_stress_test(
         report,
@@ -88,6 +93,7 @@ pub async fn test_get_info(users: &UsersGroup, report: &mut Report) {
     .await;
 }
 
+#[register_test("Set Account Info", WithUsers)]
 pub async fn test_set_account_info(users: &UsersGroup, report: &mut Report) {
     run_user_stress_test(
         report,
@@ -110,6 +116,7 @@ pub async fn test_set_account_info(users: &UsersGroup, report: &mut Report) {
     .await;
 }
 
+#[register_test("Unregister Users", WithUsers)]
 pub async fn test_unregister(users: &UsersGroup, report: &mut Report) {
     run_user_stress_test(
         report,

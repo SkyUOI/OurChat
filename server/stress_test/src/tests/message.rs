@@ -9,6 +9,9 @@ use std::sync::{
     atomic::{AtomicUsize, Ordering},
 };
 
+use derive::register_test;
+
+#[register_test("Send Message", WithSessions)]
 pub async fn test_send_msg(
     sessions: Arc<DashMap<base::consts::ID, SessionID>>,
     users: &UsersGroup,
@@ -64,6 +67,7 @@ pub async fn test_send_msg(
     Ok(msg_ids_ret)
 }
 
+#[register_test("Fetch Messages", WithUsers)]
 pub async fn test_fetch_msgs(users: &UsersGroup, report: &mut Report) {
     run_user_stress_test(
         report,
@@ -83,6 +87,7 @@ pub async fn test_fetch_msgs(users: &UsersGroup, report: &mut Report) {
     .await;
 }
 
+#[register_test("Recall Message", WithSessions)]
 pub async fn test_recall(
     sessions: Arc<DashMap<base::consts::ID, SessionID>>,
     msg_ids: Arc<DashMap<base::consts::ID, u64>>,
