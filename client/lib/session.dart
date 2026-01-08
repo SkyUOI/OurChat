@@ -983,7 +983,7 @@ class _SessionTabState extends State<SessionTab> {
                                 continue;
                               }
                               var res = await upload(ourchatAppState,
-                                  sessionState.cacheFiles[path]!);
+                                  sessionState.cacheFiles[path]!, true);
                               String newPath = "IO://$index";
                               text = replaceMarkdownImageUrls(text, (oldUrl) {
                                 if (oldUrl != path) {

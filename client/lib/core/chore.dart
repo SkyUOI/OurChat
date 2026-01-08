@@ -619,7 +619,7 @@ class _MiniRenderer {
 }
 
 Future<UploadResponse> upload(
-    OurChatAppState ourchatAppState, Uint8List biData) async {
+    OurChatAppState ourchatAppState, Uint8List biData, bool autoClean) async {
   var l10n = ourchatAppState.l10n;
   var stub = OurChatServiceClient(ourchatAppState.server!.channel!,
       interceptors: [ourchatAppState.server!.interceptor!]);
@@ -638,7 +638,7 @@ Future<UploadResponse> upload(
     metadata: Header(
         hash: sha3_256.convert(biData.toList()).bytes,
         size: Int64.parseInt(biData.length.toString()),
-        autoClean: false),
+        autoClean: autoClean),
   ));
   int chunkSize = 1024 * 128;
   for (int i = 0; i < biData.lengthInBytes; i += chunkSize) {

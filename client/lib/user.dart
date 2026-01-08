@@ -39,7 +39,7 @@ class User extends StatelessWidget {
               var stub = OurChatServiceClient(ourchatAppState.server!.channel!,
                   interceptors: [ourchatAppState.server!.interceptor!]);
               try {
-                var res = await upload(ourchatAppState, biData);
+                var res = await upload(ourchatAppState, biData, false);
                 await safeRequest(
                     stub.setSelfInfo, SetSelfInfoRequest(avatarKey: res.key),
                     (GrpcError e) {
