@@ -972,6 +972,7 @@ class _SessionTabState extends State<SessionTab> {
                         onSaved: (value) async {
                           List<String> involvedFiles = [];
                           String text = value!;
+                          int index = 0;
                           for (String path in sessionState.needUploadFiles) {
                             try {
                               if (!sessionState.cacheFiles.containsKey(path)) {
@@ -983,7 +984,7 @@ class _SessionTabState extends State<SessionTab> {
                               }
                               var res = await upload(ourchatAppState,
                                   sessionState.cacheFiles[path]!);
-                              String newPath = "IO://${res.key}";
+                              String newPath = "IO://$index";
                               text = replaceMarkdownImageUrls(text, (oldUrl) {
                                 if (oldUrl != path) {
                                   return oldUrl;
@@ -991,6 +992,7 @@ class _SessionTabState extends State<SessionTab> {
                                 return newPath;
                               });
                               involvedFiles.add(res.key);
+                              index += 1;
                             } catch (e) {
                               showResultMessage(
                                   ourchatAppState, internalStatusCode, null,
@@ -1447,7 +1449,8 @@ class _MessageWidgetState extends State<MessageWidget> {
                 if (uri.scheme[0] == 'i') {
                   if (uri.scheme[1] == 'o') {
                     widget = FutureBuilder(
-                        future: getOurChatFile(ourchatAppState, content),
+                        future: getOurChatFile(ourchatAppState,
+                            msg.involvedFiles[int.parse(content)]),
                         builder: (content, snapshot) {
                           if (snapshot.hasError) {
                             return Text(ourchatAppState.l10n.failTo(

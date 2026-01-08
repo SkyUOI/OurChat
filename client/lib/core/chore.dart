@@ -670,7 +670,7 @@ Future<Uint8List> getOurChatFile(
         (GrpcError e) {
       showResultMessage(ourchatAppState, e.code, e.message);
     }) as ResponseStream<DownloadResponse>;
-    Uint8List data = Uint8List(0);
+    List<int> data = [];
     for (DownloadResponse piece in await res.toList()) {
       data.addAll(piece.data);
     }
