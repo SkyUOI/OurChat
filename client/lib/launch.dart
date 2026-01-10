@@ -8,14 +8,11 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'dart:async';
 
-// // Conditionally import desktop-specific packages only when not on web
-// import 'package:window_manager/window_manager.dart'
-//     if (dart.library.html) 'package:ourchat/core/stubs/window_manager_stub.dart';
-// import 'package:tray_manager/tray_manager.dart'
-//     if (dart.library.html) 'package:ourchat/core/stubs/tray_manager_stub.dart';
-
-import 'package:ourchat/core/stubs/window_manager_stub.dart';
-import 'package:ourchat/core/stubs/tray_manager_stub.dart';
+// Conditionally import desktop-specific packages only when not on web
+import 'package:window_manager/window_manager.dart'
+    if (dart.library.html) 'package:ourchat/core/stubs/window_manager_stub.dart';
+import 'package:tray_manager/tray_manager.dart'
+    if (dart.library.html) 'package:ourchat/core/stubs/tray_manager_stub.dart';
 
 void changeTrayIcon() {
   if (!kIsWeb) {
