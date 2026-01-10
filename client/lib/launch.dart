@@ -8,11 +8,14 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'dart:async';
 
-// Conditionally import desktop-specific packages only when not on web
-import 'package:window_manager/window_manager.dart'
-    if (dart.library.html) 'package:ourchat/core/stubs/window_manager_stub.dart';
-import 'package:tray_manager/tray_manager.dart'
-    if (dart.library.html) 'package:ourchat/core/stubs/tray_manager_stub.dart';
+// // Conditionally import desktop-specific packages only when not on web
+// import 'package:window_manager/window_manager.dart'
+//     if (dart.library.html) 'package:ourchat/core/stubs/window_manager_stub.dart';
+// import 'package:tray_manager/tray_manager.dart'
+//     if (dart.library.html) 'package:ourchat/core/stubs/tray_manager_stub.dart';
+
+import 'package:ourchat/core/stubs/window_manager_stub.dart';
+import 'package:ourchat/core/stubs/tray_manager_stub.dart';
 
 void changeTrayIcon() {
   if (!kIsWeb) {
@@ -95,32 +98,6 @@ class _LaunchState extends State<Launch> with WindowListener, TrayListener {
     var ourchatAppState = context.watch<OurChatAppState>();
 
     return MaterialApp(
-      scaffoldMessengerKey: rootScaffoldMessengerKey,
-      localeResolutionCallback: (locale, supportedLocales) {
-        Locale useLanguage = Locale("en");
-        Locale? setLanguage = locale;
-        if (ourchatAppState.config["language"] != null) {
-          setLanguage = Locale.fromSubtags(
-              languageCode: ourchatAppState.config["language"][0],
-              scriptCode: ourchatAppState.config["language"][1],
-              countryCode: ourchatAppState.config["language"][2]);
-        }
-        for (int i = 0; i < supportedLocales.length; i++) {
-          var availableLanguage = supportedLocales.elementAt(i);
-          if (availableLanguage.languageCode == setLanguage!.languageCode) {
-            useLanguage = availableLanguage;
-            break;
-          }
-        }
-        logger.i(
-            "use language (${useLanguage.languageCode},${useLanguage.scriptCode},${useLanguage.countryCode})");
-        ourchatAppState.config["language"] = [
-          useLanguage.languageCode,
-          useLanguage.scriptCode,
-          useLanguage.countryCode
-        ];
-        return useLanguage;
-      },
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
@@ -133,6 +110,7 @@ class _LaunchState extends State<Launch> with WindowListener, TrayListener {
                 constructLogger(
                     convertStrIntoLevel(ourchatAppState.config["log_level"]));
                 WidgetsBinding.instance.addPostFrameCallback((_) {
+                  Navigator.pop(context);
                   Navigator.push(context,
                       MaterialPageRoute(builder: (context) => Controller()));
                 });
