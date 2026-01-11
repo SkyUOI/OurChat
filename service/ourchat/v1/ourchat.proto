@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package service.ourchat.v1;
 
+import "service/ourchat/delete/v1/delete.proto";
 import "service/ourchat/download/v1/download.proto";
 import "service/ourchat/friends/accept_friend_invitation/v1/accept_friend_invitation.proto";
 import "service/ourchat/friends/add_friend/v1/add_friend.proto";
@@ -55,6 +56,8 @@ service OurChatService {
   rpc Upload(stream upload.v1.UploadRequest) returns (upload.v1.UploadResponse);
 
   rpc Download(download.v1.DownloadRequest) returns (stream download.v1.DownloadResponse);
+
+  rpc DeleteFile(delete.v1.DeleteFileRequest) returns (delete.v1.DeleteFileResponse);
 
   // session operations
 

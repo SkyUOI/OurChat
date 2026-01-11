@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package service.ourchat.delete.v1;
+
+message DeleteFileRequest {
+  // The unique key of the file to delete
+  string key = 1;
+}
+
+message DeleteFileResponse {
+  // Empty response, deletion success is indicated by no error
+}

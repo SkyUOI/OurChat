@@ -45,6 +45,7 @@
 
 pub mod auth;
 pub mod basic;
+mod delete_file;
 mod download;
 pub mod error_msg;
 mod friends;
@@ -75,6 +76,7 @@ use std::fmt::Display;
 use std::time::Duration;
 use tonic::Request;
 
+pub use delete_file::delete_file;
 pub use download::download;
 pub use friends::{
     accept_friend_invitation::accept_friend_invitation, add_friend::add_friend,

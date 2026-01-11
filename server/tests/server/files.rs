@@ -188,6 +188,94 @@ async fn file_without_session_only_owner_access() {
     app.async_drop().await;
 }
 
+/// Test basic file deletion: owner can delete their own file
+#[tokio::test]
+async fn delete_file_owner() {
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
+
+    let user = app.new_user().await.unwrap();
+    let test_file = generate_file(Size::from_kibibytes(100)).unwrap();
+    let test_file_hash = get_hash_from_file(test_file.clone());
+
+    // Upload a file
+    let file_key = user
+        .lock()
+        .await
+        .post_file_as_iter(test_file.clone(), None)
+        .await
+        .unwrap();
+
+    // Verify file can be downloaded before deletion
+    verify_file_download(&user, file_key.clone(), &test_file_hash)
+        .await
+        .unwrap();
+
+    // Delete the file
+    user.lock()
+        .await
+        .delete_file(file_key.clone())
+        .await
+        .unwrap();
+
+    // Verify file can no longer be downloaded
+    let err = user
+        .lock()
+        .await
+        .download_file(file_key.clone())
+        .await
+        .unwrap_err();
+    assert_eq!(err.code(), tonic::Code::PermissionDenied);
+
+    app.async_drop().await;
+}
+
+/// Test permission: non-owner cannot delete someone else's file
+#[tokio::test]
+async fn delete_file_non_owner_permission_denied() {
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
+
+    let user1 = app.new_user().await.unwrap();
+    let user2 = app.new_user().await.unwrap();
+    let test_file = generate_file(Size::from_kibibytes(100)).unwrap();
+
+    // User1 uploads a file
+    let file_key = user1
+        .lock()
+        .await
+        .post_file_as_iter(test_file, None)
+        .await
+        .unwrap();
+
+    // User2 (not the owner) should NOT be able to delete the file
+    let err = user2
+        .lock()
+        .await
+        .delete_file(file_key.clone())
+        .await
+        .unwrap_err();
+    assert_eq!(err.code(), tonic::Code::PermissionDenied);
+
+    // Verify user1 can still download the file
+    assert!(user1.lock().await.download_file(file_key).await.is_ok());
+
+    app.async_drop().await;
+}
+
+/// Test deleting a non-existent file returns error
+#[tokio::test]
+async fn delete_nonexistent_file_returns_error() {
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
+
+    let user = app.new_user().await.unwrap();
+
+    // Try to delete a file that doesn't exist
+    let fake_key = "nonexistent_file_key_12345";
+    let err = user.lock().await.delete_file(fake_key).await.unwrap_err();
+    assert_eq!(err.code(), tonic::Code::PermissionDenied);
+
+    app.async_drop().await;
+}
+
 #[tokio::test]
 async fn upload() {
     let (mut config, args) = TestApp::get_test_config().unwrap();

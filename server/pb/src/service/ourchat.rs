@@ -12,6 +12,12 @@ pub mod download {
     }
 }
 
+pub mod delete {
+    pub mod v1 {
+        include!("../generated/service.ourchat.delete.v1.rs");
+    }
+}
+
 pub mod session {
     pub mod new_session {
         pub mod v1 {

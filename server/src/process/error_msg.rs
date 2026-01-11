@@ -9,6 +9,7 @@ pub mod not_found {
     pub const FRIEND: &str = "Friend Not Found";
     pub const FRIEND_INVITATION: &str = "Friend Invitation Not Found";
     pub const ROLE: &str = "Role Not Found";
+    pub const FILE: &str = "File Not Found";
 }
 
 pub mod exist {

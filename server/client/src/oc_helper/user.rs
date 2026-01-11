@@ -10,6 +10,7 @@ use migration::predefined::PredefinedServerManagementRole;
 use pb::service::auth::authorize::v1::{AuthRequest, auth_request};
 use pb::service::auth::register::v1::RegisterRequest;
 use pb::service::basic::v1::TimestampRequest;
+use pb::service::ourchat::delete::v1::DeleteFileRequest;
 use pb::service::ourchat::download::v1::{DownloadRequest, DownloadResponse};
 use pb::service::ourchat::get_account_info;
 use pb::service::ourchat::get_account_info::v1::{GetAccountInfoRequest, GetAccountInfoResponse};
@@ -303,7 +304,10 @@ impl TestUser {
         Ok(ret.key)
     }
 
-    pub async fn download_file(&mut self, key: impl Into<String>) -> anyhow::Result<Vec<u8>> {
+    pub async fn download_file(
+        &mut self,
+        key: impl Into<String>,
+    ) -> Result<Vec<u8>, tonic::Status> {
         let mut files_part = self.download_file_as_iter(key).await?;
         let mut file_download = Vec::new();
         while let Some(part) = files_part.next().await {
@@ -316,13 +320,20 @@ impl TestUser {
     pub async fn download_file_as_iter(
         &mut self,
         key: impl Into<String>,
-    ) -> anyhow::Result<Streaming<DownloadResponse>> {
+    ) -> Result<Streaming<DownloadResponse>, tonic::Status> {
         let files_part = self
             .oc()
             .download(DownloadRequest { key: key.into() })
             .await?;
         // Allow
         Ok(files_part.into_inner())
+    }
+
+    pub async fn delete_file(&mut self, key: impl Into<String>) -> Result<(), tonic::Status> {
+        self.oc()
+            .delete_file(DeleteFileRequest { key: key.into() })
+            .await?;
+        Ok(())
     }
 
     pub async fn send_msg(

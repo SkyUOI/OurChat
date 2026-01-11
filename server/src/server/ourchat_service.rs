@@ -1,5 +1,6 @@
 use std::pin::Pin;
 
+use pb::service::ourchat::delete::v1::{DeleteFileRequest, DeleteFileResponse};
 use pb::service::ourchat::download::v1::{DownloadRequest, DownloadResponse};
 use pb::service::ourchat::session::e2eeize_and_dee2eeize_session::v1::{
     Dee2eeizeSessionRequest, Dee2eeizeSessionResponse, E2eeizeSessionRequest,
@@ -155,6 +156,16 @@ impl OurChatService for RpcServer {
         let id = get_id_from_req(&request).unwrap();
         self.check_account_status(id).await?;
         process::download(self, id, request).await
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn delete_file(
+        &self,
+        request: Request<DeleteFileRequest>,
+    ) -> Result<Response<DeleteFileResponse>, Status> {
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::delete_file(self, id, request).await
     }
 
     #[tracing::instrument(skip(self))]
