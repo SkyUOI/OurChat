@@ -917,30 +917,14 @@ class SessionTab extends StatefulWidget {
 }
 
 class _SessionTabState extends State<SessionTab> {
-  bool inited = false;
   late OurChatAppState ourchatAppState;
   late SessionState sessionState;
   TextEditingController controller = TextEditingController();
 
   @override
-  void dispose() {
-    if (ourchatAppState.screenMode == mobile) {
-      ourchatAppState.eventSystem!.removeListener(
-          FetchMsgsResponse_RespondEventType.msg, sessionState.receiveMsg);
-    }
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     ourchatAppState = context.watch<OurChatAppState>();
     sessionState = context.watch<SessionState>();
-    if (!inited && ourchatAppState.screenMode == mobile) {
-      ourchatAppState.eventSystem!.addListener(
-          FetchMsgsResponse_RespondEventType.msg, sessionState.receiveMsg);
-      sessionState.getSessions(ourchatAppState);
-      inited = true;
-    }
     var l10n = AppLocalizations.of(context)!;
     var key = GlobalKey<FormState>();
 
@@ -985,7 +969,9 @@ class _SessionTabState extends State<SessionTab> {
                               }
                               logger.i("Uploading file: $path");
                               var res = await upload(ourchatAppState,
-                                  sessionState.cacheFiles[path]!, true);
+                                  sessionState.cacheFiles[path]!, true,
+                                  sessionId:
+                                      sessionState.currentSession!.sessionId);
                               String newPath = "IO://$index";
                               text = replaceMarkdownImageUrls(text, (oldUrl) {
                                 if (oldUrl != path) {
