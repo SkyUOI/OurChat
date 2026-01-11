@@ -682,7 +682,7 @@ Future<Uint8List> getOurChatFile(
             "${ourchatAppState.server!.host}:${ourchatAppState.server!.port}/$key");
     return Uint8List.fromList(data);
   } catch (e) {
-    logger.e("getOurChatFile error:$e");
+    logger.e("getOurChatFile(key:$key) error:$e");
     rethrow;
   }
 }

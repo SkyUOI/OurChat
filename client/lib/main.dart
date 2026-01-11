@@ -166,42 +166,78 @@ class _ControllerState extends State<Controller> {
   @override
   Widget build(BuildContext context) {
     var ourchatAppState = context.watch<OurChatAppState>();
-    return Scaffold(
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          var l10n = ourchatAppState.l10n = AppLocalizations.of(context)!;
-          if (!kIsWeb) {
-            trayManager.setContextMenu(Menu(items: [
-              MenuItem(key: "show", label: l10n.show("")),
-              MenuItem(key: "exit", label: l10n.exit)
-            ]));
+    return MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localeResolutionCallback: (locale, supportedLocales) {
+        Locale useLanguage = Locale("en");
+        Locale? setLanguage = locale;
+        if (ourchatAppState.config["language"] != null) {
+          setLanguage = Locale.fromSubtags(
+              languageCode: ourchatAppState.config["language"][0],
+              scriptCode: ourchatAppState.config["language"][1],
+              countryCode: ourchatAppState.config["language"][2]);
+        }
+        for (int i = 0; i < supportedLocales.length; i++) {
+          var availableLanguage = supportedLocales.elementAt(i);
+          if (availableLanguage.languageCode == setLanguage!.languageCode) {
+            useLanguage = availableLanguage;
+            break;
           }
-          ourchatAppState.screenMode =
-              (constraints.maxHeight < constraints.maxWidth)
-                  ? desktop
-                  : mobile; // 通过屏幕比例判断桌面端/移动端
-          if (ourchatAppState.config["recent_password"].isNotEmpty) {
-            if (!logined) {
-              autoLogin(context);
-              logined = true;
+        }
+        logger.i(
+            "use language (${useLanguage.languageCode},${useLanguage.scriptCode},${useLanguage.countryCode})");
+        ourchatAppState.config["language"] = [
+          useLanguage.languageCode,
+          useLanguage.scriptCode,
+          useLanguage.countryCode
+        ];
+        return useLanguage;
+      },
+      home: Scaffold(
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            var l10n = ourchatAppState.l10n = AppLocalizations.of(context)!;
+            if (!kIsWeb) {
+              trayManager.setContextMenu(Menu(items: [
+                MenuItem(key: "show", label: l10n.show("")),
+                MenuItem(key: "exit", label: l10n.exit)
+              ]));
             }
-            return Scaffold(
-              body: Center(
-                  child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  Text(ourchatAppState.l10n.autoLogin,
-                      style: TextStyle(
-                          fontSize: AppStyles.smallFontSize,
-                          color: Theme.of(context).hintColor))
-                ],
-              )),
-            );
-          } else {
-            return ServerSetting();
-          }
-        },
+            ourchatAppState.screenMode =
+                (constraints.maxHeight < constraints.maxWidth)
+                    ? desktop
+                    : mobile; // 通过屏幕比例判断桌面端/移动端
+            if (ourchatAppState.config["recent_password"].isNotEmpty) {
+              if (!logined) {
+                autoLogin(context);
+                logined = true;
+              }
+              return Scaffold(
+                body: Center(
+                    child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(),
+                    Text(ourchatAppState.l10n.autoLogin,
+                        style: TextStyle(
+                            fontSize: AppStyles.smallFontSize,
+                            color: Theme.of(context).hintColor))
+                  ],
+                )),
+              );
+            } else {
+              return ServerSetting();
+            }
+          },
+        ),
+      ),
+      theme: ThemeData(
+        fontFamily: kIsWeb ? null : (Platform.isWindows ? "微软雅黑" : null),
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Color(ourchatAppState.config["color"]),
+        ),
       ),
     );
   }

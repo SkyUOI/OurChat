@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/core/const.dart';
 import 'package:ourchat/core/event.dart';
+import 'package:ourchat/core/log.dart';
 import 'package:ourchat/core/session.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/core/account.dart';
@@ -982,6 +983,7 @@ class _SessionTabState extends State<SessionTab> {
                                         l10n.notFound("${l10n.image}($path)"));
                                 continue;
                               }
+                              logger.i("Uploading file: $path");
                               var res = await upload(ourchatAppState,
                                   sessionState.cacheFiles[path]!, true);
                               String newPath = "IO://$index";
@@ -1087,7 +1089,8 @@ class _TabWidgetState extends State<TabWidget> {
     Widget page = const Placeholder();
     // 匹配不同设备类型
     if (ourchatAppState.screenMode == mobile) {
-      page = Column(
+      page = SafeArea(
+          child: Column(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1116,7 +1119,7 @@ class _TabWidgetState extends State<TabWidget> {
           ),
           Expanded(child: tab)
         ],
-      );
+      ));
     } else if (ourchatAppState.screenMode == desktop) {
       page = Column(
         children: [
