@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:hashlib/hashlib.dart';
+import 'package:image_compression/image_compression.dart';
 import 'package:markdown/markdown.dart' as md;
 import 'package:grpc/grpc.dart';
 import 'package:ourchat/core/log.dart';
@@ -619,8 +620,8 @@ class _MiniRenderer {
 }
 
 Future<UploadResponse> upload(
-    OurChatAppState ourchatAppState, Uint8List biData, bool autoClean,
-    {Int64? sessionId}) async {
+    OurChatAppState ourchatAppState, Uint8List rawData, bool autoClean,
+    {Int64? sessionId, bool compress = true, String? contentType}) async {
   var l10n = ourchatAppState.l10n;
   var stub = OurChatServiceClient(ourchatAppState.server!.channel!,
       interceptors: [ourchatAppState.server!.interceptor!]);
@@ -635,6 +636,16 @@ Future<UploadResponse> upload(
       resourceExhaustedStatus: l10n.storageSpaceFull,
     );
   }, rethrowError: true);
+  Uint8List biData = rawData;
+  if (compress) {
+    biData = (await compressInQueue(ImageFileConfiguration(
+      input:
+          ImageFile(filePath: "", rawBytes: rawData, contentType: contentType),
+    )))
+        .rawBytes;
+    logger.i(
+        "upload: original size=${rawData.lengthInBytes}, compressed size=${biData.lengthInBytes}");
+  }
   controller.add(UploadRequest(
     metadata: Header(
         hash: sha3_256.convert(biData.toList()).bytes,

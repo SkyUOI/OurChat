@@ -27,6 +27,7 @@ import 'dart:async';
 import 'package:ourchat/core/ui.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:mime/mime.dart';
 
 const emptyTab = 0;
 const sessionTab = 1;
@@ -42,6 +43,8 @@ class SessionState extends ChangeNotifier {
   Map<OurChatSession, UserMsg> sessionLatestMsg = {};
   bool alreadyDispose = false;
   Map<String, Uint8List> cacheFiles = {};
+  Map<String, String> cacheFilesContentType = {};
+  Map<String, ValueNotifier<bool>> cacheFilesSendRaw = {};
   List<String> needUploadFiles = [];
   final ValueNotifier<String> inputText = ValueNotifier<String>("");
 
@@ -484,6 +487,7 @@ class _SessionListState extends State<SessionList> {
                               sessionState.tabIndex = userTab;
                               sessionState.tabTitle = l10n.userInfo;
                               sessionState.cacheFiles = {};
+                              sessionState.cacheFilesContentType = {};
                               sessionState.update();
                             },
                           );
@@ -525,6 +529,7 @@ class _SessionListState extends State<SessionList> {
                               sessionState.tabIndex = sessionTab;
                               sessionState.tabTitle = session.getDisplayName();
                               sessionState.cacheFiles = {};
+                              sessionState.cacheFilesContentType = {};
                               sessionState.update();
                             },
                           );
@@ -581,6 +586,7 @@ class _SessionListState extends State<SessionList> {
                                       .getSessionEvent(
                                           ourchatAppState, currentSession);
                               sessionState.cacheFiles = {};
+                              sessionState.cacheFilesContentType = {};
                               sessionState.update();
                             },
                             child: Row(
@@ -967,11 +973,16 @@ class _SessionTabState extends State<SessionTab> {
                                         l10n.notFound("${l10n.image}($path)"));
                                 continue;
                               }
-                              logger.i("Uploading file: $path");
+                              logger.i(
+                                  "Uploading file: $path, compress: ${!sessionState.cacheFilesSendRaw[path]!.value}");
                               var res = await upload(ourchatAppState,
                                   sessionState.cacheFiles[path]!, true,
                                   sessionId:
-                                      sessionState.currentSession!.sessionId);
+                                      sessionState.currentSession!.sessionId,
+                                  compress: !sessionState
+                                      .cacheFilesSendRaw[path]!.value,
+                                  contentType: sessionState
+                                      .cacheFilesContentType[path]!);
                               String newPath = "IO://$index";
                               text = replaceMarkdownImageUrls(text, (oldUrl) {
                                 if (oldUrl != path) {
@@ -996,6 +1007,7 @@ class _SessionTabState extends State<SessionTab> {
                           sessionState.inputText.value = "";
                           sessionState.needUploadFiles = [];
                           sessionState.cacheFiles = {};
+                          sessionState.cacheFilesContentType = {};
                           await msg.send(sessionState.currentSession!);
                         },
                         onChanged: (value) {
@@ -1017,6 +1029,12 @@ class _SessionTabState extends State<SessionTab> {
                             var uri = Uri.parse(i.path);
                             sessionState.cacheFiles[uri.toString()] =
                                 await i.readAsBytes();
+                            sessionState.cacheFilesSendRaw[uri.toString()] =
+                                ValueNotifier<bool>(false);
+                            sessionState.cacheFilesContentType[uri.toString()] =
+                                lookupMimeType(i.path,
+                                    headerBytes: List.from(sessionState
+                                        .cacheFiles[uri.toString()]!))!;
                             String breakLine = controller.text.isEmpty ||
                                     controller.text.endsWith("\n") // 已有换行
                                 ? ""
@@ -1430,7 +1448,27 @@ class _MessageWidgetState extends State<MessageWidget> {
             imageBuilder: (uri, title, alt) {
               Widget widget = Text(ourchatAppState.l10n.internalError);
               if (sessionState.cacheFiles.containsKey(uri.toString())) {
-                widget = Image.memory(sessionState.cacheFiles[uri.toString()]!);
+                widget = InkWell(
+                  onTap: () {
+                    sessionState.cacheFilesSendRaw[uri.toString()]!.value =
+                        !sessionState.cacheFilesSendRaw[uri.toString()]!.value;
+                  },
+                  child: ValueListenableBuilder(
+                      valueListenable:
+                          sessionState.cacheFilesSendRaw[uri.toString()]!,
+                      builder: (context, value, child) {
+                        return Stack(
+                          children: [
+                            Image.memory(
+                                sessionState.cacheFiles[uri.toString()]!),
+                            if (value)
+                              Icon(Icons.raw_on)
+                            else
+                              Icon(Icons.raw_off)
+                          ],
+                        );
+                      }),
+                );
                 sessionState.needUploadFiles.add(uri.toString());
               }
               try {

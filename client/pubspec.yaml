@@ -44,6 +44,8 @@ dependencies:
       ref: desktop_dev
   device_info_plus: ^12.3.0
   flutter_cache_manager: ^3.4.1
+  image_compression: ^1.0.5
+  mime: ^1.0.0
 
 dev_dependencies:
   # flutter_test:
