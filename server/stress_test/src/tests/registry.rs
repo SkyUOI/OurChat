@@ -47,6 +47,13 @@ impl TestInfo {
     }
 
     /// Check if this test matches a glob pattern
+    ///
+    /// Matching rules:
+    /// - `"*"` matches everything
+    /// - `"xxx*"` matches tests starting with "xxx" (prefix match)
+    /// - `"*xxx"` matches tests ending with "xxx" (suffix match)
+    /// - `"xxx*yyy"` matches tests starting with "xxx" AND ending with "yyy"
+    /// - `"xxx"` (no wildcard) matches tests containing "xxx" (substring match)
     pub fn matches(&self, pattern: &str) -> bool {
         let pattern_lower = pattern.to_lowercase();
         let name_lower = self.name.to_lowercase();
@@ -69,7 +76,10 @@ impl TestInfo {
             }
         }
 
-        name_lower == pattern_lower || module_lower == pattern_lower || full == pattern_lower
+        // Without wildcard, do substring matching
+        name_lower.contains(&pattern_lower)
+            || module_lower.contains(&pattern_lower)
+            || full.contains(&pattern_lower)
     }
 }
 

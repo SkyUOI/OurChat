@@ -44,12 +44,7 @@ pub fn register_test(args: TokenStream, input: TokenStream) -> TokenStream {
     let function_name = &input_fn.sig.ident;
     let function_name_str = function_name.to_string();
 
-    // Infer test name from function name (remove "test_" prefix if present)
-    let test_name = if function_name_str.starts_with("test_") {
-        function_name_str[5..].to_string()
-    } else {
-        function_name_str.clone()
-    };
+    let test_name = function_name_str.clone();
 
     // Parse the attribute arguments
     let args_str = args.to_string();
