@@ -127,6 +127,10 @@ class _LaunchState extends State<Launch> with WindowListener, TrayListener {
           seedColor: Color(ourchatAppState.config["color"]),
         ),
       ),
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+      ),
+      themeMode: ThemeMode.system,
     );
   }
 

@@ -242,6 +242,10 @@ class _ControllerState extends State<Controller> {
           seedColor: Color(ourchatAppState.config["color"]),
         ),
       ),
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+      ),
+      themeMode: ThemeMode.system,
     );
   }
 }
