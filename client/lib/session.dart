@@ -940,14 +940,12 @@ class _SessionTabState extends State<SessionTab> {
         mainAxisSize: MainAxisSize.max,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Flexible(
-              flex: 10, child: cardWithPadding(const SessionRecord())), //聊天记录
-          Flexible(
-            // 输入框
-            flex: 2,
-            child: Row(
-              children: [
-                Expanded(
+          Expanded(child: cardWithPadding(const SessionRecord())), //聊天记录
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 100,
                   child: cardWithPadding(Align(
                     alignment: Alignment.bottomCenter,
                     child: SingleChildScrollView(
@@ -1018,47 +1016,47 @@ class _SessionTabState extends State<SessionTab> {
                     ),
                   )),
                 ),
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    IconButton(
-                        onPressed: () async {
-                          var picker = ImagePicker();
-                          List<XFile> images = await picker.pickMultiImage();
-                          for (XFile i in images) {
-                            var uri = Uri.parse(i.path);
-                            sessionState.cacheFiles[uri.toString()] =
-                                await i.readAsBytes();
-                            sessionState.cacheFilesSendRaw[uri.toString()] =
-                                ValueNotifier<bool>(false);
-                            sessionState.cacheFilesContentType[uri.toString()] =
-                                lookupMimeType(i.path,
-                                    headerBytes: List.from(sessionState
-                                        .cacheFiles[uri.toString()]!))!;
-                            String breakLine = controller.text.isEmpty ||
-                                    controller.text.endsWith("\n") // 已有换行
-                                ? ""
-                                : "\n";
-                            controller.text =
-                                "${controller.text}$breakLine![${i.name}](${uri.toString()})";
-                            sessionState.inputText.value = controller.text;
-                          }
-                        },
-                        icon: Icon(Icons.add)),
-                    ElevatedButton.icon(
-                      style: AppStyles.defaultButtonStyle,
-                      onPressed: () {
-                        if (key.currentState!.validate()) {
-                          key.currentState!.save();
+              ),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  IconButton(
+                      onPressed: () async {
+                        var picker = ImagePicker();
+                        List<XFile> images = await picker.pickMultiImage();
+                        for (XFile i in images) {
+                          var uri = Uri.parse(i.path);
+                          sessionState.cacheFiles[uri.toString()] =
+                              await i.readAsBytes();
+                          sessionState.cacheFilesSendRaw[uri.toString()] =
+                              ValueNotifier<bool>(false);
+                          sessionState.cacheFilesContentType[uri.toString()] =
+                              lookupMimeType(i.path,
+                                  headerBytes: List.from(sessionState
+                                      .cacheFiles[uri.toString()]!))!;
+                          String breakLine = controller.text.isEmpty ||
+                                  controller.text.endsWith("\n") // 已有换行
+                              ? ""
+                              : "\n";
+                          controller.text =
+                              "${controller.text}$breakLine![${i.name}](${uri.toString()})";
+                          sessionState.inputText.value = controller.text;
                         }
                       },
-                      label: Text(l10n.send),
-                      icon: Icon(Icons.send),
-                    ),
-                  ],
-                )
-              ],
-            ),
+                      icon: Icon(Icons.add)),
+                  ElevatedButton.icon(
+                    style: AppStyles.defaultButtonStyle,
+                    onPressed: () {
+                      if (key.currentState!.validate()) {
+                        key.currentState!.save();
+                      }
+                    },
+                    label: Text(l10n.send),
+                    icon: Icon(Icons.send),
+                  ),
+                ],
+              )
+            ],
           ),
         ],
       ),
