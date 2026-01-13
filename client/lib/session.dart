@@ -926,6 +926,7 @@ class _SessionTabState extends State<SessionTab> {
   late OurChatAppState ourchatAppState;
   late SessionState sessionState;
   TextEditingController controller = TextEditingController();
+  GlobalKey<FormState> inputBoxKey = GlobalKey<FormState>();
 
   @override
   Widget build(BuildContext context) {
@@ -950,6 +951,7 @@ class _SessionTabState extends State<SessionTab> {
                     alignment: Alignment.bottomCenter,
                     child: SingleChildScrollView(
                       child: TextFormField(
+                        key: inputBoxKey,
                         decoration: InputDecoration(hintText: "Type here..."),
                         maxLines: null,
                         validator: (value) {
