@@ -123,7 +123,6 @@ impl ClientCore {
             clients: Clients {
                 auth: AuthServiceClient::connect(remote_url.clone()).await?,
                 basic: BasicServiceClient::connect(remote_url.clone()).await?,
-                server_manage: ServerManageServiceClient::connect(remote_url.clone()).await?,
             },
             enable_ssl: enabled_tls,
         })
@@ -254,7 +253,6 @@ impl TestApp {
                 clients: Clients {
                     auth: AuthServiceClient::new(connected_channel.clone()),
                     basic: BasicServiceClient::new(connected_channel.clone()),
-                    server_manage: ServerManageServiceClient::new(connected_channel),
                 },
                 rpc_url: rpc_url.clone(),
                 enable_ssl: enabled_tls,

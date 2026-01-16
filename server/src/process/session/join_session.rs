@@ -85,12 +85,7 @@ async fn join_session_impl(
     }
 
     // Check if user is banned
-    let mut conn = server
-        .db
-        .redis_pool
-        .get()
-        .await
-        .context("cannot get redis connection")?;
+    let mut conn = server.db.get_redis_connection().await?;
     if user_banned_status(id, session_id, &mut conn)
         .await?
         .is_some()

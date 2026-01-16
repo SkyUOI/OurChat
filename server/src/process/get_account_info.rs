@@ -101,12 +101,7 @@ async fn get_account_info_impl(
                 }
                 QueryValues::Status => {
                     // ret.status = Some(queried_user.status.clone().unwrap_or_default());
-                    let mut redis_conn = server
-                        .db
-                        .redis_pool
-                        .get()
-                        .await
-                        .context("Cannot get redis' connection")?;
+                    let mut redis_conn = server.db.get_redis_connection().await?;
                     ret.status = redis_conn
                         .get(mapped_to_user_defined_status(queried_user.id))
                         .await

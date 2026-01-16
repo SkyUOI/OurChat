@@ -9,7 +9,16 @@ use tracing::error;
 
 use crate::webrtc::{RoomInfo, empty_room_name, room_key};
 
+pub mod accept_room_invitation;
 pub mod create_room;
+pub mod demote_admin;
+pub mod get_room_members;
+pub mod invite_user;
+pub mod join_room;
+pub mod kick_user;
+pub mod leave_room;
+pub mod promote_admin;
+pub mod signal;
 
 pub async fn move_room_from_redis_to_postgres(
     room_key: &str,

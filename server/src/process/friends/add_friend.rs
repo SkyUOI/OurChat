@@ -78,12 +78,7 @@ async fn add_friend_impl(
     }
     // save invitation to redis
     let key = friends::mapped_add_friend_to_redis(id, friend_id);
-    let mut conn = server
-        .db
-        .redis_pool
-        .get()
-        .await
-        .context("cannot get redis connection")?;
+    let mut conn = server.db.get_redis_connection().await?;
     let ex = server
         .shared_data
         .cfg()

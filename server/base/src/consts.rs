@@ -290,3 +290,28 @@ pub fn default_oauth_github_client_secret() -> String {
 pub const fn default_require_email_verification() -> bool {
     false
 }
+
+/// Default STUN servers for NAT traversal
+/// Uses Google's public STUN servers for development
+pub fn default_stun_servers() -> Vec<String> {
+    vec![
+        "stun:stun.l.google.com:19302".to_string(),
+        "stun:stun1.l.google.com:19302".to_string(),
+    ]
+}
+
+pub fn default_turn_server_url() -> String {
+    "".to_string()
+}
+
+pub fn default_turn_username() -> String {
+    "".to_string()
+}
+
+pub fn default_turn_password() -> String {
+    "".to_string()
+}
+
+pub fn default_turn_ttl() -> u64 {
+    86400 // 24 hours in seconds
+}

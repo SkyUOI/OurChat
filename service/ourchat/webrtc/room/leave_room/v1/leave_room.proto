@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package service.ourchat.webrtc.room.leave_room.v1;
+
+message LeaveRoomRequest {
+  uint64 room_id = 1;
+}
+
+message LeaveRoomResponse {
+  bool success = 1;
+}

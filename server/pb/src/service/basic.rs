@@ -15,3 +15,9 @@ pub mod preset_user_status {
         include!("../generated/service.basic.preset_user_status.v1.rs");
     }
 }
+
+pub mod voip {
+    pub mod v1 {
+        include!("../generated/service.basic.voip.v1.rs");
+    }
+}

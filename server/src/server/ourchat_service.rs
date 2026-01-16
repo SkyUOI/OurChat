@@ -13,7 +13,28 @@ use pb::service::ourchat::session::invite_user_to_session::v1::{
 use pb::service::ourchat::session::session_room_key::v1::{
     SendRoomKeyRequest, SendRoomKeyResponse,
 };
+use pb::service::ourchat::webrtc::room::accept_room_invitation::v1::{
+    AcceptRoomInvitationRequest, AcceptRoomInvitationResponse,
+};
 use pb::service::ourchat::webrtc::room::create_room::v1::{CreateRoomRequest, CreateRoomResponse};
+use pb::service::ourchat::webrtc::room::demote_admin::v1::{
+    DemoteRoomAdminRequest, DemoteRoomAdminResponse,
+};
+use pb::service::ourchat::webrtc::room::get_room_members::v1::{
+    GetRoomMembersRequest, GetRoomMembersResponse,
+};
+use pb::service::ourchat::webrtc::room::invite_user::v1::{
+    InviteUserToRoomRequest, InviteUserToRoomResponse,
+};
+use pb::service::ourchat::webrtc::room::join_room::v1::{JoinRoomRequest, JoinRoomResponse};
+use pb::service::ourchat::webrtc::room::kick_user::v1::{
+    KickUserFromRoomRequest, KickUserFromRoomResponse,
+};
+use pb::service::ourchat::webrtc::room::leave_room::v1::{LeaveRoomRequest, LeaveRoomResponse};
+use pb::service::ourchat::webrtc::room::promote_admin::v1::{
+    PromoteRoomAdminRequest, PromoteRoomAdminResponse,
+};
+use pb::service::ourchat::webrtc::signal::v1::{SignalRequest, SignalResponse};
 use tonic::{Request, Response, Status};
 
 use super::RpcServer;
@@ -426,5 +447,104 @@ impl OurChatService for RpcServer {
         let id = get_id_from_req(&request).unwrap();
         self.check_account_status(id).await?;
         process::dee2eeize_session(self, id, request).await
+    }
+
+    /// Join a WebRTC room for VoIP call
+    #[tracing::instrument(skip(self))]
+    async fn join_room(
+        &self,
+        request: Request<JoinRoomRequest>,
+    ) -> Result<Response<JoinRoomResponse>, Status> {
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::join_room(self, id, request).await
+    }
+
+    /// Leave a WebRTC room
+    #[tracing::instrument(skip(self))]
+    async fn leave_room(
+        &self,
+        request: Request<LeaveRoomRequest>,
+    ) -> Result<Response<LeaveRoomResponse>, Status> {
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::leave_room(self, id, request).await
+    }
+
+    /// Get members of a WebRTC room
+    #[tracing::instrument(skip(self))]
+    async fn get_room_members(
+        &self,
+        request: Request<GetRoomMembersRequest>,
+    ) -> Result<Response<GetRoomMembersResponse>, Status> {
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::get_room_members(self, id, request).await
+    }
+
+    /// Invite a user to a WebRTC room
+    #[tracing::instrument(skip(self))]
+    async fn invite_user_to_room(
+        &self,
+        request: Request<InviteUserToRoomRequest>,
+    ) -> Result<Response<InviteUserToRoomResponse>, Status> {
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::invite_user_to_room(self, id, request).await
+    }
+
+    /// Accept an invitation to a WebRTC room
+    #[tracing::instrument(skip(self))]
+    async fn accept_room_invitation(
+        &self,
+        request: Request<AcceptRoomInvitationRequest>,
+    ) -> Result<Response<AcceptRoomInvitationResponse>, Status> {
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::accept_room_invitation(self, id, request).await
+    }
+
+    /// Promote a room member to admin
+    #[tracing::instrument(skip(self))]
+    async fn promote_room_admin(
+        &self,
+        request: Request<PromoteRoomAdminRequest>,
+    ) -> Result<Response<PromoteRoomAdminResponse>, Status> {
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::promote_room_admin(self, id, request).await
+    }
+
+    /// Demote a room admin to member
+    #[tracing::instrument(skip(self))]
+    async fn demote_room_admin(
+        &self,
+        request: Request<DemoteRoomAdminRequest>,
+    ) -> Result<Response<DemoteRoomAdminResponse>, Status> {
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::demote_room_admin(self, id, request).await
+    }
+
+    /// Kick a user from a WebRTC room
+    #[tracing::instrument(skip(self))]
+    async fn kick_user_from_room(
+        &self,
+        request: Request<KickUserFromRoomRequest>,
+    ) -> Result<Response<KickUserFromRoomResponse>, Status> {
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::kick_user_from_room(self, id, request).await
+    }
+
+    /// Signal WebRTC peer connection (offer/answer/ICE)
+    #[tracing::instrument(skip(self))]
+    async fn signal(
+        &self,
+        request: Request<SignalRequest>,
+    ) -> Result<Response<SignalResponse>, Status> {
+        let id = get_id_from_req(&request).unwrap();
+        self.check_account_status(id).await?;
+        process::signal(self, id, request).await
     }
 }

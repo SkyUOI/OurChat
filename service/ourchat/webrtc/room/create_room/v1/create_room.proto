@@ -6,6 +6,8 @@ message CreateRoomRequest {
   optional string title = 1;
   // If true, the room will be deleted when the last user leaves
   bool auto_delete = 2;
+  // If true, anyone can join the room without an invitation
+  bool open_join = 3;
 }
 
 message CreateRoomResponse {

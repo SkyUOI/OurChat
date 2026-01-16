@@ -18,6 +18,7 @@ async fn create_room_success() {
 
     // Create room request
     let request = CreateRoomRequest {
+        open_join: false,
         title: Some("Test Room".to_owned()),
         auto_delete: true,
     };
@@ -71,6 +72,7 @@ async fn create_room_no_title() {
 
     // Create room request without title
     let request = CreateRoomRequest {
+        open_join: false,
         title: None,
         auto_delete: false,
     };
@@ -125,6 +127,7 @@ async fn create_multiple_rooms_unique_ids() {
     // Create multiple rooms
     for i in 0..3 {
         let request = CreateRoomRequest {
+            open_join: false,
             title: Some(format!("Room {}", i)),
             auto_delete: i % 2 == 0,
         };

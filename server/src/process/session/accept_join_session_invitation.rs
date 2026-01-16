@@ -37,18 +37,9 @@ async fn accept_join_session_invitation_impl(
     let session_id: SessionID = req.session_id.into();
     let inviter = req.inviter_id;
     // check if banned from the session
-    if user_banned_status(
-        id,
-        session_id,
-        &mut server
-            .db
-            .redis_pool
-            .get()
-            .await
-            .context("cannot get redis connection")?,
-    )
-    .await?
-    .is_some()
+    if user_banned_status(id, session_id, &mut server.db.get_redis_connection().await?)
+        .await?
+        .is_some()
     {
         Err(Status::permission_denied(error_msg::BAN))?;
     }

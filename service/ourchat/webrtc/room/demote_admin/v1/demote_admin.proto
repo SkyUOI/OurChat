@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package service.ourchat.webrtc.room.demote_admin.v1;
+
+message DemoteRoomAdminRequest {
+  uint64 room_id = 1;
+  uint64 user_id = 2;
+}
+
+message DemoteRoomAdminResponse {
+  bool success = 1;
+}

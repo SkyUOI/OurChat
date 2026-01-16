@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use anyhow::Context;
 use base::consts::impl_from_all_ints;
-use deadpool_redis::redis::{FromRedisValue, ToRedisArgs};
+use deadpool_redis::redis::{AsyncCommands, FromRedisValue, ToRedisArgs};
 use derive::RedisHset;
 use utils::impl_newtype_int;
 
@@ -48,6 +48,8 @@ pub struct RoomInfo {
     pub room_id: RoomId,
     pub users_num: u32,
     pub auto_delete: bool,
+    pub open_join: bool,
+    pub creator: u64,
 }
 
 pub fn empty_room_name() -> &'static str {
@@ -56,4 +58,58 @@ pub fn empty_room_name() -> &'static str {
 
 pub fn room_key(room_id: RoomId) -> String {
     format!("webrtc:room:{}", room_id)
+}
+
+pub fn room_members_key(room_id: RoomId) -> String {
+    format!("webrtc:room:{}:members", room_id)
+}
+
+pub fn room_admins_key(room_id: RoomId) -> String {
+    format!("webrtc:room:{}:admins", room_id)
+}
+
+pub fn room_creator_key(room_id: RoomId) -> String {
+    format!("webrtc:room:{}:creator", room_id)
+}
+
+pub fn room_invitations_key(room_id: RoomId) -> String {
+    format!("webrtc:room:{}:invitations", room_id)
+}
+
+pub fn room_joined_users_key(room_id: RoomId) -> String {
+    format!("webrtc:room:{}:joined_users", room_id)
+}
+
+pub fn room_pending_key(room_id: RoomId) -> String {
+    format!("webrtc:room:{}:pending", room_id)
+}
+
+/// Check if a user is an admin of a room
+pub async fn is_room_admin(
+    redis_conn: &mut deadpool_redis::Connection,
+    room_id: RoomId,
+    user_id: u64,
+) -> Result<bool, deadpool_redis::redis::RedisError> {
+    let admins_key = room_admins_key(room_id);
+    redis_conn.sismember(&admins_key, user_id).await
+}
+
+/// Check if a user is the creator of a room
+/// The creator is always an admin and cannot be removed
+pub async fn is_room_creator(
+    redis_conn: &mut deadpool_redis::Connection,
+    room_id: RoomId,
+    user_id: u64,
+) -> Result<bool, deadpool_redis::redis::RedisError> {
+    let creator_key = room_creator_key(room_id);
+
+    // The creator is stored as a string in Redis
+    let creator_str: String = redis_conn
+        .get(&creator_key)
+        .await
+        .unwrap_or(None)
+        .unwrap_or_default();
+    let creator_id: u64 = creator_str.parse().unwrap_or(0);
+
+    Ok(creator_id == user_id)
 }

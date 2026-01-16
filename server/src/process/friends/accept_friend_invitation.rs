@@ -83,12 +83,7 @@ async fn accept_friend_invitation_impl(
 ) -> Result<AcceptFriendInvitationResponse, AcceptFriendErr> {
     let req = request.into_inner();
     let inviter_id: ID = req.friend_id.into();
-    let mut redis_conn = server
-        .db
-        .redis_pool
-        .get()
-        .await
-        .context("cannot get redis connection")?;
+    let mut redis_conn = server.db.get_redis_connection().await?;
     let key = mapped_add_friend_to_redis(inviter_id, id);
     let exist: bool = redis_conn.exists(&key).await?;
     if !exist {
@@ -122,11 +117,7 @@ async fn accept_friend_invitation_impl(
         transaction.commit().await?;
     }
     // transmit to both
-    let conn = server
-        .rabbitmq
-        .get()
-        .await
-        .context("cannot get redis connection")?;
+    let conn = server.get_rabbitmq_manager().await?;
     let mut channel = conn
         .create_channel()
         .await

@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package service.ourchat.webrtc.room.get_room_members.v1;
+
+message GetRoomMembersRequest {
+  uint64 room_id = 1;
+}
+
+message GetRoomMembersResponse {
+  bool success = 1;
+  repeated uint64 member_ids = 2;
+  uint32 member_count = 3;
+}

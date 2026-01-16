@@ -58,6 +58,7 @@ mod set_self_info;
 pub mod unregister;
 mod upload;
 pub mod verify;
+pub mod voip;
 pub mod webrtc;
 
 use base::consts::SessionID;
@@ -122,7 +123,13 @@ pub use session::{
 pub use set_self_info::set_self_info;
 pub use unregister::unregister;
 pub use upload::upload;
-pub use webrtc::create_room::create_room;
+pub use voip::get_config::get_voip_config;
+pub use webrtc::{
+    accept_room_invitation::accept_room_invitation, create_room::create_room,
+    demote_admin::demote_room_admin, get_room_members::get_room_members,
+    invite_user::invite_user_to_room, join_room::join_room, kick_user::kick_user_from_room,
+    leave_room::leave_room, promote_admin::promote_room_admin, signal::signal,
+};
 
 use crate::SERVER_INFO;
 use crate::db::messages::MsgError;

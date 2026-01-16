@@ -9,6 +9,7 @@ use crate::process::db::get_id;
 use crate::process::error_msg::{self, ACCOUNT_DELETED, SERVER_ERROR};
 use crate::process::{self, ErrAuth};
 use crate::{SERVER_INFO, SharedData};
+use anyhow::Context;
 use base::consts::{ID, JWT_HEADER, OCID, VERSION_SPLIT};
 use base::database::DbPool;
 use migration::predefined::AccountStatus;
@@ -26,6 +27,7 @@ use pb::service::basic::v1::{
     GetIdRequest, GetIdResponse, GetServerInfoRequest, PingRequest, PingResponse, TimestampRequest,
     TimestampResponse,
 };
+use pb::service::basic::voip::v1::{GetVoipConfigRequest, GetVoipConfigResponse};
 use pb::service::ourchat::v1::our_chat_service_server::OurChatServiceServer;
 use pb::service::server_manage::config::v1::{
     GetConfigRequest, GetConfigResponse, SetConfigRequest, SetConfigResponse,
@@ -223,6 +225,14 @@ impl RpcServer {
 
         Ok(())
     }
+
+    pub async fn get_rabbitmq_manager(&self) -> anyhow::Result<deadpool_lapin::Object> {
+        Ok(self
+            .rabbitmq
+            .get()
+            .await
+            .context("cannot get redis connection")?)
+    }
 }
 
 /// Authentication service provider
@@ -333,6 +343,15 @@ impl BasicService for BasicServiceProvider {
     #[tracing::instrument(skip(self))]
     async fn ping(&self, _request: Request<PingRequest>) -> Result<Response<PingResponse>, Status> {
         Ok(Response::new(PingResponse {}))
+    }
+
+    /// Get VoIP configuration (STUN/TURN servers)
+    #[tracing::instrument(skip(self))]
+    async fn get_voip_config(
+        &self,
+        _request: Request<GetVoipConfigRequest>,
+    ) -> Result<Response<GetVoipConfigResponse>, Status> {
+        process::get_voip_config(self).await
     }
 }
 

@@ -10,6 +10,7 @@ use migration::predefined::PredefinedServerManagementRole;
 use pb::service::auth::authorize::v1::{AuthRequest, auth_request};
 use pb::service::auth::register::v1::RegisterRequest;
 use pb::service::basic::v1::TimestampRequest;
+use pb::service::basic::v1::basic_service_client::BasicServiceClient;
 use pb::service::ourchat::delete::v1::DeleteFileRequest;
 use pb::service::ourchat::download::v1::{DownloadRequest, DownloadResponse};
 use pb::service::ourchat::get_account_info;
@@ -231,6 +232,10 @@ impl TestUser {
 
     pub fn server_manage(&mut self) -> &mut ServerManageClient {
         self.server_manage_client.as_mut().unwrap()
+    }
+
+    pub fn basic(&mut self) -> &mut BasicServiceClient<Channel> {
+        &mut self.clients.basic
     }
 
     pub async fn ocid_auth(&mut self) -> Result<(), ClientErr> {

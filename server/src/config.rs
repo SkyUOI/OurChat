@@ -138,6 +138,23 @@ pub struct VOIP {
         with = "humantime_serde"
     )]
     pub empty_room_keep_duration: Duration,
+    #[serde(default = "consts::default_stun_servers")]
+    pub stun_servers: Vec<String>,
+    /// Whether TURN server is enabled
+    #[serde(default)]
+    pub turn_enabled: bool,
+    /// TURN server URL (e.g., "turn:example.com:3478")
+    #[serde(default = "consts::default_turn_server_url")]
+    pub turn_server_url: String,
+    /// TURN username for authentication
+    #[serde(default = "consts::default_turn_username")]
+    pub turn_username: String,
+    /// TURN password for authentication
+    #[serde(default = "consts::default_turn_password")]
+    pub turn_password: String,
+    /// TTL for TURN credentials in seconds
+    #[serde(default = "consts::default_turn_ttl")]
+    pub turn_ttl: u64,
 }
 
 impl Default for VOIP {

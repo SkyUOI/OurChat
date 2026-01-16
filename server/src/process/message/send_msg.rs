@@ -78,12 +78,7 @@ async fn send_msg_impl(
         Err(Status::permission_denied(not_found::USER_IN_SESSION))?;
     }
     // check mute
-    let mut redis_connection = server
-        .db
-        .redis_pool
-        .get()
-        .await
-        .context("cannot get redis connection")?;
+    let mut redis_connection = server.db.get_redis_connection().await?;
     if user_muted_status(id, req.session_id.into(), &mut redis_connection)
         .await?
         .is_some()
