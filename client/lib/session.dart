@@ -612,7 +612,10 @@ class _SessionListState extends State<SessionList> {
                                                 currentSession.getDisplayName(),
                                                 style: TextStyle(
                                                     fontSize: 20,
-                                                    color: Colors.black),
+                                                    color: Theme.of(context)
+                                                        .textTheme
+                                                        .labelMedium!
+                                                        .color),
                                               )),
                                           if (sessionState.sessionLatestMsg
                                               .containsKey(currentSession))
