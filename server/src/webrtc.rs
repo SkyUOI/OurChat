@@ -1,7 +1,4 @@
-use std::str::FromStr;
-
-use anyhow::Context;
-use base::consts::impl_from_all_ints;
+use base::consts::{ID, impl_from_all_ints};
 use deadpool_redis::redis::{AsyncCommands, FromRedisValue, ToRedisArgs};
 use derive::RedisHset;
 use utils::impl_newtype_int;
@@ -29,14 +26,6 @@ impl FromRedisValue for RoomId {
             ))
         })?;
         Ok(RoomId(num))
-    }
-}
-
-impl FromStr for RoomId {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(RoomId(s.parse::<u64>().context("not valid RoomId")?))
     }
 }
 
@@ -99,7 +88,7 @@ pub async fn is_room_admin(
 pub async fn is_room_creator(
     redis_conn: &mut deadpool_redis::Connection,
     room_id: RoomId,
-    user_id: u64,
+    user_id: ID,
 ) -> Result<bool, deadpool_redis::redis::RedisError> {
     let creator_key = room_creator_key(room_id);
 
@@ -109,7 +98,7 @@ pub async fn is_room_creator(
         .await
         .unwrap_or(None)
         .unwrap_or_default();
-    let creator_id: u64 = creator_str.parse().unwrap_or(0);
+    let creator_id: ID = creator_str.parse().unwrap_or(ID(0));
 
     Ok(creator_id == user_id)
 }

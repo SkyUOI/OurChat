@@ -9,7 +9,6 @@ pub mod matrix;
 pub mod process;
 pub mod rabbitmq;
 mod server;
-mod shared_state;
 pub mod webrtc;
 
 use crate::config::{Cfg, MainCfg};
@@ -77,6 +76,7 @@ pub struct ParserCfg {
     pub config: Vec<PathBuf>,
 }
 
+/// Store shared information of the whole server application
 #[derive(Debug, Serialize, Deserialize)]
 struct ServerInfo {
     unique_id: uuid::Uuid,
@@ -86,8 +86,19 @@ struct ServerInfo {
     version: u64,
 }
 
+#[derive(Debug, thiserror::Error)]
+enum ServerInfoError {
+    #[error("IO error: {0:?}")]
+    Io(#[from] std::io::Error),
+    #[error("JSON error: {0:?}")]
+    Json(#[from] serde_json::Error),
+    #[error("invalid or unsupported server info version")]
+    InvalidVersion,
+}
+
 const SECRET_LEN: usize = 32;
 
+/// It shoule be called at the entry
 pub static RUN_AS_STANDALONE: LazyLock<Mutex<bool>> = LazyLock::new(|| Mutex::new(false));
 
 pub static ARG_PARSER: LazyLock<ArgsParser> = LazyLock::new(|| {
@@ -99,107 +110,170 @@ pub static ARG_PARSER: LazyLock<ArgsParser> = LazyLock::new(|| {
     }
 });
 
-static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
+fn generate_server_name() -> String {
+    #[cfg(feature = "meaningful_name")]
+    {
+        let faker = fake::faker::name::en::Name();
+        use fake::Fake;
+        faker.fake()
+    }
+    #[cfg(not(feature = "meaningful_name"))]
+    {
+        helper::generate_random_string(10)
+    }
+}
+
+/// Loads or creates server info from the configured file path.
+///
+/// This is the main entry point for server info initialization.
+/// It will either load existing info or create new info if the file doesn't exist.
+fn load_or_create_server_info() -> Result<ServerInfo, ServerInfoError> {
     info!("server info path: {}", ARG_PARSER.server_info.display());
 
-    let state = ARG_PARSER.server_info.exists();
-    let server_name = || -> String {
-        #[cfg(feature = "meaningful_name")]
-        {
-            let faker = fake::faker::name::en::Name();
-            use fake::Fake;
-            faker.fake()
-        }
-        #[cfg(not(feature = "meaningful_name"))]
-        {
-            helper::generate_random_string(10)
-        }
-    };
-    if state {
-        let origin_info: serde_json::Value =
-            serde_json::from_reader(&fs::File::open(&ARG_PARSER.server_info).unwrap())
-                .expect("read server info error");
-        if let serde_json::Value::Number(version) = &origin_info["version"] {
-            let current_version = version.as_i64().unwrap() as u64;
-            let info = match current_version.cmp(&consts::SERVER_INFO_JSON_VERSION) {
-                Ordering::Less => {
-                    tracing::info!("server info is updating now");
-                    let unique_id: uuid::Uuid = origin_info
-                        .get("unique_id")
-                        .map_or_else(uuid::Uuid::new_v4, |id| {
-                            serde_json::from_str(&id.to_string()).unwrap()
-                        });
-                    let machine_id: u64 = origin_info.get("machine_id").map_or_else(
-                        || rand::rng().random_range(0..(1024 - 1)),
-                        |machine_id| serde_json::from_str(&machine_id.to_string()).unwrap(),
-                    );
-                    let secret: String = origin_info.get("secret").map_or_else(
-                        || helper::generate_random_string(SECRET_LEN),
-                        |secret| serde_json::from_str(&secret.to_string()).unwrap(),
-                    );
-                    let server_name: String = origin_info
-                        .get("server_name")
-                        .map_or_else(server_name, |server_name| {
-                            serde_json::from_str(&server_name.to_string()).unwrap()
-                        });
-                    let version = current_version;
-                    let info = ServerInfo {
-                        unique_id,
-                        machine_id,
-                        secret,
-                        server_name,
-                        version,
-                    };
-                    // first backup the old server info
-                    let backup_path = ARG_PARSER.server_info.with_extension("old");
-                    fs::rename(&ARG_PARSER.server_info, &backup_path).unwrap();
-                    info!("backup server info to {}", backup_path.display());
-                    let mut f = fs::File::create(&ARG_PARSER.server_info).unwrap();
-                    serde_json::to_writer_pretty(&mut f, &info).unwrap();
-                    info
-                }
-                Ordering::Equal => serde_json::from_value(origin_info).unwrap(),
-                Ordering::Greater => {
-                    panic!("server info version is too high");
-                }
-            };
-            return info;
-        } else {
-            panic!(
-                "Format Error: cannot find version in \"{}\"",
-                ARG_PARSER.server_info.display()
-            );
-        }
+    if ARG_PARSER.server_info.exists() {
+        load_existing_server_info()
+    } else {
+        create_new_server_info()
     }
-    tracing::info!("Create server info file");
+}
 
-    let mut f = fs::File::create(&ARG_PARSER.server_info).unwrap();
-    let id: u64 = rand::rng().random_range(0..(1024 - 1));
-    let server_name = server_name();
+/// Loads existing server info from file, handling version migrations.
+fn load_existing_server_info() -> Result<ServerInfo, ServerInfoError> {
+    let file = fs::File::open(&ARG_PARSER.server_info)?;
+    let origin_info: serde_json::Value = serde_json::from_reader(file)?;
+
+    let version = origin_info
+        .get("version")
+        .and_then(|v| v.as_i64())
+        .ok_or(ServerInfoError::InvalidVersion)? as u64;
+
+    let current_version = consts::SERVER_INFO_JSON_VERSION;
+
+    match version.cmp(&current_version) {
+        Ordering::Less => update_server_info(origin_info),
+        Ordering::Equal => serde_json::from_value(origin_info).map_err(ServerInfoError::from),
+        Ordering::Greater => Err(ServerInfoError::InvalidVersion),
+    }
+}
+
+/// Updates server info from an older version to the current version.
+fn update_server_info(origin_info: serde_json::Value) -> Result<ServerInfo, ServerInfoError> {
+    info!("server info is updating now");
+
+    let unique_id: uuid::Uuid = origin_info
+        .get("unique_id")
+        .map_or_else(uuid::Uuid::new_v4, |id| {
+            serde_json::from_value(id.clone()).unwrap_or_else(|_| uuid::Uuid::new_v4())
+        });
+
+    let machine_id: u64 = origin_info.get("machine_id").map_or_else(
+        || rand::rng().random_range(0..=consts::MACHINE_ID_MAX),
+        |machine_id| {
+            serde_json::from_value(machine_id.clone())
+                .unwrap_or_else(|_| rand::rng().random_range(0..=consts::MACHINE_ID_MAX))
+        },
+    );
+
+    let secret: String = origin_info.get("secret").map_or_else(
+        || helper::generate_random_string(SECRET_LEN),
+        |secret| {
+            serde_json::from_value(secret.clone())
+                .unwrap_or_else(|_| helper::generate_random_string(SECRET_LEN))
+        },
+    );
+
+    let server_name_value: String = origin_info
+        .get("server_name")
+        .map_or_else(generate_server_name, |name| {
+            serde_json::from_value(name.clone()).unwrap_or_else(|_| generate_server_name())
+        });
+
+    let version = consts::SERVER_INFO_JSON_VERSION;
+
+    let info = ServerInfo {
+        unique_id,
+        machine_id,
+        secret,
+        server_name: server_name_value,
+        version,
+    };
+
+    backup_server_info()?;
+    write_server_info(&info)?;
+
+    Ok(info)
+}
+
+/// Backs up the existing server info file.
+fn backup_server_info() -> Result<(), ServerInfoError> {
+    let backup_path = ARG_PARSER.server_info.with_extension("old");
+    fs::rename(&ARG_PARSER.server_info, &backup_path)?;
+    info!("backup server info to {}", backup_path.display());
+    Ok(())
+}
+
+/// Writes server info to the configured file path.
+fn write_server_info(info: &ServerInfo) -> Result<(), ServerInfoError> {
+    let mut f = fs::File::create(&ARG_PARSER.server_info)?;
+    serde_json::to_writer_pretty(&mut f, info)?;
+    Ok(())
+}
+
+/// Creates new server info with randomized values.
+fn create_new_server_info() -> Result<ServerInfo, ServerInfoError> {
+    info!("Create server info file");
+
+    let machine_id: u64 = rand::rng().random_range(0..=consts::MACHINE_ID_MAX);
+    let server_name = generate_server_name();
+
     let info = ServerInfo {
         unique_id: uuid::Uuid::new_v4(),
-        machine_id: id,
+        machine_id,
         secret: helper::generate_random_string(SECRET_LEN),
         server_name,
         version: consts::SERVER_INFO_JSON_VERSION,
     };
-    serde_json::to_writer_pretty(&mut f, &info).unwrap();
-    info
+
+    write_server_info(&info)?;
+
+    Ok(info)
+}
+
+// Note: This LazyLock uses synchronous file I/O (fs::File::create, fs::rename, serde_json::to_writer_pretty)
+// which is acceptable here because:
+// 1. It runs once during program initialization (before the async runtime starts)
+// 2. Operations are on small JSON config files (< 1KB)
+// 3. LazyLock requires a synchronous closure and cannot use .await
+// 4. This is a standard pattern for one-time initialization code
+static SERVER_INFO: LazyLock<ServerInfo> = LazyLock::new(|| {
+    load_or_create_server_info().unwrap_or_else(|e| match e {
+        ServerInfoError::Io(err) => panic!(
+            "IO error loading server info from {}: {err}",
+            ARG_PARSER.server_info.display()
+        ),
+        ServerInfoError::Json(err) => panic!(
+            "JSON error loading server info from {}: {err}",
+            ARG_PARSER.server_info.display()
+        ),
+        ServerInfoError::InvalidVersion => {
+            panic!("server info version is invalid or too high")
+        }
+    })
 });
 
-fn clear() -> anyhow::Result<()> {
+async fn clear() -> anyhow::Result<()> {
     let dir_path = Path::new(LOG_OUTPUT_DIR);
-    if !dir_path.exists() {
+    if !tokio::fs::try_exists(dir_path).await? {
         tracing::warn!("try clear log but not found");
         return Ok(());
     }
-    fs::remove_dir_all(dir_path)?;
-    fs::create_dir(dir_path)?;
+    tokio::fs::remove_dir_all(dir_path).await?;
+    tokio::fs::create_dir(dir_path).await?;
     Ok(())
 }
 
 /// global init can be called many times,but only the first time will be effective
-fn global_init() {
+pub fn global_init() {
     static INIT: Once = Once::new();
     INIT.call_once(|| {
         color_eyre::install().ok();
@@ -320,8 +394,6 @@ impl Application {
         }
         info!("Machine ID: {}", SERVER_INFO.machine_id);
         let maintaining = main_cfg.cmd_args.maintaining;
-        // Set up shared state
-        shared_state::set_friends_number_limit(main_cfg.friends_number_limit);
 
         if let Some(new_ip) = parser.ip {
             cfg.http_cfg.ip = new_ip;
@@ -350,7 +422,7 @@ impl Application {
         ));
         log::add_clean_to_scheduler(
             consts::OURCHAT_LOG_PREFIX,
-            cfg.main_cfg.lop_keep,
+            cfg.main_cfg.log_keep,
             cfg.main_cfg.log_clean_duration,
             sched.lock().await,
         )
@@ -411,7 +483,7 @@ impl Application {
         info!("Starting server");
         let clear_flag = self.shared.cfg().main_cfg.cmd_args.clear;
         if clear_flag {
-            clear()?;
+            clear().await?;
         }
 
         let grpc_builder = server::RpcServer::new(
@@ -420,7 +492,9 @@ impl Application {
             self.rabbitmq.clone(),
         );
         let grpc_service = grpc_builder.construct_grpc().await?;
-        let mut launcher = self.http_launcher.take().unwrap();
+        let mut launcher = self.http_launcher.take().ok_or_else(|| {
+            anyhow::anyhow!("HTTP launcher not initialized - cannot start server")
+        })?;
         let shared_clone = self.shared.clone();
         let rabbitmq_clone = self.rabbitmq.clone();
         let pool_clone = self.pool.clone();

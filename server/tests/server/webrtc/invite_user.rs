@@ -193,7 +193,7 @@ async fn invite_user_to_room_already_invited() {
         .lock()
         .await
         .oc()
-        .invite_user_to_room(invite_request.clone())
+        .invite_user_to_room(invite_request)
         .await
         .unwrap();
 

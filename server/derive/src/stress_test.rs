@@ -102,10 +102,16 @@ pub fn register_test(args: TokenStream, input: TokenStream) -> TokenStream {
                 _ => crate::tests::registry::TestType::WithUsers,
             };
 
+            // Note: We intentionally leak the module name string to get a &'static str.
+            // This is acceptable here because:
+            // 1. The macro runs at program startup (via #[ctor])
+            // 2. Each test registration leaks only a small string (the module name)
+            // 3. The memory is needed for the lifetime of the program anyway
+            // 4. This is the standard pattern for &'static str in static contexts with runtime strings
             let test_info = crate::tests::registry::TestInfo::new(
                 #test_name,
                 #display_name,
-                module_name.leak(), // leak for &'static str
+                module_name.leak(),
                 test_type,
             );
 

@@ -1,4 +1,5 @@
 use crate::{
+    process::error_msg::SERVER_ERROR,
     rabbitmq::WEBRTC_FANOUT_EXCHANGE,
     server::RpcServer,
     webrtc::{RoomId, RoomInfo, room_joined_users_key, room_key, room_members_key},
@@ -27,7 +28,7 @@ pub async fn leave_room(
         Err(e) => match e {
             LeaveRoomErr::Db(_) | LeaveRoomErr::Internal(_) | LeaveRoomErr::Redis(_) => {
                 tracing::error!("{}", e);
-                Err(Status::internal("server error"))
+                Err(Status::internal(SERVER_ERROR))
             }
             LeaveRoomErr::Status(status) => Err(status),
         },
@@ -99,7 +100,7 @@ async fn leave_room_impl(
         .map_err(|e| anyhow::anyhow!("rabbitmq channel error: {:?}", e))?;
     let exchange = WEBRTC_FANOUT_EXCHANGE;
 
-    let _ = channel
+    channel
         .basic_publish(
             exchange,
             "",

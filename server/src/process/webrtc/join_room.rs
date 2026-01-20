@@ -1,5 +1,5 @@
 use crate::{
-    process::error_msg::not_found,
+    process::error_msg::{SERVER_ERROR, not_found},
     rabbitmq::WEBRTC_FANOUT_EXCHANGE,
     server::RpcServer,
     webrtc::{
@@ -30,7 +30,7 @@ pub async fn join_room(
         Err(e) => match e {
             JoinRoomErr::Db(_) | JoinRoomErr::Internal(_) | JoinRoomErr::Redis(_) => {
                 tracing::error!("{}", e);
-                Err(Status::internal("server error"))
+                Err(Status::internal(SERVER_ERROR))
             }
             JoinRoomErr::RoomNotFound => Err(Status::not_found(not_found::WEBRTC_ROOM)),
             JoinRoomErr::NotInvited => Err(Status::permission_denied(
@@ -143,7 +143,7 @@ async fn join_room_impl(
         .map_err(|e| anyhow::anyhow!("rabbitmq channel error: {:?}", e))?;
     let exchange = WEBRTC_FANOUT_EXCHANGE;
 
-    let _ = channel
+    channel
         .basic_publish(
             exchange,
             "",

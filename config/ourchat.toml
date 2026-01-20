@@ -1,4 +1,2 @@
 inherit = "../docker/config/ourchat.toml"
-# Ip listening
-ip = "127.0.0.1"
 files_storage_path = "../files_storage/"

@@ -56,11 +56,10 @@ async fn join_room_success() {
     let join_request = JoinRoomRequest { room_id: room_id.0 };
 
     let join_result = user2.lock().await.oc().join_room(join_request).await;
-    if join_result.is_err() {
-        let err = join_result.unwrap_err();
-        panic!("join_room failed: {:?} - {}", err.code(), err.message());
-    }
-    let join_response = join_result.unwrap().into_inner();
+    let join_response = match join_result {
+        Ok(response) => response.into_inner(),
+        Err(err) => panic!("join_room failed: {:?} - {}", err.code(), err.message()),
+    };
 
     // Verify response
     assert!(join_response.success, "Join should succeed");

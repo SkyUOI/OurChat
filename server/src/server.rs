@@ -117,32 +117,32 @@ impl RpcServer {
         };
 
         // Clone shared data for service interceptors
-        let shared_data = self.shared_data.clone();
-        let shared_data1 = self.shared_data.clone();
-        let shared_data2 = self.shared_data.clone();
-        let shared_data3 = self.shared_data.clone();
+        let main_interceptor_data = self.shared_data.clone();
+        let basic_interceptor_data = self.shared_data.clone();
+        let auth_interceptor_data = self.shared_data.clone();
+        let server_manage_interceptor_data = self.shared_data.clone();
 
         // Create service instances with interceptors for authentication and maintenance checks
         let main_svc = OurChatServiceServer::with_interceptor(self, move |mut req| {
             // Check if server is in maintenance mode
-            shared_data.convert_maintaining_into_grpc_status()?;
+            main_interceptor_data.convert_maintaining_into_grpc_status()?;
             Self::check_auth(&mut req)?;
             Ok(req)
         });
 
         let basic_svc = BasicServiceServer::with_interceptor(basic_service, move |req| {
-            shared_data1.convert_maintaining_into_grpc_status()?;
+            basic_interceptor_data.convert_maintaining_into_grpc_status()?;
             Ok(req)
         });
 
         let auth_svc = AuthServiceServer::with_interceptor(auth_service, move |req| {
-            shared_data2.convert_maintaining_into_grpc_status()?;
+            auth_interceptor_data.convert_maintaining_into_grpc_status()?;
             Ok(req)
         });
 
         let server_manage_svc =
             ServerManageServiceServer::with_interceptor(server_manage_service, move |mut req| {
-                shared_data3.convert_maintaining_into_grpc_status()?;
+                server_manage_interceptor_data.convert_maintaining_into_grpc_status()?;
                 Self::check_auth(&mut req)?;
                 Ok(req)
             });
@@ -177,27 +177,49 @@ impl RpcServer {
         // Check if token exists in metadata
         match req.metadata().get(JWT_HEADER) {
             Some(token) => {
-                match process::check_token(token.to_str().unwrap()) {
+                match process::check_token(
+                    token
+                        .to_str()
+                        .map_err(|_| Status::invalid_argument(error_msg::token::INVALID))?,
+                ) {
                     Ok(jwt) => {
                         let ret = jwt.id;
                         // Store user ID in request metadata for later use
-                        req.metadata_mut()
-                            .insert("id", jwt.id.to_string().parse().unwrap());
+                        req.metadata_mut().insert(
+                            "id",
+                            jwt.id
+                                .to_string()
+                                .parse()
+                                .map_err(|_| Status::invalid_argument(error_msg::token::INVALID))?,
+                        );
+                        tracing::info!(user_id = %jwt.id, "JWT Authentication successful");
                         Ok(ret)
                     }
-                    Err(e) => match e {
-                        ErrAuth::JWT(_) => Err(Status::unauthenticated(error_msg::token::INVALID)),
-                        ErrAuth::Expire => Err(Status::unauthenticated(error_msg::token::EXPIRED)),
-                        ErrAuth::UnsupportedAuthorizationHeader => Err(Status::unauthenticated(
-                            error_msg::token::UNSUPPORTED_AUTHORIZATION_HEADER,
-                        )),
-                        ErrAuth::IncorrectFormat => {
-                            Err(Status::unauthenticated(error_msg::token::INCORRECT_FORMAT))
+                    Err(e) => {
+                        tracing::info!(error = %e, "JWT Authentication failed");
+                        match e {
+                            ErrAuth::JWT(_) => {
+                                Err(Status::unauthenticated(error_msg::token::INVALID))
+                            }
+                            ErrAuth::Expire => {
+                                Err(Status::unauthenticated(error_msg::token::EXPIRED))
+                            }
+                            ErrAuth::UnsupportedAuthorizationHeader => {
+                                Err(Status::unauthenticated(
+                                    error_msg::token::UNSUPPORTED_AUTHORIZATION_HEADER,
+                                ))
+                            }
+                            ErrAuth::IncorrectFormat => {
+                                Err(Status::unauthenticated(error_msg::token::INCORRECT_FORMAT))
+                            }
                         }
-                    },
+                    }
                 }
             }
-            None => Err(Status::unauthenticated(error_msg::token::MISSING)),
+            None => {
+                tracing::info!("JWT Authentication failed: missing token");
+                Err(Status::unauthenticated(error_msg::token::MISSING))
+            }
         }
     }
 
@@ -212,8 +234,10 @@ impl RpcServer {
     async fn check_account_status(&self, id: ID) -> Result<(), Status> {
         let account = match get_account_info_db(id, &self.db.db_pool)
             .await
-            .map_err(|_| Status::internal(SERVER_ERROR))?
-        {
+            .map_err(|e| {
+                tracing::error!("Failed to get account info: {:?}", e);
+                Status::internal(SERVER_ERROR)
+            })? {
             Some(account) => account,
             None => return Err(Status::unauthenticated(not_found::USER)),
         };
@@ -227,11 +251,10 @@ impl RpcServer {
     }
 
     pub async fn get_rabbitmq_manager(&self) -> anyhow::Result<deadpool_lapin::Object> {
-        Ok(self
-            .rabbitmq
+        self.rabbitmq
             .get()
             .await
-            .context("cannot get redis connection")?)
+            .context("cannot get rabbitmq connection")
     }
 }
 
@@ -415,7 +438,7 @@ impl ServerManageService for ServerManageServiceProvider {
         &self,
         _request: Request<GetMonitoringMetricsRequest>,
     ) -> Result<Response<GetMonitoringMetricsResponse>, Status> {
-        todo!()
+        Err(Status::unimplemented("not yet implemented"))
     }
 
     #[tracing::instrument(skip(self))]
@@ -423,7 +446,7 @@ impl ServerManageService for ServerManageServiceProvider {
         &self,
         _request: Request<GetHistoricalMetricsRequest>,
     ) -> Result<Response<GetHistoricalMetricsResponse>, Status> {
-        todo!()
+        Err(Status::unimplemented("not yet implemented"))
     }
 
     #[tracing::instrument(skip(self))]
@@ -431,7 +454,7 @@ impl ServerManageService for ServerManageServiceProvider {
         &self,
         _request: Request<ListUsersRequest>,
     ) -> Result<Response<ListUsersResponse>, Status> {
-        todo!()
+        Err(Status::unimplemented("not yet implemented"))
     }
 
     #[tracing::instrument(skip(self))]

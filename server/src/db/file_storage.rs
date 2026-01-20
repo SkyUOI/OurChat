@@ -54,7 +54,7 @@ pub async fn clean_files(
     db_conn: &mut DatabaseConnection,
 ) -> Result<(), FileStorageError> {
     // Query the file first
-    let del_time = chrono::Utc::now() - shared_cfg.read().main_cfg.file_save_time;
+    let del_time = chrono::Utc::now() - shared_cfg.read().main_cfg.files_save_time;
     let cond = files::Column::Date.lt(del_time.timestamp());
     let files = Files::find().filter(cond.clone()).all(db_conn).await?;
     for i in files {

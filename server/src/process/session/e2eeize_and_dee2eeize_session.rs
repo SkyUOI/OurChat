@@ -91,11 +91,7 @@ async fn e2eeize_session_impl(
         Err(Status::already_exists("session already e2eeized"))?;
     }
     let msg = RespondEventType::UpdateRoomKey(UpdateRoomKeyNotification { session_id });
-    let rmq_conn = server
-        .rabbitmq
-        .get()
-        .await
-        .context("cannot get rabbit connection")?;
+    let rmq_conn = server.get_rabbitmq_manager().await?;
     let mut conn = rmq_conn
         .create_channel()
         .await

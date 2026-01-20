@@ -74,3 +74,7 @@ pub mod token {
     pub const UNSUPPORTED_AUTHORIZATION_HEADER: &str = "Only Support Bearer";
     pub const INCORRECT_FORMAT: &str = "Correct format is Authorization: Bearer <jwt>";
 }
+
+pub mod webrtc {
+    pub const UNSPECIFICED: &str = "Signal Type Must Be Specified";
+}

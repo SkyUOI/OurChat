@@ -10,7 +10,11 @@ pub fn path_convert_derive_internal(input: TokenStream) -> TokenStream {
 
     let fields = match input.data {
         Data::Struct(data) => data.fields,
-        _ => panic!("Only accept struct"),
+        _ => {
+            return syn::Error::new_spanned(&name, "PathConvert derive only accepts structs")
+                .into_compile_error()
+                .into();
+        }
     };
 
     // Collect all PathBuf fields

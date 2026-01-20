@@ -1,4 +1,5 @@
 use crate::{
+    process::error_msg::{self, SERVER_ERROR},
     rabbitmq::{WEBRTC_SIGNAL_EXCHANGE, generate_webrtc_route_key},
     server::RpcServer,
 };
@@ -31,7 +32,7 @@ pub async fn signal(
         Err(e) => match e {
             SignalErr::Internal(_) => {
                 tracing::error!("{}", e);
-                Err(Status::internal("server error"))
+                Err(Status::internal(SERVER_ERROR))
             }
             SignalErr::Status(status) => Err(status),
         },
@@ -73,7 +74,7 @@ async fn signal_impl(
         }
         SignalType::Unspecified => {
             return Err(SignalErr::Status(Status::invalid_argument(
-                "signal type must be specified",
+                error_msg::webrtc::UNSPECIFICED,
             )));
         }
     }

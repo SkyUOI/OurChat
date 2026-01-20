@@ -57,7 +57,7 @@ async fn demote_room_admin_impl(
 ) -> Result<DemoteRoomAdminResponse, DemoteAdminErr> {
     let req = request.into_inner();
     let room_id = RoomId(req.room_id);
-    let target_user_id = req.user_id;
+    let target_user_id = ID(req.user_id);
 
     let mut redis_conn = server.db.get_redis_connection().await?;
 
@@ -69,7 +69,7 @@ async fn demote_room_admin_impl(
     }
 
     // Only creator can demote admins
-    if !is_room_creator(&mut redis_conn, room_id, *requester_id).await? {
+    if !is_room_creator(&mut redis_conn, room_id, requester_id).await? {
         return Err(DemoteAdminErr::NotCreator);
     }
 
@@ -80,7 +80,7 @@ async fn demote_room_admin_impl(
 
     // Demote user from admin
     let admins_key = room_admins_key(room_id);
-    let _: usize = redis_conn.srem(&admins_key, target_user_id).await?;
+    let _: usize = redis_conn.srem(&admins_key, *target_user_id).await?;
 
     Ok(DemoteRoomAdminResponse { success: true })
 }

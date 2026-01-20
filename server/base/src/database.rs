@@ -40,10 +40,9 @@ impl DbPool {
     }
 
     pub async fn get_redis_connection(&self) -> anyhow::Result<deadpool_redis::Connection> {
-        Ok(self
-            .redis_pool
+        self.redis_pool
             .get()
             .await
-            .context("cannot get redis connection")?)
+            .context("cannot get redis connection")
     }
 }

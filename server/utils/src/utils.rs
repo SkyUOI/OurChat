@@ -43,6 +43,11 @@ macro_rules! impl_newtype_int {
                 write!(f, "{}", self.0)
             }
         }
+
+        impl std::str::FromStr for $name {
+            type Err = std::num::ParseIntError;
+            fn from_str(s: &str) -> Result<Self, Self::Err> { Ok(Self(s.parse()?)) }
+        }
     };
 }
 
@@ -89,6 +94,16 @@ pub fn merge_json(origin: serde_json::Value, new: serde_json::Value) -> serde_js
         }
         // For all other cases, use the new value
         (_, new) => new,
+    }
+}
+
+pub macro serde_default($name:ty) {
+    impl Default for $name {
+        fn default() -> Self {
+            let empty = serde_json::json!({});
+            // It use serde's default value. It must be a valid value. It is safe to unwrap
+            serde_json::from_value(empty).unwrap()
+        }
     }
 }
 

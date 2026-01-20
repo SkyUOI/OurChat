@@ -64,7 +64,7 @@ async fn kick_user_from_room_impl(
 ) -> Result<KickUserFromRoomResponse, KickErr> {
     let req = request.into_inner();
     let room_id = RoomId(req.room_id);
-    let target_user_id = req.user_id;
+    let target_user_id = ID(req.user_id);
 
     let mut redis_conn = server.db.get_redis_connection().await?;
 
@@ -81,7 +81,7 @@ async fn kick_user_from_room_impl(
     }
 
     // Cannot kick yourself
-    if *requester_id == target_user_id {
+    if requester_id == target_user_id {
         return Err(KickErr::CannotKickSelf);
     }
 
@@ -92,21 +92,21 @@ async fn kick_user_from_room_impl(
 
     // Check if target user is in the room
     let member_key = room_members_key(room_id);
-    let is_member: bool = redis_conn.sismember(&member_key, target_user_id).await?;
+    let is_member: bool = redis_conn.sismember(&member_key, *target_user_id).await?;
     if !is_member {
         return Err(KickErr::UserNotInRoom);
     }
 
     // Remove user from members
-    let _: usize = redis_conn.srem(&member_key, target_user_id).await?;
+    let _: usize = redis_conn.srem(&member_key, *target_user_id).await?;
 
     // Also remove from admins if they were an admin
     let admins_key = room_admins_key(room_id);
-    let _: usize = redis_conn.srem(&admins_key, target_user_id).await?;
+    let _: usize = redis_conn.srem(&admins_key, *target_user_id).await?;
 
     // Remove from joined_users set and decrement count if they had joined
     let joined_users_key = room_joined_users_key(room_id);
-    let was_in_joined: usize = redis_conn.srem(&joined_users_key, target_user_id).await?;
+    let was_in_joined: usize = redis_conn.srem(&joined_users_key, *target_user_id).await?;
 
     if was_in_joined > 0 {
         // User had joined, so decrement the count

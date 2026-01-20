@@ -81,7 +81,9 @@ trait TestAppTrait {
 impl TestAppTrait for ArgsParser {
     fn test() -> Self {
         Self {
-            port: Some(get_available_port()),
+            port: Some(
+                get_available_port().expect("failed because there is not avaliable port got"),
+            ),
             shared_cfg: ParserCfg {
                 test_mode: true,
                 ..Default::default()

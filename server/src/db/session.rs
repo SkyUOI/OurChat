@@ -216,9 +216,9 @@ pub async fn if_permission_exist(
         .filter(user_role_relation::Column::UserId.eq(user_id))
         .filter(user_role_relation::Column::SessionId.eq(session_id))
         .filter(role_permissions::Column::PermissionId.eq(permission_checked))
-        .count(db_conn)
+        .one(db_conn)
         .await?;
-    Ok(exists > 0)
+    Ok(exists.is_some())
 }
 
 /// Adds a user to a session with a specified role.

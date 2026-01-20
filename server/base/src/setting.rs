@@ -63,8 +63,11 @@ impl Setting for UserSetting {}
 /// This function returns Ok(config::Config) if the file is valid, or
 /// Err(ConfigError) if it is invalid.
 pub fn read_a_config(path: impl AsRef<Path>) -> Result<config::Config, ConfigError> {
+    let path_str = path.as_ref().to_str().ok_or_else(|| {
+        ConfigError::Message("config path contains invalid UTF-8 characters".to_string())
+    })?;
     config::Config::builder()
-        .add_source(File::with_name(path.as_ref().to_str().unwrap()))
+        .add_source(File::with_name(path_str))
         .build()
 }
 

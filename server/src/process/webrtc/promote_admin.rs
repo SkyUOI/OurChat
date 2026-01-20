@@ -55,7 +55,7 @@ async fn promote_room_admin_impl(
 ) -> Result<PromoteRoomAdminResponse, PromoteAdminErr> {
     let req = request.into_inner();
     let room_id = RoomId(req.room_id);
-    let target_user_id = req.user_id;
+    let target_user_id = ID(req.user_id);
 
     let mut redis_conn = server.db.get_redis_connection().await?;
 
@@ -73,14 +73,14 @@ async fn promote_room_admin_impl(
 
     // Check if target user is in the room
     let member_key = room_members_key(room_id);
-    let is_member: bool = redis_conn.sismember(&member_key, target_user_id).await?;
+    let is_member: bool = redis_conn.sismember(&member_key, *target_user_id).await?;
     if !is_member {
         return Err(PromoteAdminErr::NotInRoom);
     }
 
     // Promote user to admin
     let admins_key = room_admins_key(room_id);
-    let _: usize = redis_conn.sadd(&admins_key, target_user_id).await?;
+    let _: usize = redis_conn.sadd(&admins_key, *target_user_id).await?;
 
     Ok(PromoteRoomAdminResponse { success: true })
 }

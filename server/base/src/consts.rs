@@ -8,6 +8,9 @@ use utils::{impl_newtype_int, impl_newtype_string};
 /// OCID Length
 pub const OCID_LEN: usize = 10;
 
+/// Defined in snowflake algorithm
+pub const MACHINE_ID_MAX: u64 = 1024 - 1;
+
 /// default ip
 pub const DEFAULT_IP: &str = "0.0.0.0";
 
@@ -45,7 +48,7 @@ impl_newtype_int!(MsgID, u64, serde::Serialize, serde::Deserialize);
 pub macro impl_from($from:path, $ty:ty) {
     impl From<$ty> for $from {
         fn from(value: $ty) -> Self {
-            $from(value.try_into().unwrap())
+            $from(value.try_into().expect("numeric conversion failed"))
         }
     }
 
@@ -266,9 +269,18 @@ pub static SERVER_INFO_PATH: &str = "server_info.json";
 pub static VERSION_SPLIT: LazyLock<ServerVersion> = LazyLock::new(|| {
     let ver = crate::build::PKG_VERSION.split('.').collect::<Vec<_>>();
     ServerVersion {
-        major: ver[0].parse().unwrap(),
-        minor: ver[1].parse().unwrap(),
-        patch: ver[2].parse().unwrap(),
+        major: ver
+            .first()
+            .and_then(|v| v.parse().ok())
+            .expect("invalid version format: missing or invalid major version"),
+        minor: ver
+            .get(1)
+            .and_then(|v| v.parse().ok())
+            .expect("invalid version format: missing or invalid minor version"),
+        patch: ver
+            .get(2)
+            .and_then(|v| v.parse().ok())
+            .expect("invalid version format: missing or invalid patch version"),
     }
 });
 
