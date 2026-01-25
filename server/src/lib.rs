@@ -98,7 +98,7 @@ enum ServerInfoError {
 
 const SECRET_LEN: usize = 32;
 
-/// It shoule be called at the entry
+/// It should be called at the entry
 pub static RUN_AS_STANDALONE: LazyLock<Mutex<bool>> = LazyLock::new(|| Mutex::new(false));
 
 pub static ARG_PARSER: LazyLock<ArgsParser> = LazyLock::new(|| {

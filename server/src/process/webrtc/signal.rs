@@ -74,7 +74,7 @@ async fn signal_impl(
         }
         SignalType::Unspecified => {
             return Err(SignalErr::Status(Status::invalid_argument(
-                error_msg::webrtc::UNSPECIFICED,
+                error_msg::webrtc::UNSPECIFIED,
             )));
         }
     }

@@ -27,5 +27,8 @@ dartfmt:
 webfmt:
     @cd server/web-panel && pnpm run format || echo "pnpm is not installed. Ignored"
 
+typos:
+    @typos|| echo "typos checker is not installed. Ignored"
+
 # Format all code - run as pre-commit
-pre-commit: rsfmt buffmt pyfmt dartfmt webfmt
+pre-commit: typos rsfmt buffmt pyfmt dartfmt webfmt

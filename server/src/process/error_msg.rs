@@ -76,5 +76,5 @@ pub mod token {
 }
 
 pub mod webrtc {
-    pub const UNSPECIFICED: &str = "Signal Type Must Be Specified";
+    pub const UNSPECIFIED: &str = "Signal Type Must Be Specified";
 }
