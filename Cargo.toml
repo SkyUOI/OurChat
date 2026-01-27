@@ -38,7 +38,7 @@ version = "1"
 default-features = false
 
 [workspace.dependencies.rand]
-version = "0.10.0-rc.5"
+version = "0.10.0-rc.7"
 default-features = false
 features = ["thread_rng"]
 
