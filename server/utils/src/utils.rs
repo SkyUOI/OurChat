@@ -74,6 +74,10 @@ pub fn sha3_256(data: &[u8]) -> String {
     format!("{result:x}")
 }
 
+pub fn oaep_padding() -> rsa::Oaep<rsa::sha2::Sha256> {
+    rsa::Oaep::<rsa::sha2::Sha256>::new()
+}
+
 pub fn merge_json(origin: serde_json::Value, new: serde_json::Value) -> serde_json::Value {
     match (origin, new) {
         // If both are objects, merge them recursively

@@ -8,7 +8,7 @@ use pb::service::ourchat::{
         session_room_key::v1::SendRoomKeyRequest,
     },
 };
-use rsa::{Pkcs1v15Encrypt, RsaPublicKey, pkcs1::DecodeRsaPublicKey as _};
+use rsa::{RsaPublicKey, pkcs1::DecodeRsaPublicKey as _};
 use server::db::session::get_session_by_id;
 
 #[tokio::test]
@@ -58,7 +58,7 @@ pub async fn test_e2eeize_session() {
     let new_room_key = TestSession::generate_room_key();
     let mut rng = rand::rng();
     let encrypted_room_key: Bytes = public_key
-        .encrypt(&mut rng, Pkcs1v15Encrypt, &new_room_key)
+        .encrypt(&mut rng, utils::oaep_padding(), &new_room_key)
         .unwrap()
         .into();
     a.lock()
@@ -85,7 +85,7 @@ pub async fn test_e2eeize_session() {
         .await
         .key_pair
         .0
-        .decrypt(Pkcs1v15Encrypt, &received_encrypted_room_key)
+        .decrypt(utils::oaep_padding(), &received_encrypted_room_key)
         .unwrap()
         .into();
     assert_eq!(received_room_key, new_room_key);

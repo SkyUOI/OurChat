@@ -230,7 +230,7 @@ default-features = false
 [workspace.dependencies.rsa]
 version = "0.10.0-rc.8"
 default-features = false
-features = ["encoding"]
+features = ["encoding", "sha2"]
 
 [workspace.dependencies.cfg-if]
 version = "1"
