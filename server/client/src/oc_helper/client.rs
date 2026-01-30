@@ -231,7 +231,9 @@ impl TestApp {
         let connected_channel = connected_channel.connect().await?;
 
         // Construct http client
-        let mut http_client = reqwest::Client::builder().timeout(Duration::from_secs(2));
+        let mut http_client = reqwest::Client::builder()
+            .tls_backend_rustls()
+            .timeout(Duration::from_secs(2));
         if shared.cfg().http_cfg.tls.is_tls_on()? {
             let cert_path = shared.cfg().http_cfg.tls.ca_tls_cert_path.clone().unwrap();
             let pem = tokio::fs::read(&cert_path).await?;
