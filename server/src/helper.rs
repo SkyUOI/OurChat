@@ -2,7 +2,7 @@
 use crate::{SERVER_INFO, webrtc::RoomId};
 use anyhow::Context;
 use base::consts::SessionID;
-use rand::Rng;
+use rand::RngExt;
 use snowdon::{
     ClassicLayout, ClassicLayoutSnowflakeExtension, Epoch, Generator, MachineId, Snowflake,
 };

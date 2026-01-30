@@ -64,6 +64,27 @@ macro_rules! impl_newtype_string {
     }
 }
 
+pub macro impl_redis_value_from_for_newint($name:ident) {
+    impl deadpool_redis::redis::ToRedisArgs for $name {
+        fn write_redis_args<W>(&self, out: &mut W)
+        where
+            W: ?Sized + deadpool_redis::redis::RedisWrite,
+        {
+            self.0.write_redis_args(out)
+        }
+    }
+
+    impl deadpool_redis::redis::FromRedisValue for $name {
+        fn from_redis_value(
+            v: &deadpool_redis::redis::Value,
+        ) -> deadpool_redis::redis::RedisResult<Self> {
+            Ok($name(
+                deadpool_redis::redis::FromRedisValue::from_redis_value(v)?,
+            ))
+        }
+    }
+}
+
 /// Compute the SHA3-256 hash of the given data and return it as a lower-case
 /// hexadecimal string.
 pub fn sha3_256(data: &[u8]) -> String {

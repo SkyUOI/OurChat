@@ -1,5 +1,7 @@
 use sea_orm::{DbErr, RuntimeErr};
 
+const POSTGRES_UNIQUE_VIOLATION: &str = "23505";
+
 /// Check if a `DbErr` is a conflict error.
 ///
 /// This function returns true if the error is either a
@@ -14,7 +16,7 @@ pub fn is_conflict(e: &DbErr) -> bool {
         DbErr::RecordNotInserted => true,
         DbErr::Query(RuntimeErr::SqlxError(sqlx::Error::Database(e))) => {
             if let Some(code) = e.code() {
-                code == "23505"
+                code == POSTGRES_UNIQUE_VIOLATION
             } else {
                 false
             }

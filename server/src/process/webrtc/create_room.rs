@@ -54,7 +54,7 @@ async fn create_room_impl(
         users_num: 0,
         auto_delete: req.auto_delete,
         open_join: req.open_join,
-        creator: *id,
+        creator: id,
     };
 
     // Set room info

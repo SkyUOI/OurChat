@@ -22,7 +22,7 @@ use clap::Parser;
 use dashmap::DashMap;
 use parking_lot::{Mutex, Once, RwLock};
 use process::error_msg::MAINTAINING;
-use rand::Rng;
+use rand::RngExt;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::{
@@ -407,7 +407,6 @@ impl Application {
         cfg.http_cfg.port = port;
 
         let abort_sender = ShutdownSdr::new(None);
-        db::init_db_system();
         // connect to db
         let db_pool = DbPool::build(&cfg.db_cfg, &cfg.redis_cfg, true).await?;
         db_pool.init().await?;

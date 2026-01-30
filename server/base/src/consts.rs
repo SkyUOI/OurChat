@@ -3,7 +3,7 @@
 use pb::service::basic::server::v1::ServerVersion;
 use size::Size;
 use std::{path::PathBuf, str::FromStr, sync::LazyLock, time::Duration};
-use utils::{impl_newtype_int, impl_newtype_string};
+use utils::{impl_newtype_int, impl_newtype_string, impl_redis_value_from_for_newint};
 
 /// OCID Length
 pub const OCID_LEN: usize = 10;
@@ -42,6 +42,7 @@ pub const fn default_add_friend_request_expiry() -> Duration {
 
 // define ID type to fit many types of databases
 impl_newtype_int!(ID, u64, serde::Serialize, serde::Deserialize);
+impl_redis_value_from_for_newint!(ID);
 impl_newtype_int!(SessionID, u64, serde::Serialize, serde::Deserialize);
 impl_newtype_int!(MsgID, u64, serde::Serialize, serde::Deserialize);
 

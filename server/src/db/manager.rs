@@ -3,7 +3,7 @@ use entities::{
     manager_role_relation, prelude::ServerManagementRolePermissions, server_management_role,
     server_management_role_permissions,
 };
-use sea_orm::{QuerySelect, prelude::*};
+use sea_orm::{DatabaseTransaction, QuerySelect, prelude::*};
 
 /// Checks if the manager has the given permission.
 ///
@@ -32,9 +32,9 @@ pub async fn manage_permission_existed(
         )
         .filter(manager_role_relation::Column::UserId.eq(user_id))
         .filter(server_management_role_permissions::Column::PermissionId.eq(permission_checked))
-        .count(db_conn)
+        .one(db_conn)
         .await?;
-    Ok(num > 0)
+    Ok(num.is_some())
 }
 
 /// Adds a role for server management.
@@ -44,11 +44,7 @@ pub async fn manage_permission_existed(
 /// * `name` - The name of the role.
 /// * `description` - The description of the role.
 /// * `permissions` - The permissions of the role.
-/// * `db_conn` - A reference to the database connection implementing the `ConnectionTrait`.
-///
-/// # Warnings
-///
-/// Please use transaction
+/// * `db_conn` - A reference to the database transaction implementing the `ConnectionTrait`.
 ///
 /// # Returns
 ///
@@ -57,7 +53,7 @@ pub async fn add_role(
     name: String,
     description: Option<String>,
     permissions: impl IntoIterator<Item = i64>,
-    db_conn: &impl ConnectionTrait,
+    db_conn: &DatabaseTransaction,
 ) -> Result<server_management_role::Model, DbErr> {
     let role = server_management_role::ActiveModel {
         name: sea_orm::ActiveValue::Set(name),

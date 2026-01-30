@@ -1,33 +1,13 @@
 use base::consts::{ID, impl_from_all_ints};
-use deadpool_redis::redis::{AsyncCommands, FromRedisValue, ToRedisArgs};
+use deadpool_redis::redis::AsyncCommands;
 use derive::RedisHset;
-use utils::impl_newtype_int;
+use utils::{impl_newtype_int, impl_redis_value_from_for_newint};
+
+use crate::db::redis::redis_key;
 
 impl_newtype_int!(RoomId, u64,);
 
-impl ToRedisArgs for RoomId {
-    fn write_redis_args<W>(&self, out: &mut W)
-    where
-        W: ?Sized + deadpool_redis::redis::RedisWrite,
-    {
-        out.write_arg(self.0.to_string().as_bytes());
-    }
-}
-
-impl FromRedisValue for RoomId {
-    fn from_redis_value(
-        v: &deadpool_redis::redis::Value,
-    ) -> deadpool_redis::redis::RedisResult<Self> {
-        let s: String = FromRedisValue::from_redis_value(v)?;
-        let num: u64 = s.parse().map_err(|_| {
-            deadpool_redis::redis::RedisError::from((
-                deadpool_redis::redis::ErrorKind::TypeError,
-                "Failed to parse RoomId from string",
-            ))
-        })?;
-        Ok(RoomId(num))
-    }
-}
+impl_redis_value_from_for_newint!(RoomId);
 
 impl_from_all_ints!(RoomId);
 
@@ -38,7 +18,7 @@ pub struct RoomInfo {
     pub users_num: u32,
     pub auto_delete: bool,
     pub open_join: bool,
-    pub creator: u64,
+    pub creator: ID,
 }
 
 pub fn empty_room_name() -> &'static str {
@@ -46,31 +26,31 @@ pub fn empty_room_name() -> &'static str {
 }
 
 pub fn room_key(room_id: RoomId) -> String {
-    format!("webrtc:room:{}", room_id)
+    redis_key!("webrtc:room:{}", room_id)
 }
 
 pub fn room_members_key(room_id: RoomId) -> String {
-    format!("webrtc:room:{}:members", room_id)
+    redis_key!("webrtc:room:{}:members", room_id)
 }
 
 pub fn room_admins_key(room_id: RoomId) -> String {
-    format!("webrtc:room:{}:admins", room_id)
+    redis_key!("webrtc:room:{}:admins", room_id)
 }
 
 pub fn room_creator_key(room_id: RoomId) -> String {
-    format!("webrtc:room:{}:creator", room_id)
+    redis_key!("webrtc:room:{}:creator", room_id)
 }
 
 pub fn room_invitations_key(room_id: RoomId) -> String {
-    format!("webrtc:room:{}:invitations", room_id)
+    redis_key!("webrtc:room:{}:invitations", room_id)
 }
 
 pub fn room_joined_users_key(room_id: RoomId) -> String {
-    format!("webrtc:room:{}:joined_users", room_id)
+    redis_key!("webrtc:room:{}:joined_users", room_id)
 }
 
 pub fn room_pending_key(room_id: RoomId) -> String {
-    format!("webrtc:room:{}:pending", room_id)
+    redis_key!("webrtc:room:{}:pending", room_id)
 }
 
 /// Check if a user is an admin of a room
@@ -89,16 +69,27 @@ pub async fn is_room_creator(
     redis_conn: &mut deadpool_redis::Connection,
     room_id: RoomId,
     user_id: ID,
-) -> Result<bool, deadpool_redis::redis::RedisError> {
+) -> anyhow::Result<bool> {
     let creator_key = room_creator_key(room_id);
 
     // The creator is stored as a string in Redis
-    let creator_str: String = redis_conn
-        .get(&creator_key)
-        .await
-        .unwrap_or(None)
-        .unwrap_or_default();
-    let creator_id: ID = creator_str.parse().unwrap_or(ID(0));
+    let creator_str: Option<String> = redis_conn.get(&creator_key).await?;
+    let creator_str = match creator_str {
+        None => {
+            anyhow::bail!("Room {} has no creator", room_id);
+        }
+        Some(v) => v,
+    };
+    let creator_id: ID = match creator_str.parse() {
+        Ok(id) => id,
+        Err(_) => {
+            anyhow::bail!(
+                "Failed to parse creator ID {} for room {}",
+                creator_str,
+                room_id
+            );
+        }
+    };
 
     Ok(creator_id == user_id)
 }

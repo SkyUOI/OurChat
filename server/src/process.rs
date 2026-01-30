@@ -133,6 +133,7 @@ pub use webrtc::{
 
 use crate::SERVER_INFO;
 use crate::db::messages::MsgError;
+use crate::db::redis::redis_key;
 use crate::db::session::get_members;
 use crate::rabbitmq::USER_MSG_BROADCAST_EXCHANGE;
 use crate::rabbitmq::USER_MSG_DIRECT_EXCHANGE;
@@ -356,5 +357,5 @@ pub async fn message_insert_and_transmit(
 }
 
 fn mapped_to_user_defined_status(user_id: impl Display) -> String {
-    format!("user_defined_status:{user_id}")
+    redis_key!("user_defined_status:{}", user_id)
 }

@@ -2,6 +2,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use crate::SharedData;
+use crate::db::redis::redis_key;
 use crate::httpserver::EmailClientType;
 use anyhow::Context;
 use axum::extract::{Query, State};
@@ -111,7 +112,7 @@ pub async fn verify_client(
 }
 
 fn mapped_to_redis(key: &str) -> String {
-    format!("verify:{key}")
+    redis_key!("verify:{}", key)
 }
 
 pub async fn check_token_exist_and_del_token(

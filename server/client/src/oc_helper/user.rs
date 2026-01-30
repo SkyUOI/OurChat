@@ -27,7 +27,7 @@ use pb::service::ourchat::v1::our_chat_service_client::OurChatServiceClient;
 use pb::service::server_manage::user_manage::v1::RemoveServerRoleRequest;
 use pb::service::server_manage::v1::server_manage_service_client::ServerManageServiceClient;
 use pb::time::TimeStampUtc;
-use rand::Rng;
+use rand::RngExt;
 use rsa::pkcs1::EncodeRsaPublicKey as _;
 use rsa::{RsaPrivateKey, RsaPublicKey};
 use server::helper::generate_random_string;
