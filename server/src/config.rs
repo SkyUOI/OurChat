@@ -210,7 +210,7 @@ impl<'de> Deserialize<'de> for MainCfg {
             ));
         }
         if raw.files_save_time.is_zero() {
-            return Err(D::Error::custom("file_save_time cannot be zero"));
+            return Err(D::Error::custom("files_save_time cannot be zero"));
         }
         if raw.cache_max_size.bytes() == 0 {
             return Err(D::Error::custom("cache_max_size cannot be zero"));
@@ -392,7 +392,7 @@ mod tests {
     }
 
     #[test]
-    fn test_file_save_time_zero_fails() {
+    fn test_files_save_time_zero_fails() {
         let mut config = minimal_valid_config();
         config["files_save_time"] = json!("0s");
         let result: Result<MainCfg, _> = serde_json::from_value(config);
@@ -445,12 +445,16 @@ mod tests {
     fn test_multiple_validation_errors_first_is_returned() {
         let mut config = minimal_valid_config();
         config["friends_number_limit"] = json!(0);
-        config["file_save_time"] = json!("0s");
+        config["files_save_time"] = json!("0s");
         config["db"]["fetch_msg_page_size"] = json!(0);
         let result: Result<MainCfg, _> = serde_json::from_value(config);
         assert!(result.is_err());
         // Should fail on first validation error
         let err = result.unwrap_err().to_string();
-        assert!(err.contains("friends_number_limit must be greater than 0"));
+        assert!(
+            err.contains("friends_number_limit must be greater than 0"),
+            "Error was {}",
+            err
+        );
     }
 }
