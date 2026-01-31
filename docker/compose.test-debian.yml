@@ -20,7 +20,7 @@ services:
       db:
         condition: service_healthy
   db:
-    image: postgres:17
+    image: postgres:18
     restart: always
     environment:
       POSTGRES_DB: OurChat

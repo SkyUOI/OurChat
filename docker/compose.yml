@@ -21,7 +21,7 @@ services:
     # environment:
     #   OURCHAT_LOG: trace,mio=off,h2=off,tonic=off,tower=off,tokio::task::waker=off,runtime::resource=off,lapin=off,pinky_swear=off,async_io=off,polling=off
   db:
-    image: postgres:17-alpine
+    image: postgres:18-alpine
     restart: always
     environment:
       POSTGRES_DB: OurChat
