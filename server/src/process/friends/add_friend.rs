@@ -120,11 +120,7 @@ async fn add_friend_impl(
         time: Some(msg_model.time.into()),
         respond_event_type: Some(respond_msg),
     };
-    let rmq_conn = server
-        .rabbitmq
-        .get()
-        .await
-        .context("cannot get rabbitmq connection")?;
+    let rmq_conn = server.get_rabbitmq_manager().await?;
     let mut conn = rmq_conn
         .create_channel()
         .await

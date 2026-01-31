@@ -200,8 +200,13 @@ async fn test_auth_denied_for_unverified_email() {
     let error = auth_result.unwrap_err().unwrap_rpc_status();
     assert_eq!(
         error.code(),
-        tonic::Code::NotFound,
-        "Should return NotFound error for unverified users"
+        tonic::Code::Unauthenticated,
+        "Should return Unauthenticated error for unverified users"
+    );
+    assert_eq!(
+        error.message(),
+        server::process::error_msg::EMAIL_NOT_VERIFIED,
+        "Should return user not found error for unverified users"
     );
 
     app.async_drop().await;

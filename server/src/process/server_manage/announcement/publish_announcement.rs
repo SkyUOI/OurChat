@@ -50,11 +50,7 @@ async fn publish_announcement_internal(
     )
     .await?
     .into();
-    let connection = server
-        .rabbitmq
-        .get()
-        .await
-        .context("cannot get rabbitmq connection")?;
+    let connection = server.get_rabbitmq_manager().await?;
     let mut channel = connection
         .create_channel()
         .await

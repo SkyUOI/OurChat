@@ -76,6 +76,15 @@ pub struct ServerManageServiceProvider {
     pub rabbitmq: deadpool_lapin::Pool,
 }
 
+impl ServerManageServiceProvider {
+    pub async fn get_rabbitmq_manager(&self) -> anyhow::Result<deadpool_lapin::Object> {
+        self.rabbitmq
+            .get()
+            .await
+            .context("cannot get rabbitmq connection")
+    }
+}
+
 impl RpcServer {
     /// Create a new RPC server instance
     ///
@@ -264,6 +273,15 @@ pub struct AuthServiceProvider {
     pub shared_data: Arc<SharedData>,
     pub db: DbPool,
     pub rabbitmq: deadpool_lapin::Pool,
+}
+
+impl AuthServiceProvider {
+    pub async fn get_rabbitmq_manager(&self) -> anyhow::Result<deadpool_lapin::Object> {
+        self.rabbitmq
+            .get()
+            .await
+            .context("cannot get rabbitmq connection")
+    }
 }
 
 /// Stream type for verification responses

@@ -50,11 +50,7 @@ async fn email_verify_impl(
     request: Request<VerifyRequest>,
 ) -> Result<Response<VerifyStream>, VerifyError> {
     let request = request.into_inner();
-    let connection = server
-        .rabbitmq
-        .get()
-        .await
-        .context("Cannot get rabbit connection")?;
+    let connection = server.get_rabbitmq_manager().await?;
     let channel = connection.create_channel().await?;
     let json_record =
         serde_json::to_string(&VerifyRecord::new(request.email.clone(), generate_token()))

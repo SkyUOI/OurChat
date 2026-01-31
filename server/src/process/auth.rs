@@ -1,6 +1,8 @@
 use super::{error_msg::not_found, generate_access_token};
 use crate::db::redis::map_failed_login_to_redis;
-use crate::process::error_msg::{ACCOUNT_LOCKED, MISSING_AUTH_TYPE, WRONG_PASSWORD};
+use crate::process::error_msg::{
+    ACCOUNT_LOCKED, EMAIL_NOT_VERIFIED, MISSING_AUTH_TYPE, WRONG_PASSWORD,
+};
 use crate::{
     db::helper::is_conflict, helper, process::error_msg::SERVER_ERROR, server::AuthServiceProvider,
 };
@@ -24,6 +26,8 @@ enum AuthError {
     AccountLocked,
     #[error("missing auth type")]
     MissingAuthType,
+    #[error("email not verified")]
+    EmailNotVerified,
     #[error("db error:{0:?}")]
     DbError(#[from] DbErr),
     #[error("Unknown Error:{0:?}")]
@@ -122,7 +126,7 @@ async fn auth_db(
             Some(user) => {
                 // Check if email verification is required and if the user's email is verified
                 if require_email_verification && !user.email_verified {
-                    return Err(AuthError::UserNotFound); // Treat unverified users as not found
+                    return Err(AuthError::EmailNotVerified);
                 }
 
                 let Some(passwd) = user.passwd else {
@@ -153,6 +157,7 @@ async fn auth_db(
                     // Increment failed login counter
                     increment_failed_login(user.id.into(), &mut redis_conn, lock_duration_seconds)
                         .await?;
+                    tracing::info!("Failed login attempt for user id {}", user.id);
                     Err(AuthError::WrongPassword)
                 }
             }
@@ -195,6 +200,7 @@ pub async fn auth(
         Err(e) => Err(match e {
             AuthError::WrongPassword => Status::unauthenticated(WRONG_PASSWORD),
             AuthError::AccountLocked => Status::unauthenticated(ACCOUNT_LOCKED),
+            AuthError::EmailNotVerified => Status::unauthenticated(EMAIL_NOT_VERIFIED),
             AuthError::MissingAuthType => Status::invalid_argument(MISSING_AUTH_TYPE),
             AuthError::UserNotFound => Status::not_found(not_found::USER),
             _ => {

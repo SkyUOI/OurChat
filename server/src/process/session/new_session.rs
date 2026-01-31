@@ -184,11 +184,7 @@ pub async fn send_verification_request(
         time: Some(expire_at_google),
         respond_event_type: Some(respond_msg),
     };
-    let rabbitmq_connection = server
-        .rabbitmq
-        .get()
-        .await
-        .context("cannot get rabbit connection")?;
+    let rabbitmq_connection = server.get_rabbitmq_manager().await?;
     let mut channel = rabbitmq_connection
         .create_channel()
         .await

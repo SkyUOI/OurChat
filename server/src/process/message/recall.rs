@@ -81,11 +81,7 @@ async fn recall_msg_internal(
         false,
     )
     .await?;
-    let connection = server
-        .rabbitmq
-        .get()
-        .await
-        .context("cannot get rabbit connection")?;
+    let connection = server.get_rabbitmq_manager().await?;
     let mut channel = connection
         .create_channel()
         .await

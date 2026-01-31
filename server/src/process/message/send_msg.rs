@@ -101,11 +101,7 @@ async fn send_msg_impl(
     });
 
     let sender_id: u64 = id.into();
-    let rmq_conn = server
-        .rabbitmq
-        .get()
-        .await
-        .context("cannot get rabbit connection")?;
+    let rmq_conn = server.get_rabbitmq_manager().await?;
     let mut conn = rmq_conn
         .create_channel()
         .await
@@ -125,7 +121,7 @@ async fn send_msg_impl(
         let last_time = session.room_key_time.with_timezone(&Utc);
         let expire_time: chrono::TimeDelta =
             chrono::Duration::from_std(server.shared_data.cfg().main_cfg.room_key_duration)
-                .unwrap();
+                .context("Failed to convert room_key_duration to chrono duration")?;
         if Utc::now() - last_time > expire_time || session.leaving_to_process {
             let msg = RespondEventType::UpdateRoomKey(UpdateRoomKeyNotification {
                 session_id: session_id.into(),

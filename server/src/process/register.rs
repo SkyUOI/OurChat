@@ -10,6 +10,10 @@ use base::database::DbPool;
 use entities::user;
 use migration::constants::USERNAME_MAX_LEN;
 use pb::service::auth::register::v1::{RegisterRequest, RegisterResponse};
+use rsa::RsaPublicKey;
+use rsa::pkcs1::DecodeRsaPublicKey;
+use rsa::pkcs8::DecodePublicKey;
+use rsa::traits::PublicKeyParts;
 // use rand::rngs::OsRng;
 use sea_orm::{ActiveModelTrait, ActiveValue, DbErr, TransactionTrait};
 use snowdon::ClassicLayoutSnowflakeExtension;
@@ -98,6 +102,8 @@ enum RegisterError {
     InvalidEmail,
     #[error("Invalid username format")]
     InvalidUsername,
+    #[error("Invalid public key")]
+    InvalidPublicKey,
 }
 
 /// Computes the password hash using the given argon2 parameters
@@ -114,6 +120,41 @@ fn compute_password_hash(password: &str, params: Params) -> anyhow::Result<Strin
             .hash_password(password.as_bytes())?
             .to_string(),
     )
+}
+
+/// Validates the RSA public key format and size.
+///
+/// Checks that the key is a valid RSA public key in PKCS#1 DER format
+/// and that the key size is at least 2048 bits for security.
+fn validate_public_key(public_key: &[u8]) -> Result<(), RegisterError> {
+    // Check minimum length (an empty or very short key is definitely invalid)
+    if public_key.is_empty() || public_key.len() < 32 {
+        return Err(RegisterError::InvalidPublicKey);
+    }
+
+    // Try to parse
+    let key = RsaPublicKey::from_public_key_der(public_key)
+        .ok() // PKCS#8
+        .or_else(|| RsaPublicKey::from_pkcs1_der(public_key).ok()) // PKCS#1
+        .or_else(|| {
+            // Try PEM (PKCS#8)
+            std::str::from_utf8(public_key)
+                .ok()
+                .and_then(|pem| RsaPublicKey::from_public_key_pem(pem).ok())
+        })
+        .ok_or(RegisterError::InvalidPublicKey)?;
+
+    // Check key size - minimum 2048 bits for security (256 bytes)
+    // Maximum 8192 bits for practical reasons
+    let key_size = key.size();
+    const MIN_KEY_BITS: usize = 2048;
+    const MAX_KEY_BITS: usize = 8192;
+
+    if key_size * 8 < MIN_KEY_BITS || key_size * 8 > MAX_KEY_BITS {
+        return Err(RegisterError::InvalidPublicKey);
+    }
+
+    Ok(())
 }
 
 /// Internal implementation of the register process
@@ -153,19 +194,22 @@ async fn register_impl(
         return Err(RegisterError::InvalidUsername);
     }
 
-    let parmams = Params::new(
+    // Validate public key format and size
+    validate_public_key(&req.public_key)?;
+
+    let params = Params::new(
         server.shared_data.cfg().main_cfg.password_hash.m_cost,
         server.shared_data.cfg().main_cfg.password_hash.t_cost,
         server.shared_data.cfg().main_cfg.password_hash.p_cost,
         server.shared_data.cfg().main_cfg.password_hash.output_len,
     )
-    .unwrap();
+    .context("Invalid Argon2 parameters - check password_hash configuration")?;
     let require_email_verification = server.shared_data.cfg().main_cfg.require_email_verification;
     let friends_number_limit = server.shared_data.cfg().main_cfg.friends_number_limit;
     let response = add_new_user(
         req,
         &server.db,
-        parmams,
+        params,
         require_email_verification,
         friends_number_limit,
     )
@@ -175,17 +219,22 @@ async fn register_impl(
     if let Some(default_session_id) = default_session {
         let logic = async {
             let transaction = server.db.db_pool.begin().await?;
-            join_in_session_or_create(
+            if let Err(e) = join_in_session_or_create(
                 default_session_id,
                 ID(response.id),
                 None,
                 &transaction,
                 false,
             )
-            .await?;
+            .await
+            {
+                transaction.rollback().await?;
+                return Err(e.into());
+            }
             transaction.commit().await?;
             anyhow::Ok(())
         };
+        // default session join is optional and failure is acceptable, so register still succeeds
         if let Err(e) = logic.await {
             error!(
                 "failed to join default session for new user {}: {:?}",
@@ -213,6 +262,123 @@ pub async fn register(
             RegisterError::PasswordNotStrong => Err(Status::invalid_argument(NOT_STRONG_PASSWORD)),
             RegisterError::InvalidEmail => Err(Status::invalid_argument(invalid::EMAIL_ADDRESS)),
             RegisterError::InvalidUsername => Err(Status::invalid_argument(invalid::USERNAME)),
+            RegisterError::InvalidPublicKey => Err(Status::invalid_argument(invalid::PUBLIC_KEY)),
         },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rsa::RsaPrivateKey;
+    use rsa::pkcs1::EncodeRsaPublicKey;
+    use rsa::pkcs8::EncodePublicKey;
+
+    #[test]
+    fn test_validate_public_key_empty() {
+        let result = validate_public_key(&[]);
+        assert!(matches!(result, Err(RegisterError::InvalidPublicKey)));
+    }
+
+    #[test]
+    fn test_validate_public_key_too_short() {
+        let result = validate_public_key(&[0u8; 16]);
+        assert!(matches!(result, Err(RegisterError::InvalidPublicKey)));
+    }
+
+    #[test]
+    fn test_validate_public_key_invalid_format() {
+        // Invalid DER format (just repeated bytes)
+        let result = validate_public_key(&[0xDE; 300]);
+        assert!(matches!(result, Err(RegisterError::InvalidPublicKey)));
+    }
+
+    #[test]
+    fn test_validate_public_key_1024_bits_too_small() {
+        let mut rng = rand::rng();
+        let private_key = RsaPrivateKey::new(&mut rng, 1024).unwrap();
+        let public_key = rsa::RsaPublicKey::from(&private_key);
+        let key_bytes = public_key.to_pkcs1_der().unwrap().as_bytes().to_vec();
+
+        let result = validate_public_key(&key_bytes);
+        assert!(matches!(result, Err(RegisterError::InvalidPublicKey)));
+    }
+
+    // PKCS#1 DER format tests
+    #[test]
+    fn test_validate_public_key_pkcs1_der_2048_bits_valid() {
+        let mut rng = rand::rng();
+        let private_key = RsaPrivateKey::new(&mut rng, 2048).unwrap();
+        let public_key = rsa::RsaPublicKey::from(&private_key);
+        let key_bytes = public_key.to_pkcs1_der().unwrap().as_bytes().to_vec();
+
+        let result = validate_public_key(&key_bytes);
+        assert!(result.is_ok());
+    }
+
+    // PKCS#8 DER format tests
+    #[test]
+    fn test_validate_public_key_pkcs8_der_2048_bits_valid() {
+        let mut rng = rand::rng();
+        let private_key = RsaPrivateKey::new(&mut rng, 2048).unwrap();
+        let public_key = rsa::RsaPublicKey::from(&private_key);
+        let key_bytes = public_key.to_public_key_der().unwrap().as_bytes().to_vec();
+
+        let result = validate_public_key(&key_bytes);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_public_key_pkcs8_der_4096_bits_valid() {
+        let mut rng = rand::rng();
+        let private_key = RsaPrivateKey::new(&mut rng, 4096).unwrap();
+        let public_key = rsa::RsaPublicKey::from(&private_key);
+        let key_bytes = public_key.to_public_key_der().unwrap().as_bytes().to_vec();
+
+        let result = validate_public_key(&key_bytes);
+        assert!(result.is_ok());
+    }
+
+    // PEM format tests (PKCS#8)
+    #[test]
+    fn test_validate_public_key_pem_2048_bits_valid() {
+        let mut rng = rand::rng();
+        let private_key = RsaPrivateKey::new(&mut rng, 2048).unwrap();
+        let public_key = rsa::RsaPublicKey::from(&private_key);
+        let pem_str = public_key
+            .to_public_key_pem(rsa::pkcs8::LineEnding::LF)
+            .unwrap();
+        let key_bytes = pem_str.into_bytes();
+
+        let result = validate_public_key(&key_bytes);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_public_key_pem_4096_bits_valid() {
+        let mut rng = rand::rng();
+        let private_key = RsaPrivateKey::new(&mut rng, 4096).unwrap();
+        let public_key = rsa::RsaPublicKey::from(&private_key);
+        let pem_str = public_key
+            .to_public_key_pem(rsa::pkcs8::LineEnding::LF)
+            .unwrap();
+        let key_bytes = pem_str.into_bytes();
+
+        let result = validate_public_key(&key_bytes);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_public_key_pem_1024_bits_too_small() {
+        let mut rng = rand::rng();
+        let private_key = RsaPrivateKey::new(&mut rng, 1024).unwrap();
+        let public_key = rsa::RsaPublicKey::from(&private_key);
+        let pem_str = public_key
+            .to_public_key_pem(rsa::pkcs8::LineEnding::LF)
+            .unwrap();
+        let key_bytes = pem_str.into_bytes();
+
+        let result = validate_public_key(&key_bytes);
+        assert!(matches!(result, Err(RegisterError::InvalidPublicKey)));
     }
 }

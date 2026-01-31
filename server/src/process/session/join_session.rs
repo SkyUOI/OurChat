@@ -123,11 +123,7 @@ async fn join_session_impl(
         respond_event_type: Some(respond_msg),
     };
     let peoples_should_be_sent = get_all_session_relations(id, &server.db.db_pool).await?;
-    let rmq_conn = server
-        .rabbitmq
-        .get()
-        .await
-        .context("cannot get rabbit connection")?;
+    let rmq_conn = server.get_rabbitmq_manager().await?;
     let mut rmq_channel = rmq_conn
         .create_channel()
         .await
