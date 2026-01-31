@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 // 将会在生成发行版时由脚本填入贡献者&赞助者名单
 // ===== AUTO GENERATED CODE BEGIN =====
 const List<Map<String, String>> contributorsList = [
@@ -30,7 +32,7 @@ const List<Map<String, String>> contributorsList = [
 const List<Map<String, String>> donorsList = [];
 const currentVersion = "v0.0.0.beta";
 const currentCommitSha = "4c31dd44a1cbe7e454f26b359408b0e4201f8780";
-const enableVersionCheck = true;
+final bool enableVersionCheck = !kIsWeb;
 // ===== AUTO GENERATED CODE END =====
 
 // Status Code
