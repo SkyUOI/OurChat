@@ -10,9 +10,13 @@
 
 ## 🌟 项目介绍
 
-OurChat 是一个可以在 Linux，Windows 和 macOS 上运行的聊天软件。它通过 Flutter 技术支持所有平台。
+OurChat 是一个可以在 Linux，Windows, Web 和 macOS 上运行的聊天软件。它通过 Flutter 技术支持所有平台。
 
 ⚠️ 该项目正处在高速开发中，并且有大量的工作要做。但它已经有一些基本功能，并且已经可以进行初步试用，试试看吧！
+
+## 试用网页版
+
+在 **[官方web客户端](https://ocapp.skyuoi.org/)** 中体验 OurChat。
 
 ## 🖼️ 项目预览
 
