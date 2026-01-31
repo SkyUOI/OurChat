@@ -1,5 +1,6 @@
 #![feature(decl_macro)]
 #![feature(duration_constructors)]
+#![cfg_attr(not(test), deny(clippy::unwrap_used))]
 
 pub mod config;
 pub mod db;

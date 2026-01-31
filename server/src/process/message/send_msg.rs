@@ -61,6 +61,7 @@ impl From<MsgError> for SendMsgErr {
                 Self::Status(Status::permission_denied(PERMISSION_DENIED))
             }
             MsgError::NotFound => Self::Status(Status::not_found(not_found::MSG)),
+            MsgError::SerdeError(error) => Self::Internal(error.into()),
         }
     }
 }

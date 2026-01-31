@@ -57,12 +57,13 @@ async fn get_account_info_impl(
         None => return Err(GetInfoError::NotFound),
     };
     let data_cell = OnceLock::new();
-    let friends = async || {
-        if data_cell.get().is_none() {
+    let friends = async || match data_cell.get() {
+        Some(data) => anyhow::Ok(data),
+        None => {
             let list = db::user::get_friends_relationships(request_id, &server.db.db_pool).await?;
-            data_cell.set(list).unwrap();
+            let data = data_cell.get_or_init(|| list);
+            anyhow::Ok(data)
         }
-        anyhow::Ok(data_cell.get().unwrap())
     };
     let mut ret = GetAccountInfoResponse::default();
 

@@ -73,6 +73,7 @@ use sea_orm::EntityTrait;
 use sea_orm::QueryFilter;
 use serde::Deserialize;
 use serde::Serialize;
+use std::fmt::Debug;
 use std::fmt::Display;
 use std::time::Duration;
 use tonic::Request;
@@ -135,6 +136,7 @@ use crate::SERVER_INFO;
 use crate::db::messages::MsgError;
 use crate::db::redis::redis_key;
 use crate::db::session::get_members;
+use crate::process::error_msg::SERVER_ERROR;
 use crate::rabbitmq::USER_MSG_BROADCAST_EXCHANGE;
 use crate::rabbitmq::USER_MSG_DIRECT_EXCHANGE;
 use crate::rabbitmq::generate_route_key;
@@ -159,7 +161,7 @@ pub struct JWTdata {
 
 const EXPIRE_TIME: Duration = Duration::from_days(5);
 
-pub fn generate_access_token(id: ID) -> String {
+pub fn generate_access_token(id: ID) -> Result<String, jsonwebtoken::errors::Error> {
     jsonwebtoken::encode(
         &jsonwebtoken::Header::default(),
         &JWTdata {
@@ -168,7 +170,6 @@ pub fn generate_access_token(id: ID) -> String {
         },
         &EncodingKey::from_secret(SERVER_INFO.secret.as_bytes()),
     )
-    .unwrap()
 }
 
 pub fn check_token(token: &str) -> Result<JWTdata, ErrAuth> {
@@ -219,7 +220,16 @@ pub fn decode_token(token: &str) -> Result<JWTdata, ErrAuth> {
 pub fn get_id_from_req<T>(req: &Request<T>) -> Option<ID> {
     req.metadata()
         .get("id")
-        .map(|id| ID(id.to_str().unwrap().parse::<u64>().unwrap()))
+        .and_then(|id| id.to_str().ok())
+        .and_then(|v| v.parse::<u64>().ok())
+        .map(ID)
+}
+
+pub fn get_id_from_req_or_err<T: Debug>(req: &Request<T>) -> Result<ID, tonic::Status> {
+    get_id_from_req(req).ok_or_else(|| {
+        tracing::error!("Cannot extract id from request {0:?}", req);
+        tonic::Status::internal(SERVER_ERROR)
+    })
 }
 
 pub async fn check_user_exist(
@@ -307,6 +317,7 @@ impl From<MsgError> for MsgInsTransmitErr {
             MsgError::UnknownError(error) => Self::Unknown(error),
             MsgError::PermissionDenied => Self::PermissionDenied,
             MsgError::NotFound => Self::NotFound,
+            MsgError::SerdeError(error) => Self::Unknown(error.into()),
         }
     }
 }

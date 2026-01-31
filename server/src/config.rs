@@ -126,7 +126,7 @@ pub struct DbArgCfg {
 serde_default!(DbArgCfg);
 
 /// Raw struct for deserialization with all serde attributes
-#[derive(Debug, Deserialize, Serialize, Clone, derive::PathConvert)]
+#[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RawMainCfg {
     pub redis_cfg: PathBuf,
@@ -306,6 +306,8 @@ impl MainCfg {
         cfg.cmd_args.config = configs_list;
         // convert the path relevant to the config file to a path relevant to the directory
         cfg.convert_to_abs_path(&full_basepath)?;
+        // Validate all file paths exist
+        cfg.validate_all_paths()?;
         Ok(cfg)
     }
 
@@ -315,6 +317,40 @@ impl MainCfg {
 
     pub fn get_file_path_from_key(&self, key: &str) -> PathBuf {
         self.files_storage_path.join(key)
+    }
+
+    /// Validates that all configured file paths exist
+    fn validate_all_paths(&self) -> anyhow::Result<()> {
+        // Validate sub-config files exist
+        if !self.redis_cfg.exists() {
+            bail!("redis_cfg does not exist: {}", self.redis_cfg.display());
+        }
+        if !self.db_cfg.exists() {
+            bail!("db_cfg does not exist: {}", self.db_cfg.display());
+        }
+        if !self.rabbitmq_cfg.exists() {
+            bail!(
+                "rabbitmq_cfg does not exist: {}",
+                self.rabbitmq_cfg.display()
+            );
+        }
+        if !self.user_setting.exists() {
+            bail!(
+                "user_setting does not exist: {}",
+                self.user_setting.display()
+            );
+        }
+        if !self.http_cfg.exists() {
+            bail!("http_cfg does not exist: {}", self.http_cfg.display());
+        }
+
+        // Validate files_storage_path (create if needed)
+        if !self.files_storage_path.exists() {
+            std::fs::create_dir_all(&self.files_storage_path)
+                .context("Failed to create files_storage_path")?;
+        }
+
+        Ok(())
     }
 }
 
@@ -335,7 +371,14 @@ impl Cfg {
         let rabbitmq_cfg = RabbitMQCfg::build_from_path(&main_cfg.rabbitmq_cfg)?;
         let user_setting = UserSetting::build_from_path(&main_cfg.user_setting)?;
         let mut http_cfg = HttpCfg::build_from_path(&main_cfg.http_cfg)?;
-        http_cfg.convert_to_abs_path(main_cfg.http_cfg.parent().unwrap())?;
+        http_cfg.convert_to_abs_path(
+            main_cfg
+                .http_cfg
+                .parent()
+                .context("The path of http_cfg is invalid")?,
+        )?;
+        // Validate http_cfg paths exist
+        http_cfg.validate_paths()?;
         Ok(Self {
             main_cfg,
             db_cfg,

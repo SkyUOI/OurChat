@@ -72,7 +72,8 @@ async fn add_new_user(
             // Happy Path
             let response = RegisterResponse {
                 id: res.id as u64,
-                token: generate_access_token(id),
+                token: generate_access_token(id)
+                    .with_context(|| format!("Couldn't generate jwt for {}", id))?,
                 ocid: res.ocid.clone(),
             };
             Ok(response)

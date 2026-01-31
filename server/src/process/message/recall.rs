@@ -53,6 +53,7 @@ impl From<MsgError> for RecallErr {
             }
             MsgError::NotFound => Self::Status(Status::not_found(not_found::MSG)),
             MsgError::UnknownError(error) => Self::Unknown(error),
+            MsgError::SerdeError(error) => Self::Unknown(error.into()),
         }
     }
 }

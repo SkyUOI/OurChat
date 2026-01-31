@@ -72,6 +72,7 @@ impl From<MsgError> for AcceptFriendErr {
                 );
                 Self::Status(Status::not_found(not_found::MSG))
             }
+            MsgError::SerdeError(error) => Self::Internal(error.into()),
         }
     }
 }
@@ -90,19 +91,10 @@ async fn accept_friend_invitation_impl(
         Err(Status::not_found(not_found::FRIEND_INVITATION))?;
     }
     let add_friend_req: String = redis_conn.get_del(&key).await?;
-    let add_friend_req: AddFriendRequest = serde_json::from_str(&add_friend_req).unwrap();
+    let add_friend_req: AddFriendRequest = serde_json::from_str(&add_friend_req)
+        .context("Can't convert add_driend_req json into struct")?;
     let mut session_id = None;
     if req.status == AcceptFriendInvitationResult::Success as i32 {
-        // create a session
-        session_id = Some(crate::helper::generate_session_id()?);
-        db::session::create_session_db(
-            session_id.unwrap(),
-            0,
-            "".to_owned(),
-            &server.db.db_pool,
-            false,
-        )
-        .await?;
         let transaction = server.db.db_pool.begin().await?;
         session_id = Some(
             db::friend::add_friend(

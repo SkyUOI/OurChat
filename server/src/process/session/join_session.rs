@@ -62,6 +62,7 @@ impl From<db::messages::MsgError> for JoinInSessionErr {
                 Self::Status(Status::not_found(not_found::MSG))
             }
             db::messages::MsgError::UnknownError(error) => Self::Internal(error),
+            db::messages::MsgError::SerdeError(error) => Self::Internal(error.into()),
         }
     }
 }

@@ -146,7 +146,8 @@ async fn auth_db(
                     // Clear failed login attempts on successful login
                     clear_failed_login(user.id.into(), &mut redis_conn).await?;
 
-                    let token = generate_access_token(user.id.into());
+                    let token = generate_access_token(user.id.into())
+                        .with_context(|| format!("Couldn't generate jwt for {}", user.id))?;
 
                     Ok(AuthResponse {
                         id: user.id as u64,

@@ -26,7 +26,7 @@ impl FileSys {
 
     fn init() {
         if exists("files_storage").is_err() {
-            std::fs::create_dir("files_storage").unwrap();
+            std::fs::create_dir("files_storage").expect("Could not create files_storage directory");
         }
     }
 

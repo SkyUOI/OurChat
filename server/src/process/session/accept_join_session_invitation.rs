@@ -44,9 +44,10 @@ async fn accept_join_session_invitation_impl(
         Err(Status::permission_denied(error_msg::BAN))?;
     }
     // check if the invitation is valid
+    let duration = server.shared_data.cfg().main_cfg.verification_expire_time;
     let time_limit = chrono::Utc::now()
-        - chrono::Duration::from_std(server.shared_data.cfg().main_cfg.verification_expire_time)
-            .unwrap();
+        - chrono::Duration::from_std(duration)
+            .with_context(|| format!("Could not convert {:?} to chrono::duration", duration))?;
     let model = session_invitation::Entity::find()
         .filter(session_invitation::Column::SessionId.eq(req.session_id))
         .filter(session_invitation::Column::Invitee.eq(id))

@@ -58,6 +58,7 @@ impl From<MsgError> for AddFriendErr {
                 );
                 Self::Status(Status::not_found(not_found::MSG))
             }
+            MsgError::SerdeError(error) => Self::Internal(error.into()),
         }
     }
 }
@@ -85,7 +86,11 @@ async fn add_friend_impl(
         .user_setting
         .add_friend_request_expiry;
     let _: () = conn
-        .set_ex(&key, serde_json::to_string(&req).unwrap(), ex.as_secs())
+        .set_ex(
+            &key,
+            serde_json::to_string(&req).context("Can't convert request into json")?,
+            ex.as_secs(),
+        )
         .await?;
     // insert 2 messages
     let respond_msg =
