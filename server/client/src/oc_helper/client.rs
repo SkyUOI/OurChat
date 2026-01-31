@@ -234,6 +234,11 @@ impl TestApp {
         let mut http_client = reqwest::Client::builder()
             .tls_backend_rustls()
             .timeout(Duration::from_secs(2));
+        #[cfg(target_os = "macos")]
+        {
+            // On macOS tests, we often use self-signed certificates which are not trusted by default.
+            http_client = http_client.danger_accept_invalid_certs(true);
+        }
         if shared.cfg().http_cfg.tls.is_tls_on()? {
             let cert_path = shared.cfg().http_cfg.tls.ca_tls_cert_path.clone().unwrap();
             let pem = tokio::fs::read(&cert_path).await?;
