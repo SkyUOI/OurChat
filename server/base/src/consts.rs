@@ -259,6 +259,14 @@ pub fn default_web_panel_dist_path() -> PathBuf {
     PathBuf::default()
 }
 
+pub const fn default_lock_account_after_failed_logins() -> u32 {
+    5
+}
+
+pub const fn default_lock_account_duration() -> Duration {
+    Duration::from_mins(15)
+}
+
 pub mod option {
     pub const fn default_network_cmd_port() -> Option<u16> {
         Some(super::default_network_cmd_port())

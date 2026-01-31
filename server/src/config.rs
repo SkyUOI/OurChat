@@ -48,6 +48,8 @@ pub struct MainCfg {
     pub oauth: OAuthCfg,
     pub require_email_verification: bool,
     pub default_session: Option<SessionID>,
+    pub lock_account_after_failed_logins: u32,
+    pub lock_account_duration: Duration,
 
     #[serde(skip)]
     pub cmd_args: ParserCfg,
@@ -194,6 +196,14 @@ pub struct RawMainCfg {
     pub require_email_verification: bool,
     #[serde(default)]
     pub default_session: Option<SessionID>,
+
+    #[serde(default = "consts::default_lock_account_after_failed_logins")]
+    pub lock_account_after_failed_logins: u32,
+    #[serde(
+        default = "consts::default_lock_account_duration",
+        with = "humantime_serde"
+    )]
+    pub lock_account_duration: Duration,
 }
 
 impl<'de> Deserialize<'de> for MainCfg {
@@ -258,6 +268,8 @@ impl<'de> Deserialize<'de> for MainCfg {
             oauth: raw.oauth,
             require_email_verification: raw.require_email_verification,
             default_session: raw.default_session,
+            lock_account_after_failed_logins: raw.lock_account_after_failed_logins,
+            lock_account_duration: raw.lock_account_duration,
             cmd_args: ParserCfg::default(),
         })
     }

@@ -43,6 +43,12 @@ unregister_policy = "disable"
 # if the session ID does not exist, server will create one with the given session ID
 # default_session = 0
 
+# How many failed login attempts before locking the account
+# 0 means disabling this feature
+lock_account_after_failed_logins = 5
+# The duration of locking the account after too many failed login attempts
+lock_account_duration = "15m"
+
 [password_hash]
 # The memory size in 1 KiB blocks. Between 8*`p_cost` and (2^32)-1
 m_cost = 19456

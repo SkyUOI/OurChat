@@ -59,7 +59,7 @@ async fn get_account_info_impl(
     let data_cell = OnceLock::new();
     let friends = async || {
         if data_cell.get().is_none() {
-            let list = db::user::get_friends(request_id, &server.db.db_pool).await?;
+            let list = db::user::get_friends_relationships(request_id, &server.db.db_pool).await?;
             data_cell.set(list).unwrap();
         }
         anyhow::Ok(data_cell.get().unwrap())

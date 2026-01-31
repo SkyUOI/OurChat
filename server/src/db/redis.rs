@@ -34,3 +34,7 @@ pub fn map_ban_all_to_redis(session: SessionID) -> String {
 pub fn map_server_ban_to_redis(user_id: ID) -> String {
     redis_key!("server_ban:{user_id}")
 }
+
+pub fn map_failed_login_to_redis(user_id: ID) -> String {
+    redis_key!("failed_login:{user_id}")
+}

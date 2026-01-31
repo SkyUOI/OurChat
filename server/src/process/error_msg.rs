@@ -60,6 +60,7 @@ pub const CANNOT_SET_AVATAR: &str = "Cannot Set Avatar";
 // Auth
 pub const MISSING_AUTH_TYPE: &str = "Missing AuthType";
 pub const WRONG_PASSWORD: &str = "Wrong Password";
+pub const ACCOUNT_LOCKED: &str = "Account Locked";
 
 // Role
 pub const ROLE_NAME_EMPTY: &str = "Role Name Empty";
