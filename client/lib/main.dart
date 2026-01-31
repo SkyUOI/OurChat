@@ -170,6 +170,7 @@ class _ControllerState extends State<Controller> {
   Widget build(BuildContext context) {
     var ourchatAppState = context.watch<OurChatAppState>();
     return MaterialApp(
+      title: "OurChat",
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       localeResolutionCallback: (locale, supportedLocales) {
