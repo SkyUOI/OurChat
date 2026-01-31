@@ -119,7 +119,8 @@ impl HttpServer {
                 tower_http::services::ServeFile::new(shared_data.cfg().http_cfg.logo_path.clone()),
             )
             .route("/avatar", get(avatar::avatar))
-            .merge(verify::config().with_state(db_pool.clone()));
+            .merge(verify::config().with_state(db_pool.clone()))
+            .layer(cors.clone());
 
         // OAuth routes - only setup if enabled
         let oauth_routes = if shared_data.cfg().main_cfg.oauth.enable {
