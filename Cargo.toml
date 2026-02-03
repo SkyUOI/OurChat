@@ -312,7 +312,7 @@ default-features = false
 features = ["derive"]
 
 [workspace.dependencies.argon2]
-version = "0.6.0-rc"
+version = "0.6.0-rc.7"
 default-features = false
 features = ["getrandom", "password-hash", "alloc"]
 
