@@ -9,6 +9,7 @@ members = [
     "server/entities",
     "server/pb",
     "server/utils",
+    "server/plugin",
 ]
 resolver = "3"
 

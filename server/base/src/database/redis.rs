@@ -2,7 +2,10 @@ use crate::setting::Setting;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct RedisCfg {
+    #[serde(default)]
+    pub inherit: Option<String>,
     host: String,
     port: usize,
     passwd: String,

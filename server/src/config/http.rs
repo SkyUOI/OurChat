@@ -7,6 +7,7 @@ use serde::{Deserialize, Deserializer, Serialize, de::Error as _};
 use utils::serde_default;
 
 #[derive(Debug, Serialize, Clone, derive::PathConvert)]
+#[serde(deny_unknown_fields)]
 pub struct HttpCfg {
     pub inherit: Option<PathBuf>,
     pub ip: String,
@@ -26,6 +27,7 @@ pub struct HttpCfg {
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct RateLimitCfg {
     #[serde(default = "base::consts::default_rate_limit_enable")]
     pub enable: bool,
@@ -41,6 +43,7 @@ pub struct RateLimitCfg {
 serde_default!(RateLimitCfg);
 
 #[derive(Deserialize, Serialize, Clone, Debug, derive::PathConvert)]
+#[serde(deny_unknown_fields)]
 pub struct WebPanelCfg {
     #[serde(default = "base::consts::default_web_panel_enable")]
     pub enable: bool,

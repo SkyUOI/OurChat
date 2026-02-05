@@ -14,6 +14,7 @@ use pb::service::ourchat::msg_delivery::v1::{Msg, SendMsgRequest, SendMsgRespons
 use pb::service::ourchat::session::session_room_key::v1::{
     SendRoomKeyNotification, UpdateRoomKeyNotification,
 };
+use plugin::hooks::{HookResult, MessageHookContext};
 use sea_orm::entity::prelude::*;
 use sea_orm::{ActiveValue, IntoActiveModel};
 use tonic::{Request, Response, Status};
@@ -108,6 +109,40 @@ async fn send_msg_impl(
         .await
         .context("cannot create rabbitmq channel")?;
 
+    // Execute pre-message-send hooks
+    if let Some(ref plugin_manager) = server.plugin_manager {
+        // Serialize message for hooks
+        let msg_data = match &respond_msg {
+            RespondEventType::Msg(msg) => {
+                serde_json::to_vec(msg).unwrap_or_default()
+            }
+            _ => vec![],
+        };
+
+        let hook_ctx = MessageHookContext {
+            sender_id: Some(sender_id),
+            session_id: Some(session_id.into()),
+            msg_data,
+            is_encrypted: req.is_encrypted,
+        };
+
+        match plugin_manager.execute_pre_message_hooks(hook_ctx).await {
+            Ok(HookResult::Continue) => {},
+            Ok(HookResult::Stop(reason)) => {
+                tracing::warn!("Plugin blocked message: {}", reason);
+                Err(Status::permission_denied(reason))?
+            }
+            Ok(HookResult::Modify(_modified)) => {
+                // TODO: Handle message modification
+                tracing::warn!("Message modification not yet implemented");
+            }
+            Err(e) => {
+                tracing::error!("Plugin hook error: {:?}", e);
+                // Continue execution even if hooks fail
+            }
+        }
+    }
+
     let msg_id = message_insert_and_transmit(
         Some(id),
         Some(req.session_id.into()),
@@ -118,6 +153,11 @@ async fn send_msg_impl(
         &mut conn,
     )
     .await?;
+
+    // Execute post-message-send hooks
+    if let Some(ref plugin_manager) = server.plugin_manager {
+        plugin_manager.execute_post_message_hooks(&msg_id).await;
+    }
     if session.e2ee_on {
         let last_time = session.room_key_time.with_timezone(&Utc);
         let expire_time: chrono::TimeDelta =

@@ -5,7 +5,10 @@ use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct PostgresDbCfg {
+    #[serde(default)]
+    pub inherit: Option<String>,
     pub host: String,
     pub user: String,
     pub db: String,

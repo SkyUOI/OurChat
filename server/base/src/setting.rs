@@ -38,7 +38,10 @@ pub struct Contact {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct UserSetting {
+    #[serde(default)]
+    pub inherit: Option<String>,
     pub contacts: Vec<Contact>,
     #[serde(with = "http_serde::option::uri")]
     pub support_page: Option<http::Uri>,

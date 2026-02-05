@@ -41,6 +41,8 @@ log/
 *.db-shm
 *.db-wal
 
+plugins/
+
 # file storage
 files_storage/*
 server/files_storage/*

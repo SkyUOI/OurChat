@@ -336,3 +336,20 @@ pub fn default_turn_password() -> String {
 pub fn default_turn_ttl() -> u64 {
     86400 // 24 hours in seconds
 }
+
+// Plugin system defaults
+pub fn default_plugin_directory() -> PathBuf {
+    PathBuf::from("plugins")
+}
+
+pub fn default_plugin_max_memory() -> size::Size {
+    size::Size::from_mib(64)
+}
+
+pub fn default_plugin_max_execution_time() -> Duration {
+    Duration::from_millis(100)
+}
+
+pub const fn default_plugin_enable() -> bool {
+    true
+}

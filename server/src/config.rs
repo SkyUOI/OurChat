@@ -50,6 +50,8 @@ pub struct MainCfg {
     pub default_session: Option<SessionID>,
     pub lock_account_after_failed_logins: u32,
     pub lock_account_duration: Duration,
+    #[path_convert]
+    pub plugin: PluginCfg,
 
     #[serde(skip)]
     pub cmd_args: ParserCfg,
@@ -57,6 +59,7 @@ pub struct MainCfg {
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Default)]
 #[serde(rename_all = "lowercase")]
+#[serde(deny_unknown_fields)]
 pub enum UnregisterPolicy {
     #[default]
     Disable,
@@ -64,6 +67,7 @@ pub enum UnregisterPolicy {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct OAuthCfg {
     #[serde(default = "base::consts::default_oauth_enable")]
     pub enable: bool,
@@ -76,6 +80,7 @@ pub struct OAuthCfg {
 serde_default!(OAuthCfg);
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct PasswordHash {
     #[serde(default = "consts::default_m_cost")]
     pub m_cost: u32,
@@ -90,6 +95,7 @@ pub struct PasswordHash {
 serde_default!(PasswordHash);
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct VOIP {
     #[serde(
         default = "consts::default_keep_voip_room_keep_duration",
@@ -124,6 +130,21 @@ pub struct DbArgCfg {
 }
 
 serde_default!(DbArgCfg);
+
+#[derive(Debug, Serialize, Deserialize, Clone, derive::PathConvert)]
+#[serde(deny_unknown_fields)]
+pub struct PluginCfg {
+    #[serde(default = "consts::default_plugin_enable")]
+    pub enabled: bool,
+    #[serde(default = "consts::default_plugin_directory")]
+    pub directory: PathBuf,
+    #[serde(default = "consts::default_plugin_max_memory")]
+    pub max_memory: size::Size,
+    #[serde(default = "consts::default_plugin_max_execution_time", with = "humantime_serde")]
+    pub max_execution_time: Duration,
+}
+
+serde_default!(PluginCfg);
 
 /// Raw struct for deserialization with all serde attributes
 #[derive(Debug, Deserialize)]
@@ -204,6 +225,8 @@ pub struct RawMainCfg {
         with = "humantime_serde"
     )]
     pub lock_account_duration: Duration,
+    #[serde(default)]
+    pub plugin: PluginCfg,
 }
 
 impl<'de> Deserialize<'de> for MainCfg {
@@ -270,6 +293,7 @@ impl<'de> Deserialize<'de> for MainCfg {
             default_session: raw.default_session,
             lock_account_after_failed_logins: raw.lock_account_after_failed_logins,
             lock_account_duration: raw.lock_account_duration,
+            plugin: raw.plugin,
             cmd_args: ParserCfg::default(),
         })
     }

@@ -80,3 +80,20 @@ github_client_id = ""
 github_client_secret = ""
 # Note: The redirect URI is automatically generated based on your server's base URL
 # Example: http://localhost:7777/oauth/github/callback
+
+[plugin]
+# Enable the WASM plugin system
+# When enabled, the server will load .wasm files from the plugin directory
+# Plugins can extend server functionality through hooks
+enabled = true
+# Directory containing .wasm plugin files (relative to the config file)
+# The server will scan this directory for .wasm files on startup
+directory = "../plugins/"
+# Maximum memory allocated per plugin in megabytes
+# Each plugin is limited to this amount of RAM
+# 64 MiB is the default and should be sufficient for most plugins
+max_memory = "64MiB"
+# Maximum execution time per plugin hook in milliseconds
+# If a plugin hook takes longer than this, it will be terminated
+# 100 ms is the default to prevent plugins from blocking the server
+max_execution_time ="100ms"

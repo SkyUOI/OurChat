@@ -7,7 +7,10 @@ use std::time::Duration;
 use crate::setting;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct RabbitMQCfg {
+    #[serde(default)]
+    pub inherit: Option<String>,
     pub host: String,
     pub user: String,
     pub port: usize,

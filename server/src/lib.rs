@@ -289,6 +289,7 @@ pub struct Application {
     /// for shutting down server fully,you shouldn't use handle.abort() to do this
     abort_sender: ShutdownSdr,
     pub started_notify: Arc<tokio::sync::Notify>,
+    pub plugin_manager: Option<Arc<plugin::PluginManager>>,
 }
 
 /// shared data along the whole application
@@ -451,6 +452,25 @@ impl Application {
             sched,
         });
 
+        // Initialize plugin manager if enabled
+        let plugin_manager = if shared.cfg.read().main_cfg.plugin.enabled {
+            let plugin_dir = shared.cfg.read().main_cfg.plugin.directory.clone();
+            let mgr = plugin::PluginManager::new(
+                plugin_dir,
+                Some(db_pool.clone()),
+                Some(db_pool.redis_pool.clone()),
+            )
+            .await?;
+
+            // Load all plugins from directory
+            let count = mgr.load_all().await?;
+            info!("Loaded {} plugin(s)", count);
+
+            Some(Arc::new(mgr))
+        } else {
+            None
+        };
+
         Ok(Self {
             http_launcher: Some(http_launcher),
             shared: shared.clone(),
@@ -458,6 +478,7 @@ impl Application {
             abort_sender,
             started_notify: Arc::new(tokio::sync::Notify::new()),
             rabbitmq: rmq_pool,
+            plugin_manager,
         })
     }
 
@@ -490,6 +511,7 @@ impl Application {
             self.pool.clone(),
             self.shared.clone(),
             self.rabbitmq.clone(),
+            self.plugin_manager.clone(),
         );
         let grpc_service = grpc_builder.construct_grpc().await?;
         let mut launcher = self.http_launcher.take().ok_or_else(|| {

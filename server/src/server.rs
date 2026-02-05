@@ -67,6 +67,7 @@ pub struct RpcServer {
     pub db: DbPool,
     pub shared_data: Arc<SharedData>,
     pub rabbitmq: deadpool_lapin::Pool,
+    pub plugin_manager: Option<Arc<plugin::PluginManager>>,
 }
 
 /// Server management service provider
@@ -93,11 +94,18 @@ impl RpcServer {
     /// * `db` - Database connection pool
     /// * `shared_data` - Shared server data
     /// * `rabbitmq` - RabbitMQ connection pool
-    pub fn new(db: DbPool, shared_data: Arc<SharedData>, rabbitmq: deadpool_lapin::Pool) -> Self {
+    /// * `plugin_manager` - Optional plugin manager
+    pub fn new(
+        db: DbPool,
+        shared_data: Arc<SharedData>,
+        rabbitmq: deadpool_lapin::Pool,
+        plugin_manager: Option<Arc<plugin::PluginManager>>,
+    ) -> Self {
         Self {
             db,
             shared_data,
             rabbitmq,
+            plugin_manager,
         }
     }
 

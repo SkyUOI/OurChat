@@ -21,6 +21,7 @@ chrono.workspace = true
 base = { path = "base" }
 tracing.workspace = true
 migration = { path = "migration" }
+plugin = { path = "plugin" }
 mimalloc.workspace = true
 parking_lot.workspace = true
 sqlx.workspace = true
