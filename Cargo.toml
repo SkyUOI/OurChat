@@ -223,9 +223,9 @@ version = "0.6"
 default-features = false
 features = ["cors", "normalize-path", "fs"]
 
-[workspace.dependencies.webrtc]
-version = "0.14.0"
-default-features = false
+# # [workspace.dependencies.webrtc]
+# version = "0.14.0"
+# default-features = false
 
 [workspace.dependencies.rsa]
 version = "0.10.0-rc.8"
