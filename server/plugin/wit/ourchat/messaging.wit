@@ -1,0 +1,32 @@
+/// Inter-plugin communication interface
+package ourchat:plugin@1.0.0;
+
+/// Plugin message
+record plugin-message {
+    source-plugin: string,
+    target-plugin: string,
+    message-type: string,
+    payload: list<u8>,
+}
+
+/// Messaging errors
+variant messaging-error {
+    target-not-found,
+    message-too-large,
+    send-failed(string),
+}
+
+/// Inter-plugin messaging
+interface messaging {
+    /// Send a message to another plugin
+    send: func(msg: plugin-message) -> result<_, messaging-error>;
+
+    /// Broadcast a message to all plugins
+    broadcast: func(message-type: string, payload: list<u8>);
+
+    /// Subscribe to message types
+    subscribe: func(message-type: string);
+
+    /// Unsubscribe from message types
+    unsubscribe: func(message-type: string);
+}

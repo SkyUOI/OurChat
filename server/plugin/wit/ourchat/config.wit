@@ -1,0 +1,20 @@
+/// Plugin configuration access
+package ourchat:plugin@1.0.0;
+
+/// Plugin configuration operations
+interface config {
+    /// Get a configuration value as string
+    get-string: func(key: string) -> option<string>;
+
+    /// Get a configuration value as integer
+    get-int: func(key: string) -> option<s64>;
+
+    /// Get a configuration value as boolean
+    get-bool: func(key: string) -> option<bool>;
+
+    /// Set a configuration value
+    set: func(key: string, value: string) -> result<_, string>;
+
+    /// Get all configuration keys
+    list-keys: func() -> list<string>;
+}

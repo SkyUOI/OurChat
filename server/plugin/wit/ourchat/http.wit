@@ -1,0 +1,52 @@
+/// HTTP client interface for plugins
+package ourchat:plugin@1.0.0;
+
+/// HTTP request methods
+variant http-method {
+    get,
+    post,
+    put,
+    delete,
+    patch,
+    head,
+    options,
+}
+
+/// HTTP request headers
+type headers = list<tuple<string, string>>;
+
+/// HTTP request
+record http-request {
+    method: http-method,
+    url: string,
+    headers: headers,
+    body: option<list<u8>>,
+    timeout-ms: option<u32>,
+}
+
+/// HTTP response
+record http-response {
+    status-code: u16,
+    headers: headers,
+    body: list<u8>,
+}
+
+/// HTTP errors
+variant http-error {
+    network-error(string),
+    timeout,
+    invalid-url,
+    connection-failed,
+}
+
+/// HTTP client operations
+interface http {
+    /// Send an HTTP request
+    send: func(req: http-request) -> result<http-response, http-error>;
+
+    /// Send a GET request
+    get: func(url: string) -> result<http-response, http-error>;
+
+    /// Send a POST request with JSON body
+    post-json: func(url: string, body: string) -> result<http-response, http-error>;
+}

@@ -1,0 +1,20 @@
+/// Logging interface for plugins
+package ourchat:plugin@1.0.0;
+
+/// Log levels and logging functions
+interface logging {
+    /// Trace level logging
+    trace: func(msg: string);
+
+    /// Debug level logging
+    debug: func(msg: string);
+
+    /// Info level logging
+    info: func(msg: string);
+
+    /// Warning level logging
+    warn: func(msg: string);
+
+    /// Error level logging
+    error: func(msg: string);
+}

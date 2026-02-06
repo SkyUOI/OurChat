@@ -1,0 +1,25 @@
+/// Hook system for plugin event handling
+package ourchat:plugin@1.0.0;
+
+import types;
+
+/// Hook types that plugins can implement
+interface hooks {
+    /// Called before a message is sent
+    on-message-send: func(ctx: types.message-context) -> types.hook-result;
+
+    /// Called after a message is sent
+    on-message-sent: func(msg-id: u64);
+
+    /// Called when a new user is created
+    on-user-created: func(ctx: types.user-context);
+
+    /// Called when a user logs in
+    on-user-login: func(ctx: types.user-context);
+
+    /// Called when friends are added
+    on-friend-added: func(user-id: u64, friend-id: u64, session-id: u64);
+
+    /// Called when a new session is created
+    on-session-created: func(ctx: types.session-context);
+}

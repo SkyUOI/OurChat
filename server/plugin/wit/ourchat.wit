@@ -1,0 +1,82 @@
+/// OurChat Plugin System WIT Interfaces
+///
+/// This file defines all the interfaces for the OurChat plugin system.
+
+package ourchat:plugin@1.0.0;
+
+/// Core type definitions
+/// Plugin hook execution result
+variant hook-result {
+    continue,
+    stop(string),
+    modify(string),
+}
+
+/// Message hook context
+record message-context {
+    sender-id: option<u64>,
+    session-id: option<u64>,
+    msg-data: list<u8>,
+    is-encrypted: bool,
+}
+
+/// User event context
+record user-context {
+    user-id: u64,
+    username: string,
+    email: string,
+}
+
+/// Session event context
+record session-context {
+    session-id: u64,
+    creator-id: u64,
+    session-type: s32,
+}
+
+/// Logging interface
+interface logging {
+    trace: func(msg: string);
+    debug: func(msg: string);
+    info: func(msg: string);
+    warn: func(msg: string);
+    error: func(msg: string);
+}
+
+/// Configuration interface
+interface config {
+    get-string: func(key: string) -> option<string>;
+    get-int: func(key: string) -> option<s64>;
+    get-bool: func(key: string) -> option<bool>;
+    set: func(key: string, value: string) -> result<_, string>;
+    list-keys: func() -> list<string>;
+}
+
+/// Hooks interface - implemented by plugins
+interface hooks {
+    on-message-send: func(ctx: message-context) -> hook-result;
+    on-message-sent: func(msg-id: u64);
+    on-user-created: func(ctx: user-context);
+    on-user-login: func(ctx: user-context);
+    on-friend-added: func(user-id: u64, friend-id: u64, session-id: u64);
+    on-session-created: func(ctx: session-context);
+}
+
+/// Plugin lifecycle interface - implemented by plugins
+interface plugin-lifecycle {
+    on-load: func() -> result<_, string>;
+    on-enable: func() -> result<_, string>;
+    on-disable: func() -> result<_, string>;
+    on-unload: func();
+}
+
+/// World definition for OurChat plugins
+world ourchat-plugin {
+    /// Import WASI interfaces
+    export logging;
+    export config;
+    export hooks;
+
+    /// Plugins must implement the lifecycle interface
+    export plugin-lifecycle;
+}

@@ -1,0 +1,28 @@
+/// Redis interface for plugins
+package ourchat:plugin@1.0.0;
+
+/// Redis operation errors
+variant redis-error {
+    connection-failed(string),
+    key-not-found,
+    type-mismatch,
+    permission-denied,
+}
+
+/// Redis operations
+interface redis {
+    /// Get a string value
+    get: func(key: string) -> result<option<string>, redis-error>;
+
+    /// Set a string value
+    set: func(key: string, value: string, ttl-seconds: option<u32>) -> result<_, redis-error>;
+
+    /// Delete a key
+    delete: func(key: string) -> result<bool, redis-error>;
+
+    /// Check if key exists
+    exists: func(key: string) -> result<bool, redis-error>;
+
+    /// Set expiration on key
+    expire: func(key: string, seconds: u32) -> result<bool, redis-error>;
+}

@@ -13,6 +13,7 @@ serde.workspace = true
 entities = { path = "../entities" }
 chrono.workspace = true
 claims.workspace = true
+bytes.workspace = true
 
 [build-dependencies]
 tonic-prost-build.workspace = true

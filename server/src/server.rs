@@ -62,7 +62,6 @@ pub use ourchat_service::*;
 
 /// RPC Server implementation for OurChat
 /// Handles all service requests and manages connections
-#[derive(Debug)]
 pub struct RpcServer {
     pub db: DbPool,
     pub shared_data: Arc<SharedData>,

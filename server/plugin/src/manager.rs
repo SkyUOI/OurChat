@@ -2,7 +2,7 @@
 //!
 //! Manages plugin lifecycle: loading, enabling, disabling, and executing hooks
 
-use crate::engine::{HookAction, PluginContext, WasmEngine, LoadedPlugin};
+use crate::engine::{HookAction, PluginContext, PluginState as EnginePluginState, WasmEngine, LoadedPlugin};
 use crate::error::{PluginError, PluginResult};
 use crate::hooks::{HookResult, MessageHookContext};
 use crate::registry::{PluginMetadata, PluginRegistry, PluginState};
@@ -15,7 +15,6 @@ use std::sync::Arc;
 use tracing::{error, info};
 
 /// Plugin manager - main entry point for the plugin system
-#[derive(Debug)]
 pub struct PluginManager {
     engine: Arc<WasmEngine>,
     registry: Arc<PluginRegistry>,
@@ -89,11 +88,20 @@ impl PluginManager {
 
         info!("Loading plugin: {}", plugin_id);
 
-        // Load the WASM module
-        let module = self.engine.load_module(path.to_path_buf())?;
+        // Try loading as component first, fall back to legacy module
+        let component = match self.engine.load_component(path.to_path_buf()) {
+            Ok(component) => {
+                info!("Loading plugin {} as component", plugin_id);
+                component
+            }
+            Err(e) => {
+                info!("Failed to load as component, trying legacy module: {}", e);
+                self.engine.load_module_as_component(path.to_path_buf())?
+            }
+        };
 
-        // Create plugin context
-        let context = PluginContext {
+        // Create plugin state
+        let state = EnginePluginState {
             plugin_id: plugin_id.clone(),
             config: Arc::new(RwLock::new(serde_json::Value::Object(serde_json::Map::new()))),
             db_pool: self.db_pool.clone(),
@@ -101,10 +109,14 @@ impl PluginManager {
             host_data: Arc::new(DashMap::new()),
         };
 
+        // Create plugin context
+        // WASI integration will be added once WIT bindings are generated
+        let context = PluginContext { state };
+
         // Instantiate the plugin
         let loaded = self
             .engine
-            .instantiate_plugin(module, plugin_id.clone(), context)?;
+            .instantiate_plugin(component, plugin_id.clone(), context)?;
 
         // Register metadata
         let metadata = PluginMetadata {

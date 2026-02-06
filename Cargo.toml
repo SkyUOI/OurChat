@@ -10,6 +10,7 @@ members = [
     "server/pb",
     "server/utils",
     "server/plugin",
+    "server/plugin-sdk",
 ]
 resolver = "3"
 
@@ -72,6 +73,10 @@ default-features = false
 
 [workspace.dependencies.tracing-appender]
 version = "0"
+default-features = false
+
+[workspace.dependencies.url]
+version = "2.5"
 default-features = false
 
 [workspace.dependencies.tracing-subscriber]

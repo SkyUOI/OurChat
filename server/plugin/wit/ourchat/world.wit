@@ -1,0 +1,49 @@
+/// Main world definition for OurChat plugins
+package ourchat:plugin@1.0.0;
+
+/// Import WASI interfaces
+include wasm:random/random@0.2.0 with {
+    type random = random;
+};
+
+include wasm:clocks/monotonic-clock@0.2.0;
+
+/// Export ourchat interfaces for plugins
+export logging;
+export config;
+export hooks;
+export database;
+export http;
+export redis;
+export messaging;
+
+/// Plugin exports - required from plugins
+interface plugin-lifecycle {
+    /// Called when plugin is loaded
+    on-load: func() -> result<_, string>;
+
+    /// Called when plugin is enabled
+    on-enable: func() -> result<_, string>;
+
+    /// Called when plugin is disabled
+    on-disable: func() -> result<_, string>;
+
+    /// Called when plugin is unloaded
+    on-unload: func();
+}
+
+/// Plugin exports
+export plugin-lifecycle;
+
+/// Combined world
+world ourchat-plugin {
+    include logging;
+    include config;
+    include hooks;
+    include database;
+    include http;
+    include redis;
+    include messaging;
+
+    export plugin-lifecycle;
+}

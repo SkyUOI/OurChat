@@ -1,0 +1,6 @@
+[package]
+name = "simple_logger"
+edition.workspace = true
+
+[lib]
+crate-type = ["cdylib"]

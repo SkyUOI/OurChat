@@ -1,0 +1,50 @@
+/// Core type definitions for OurChat plugin system
+
+/// Plugin hook execution result
+variant hook-result {
+    /// Continue normal execution
+    continue,
+    /// Stop execution with reason
+    stop(string),
+    /// Modify data (JSON string)
+    modify(string),
+}
+
+/// Message hook context
+record message-context {
+    sender-id: option<u64>,
+    session-id: option<u64>,
+    msg-data: list<u8>,
+    is-encrypted: bool,
+}
+
+/// User event context
+record user-context {
+    user-id: u64,
+    username: string,
+    email: string,
+}
+
+/// Session event context
+record session-context {
+    session-id: u64,
+    creator-id: u64,
+    session-type: s32,
+}
+
+/// Plugin state
+variant plugin-state {
+    loaded,
+    enabled,
+    disabled,
+    failed,
+}
+
+/// Plugin metadata
+record plugin-metadata {
+    id: string,
+    name: string,
+    version: string,
+    description: string,
+    author: string,
+}

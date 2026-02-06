@@ -1,0 +1,21 @@
+[package]
+name = "ourchat-plugin-sdk"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# WIT binding generation for guest (plugin)
+wit-bindgen = "0.52.0"
+
+# Serialization
+serde.workspace = true
+serde_json = { workspace = true, features = ["std"] }
+
+# Error handling
+anyhow.workspace = true
+
+# Logging
+tracing.workspace = true

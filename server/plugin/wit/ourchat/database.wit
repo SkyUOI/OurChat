@@ -1,0 +1,35 @@
+/// Database access interface for plugins
+package ourchat:plugin@1.0.0;
+
+/// Database query result
+record db-result {
+    rows: list<list<option<string>>>,
+    rows-affected: u64,
+    last-insert-id: u64,
+}
+
+/// Database error
+variant db-error {
+    query-failed(string),
+    connection-lost,
+    permission-denied,
+    timeout,
+}
+
+/// Database operations
+interface database {
+    /// Execute a read-only query (SELECT)
+    query: func(sql: string) -> result<db-result, db-error>;
+
+    /// Execute a write query (INSERT, UPDATE, DELETE)
+    execute: func(sql: string) -> result<u64, db-error>;
+
+    /// Begin a transaction
+    begin-transaction: func() -> result<u64, db-error>;
+
+    /// Commit a transaction
+    commit: func(transaction-id: u64) -> result<_, db-error>;
+
+    /// Rollback a transaction
+    rollback: func(transaction-id: u64) -> result<_, db-error>;
+}
