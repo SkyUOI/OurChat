@@ -43,6 +43,11 @@ macro_rules! impl_newtype_int {
                 write!(f, "{}", self.0)
             }
         }
+
+        impl std::str::FromStr for $name {
+            type Err = std::num::ParseIntError;
+            fn from_str(s: &str) -> Result<Self, Self::Err> { Ok(Self(s.parse()?)) }
+        }
     };
 }
 
@@ -59,6 +64,27 @@ macro_rules! impl_newtype_string {
     }
 }
 
+pub macro impl_redis_value_from_for_newint($name:ident) {
+    impl deadpool_redis::redis::ToRedisArgs for $name {
+        fn write_redis_args<W>(&self, out: &mut W)
+        where
+            W: ?Sized + deadpool_redis::redis::RedisWrite,
+        {
+            self.0.write_redis_args(out)
+        }
+    }
+
+    impl deadpool_redis::redis::FromRedisValue for $name {
+        fn from_redis_value(
+            v: &deadpool_redis::redis::Value,
+        ) -> deadpool_redis::redis::RedisResult<Self> {
+            Ok($name(
+                deadpool_redis::redis::FromRedisValue::from_redis_value(v)?,
+            ))
+        }
+    }
+}
+
 /// Compute the SHA3-256 hash of the given data and return it as a lower-case
 /// hexadecimal string.
 pub fn sha3_256(data: &[u8]) -> String {
@@ -67,6 +93,10 @@ pub fn sha3_256(data: &[u8]) -> String {
     hasher.update(data);
     let result = hasher.finalize();
     format!("{result:x}")
+}
+
+pub fn oaep_padding() -> rsa::Oaep<rsa::sha2::Sha256> {
+    rsa::Oaep::<rsa::sha2::Sha256>::new()
 }
 
 pub fn merge_json(origin: serde_json::Value, new: serde_json::Value) -> serde_json::Value {
@@ -89,6 +119,16 @@ pub fn merge_json(origin: serde_json::Value, new: serde_json::Value) -> serde_js
         }
         // For all other cases, use the new value
         (_, new) => new,
+    }
+}
+
+pub macro serde_default($name:ty) {
+    impl Default for $name {
+        fn default() -> Self {
+            let empty = serde_json::json!({});
+            // It use serde's default value. It must be a valid value. It is safe to unwrap
+            serde_json::from_value(empty).unwrap()
+        }
     }
 }
 

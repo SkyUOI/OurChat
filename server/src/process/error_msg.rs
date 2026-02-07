@@ -10,6 +10,7 @@ pub mod not_found {
     pub const FRIEND_INVITATION: &str = "Friend Invitation Not Found";
     pub const ROLE: &str = "Role Not Found";
     pub const FILE: &str = "File Not Found";
+    pub const WEBRTC_ROOM: &str = "WebRTC Room Not Found";
 }
 
 pub mod exist {
@@ -25,6 +26,7 @@ pub mod invalid {
     pub const EMAIL_ADDRESS: &str = "Email Address Is Invalid";
     pub const STATUS_TOO_LONG: &str = "Status Too Long";
     pub const OCID_TOO_LONG: &str = "Ocid Too Long";
+    pub const PUBLIC_KEY: &str = "Public Key Is Invalid";
 }
 
 pub const SERVER_ERROR: &str = "Server Error";
@@ -59,6 +61,8 @@ pub const CANNOT_SET_AVATAR: &str = "Cannot Set Avatar";
 // Auth
 pub const MISSING_AUTH_TYPE: &str = "Missing AuthType";
 pub const WRONG_PASSWORD: &str = "Wrong Password";
+pub const ACCOUNT_LOCKED: &str = "Account Locked";
+pub const EMAIL_NOT_VERIFIED: &str = "Email Not Verified";
 
 // Role
 pub const ROLE_NAME_EMPTY: &str = "Role Name Empty";
@@ -72,4 +76,8 @@ pub mod token {
     pub const MISSING: &str = "Token Missing";
     pub const UNSUPPORTED_AUTHORIZATION_HEADER: &str = "Only Support Bearer";
     pub const INCORRECT_FORMAT: &str = "Correct format is Authorization: Bearer <jwt>";
+}
+
+pub mod webrtc {
+    pub const UNSPECIFIED: &str = "Signal Type Must Be Specified";
 }

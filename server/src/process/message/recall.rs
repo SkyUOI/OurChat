@@ -53,6 +53,7 @@ impl From<MsgError> for RecallErr {
             }
             MsgError::NotFound => Self::Status(Status::not_found(not_found::MSG)),
             MsgError::UnknownError(error) => Self::Unknown(error),
+            MsgError::SerdeError(error) => Self::Unknown(error.into()),
         }
     }
 }
@@ -81,11 +82,7 @@ async fn recall_msg_internal(
         false,
     )
     .await?;
-    let connection = server
-        .rabbitmq
-        .get()
-        .await
-        .context("cannot get rabbit connection")?;
+    let connection = server.get_rabbitmq_manager().await?;
     let mut channel = connection
         .create_channel()
         .await

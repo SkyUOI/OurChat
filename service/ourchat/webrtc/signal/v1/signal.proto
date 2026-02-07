@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package service.ourchat.webrtc.signal.v1;
+
+enum SignalType {
+  SIGNAL_TYPE_UNSPECIFIED = 0;
+  SIGNAL_TYPE_OFFER = 1;
+  SIGNAL_TYPE_ANSWER = 2;
+  SIGNAL_TYPE_ICE_CANDIDATE = 3;
+}
+
+message SignalRequest {
+  uint64 room_id = 1;
+  uint64 target_user_id = 2;
+  SignalType signal_type = 3;
+  string sdp = 4; // For offer/answer
+  string ice_candidate = 5; // For ICE candidates
+  string sdp_mid = 6; // For ICE candidates
+  uint32 sdp_mline_index = 7; // For ICE candidates
+}
+
+message SignalResponse {
+  bool success = 1;
+}

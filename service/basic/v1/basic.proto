@@ -6,6 +6,7 @@ import "google/protobuf/timestamp.proto";
 import "service/basic/preset_user_status/v1/preset_user_status.proto";
 import "service/basic/server/v1/server.proto";
 import "service/basic/support/v1/support.proto";
+import "service/basic/voip/v1/get_config.proto";
 
 message TimestampRequest {}
 
@@ -40,6 +41,8 @@ service BasicService {
   rpc GetPresetUserStatus(preset_user_status.v1.GetPresetUserStatusRequest) returns (preset_user_status.v1.GetPresetUserStatusResponse);
 
   rpc Ping(PingRequest) returns (PingResponse);
+
+  rpc GetVoipConfig(voip.v1.GetVoipConfigRequest) returns (voip.v1.GetVoipConfigResponse);
 }
 
 message PingRequest {}

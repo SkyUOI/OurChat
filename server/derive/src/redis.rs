@@ -9,11 +9,28 @@ pub fn redis_hset_derive_internal(input: TokenStream) -> TokenStream {
     let name = &input.ident;
 
     let fields = match &input.data {
-        Data::Struct(data) => match &data.fields {
-            Fields::Named(fields) => &fields.named,
-            _ => panic!("RedisHset derive only supports structs with named fields"),
-        },
-        _ => panic!("RedisHset derive only supports structs"),
+        Data::Struct(data) => {
+            match &data.fields {
+                Fields::Named(fields) => &fields.named,
+                Fields::Unnamed(_) => return syn::Error::new_spanned(
+                    &input.ident,
+                    "RedisHset derive only supports structs with named fields, not tuple structs",
+                )
+                .into_compile_error()
+                .into(),
+                Fields::Unit => return syn::Error::new_spanned(
+                    &input.ident,
+                    "RedisHset derive only supports structs with named fields, not unit structs",
+                )
+                .into_compile_error()
+                .into(),
+            }
+        }
+        _ => {
+            return syn::Error::new_spanned(&input.ident, "RedisHset derive only supports structs")
+                .into_compile_error()
+                .into();
+        }
     };
 
     // Collect field identifiers and their string names

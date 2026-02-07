@@ -9,6 +9,7 @@ use crate::process::db::get_id;
 use crate::process::error_msg::{self, ACCOUNT_DELETED, SERVER_ERROR};
 use crate::process::{self, ErrAuth};
 use crate::{SERVER_INFO, SharedData};
+use anyhow::Context;
 use base::consts::{ID, JWT_HEADER, OCID, VERSION_SPLIT};
 use base::database::DbPool;
 use migration::predefined::AccountStatus;
@@ -26,6 +27,7 @@ use pb::service::basic::v1::{
     GetIdRequest, GetIdResponse, GetServerInfoRequest, PingRequest, PingResponse, TimestampRequest,
     TimestampResponse,
 };
+use pb::service::basic::voip::v1::{GetVoipConfigRequest, GetVoipConfigResponse};
 use pb::service::ourchat::v1::our_chat_service_server::OurChatServiceServer;
 use pb::service::server_manage::config::v1::{
     GetConfigRequest, GetConfigResponse, SetConfigRequest, SetConfigResponse,
@@ -74,6 +76,15 @@ pub struct ServerManageServiceProvider {
     pub rabbitmq: deadpool_lapin::Pool,
 }
 
+impl ServerManageServiceProvider {
+    pub async fn get_rabbitmq_manager(&self) -> anyhow::Result<deadpool_lapin::Object> {
+        self.rabbitmq
+            .get()
+            .await
+            .context("cannot get rabbitmq connection")
+    }
+}
+
 impl RpcServer {
     /// Create a new RPC server instance
     ///
@@ -115,32 +126,32 @@ impl RpcServer {
         };
 
         // Clone shared data for service interceptors
-        let shared_data = self.shared_data.clone();
-        let shared_data1 = self.shared_data.clone();
-        let shared_data2 = self.shared_data.clone();
-        let shared_data3 = self.shared_data.clone();
+        let main_interceptor_data = self.shared_data.clone();
+        let basic_interceptor_data = self.shared_data.clone();
+        let auth_interceptor_data = self.shared_data.clone();
+        let server_manage_interceptor_data = self.shared_data.clone();
 
         // Create service instances with interceptors for authentication and maintenance checks
         let main_svc = OurChatServiceServer::with_interceptor(self, move |mut req| {
             // Check if server is in maintenance mode
-            shared_data.convert_maintaining_into_grpc_status()?;
+            main_interceptor_data.convert_maintaining_into_grpc_status()?;
             Self::check_auth(&mut req)?;
             Ok(req)
         });
 
         let basic_svc = BasicServiceServer::with_interceptor(basic_service, move |req| {
-            shared_data1.convert_maintaining_into_grpc_status()?;
+            basic_interceptor_data.convert_maintaining_into_grpc_status()?;
             Ok(req)
         });
 
         let auth_svc = AuthServiceServer::with_interceptor(auth_service, move |req| {
-            shared_data2.convert_maintaining_into_grpc_status()?;
+            auth_interceptor_data.convert_maintaining_into_grpc_status()?;
             Ok(req)
         });
 
         let server_manage_svc =
             ServerManageServiceServer::with_interceptor(server_manage_service, move |mut req| {
-                shared_data3.convert_maintaining_into_grpc_status()?;
+                server_manage_interceptor_data.convert_maintaining_into_grpc_status()?;
                 Self::check_auth(&mut req)?;
                 Ok(req)
             });
@@ -175,27 +186,49 @@ impl RpcServer {
         // Check if token exists in metadata
         match req.metadata().get(JWT_HEADER) {
             Some(token) => {
-                match process::check_token(token.to_str().unwrap()) {
+                match process::check_token(
+                    token
+                        .to_str()
+                        .map_err(|_| Status::invalid_argument(error_msg::token::INVALID))?,
+                ) {
                     Ok(jwt) => {
                         let ret = jwt.id;
                         // Store user ID in request metadata for later use
-                        req.metadata_mut()
-                            .insert("id", jwt.id.to_string().parse().unwrap());
+                        req.metadata_mut().insert(
+                            "id",
+                            jwt.id
+                                .to_string()
+                                .parse()
+                                .map_err(|_| Status::invalid_argument(error_msg::token::INVALID))?,
+                        );
+                        tracing::info!(user_id = %jwt.id, "JWT Authentication successful");
                         Ok(ret)
                     }
-                    Err(e) => match e {
-                        ErrAuth::JWT(_) => Err(Status::unauthenticated(error_msg::token::INVALID)),
-                        ErrAuth::Expire => Err(Status::unauthenticated(error_msg::token::EXPIRED)),
-                        ErrAuth::UnsupportedAuthorizationHeader => Err(Status::unauthenticated(
-                            error_msg::token::UNSUPPORTED_AUTHORIZATION_HEADER,
-                        )),
-                        ErrAuth::IncorrectFormat => {
-                            Err(Status::unauthenticated(error_msg::token::INCORRECT_FORMAT))
+                    Err(e) => {
+                        tracing::info!(error = %e, "JWT Authentication failed");
+                        match e {
+                            ErrAuth::JWT(_) => {
+                                Err(Status::unauthenticated(error_msg::token::INVALID))
+                            }
+                            ErrAuth::Expire => {
+                                Err(Status::unauthenticated(error_msg::token::EXPIRED))
+                            }
+                            ErrAuth::UnsupportedAuthorizationHeader => {
+                                Err(Status::unauthenticated(
+                                    error_msg::token::UNSUPPORTED_AUTHORIZATION_HEADER,
+                                ))
+                            }
+                            ErrAuth::IncorrectFormat => {
+                                Err(Status::unauthenticated(error_msg::token::INCORRECT_FORMAT))
+                            }
                         }
-                    },
+                    }
                 }
             }
-            None => Err(Status::unauthenticated(error_msg::token::MISSING)),
+            None => {
+                tracing::info!("JWT Authentication failed: missing token");
+                Err(Status::unauthenticated(error_msg::token::MISSING))
+            }
         }
     }
 
@@ -210,8 +243,10 @@ impl RpcServer {
     async fn check_account_status(&self, id: ID) -> Result<(), Status> {
         let account = match get_account_info_db(id, &self.db.db_pool)
             .await
-            .map_err(|_| Status::internal(SERVER_ERROR))?
-        {
+            .map_err(|e| {
+                tracing::error!("Failed to get account info: {:?}", e);
+                Status::internal(SERVER_ERROR)
+            })? {
             Some(account) => account,
             None => return Err(Status::unauthenticated(not_found::USER)),
         };
@@ -223,6 +258,13 @@ impl RpcServer {
 
         Ok(())
     }
+
+    pub async fn get_rabbitmq_manager(&self) -> anyhow::Result<deadpool_lapin::Object> {
+        self.rabbitmq
+            .get()
+            .await
+            .context("cannot get rabbitmq connection")
+    }
 }
 
 /// Authentication service provider
@@ -231,6 +273,15 @@ pub struct AuthServiceProvider {
     pub shared_data: Arc<SharedData>,
     pub db: DbPool,
     pub rabbitmq: deadpool_lapin::Pool,
+}
+
+impl AuthServiceProvider {
+    pub async fn get_rabbitmq_manager(&self) -> anyhow::Result<deadpool_lapin::Object> {
+        self.rabbitmq
+            .get()
+            .await
+            .context("cannot get rabbitmq connection")
+    }
 }
 
 /// Stream type for verification responses
@@ -334,6 +385,15 @@ impl BasicService for BasicServiceProvider {
     async fn ping(&self, _request: Request<PingRequest>) -> Result<Response<PingResponse>, Status> {
         Ok(Response::new(PingResponse {}))
     }
+
+    /// Get VoIP configuration (STUN/TURN servers)
+    #[tracing::instrument(skip(self))]
+    async fn get_voip_config(
+        &self,
+        _request: Request<GetVoipConfigRequest>,
+    ) -> Result<Response<GetVoipConfigResponse>, Status> {
+        process::get_voip_config(self).await
+    }
 }
 
 // Static server information initialized at startup
@@ -396,7 +456,7 @@ impl ServerManageService for ServerManageServiceProvider {
         &self,
         _request: Request<GetMonitoringMetricsRequest>,
     ) -> Result<Response<GetMonitoringMetricsResponse>, Status> {
-        todo!()
+        Err(Status::unimplemented("not yet implemented"))
     }
 
     #[tracing::instrument(skip(self))]
@@ -404,7 +464,7 @@ impl ServerManageService for ServerManageServiceProvider {
         &self,
         _request: Request<GetHistoricalMetricsRequest>,
     ) -> Result<Response<GetHistoricalMetricsResponse>, Status> {
-        todo!()
+        Err(Status::unimplemented("not yet implemented"))
     }
 
     #[tracing::instrument(skip(self))]
@@ -412,7 +472,7 @@ impl ServerManageService for ServerManageServiceProvider {
         &self,
         _request: Request<ListUsersRequest>,
     ) -> Result<Response<ListUsersResponse>, Status> {
-        todo!()
+        Err(Status::unimplemented("not yet implemented"))
     }
 
     #[tracing::instrument(skip(self))]

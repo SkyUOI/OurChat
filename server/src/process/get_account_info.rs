@@ -57,12 +57,13 @@ async fn get_account_info_impl(
         None => return Err(GetInfoError::NotFound),
     };
     let data_cell = OnceLock::new();
-    let friends = async || {
-        if data_cell.get().is_none() {
-            let list = db::user::get_friends(request_id, &server.db.db_pool).await?;
-            data_cell.set(list).unwrap();
+    let friends = async || match data_cell.get() {
+        Some(data) => anyhow::Ok(data),
+        None => {
+            let list = db::user::get_friends_relationships(request_id, &server.db.db_pool).await?;
+            let data = data_cell.get_or_init(|| list);
+            anyhow::Ok(data)
         }
-        anyhow::Ok(data_cell.get().unwrap())
     };
     let mut ret = GetAccountInfoResponse::default();
 
@@ -101,12 +102,7 @@ async fn get_account_info_impl(
                 }
                 QueryValues::Status => {
                     // ret.status = Some(queried_user.status.clone().unwrap_or_default());
-                    let mut redis_conn = server
-                        .db
-                        .redis_pool
-                        .get()
-                        .await
-                        .context("Cannot get redis' connection")?;
+                    let mut redis_conn = server.db.get_redis_connection().await?;
                     ret.status = redis_conn
                         .get(mapped_to_user_defined_status(queried_user.id))
                         .await

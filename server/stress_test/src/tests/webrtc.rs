@@ -19,6 +19,7 @@ pub async fn test_create_room(users: &UsersGroup, report: &mut Report) {
                 .create_room(CreateRoomRequest {
                     title: Some(format!("Room {}", rand::random::<u32>())),
                     auto_delete: true,
+                    open_join: true,
                 })
                 .await
                 .is_ok()

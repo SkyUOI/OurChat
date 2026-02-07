@@ -62,6 +62,7 @@ impl From<db::messages::MsgError> for JoinInSessionErr {
                 Self::Status(Status::not_found(not_found::MSG))
             }
             db::messages::MsgError::UnknownError(error) => Self::Internal(error),
+            db::messages::MsgError::SerdeError(error) => Self::Internal(error.into()),
         }
     }
 }
@@ -85,12 +86,7 @@ async fn join_session_impl(
     }
 
     // Check if user is banned
-    let mut conn = server
-        .db
-        .redis_pool
-        .get()
-        .await
-        .context("cannot get redis connection")?;
+    let mut conn = server.db.get_redis_connection().await?;
     if user_banned_status(id, session_id, &mut conn)
         .await?
         .is_some()
@@ -128,11 +124,7 @@ async fn join_session_impl(
         respond_event_type: Some(respond_msg),
     };
     let peoples_should_be_sent = get_all_session_relations(id, &server.db.db_pool).await?;
-    let rmq_conn = server
-        .rabbitmq
-        .get()
-        .await
-        .context("cannot get rabbit connection")?;
+    let rmq_conn = server.get_rabbitmq_manager().await?;
     let mut rmq_channel = rmq_conn
         .create_channel()
         .await

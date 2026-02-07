@@ -25,13 +25,10 @@ OurChat is a cross-platform chat application built with Rust (server) and Flutte
 
 - `script/` – Python utility scripts (protobuf generation, database migrations, etc.)
 - `stress_test/` – Stress testing configuration and tools
-- `stress_config/` – Additional stress test configurations
-- `local/` – Local development files
 
 ### Resources
 
 - `resource/` – Project resources (logos, icons)
-- `screenshots/` – Application screenshots
 
 ### Workspace Structure (Server)
 
@@ -43,7 +40,6 @@ The server is a Rust workspace with multiple crates:
 - `server/pb/` – Protobuf code generation
 - `server/derive/` – Custom derive macros
 - `server/base/` – Base library
-- `server/load_balancer/` – Load balancing components
 - `server/client/` – Client library
 - `server/utils/` – Utility functions
 - `server/stress_test/` – Server stress testing

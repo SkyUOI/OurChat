@@ -6,7 +6,7 @@ use pb::service::ourchat::{
     msg_delivery::v1::fetch_msgs_response::RespondEventType,
     session::{leave_session::v1::LeaveSessionRequest, session_room_key::v1::SendRoomKeyRequest},
 };
-use rsa::{Pkcs1v15Encrypt, RsaPublicKey, pkcs1::DecodeRsaPublicKey as _};
+use rsa::{RsaPublicKey, pkcs1::DecodeRsaPublicKey as _};
 use server::db::session::get_session_by_id;
 use tokio::time::sleep;
 
@@ -46,7 +46,7 @@ async fn e2ee_update_timeout() {
     let new_room_key = TestSession::generate_room_key();
     let mut rng = rand::rng();
     let encrypted_room_key: Bytes = public_key
-        .encrypt(&mut rng, Pkcs1v15Encrypt, &new_room_key)
+        .encrypt(&mut rng, utils::oaep_padding(), &new_room_key)
         .unwrap()
         .into();
     a.lock()
@@ -76,7 +76,7 @@ async fn e2ee_update_timeout() {
         .await
         .key_pair
         .0
-        .decrypt(Pkcs1v15Encrypt, &received_encrypted_room_key)
+        .decrypt(utils::oaep_padding(), &received_encrypted_room_key)
         .unwrap()
         .into();
     assert_eq!(received_room_key, new_room_key);
@@ -128,7 +128,7 @@ async fn e2ee_update_member_leaving() {
     let new_room_key = TestSession::generate_room_key();
     let mut rng = rand::rng();
     let encrypted_room_key: Bytes = public_key
-        .encrypt(&mut rng, Pkcs1v15Encrypt, &new_room_key)
+        .encrypt(&mut rng, utils::oaep_padding(), &new_room_key)
         .unwrap()
         .into();
     a.lock()
@@ -158,7 +158,7 @@ async fn e2ee_update_member_leaving() {
         .await
         .key_pair
         .0
-        .decrypt(Pkcs1v15Encrypt, &received_encrypted_room_key)
+        .decrypt(utils::oaep_padding(), &received_encrypted_room_key)
         .unwrap()
         .into();
     assert_eq!(received_room_key, new_room_key);

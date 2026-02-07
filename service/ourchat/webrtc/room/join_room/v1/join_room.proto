@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package service.ourchat.webrtc.room.join_room.v1;
+
+message JoinRoomRequest {
+  uint64 room_id = 1;
+}
+
+message JoinRoomResponse {
+  bool success = 1;
+  repeated uint64 existing_users = 2;
+}

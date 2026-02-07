@@ -3,7 +3,6 @@ use crate::db::redis::map_mute_all_to_redis;
 use crate::db::session::if_permission_exist;
 use crate::process::error_msg::{PERMISSION_DENIED, SERVER_ERROR, not_found::NOT_BE_MUTED};
 use crate::server::RpcServer;
-use anyhow::Context;
 use base::consts::ID;
 use deadpool_redis::redis::AsyncCommands;
 use migration::predefined::PredefinedPermissions;
@@ -59,12 +58,7 @@ async fn mute_user_impl(
             PERMISSION_DENIED,
         )));
     }
-    let mut conn = server
-        .db
-        .redis_pool
-        .get()
-        .await
-        .context("cannot get redis connection")?;
+    let mut conn = server.db.get_redis_connection().await?;
     let mut set_mute_in_redis = async |key| {
         match req.duration {
             Some(duration) => {
@@ -125,12 +119,7 @@ async fn unmute_user_impl(
         )));
     }
     // remove it in redis
-    let mut conn = server
-        .db
-        .redis_pool
-        .get()
-        .await
-        .context("cannot get redis connection")?;
+    let mut conn = server.db.get_redis_connection().await?;
 
     for i in req.user_ids {
         let user: ID = i.into();

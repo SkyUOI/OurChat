@@ -1,7 +1,6 @@
 use crate::db::redis;
 use crate::process::error_msg::not_found::NOT_BE_BANNED;
 use crate::{process::error_msg::SERVER_ERROR, server::ServerManageServiceProvider};
-use anyhow::Context;
 use base::consts::ID;
 use deadpool_redis::redis::AsyncCommands;
 use migration::predefined::PredefinedServerManagementPermission;
@@ -46,12 +45,7 @@ async fn unban_user_impl(
     let user_id: ID = req.user_id.into();
 
     // Get Redis connection
-    let mut conn = server
-        .db
-        .redis_pool
-        .get()
-        .await
-        .context("cannot get redis connection")?;
+    let mut conn = server.db.get_redis_connection().await?;
 
     let key = redis::map_server_ban_to_redis(user_id);
 

@@ -4,7 +4,7 @@ mod status;
 pub mod verify;
 
 use crate::{Cfg, SharedData};
-use anyhow::anyhow;
+use anyhow::{Context, anyhow};
 use axum::{
     extract::Request,
     middleware::{self, Next},
@@ -95,7 +95,7 @@ impl HttpServer {
                     .as_millis() as u64,
             )
             .finish()
-            .unwrap();
+            .expect("Could not build rate governor config. Please check the config values.");
         let rate_governor_limiter = rate_governor_config.limiter().clone();
         // background task to clean up
         // copy the example of tower_governor
@@ -119,7 +119,8 @@ impl HttpServer {
                 tower_http::services::ServeFile::new(shared_data.cfg().http_cfg.logo_path.clone()),
             )
             .route("/avatar", get(avatar::avatar))
-            .merge(verify::config().with_state(db_pool.clone()));
+            .merge(verify::config().with_state(db_pool.clone()))
+            .layer(cors.clone());
 
         // OAuth routes - only setup if enabled
         let oauth_routes = if shared_data.cfg().main_cfg.oauth.enable {
@@ -253,7 +254,12 @@ impl HttpServer {
 
         let shared_data_clone = shared_data.clone();
         let running_server = async move {
-            info!("Listening on {}", listener.local_addr().unwrap());
+            info!(
+                "Listening on {}",
+                listener
+                    .local_addr()
+                    .expect("Failed to get local address from tcplistener")
+            );
             if shared_data.cfg().http_cfg.tls.is_tls_on()? {
                 let handle = axum_server::Handle::new();
                 let handle_clone = handle.clone();
@@ -299,16 +305,28 @@ impl HttpServer {
         if let Some(ref ca) = cfg_read.http_cfg.tls.ca_tls_cert_path {
             CertificateDer::pem_file_iter(ca)?
                 .flatten()
-                .for_each(|der| cert_store.add(der).unwrap());
+                .try_for_each(|der| {
+                    cert_store
+                        .add(der)
+                        .context("Failed to add ca to cert store")
+                })?;
         }
 
-        // let client_auth = WebPkiClientVerifier::builder(Arc::new(cert_store)).build()?;
-
         let key_der = PrivateKeyDer::from_pem_file(
-            cfg_read.http_cfg.tls.server_key_cert_path.as_ref().unwrap(),
+            cfg_read
+                .http_cfg
+                .tls
+                .server_key_cert_path
+                .as_ref()
+                .context("Missing server_key_cert_path. Please check config file")?,
         )?;
         let cert_chain = CertificateDer::pem_file_iter(
-            cfg_read.http_cfg.tls.server_tls_cert_path.as_ref().unwrap(),
+            cfg_read
+                .http_cfg
+                .tls
+                .server_tls_cert_path
+                .as_ref()
+                .context("Missing server_tls_cert_path. Please check config file")?,
         )?
         .flatten()
         .collect();
@@ -477,7 +495,10 @@ impl Launcher {
         let mut server = HttpServer::new(self.started_notify.clone());
 
         info!("Starting http server");
-        let tcplistener = self.tcplistener.take().unwrap();
+        let tcplistener = self
+            .tcplistener
+            .take()
+            .context("The function can just be ran once")?;
         let email_client: Option<Box<dyn EmailSender>> = self.email_client.take();
         let http_server = tokio::spawn(async move {
             server

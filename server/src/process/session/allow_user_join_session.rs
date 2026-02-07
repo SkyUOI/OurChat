@@ -101,11 +101,7 @@ async fn allow_user_join_session_impl(
             room_key: req.room_key,
             accepted: req.accepted,
         });
-    let rmq_conn = server
-        .rabbitmq
-        .get()
-        .await
-        .context("cannot get rabbitmq connection")?;
+    let rmq_conn = server.get_rabbitmq_manager().await?;
     let mut conn = rmq_conn
         .create_channel()
         .await

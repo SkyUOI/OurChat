@@ -16,13 +16,6 @@ If you modified any database migrations and changed the definitions of any table
 
 **Notice:You must ensure the changes have been applied to your database before you run this script**
 
-### `stress_test.py`
-
-**Warning:Your computer may be frozen**
-
-Run this script to run stress test.
-The first argument is the test flag(default is `--release`).The second one is the test command(default is `cargo run --bin stress_test`)
-
 ### `build_production_container.py`
 
 Build production docker container

@@ -107,7 +107,8 @@ async fn github_oauth_callback(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     // Generate JWT token
-    let token = generate_access_token(user_id.into());
+    let token =
+        generate_access_token(user_id.into()).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     // Return success with JWT token
     Ok(format!("GitHub OAuth successful. Token: Bearer {}", token))

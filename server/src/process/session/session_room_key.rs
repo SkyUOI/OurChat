@@ -74,11 +74,7 @@ async fn send_room_key_impl(
         });
     }
 
-    let rmq_conn = server
-        .rabbitmq
-        .get()
-        .await
-        .context("cannot get rabbit connection")?;
+    let rmq_conn = server.get_rabbitmq_manager().await?;
     let mut conn = rmq_conn
         .create_channel()
         .await

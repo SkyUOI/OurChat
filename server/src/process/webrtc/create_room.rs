@@ -2,9 +2,8 @@ use crate::{
     helper::generate_webrtc_room_id,
     process::error_msg::SERVER_ERROR,
     server::RpcServer,
-    webrtc::{RoomInfo, empty_room_name, room_key},
+    webrtc::{RoomInfo, empty_room_name, room_admins_key, room_creator_key, room_key},
 };
-use anyhow::Context;
 use base::consts::ID;
 use deadpool_redis::redis::AsyncTypedCommands;
 use pb::service::ourchat::webrtc::room::create_room::v1::{CreateRoomRequest, CreateRoomResponse};
@@ -41,28 +40,42 @@ enum CreateRoomErr {
 
 async fn create_room_impl(
     server: &RpcServer,
-    _id: ID,
+    id: ID,
     request: Request<CreateRoomRequest>,
 ) -> Result<CreateRoomResponse, CreateRoomErr> {
     let req = request.into_inner();
     let room_id = generate_webrtc_room_id()?;
     let key = room_key(room_id);
-    let mut conn = server
-        .db
-        .redis_pool
-        .get()
-        .await
-        .context("cannot get redis connection")?;
+    let mut conn = server.db.get_redis_connection().await?;
+
     let info = RoomInfo {
         title: req.title,
         room_id,
         users_num: 0,
         auto_delete: req.auto_delete,
+        open_join: req.open_join,
+        creator: id,
     };
+
+    // Set room info
     let pipe = info.hset_pipe(&key);
     let _: () = pipe.query_async(&mut conn).await?;
-    // append new created
-    conn.sadd(empty_room_name(), room_id).await?;
+
+    // Set creator
+    let creator_key = room_creator_key(room_id);
+    conn.set(&creator_key, *id).await?;
+
+    // Add creator to admins
+    let admins_key = room_admins_key(room_id);
+    let _: usize = conn.sadd(&admins_key, *id).await?;
+
+    // Add creator to members
+    let members_key = crate::webrtc::room_members_key(room_id);
+    let _: usize = conn.sadd(&members_key, *id).await?;
+
+    // Append to empty rooms list
+    let _: usize = conn.sadd(empty_room_name(), room_id).await?;
+
     let ret = CreateRoomResponse { room_id: *room_id };
     Ok(ret)
 }

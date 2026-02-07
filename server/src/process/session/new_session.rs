@@ -84,46 +84,47 @@ async fn new_session_impl(
             peoples.push(member_id);
         }
     }
-    let bundle = async {
-        let transaction = server.db.db_pool.begin().await?;
-        db::session::create_session_db(
+    let transaction = server.db.db_pool.begin().await?;
+
+    // Create the session in database
+    db::session::create_session_db(
+        session_id,
+        people_num,
+        req.name.unwrap_or_default(),
+        &transaction,
+        req.e2ee_on,
+    )
+    .await?;
+
+    // Add members to the session
+    let result = async {
+        // default set the creator as owner
+        join_in_session(
             session_id,
-            people_num,
-            req.name.unwrap_or_default(),
+            id,
+            Some(PredefinedRoles::Owner.into()),
             &transaction,
-            req.e2ee_on,
         )
         .await?;
-        let bundle = async {
-            // default set the creator as owner
-            join_in_session(
-                session_id,
-                id,
-                Some(PredefinedRoles::Owner.into()),
-                &transaction,
-            )
-            .await?;
-            // add session relation
-            db::session::batch_join_in_session(session_id, &peoples, None, &transaction).await?;
-            Ok::<(), SessionError>(())
-        };
-        match bundle.await {
-            Ok(_) => {
-                transaction.commit().await?;
-            }
-            Err(SessionError::SessionNotFound) => {
-                transaction.rollback().await?;
-                return Err(NewSessionError::SessionNotFound);
-            }
-            Err(SessionError::Db(e)) => {
-                transaction.rollback().await?;
-                return Err(NewSessionError::DbError(e));
-            }
-        }
+        // add session relation
+        db::session::batch_join_in_session(session_id, &peoples, None, &transaction).await?;
+        Result::<(), SessionError>::Ok(())
+    }
+    .await;
 
-        Ok::<(), NewSessionError>(())
-    };
-    bundle.await?;
+    match result {
+        Ok(_) => {
+            transaction.commit().await?;
+        }
+        Err(SessionError::SessionNotFound) => {
+            transaction.rollback().await?;
+            return Err(NewSessionError::SessionNotFound);
+        }
+        Err(SessionError::Db(e)) => {
+            transaction.rollback().await?;
+            return Err(NewSessionError::DbError(e));
+        }
+    }
     for member_id in need_to_verify {
         send_verification_request(server, id, member_id, session_id, req.leave_message.clone())
             .await?;
@@ -183,11 +184,7 @@ pub async fn send_verification_request(
         time: Some(expire_at_google),
         respond_event_type: Some(respond_msg),
     };
-    let rabbitmq_connection = server
-        .rabbitmq
-        .get()
-        .await
-        .context("cannot get rabbit connection")?;
+    let rabbitmq_connection = server.get_rabbitmq_manager().await?;
     let mut channel = rabbitmq_connection
         .create_channel()
         .await

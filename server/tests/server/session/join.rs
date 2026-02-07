@@ -4,8 +4,8 @@ use client::oc_helper::TestSession;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
 use pb::service::ourchat::session::allow_user_join_session::v1::AllowUserJoinSessionRequest;
 use pb::service::ourchat::session::join_session::v1::JoinSessionRequest;
+use rsa::RsaPublicKey;
 use rsa::pkcs1::DecodeRsaPublicKey as _;
-use rsa::{Pkcs1v15Encrypt, RsaPublicKey};
 use server::db::session::in_session;
 
 #[tokio::test]
@@ -50,7 +50,7 @@ async fn join_in_session_success() {
     let room_key = TestSession::generate_room_key();
     let mut rng = rand::rng();
     let encrypted_room_key: Bytes = public_key
-        .encrypt(&mut rng, Pkcs1v15Encrypt, &room_key)
+        .encrypt(&mut rng, utils::oaep_padding(), &room_key)
         .unwrap()
         .into();
     a.lock()
@@ -82,7 +82,7 @@ async fn join_in_session_success() {
         .await
         .key_pair
         .0
-        .decrypt(Pkcs1v15Encrypt, &received_encrypted_room_key)
+        .decrypt(utils::oaep_padding(), &received_encrypted_room_key)
         .unwrap()
         .into();
     assert_eq!(received_room_key, room_key);

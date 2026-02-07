@@ -222,3 +222,104 @@ async fn register_with_default_session() {
 
     app.async_drop().await;
 }
+
+#[tokio::test]
+async fn account_locked_after_failed_attempts() {
+    let mut app = client::TestApp::new_with_launching_instance()
+        .await
+        .unwrap();
+
+    // Create a user
+    let user = app.new_user().await.unwrap();
+
+    // Default config: 5 failed attempts allowed
+    // Attempt login with wrong password 5 times
+    for _ in 1..=5 {
+        let err = user
+            .lock()
+            .await
+            .email_auth_internal("wrong_password")
+            .await
+            .unwrap_err()
+            .unwrap_rpc_status();
+        assert_eq!(err.code(), tonic::Code::Unauthenticated);
+        assert_eq!(err.message(), server::process::error_msg::WRONG_PASSWORD);
+    }
+
+    // 6th attempt should return ACCOUNT_LOCKED
+    let err = user
+        .lock()
+        .await
+        .email_auth_internal("wrong_password")
+        .await
+        .unwrap_err()
+        .unwrap_rpc_status();
+    assert_eq!(err.code(), tonic::Code::Unauthenticated);
+    assert_eq!(err.message(), server::process::error_msg::ACCOUNT_LOCKED);
+
+    // Even with correct password, account should remain locked
+    let err = user
+        .lock()
+        .await
+        .email_auth()
+        .await
+        .unwrap_err()
+        .unwrap_rpc_status();
+    assert_eq!(err.code(), tonic::Code::Unauthenticated);
+    assert_eq!(err.message(), server::process::error_msg::ACCOUNT_LOCKED);
+
+    app.async_drop().await;
+}
+
+#[tokio::test]
+async fn successful_login_clears_failed_attempts() {
+    let mut app = client::TestApp::new_with_launching_instance()
+        .await
+        .unwrap();
+
+    // Create a user
+    let user = app.new_user().await.unwrap();
+
+    // Fail login 3 times (less than the 5 attempt threshold)
+    for _ in 0..3 {
+        let err = user
+            .lock()
+            .await
+            .email_auth_internal("wrong_password")
+            .await
+            .unwrap_err()
+            .unwrap_rpc_status();
+        assert_eq!(err.code(), tonic::Code::Unauthenticated);
+        assert_eq!(err.message(), server::process::error_msg::WRONG_PASSWORD);
+    }
+
+    // Successful login should clear the failed attempts
+    assert_ok!(user.lock().await.email_auth().await);
+
+    // After successful login, failed attempts counter should be reset
+    // So we can fail 5 more times before lockout
+    for _ in 0..5 {
+        let err = user
+            .lock()
+            .await
+            .email_auth_internal("wrong_password")
+            .await
+            .unwrap_err()
+            .unwrap_rpc_status();
+        assert_eq!(err.code(), tonic::Code::Unauthenticated);
+        assert_eq!(err.message(), server::process::error_msg::WRONG_PASSWORD);
+    }
+
+    // 6th attempt after successful login should now lock the account
+    let err = user
+        .lock()
+        .await
+        .email_auth_internal("wrong_password")
+        .await
+        .unwrap_err()
+        .unwrap_rpc_status();
+    assert_eq!(err.code(), tonic::Code::Unauthenticated);
+    assert_eq!(err.message(), server::process::error_msg::ACCOUNT_LOCKED);
+
+    app.async_drop().await;
+}

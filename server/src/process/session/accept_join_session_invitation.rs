@@ -37,25 +37,17 @@ async fn accept_join_session_invitation_impl(
     let session_id: SessionID = req.session_id.into();
     let inviter = req.inviter_id;
     // check if banned from the session
-    if user_banned_status(
-        id,
-        session_id,
-        &mut server
-            .db
-            .redis_pool
-            .get()
-            .await
-            .context("cannot get redis connection")?,
-    )
-    .await?
-    .is_some()
+    if user_banned_status(id, session_id, &mut server.db.get_redis_connection().await?)
+        .await?
+        .is_some()
     {
         Err(Status::permission_denied(error_msg::BAN))?;
     }
     // check if the invitation is valid
+    let duration = server.shared_data.cfg().main_cfg.verification_expire_time;
     let time_limit = chrono::Utc::now()
-        - chrono::Duration::from_std(server.shared_data.cfg().main_cfg.verification_expire_time)
-            .unwrap();
+        - chrono::Duration::from_std(duration)
+            .with_context(|| format!("Could not convert {:?} to chrono::duration", duration))?;
     let model = session_invitation::Entity::find()
         .filter(session_invitation::Column::SessionId.eq(req.session_id))
         .filter(session_invitation::Column::Invitee.eq(id))
@@ -85,11 +77,7 @@ async fn accept_join_session_invitation_impl(
             transaction.commit().await?;
         }
     }
-    let rmq_conn = server
-        .rabbitmq
-        .get()
-        .await
-        .context("cannot get rabbitmq connection")?;
+    let rmq_conn = server.get_rabbitmq_manager().await?;
     let mut conn = rmq_conn
         .create_channel()
         .await

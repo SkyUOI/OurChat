@@ -3,10 +3,13 @@
 use pb::service::basic::server::v1::ServerVersion;
 use size::Size;
 use std::{path::PathBuf, str::FromStr, sync::LazyLock, time::Duration};
-use utils::{impl_newtype_int, impl_newtype_string};
+use utils::{impl_newtype_int, impl_newtype_string, impl_redis_value_from_for_newint};
 
 /// OCID Length
 pub const OCID_LEN: usize = 10;
+
+/// Defined in snowflake algorithm
+pub const MACHINE_ID_MAX: u64 = 1024 - 1;
 
 /// default ip
 pub const DEFAULT_IP: &str = "0.0.0.0";
@@ -39,13 +42,14 @@ pub const fn default_add_friend_request_expiry() -> Duration {
 
 // define ID type to fit many types of databases
 impl_newtype_int!(ID, u64, serde::Serialize, serde::Deserialize);
+impl_redis_value_from_for_newint!(ID);
 impl_newtype_int!(SessionID, u64, serde::Serialize, serde::Deserialize);
 impl_newtype_int!(MsgID, u64, serde::Serialize, serde::Deserialize);
 
 pub macro impl_from($from:path, $ty:ty) {
     impl From<$ty> for $from {
         fn from(value: $ty) -> Self {
-            $from(value.try_into().unwrap())
+            $from(value.try_into().expect("numeric conversion failed"))
         }
     }
 
@@ -255,6 +259,14 @@ pub fn default_web_panel_dist_path() -> PathBuf {
     PathBuf::default()
 }
 
+pub const fn default_lock_account_after_failed_logins() -> u32 {
+    5
+}
+
+pub const fn default_lock_account_duration() -> Duration {
+    Duration::from_mins(15)
+}
+
 pub mod option {
     pub const fn default_network_cmd_port() -> Option<u16> {
         Some(super::default_network_cmd_port())
@@ -266,9 +278,18 @@ pub static SERVER_INFO_PATH: &str = "server_info.json";
 pub static VERSION_SPLIT: LazyLock<ServerVersion> = LazyLock::new(|| {
     let ver = crate::build::PKG_VERSION.split('.').collect::<Vec<_>>();
     ServerVersion {
-        major: ver[0].parse().unwrap(),
-        minor: ver[1].parse().unwrap(),
-        patch: ver[2].parse().unwrap(),
+        major: ver
+            .first()
+            .and_then(|v| v.parse().ok())
+            .expect("invalid version format: missing or invalid major version"),
+        minor: ver
+            .get(1)
+            .and_then(|v| v.parse().ok())
+            .expect("invalid version format: missing or invalid minor version"),
+        patch: ver
+            .get(2)
+            .and_then(|v| v.parse().ok())
+            .expect("invalid version format: missing or invalid patch version"),
     }
 });
 
@@ -289,4 +310,29 @@ pub fn default_oauth_github_client_secret() -> String {
 
 pub const fn default_require_email_verification() -> bool {
     false
+}
+
+/// Default STUN servers for NAT traversal
+/// Uses Google's public STUN servers for development
+pub fn default_stun_servers() -> Vec<String> {
+    vec![
+        "stun:stun.l.google.com:19302".to_string(),
+        "stun:stun1.l.google.com:19302".to_string(),
+    ]
+}
+
+pub fn default_turn_server_url() -> String {
+    "".to_string()
+}
+
+pub fn default_turn_username() -> String {
+    "".to_string()
+}
+
+pub fn default_turn_password() -> String {
+    "".to_string()
+}
+
+pub fn default_turn_ttl() -> u64 {
+    86400 // 24 hours in seconds
 }

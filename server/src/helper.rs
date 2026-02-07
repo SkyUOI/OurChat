@@ -1,7 +1,8 @@
 //! Some utils functions
 use crate::{SERVER_INFO, webrtc::RoomId};
+use anyhow::Context;
 use base::consts::SessionID;
-use rand::Rng;
+use rand::RngExt;
 use snowdon::{
     ClassicLayout, ClassicLayoutSnowflakeExtension, Epoch, Generator, MachineId, Snowflake,
 };
@@ -12,6 +13,7 @@ pub struct SnowflakeParams;
 
 impl Epoch for SnowflakeParams {
     fn millis_since_unix() -> u64 {
+        // 2010-11-04 09:42:54
         1288834974657
     }
 }
@@ -24,6 +26,9 @@ impl MachineId for SnowflakeParams {
 
 pub type MySnowflake = Snowflake<ClassicLayout<SnowflakeParams>, SnowflakeParams>;
 pub type MySnowflakeGenerator = Generator<ClassicLayout<SnowflakeParams>, SnowflakeParams>;
+
+// Three generators share the same machine id and the same epoch, but they will be used in different places.
+// So don't worry about the conflicting when the three are called at the same time
 
 /// A Generator of Snowflake, only being created to generate user id
 pub static USER_ID_GENERATOR: LazyLock<MySnowflakeGenerator> =
@@ -76,9 +81,14 @@ where
 
 pub async fn create_file_with_dirs_if_not_exist<T: AsRef<std::path::Path>>(
     path: T,
-) -> std::io::Result<tokio::fs::File> {
-    tokio::fs::create_dir_all(std::path::Path::new(path.as_ref()).parent().unwrap()).await?;
-    tokio::fs::File::create(path).await
+) -> anyhow::Result<tokio::fs::File> {
+    tokio::fs::create_dir_all(
+        std::path::Path::new(path.as_ref())
+            .parent()
+            .context("It is not a file")?,
+    )
+    .await?;
+    Ok(tokio::fs::File::create(path).await?)
 }
 
 pub fn generate_session_id() -> anyhow::Result<SessionID> {
@@ -87,7 +97,8 @@ pub fn generate_session_id() -> anyhow::Result<SessionID> {
 
 pub fn generate_webrtc_room_id() -> anyhow::Result<RoomId> {
     Ok(RoomId(
-        WEBRTC_ROOM_ID_GENERATOR.generate()?.into_i64() as u64
+        // Safe for the snowflake algorithm now
+        WEBRTC_ROOM_ID_GENERATOR.generate()?.into_i64() as u64,
     ))
 }
 
@@ -105,12 +116,10 @@ pub fn generate_webrtc_room_id() -> anyhow::Result<RoomId> {
 ///
 /// This function will panic if it fails to bind to an address or retrieve the
 /// local address of the listener.
-pub fn get_available_port() -> u16 {
-    std::net::TcpListener::bind("0.0.0.0:0")
-        .unwrap()
-        .local_addr()
-        .unwrap()
-        .port()
+pub fn get_available_port() -> std::io::Result<u16> {
+    Ok(std::net::TcpListener::bind("0.0.0.0:0")?
+        .local_addr()?
+        .port())
 }
 
 #[cfg(test)]

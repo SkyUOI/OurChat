@@ -58,6 +58,7 @@ impl From<MsgError> for AddFriendErr {
                 );
                 Self::Status(Status::not_found(not_found::MSG))
             }
+            MsgError::SerdeError(error) => Self::Internal(error.into()),
         }
     }
 }
@@ -78,19 +79,18 @@ async fn add_friend_impl(
     }
     // save invitation to redis
     let key = friends::mapped_add_friend_to_redis(id, friend_id);
-    let mut conn = server
-        .db
-        .redis_pool
-        .get()
-        .await
-        .context("cannot get redis connection")?;
+    let mut conn = server.db.get_redis_connection().await?;
     let ex = server
         .shared_data
         .cfg()
         .user_setting
         .add_friend_request_expiry;
     let _: () = conn
-        .set_ex(&key, serde_json::to_string(&req).unwrap(), ex.as_secs())
+        .set_ex(
+            &key,
+            serde_json::to_string(&req).context("Can't convert request into json")?,
+            ex.as_secs(),
+        )
         .await?;
     // insert 2 messages
     let respond_msg =
@@ -125,11 +125,7 @@ async fn add_friend_impl(
         time: Some(msg_model.time.into()),
         respond_event_type: Some(respond_msg),
     };
-    let rmq_conn = server
-        .rabbitmq
-        .get()
-        .await
-        .context("cannot get rabbitmq connection")?;
+    let rmq_conn = server.get_rabbitmq_manager().await?;
     let mut conn = rmq_conn
         .create_channel()
         .await

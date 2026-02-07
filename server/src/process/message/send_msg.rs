@@ -61,6 +61,7 @@ impl From<MsgError> for SendMsgErr {
                 Self::Status(Status::permission_denied(PERMISSION_DENIED))
             }
             MsgError::NotFound => Self::Status(Status::not_found(not_found::MSG)),
+            MsgError::SerdeError(error) => Self::Internal(error.into()),
         }
     }
 }
@@ -78,12 +79,7 @@ async fn send_msg_impl(
         Err(Status::permission_denied(not_found::USER_IN_SESSION))?;
     }
     // check mute
-    let mut redis_connection = server
-        .db
-        .redis_pool
-        .get()
-        .await
-        .context("cannot get redis connection")?;
+    let mut redis_connection = server.db.get_redis_connection().await?;
     if user_muted_status(id, req.session_id.into(), &mut redis_connection)
         .await?
         .is_some()
@@ -106,11 +102,7 @@ async fn send_msg_impl(
     });
 
     let sender_id: u64 = id.into();
-    let rmq_conn = server
-        .rabbitmq
-        .get()
-        .await
-        .context("cannot get rabbit connection")?;
+    let rmq_conn = server.get_rabbitmq_manager().await?;
     let mut conn = rmq_conn
         .create_channel()
         .await
@@ -130,7 +122,7 @@ async fn send_msg_impl(
         let last_time = session.room_key_time.with_timezone(&Utc);
         let expire_time: chrono::TimeDelta =
             chrono::Duration::from_std(server.shared_data.cfg().main_cfg.room_key_duration)
-                .unwrap();
+                .context("Failed to convert room_key_duration to chrono duration")?;
         if Utc::now() - last_time > expire_time || session.leaving_to_process {
             let msg = RespondEventType::UpdateRoomKey(UpdateRoomKeyNotification {
                 session_id: session_id.into(),

@@ -81,7 +81,9 @@ trait TestAppTrait {
 impl TestAppTrait for ArgsParser {
     fn test() -> Self {
         Self {
-            port: Some(get_available_port()),
+            port: Some(
+                get_available_port().expect("failed because there is not available port got"),
+            ),
             shared_cfg: ParserCfg {
                 test_mode: true,
                 ..Default::default()
@@ -123,7 +125,6 @@ impl ClientCore {
             clients: Clients {
                 auth: AuthServiceClient::connect(remote_url.clone()).await?,
                 basic: BasicServiceClient::connect(remote_url.clone()).await?,
-                server_manage: ServerManageServiceClient::connect(remote_url.clone()).await?,
             },
             enable_ssl: enabled_tls,
         })
@@ -230,7 +231,14 @@ impl TestApp {
         let connected_channel = connected_channel.connect().await?;
 
         // Construct http client
-        let mut http_client = reqwest::Client::builder().timeout(Duration::from_secs(2));
+        let mut http_client = reqwest::Client::builder()
+            .tls_backend_rustls()
+            .timeout(Duration::from_secs(2));
+        #[cfg(target_os = "macos")]
+        {
+            // On macOS tests, we often use self-signed certificates which are not trusted by default.
+            http_client = http_client.danger_accept_invalid_certs(true);
+        }
         if shared.cfg().http_cfg.tls.is_tls_on()? {
             let cert_path = shared.cfg().http_cfg.tls.ca_tls_cert_path.clone().unwrap();
             let pem = tokio::fs::read(&cert_path).await?;
@@ -254,7 +262,6 @@ impl TestApp {
                 clients: Clients {
                     auth: AuthServiceClient::new(connected_channel.clone()),
                     basic: BasicServiceClient::new(connected_channel.clone()),
-                    server_manage: ServerManageServiceClient::new(connected_channel),
                 },
                 rpc_url: rpc_url.clone(),
                 enable_ssl: enabled_tls,

@@ -161,6 +161,7 @@ class _MainAppState extends State<MainApp> with WindowListener, TrayListener {
     return ChangeNotifierProvider(
         create: (_) => OurChatAppState(),
         child: MaterialApp(
+          title: "OurChat",
           home: Scaffold(
             body: FutureBuilder(
                 future: initConfig(),

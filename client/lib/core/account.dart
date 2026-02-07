@@ -82,6 +82,18 @@ class OurChatAccount {
             email: email,
             password: password,
             name: name,
+            // temporary hardcoded RSA 4096 public key
+            // When using e2ee, this key should be generated on client side
+            publicKey: """-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4HIApvn1bfFYdUQCfvyc
+dJwVRVs0MNwoKN4gRSnNm3jsOF3WOG2boXKwnsMG0BPAOvT5/UHhme7xsD0K7DzF
+tXjL0d1ntBQcPddcH7nufnyfYxHJp7p5VfXc0T3xUB4Sn4bprIZ/zS1e0u64TYUJ
+03hfiSXgzsrSt7JCI6QEMfP8mdIAItIbzS3I/RwnmdvreyMdzzjajcPvVOHKq5NN
+7VUtfpiZbEhzJECHkgPVpzQe4cuQIwNGtPqhEb+uRe0Lsolpvw5wfihx1nx6j3X9
+aoOj+FKc4agHnVwZavuV9s0T6Pg9017iplMbzXeZEWo0hwQa0rhFNvB90beAyCjp
+6wIDAQAB
+-----END PUBLIC KEY-----"""
+                .codeUnits,
           ), (GrpcError e) {
         logger.w("register fail: code ${e.code}, message: ${e.message}");
         // 处理报错

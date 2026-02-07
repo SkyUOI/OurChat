@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package service.ourchat.webrtc.room.promote_admin.v1;
+
+message PromoteRoomAdminRequest {
+  uint64 room_id = 1;
+  uint64 user_id = 2;
+}
+
+message PromoteRoomAdminResponse {
+  bool success = 1;
+}

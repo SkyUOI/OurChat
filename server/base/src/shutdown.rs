@@ -77,7 +77,14 @@ impl ShutdownSdr {
                 }
                 tasks_ref.remove(&task_id);
             });
-            let handle = task.value_mut().shutdown_handle.take().unwrap();
+            let handle = match task.value_mut().shutdown_handle.take() {
+                Some(h) => h,
+                None => {
+                    tracing::error!("task {} missing shutdown handle, skipping", task_id);
+                    *wrong_check.lock() -= 1;
+                    continue;
+                }
+            };
             let name = task.value().name.clone();
             let description = task.value().description.clone();
             let wrong_check2 = wrong_check.clone();
@@ -104,8 +111,10 @@ impl ShutdownSdr {
             operator();
         }
         waiting_finished.join_all().await;
-        if let Some(callback) = self.callback.lock().take() {
-            callback.send(()).unwrap();
+        if let Some(callback) = self.callback.lock().take()
+            && let Err(e) = callback.send(())
+        {
+            tracing::error!("failed to send shutdown completion callback: {:?}", e);
         }
         self.log_all_task();
         Ok(())
@@ -123,7 +132,9 @@ impl ShutdownSdr {
     }
 
     pub fn gen_task_info(tasks: &Tasks, task_id: TaskId) -> anyhow::Result<String> {
-        let task = tasks.get(&task_id).unwrap();
+        let task = tasks
+            .get(&task_id)
+            .ok_or_else(|| anyhow::anyhow!("task {} not found", task_id))?;
         Ok(format!(
             "task {} name: {}, description: {}",
             task_id, task.name, task.description
@@ -142,12 +153,23 @@ impl ShutdownRev {
         let gen_err_info = || ShutdownSdr::gen_task_info(&self.manager_handle, self.task_id);
         match &mut self.receiver {
             Some(receiver) => {
-                if let Err(e) = receiver.await.unwrap().send(()) {
-                    tracing::error!(
-                        "receive shutdown error: {:?};details:{:?}",
-                        e,
-                        gen_err_info()
-                    );
+                match receiver.await {
+                    Ok(sender) => {
+                        if let Err(e) = sender.send(()) {
+                            tracing::error!(
+                                "receive shutdown error: {:?};details:{:?}",
+                                e,
+                                gen_err_info()
+                            );
+                        }
+                    }
+                    Err(e) => {
+                        tracing::error!(
+                            "failed to receive shutdown signal: {:?}; details:{:?}",
+                            e,
+                            gen_err_info()
+                        );
+                    }
                 }
                 self.remove_self();
             }

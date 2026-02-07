@@ -77,7 +77,6 @@ The server is a Rust workspace with multiple crates:
 - **`server/pb/`** - Protobuf code generation
 - **`server/derive/`** - Custom derive macros
 - **`server/base/`** - Base library
-- **`server/load_balancer/`** - Load balancing components
 - **`server/client/`** - Client library
 - **`server/utils/`** - Utility functions
 - **`server/stress_test/`** - Server stress testing
@@ -137,7 +136,6 @@ The server is a Rust workspace with multiple crates:
 - Unit tests throughout the codebase
 - Integration tests in `server/tests/` directory
 - Use `cargo test` to run all tests
-- See `.clinerules/testing.md` for comprehensive testing documentation
 
 #### Test Categories
 

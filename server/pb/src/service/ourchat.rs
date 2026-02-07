@@ -167,5 +167,59 @@ pub mod webrtc {
                 include!("../generated/service.ourchat.webrtc.room.create_room.v1.rs");
             }
         }
+
+        pub mod join_room {
+            pub mod v1 {
+                include!("../generated/service.ourchat.webrtc.room.join_room.v1.rs");
+            }
+        }
+
+        pub mod leave_room {
+            pub mod v1 {
+                include!("../generated/service.ourchat.webrtc.room.leave_room.v1.rs");
+            }
+        }
+
+        pub mod get_room_members {
+            pub mod v1 {
+                include!("../generated/service.ourchat.webrtc.room.get_room_members.v1.rs");
+            }
+        }
+
+        pub mod invite_user {
+            pub mod v1 {
+                include!("../generated/service.ourchat.webrtc.room.invite_user.v1.rs");
+            }
+        }
+
+        pub mod accept_room_invitation {
+            pub mod v1 {
+                include!("../generated/service.ourchat.webrtc.room.accept_room_invitation.v1.rs");
+            }
+        }
+
+        pub mod promote_admin {
+            pub mod v1 {
+                include!("../generated/service.ourchat.webrtc.room.promote_admin.v1.rs");
+            }
+        }
+
+        pub mod demote_admin {
+            pub mod v1 {
+                include!("../generated/service.ourchat.webrtc.room.demote_admin.v1.rs");
+            }
+        }
+
+        pub mod kick_user {
+            pub mod v1 {
+                include!("../generated/service.ourchat.webrtc.room.kick_user.v1.rs");
+            }
+        }
+    }
+
+    pub mod signal {
+        pub mod v1 {
+            include!("../generated/service.ourchat.webrtc.signal.v1.rs");
+        }
     }
 }

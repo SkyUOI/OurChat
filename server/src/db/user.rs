@@ -20,7 +20,7 @@ pub async fn get_account_info_db(
 /// # Errors
 ///
 /// Fails if any error occurs in the database.
-pub async fn get_friends(
+pub async fn get_friends_relationships(
     id: ID,
     db_conn: &impl ConnectionTrait,
 ) -> Result<Vec<friend::Model>, sea_orm::DbErr> {

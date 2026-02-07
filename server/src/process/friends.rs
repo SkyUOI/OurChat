@@ -1,10 +1,12 @@
 use base::consts::ID;
 
+use crate::db::redis::redis_key;
+
 pub mod accept_friend_invitation;
 pub mod add_friend;
 pub mod delete_friend;
 pub mod set_friend_info;
 
 pub fn mapped_add_friend_to_redis(user_id: ID, friend_id: ID) -> String {
-    format!("add_friend:{user_id}:{friend_id}")
+    redis_key!("add_friend:{user_id}:{friend_id}")
 }

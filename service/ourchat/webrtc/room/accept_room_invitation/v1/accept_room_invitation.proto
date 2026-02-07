@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package service.ourchat.webrtc.room.accept_room_invitation.v1;
+
+message AcceptRoomInvitationRequest {
+  uint64 room_id = 1;
+}
+
+message AcceptRoomInvitationResponse {
+  bool success = 1;
+}

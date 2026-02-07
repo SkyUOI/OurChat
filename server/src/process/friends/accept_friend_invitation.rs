@@ -72,6 +72,7 @@ impl From<MsgError> for AcceptFriendErr {
                 );
                 Self::Status(Status::not_found(not_found::MSG))
             }
+            MsgError::SerdeError(error) => Self::Internal(error.into()),
         }
     }
 }
@@ -83,31 +84,17 @@ async fn accept_friend_invitation_impl(
 ) -> Result<AcceptFriendInvitationResponse, AcceptFriendErr> {
     let req = request.into_inner();
     let inviter_id: ID = req.friend_id.into();
-    let mut redis_conn = server
-        .db
-        .redis_pool
-        .get()
-        .await
-        .context("cannot get redis connection")?;
+    let mut redis_conn = server.db.get_redis_connection().await?;
     let key = mapped_add_friend_to_redis(inviter_id, id);
     let exist: bool = redis_conn.exists(&key).await?;
     if !exist {
         Err(Status::not_found(not_found::FRIEND_INVITATION))?;
     }
     let add_friend_req: String = redis_conn.get_del(&key).await?;
-    let add_friend_req: AddFriendRequest = serde_json::from_str(&add_friend_req).unwrap();
+    let add_friend_req: AddFriendRequest = serde_json::from_str(&add_friend_req)
+        .context("Can't convert add_driend_req json into struct")?;
     let mut session_id = None;
     if req.status == AcceptFriendInvitationResult::Success as i32 {
-        // create a session
-        session_id = Some(crate::helper::generate_session_id()?);
-        db::session::create_session_db(
-            session_id.unwrap(),
-            0,
-            "".to_owned(),
-            &server.db.db_pool,
-            false,
-        )
-        .await?;
         let transaction = server.db.db_pool.begin().await?;
         session_id = Some(
             db::friend::add_friend(
@@ -122,11 +109,7 @@ async fn accept_friend_invitation_impl(
         transaction.commit().await?;
     }
     // transmit to both
-    let conn = server
-        .rabbitmq
-        .get()
-        .await
-        .context("cannot get redis connection")?;
+    let conn = server.get_rabbitmq_manager().await?;
     let mut channel = conn
         .create_channel()
         .await

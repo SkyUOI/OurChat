@@ -1,5 +1,6 @@
 use crate::database::postgres::PostgresDbCfg;
 use crate::database::redis::RedisCfg;
+use anyhow::Context;
 use sea_orm::DatabaseConnection;
 
 pub mod postgres;
@@ -36,5 +37,12 @@ impl DbPool {
     pub async fn init(&self) -> anyhow::Result<()> {
         postgres::init_postgres(&self.db_pool).await?;
         Ok(())
+    }
+
+    pub async fn get_redis_connection(&self) -> anyhow::Result<deadpool_redis::Connection> {
+        self.redis_pool
+            .get()
+            .await
+            .context("cannot get redis connection")
     }
 }

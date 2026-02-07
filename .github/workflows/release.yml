@@ -204,7 +204,7 @@ jobs:
       - name: Rename x86_64 apk
         run: mv client/build/app/outputs/flutter-apk/app-x86_64-release.apk  client/build/app/outputs/flutter-apk/OurChat_${{github.ref_name}}_x86_64.apk
       - name: Rename universal apk
-        run: mv client/build/app/outputs/flutter-apk/app-x86_64-release.apk  client/build/app/outputs/flutter-apk/OurChat_${{github.ref_name}}_universal.apk
+        run: mv client/build/app/outputs/flutter-apk/app-release.apk  client/build/app/outputs/flutter-apk/OurChat_${{github.ref_name}}_universal.apk
       - name: Release to Github
         uses: softprops/action-gh-release@v2
         with:

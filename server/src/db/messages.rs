@@ -20,6 +20,8 @@ pub enum MsgError {
     PermissionDenied,
     #[error("not found")]
     NotFound,
+    #[error("serde error:{0:?}")]
+    SerdeError(#[from] serde_json::Error),
 }
 
 /// Get the messages of the sessions which the user is a member of,
@@ -69,10 +71,10 @@ pub async fn del_msg(
         None => return Err(MsgError::NotFound),
         Some(d) => d,
     };
-    if let (Some(owner), Some(sender)) = (deleter_id, msg.sender_id)
-        && i64::from(owner) != sender
+    if let (Some(deleter), Some(sender)) = (deleter_id, msg.sender_id)
+        && i64::from(deleter) != sender
         && !if_permission_exist(
-            owner,
+            deleter,
             session_id,
             PredefinedPermissions::RecallMsg.into(),
             db_conn,
@@ -100,7 +102,7 @@ pub async fn insert_msg_record(
     is_all_user: bool,
 ) -> Result<message_records::Model, MsgError> {
     let msg = message_records::ActiveModel {
-        msg_data: ActiveValue::Set(serde_json::to_value(msg).unwrap()),
+        msg_data: ActiveValue::Set(serde_json::to_value(msg)?),
         sender_id: ActiveValue::Set(sender_id.map(i64::from)),
         session_id: ActiveValue::Set(session_id.map(i64::from)),
         is_encrypted: ActiveValue::Set(is_encrypted),

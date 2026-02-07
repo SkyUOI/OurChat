@@ -4,7 +4,6 @@ members = [
     "server/migration",
     "server/derive",
     "server/base",
-    "server/load_balancer",
     "server/client",
     "server/stress_test",
     "server/entities",
@@ -224,14 +223,14 @@ version = "0.6"
 default-features = false
 features = ["cors", "normalize-path", "fs"]
 
-[workspace.dependencies.webrtc]
-version = "0.14.0"
-default-features = false
+# # [workspace.dependencies.webrtc]
+# version = "0.14.0"
+# default-features = false
 
 [workspace.dependencies.rsa]
 version = "0.10.0-rc.8"
 default-features = false
-features = ["encoding"]
+features = ["encoding", "sha2"]
 
 [workspace.dependencies.cfg-if]
 version = "1"

@@ -3,7 +3,6 @@ use crate::db::session::{get_members, if_permission_exist, leave_session};
 use crate::process::error_msg::PERMISSION_DENIED;
 use crate::process::error_msg::not_found::NOT_BE_BANNED;
 use crate::{process::error_msg::SERVER_ERROR, server::RpcServer};
-use anyhow::Context;
 use base::consts::{ID, SessionID};
 use deadpool_redis::redis::AsyncCommands;
 use migration::predefined::PredefinedPermissions;
@@ -61,12 +60,7 @@ async fn ban_user_impl(
             PERMISSION_DENIED,
         )));
     }
-    let mut conn = server
-        .db
-        .redis_pool
-        .get()
-        .await
-        .context("cannot get redis connection")?;
+    let mut conn = server.db.get_redis_connection().await?;
     let mut exec_ban_user = async |key| {
         match req.duration {
             Some(duration) => {
@@ -147,12 +141,7 @@ async fn unban_user_impl(
             PERMISSION_DENIED,
         )));
     }
-    let mut conn = server
-        .db
-        .redis_pool
-        .get()
-        .await
-        .context("cannot get redis connection")?;
+    let mut conn = server.db.get_redis_connection().await?;
     for i in req.user_ids {
         let user: ID = i.into();
         let key = redis::map_ban_to_redis(req.session_id.into(), user);

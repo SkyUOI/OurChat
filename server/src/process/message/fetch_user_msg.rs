@@ -71,11 +71,7 @@ async fn fetch_user_msg_impl(
     let (tx, rx) = mpsc::channel(32);
     let db_conn = server.db.clone();
     let fetch_page_size = server.shared_data.cfg().main_cfg.db.fetch_msg_page_size;
-    let connection = server
-        .rabbitmq
-        .get()
-        .await
-        .context("cannot get rabbit connection")?;
+    let connection = server.get_rabbitmq_manager().await?;
     tokio::spawn(async move {
         let tx_clone = tx.clone();
         let batch = async move {

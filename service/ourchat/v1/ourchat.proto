@@ -31,7 +31,16 @@ import "service/ourchat/session/set_session_info/v1/set_session_info.proto";
 import "service/ourchat/set_account_info/v1/set_account_info.proto";
 import "service/ourchat/unregister/v1/unregister.proto";
 import "service/ourchat/upload/v1/upload.proto";
+import "service/ourchat/webrtc/room/accept_room_invitation/v1/accept_room_invitation.proto";
 import "service/ourchat/webrtc/room/create_room/v1/create_room.proto";
+import "service/ourchat/webrtc/room/demote_admin/v1/demote_admin.proto";
+import "service/ourchat/webrtc/room/get_room_members/v1/get_room_members.proto";
+import "service/ourchat/webrtc/room/invite_user/v1/invite_user.proto";
+import "service/ourchat/webrtc/room/join_room/v1/join_room.proto";
+import "service/ourchat/webrtc/room/kick_user/v1/kick_user.proto";
+import "service/ourchat/webrtc/room/leave_room/v1/leave_room.proto";
+import "service/ourchat/webrtc/room/promote_admin/v1/promote_admin.proto";
+import "service/ourchat/webrtc/signal/v1/signal.proto";
 
 // Main service of the OurChat
 // JWT is required.If token is missing or out-of-dated,please refer to
@@ -106,6 +115,26 @@ service OurChatService {
   // Webrtc operations
 
   rpc CreateRoom(webrtc.room.create_room.v1.CreateRoomRequest) returns (webrtc.room.create_room.v1.CreateRoomResponse);
+
+  rpc JoinRoom(webrtc.room.join_room.v1.JoinRoomRequest) returns (webrtc.room.join_room.v1.JoinRoomResponse);
+
+  rpc LeaveRoom(webrtc.room.leave_room.v1.LeaveRoomRequest) returns (webrtc.room.leave_room.v1.LeaveRoomResponse);
+
+  rpc GetRoomMembers(webrtc.room.get_room_members.v1.GetRoomMembersRequest) returns (webrtc.room.get_room_members.v1.GetRoomMembersResponse);
+
+  // Room admin operations
+
+  rpc InviteUserToRoom(webrtc.room.invite_user.v1.InviteUserToRoomRequest) returns (webrtc.room.invite_user.v1.InviteUserToRoomResponse);
+
+  rpc AcceptRoomInvitation(webrtc.room.accept_room_invitation.v1.AcceptRoomInvitationRequest) returns (webrtc.room.accept_room_invitation.v1.AcceptRoomInvitationResponse);
+
+  rpc PromoteRoomAdmin(webrtc.room.promote_admin.v1.PromoteRoomAdminRequest) returns (webrtc.room.promote_admin.v1.PromoteRoomAdminResponse);
+
+  rpc DemoteRoomAdmin(webrtc.room.demote_admin.v1.DemoteRoomAdminRequest) returns (webrtc.room.demote_admin.v1.DemoteRoomAdminResponse);
+
+  rpc KickUserFromRoom(webrtc.room.kick_user.v1.KickUserFromRoomRequest) returns (webrtc.room.kick_user.v1.KickUserFromRoomResponse);
+
+  rpc Signal(webrtc.signal.v1.SignalRequest) returns (webrtc.signal.v1.SignalResponse);
 
   rpc SendRoomKey(session.session_room_key.v1.SendRoomKeyRequest) returns (session.session_room_key.v1.SendRoomKeyResponse);
 
