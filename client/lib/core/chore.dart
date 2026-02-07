@@ -93,10 +93,10 @@ void showResultMessage(
   dynamic message = l10n.unknownError;
   switch (code) {
     case okStatusCode:
+      message = l10n.succeeded;
       if (okStatus != null) {
         message = okStatus;
       }
-      message = l10n.succeeded;
       break;
     case cancelledStatusCode:
       if (cancelledStatus != null) {
@@ -192,7 +192,7 @@ void showResultMessage(
           .showSnackBar(SnackBar(content: Text(message[errorMessage])));
     }
   } catch (e) {
-    logger.w("showResultMessage error:$e");
+    logger.w("showResultMessage error: $e");
   }
 }
 
