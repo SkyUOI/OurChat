@@ -262,7 +262,7 @@ default-features = false
 features = ["tokio1", "tokio1-rustls-tls", "smtp-transport", "builder"]
 
 [workspace.dependencies.reqwest]
-version = "0.13.1"
+version = "0.13.2"
 default-features = false
 features = ["json", "rustls"]
 
