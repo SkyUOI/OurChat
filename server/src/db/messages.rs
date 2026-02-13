@@ -7,7 +7,7 @@ use sea_orm::{
 };
 
 use super::session::if_permission_exist;
-use base::consts::{ID, SessionID};
+use base::constants::{ID, SessionID};
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
 
 #[derive(Debug, thiserror::Error)]

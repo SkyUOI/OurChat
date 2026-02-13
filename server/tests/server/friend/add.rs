@@ -1,4 +1,4 @@
-use base::consts::SessionID;
+use base::constants::SessionID;
 use claims::{assert_none, assert_some};
 use client::TestApp;
 use migration::predefined::PredefinedRoles;

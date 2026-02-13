@@ -1,6 +1,6 @@
 use crate::process::error_msg::{ROLE_NAME_EMPTY, SERVER_ERROR};
 use crate::server::RpcServer;
-use base::consts::{ID, SessionID};
+use base::constants::{ID, SessionID};
 use pb::service::ourchat::session::add_role::v1::{AddRoleRequest, AddRoleResponse};
 use sea_orm::{ActiveModelTrait, ActiveValue, EntityTrait, TransactionTrait};
 use tonic::{Request, Response, Status};

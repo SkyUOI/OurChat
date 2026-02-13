@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::SharedData;
 use crate::matrix::defines::MatrixUserId;
 use axum::{Json, extract::State, routing::get};
-use base::consts::OCID;
+use base::constants::OCID;
 use base::setting;
 use http::Uri;
 use serde::{Deserialize, Serialize};

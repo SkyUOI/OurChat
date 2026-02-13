@@ -1,7 +1,7 @@
 #![feature(decl_macro)]
 #![feature(duration_constructors)]
 
-pub mod consts;
+pub mod constants;
 pub mod database;
 pub mod email_client;
 pub mod log;

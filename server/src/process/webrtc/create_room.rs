@@ -4,7 +4,7 @@ use crate::{
     server::RpcServer,
     webrtc::{RoomInfo, empty_room_name, room_admins_key, room_creator_key, room_key},
 };
-use base::consts::ID;
+use base::constants::ID;
 use deadpool_redis::redis::AsyncTypedCommands;
 use pb::service::ourchat::webrtc::room::create_room::v1::{CreateRoomRequest, CreateRoomResponse};
 use tonic::{Request, Response, Status};

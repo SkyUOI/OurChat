@@ -5,7 +5,7 @@ use crate::db::session::get_all_session_relations;
 use crate::process::error_msg::SERVER_ERROR;
 use crate::server::RpcServer;
 use anyhow::Context;
-use base::consts::ID;
+use base::constants::ID;
 use deadpool_redis::redis::AsyncCommands;
 use pb::service::ourchat::get_account_info::v1::{
     GetAccountInfoRequest, GetAccountInfoResponse, OWNER_PRIVILEGE, QueryValues,

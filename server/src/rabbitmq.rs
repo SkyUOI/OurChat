@@ -1,4 +1,4 @@
-use base::consts::ID;
+use base::constants::ID;
 use base::rabbitmq::http_server::VERIFY_QUEUE;
 use deadpool_lapin::lapin::options::{ExchangeDeclareOptions, QueueDeclareOptions};
 use deadpool_lapin::lapin::types::FieldTable;

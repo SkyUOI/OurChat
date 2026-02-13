@@ -4,7 +4,7 @@ use crate::process::error_msg::{PERMISSION_DENIED, not_found};
 use crate::process::{Dest, friends, transmit_msg};
 use crate::{process::error_msg::SERVER_ERROR, server::RpcServer};
 use anyhow::Context;
-use base::consts::ID;
+use base::constants::ID;
 use deadpool_redis::redis::AsyncCommands;
 use entities::prelude::Friend;
 use pb::service::ourchat::friends::add_friend::v1::{

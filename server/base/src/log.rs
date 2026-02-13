@@ -1,4 +1,4 @@
-use crate::consts::{LOG_ENV_VAR, LOG_OUTPUT_DIR};
+use crate::constants::{LOG_ENV_VAR, LOG_OUTPUT_DIR};
 use crate::setting::debug::DebugCfg;
 use crate::wrapper::JobSchedulerWrapper;
 use anyhow::anyhow;

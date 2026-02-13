@@ -1,4 +1,4 @@
-use base::consts::VERSION_SPLIT;
+use base::constants::VERSION_SPLIT;
 use claims::assert_lt;
 use client::TestApp;
 use pb::service::basic::preset_user_status::v1::GetPresetUserStatusRequest;
@@ -43,7 +43,7 @@ async fn get_id_through_ocid() {
     let id = app.get_id(user2.lock().await.ocid.clone()).await.unwrap();
     assert_eq!(id, user2.lock().await.id);
     let err = app
-        .get_id(base::consts::OCID("wrong ocid".to_owned()))
+        .get_id(base::constants::OCID("wrong ocid".to_owned()))
         .await
         .unwrap_err();
     assert_eq!(err.code(), tonic::Code::NotFound);

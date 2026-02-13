@@ -1,4 +1,4 @@
-use base::consts::SessionID;
+use base::constants::SessionID;
 use client::TestApp;
 use sea_orm::TransactionTrait;
 use server::db::session::{get_session_by_id, in_session, join_in_session_or_create};

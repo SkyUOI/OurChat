@@ -1,4 +1,4 @@
-use base::consts::{ID, SessionID};
+use base::constants::{ID, SessionID};
 
 use crate::SERVER_INFO;
 

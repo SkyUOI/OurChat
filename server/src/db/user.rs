@@ -1,7 +1,7 @@
 use entities::{friend, prelude::*, user};
 use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter};
 
-use base::consts::ID;
+use base::constants::ID;
 
 /// Get the user info from the database by id.
 ///

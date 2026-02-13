@@ -1,4 +1,4 @@
-use crate::consts;
+use crate::constants;
 use crate::setting::read_config_and_deserialize;
 use anyhow::bail;
 use lettre::message::header::ContentType;
@@ -18,7 +18,7 @@ type InternalEmailClient = AsyncSmtpTransport<lettre::Tokio1Executor>;
 
 impl EmailClient {
     pub fn new(client: InternalEmailClient, email_address: &str) -> anyhow::Result<Self> {
-        let mailbox = format!("{} <{}>", consts::APP_NAME, email_address).parse()?;
+        let mailbox = format!("{} <{}>", constants::APP_NAME, email_address).parse()?;
         Ok(EmailClient {
             client,
             from: mailbox,

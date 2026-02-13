@@ -3,7 +3,7 @@
 //! For grpc development, a template of unary calling is provided as follows:
 //! ```ignore
 //! use crate::{process::error_msg::SERVER_ERROR, server::RpcServer};
-//! use base::consts::ID;
+//! use base::constants::ID;
 //! use pb::service::ourchat::session::set_role::v1::{SetRoleRequest, SetRoleResponse};
 //! use tonic::{Request, Response, Status};
 //!
@@ -61,7 +61,7 @@ pub mod verify;
 pub mod voip;
 pub mod webrtc;
 
-use base::consts::SessionID;
+use base::constants::SessionID;
 use deadpool_lapin::lapin::options::BasicPublishOptions;
 use entities::message_records;
 use jsonwebtoken::DecodingKey;
@@ -140,7 +140,7 @@ use crate::process::error_msg::SERVER_ERROR;
 use crate::rabbitmq::USER_MSG_BROADCAST_EXCHANGE;
 use crate::rabbitmq::USER_MSG_DIRECT_EXCHANGE;
 use crate::rabbitmq::generate_route_key;
-use base::consts::ID;
+use base::constants::ID;
 use entities::prelude::*;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;

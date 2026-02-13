@@ -1,7 +1,7 @@
 use crate::db::session::in_session;
 use crate::process::error_msg::{NOT_IN_SESSION, SERVER_ERROR, not_found};
 use crate::server::RpcServer;
-use base::consts::{ID, SessionID};
+use base::constants::{ID, SessionID};
 use base::types::RoleId;
 use pb::service::ourchat::session::get_role::v1::{GetRoleRequest, GetRoleResponse};
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};

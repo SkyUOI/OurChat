@@ -1,5 +1,5 @@
 use crate::{process::error_msg::SERVER_ERROR, server::ServerManageServiceProvider};
-use base::consts::ID;
+use base::constants::ID;
 use entities::user;
 use pb::service::server_manage::delete_account::v1::{DeleteAccountRequest, DeleteAccountResponse};
 use sea_orm::{ActiveModelTrait, ActiveValue, ConnectionTrait};

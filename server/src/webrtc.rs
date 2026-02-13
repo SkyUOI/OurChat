@@ -1,4 +1,4 @@
-use base::consts::{ID, impl_from_all_ints};
+use base::constants::{ID, impl_from_all_ints};
 use deadpool_redis::redis::AsyncCommands;
 use derive::RedisHset;
 use utils::{impl_newtype_int, impl_redis_value_from_for_newint};

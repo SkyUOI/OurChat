@@ -173,7 +173,7 @@ fn assert_status_message(err: ClientErr, expected_msg: &str) {
 
 #[tokio::test]
 async fn register_with_default_session() {
-    use base::consts::SessionID;
+    use base::constants::SessionID;
     use server::db::session::{get_session_by_id, in_session};
 
     let (mut config, args) = client::TestApp::get_test_config().unwrap();

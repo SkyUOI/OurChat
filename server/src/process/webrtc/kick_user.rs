@@ -6,7 +6,7 @@ use crate::{
         room_key, room_members_key,
     },
 };
-use base::consts::ID;
+use base::constants::ID;
 use deadpool_redis::redis::AsyncTypedCommands;
 use pb::service::ourchat::webrtc::room::kick_user::v1::{
     KickUserFromRoomRequest, KickUserFromRoomResponse,

@@ -2,7 +2,7 @@ use crate::db::redis::{
     map_ban_all_to_redis, map_ban_to_redis, map_mute_all_to_redis, map_mute_to_redis,
 };
 use base::{
-    consts::{ID, SessionID},
+    constants::{ID, SessionID},
     types::{PermissionId, RoleId},
 };
 use deadpool_redis::redis::AsyncCommands;

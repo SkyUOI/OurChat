@@ -7,7 +7,7 @@ use crate::process::error_msg::{BAN, PERMISSION_DENIED, not_found};
 use crate::process::{Dest, transmit_msg};
 use crate::{db, process::error_msg::SERVER_ERROR, server::RpcServer};
 use anyhow::{Context, anyhow};
-use base::consts::{ID, SessionID};
+use base::constants::{ID, SessionID};
 use bytes::Bytes;
 use migration::predefined::PredefinedPermissions;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;

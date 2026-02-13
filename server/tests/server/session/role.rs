@@ -1,4 +1,4 @@
-use base::{consts::ID, types::RoleId};
+use base::{constants::ID, types::RoleId};
 use client::TestApp;
 use migration::predefined::{PredefinedPermissions, PredefinedRoles};
 use pb::service::ourchat::session::{

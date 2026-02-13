@@ -8,7 +8,7 @@ use anyhow::Context;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
 use axum::routing::get;
-use base::consts;
+use base::constants;
 use base::database::DbPool;
 use base::rabbitmq::http_server::VerifyRecord;
 use deadpool_redis::redis::AsyncCommands;
@@ -97,7 +97,7 @@ pub async fn verify_client(
         if let Err(e) = email_client
             .send(
                 user_mailbox,
-                format!("{} Verification", consts::APP_NAME),
+                format!("{} Verification", constants::APP_NAME),
                 text_body,
                 html_body,
             )

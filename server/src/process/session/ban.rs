@@ -3,7 +3,7 @@ use crate::db::session::{get_members, if_permission_exist, leave_session};
 use crate::process::error_msg::PERMISSION_DENIED;
 use crate::process::error_msg::not_found::NOT_BE_BANNED;
 use crate::{process::error_msg::SERVER_ERROR, server::RpcServer};
-use base::consts::{ID, SessionID};
+use base::constants::{ID, SessionID};
 use deadpool_redis::redis::AsyncCommands;
 use migration::predefined::PredefinedPermissions;
 use pb::service::ourchat::session::ban::v1::{

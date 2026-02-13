@@ -14,7 +14,7 @@ pub mod webrtc;
 
 use crate::config::{Cfg, MainCfg};
 use crate::httpserver::Launcher;
-use base::consts::{self, LOG_OUTPUT_DIR, SERVER_INFO_PATH};
+use base::constants::{self, LOG_OUTPUT_DIR, SERVER_INFO_PATH};
 use base::database::DbPool;
 use base::log;
 use base::shutdown::ShutdownSdr;
@@ -148,7 +148,7 @@ fn load_existing_server_info() -> Result<ServerInfo, ServerInfoError> {
         .and_then(|v| v.as_i64())
         .ok_or(ServerInfoError::InvalidVersion)? as u64;
 
-    let current_version = consts::SERVER_INFO_JSON_VERSION;
+    let current_version = constants::SERVER_INFO_JSON_VERSION;
 
     match version.cmp(&current_version) {
         Ordering::Less => update_server_info(origin_info),
@@ -168,10 +168,10 @@ fn update_server_info(origin_info: serde_json::Value) -> Result<ServerInfo, Serv
         });
 
     let machine_id: u64 = origin_info.get("machine_id").map_or_else(
-        || rand::rng().random_range(0..=consts::MACHINE_ID_MAX),
+        || rand::rng().random_range(0..=constants::MACHINE_ID_MAX),
         |machine_id| {
             serde_json::from_value(machine_id.clone())
-                .unwrap_or_else(|_| rand::rng().random_range(0..=consts::MACHINE_ID_MAX))
+                .unwrap_or_else(|_| rand::rng().random_range(0..=constants::MACHINE_ID_MAX))
         },
     );
 
@@ -189,7 +189,7 @@ fn update_server_info(origin_info: serde_json::Value) -> Result<ServerInfo, Serv
             serde_json::from_value(name.clone()).unwrap_or_else(|_| generate_server_name())
         });
 
-    let version = consts::SERVER_INFO_JSON_VERSION;
+    let version = constants::SERVER_INFO_JSON_VERSION;
 
     let info = ServerInfo {
         unique_id,
@@ -224,7 +224,7 @@ fn write_server_info(info: &ServerInfo) -> Result<(), ServerInfoError> {
 fn create_new_server_info() -> Result<ServerInfo, ServerInfoError> {
     info!("Create server info file");
 
-    let machine_id: u64 = rand::rng().random_range(0..=consts::MACHINE_ID_MAX);
+    let machine_id: u64 = rand::rng().random_range(0..=constants::MACHINE_ID_MAX);
     let server_name = generate_server_name();
 
     let info = ServerInfo {
@@ -232,7 +232,7 @@ fn create_new_server_info() -> Result<ServerInfo, ServerInfoError> {
         machine_id,
         secret: helper::generate_random_string(SECRET_LEN),
         server_name,
-        version: consts::SERVER_INFO_JSON_VERSION,
+        version: constants::SERVER_INFO_JSON_VERSION,
     };
 
     write_server_info(&info)?;
@@ -383,14 +383,14 @@ impl Application {
                 main_cfg.cmd_args.test_mode,
                 Some(&main_cfg.debug),
                 std::io::sink,
-                consts::OURCHAT_LOG_PREFIX,
+                constants::OURCHAT_LOG_PREFIX,
             );
         } else {
             log::logger_init(
                 main_cfg.cmd_args.test_mode,
                 Some(&main_cfg.debug),
                 std::io::stdout,
-                consts::OURCHAT_LOG_PREFIX,
+                constants::OURCHAT_LOG_PREFIX,
             );
         }
         info!("Machine ID: {}", SERVER_INFO.machine_id);
@@ -421,7 +421,7 @@ impl Application {
             tokio_cron_scheduler::JobScheduler::new().await?,
         ));
         log::add_clean_to_scheduler(
-            consts::OURCHAT_LOG_PREFIX,
+            constants::OURCHAT_LOG_PREFIX,
             cfg.main_cfg.log_keep,
             cfg.main_cfg.log_clean_duration,
             sched.lock().await,

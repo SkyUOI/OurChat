@@ -7,7 +7,7 @@ use crate::{
     server::{FetchMsgsStream, RpcServer},
 };
 use anyhow::Context;
-use base::consts::ID;
+use base::constants::ID;
 use deadpool_lapin::lapin::options::{QueueBindOptions, QueueDeclareOptions};
 use deadpool_lapin::lapin::types::FieldTable;
 use pb::{

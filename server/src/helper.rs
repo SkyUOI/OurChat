@@ -1,7 +1,7 @@
 //! Some utils functions
 use crate::{SERVER_INFO, webrtc::RoomId};
 use anyhow::Context;
-use base::consts::SessionID;
+use base::constants::SessionID;
 use rand::RngExt;
 use snowdon::{
     ClassicLayout, ClassicLayoutSnowflakeExtension, Epoch, Generator, MachineId, Snowflake,

@@ -2,7 +2,7 @@ use crate::helper::rabbitmq::{create_random_vhost, delete_vhost};
 use crate::oc_helper::Clients;
 use crate::oc_helper::TestSession;
 use crate::oc_helper::user::{TestUser, TestUserShared};
-use base::consts::{CONFIG_FILE_ENV_VAR, ID, OCID, SessionID};
+use base::constants::{CONFIG_FILE_ENV_VAR, ID, OCID, SessionID};
 use base::database::DbPool;
 use base::shutdown::ShutdownSdr;
 use migration::predefined::PredefinedRoles;

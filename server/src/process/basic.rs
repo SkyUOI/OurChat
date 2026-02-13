@@ -2,7 +2,7 @@ pub mod get_preset_user_status;
 pub mod support;
 
 use anyhow::bail;
-use base::consts::{ID, OCID};
+use base::constants::{ID, OCID};
 use base::database::DbPool;
 use entities::{prelude::*, user};
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};

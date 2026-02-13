@@ -4,7 +4,7 @@ use crate::{
     process::error_msg::{CONFLICT, SERVER_ERROR},
     server::RpcServer,
 };
-use base::consts::{ID, SessionID};
+use base::constants::{ID, SessionID};
 use entities::{role_permissions, user_role_relation};
 use migration::predefined::PredefinedPermissions;
 use pb::service::ourchat::session::set_session_info::v1::{

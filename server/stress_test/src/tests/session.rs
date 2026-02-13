@@ -1,6 +1,6 @@
 use crate::UsersGroup;
 use crate::framework::{Record, Report, StressTest, run_session_stress_test};
-use base::consts::{ID, SessionID};
+use base::constants::{ID, SessionID};
 use dashmap::DashMap;
 use migration::predefined::PredefinedRoles;
 use pb::service::ourchat::session::accept_join_session_invitation::v1::AcceptJoinSessionInvitationRequest;

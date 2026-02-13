@@ -3,7 +3,7 @@ use super::{
     error_msg::{PERMISSION_DENIED, SERVER_ERROR},
 };
 use crate::server::RpcServer;
-use base::consts::ID;
+use base::constants::ID;
 use base::database::DbPool;
 use entities::user;
 use pb::service::ourchat::delete::v1::{DeleteFileRequest, DeleteFileResponse};

@@ -2,7 +2,7 @@ use crate::db::session::{SessionError, get_session_by_id, in_session};
 use crate::process::error_msg::not_found;
 use crate::{db, process::error_msg::SERVER_ERROR, server::RpcServer};
 use anyhow::anyhow;
-use base::consts::{ID, SessionID};
+use base::constants::{ID, SessionID};
 use pb::service::ourchat::session::leave_session::v1::{LeaveSessionRequest, LeaveSessionResponse};
 use sea_orm::{ActiveModelTrait, ActiveValue, IntoActiveModel, TransactionTrait};
 use tonic::{Request, Response, Status};

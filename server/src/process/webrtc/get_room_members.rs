@@ -3,7 +3,7 @@ use crate::{
     server::RpcServer,
     webrtc::{RoomId, room_key, room_members_key},
 };
-use base::consts::ID;
+use base::constants::ID;
 use deadpool_redis::redis::AsyncCommands;
 use pb::service::ourchat::webrtc::room::get_room_members::v1::{
     GetRoomMembersRequest, GetRoomMembersResponse,

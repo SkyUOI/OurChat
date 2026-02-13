@@ -5,7 +5,7 @@ use crate::process::error_msg::{SERVER_ERROR, not_found};
 use crate::process::{Dest, check_user_exist, transmit_msg};
 use crate::{db, helper, server::RpcServer};
 use anyhow::Context;
-use base::consts::{ID, SessionID};
+use base::constants::{ID, SessionID};
 use base::database::DbPool;
 use entities::{friend, prelude::*};
 use migration::predefined::PredefinedRoles;

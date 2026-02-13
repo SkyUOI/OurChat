@@ -1,6 +1,6 @@
 use crate::UsersGroup;
 use crate::framework::{Record, Report, StressTest, run_user_stress_test};
-use base::consts::SessionID;
+use base::constants::SessionID;
 use dashmap::DashMap;
 use pb::service::ourchat::msg_delivery::recall::v1::RecallMsgRequest;
 use pb::service::ourchat::msg_delivery::v1::{FetchMsgsRequest, SendMsgRequest};
@@ -13,10 +13,10 @@ use derive::register_test;
 
 #[register_test("Send Message", WithSessions)]
 pub async fn test_send_msg(
-    sessions: Arc<DashMap<base::consts::ID, SessionID>>,
+    sessions: Arc<DashMap<base::constants::ID, SessionID>>,
     users: &UsersGroup,
     report: &mut Report,
-) -> anyhow::Result<Arc<DashMap<base::consts::ID, u64>>> {
+) -> anyhow::Result<Arc<DashMap<base::constants::ID, u64>>> {
     tracing::info!("▶️  Running test: 'send_msg'");
     let mut stress_test = StressTest::builder().set_concurrency(100).set_requests(100);
     let users = users.clone();
@@ -89,8 +89,8 @@ pub async fn test_fetch_msgs(users: &UsersGroup, report: &mut Report) {
 
 #[register_test("Recall Message", WithSessions)]
 pub async fn test_recall(
-    sessions: Arc<DashMap<base::consts::ID, SessionID>>,
-    msg_ids: Arc<DashMap<base::consts::ID, u64>>,
+    sessions: Arc<DashMap<base::constants::ID, SessionID>>,
+    msg_ids: Arc<DashMap<base::constants::ID, u64>>,
     users: &UsersGroup,
     report: &mut Report,
 ) {

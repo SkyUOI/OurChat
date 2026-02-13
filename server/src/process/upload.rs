@@ -7,7 +7,7 @@ use crate::{
     },
     server::RpcServer,
 };
-use base::consts::{ID, SessionID};
+use base::constants::{ID, SessionID};
 use entities::{files, prelude::*, user};
 use pb::service::ourchat::upload::v1::{UploadRequest, UploadResponse, upload_request};
 use sea_orm::{

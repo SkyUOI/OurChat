@@ -1,7 +1,7 @@
 use crate::db::friend::query_friend;
 use crate::process::error_msg::not_found;
 use crate::{db, process::error_msg::SERVER_ERROR, server::RpcServer};
-use base::consts::ID;
+use base::constants::ID;
 use pb::service::ourchat::friends::delete_friend::v1::{DeleteFriendRequest, DeleteFriendResponse};
 use tonic::{Request, Response, Status};
 

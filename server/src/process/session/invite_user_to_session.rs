@@ -1,4 +1,4 @@
-use base::consts::ID;
+use base::constants::ID;
 use pb::service::ourchat::session::{
     invite_user_to_session::v1::{InviteUserToSessionRequest, InviteUserToSessionResponse},
     new_session::v1::{FailedMember, FailedReason},

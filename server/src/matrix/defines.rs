@@ -1,4 +1,4 @@
-use base::consts::OCID;
+use base::constants::OCID;
 use utils::impl_newtype_string;
 
 impl_newtype_string!(MatrixUserId, serde::Serialize, serde::Deserialize);

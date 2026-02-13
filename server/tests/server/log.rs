@@ -4,7 +4,7 @@ use std::{
     time::Duration,
 };
 
-use base::consts::{LOG_OUTPUT_DIR, OURCHAT_LOG_PREFIX};
+use base::constants::{LOG_OUTPUT_DIR, OURCHAT_LOG_PREFIX};
 use chrono::Datelike;
 use client::TestApp;
 

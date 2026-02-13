@@ -3,7 +3,7 @@ use crate::oc_helper::FAKE_MANAGER;
 use crate::oc_helper::client::{OCClient, ServerManageClient};
 use crate::oc_helper::{ClientErr, Clients};
 use anyhow::Context;
-use base::consts::{ID, JWT_HEADER, OCID, SessionID};
+use base::constants::{ID, JWT_HEADER, OCID, SessionID};
 use base::setting::tls::TlsConfig;
 use bytes::Bytes;
 use migration::predefined::PredefinedServerManagementRole;

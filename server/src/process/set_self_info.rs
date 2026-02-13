@@ -11,7 +11,7 @@ use crate::{
     server::RpcServer,
 };
 use anyhow::{Context, anyhow};
-use base::consts::ID;
+use base::constants::ID;
 use chrono::Duration;
 use deadpool_redis::redis::AsyncCommands;
 use entities::user;

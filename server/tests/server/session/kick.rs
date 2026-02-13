@@ -1,4 +1,4 @@
-use base::consts::SessionID;
+use base::constants::SessionID;
 use server::db::session::{get_all_session_relations, get_session_by_id};
 use server::process::error_msg::{PERMISSION_DENIED, not_found};
 

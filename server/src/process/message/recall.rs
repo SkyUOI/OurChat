@@ -9,7 +9,7 @@ use crate::{
     server::RpcServer,
 };
 use anyhow::Context;
-use base::consts::ID;
+use base::constants::ID;
 use pb::service::ourchat::msg_delivery::recall::v1::{
     RecallMsgRequest, RecallMsgResponse, RecallNotification,
 };

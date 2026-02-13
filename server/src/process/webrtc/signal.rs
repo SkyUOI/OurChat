@@ -3,7 +3,7 @@ use crate::{
     rabbitmq::{WEBRTC_SIGNAL_EXCHANGE, generate_webrtc_route_key},
     server::RpcServer,
 };
-use base::consts::ID;
+use base::constants::ID;
 use deadpool_lapin::lapin::BasicProperties;
 use deadpool_lapin::lapin::options::BasicPublishOptions;
 use pb::service::ourchat::webrtc::signal::v1::{SignalRequest, SignalResponse, SignalType};

@@ -1,5 +1,5 @@
 use crate::{process::error_msg::SERVER_ERROR, server::RpcServer};
-use base::consts::ID;
+use base::constants::ID;
 use entities::user;
 use migration::predefined::AccountStatus;
 use pb::service::ourchat::unregister::v1::{UnregisterRequest, UnregisterResponse};

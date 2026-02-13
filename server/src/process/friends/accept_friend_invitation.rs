@@ -5,7 +5,7 @@ use crate::process::friends::mapped_add_friend_to_redis;
 use crate::process::{Dest, transmit_msg};
 use crate::{db, process::error_msg::SERVER_ERROR, server::RpcServer};
 use anyhow::Context;
-use base::consts::ID;
+use base::constants::ID;
 use deadpool_redis::redis::AsyncCommands;
 use pb::service::ourchat::friends::accept_friend_invitation::v1::{
     AcceptFriendInvitationRequest, AcceptFriendInvitationResponse, AcceptFriendInvitationResult,

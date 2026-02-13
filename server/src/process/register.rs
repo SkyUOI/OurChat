@@ -5,7 +5,7 @@ use crate::process::error_msg::{SERVER_ERROR, exist};
 use crate::{db, helper, server::AuthServiceProvider};
 use anyhow::Context;
 use argon2::{Params, PasswordHasher};
-use base::consts::{self, ID};
+use base::constants::{self, ID};
 use base::database::DbPool;
 use entities::user;
 use migration::constants::USERNAME_MAX_LEN;
@@ -47,7 +47,7 @@ async fn add_new_user(
         .into_i64()
         .try_into()?);
     // Generate ocid by random
-    let ocid = helper::generate_ocid(consts::OCID_LEN);
+    let ocid = helper::generate_ocid(constants::OCID_LEN);
     let passwd = request.password;
     let passwd =
         helper::spawn_blocking_with_tracing(move || compute_password_hash(&passwd, params))

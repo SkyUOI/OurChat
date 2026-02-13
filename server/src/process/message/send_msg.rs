@@ -7,7 +7,7 @@ use crate::{
     server::RpcServer,
 };
 use anyhow::{Context, anyhow};
-use base::consts::ID;
+use base::constants::ID;
 use chrono::Utc;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
 use pb::service::ourchat::msg_delivery::v1::{Msg, SendMsgRequest, SendMsgResponse};

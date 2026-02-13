@@ -5,7 +5,7 @@ use crate::{
     process::error_msg::SERVER_ERROR,
     server::{DownloadStream, RpcServer},
 };
-use base::consts::ID;
+use base::constants::ID;
 use base::database::DbPool;
 use bytes::BytesMut;
 use entities::session_relation;

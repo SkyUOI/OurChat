@@ -1,5 +1,5 @@
 use anyhow::Context;
-use base::consts::ID;
+use base::constants::ID;
 use pb::service::ourchat::{
     msg_delivery::v1::fetch_msgs_response::RespondEventType,
     session::{

@@ -2,7 +2,7 @@ use crate::db::manager::manage_permission_existed;
 use crate::db::session::{SessionError, get_session_by_id, if_permission_exist};
 use crate::process::error_msg::{PERMISSION_DENIED, not_found};
 use crate::{db, process::error_msg::SERVER_ERROR, server::RpcServer};
-use base::consts::{ID, SessionID};
+use base::constants::{ID, SessionID};
 use migration::predefined::{PredefinedPermissions, PredefinedServerManagementPermission};
 use pb::service::ourchat::session::delete_session::v1::{
     DeleteSessionRequest, DeleteSessionResponse,

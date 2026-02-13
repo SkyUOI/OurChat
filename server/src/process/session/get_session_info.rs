@@ -3,7 +3,7 @@ use crate::db::manager::manage_permission_existed;
 use crate::db::session::in_session;
 use crate::process::error_msg::{self, REQUEST_INVALID_VALUE, SERVER_ERROR, not_found};
 use crate::{db, server::RpcServer};
-use base::consts::ID;
+use base::constants::ID;
 use migration::predefined::PredefinedServerManagementPermission;
 use pb::service::ourchat::session::get_session_info::v1::RoleInfo;
 use pb::service::ourchat::session::get_session_info::v1::{

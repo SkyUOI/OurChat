@@ -1,4 +1,4 @@
-use base::consts::ID;
+use base::constants::ID;
 
 use crate::db::redis::redis_key;
 

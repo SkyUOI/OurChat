@@ -10,7 +10,7 @@ use utils::{merge_json, serde_default};
 
 use crate::{ParserCfg, config::http::HttpCfg};
 use base::{
-    consts::{self, CONFIG_FILE_ENV_VAR, SessionID},
+    constants::{self, CONFIG_FILE_ENV_VAR, SessionID},
     database::{postgres::PostgresDbCfg, redis::RedisCfg},
     rabbitmq::RabbitMQCfg,
     setting::{self, PathConvert, Setting, UserSetting, debug::DebugCfg},
@@ -65,11 +65,11 @@ pub enum UnregisterPolicy {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct OAuthCfg {
-    #[serde(default = "base::consts::default_oauth_enable")]
+    #[serde(default = "base::constants::default_oauth_enable")]
     pub enable: bool,
-    #[serde(default = "base::consts::default_oauth_github_client_id")]
+    #[serde(default = "base::constants::default_oauth_github_client_id")]
     pub github_client_id: String,
-    #[serde(default = "base::consts::default_oauth_github_client_secret")]
+    #[serde(default = "base::constants::default_oauth_github_client_secret")]
     pub github_client_secret: String,
 }
 
@@ -77,13 +77,13 @@ serde_default!(OAuthCfg);
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PasswordHash {
-    #[serde(default = "consts::default_m_cost")]
+    #[serde(default = "constants::default_m_cost")]
     pub m_cost: u32,
-    #[serde(default = "consts::default_t_cost")]
+    #[serde(default = "constants::default_t_cost")]
     pub t_cost: u32,
-    #[serde(default = "consts::default_p_cost")]
+    #[serde(default = "constants::default_p_cost")]
     pub p_cost: u32,
-    #[serde(default = "consts::default_output_len")]
+    #[serde(default = "constants::default_output_len")]
     pub output_len: Option<usize>,
 }
 
@@ -92,26 +92,26 @@ serde_default!(PasswordHash);
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct VOIP {
     #[serde(
-        default = "consts::default_keep_voip_room_keep_duration",
+        default = "constants::default_keep_voip_room_keep_duration",
         with = "humantime_serde"
     )]
     pub empty_room_keep_duration: Duration,
-    #[serde(default = "consts::default_stun_servers")]
+    #[serde(default = "constants::default_stun_servers")]
     pub stun_servers: Vec<String>,
     /// Whether TURN server is enabled
     #[serde(default)]
     pub turn_enabled: bool,
     /// TURN server URL (e.g., "turn:example.com:3478")
-    #[serde(default = "consts::default_turn_server_url")]
+    #[serde(default = "constants::default_turn_server_url")]
     pub turn_server_url: String,
     /// TURN username for authentication
-    #[serde(default = "consts::default_turn_username")]
+    #[serde(default = "constants::default_turn_username")]
     pub turn_username: String,
     /// TURN password for authentication
-    #[serde(default = "consts::default_turn_password")]
+    #[serde(default = "constants::default_turn_password")]
     pub turn_password: String,
     /// TTL for TURN credentials in seconds
-    #[serde(default = "consts::default_turn_ttl")]
+    #[serde(default = "constants::default_turn_ttl")]
     pub turn_ttl: u64,
 }
 
@@ -119,7 +119,7 @@ serde_default!(VOIP);
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DbArgCfg {
-    #[serde(default = "consts::default_fetch_msg_page_size")]
+    #[serde(default = "constants::default_fetch_msg_page_size")]
     pub fetch_msg_page_size: u64,
 }
 
@@ -136,47 +136,50 @@ pub struct RawMainCfg {
     pub http_cfg: PathBuf,
     #[serde(default)]
     pub inherit: Option<String>,
-    #[serde(default = "consts::default_clear_interval")]
+    #[serde(default = "constants::default_clear_interval")]
     pub auto_clean_duration: croner::Cron,
-    #[serde(default = "consts::default_file_save_time", with = "humantime_serde")]
+    #[serde(
+        default = "constants::default_file_save_time",
+        with = "humantime_serde"
+    )]
     pub files_save_time: Duration,
-    #[serde(default = "consts::default_user_files_store_limit")]
+    #[serde(default = "constants::default_user_files_store_limit")]
     pub user_files_limit: Size,
-    #[serde(default = "consts::default_friends_number_limit")]
+    #[serde(default = "constants::default_friends_number_limit")]
     pub friends_number_limit: u32,
-    #[serde(default = "consts::default_files_storage_path")]
+    #[serde(default = "constants::default_files_storage_path")]
     pub files_storage_path: PathBuf,
-    #[serde(default = "consts::default_enable_file_cache")]
+    #[serde(default = "constants::default_enable_file_cache")]
     pub enable_file_cache: bool,
-    #[serde(default = "consts::default_enable_hierarchical_storage")]
+    #[serde(default = "constants::default_enable_hierarchical_storage")]
     pub enable_hierarchical_storage: bool,
-    #[serde(default = "consts::default_enable_file_deduplication")]
+    #[serde(default = "constants::default_enable_file_deduplication")]
     pub enable_file_deduplication: bool,
-    #[serde(default = "consts::default_cache_max_size")]
+    #[serde(default = "constants::default_cache_max_size")]
     pub cache_max_size: Size,
     #[serde(
-        default = "consts::default_verification_expire_time",
+        default = "constants::default_verification_expire_time",
         with = "humantime_serde"
     )]
     pub verification_expire_time: Duration,
     #[serde(
-        default = "consts::default_user_defined_status_expire_time",
+        default = "constants::default_user_defined_status_expire_time",
         with = "humantime_serde"
     )]
     pub user_defined_status_expire_time: Duration,
     #[serde(
-        default = "consts::default_log_clean_duration",
+        default = "constants::default_log_clean_duration",
         with = "humantime_serde"
     )]
     pub log_clean_duration: Duration,
-    #[serde(default = "consts::default_log_keep", with = "humantime_serde")]
+    #[serde(default = "constants::default_log_keep", with = "humantime_serde")]
     pub log_keep: Duration,
-    #[serde(default = "consts::default_single_instance")]
+    #[serde(default = "constants::default_single_instance")]
     pub single_instance: bool,
-    #[serde(default = "consts::default_leader_node")]
+    #[serde(default = "constants::default_leader_node")]
     pub leader_node: bool,
     #[serde(
-        default = "consts::default_room_key_duration",
+        default = "constants::default_room_key_duration",
         with = "humantime_serde"
     )]
     pub room_key_duration: Duration,
@@ -192,15 +195,15 @@ pub struct RawMainCfg {
     pub voip: VOIP,
     #[serde(default)]
     pub oauth: OAuthCfg,
-    #[serde(default = "consts::default_require_email_verification")]
+    #[serde(default = "constants::default_require_email_verification")]
     pub require_email_verification: bool,
     #[serde(default)]
     pub default_session: Option<SessionID>,
 
-    #[serde(default = "consts::default_lock_account_after_failed_logins")]
+    #[serde(default = "constants::default_lock_account_after_failed_logins")]
     pub lock_account_after_failed_logins: u32,
     #[serde(
-        default = "consts::default_lock_account_duration",
+        default = "constants::default_lock_account_duration",
         with = "humantime_serde"
     )]
     pub lock_account_duration: Duration,

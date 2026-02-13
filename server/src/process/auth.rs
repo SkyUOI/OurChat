@@ -8,7 +8,7 @@ use crate::{
 };
 use anyhow::Context;
 use argon2::{PasswordHash, PasswordVerifier};
-use base::consts::ID;
+use base::constants::ID;
 use base::database::DbPool;
 use deadpool_redis::redis::AsyncCommands;
 use entities::{prelude::*, user};

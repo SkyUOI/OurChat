@@ -11,7 +11,7 @@ mod leave;
 mod mute;
 mod role;
 
-use base::consts::{ID, SessionID};
+use base::constants::{ID, SessionID};
 use base::types::RoleId;
 use claims::{assert_lt, assert_ok};
 use client::TestApp;

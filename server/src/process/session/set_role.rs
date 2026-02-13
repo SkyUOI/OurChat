@@ -3,7 +3,7 @@ use crate::{
     process::error_msg::{PERMISSION_DENIED, SERVER_ERROR, not_found::USER_IN_SESSION},
     server::RpcServer,
 };
-use base::consts::ID;
+use base::constants::ID;
 use base::types::RoleId;
 use migration::predefined::PredefinedPermissions;
 use pb::service::ourchat::session::set_role::v1::{SetRoleRequest, SetRoleResponse};

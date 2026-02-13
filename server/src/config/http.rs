@@ -27,12 +27,12 @@ pub struct HttpCfg {
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct RateLimitCfg {
-    #[serde(default = "base::consts::default_rate_limit_enable")]
+    #[serde(default = "base::constants::default_rate_limit_enable")]
     pub enable: bool,
-    #[serde(default = "base::consts::default_rate_limit_burst")]
+    #[serde(default = "base::constants::default_rate_limit_burst")]
     pub num_of_burst_requests: u32,
     #[serde(
-        default = "base::consts::default_rate_limit_replenish_duration",
+        default = "base::constants::default_rate_limit_replenish_duration",
         with = "humantime_serde"
     )]
     pub replenish_duration: Duration,
@@ -42,9 +42,9 @@ serde_default!(RateLimitCfg);
 
 #[derive(Deserialize, Serialize, Clone, Debug, derive::PathConvert)]
 pub struct WebPanelCfg {
-    #[serde(default = "base::consts::default_web_panel_enable")]
+    #[serde(default = "base::constants::default_web_panel_enable")]
     pub enable: bool,
-    #[serde(default = "base::consts::default_web_panel_dist_path")]
+    #[serde(default = "base::constants::default_web_panel_dist_path")]
     pub dist_path: PathBuf,
 }
 
@@ -56,24 +56,27 @@ serde_default!(WebPanelCfg);
 pub struct RawHttpCfg {
     #[serde(default)]
     pub inherit: Option<PathBuf>,
-    #[serde(default = "base::consts::default_ip")]
+    #[serde(default = "base::constants::default_ip")]
     pub ip: String,
-    #[serde(default = "base::consts::default_port")]
+    #[serde(default = "base::constants::default_port")]
     pub port: u16,
     pub logo_path: PathBuf,
     #[serde(default)]
     pub verification_html_template_path: Option<PathBuf>,
     pub default_avatar_path: PathBuf,
-    #[serde(default = "base::consts::default_http_run_migration")]
+    #[serde(default = "base::constants::default_http_run_migration")]
     pub run_migration: bool,
-    #[serde(default = "base::consts::default_enable_matrix")]
+    #[serde(default = "base::constants::default_enable_matrix")]
     pub enable_matrix: bool,
     #[serde(
-        default = "base::consts::default_log_clean_duration",
+        default = "base::constants::default_log_clean_duration",
         with = "humantime_serde"
     )]
     pub log_clean_duration: Duration,
-    #[serde(default = "base::consts::default_log_keep", with = "humantime_serde")]
+    #[serde(
+        default = "base::constants::default_log_keep",
+        with = "humantime_serde"
+    )]
     pub lop_keep: Duration,
     #[serde(default)]
     pub tls: TlsConfig,

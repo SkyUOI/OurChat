@@ -1,4 +1,4 @@
-use base::{consts::CONFIG_FILE_ENV_VAR, setting::read_config_and_deserialize};
+use base::{constants::CONFIG_FILE_ENV_VAR, setting::read_config_and_deserialize};
 use serde::Deserialize;
 use server::get_configuration;
 use std::{
@@ -50,7 +50,7 @@ async fn test_merge_config() -> anyhow::Result<()> {
     // Verify merge results
     assert_eq!(
         config.main_cfg.user_files_limit,
-        base::consts::default_user_files_store_limit()
+        base::constants::default_user_files_store_limit()
     ); // Should use override value
     assert_eq!(config.main_cfg.password_hash.m_cost, 4096); // Should use override value
     assert_eq!(config.main_cfg.password_hash.t_cost, 2); // Should keep base value

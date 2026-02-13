@@ -10,7 +10,7 @@ use crate::process::error_msg::{self, ACCOUNT_DELETED, SERVER_ERROR};
 use crate::process::{self, ErrAuth};
 use crate::{SERVER_INFO, SharedData};
 use anyhow::Context;
-use base::consts::{ID, JWT_HEADER, OCID, VERSION_SPLIT};
+use base::constants::{ID, JWT_HEADER, OCID, VERSION_SPLIT};
 use base::database::DbPool;
 use migration::predefined::AccountStatus;
 use pb::service::auth::authorize::v1::{AuthRequest, AuthResponse};

@@ -1,4 +1,4 @@
-use base::consts::SessionID;
+use base::constants::SessionID;
 use bytes::Bytes;
 use fake::Fake;
 use fake::faker::internet::raw::FreeEmail;

@@ -1,4 +1,4 @@
-use base::consts::{ID, SessionID};
+use base::constants::{ID, SessionID};
 use migration::predefined::PredefinedRoles;
 use sea_orm::{ActiveModelTrait, ActiveValue, ConnectionTrait, EntityTrait};
 

@@ -1,6 +1,6 @@
 use crate::db::redis;
 use crate::{process::error_msg::SERVER_ERROR, server::ServerManageServiceProvider};
-use base::consts::ID;
+use base::constants::ID;
 use deadpool_redis::redis::AsyncCommands;
 use migration::predefined::PredefinedServerManagementPermission;
 use pb::service::server_manage::user_manage::v1::{BanUserRequest, BanUserResponse};

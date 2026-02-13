@@ -3,7 +3,7 @@ use crate::{
     server::RpcServer,
     webrtc::{RoomId, is_room_admin, room_invitations_key, room_key},
 };
-use base::consts::ID;
+use base::constants::ID;
 use deadpool_redis::redis::AsyncTypedCommands;
 use pb::service::ourchat::webrtc::room::invite_user::v1::{
     InviteUserToRoomRequest, InviteUserToRoomResponse,

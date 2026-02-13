@@ -6,7 +6,7 @@ use crate::{
         RoomId, RoomInfo, room_invitations_key, room_joined_users_key, room_key, room_members_key,
     },
 };
-use base::consts::ID;
+use base::constants::ID;
 use deadpool_lapin::lapin::BasicProperties;
 use deadpool_lapin::lapin::options::BasicPublishOptions;
 use deadpool_redis::redis::AsyncTypedCommands;

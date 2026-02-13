@@ -3,7 +3,7 @@ use crate::db::redis::map_mute_all_to_redis;
 use crate::db::session::if_permission_exist;
 use crate::process::error_msg::{PERMISSION_DENIED, SERVER_ERROR, not_found::NOT_BE_MUTED};
 use crate::server::RpcServer;
-use base::consts::ID;
+use base::constants::ID;
 use deadpool_redis::redis::AsyncCommands;
 use migration::predefined::PredefinedPermissions;
 use pb::service::ourchat::session::mute::v1::{

@@ -3,9 +3,9 @@ use std::path::PathBuf;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TlsConfig {
-    #[serde(default = "crate::consts::default_tls")]
+    #[serde(default = "crate::constants::default_tls")]
     pub enable: bool,
-    #[serde(default = "crate::consts::default_client_certificate_required")]
+    #[serde(default = "crate::constants::default_client_certificate_required")]
     pub client_certificate_required: bool,
     pub server_tls_cert_path: Option<PathBuf>,
     pub server_key_cert_path: Option<PathBuf>,

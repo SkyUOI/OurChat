@@ -3,7 +3,7 @@ use crate::process::error_msg::{PERMISSION_DENIED, not_found};
 use crate::process::{Dest, MsgInsTransmitErr};
 use crate::{db, process::error_msg::SERVER_ERROR, server::RpcServer};
 use anyhow::Context;
-use base::consts::{ID, SessionID};
+use base::constants::{ID, SessionID};
 use migration::predefined::PredefinedPermissions;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
 use pb::service::ourchat::session::allow_user_join_session::v1::{

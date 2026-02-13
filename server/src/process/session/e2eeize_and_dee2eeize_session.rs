@@ -1,5 +1,5 @@
 use anyhow::{Context, anyhow};
-use base::consts::ID;
+use base::constants::ID;
 use chrono::Utc;
 use migration::predefined::PredefinedPermissions;
 use pb::service::ourchat::{

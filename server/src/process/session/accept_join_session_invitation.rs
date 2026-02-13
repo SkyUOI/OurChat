@@ -4,7 +4,7 @@ use crate::process::error_msg::not_found;
 use crate::process::{Dest, MsgInsTransmitErr, error_msg, message_insert_and_transmit};
 use crate::{process::error_msg::SERVER_ERROR, server::RpcServer};
 use anyhow::{Context, anyhow};
-use base::consts::{ID, SessionID};
+use base::constants::{ID, SessionID};
 use entities::session_invitation;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
 use pb::service::ourchat::session::accept_join_session_invitation::v1::{

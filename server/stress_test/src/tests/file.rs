@@ -1,6 +1,6 @@
 use crate::UsersGroup;
 use crate::framework::{Record, Report, StressTest};
-use base::consts::OCID;
+use base::constants::OCID;
 use client::helper;
 use dashmap::DashMap;
 use size::Size;

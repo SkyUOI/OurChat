@@ -42,16 +42,16 @@ pub struct UserSetting {
     pub contacts: Vec<Contact>,
     #[serde(with = "http_serde::option::uri")]
     pub support_page: Option<http::Uri>,
-    #[serde(default = "crate::consts::default_password_strength_limit")]
+    #[serde(default = "crate::constants::default_password_strength_limit")]
     pub password_strength_limit: zxcvbn::Score,
     #[serde(
         with = "humantime_serde",
-        default = "crate::consts::default_verify_email_expiry"
+        default = "crate::constants::default_verify_email_expiry"
     )]
     pub verify_email_expiry: Duration,
     #[serde(
         with = "humantime_serde",
-        default = "crate::consts::default_add_friend_request_expiry"
+        default = "crate::constants::default_add_friend_request_expiry"
     )]
     pub add_friend_request_expiry: Duration,
 }

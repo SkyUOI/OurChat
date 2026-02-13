@@ -292,7 +292,7 @@ pub async fn run_user_stress_test<F, R>(
 pub async fn run_session_stress_test<F, R>(
     report: &mut Report,
     test_name: &str,
-    sessions: Arc<dashmap::DashMap<base::consts::ID, base::consts::SessionID>>,
+    sessions: Arc<dashmap::DashMap<base::constants::ID, base::constants::SessionID>>,
     users: &[Arc<tokio::sync::Mutex<client::oc_helper::user::TestUser>>],
     concurrency: usize,
     requests: usize,
@@ -302,7 +302,7 @@ pub async fn run_session_stress_test<F, R>(
             Arc<tokio::sync::Mutex<client::oc_helper::user::TestUser>>,
             usize,
             Vec<Arc<tokio::sync::Mutex<client::oc_helper::user::TestUser>>>,
-            Arc<dashmap::DashMap<base::consts::ID, base::consts::SessionID>>,
+            Arc<dashmap::DashMap<base::constants::ID, base::constants::SessionID>>,
         ) -> R
         + Send
         + Sync
