@@ -56,12 +56,12 @@ class _UpdateWidgetState extends State<UpdateWidget> {
                     }
                     Stream<OtaEvent> stream;
                     if (Platform.isAndroid) {
-                      AndroidOtaUpdate otaUpdate = AndroidOtaUpdate();
+                      OtaUpdate otaUpdate = OtaUpdate();
                       stream = otaUpdate.execute(snapshot.data,
                           destinationFilename: "OurChat.apk",
                           usePackageInstaller: true);
                     } else {
-                      DesktopOtaUpdate otaUpdate = DesktopOtaUpdate();
+                      OtaUpdate otaUpdate = OtaUpdate();
                       stream = otaUpdate.execute(snapshot.data,
                           destinationFilename: "OurChat.tar.gz");
                     }
