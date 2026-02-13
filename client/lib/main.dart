@@ -17,6 +17,7 @@ import 'package:ourchat/core/log.dart';
 import 'package:ourchat/auth.dart';
 import 'package:ourchat/home.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_single_instance/flutter_single_instance.dart';
 
 // Conditionally import desktop-specific packages only when not on web
 import 'package:window_manager/window_manager.dart'
@@ -75,6 +76,10 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
     await windowManager.ensureInitialized();
+    if (!await FlutterSingleInstance().isFirstInstance()) {
+      await FlutterSingleInstance().focus();
+      exit(0);
+    }
     WindowOptions windowOptions = const WindowOptions(
       minimumSize: Size(900, 600),
       center: true,
@@ -255,7 +260,6 @@ class _MainAppState extends State<MainApp> with WindowListener, TrayListener {
   void onTrayMenuItemClick(MenuItem menuItem) {
     if (menuItem.key == "show") {
       windowManager.show();
-      windowManager.focus();
       stopFlashTray();
     } else if (menuItem.key == "exit") {
       trayManager.destroy();
@@ -267,7 +271,6 @@ class _MainAppState extends State<MainApp> with WindowListener, TrayListener {
   @override
   void onTrayIconMouseDown() {
     windowManager.show();
-    windowManager.focus();
     stopFlashTray();
     super.onTrayIconMouseDown();
   }
