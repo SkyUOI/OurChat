@@ -11,10 +11,10 @@ wasmtime-wasi = "41.0.3"
 wasmtime-wasi-http = "41.0.3"
 
 # WIT binding generation
-wit-bindgen = "0.52.0"
-wit-bindgen-core = "0.52.0"
-wit-bindgen-rust = "0.52.0"
-wit-component = "0.244.0"
+wit-bindgen = "0.53.0"
+wit-bindgen-core = "0.53.0"
+wit-bindgen-rust = "0.53.0"
+wit-component = "0.245.1"
 
 # Serialization
 serde.workspace = true
