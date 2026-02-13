@@ -1,8 +1,15 @@
 //! OurChat Plugin SDK
 //!
-//! This SDK provides type-safe bindings for developing OurChat plugins.
+//! This SDK provides helper traits and types for developing OurChat plugins.
+//!
+//! Plugin authors should use `wit_bindgen::generate!()` in their plugin
+//! to generate the actual WIT bindings, then implement the traits provided
+//! by this SDK.
 
-/// Logging functions
+// Include the bindings placeholder (not actual generated code)
+mod bindings;
+
+/// Convenience logging functions
 pub mod logging {
     /// Log a trace message
     pub fn trace(msg: &str) {
@@ -64,92 +71,8 @@ pub mod config {
     }
 }
 
-/// Hook types and traits
-pub mod hooks {
-    /// Hook execution result
-    #[derive(Debug, Clone, PartialEq)]
-    pub enum HookResult {
-        /// Continue normal execution
-        Continue,
-        /// Stop execution with reason
-        Stop(String),
-        /// Modify data (JSON string)
-        Modify(String),
-    }
-
-    /// Message hook context
-    #[derive(Debug, Clone)]
-    pub struct MessageContext {
-        pub sender_id: Option<u64>,
-        pub session_id: Option<u64>,
-        pub msg_data: Vec<u8>,
-        pub is_encrypted: bool,
-    }
-
-    /// User event context
-    #[derive(Debug, Clone)]
-    pub struct UserContext {
-        pub user_id: u64,
-        pub username: String,
-        pub email: String,
-    }
-
-    /// Session event context
-    #[derive(Debug, Clone)]
-    pub struct SessionContext {
-        pub session_id: u64,
-        pub creator_id: u64,
-        pub session_type: i32,
-    }
-
-    /// Plugin lifecycle trait
-    pub trait PluginLifecycle {
-        /// Called when plugin is loaded
-        fn on_load(&mut self) -> Result<(), String> {
-            Ok(())
-        }
-
-        /// Called when plugin is enabled
-        fn on_enable(&mut self) -> Result<(), String> {
-            Ok(())
-        }
-
-        /// Called when plugin is disabled
-        fn on_disable(&mut self) -> Result<(), String> {
-            Ok(())
-        }
-
-        /// Called when plugin is unloaded
-        fn on_unload(&mut self) {}
-    }
-
-    /// Message hooks trait
-    pub trait MessageHooks {
-        /// Called before a message is sent
-        fn on_message_send(&mut self, _ctx: &MessageContext) -> HookResult {
-            HookResult::Continue
-        }
-
-        /// Called after a message is sent
-        fn on_message_sent(&mut self, _msg_id: u64) {}
-
-        /// Called when a new user is created
-        fn on_user_created(&mut self, _ctx: &UserContext) {}
-
-        /// Called when a user logs in
-        fn on_user_login(&mut self, _ctx: &UserContext) {}
-
-        /// Called when friends are added
-        fn on_friend_added(&mut self, _user_id: u64, _friend_id: u64, _session_id: u64) {}
-
-        /// Called when a new session is created
-        fn on_session_created(&mut self, _ctx: &SessionContext) {}
-    }
-}
-
 /// Prelude module for convenient imports
 pub mod prelude {
     pub use crate::logging::*;
     pub use crate::config::*;
-    pub use crate::hooks::*;
 }

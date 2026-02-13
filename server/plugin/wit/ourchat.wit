@@ -4,36 +4,6 @@
 
 package ourchat:plugin@1.0.0;
 
-/// Core type definitions
-/// Plugin hook execution result
-variant hook-result {
-    continue,
-    stop(string),
-    modify(string),
-}
-
-/// Message hook context
-record message-context {
-    sender-id: option<u64>,
-    session-id: option<u64>,
-    msg-data: list<u8>,
-    is-encrypted: bool,
-}
-
-/// User event context
-record user-context {
-    user-id: u64,
-    username: string,
-    email: string,
-}
-
-/// Session event context
-record session-context {
-    session-id: u64,
-    creator-id: u64,
-    session-type: s32,
-}
-
 /// Logging interface
 interface logging {
     trace: func(msg: string);
@@ -52,8 +22,38 @@ interface config {
     list-keys: func() -> list<string>;
 }
 
-/// Hooks interface - implemented by plugins
+/// Hooks interface - types and functions implemented by plugins
 interface hooks {
+    /// Plugin hook execution result
+    variant hook-result {
+        continue,
+        stop(string),
+        modify(string),
+    }
+
+    /// Message hook context
+    record message-context {
+        sender-id: option<u64>,
+        session-id: option<u64>,
+        msg-data: list<u8>,
+        is-encrypted: bool,
+    }
+
+    /// User event context
+    record user-context {
+        user-id: u64,
+        username: string,
+        email: string,
+    }
+
+    /// Session event context
+    record session-context {
+        session-id: u64,
+        creator-id: u64,
+        session-type: s32,
+    }
+
+    /// Hook functions
     on-message-send: func(ctx: message-context) -> hook-result;
     on-message-sent: func(msg-id: u64);
     on-user-created: func(ctx: user-context);
@@ -71,12 +71,16 @@ interface plugin-lifecycle {
 }
 
 /// World definition for OurChat plugins
+///
+/// From the plugin's perspective:
+/// - import: interfaces the plugin CAN use (provided by the host)
+/// - export: interfaces the plugin MUST implement (provided to the host)
 world ourchat-plugin {
-    /// Import WASI interfaces
-    export logging;
-    export config;
-    export hooks;
+    /// Import interfaces that the host provides to the plugin
+    import logging;
+    import config;
 
-    /// Plugins must implement the lifecycle interface
+    /// Export interfaces that the plugin must implement
+    export hooks;
     export plugin-lifecycle;
 }

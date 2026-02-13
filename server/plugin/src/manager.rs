@@ -2,7 +2,7 @@
 //!
 //! Manages plugin lifecycle: loading, enabling, disabling, and executing hooks
 
-use crate::engine::{HookAction, PluginContext, PluginState as EnginePluginState, WasmEngine, LoadedPlugin};
+use crate::engine::{HookAction, PluginState as EnginePluginState, WasmEngine, LoadedPlugin};
 use crate::error::{PluginError, PluginResult};
 use crate::hooks::{HookResult, MessageHookContext};
 use crate::registry::{PluginMetadata, PluginRegistry, PluginState};
@@ -18,7 +18,7 @@ use tracing::{error, info};
 pub struct PluginManager {
     engine: Arc<WasmEngine>,
     registry: Arc<PluginRegistry>,
-    loaded_plugins: DashMap<String, LoadedPlugin>,
+    loaded_plugins: DashMap<String, Arc<RwLock<LoadedPlugin>>>,
     plugin_directory: PathBuf,
     db_pool: Option<DbPool>,
     redis_pool: Option<deadpool_redis::Pool>,
@@ -109,14 +109,10 @@ impl PluginManager {
             host_data: Arc::new(DashMap::new()),
         };
 
-        // Create plugin context
-        // WASI integration will be added once WIT bindings are generated
-        let context = PluginContext { state };
-
         // Instantiate the plugin
         let loaded = self
             .engine
-            .instantiate_plugin(component, plugin_id.clone(), context)?;
+            .instantiate_plugin(component, plugin_id.clone(), state).await?;
 
         // Register metadata
         let metadata = PluginMetadata {
@@ -140,7 +136,7 @@ impl PluginManager {
         }
 
         self.registry.register(metadata)?;
-        self.loaded_plugins.insert(plugin_id.clone(), loaded);
+        self.loaded_plugins.insert(plugin_id.clone(), Arc::new(RwLock::new(loaded)));
 
         info!("Plugin loaded successfully: {}", plugin_id);
         Ok(())
@@ -148,16 +144,17 @@ impl PluginManager {
 
     /// Enable a plugin
     pub async fn enable_plugin(&self, id: &str) -> PluginResult<()> {
-        let mut plugin = self
+        let plugin = self
             .loaded_plugins
-            .get_mut(id)
+            .get(id)
             .ok_or_else(|| PluginError::NotFound(id.to_string()))?;
 
         self.registry.update_state(id, PluginState::Enabled)?;
 
         // Call plugin's on_enable function if it exists
-        if plugin.has_function("on_plugin_enable") {
-            if let Err(e) = plugin.execute_hook("on_plugin_enable", &[]) {
+        let mut plugin_guard = plugin.write();
+        if plugin_guard.has_function("on_plugin_enable") {
+            if let Err(e) = plugin_guard.execute_hook("on_plugin_enable", &[]) {
                 error!("Plugin {} on_enable failed: {:?}", id, e);
                 // Still mark as enabled even if on_enable fails
             }
@@ -169,16 +166,17 @@ impl PluginManager {
 
     /// Disable a plugin
     pub async fn disable_plugin(&self, id: &str) -> PluginResult<()> {
-        let mut plugin = self
+        let plugin = self
             .loaded_plugins
-            .get_mut(id)
+            .get(id)
             .ok_or_else(|| PluginError::NotFound(id.to_string()))?;
 
         self.registry.update_state(id, PluginState::Disabled)?;
 
         // Call plugin's on_disable function if it exists
-        if plugin.has_function("on_plugin_disable") {
-            if let Err(e) = plugin.execute_hook("on_plugin_disable", &[]) {
+        let mut plugin_guard = plugin.write();
+        if plugin_guard.has_function("on_plugin_disable") {
+            if let Err(e) = plugin_guard.execute_hook("on_plugin_disable", &[]) {
                 error!("Plugin {} on_disable failed: {:?}", id, e);
             }
         }
@@ -190,9 +188,10 @@ impl PluginManager {
     /// Unload a plugin
     pub async fn unload_plugin(&self, id: &str) -> PluginResult<()> {
         // Call on_plugin_unload if the plugin has the function
-        if let Some(mut plugin) = self.loaded_plugins.get_mut(id) {
-            if plugin.has_function("on_plugin_unload") {
-                if let Err(e) = plugin.execute_hook("on_plugin_unload", &[]) {
+        if let Some(plugin) = self.loaded_plugins.get(id) {
+            let mut plugin_guard = plugin.write();
+            if plugin_guard.has_function("on_plugin_unload") {
+                if let Err(e) = plugin_guard.execute_hook("on_plugin_unload", &[]) {
                     tracing::warn!("Plugin {} on_unload failed: {:?}", id, e);
                 }
             }
@@ -228,17 +227,20 @@ impl PluginManager {
                 continue;
             }
 
-            // Get mutable access to the plugin
-            if let Some(mut plugin) = self.loaded_plugins.get_mut(&plugin_id) {
+            // Get the plugin
+            if let Some(plugin) = self.loaded_plugins.get(&plugin_id) {
                 // Check if plugin has the hook function
                 let func_name = "on_message_send";
-                if !plugin.has_function(func_name) {
-                    drop(plugin); // Release the mutable borrow before continuing
-                    continue;
+                {
+                    let plugin_guard = plugin.read();
+                    if !plugin_guard.has_function(func_name) {
+                        continue;
+                    }
                 }
 
                 // Execute the hook
-                match plugin.execute_hook(func_name, &ctx.msg_data) {
+                let mut plugin_guard = plugin.write();
+                match plugin_guard.execute_hook(func_name, &ctx.msg_data) {
                     Ok(HookAction::Continue) => {}
                     Ok(HookAction::Stop(reason)) => {
                         return Ok(HookResult::Stop(reason));
@@ -268,18 +270,21 @@ impl PluginManager {
                 continue;
             }
 
-            // Get mutable access to the plugin
-            if let Some(mut plugin) = self.loaded_plugins.get_mut(&plugin_id) {
+            // Get the plugin
+            if let Some(plugin) = self.loaded_plugins.get(&plugin_id) {
                 let func_name = "on_message_sent";
-                if !plugin.has_function(func_name) {
-                    drop(plugin); // Release the mutable borrow
-                    continue;
+                {
+                    let plugin_guard = plugin.read();
+                    if !plugin_guard.has_function(func_name) {
+                        continue;
+                    }
                 }
 
                 // Serialize msg_id to bytes
                 let msg_id_bytes = msg_model.msg_id.to_le_bytes().to_vec();
 
-                if let Err(e) = plugin.execute_hook(func_name, &msg_id_bytes) {
+                let mut plugin_guard = plugin.write();
+                if let Err(e) = plugin_guard.execute_hook(func_name, &msg_id_bytes) {
                     tracing::error!(
                         plugin = %plugin_id,
                         msg_id = msg_model.msg_id,

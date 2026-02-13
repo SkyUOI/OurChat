@@ -3,14 +3,13 @@
 /// This script generates Rust bindings from WIT interface definitions
 /// located in the wit/ directory.
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("cargo:rerun-if-changed=wit");
 
-    // Generate WIT bindings for the host
-    let out_dir = std::path::PathBuf::from(std::env::var("OUT_DIR").unwrap());
+    // The WIT bindings are generated at compile time via the wit_bindgen! macro
+    // in src/bindings.rs. This build script ensures the project rebuilds when
+    // the WIT files change.
+    println!("cargo:info=WIT bindings will be generated from wit/ourchat.wit");
 
-    // Note: WIT bindings will be generated when needed
-    // The actual generation uses the wit-bindgen crate
-    println!("cargo:info=WIT directory: wit/");
-    println!("cargo:info=Output directory: {:?}", out_dir);
+    Ok(())
 }

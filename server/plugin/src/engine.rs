@@ -10,7 +10,13 @@ use parking_lot::RwLock;
 use std::path::PathBuf;
 use std::sync::Arc;
 use wasmtime::{Engine, Config, Module, Linker as WasmtimeLinker, Store};
-use wasmtime::component::{Component, Linker as ComponentLinker, Instance as ComponentInstance};
+use wasmtime::component::{Component, Linker as ComponentLinker, Instance as ComponentInstance, ResourceTable};
+use wasmtime_wasi::{WasiCtx, WasiCtxBuilder, WasiCtxView, WasiView};
+use wasmtime_wasi_http::WasiHttpCtx;
+
+// Import the generated WIT bindings
+// The bindings generate types and functions for interacting with guests
+use crate::bindings::exports::ourchat::plugin;
 
 // For now, we'll use a simpler approach without full WASI preview2 integration
 // Once the WIT bindings are generated, we'll properly integrate WASI
@@ -29,9 +35,25 @@ pub struct PluginState {
 }
 
 /// Plugin context - accessible within WASM components
-/// Simplified version without full WASI integration for now
+/// Includes WASI context for system interface support
 pub struct PluginContext {
     pub state: PluginState,
+    /// WASI context for system interfaces
+    pub wasi: WasiCtx,
+    /// HTTP context for WASI HTTP support
+    pub http_ctx: WasiHttpCtx,
+    /// Resource table for WASI resources
+    pub table: ResourceTable,
+}
+
+// Implement WasiView trait for PluginContext
+impl WasiView for PluginContext {
+    fn ctx(&mut self) -> WasiCtxView<'_> {
+        WasiCtxView {
+            ctx: &mut self.wasi,
+            table: &mut self.table,
+        }
+    }
 }
 
 /// A loaded WASM component plugin
@@ -41,10 +63,119 @@ pub struct LoadedPlugin {
     pub version: String,
     pub description: String,
     pub author: String,
-    store: Store<PluginContext>,
+    /// The WASM engine (used to create stores)
+    engine: Engine,
+    /// The component instance (can be used with any store)
     instance: ComponentInstance,
+    /// Plugin context data (excluding store-specific data)
+    context_data: PluginState,
     /// Registry of hook functions provided by this plugin
     pub hooks: Arc<HookRegistry>,
+    // TODO: Add plugin exports accessor using generated WIT bindings
+    // exports: Option<PluginExports>,
+}
+
+impl LoadedPlugin {
+    /// Create a new store for this plugin
+    fn create_store(&self, engine: &Engine) -> Store<PluginContext> {
+        let mut wasi_builder = WasiCtxBuilder::new();
+        let wasi = wasi_builder.build();
+        let context = PluginContext {
+            state: self.context_data.clone(),
+            wasi,
+            http_ctx: WasiHttpCtx::new(),
+            table: ResourceTable::new(),
+        };
+        Store::new(engine, context)
+    }
+
+    /// Check if the plugin has a specific exported function (legacy compatibility)
+    pub fn has_function(&self, _func_name: &str) -> bool {
+        // In component model, exports are accessed differently
+        // For now, always return true to allow hook execution
+        true
+    }
+
+    /// Call the plugin's on_plugin_load function if it exists
+    pub fn call_on_load(&mut self) -> PluginResult<()> {
+        // In component model, this uses the generated WIT bindings
+        // to call the plugin's plugin-lifecycle::on_load export
+        tracing::info!("Calling on_load for plugin {} (component model)", self.id);
+
+        // Create a new store for this call
+        let mut store = self.create_store(&self.engine);
+
+        // TODO: Use the generated bindings to call the export
+        // The standard pattern would be:
+        // let exports = self.instance.exports(&mut store);
+        // let lifecycle = exports.plugin_lifecycle();
+        // let result = lifecycle.on_load(&mut store)?;
+        // result.map_err(|e| PluginError::HookError(e))?;
+
+        Ok(())
+    }
+
+    /// Execute a hook function (legacy compatibility)
+    pub fn execute_hook(&mut self, func_name: &str, _data: &[u8]) -> PluginResult<HookAction> {
+        // In component model, hooks are called via the generated WIT bindings
+        // For now, we'll return Continue to maintain compatibility
+        tracing::debug!(
+            "Executing hook '{}' for plugin {} (component model - not yet implemented)",
+            func_name, self.id
+        );
+        Ok(HookAction::Continue)
+    }
+
+    /// Execute a hook using component model (new API)
+    pub async fn execute_hook_component(
+        &mut self,
+        hook_type: crate::hooks::HookType,
+        context: &crate::hooks::MessageHookContext,
+    ) -> PluginResult<crate::hooks::HookResult> {
+        // TODO: Implement component model hook execution
+        // This will use the generated WIT bindings to call the plugin's hooks
+
+        // Map the hook type to the appropriate export function
+        match hook_type {
+            crate::hooks::HookType::PreMessageSend => {
+                // Call the plugin's hooks::on_message_send export
+                let ctx = plugin::hooks::MessageContext {
+                    sender_id: context.sender_id,
+                    session_id: context.session_id,
+                    msg_data: context.msg_data.clone(),
+                    is_encrypted: context.is_encrypted,
+                };
+
+                // TODO: Call the actual export using the generated bindings
+                // The standard pattern would be:
+                // let exports = self.instance.exports(&mut self.store);
+                // let hooks = exports.hooks();
+                // let result = hooks.on_message_send(&mut self.store, ctx)?;
+                // match result {
+                //     Ok(plugin::hooks::HookResult::Continue) => {
+                //         Ok(crate::hooks::HookResult::Continue)
+                //     }
+                //     Ok(plugin::hooks::HookResult::Stop(s)) => {
+                //         Ok(crate::hooks::HookResult::Stop(s))
+                //     }
+                //     Ok(plugin::hooks::HookResult::Modify(s)) => {
+                //         Ok(crate::hooks::HookResult::Modify(s))
+                //     }
+                //     Err(e) => Err(PluginError::HookError(e)),
+                // }
+
+                tracing::debug!(
+                    "Would call on_message_send with ctx: sender_id={:?}, session_id={:?}",
+                    ctx.sender_id, ctx.session_id
+                );
+                Ok(crate::hooks::HookResult::Continue)
+            }
+            _ => {
+                tracing::debug!("Hook type {:?} not yet implemented in component model", hook_type);
+                Ok(crate::hooks::HookResult::Continue)
+            }
+        }
+    }
 }
 
 /// WASM engine configuration and runtime for component model
@@ -62,11 +193,11 @@ impl WasmEngine {
         // Enable component model
         config.wasm_component_model(true);
 
+        // Enable async support to make Store Send + Sync
+        config.async_support(true);
+
         // Set memory limits
         config.max_wasm_stack(MAX_MEMORY_PAGES as usize);
-
-        // Enable async support
-        config.async_support(true);
 
         let engine = Engine::new(&config)
             .map_err(|e| PluginError::Wasm(format!("Failed to create engine: {}", e)))?;
@@ -141,22 +272,41 @@ impl WasmEngine {
     }
 
     /// Instantiate a component plugin
-    pub fn instantiate_plugin(
+    pub async fn instantiate_plugin(
         self: &Arc<Self>,
         component: Component,
         plugin_id: String,
-        context: PluginContext,
+        state: PluginState,
     ) -> PluginResult<LoadedPlugin> {
-        // Create store with component context
+        // Create a temporary store for instantiation
+        let mut wasi_builder = WasiCtxBuilder::new();
+        let wasi = wasi_builder.build();
+        let context = PluginContext {
+            state: state.clone(),
+            wasi,
+            http_ctx: WasiHttpCtx::new(),
+            table: ResourceTable::new(),
+        };
         let mut store = Store::new(&self.engine, context);
 
         // Create component linker
         let linker = self.create_component_linker()?;
 
-        // Instantiate the component
+        // Instantiate the component (async since async_support is enabled)
         let instance = linker
-            .instantiate(&mut store, &component)
+            .instantiate_async(&mut store, &component)
+            .await
             .map_err(|e| PluginError::Wasm(format!("Failed to instantiate component: {}", e)))?;
+
+        // TODO: Use the generated bindings to wrap the instance and access exports
+        // The standard pattern would be something like:
+        // let plugin_exports = OurchatPlugin::instantiate(&mut store, &component, &linker)?;
+        // For now, the instance is stored and exports will be accessed when needed
+
+        tracing::debug!(
+            "Component instantiated for plugin {}",
+            plugin_id
+        );
 
         // Create hooks registry
         let hooks = Arc::new(HookRegistry::new());
@@ -186,53 +336,11 @@ impl WasmEngine {
             version: "0.0.0".to_string(),
             description: String::new(),
             author: String::new(),
-            store,
+            engine: self.engine.clone(),
             instance,
+            context_data: state,
             hooks,
         })
-    }
-}
-
-impl LoadedPlugin {
-    /// Check if the plugin has a specific exported function (legacy compatibility)
-    pub fn has_function(&mut self, _func_name: &str) -> bool {
-        // In component model, exports are accessed differently
-        // For now, always return true to allow hook execution
-        true
-    }
-
-    /// Call the plugin's on_plugin_load function if it exists
-    pub fn call_on_load(&mut self) -> PluginResult<()> {
-        // In component model, this would use the generated bindings
-        // For now, we'll just log that the plugin was loaded
-        tracing::info!("Plugin {} loaded (component model)", self.id);
-        Ok(())
-    }
-
-    /// Execute a hook function (legacy compatibility)
-    pub fn execute_hook(&mut self, func_name: &str, data: &[u8]) -> PluginResult<HookAction> {
-        // In component model, hooks are called via the generated WIT bindings
-        // For now, we'll return Continue to maintain compatibility
-        tracing::debug!(
-            "Executing hook '{}' for plugin {} (component model - not yet implemented)",
-            func_name, self.id
-        );
-        Ok(HookAction::Continue)
-    }
-
-    /// Execute a hook using component model (new API)
-    pub async fn execute_hook_component(
-        &mut self,
-        hook_type: crate::hooks::HookType,
-        context: &crate::hooks::MessageHookContext,
-    ) -> PluginResult<crate::hooks::HookResult> {
-        // TODO: Implement component model hook execution
-        // This will use the generated WIT bindings to call the plugin's hooks
-        tracing::debug!(
-            "Executing component hook {:?} for plugin {}",
-            hook_type, self.id
-        );
-        Ok(crate::hooks::HookResult::Continue)
     }
 }
 

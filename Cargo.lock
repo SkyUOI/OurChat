@@ -3442,7 +3442,6 @@ dependencies = [
  "serde",
  "serde_json",
  "tracing",
- "wit-bindgen 0.52.0",
 ]
 
 [[package]]

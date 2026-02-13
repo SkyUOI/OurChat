@@ -10,6 +10,7 @@ pub mod registry;
 pub mod error;
 pub mod host_impls;
 pub mod host;
+pub mod bindings;
 
 pub use engine::{WasmEngine, PluginContext, LoadedPlugin};
 pub use manager::PluginManager;
