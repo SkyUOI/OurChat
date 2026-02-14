@@ -967,6 +967,12 @@ class _SessionTabState extends State<SessionTab> {
                           List<String> involvedFiles = [];
                           String text = value!;
                           int index = 0;
+                          showResultMessage(
+                            ourchatAppState,
+                            okStatusCode,
+                            null,
+                            okStatus: l10n.uploading,
+                          );
                           for (String path in sessionState.needUploadFiles) {
                             try {
                               if (!sessionState.cacheFiles.containsKey(path)) {
@@ -978,6 +984,7 @@ class _SessionTabState extends State<SessionTab> {
                               }
                               logger.i(
                                   "Uploading file: $path, compress: ${!sessionState.cacheFilesSendRaw[path]!.value}");
+
                               var res = await upload(ourchatAppState,
                                   sessionState.cacheFiles[path]!, true,
                                   sessionId:
@@ -986,6 +993,7 @@ class _SessionTabState extends State<SessionTab> {
                                       .cacheFilesSendRaw[path]!.value,
                                   contentType: sessionState
                                       .cacheFilesContentType[path]!);
+
                               String newPath = "IO://$index";
                               text = replaceMarkdownImageUrls(text, (oldUrl) {
                                 if (oldUrl != path) {
@@ -1001,6 +1009,11 @@ class _SessionTabState extends State<SessionTab> {
                                   internalStatus: l10n.failTo(l10n.upload));
                             }
                           }
+                          showResultMessage(
+                            ourchatAppState,
+                            okStatusCode,
+                            null,
+                          );
                           UserMsg msg = UserMsg(ourchatAppState,
                               sender: ourchatAppState.thisAccount!,
                               markdownText: text,

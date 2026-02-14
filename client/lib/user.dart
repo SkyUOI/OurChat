@@ -39,7 +39,18 @@ class User extends StatelessWidget {
               var stub = OurChatServiceClient(ourchatAppState.server!.channel!,
                   interceptors: [ourchatAppState.server!.interceptor!]);
               try {
+                showResultMessage(
+                  ourchatAppState,
+                  okStatusCode,
+                  null,
+                  okStatus: l10n.uploading,
+                );
                 var res = await upload(ourchatAppState, biData, false);
+                showResultMessage(
+                  ourchatAppState,
+                  okStatusCode,
+                  null,
+                );
                 await safeRequest(
                     stub.setSelfInfo, SetSelfInfoRequest(avatarKey: res.key),
                     (GrpcError e) {
@@ -52,6 +63,7 @@ class User extends StatelessWidget {
                 });
                 await ourchatAppState.thisAccount!
                     .getAccountInfo(ignoreCache: true);
+                ourchatAppState.update();
               } catch (e) {
                 showResultMessage(ourchatAppState, internalStatusCode, null,
                     internalStatus: l10n.failTo(l10n.upload));

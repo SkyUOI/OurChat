@@ -375,7 +375,7 @@ aoOj+FKc4agHnVwZavuV9s0T6Pg9017iplMbzXeZEWo0hwQa0rhFNvB90beAyCjp
   }
 
   String avatarUrl() {
-    return "http${ourchatAppState.server!.isTLS! ? 's' : ''}://${ourchatAppState.server!.host}:${ourchatAppState.server!.port.toString()}/v1/avatar?user_id=${id.toString()}";
+    return "http${ourchatAppState.server!.isTLS! ? 's' : ''}://${ourchatAppState.server!.host}:${ourchatAppState.server!.port.toString()}/v1/avatar?user_id=${id.toString()}&avatar_key=${avatarKey ?? ''}";
   }
 
   String getNameWithDisplayName() {

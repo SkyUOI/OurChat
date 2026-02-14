@@ -479,5 +479,9 @@
     "upload": "upload",
     "@upload": {
         "description": "upload"
+    },
+    "uploading": "Uploading...",
+    "@uploading": {
+        "description": "Uploading..."
     }
 }
