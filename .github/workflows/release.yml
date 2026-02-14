@@ -198,13 +198,13 @@ jobs:
       - name: Build Release
         run: cd client && flutter build apk -PuseReleaseSigning=true --split-per-abi && flutter build apk -PuseReleaseSigning=true
       - name: Rename armeabi-v7a apk
-        run: mv client/build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk client/build/app/outputs/flutter-apk/OurChat_${{github.ref_name}}_armeabi-v7a.apk
+        run: mv client/build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk client/build/app/outputs/flutter-apk/OurChat_${{github.ref_name}}_android_armeabi-v7a.apk
       - name: Rename arm64-v8a apk
-        run: mv client/build/app/outputs/flutter-apk/app-arm64-v8a-release.apk client/build/app/outputs/flutter-apk/OurChat_${{github.ref_name}}_arm64-v8a.apk
+        run: mv client/build/app/outputs/flutter-apk/app-arm64-v8a-release.apk client/build/app/outputs/flutter-apk/OurChat_${{github.ref_name}}_android_arm64-v8a.apk
       - name: Rename x86_64 apk
-        run: mv client/build/app/outputs/flutter-apk/app-x86_64-release.apk  client/build/app/outputs/flutter-apk/OurChat_${{github.ref_name}}_x86_64.apk
+        run: mv client/build/app/outputs/flutter-apk/app-x86_64-release.apk  client/build/app/outputs/flutter-apk/OurChat_${{github.ref_name}}_android_x86_64.apk
       - name: Rename universal apk
-        run: mv client/build/app/outputs/flutter-apk/app-release.apk  client/build/app/outputs/flutter-apk/OurChat_${{github.ref_name}}_universal.apk
+        run: mv client/build/app/outputs/flutter-apk/app-release.apk  client/build/app/outputs/flutter-apk/OurChat_${{github.ref_name}}_android_universal.apk
       - name: Release to Github
         uses: softprops/action-gh-release@v2
         with:
