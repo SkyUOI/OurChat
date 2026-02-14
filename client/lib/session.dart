@@ -1238,7 +1238,7 @@ class _TabWidgetState extends State<TabWidget> {
                                 notFoundStatus: l10n.notFound(l10n.session),
                                 permissionDeniedStatus:
                                     l10n.permissionDenied(l10n.delete));
-                          });
+                          }, rethrowError: true);
                           Navigator.pop(context);
                           showResultMessage(
                               ourchatAppState, okStatusCode, null);
@@ -1278,7 +1278,7 @@ class _TabWidgetState extends State<TabWidget> {
                               notFoundStatus: l10n.notFound(l10n.session));
                         });
                         showResultMessage(ourchatAppState, okStatusCode, null);
-                        Navigator.pop(context);
+                        // Navigator.pop(context);
                         await ourchatAppState.thisAccount!
                             .getAccountInfo(ignoreCache: true);
                         sessionState.getSessions(ourchatAppState);
@@ -1309,9 +1309,6 @@ class _TabWidgetState extends State<TabWidget> {
                               alreadyExistsStatus: l10n.conflict,
                               permissionDeniedStatus:
                                   l10n.permissionDenied(e.message!));
-                          if (context.mounted) {
-                            Navigator.pop(context);
-                          }
                         }, rethrowError: true);
                         await sessionState.currentSession!
                             .getSessionInfo(ignoreCache: true);

@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/core/database.dart' as database;
 import 'package:ourchat/core/session.dart';
 import 'package:ourchat/core/account.dart';
@@ -36,6 +35,7 @@ final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
 Timer flashTrayTimer = Timer.periodic(Duration.zero, (_) {});
 bool trayStatus = true, isFlashing = false;
 // true means icon is normal, false means icon is empty
+OurChatConfig config = OurChatConfig();
 
 void changeTrayIcon() {
   if (!kIsWeb) {
@@ -89,6 +89,10 @@ void main() async {
     windowManager.waitUntilReadyToShow(windowOptions, () async {
       await windowManager.show();
     });
+    config.prefsWithCache = await SharedPreferencesWithCache.create(
+        cacheOptions: const SharedPreferencesWithCacheOptions());
+    config.reload();
+    constructLogger(convertStrIntoLevel(config["log_level"]));
   }
   runApp(const MainApp());
 }
@@ -129,13 +133,6 @@ class MainApp extends StatefulWidget {
 
 class _MainAppState extends State<MainApp> with WindowListener, TrayListener {
   bool inited = false;
-  late OurChatConfig config;
-
-  Future initConfig() async {
-    config = OurChatConfig();
-    config.prefsWithCache = await SharedPreferencesWithCache.create(
-        cacheOptions: const SharedPreferencesWithCacheOptions());
-  }
 
   @override
   void initState() {
@@ -168,36 +165,42 @@ class _MainAppState extends State<MainApp> with WindowListener, TrayListener {
         child: MaterialApp(
           title: "OurChat",
           home: Scaffold(
-            body: FutureBuilder(
-                future: initConfig(),
-                builder: (context, snapshot) {
-                  if (!inited &&
-                      snapshot.connectionState == ConnectionState.done) {
-                    OurChatAppState ourChatAppState =
-                        context.watch<OurChatAppState>();
-                    ourChatAppState.config = config;
-                    ourChatAppState.l10n = AppLocalizations.of(context)!;
-                    if (!kIsWeb) {
-                      trayManager.setContextMenu(Menu(items: [
-                        MenuItem(
-                            key: "show", label: ourChatAppState.l10n.show("")),
-                        MenuItem(key: "exit", label: ourChatAppState.l10n.exit)
-                      ]));
-                    }
-                    inited = true;
-                    config.reload();
-                    constructLogger(convertStrIntoLevel(config["log_level"]));
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => ServerSetting()));
-                    });
-                  }
-                  return Center(
-                    child: CircularProgressIndicator(),
-                  );
-                }),
+            body: LayoutBuilder(builder: (context, constraints) {
+              if (!inited) {
+                OurChatAppState ourChatAppState =
+                    context.watch<OurChatAppState>();
+                ourChatAppState.screenMode =
+                    (constraints.maxHeight < constraints.maxWidth)
+                        ? desktop
+                        : mobile; // 通过屏幕比例判断桌面端/移动端
+                ourChatAppState.config = config;
+                ourChatAppState.l10n = AppLocalizations.of(context)!;
+
+                if (!kIsWeb) {
+                  trayManager.setContextMenu(Menu(items: [
+                    MenuItem(key: "show", label: ourChatAppState.l10n.show("")),
+                    MenuItem(key: "exit", label: ourChatAppState.l10n.exit)
+                  ]));
+                }
+
+                inited = true;
+                if (ourChatAppState.config["recent_account"] != null &&
+                    ourChatAppState.config["recent_password"] != null) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (context) => AutoLogin()));
+                  });
+                } else {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => ServerSetting()));
+                  });
+                }
+              }
+              return Scaffold();
+            }),
           ),
           scaffoldMessengerKey: rootScaffoldMessengerKey,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -205,6 +208,7 @@ class _MainAppState extends State<MainApp> with WindowListener, TrayListener {
           localeResolutionCallback: (locale, supportedLocales) {
             Locale useLanguage = Locale("en");
             Locale? setLanguage = locale;
+            logger.i("config language: ${config["language"]}");
             if (config["language"] != null) {
               setLanguage = Locale.fromSubtags(
                   languageCode: config["language"][0],
@@ -276,15 +280,10 @@ class _MainAppState extends State<MainApp> with WindowListener, TrayListener {
   }
 }
 
-class Controller extends StatefulWidget {
-  const Controller({super.key});
-
-  @override
-  State<Controller> createState() => _ControllerState();
-}
-
-class _ControllerState extends State<Controller> {
-  bool logined = false;
+class AutoLogin extends StatelessWidget {
+  const AutoLogin({
+    super.key,
+  });
 
   Future autoLogin(BuildContext context) async {
     logger.i("AUTO login");
@@ -338,8 +337,7 @@ class _ControllerState extends State<Controller> {
     ourchatAppState.update();
     if (context.mounted) {
       // 跳转主界面
-      Navigator.pop(context);
-      Navigator.push(context, MaterialPageRoute(
+      Navigator.pushReplacement(context, MaterialPageRoute(
         builder: (context) {
           return Home();
         },
@@ -349,37 +347,14 @@ class _ControllerState extends State<Controller> {
 
   @override
   Widget build(BuildContext context) {
-    var ourchatAppState = context.watch<OurChatAppState>();
+    var l10n = context.watch<OurChatAppState>().l10n;
+    autoLogin(context);
     return Scaffold(
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          ourchatAppState.screenMode =
-              (constraints.maxHeight < constraints.maxWidth)
-                  ? desktop
-                  : mobile; // 通过屏幕比例判断桌面端/移动端
-          if (ourchatAppState.config["recent_password"].isNotEmpty) {
-            if (!logined) {
-              autoLogin(context);
-              logined = true;
-            }
-            return Scaffold(
-              body: Center(
-                  child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  Text(ourchatAppState.l10n.autoLogin,
-                      style: TextStyle(
-                          fontSize: AppStyles.smallFontSize,
-                          color: Theme.of(context).hintColor))
-                ],
-              )),
-            );
-          } else {
-            return ServerSetting();
-          }
-        },
-      ),
+      body: Center(
+          child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [CircularProgressIndicator(), Text(l10n.autoLogin)],
+      )),
     );
   }
 }
