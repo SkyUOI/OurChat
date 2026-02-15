@@ -85,8 +85,8 @@ class OurChatSession {
             ]),
             getSessionInfoOnError,
             rethrowError: true);
-        publicNeedUpdate = (OurChatTime(inputTimestamp: res.updatedTime) !=
-            OurChatTime(inputDatetime: localSessionData.updatedTime));
+        publicNeedUpdate = (OurChatTime.fromTimestamp(res.updatedTime) !=
+            OurChatTime.fromDatetime(localSessionData.updatedTime));
       } catch (e) {
         ourchatAppState.gettingInfoSessionList.remove(sessionId);
         return false;
@@ -110,8 +110,8 @@ class OurChatSession {
     } else {
       name = localSessionData!.name;
       avatarKey = localSessionData.avatarKey;
-      createdTime = OurChatTime(inputDatetime: localSessionData.createdTime);
-      updatedTime = OurChatTime(inputDatetime: localSessionData.updatedTime);
+      createdTime = OurChatTime.fromDatetime(localSessionData.createdTime);
+      updatedTime = OurChatTime.fromDatetime(localSessionData.updatedTime);
       size = localSessionData.size;
       description = localSessionData.description;
     }
@@ -160,8 +160,8 @@ class OurChatSession {
       if (publicNeedUpdate) {
         name = res.name;
         avatarKey = res.avatarKey;
-        createdTime = OurChatTime(inputTimestamp: res.createdTime);
-        updatedTime = OurChatTime(inputTimestamp: res.updatedTime);
+        createdTime = OurChatTime.fromTimestamp(res.createdTime);
+        updatedTime = OurChatTime.fromTimestamp(res.updatedTime);
         size = res.size.toInt();
         description = res.description;
 

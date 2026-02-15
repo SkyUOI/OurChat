@@ -80,7 +80,7 @@ class OurChatEvent {
         logger.w("warning when get session info: ${e.toString()}");
       }
     }
-    sendTime = OurChatTime(inputDatetime: row.time);
+    sendTime = OurChatTime.fromDatetime(row.time);
     data = jsonDecode(row.data);
     read = row.read == 1 ? true : false;
   }
@@ -245,7 +245,7 @@ class OurChatEventSystem {
     await for (var event in saveConnectionStream) {
       {
         ourchatAppState.thisAccount!.latestMsgTime =
-            OurChatTime(inputTimestamp: event.time);
+            OurChatTime.fromTimestamp(event.time);
         ourchatAppState.thisAccount!.updateLatestMsgTime();
         var row = await (ourchatAppState.privateDB!
                 .select(ourchatAppState.privateDB!.record)
@@ -272,7 +272,7 @@ class OurChatEventSystem {
             eventObj = NewFriendInvitationNotification(ourchatAppState,
                 eventId: event.msgId,
                 sender: sender,
-                sendTime: OurChatTime(inputTimestamp: event.time),
+                sendTime: OurChatTime.fromTimestamp(event.time),
                 leaveMessage:
                     event.newFriendInvitationNotification.leaveMessage,
                 invitee: invitee);
@@ -307,7 +307,7 @@ class OurChatEventSystem {
             eventObj = FriendInvitationResultNotification(ourchatAppState,
                 eventId: event.msgId,
                 sender: sender,
-                sendTime: OurChatTime(inputTimestamp: event.time),
+                sendTime: OurChatTime.fromTimestamp(event.time),
                 leaveMessage:
                     event.friendInvitationResultNotification.leaveMessage,
                 invitee: invitee,
@@ -330,7 +330,7 @@ class OurChatEventSystem {
                 eventId: event.msgId,
                 sender: sender,
                 session: OurChatSession(ourchatAppState, event.msg.sessionId),
-                sendTime: OurChatTime(inputTimestamp: event.time),
+                sendTime: OurChatTime.fromTimestamp(event.time),
                 markdownText: event.msg.markdownText,
                 involvedFiles: event.msg.involvedFiles);
 

@@ -608,6 +608,7 @@ class _SessionListState extends State<SessionList> {
                                         children: [
                                           Align(
                                               alignment: Alignment.centerLeft,
+                                              widthFactor: 1.0,
                                               child: Text(
                                                 currentSession.getDisplayName(),
                                                 style: TextStyle(
@@ -616,15 +617,18 @@ class _SessionListState extends State<SessionList> {
                                                         .textTheme
                                                         .labelMedium!
                                                         .color),
+                                                overflow: TextOverflow.ellipsis,
                                               )),
                                           if (sessionState.sessionLatestMsg
                                               .containsKey(currentSession))
                                             Align(
                                               alignment: Alignment.centerLeft,
+                                              widthFactor: 1.0,
                                               child: Text(
                                                 recentMsgText,
                                                 style: TextStyle(
                                                     color: Colors.grey),
+                                                overflow: TextOverflow.ellipsis,
                                               ),
                                             )
                                         ],
@@ -829,11 +833,13 @@ class _NewSessionDialogState extends State<NewSessionDialog> {
                                   children: [
                                     Align(
                                         alignment: Alignment.centerLeft,
+                                        // widthFactor: 1.0,
                                         child: Text(
                                           friends[index].username,
                                           style: TextStyle(
                                               fontSize: 20,
                                               color: Colors.black),
+                                          // overflow: TextOverflow.ellipsis,
                                         )),
                                   ],
                                 )),

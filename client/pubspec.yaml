@@ -14,8 +14,8 @@ dependencies:
     sdk: flutter
   intl: any
   logger: ^2.4.0
-  protobuf: ^5.1.0
-  grpc: ^5.0.0
+  protobuf: ^6.0.0
+  grpc: ^5.1.0
   fixnum: ^1.1.1
   path_provider: ^2.1.5
   drift: ^2.30.0
@@ -64,6 +64,9 @@ flutter:
   generate: true
   assets:
     - assets/images/
-    - web/sqlite3.wasm
-    - web/drift_worker.js
-    - web/drift_worker.min.js
+    - path: web/sqlite3.wasm
+      platforms: [web]
+    - path: web/drift_worker.js
+      platforms: [web]
+    - path: web/drift_worker.min.js
+      platforms: [web]

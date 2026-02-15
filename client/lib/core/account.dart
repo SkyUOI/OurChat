@@ -6,13 +6,13 @@ import 'package:ourchat/main.dart';
 import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/core/database.dart';
 import 'package:ourchat/core/server.dart';
-import 'package:ourchat/google/protobuf/timestamp.pb.dart';
 import 'package:ourchat/service/auth/authorize/v1/authorize.pb.dart';
 import 'package:ourchat/service/auth/register/v1/register.pb.dart';
 import 'package:ourchat/service/ourchat/get_account_info/v1/get_account_info.pb.dart';
 import 'package:ourchat/service/auth/v1/auth.pbgrpc.dart';
 import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
 import 'package:fixnum/fixnum.dart';
+import 'package:protobuf/well_known_types/google/protobuf/timestamp.pb.dart';
 
 class OurChatAccount {
   OurChatAppState ourchatAppState;
@@ -27,7 +27,7 @@ class OurChatAccount {
   late OurChatServiceClient stub;
 
   // 客户端独有字段，仅isMe为True时使用
-  OurChatTime latestMsgTime = OurChatTime(inputTimestamp: Timestamp());
+  OurChatTime latestMsgTime = OurChatTime.fromTimestamp(Timestamp());
 
   OurChatAccount(this.ourchatAppState) {
     server = ourchatAppState.server!;
@@ -182,8 +182,8 @@ aoOj+FKc4agHnVwZavuV9s0T6Pg9017iplMbzXeZEWo0hwQa0rhFNvB90beAyCjp
                 requestValues: [QueryValues.QUERY_VALUES_PUBLIC_UPDATED_TIME]),
             getAccountInfoOnError,
             rethrowError: true);
-        if (OurChatTime(inputTimestamp: res.publicUpdatedTime) !=
-            OurChatTime(inputDatetime: publicData.publicUpdateTime)) {
+        if (OurChatTime.fromTimestamp(res.publicUpdatedTime) !=
+            OurChatTime.fromDatetime(publicData.publicUpdateTime)) {
           publicDataNeedUpdate = true;
         }
       } catch (e) {
@@ -197,8 +197,7 @@ aoOj+FKc4agHnVwZavuV9s0T6Pg9017iplMbzXeZEWo0hwQa0rhFNvB90beAyCjp
       ocid = publicData.ocid;
       avatarKey = publicData.avatarKey;
       status = publicData.status;
-      publicUpdateTime =
-          OurChatTime(inputDatetime: publicData.publicUpdateTime);
+      publicUpdateTime = OurChatTime.fromDatetime(publicData.publicUpdateTime);
     }
     if (privateData == null) {
       if (isMe) {
@@ -213,8 +212,8 @@ aoOj+FKc4agHnVwZavuV9s0T6Pg9017iplMbzXeZEWo0hwQa0rhFNvB90beAyCjp
                 id: id, requestValues: [QueryValues.QUERY_VALUES_UPDATED_TIME]),
             getAccountInfoOnError,
             rethrowError: true);
-        if (OurChatTime(inputTimestamp: res.updatedTime) !=
-            OurChatTime(inputDatetime: privateData.updateTime)) {
+        if (OurChatTime.fromTimestamp(res.updatedTime) !=
+            OurChatTime.fromDatetime(privateData.updateTime)) {
           privateDataNeedUpdate = true;
         }
       } catch (e) {
@@ -226,7 +225,7 @@ aoOj+FKc4agHnVwZavuV9s0T6Pg9017iplMbzXeZEWo0hwQa0rhFNvB90beAyCjp
         "accountId: $id,isMe: $isMe, private data need update: $privateDataNeedUpdate, public data need update: $publicDataNeedUpdate");
     if (!privateDataNeedUpdate && isMe) {
       // 使用本地缓存
-      updatedTime = OurChatTime(inputDatetime: privateData!.updateTime);
+      updatedTime = OurChatTime.fromDatetime(privateData!.updateTime);
       email = privateData.email;
       friends = [];
       List<dynamic> friendsList = jsonDecode(privateData.friendsJson);
@@ -238,7 +237,7 @@ aoOj+FKc4agHnVwZavuV9s0T6Pg9017iplMbzXeZEWo0hwQa0rhFNvB90beAyCjp
       for (int i = 0; i < sessionsList.length; i++) {
         sessions.add(Int64.parseInt(sessionsList[i].toString()));
       }
-      registerTime = OurChatTime(inputDatetime: privateData.registerTime);
+      registerTime = OurChatTime.fromDatetime(privateData.registerTime);
     }
 
     if (publicDataNeedUpdate) {
@@ -303,7 +302,7 @@ aoOj+FKc4agHnVwZavuV9s0T6Pg9017iplMbzXeZEWo0hwQa0rhFNvB90beAyCjp
     logger.d("get account public info");
     avatarKey = res.avatarKey;
     username = res.userName;
-    publicUpdateTime = OurChatTime(inputTimestamp: res.publicUpdatedTime);
+    publicUpdateTime = OurChatTime.fromTimestamp(res.publicUpdatedTime);
     status = res.status;
     ocid = res.ocid;
     PublicOurChatDatabase publicDB = ourchatAppState.publicDB;
@@ -331,11 +330,11 @@ aoOj+FKc4agHnVwZavuV9s0T6Pg9017iplMbzXeZEWo0hwQa0rhFNvB90beAyCjp
 
   Future updatePrivateData(GetAccountInfoResponse res, bool isDataExist) async {
     logger.d("update account private info");
-    updatedTime = OurChatTime(inputTimestamp: res.updatedTime);
+    updatedTime = OurChatTime.fromTimestamp(res.updatedTime);
     email = res.email;
     friends = res.friends;
     sessions = res.sessions;
-    registerTime = OurChatTime(inputTimestamp: res.registerTime);
+    registerTime = OurChatTime.fromTimestamp(res.registerTime);
     OurChatDatabase? privateDB = ourchatAppState.privateDB;
     var intFriendsId = [];
     var intSessionsId = [];

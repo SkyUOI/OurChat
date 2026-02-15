@@ -153,8 +153,8 @@ pub enum UploadError {
     WrongStructure,
     #[error("file hash error")]
     FileHashError,
-    #[error("file size error")]
-    FileSizeError,
+    #[error("file size error: actual {0} != expected {1}")]
+    FileSizeError(usize, usize),
     #[error("invalid path")]
     InvalidPathError,
     #[error("file's size overflows")]
@@ -216,7 +216,7 @@ async fn upload_impl(
             };
             sz += data.len();
             if sz > metadata.size as usize {
-                return Err(UploadError::FileSizeError);
+                return Err(UploadError::FileSizeError(sz, metadata.size as usize));
             }
             temp_file.write_all(&data).await?;
             hasher.update(&data);
@@ -226,8 +226,7 @@ async fn upload_impl(
 
         // Verify file size and hash
         if sz != metadata.size as usize {
-            tracing::trace!("received size:{}, expected size {}", metadata.size, sz);
-            return Err(UploadError::FileSizeError);
+            return Err(UploadError::FileSizeError(sz, metadata.size as usize));
         }
         #[allow(deprecated)]
         if hash.as_slice() != metadata.hash {
@@ -298,7 +297,7 @@ pub async fn upload(
                 }
                 UploadError::StatusError(e) => Err(e),
                 UploadError::WrongStructure => Err(Status::invalid_argument(INCORRECT_ORDER)),
-                UploadError::FileSizeError => Err(Status::invalid_argument(FILE_SIZE_ERROR)),
+                UploadError::FileSizeError(..) => Err(Status::invalid_argument(FILE_SIZE_ERROR)),
                 UploadError::FileHashError => Err(Status::invalid_argument(FILE_HASH_ERROR)),
                 UploadError::FileSizeOverflow => Err(Status::resource_exhausted(STORAGE_FULL)),
             }

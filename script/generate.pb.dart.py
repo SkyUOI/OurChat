@@ -22,11 +22,5 @@ for index in range(len(commands)):
         end="",
     )
 print(f"\r|{'#' * 20}| 100.00%")
-os.system(
-    "protoc --dart_out=grpc:client/lib \
-    google/protobuf/timestamp.proto \
-    google/protobuf/empty.proto \
-    google/protobuf/duration.proto"
-)
-os.system("dart format client/lib/google")
+os.system("protoc --dart_out=grpc:client/lib")
 os.system("dart format client/lib/service")

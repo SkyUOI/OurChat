@@ -8,7 +8,6 @@ import 'package:image_compression/image_compression.dart';
 import 'package:markdown/markdown.dart' as md;
 import 'package:grpc/grpc.dart';
 import 'package:ourchat/core/log.dart';
-import 'package:ourchat/google/protobuf/timestamp.pb.dart';
 import 'package:flutter/material.dart';
 import 'package:ourchat/core/const.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -20,6 +19,7 @@ import 'dart:async';
 
 import 'package:ourchat/service/ourchat/upload/v1/upload.pb.dart';
 import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
+import 'package:protobuf/well_known_types/google/protobuf/timestamp.pb.dart';
 
 class OurChatTime {
   /*
@@ -30,14 +30,15 @@ class OurChatTime {
   DateTime? inputDatetime;
   late Timestamp timestamp;
   late DateTime datetime;
-  OurChatTime({this.inputTimestamp, this.inputDatetime}) {
-    if (inputTimestamp != null) {
-      timestamp = inputTimestamp!;
-      toDatetime();
-    } else {
-      datetime = inputDatetime!;
-      toTimestamp();
-    }
+
+  OurChatTime.fromTimestamp(Timestamp ts) {
+    timestamp = ts;
+    toDatetime();
+  }
+
+  OurChatTime.fromDatetime(DateTime dt) {
+    datetime = dt;
+    toTimestamp();
   }
 
   void toTimestamp() {
@@ -655,6 +656,8 @@ Future<UploadResponse> upload(
   ));
   int chunkSize = 1024 * 128;
   for (int i = 0; i < biData.lengthInBytes; i += chunkSize) {
+    logger.i(
+        "upload: sending chunk ${i ~/ chunkSize + 1} of ${(biData.lengthInBytes / chunkSize).ceil()}");
     controller.add(UploadRequest(
         content: biData
             .sublist(
@@ -663,6 +666,7 @@ Future<UploadResponse> upload(
                     ? i + chunkSize
                     : biData.lengthInBytes)
             .toList()));
+    logger.i("finish");
   }
   controller.close();
   return await call;
