@@ -439,12 +439,12 @@ Future needUpdate(Uri source, bool acceptAlpha, bool acceptBeta) async {
     if (version == currentVersion) return null;
     List latestVersionList = analyzeVersionString(version);
     List currentVersionList = analyzeVersionString(currentVersion);
-    for (int i = 0; i < 3; i++) {
-      if (latestVersionList[i] > currentVersionList[i] &&
+    for (int j = 0; j < 3; j++) {
+      if (latestVersionList[j] > currentVersionList[j] &&
           (acceptAlpha || !latestVersionList[4]) &&
           (acceptBeta || !latestVersionList[5])) {
         return data[i];
-      } else if (latestVersionList[i] < currentVersionList[i]) {
+      } else if (latestVersionList[j] < currentVersionList[j]) {
         return null;
       }
     }

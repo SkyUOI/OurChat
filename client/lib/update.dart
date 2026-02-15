@@ -32,58 +32,59 @@ class _UpdateWidgetState extends State<UpdateWidget> {
               child: FutureBuilder(
                   future: getDownloadInfo(),
                   builder: (context, snapshot) {
-                    if (snapshot.connectionState != ConnectionState.done ||
+                    if (snapshot.connectionState == ConnectionState.done &&
+                        snapshot.data != null) {
+                      Stream<OtaEvent> stream;
+                      if (Platform.isAndroid) {
+                        OtaUpdate otaUpdate = OtaUpdate();
+                        stream = otaUpdate.execute(snapshot.data,
+                            destinationFilename: "OurChat.apk",
+                            usePackageInstaller: true);
+                      } else {
+                        OtaUpdate otaUpdate = OtaUpdate();
+                        stream = otaUpdate.execute(snapshot.data,
+                            destinationFilename: "OurChat.tar.gz");
+                      }
+                      return StreamBuilder(
+                          stream: stream,
+                          builder: (context, snapshot) {
+                            double? value;
+                            if (snapshot.hasData) {
+                              value = (snapshot.data!.status ==
+                                      OtaStatus.DOWNLOADING
+                                  ? double.parse(snapshot.data!.value!)
+                                  : null);
+                            }
+                            return Center(
+                                child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                CircularProgressIndicator(value: value),
+                                Text(ourchatAppState.l10n.updateDownloading)
+                              ],
+                            ));
+                          });
+                    } else if (snapshot.connectionState !=
+                            ConnectionState.done ||
                         snapshot.data == null) {
                       text = ourchatAppState.l10n.updateGettingInfo;
-                    }
-                    if (snapshot.hasError) {
+                    } else if (snapshot.hasError) {
                       if (snapshot.error == notFoundStatusCode) {
                         text = ourchatAppState.l10n
                             .notFound(ourchatAppState.l10n.installationPackage);
                       }
                     }
-                    if (text != null) {
-                      return Center(
-                          child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          CircularProgressIndicator(
-                            value: 0,
-                          ),
-                          Text(text!)
-                        ],
-                      ));
-                    }
-                    Stream<OtaEvent> stream;
-                    if (Platform.isAndroid) {
-                      OtaUpdate otaUpdate = OtaUpdate();
-                      stream = otaUpdate.execute(snapshot.data,
-                          destinationFilename: "OurChat.apk",
-                          usePackageInstaller: true);
-                    } else {
-                      OtaUpdate otaUpdate = OtaUpdate();
-                      stream = otaUpdate.execute(snapshot.data,
-                          destinationFilename: "OurChat.tar.gz");
-                    }
-                    return StreamBuilder(
-                        stream: stream,
-                        builder: (context, snapshot) {
-                          double? value;
-                          if (snapshot.hasData) {
-                            value =
-                                (snapshot.data!.status == OtaStatus.DOWNLOADING
-                                    ? double.parse(snapshot.data!.value!)
-                                    : null);
-                          }
-                          return Center(
-                              child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              CircularProgressIndicator(value: value),
-                              Text(ourchatAppState.l10n.updateDownloading)
-                            ],
-                          ));
-                        });
+
+                    return Center(
+                        child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(
+                          value: 0,
+                        ),
+                        Text(text!)
+                      ],
+                    ));
                   }),
             ),
           ],
@@ -116,7 +117,6 @@ class _UpdateWidgetState extends State<UpdateWidget> {
     } else if (Platform.isIOS) {
       platform = "ios";
     }
-
     for (dynamic asset in widget.updateData["assets"]) {
       if (asset["name"].contains(platform)) {
         return asset["browser_download_url"];
