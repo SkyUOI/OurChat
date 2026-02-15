@@ -23,6 +23,9 @@ use pb::service::ourchat::session::ban::v1::{BanUserRequest, UnbanUserRequest};
 use pb::service::ourchat::session::kick::v1::KickUserRequest;
 use pb::service::ourchat::session::mute::v1::{MuteUserRequest, UnmuteUserRequest};
 use pb::service::ourchat::unregister::v1::UnregisterRequest;
+use pb::service::ourchat::upload::v1::{
+    CancelUploadRequest, CompleteUploadRequest, StartUploadRequest, UploadChunkRequest,
+};
 use pb::service::ourchat::v1::our_chat_service_client::OurChatServiceClient;
 use pb::service::server_manage::user_manage::v1::RemoveServerRoleRequest;
 use pb::service::server_manage::v1::server_manage_service_client::ServerManageServiceClient;
@@ -337,6 +340,64 @@ impl TestUser {
     pub async fn delete_file(&mut self, key: impl Into<String>) -> Result<(), tonic::Status> {
         self.oc()
             .delete_file(DeleteFileRequest { key: key.into() })
+            .await?;
+        Ok(())
+    }
+
+    /// Chunked upload for gRPC-web compatibility
+    pub async fn post_file_chunked(
+        &mut self,
+        content: &[u8],
+        session_id: Option<SessionID>,
+    ) -> anyhow::Result<String> {
+        use sha3::{Digest, Sha3_256};
+        let hash = Sha3_256::digest(content);
+        let size = content.len() as u64;
+
+        // Start upload session
+        let start_response = self
+            .oc()
+            .start_upload(StartUploadRequest {
+                hash: Bytes::from(hash.to_vec()),
+                size,
+                auto_clean: true,
+                session_id: session_id.map(|x| x.0),
+            })
+            .await?
+            .into_inner();
+
+        let upload_id = start_response.upload_id;
+        let chunk_size = start_response.chunk_size as usize;
+
+        // Upload chunks sequentially
+        for (chunk_id, chunk) in content.chunks(chunk_size).enumerate() {
+            self.oc()
+                .upload_chunk(UploadChunkRequest {
+                    upload_id: upload_id.clone(),
+                    chunk_data: Bytes::from(chunk.to_vec()),
+                    chunk_id: chunk_id as u64,
+                })
+                .await?;
+        }
+
+        // Complete upload
+        let complete_response = self
+            .oc()
+            .complete_upload(CompleteUploadRequest {
+                upload_id: upload_id.clone(),
+            })
+            .await?
+            .into_inner();
+
+        Ok(complete_response.key)
+    }
+
+    /// Cancel an ongoing upload
+    pub async fn cancel_upload(&mut self, upload_id: impl Into<String>) -> anyhow::Result<()> {
+        self.oc()
+            .cancel_upload(CancelUploadRequest {
+                upload_id: upload_id.into(),
+            })
             .await?;
         Ok(())
     }

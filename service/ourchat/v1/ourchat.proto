@@ -64,6 +64,12 @@ service OurChatService {
 
   rpc Upload(stream upload.v1.UploadRequest) returns (upload.v1.UploadResponse);
 
+  // Chunked upload API for gRPC-web support
+  rpc StartUpload(upload.v1.StartUploadRequest) returns (upload.v1.StartUploadResponse);
+  rpc UploadChunk(upload.v1.UploadChunkRequest) returns (upload.v1.UploadChunkResponse);
+  rpc CompleteUpload(upload.v1.CompleteUploadRequest) returns (upload.v1.CompleteUploadResponse);
+  rpc CancelUpload(upload.v1.CancelUploadRequest) returns (upload.v1.CancelUploadResponse);
+
   rpc Download(download.v1.DownloadRequest) returns (stream download.v1.DownloadResponse);
 
   rpc DeleteFile(delete.v1.DeleteFileRequest) returns (delete.v1.DeleteFileResponse);

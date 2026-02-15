@@ -85,16 +85,6 @@ pub macro impl_redis_value_from_for_newint($name:ident) {
     }
 }
 
-/// Compute the SHA3-256 hash of the given data and return it as a lower-case
-/// hexadecimal string.
-pub fn sha3_256(data: &[u8]) -> String {
-    use sha3::{Digest, Sha3_256};
-    let mut hasher = Sha3_256::new();
-    hasher.update(data);
-    let result = hasher.finalize();
-    format!("{result:x}")
-}
-
 pub fn oaep_padding() -> rsa::Oaep<rsa::sha2::Sha256> {
     rsa::Oaep::<rsa::sha2::Sha256>::new()
 }

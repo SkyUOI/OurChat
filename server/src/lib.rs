@@ -297,6 +297,7 @@ pub struct SharedData {
     pub cfg: Arc<RwLock<Cfg>>,
     pub verify_record: DashMap<String, Arc<tokio::sync::Notify>>,
     pub file_sys: db::file_storage::FileSys,
+    pub upload_local_state: DashMap<String, process::LocalUploadState>,
     maintaining: Mutex<bool>,
     sched: tokio::sync::Mutex<JobSchedulerWrapper>,
 }
@@ -447,6 +448,7 @@ impl Application {
             cfg,
             verify_record: DashMap::new(),
             file_sys,
+            upload_local_state: DashMap::new(),
             maintaining: Mutex::new(maintaining),
             sched,
         });

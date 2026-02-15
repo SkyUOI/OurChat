@@ -60,7 +60,7 @@ pub async fn avatar(
             let base_path = shared_data.cfg().main_cfg.files_storage_path.clone();
             let path = crate::db::file_storage::generate_hierarchical_path(
                 &base_path,
-                params.user_id.0,
+                params.user_id,
                 &avatar_key,
             );
             let bytes = tokio::fs::read(&path)

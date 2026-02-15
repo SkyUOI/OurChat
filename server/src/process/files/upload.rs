@@ -1,10 +1,7 @@
 use crate::{
     db::file_storage::generate_hierarchical_path,
-    helper::{create_file_with_dirs_if_not_exist, generate_random_string},
-    process::error_msg::{
-        FILE_HASH_ERROR, FILE_SIZE_ERROR, INCORRECT_ORDER, METADATA_ERROR, SERVER_ERROR,
-        STORAGE_FULL,
-    },
+    helper::create_file_with_dirs_if_not_exist,
+    process::files::upload_foundation::{UploadError, generate_key_name},
     server::RpcServer,
 };
 use base::constants::{ID, SessionID};
@@ -16,8 +13,8 @@ use sea_orm::{
 };
 use sha3::{Digest, Sha3_256};
 use size::Size;
-use std::{num::TryFromIntError, path::PathBuf};
-use tokio::{fs, io::AsyncWriteExt};
+use std::{path::PathBuf, sync::Arc};
+use tokio::{fs, io::AsyncWriteExt, sync::Notify};
 use tokio_stream::StreamExt;
 use tonic::{Response, Status};
 
@@ -33,18 +30,24 @@ pub struct AddFileRecordConfig {
     pub session_id: Option<SessionID>,
 }
 
-const PREFIX_LEN: usize = 20;
+/// Local state for open file handles (only on the server instance that created the upload)
+/// This cannot be stored in Redis, so we keep it in memory per server instance
+#[derive(Debug, Clone)]
+pub struct LocalUploadState {
+    pub temp_dir: PathBuf,
+    pub cleanup: Arc<Notify>,
+}
 
-/// Generate a unique key name which refers to the file
-/// # Details
-/// Generate a 20-character random string, and then add the file's sha256 hash value
-/// This ensures uniqueness while maintaining traceability through the hash
-fn generate_key_name(hash: impl AsRef<str>) -> String {
-    let prefix: String = generate_random_string(PREFIX_LEN);
-    format!("{prefix}{}", hash.as_ref())
+impl LocalUploadState {
+    pub fn cleanup(&self) {
+        self.cleanup.notify_waiters();
+    }
 }
 
 /// Add a new file record to the database without creating the file on disk
+///
+/// # Warning
+/// This function will delete files if the limit has been reached
 ///
 /// # Arguments
 ///
@@ -81,7 +84,7 @@ pub async fn add_file_record(
 
     // Use hierarchical storage path for better filesystem performance
     let hierarchical_path =
-        generate_hierarchical_path(&config.files_storage_path, config.id.0, &config.key);
+        generate_hierarchical_path(&config.files_storage_path, config.id, &config.key);
     let path = match hierarchical_path.to_str() {
         Some(path) => path,
         None => {
@@ -134,33 +137,6 @@ pub async fn clean_files(
     Ok(())
 }
 
-/// Error types that can occur during file upload process
-#[derive(Debug, thiserror::Error)]
-pub enum UploadError {
-    #[error("Metadata error")]
-    MetaDataError,
-    #[error("unknown error:{0:?}")]
-    Unknown(#[from] anyhow::Error),
-    #[error("status:{0:?}")]
-    StatusError(#[from] Status),
-    #[error("database error:{0:?}")]
-    DbError(#[from] sea_orm::DbErr),
-    #[error("from int error")]
-    FromIntError(#[from] TryFromIntError),
-    #[error("Internal IO error:{0:?}")]
-    InternalIOError(#[from] std::io::Error),
-    #[error("wrong structure")]
-    WrongStructure,
-    #[error("file hash error")]
-    FileHashError,
-    #[error("file size error: actual {0} != expected {1}")]
-    FileSizeError(usize, usize),
-    #[error("invalid path")]
-    InvalidPathError,
-    #[error("file's size overflows")]
-    FileSizeOverflow,
-}
-
 /// Internal implementation of the file upload process
 /// # Arguments
 /// * `server` - Server instance containing shared state
@@ -195,11 +171,14 @@ async fn upload_impl(
     let key_clone = key.clone();
     let files_storage_path = server.shared_data.cfg().main_cfg.files_storage_path.clone();
     let limit_size = server.shared_data.cfg().main_cfg.user_files_limit;
+    if metadata.size > limit_size.bytes() as u64 {
+        return Err(UploadError::FileSizeOverflow);
+    }
     let session_id = metadata.session_id.map(SessionID);
 
     // Create temporary file path for streaming using hierarchical structure
     let temp_key = format!("{}.tmp", key);
-    let temp_path = generate_hierarchical_path(&files_storage_path, id.0, &temp_key);
+    let temp_path = generate_hierarchical_path(&files_storage_path, id, &temp_key);
     let temp_path_clone = temp_path.clone();
 
     // Create temporary file and stream content
@@ -228,7 +207,6 @@ async fn upload_impl(
         if sz != metadata.size as usize {
             return Err(UploadError::FileSizeError(sz, metadata.size as usize));
         }
-        #[allow(deprecated)]
         if hash.as_slice() != metadata.hash {
             tracing::trace!(
                 "received hash:{:?}, expected hash {:?}",
@@ -239,7 +217,7 @@ async fn upload_impl(
         }
 
         // All verifications passed, now create the database record and move file
-        let final_path = generate_hierarchical_path(&files_storage_path, id.0, &key);
+        let final_path = generate_hierarchical_path(&files_storage_path, id, &key);
 
         // Create database record - this will handle storage limits and cleanup
         let config = AddFileRecordConfig {
@@ -285,22 +263,11 @@ pub async fn upload(
         Ok(ok_resp) => Ok(Response::new(ok_resp)),
         Err(e) => {
             tracing::error!("{}", e);
-            match e {
-                UploadError::MetaDataError => Err(Status::invalid_argument(METADATA_ERROR)),
-                UploadError::Unknown(_)
-                | UploadError::DbError(_)
-                | UploadError::FromIntError(_)
-                | UploadError::InternalIOError(_)
-                | UploadError::InvalidPathError => {
-                    tracing::error!("{}", e);
-                    Err(Status::internal(SERVER_ERROR))
-                }
-                UploadError::StatusError(e) => Err(e),
-                UploadError::WrongStructure => Err(Status::invalid_argument(INCORRECT_ORDER)),
-                UploadError::FileSizeError(..) => Err(Status::invalid_argument(FILE_SIZE_ERROR)),
-                UploadError::FileHashError => Err(Status::invalid_argument(FILE_HASH_ERROR)),
-                UploadError::FileSizeOverflow => Err(Status::resource_exhausted(STORAGE_FULL)),
-            }
+            Err(e.into())
         }
     }
 }
+
+// ============================================================================
+// Chunked Upload API
+// ============================================================================

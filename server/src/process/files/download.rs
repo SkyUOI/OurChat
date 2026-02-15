@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use super::{Files, error_msg::PERMISSION_DENIED};
+use super::super::{Files, error_msg::PERMISSION_DENIED};
 use crate::{
     process::error_msg::SERVER_ERROR,
     server::{DownloadStream, RpcServer},

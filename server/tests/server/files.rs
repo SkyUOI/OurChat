@@ -1,3 +1,4 @@
+use bytes::Bytes;
 use claims::assert_err;
 use client::TestApp;
 use client::helper::{generate_file, get_hash_from_download, get_hash_from_file};
@@ -301,6 +302,231 @@ async fn upload() {
     assert!(no_temp_files_remain(&app).await);
 
     deny_too_big_file(&mut app).await;
+    assert!(no_temp_files_remain(&app).await);
+
+    app.async_drop().await;
+}
+
+/// Test chunked upload API
+#[tokio::test]
+async fn upload_chunked() {
+    let (mut config, args) = TestApp::get_test_config().unwrap();
+    let user_files_limit = Size::from_mebibytes(10);
+    config.main_cfg.user_files_limit = user_files_limit;
+    let mut app = TestApp::new_with_launching_instance_custom_cfg((config, args), |_| {})
+        .await
+        .unwrap();
+
+    let small_file = generate_file(Size::from_mebibytes(1.5)).unwrap();
+    let small_file_hash = get_hash_from_file(small_file.clone());
+    let small_file_data: Vec<u8> = small_file.flatten().collect();
+
+    // Test basic chunked upload and download
+    let user1 = app.new_user().await.unwrap();
+    let key = user1
+        .lock()
+        .await
+        .post_file_chunked(&small_file_data, None)
+        .await
+        .unwrap();
+    verify_file_download(&user1, key, &small_file_hash)
+        .await
+        .unwrap();
+
+    // Verify no temp files remain
+    assert!(no_temp_files_remain(&app).await);
+
+    app.async_drop().await;
+}
+
+/// Test chunked upload with session association
+#[tokio::test]
+async fn upload_chunked_with_session() {
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
+
+    // Create a session with two users
+    let (session_users, session) = app
+        .new_session_db_level(2, "test_session_chunked", false)
+        .await
+        .unwrap();
+    let user1 = &session_users[0]; // File owner
+    let user2 = &session_users[1]; // Session member
+
+    // Create a test file
+    let test_file = generate_file(Size::from_kibibytes(100)).unwrap();
+    let test_file_hash = get_hash_from_file(test_file.clone());
+    let test_file_data: Vec<u8> = test_file.flatten().collect();
+
+    // User1 uploads a file using chunked upload API
+    let file_key = user1
+        .lock()
+        .await
+        .post_file_chunked(&test_file_data, Some(session.session_id))
+        .await
+        .unwrap();
+
+    // User1 (owner) should be able to download the file
+    verify_file_download(user1, file_key.clone(), &test_file_hash)
+        .await
+        .unwrap();
+
+    // User2 (session member) should be able to download the file
+    verify_file_download(user2, file_key.clone(), &test_file_hash)
+        .await
+        .unwrap();
+
+    app.async_drop().await;
+}
+
+/// Test chunked upload with file size overflow and quota management
+#[tokio::test]
+async fn upload_chunked_overflow_and_delete() {
+    let (mut config, args) = TestApp::get_test_config().unwrap();
+    let user_files_limit = Size::from_mebibytes(10);
+    config.main_cfg.user_files_limit = user_files_limit;
+    let mut app = TestApp::new_with_launching_instance_custom_cfg((config, args), |_| {})
+        .await
+        .unwrap();
+
+    let small_file = generate_file(Size::from_mebibytes(1.5)).unwrap();
+    let small_file_hash = get_hash_from_file(small_file.clone());
+    let small_file_data: Vec<u8> = small_file.flatten().collect();
+    let big_file_size = Size::from_mebibytes(1.5);
+    let big_file = generate_file(big_file_size).unwrap();
+    let big_file_data: Vec<u8> = big_file.flatten().collect();
+
+    let user = app.new_user().await.unwrap();
+
+    // Upload multiple big files until quota is exceeded
+    let mut keys = Vec::new();
+    for _ in 0..user_files_limit.bytes() / big_file_size.bytes() {
+        keys.push(
+            user.lock()
+                .await
+                .post_file_chunked(&big_file_data, None)
+                .await
+                .unwrap(),
+        );
+    }
+
+    // This upload should trigger cleanup of old files
+    let small_file_key = user
+        .lock()
+        .await
+        .post_file_chunked(&small_file_data, None)
+        .await
+        .unwrap();
+
+    // Oldest file should be deleted
+    assert_err!(user.lock().await.download_file(keys[0].clone()).await);
+
+    // New file should be downloadable
+    verify_file_download(&user, small_file_key, &small_file_hash)
+        .await
+        .unwrap();
+
+    // Verify no temp files remain
+    assert!(no_temp_files_remain(&app).await);
+
+    app.async_drop().await;
+}
+
+/// Test chunked upload size validation
+#[tokio::test]
+async fn upload_chunked_size_validation() {
+    let (mut config, args) = TestApp::get_test_config().unwrap();
+    let user_files_limit = Size::from_mebibytes(10);
+    config.main_cfg.user_files_limit = user_files_limit;
+    let mut app = TestApp::new_with_launching_instance_custom_cfg((config, args), |_| {})
+        .await
+        .unwrap();
+    let user = app.new_user().await.unwrap();
+
+    // Test with a file that's too large
+    let super_big_file = generate_file(Size::from_mebibytes(20)).unwrap();
+    let super_big_file_data: Vec<u8> = super_big_file.flatten().collect();
+    assert_err!(
+        user.lock()
+            .await
+            .post_file_chunked(&super_big_file_data, None)
+            .await
+    );
+
+    // Verify no temp files remain after failed upload
+    assert!(no_temp_files_remain(&app).await);
+
+    app.async_drop().await;
+}
+
+/// Test cancel upload functionality
+#[tokio::test]
+async fn upload_chunked_cancel() {
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
+    let user = app.new_user().await.unwrap();
+
+    let test_file = generate_file(Size::from_kibibytes(100)).unwrap();
+    let test_file_data: Vec<u8> = test_file.flatten().collect();
+
+    // Manually test the cancel flow by simulating a partial upload
+    use pb::service::ourchat::upload::v1::{
+        CompleteUploadRequest, StartUploadRequest, UploadChunkRequest,
+    };
+    use sha3::{Digest, Sha3_256};
+
+    let hash = Sha3_256::digest(&test_file_data);
+    let size = test_file_data.len() as u64;
+
+    // Start upload session
+    let start_response = user
+        .lock()
+        .await
+        .oc()
+        .start_upload(StartUploadRequest {
+            hash: Bytes::copy_from_slice(&hash),
+            size,
+            auto_clean: true,
+            session_id: None,
+        })
+        .await
+        .unwrap()
+        .into_inner();
+
+    let upload_id = start_response.upload_id;
+
+    // Upload first chunk only
+    let chunk_size = start_response.chunk_size as usize;
+    let chunk = &test_file_data[..chunk_size.min(test_file_data.len())];
+    user.lock()
+        .await
+        .oc()
+        .upload_chunk(UploadChunkRequest {
+            upload_id: upload_id.clone(),
+            chunk_data: Bytes::copy_from_slice(chunk),
+            chunk_id: 0,
+        })
+        .await
+        .unwrap();
+
+    // Cancel the upload
+    user.lock()
+        .await
+        .cancel_upload(upload_id.clone())
+        .await
+        .unwrap();
+
+    // Trying to complete should fail
+    assert!(
+        user.lock()
+            .await
+            .oc()
+            .complete_upload(CompleteUploadRequest {
+                upload_id: upload_id.clone(),
+            })
+            .await
+            .is_err()
+    );
+
+    // Verify no temp files remain after cancellation
     assert!(no_temp_files_remain(&app).await);
 
     app.async_drop().await;

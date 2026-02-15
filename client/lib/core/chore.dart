@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:fixnum/fixnum.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:hashlib/hashlib.dart';
 import 'package:image_compression/image_compression.dart';
@@ -620,7 +621,7 @@ class _MiniRenderer {
   void _restoreBuffer(StringBuffer old) {}
 }
 
-Future<UploadResponse> upload(
+Future<UploadResponse> uploadStreaming(
     OurChatAppState ourchatAppState, Uint8List rawData, bool autoClean,
     {Int64? sessionId, bool compress = true, String? contentType}) async {
   var l10n = ourchatAppState.l10n;
@@ -670,6 +671,128 @@ Future<UploadResponse> upload(
   }
   controller.close();
   return await call;
+}
+
+Future<UploadResponse> upload(
+    OurChatAppState ourchatAppState, Uint8List rawData, bool autoClean,
+    {Int64? sessionId, bool compress = true, String? contentType}) async {
+  if (kIsWeb) {
+    return await uploadChunked(ourchatAppState, rawData, autoClean,
+        sessionId: sessionId, compress: compress, contentType: contentType);
+  } else {
+    return await uploadStreaming(ourchatAppState, rawData, autoClean,
+        sessionId: sessionId, compress: compress, contentType: contentType);
+  }
+}
+
+/// Chunked upload function for gRPC-web compatibility
+/// Uses multiple unary RPC calls instead of streaming
+Future<UploadResponse> uploadChunked(
+    OurChatAppState ourchatAppState, Uint8List rawData, bool autoClean,
+    {Int64? sessionId, bool compress = true, String? contentType}) async {
+  var l10n = ourchatAppState.l10n;
+  var stub = OurChatServiceClient(ourchatAppState.server!.channel!,
+      interceptors: [ourchatAppState.server!.interceptor!]);
+
+  // Compress if needed
+  Uint8List biData = rawData;
+  if (compress) {
+    biData = (await compressInQueue(ImageFileConfiguration(
+      input:
+          ImageFile(filePath: "", rawBytes: rawData, contentType: contentType),
+    )))
+        .rawBytes;
+    logger.i(
+        "uploadChunked: original size=${rawData.lengthInBytes}, compressed size=${biData.lengthInBytes}");
+  }
+
+  // Calculate hash
+  var hash = sha3_256.convert(biData.toList()).bytes;
+
+  // Start upload session
+  var startResp = await safeRequest(
+    stub.startUpload,
+    StartUploadRequest(
+      hash: hash,
+      size: Int64.parseInt(biData.length.toString()),
+      autoClean: autoClean,
+      sessionId: sessionId,
+    ),
+    (GrpcError e) {
+      showResultMessage(
+        ourchatAppState,
+        e.code,
+        e.message,
+        resourceExhaustedStatus: l10n.storageSpaceFull,
+      );
+    },
+    rethrowError: true,
+  );
+
+  String uploadId = startResp.uploadId;
+  int chunkSize = startResp.chunkSize.toInt();
+
+  // Upload chunks sequentially
+  int totalChunks = (biData.length / chunkSize).ceil();
+  for (int i = 0; i < totalChunks; i++) {
+    int start = i * chunkSize;
+    int end =
+        (start + chunkSize < biData.length) ? start + chunkSize : biData.length;
+    var chunk = biData.sublist(start, end);
+
+    var chunkResp = await safeRequest(
+      stub.uploadChunk,
+      UploadChunkRequest(
+        uploadId: uploadId,
+        chunkData: chunk,
+        chunkId: Int64.parseInt(i.toString()),
+      ),
+      (GrpcError e) {
+        showResultMessage(
+          ourchatAppState,
+          e.code,
+          e.message,
+          invalidArgumentStatus: "${l10n.internalError}(${e.message})",
+        );
+      },
+      rethrowError: true,
+    );
+
+    logger.i(
+        "Uploaded chunk ${i + 1}/$totalChunks (${chunkResp.bytesReceived}/${biData.length} bytes)");
+  }
+
+  // Complete upload
+  var completeResp = await safeRequest(
+    stub.completeUpload,
+    CompleteUploadRequest(uploadId: uploadId),
+    (GrpcError e) {
+      showResultMessage(
+        ourchatAppState,
+        e.code,
+        e.message,
+        invalidArgumentStatus: "${l10n.internalError}(${e.message})",
+      );
+    },
+    rethrowError: true,
+  );
+
+  return UploadResponse(key: completeResp.key);
+}
+
+/// Cancel an ongoing upload
+Future<void> cancelUpload(
+    OurChatAppState ourchatAppState, String uploadId) async {
+  var stub = OurChatServiceClient(ourchatAppState.server!.channel!,
+      interceptors: [ourchatAppState.server!.interceptor!]);
+
+  await safeRequest(
+    stub.cancelUpload,
+    CancelUploadRequest(uploadId: uploadId),
+    (GrpcError e) {
+      logger.e("Failed to cancel upload: $e");
+    },
+  );
 }
 
 Future<Uint8List> getOurChatFile(

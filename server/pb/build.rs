@@ -49,6 +49,7 @@ fn main() -> anyhow::Result<()> {
         return Ok(());
     }
     tonic_prost_build::configure()
+        .skip_debug(["service.ourchat.upload.v1.UploadChunkRequest"])
         .type_attribute(
             "service.ourchat.msg_delivery.v1.FetchMsgsResponse.respond_event_type",
             "#[derive(serde::Serialize, serde::Deserialize)]",

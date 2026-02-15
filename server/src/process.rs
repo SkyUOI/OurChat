@@ -46,8 +46,8 @@
 pub mod auth;
 pub mod basic;
 mod delete_file;
-mod download;
 pub mod error_msg;
+mod files;
 mod friends;
 pub mod get_account_info;
 mod message;
@@ -56,7 +56,6 @@ mod server_manage;
 mod session;
 mod set_self_info;
 pub mod unregister;
-mod upload;
 pub mod verify;
 pub mod voip;
 pub mod webrtc;
@@ -79,7 +78,11 @@ use std::time::Duration;
 use tonic::Request;
 
 pub use delete_file::delete_file;
-pub use download::download;
+pub use files::download::download;
+pub use files::{
+    upload::{LocalUploadState, upload},
+    upload_chunked::{cancel_upload, complete_upload, start_upload, upload_chunk},
+};
 pub use friends::{
     accept_friend_invitation::accept_friend_invitation, add_friend::add_friend,
     delete_friend::delete_friend, set_friend_info::set_friend_info,
@@ -123,7 +126,6 @@ pub use session::{
 };
 pub use set_self_info::set_self_info;
 pub use unregister::unregister;
-pub use upload::upload;
 pub use voip::get_config::get_voip_config;
 pub use webrtc::{
     accept_room_invitation::accept_room_invitation, create_room::create_room,

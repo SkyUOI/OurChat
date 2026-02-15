@@ -25,3 +25,46 @@ message UploadResponse {
   // the unique id of the file
   string key = 1;
 }
+
+// Chunked upload API for gRPC-web support
+
+// StartUpload - Initialize an upload session
+message StartUploadRequest {
+  bytes hash = 1; // SHA256 of complete file
+  uint64 size = 2; // Total file size in bytes
+  bool auto_clean = 3; // Auto-clean after N days
+  optional uint64 session_id = 4; // Session access control
+}
+
+message StartUploadResponse {
+  string upload_id = 1; // Unique upload session identifier
+  uint32 chunk_size = 2; // Recommended chunk size (512KB)
+  uint32 timeout_seconds = 3; // Timeout for upload session (3600s)
+}
+
+// UploadChunk - Upload individual chunks
+message UploadChunkRequest {
+  string upload_id = 1; // Upload session identifier
+  bytes chunk_data = 2; // Chunk content
+  uint64 chunk_id = 3; // Sequential chunk number (0-based)
+}
+
+message UploadChunkResponse {
+  uint64 bytes_received = 1; // Total bytes received so far
+}
+
+// CompleteUpload - Finalize the upload
+message CompleteUploadRequest {
+  string upload_id = 1; // Upload session identifier
+}
+
+message CompleteUploadResponse {
+  string key = 1; // File key for accessing the uploaded file
+}
+
+// CancelUpload - Cancel an upload and clean up
+message CancelUploadRequest {
+  string upload_id = 1; // Upload session identifier
+}
+
+message CancelUploadResponse {}

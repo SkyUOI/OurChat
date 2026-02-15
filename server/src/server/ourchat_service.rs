@@ -81,7 +81,11 @@ use pb::service::ourchat::session::set_session_info::v1::{
 };
 use pb::service::ourchat::set_account_info::v1::{SetSelfInfoRequest, SetSelfInfoResponse};
 use pb::service::ourchat::unregister::v1::{UnregisterRequest, UnregisterResponse};
-use pb::service::ourchat::upload::v1::{UploadRequest, UploadResponse};
+use pb::service::ourchat::upload::v1::{
+    CancelUploadRequest, CancelUploadResponse, CompleteUploadRequest, CompleteUploadResponse,
+    StartUploadRequest, StartUploadResponse, UploadChunkRequest, UploadChunkResponse,
+    UploadRequest, UploadResponse,
+};
 use pb::service::ourchat::v1::our_chat_service_server::OurChatService;
 
 // Define stream types for streaming responses
@@ -165,6 +169,50 @@ impl OurChatService for RpcServer {
         let id = get_id_from_req_or_err(&request)?;
         self.check_account_status(id).await?;
         process::upload(self, id, request).await
+    }
+
+    /// Start a new chunked upload session (for gRPC-web support)
+    #[tracing::instrument(skip(self))]
+    async fn start_upload(
+        &self,
+        request: Request<StartUploadRequest>,
+    ) -> Result<Response<StartUploadResponse>, Status> {
+        let id = get_id_from_req_or_err(&request)?;
+        self.check_account_status(id).await?;
+        process::start_upload(self, id, request).await
+    }
+
+    /// Upload a chunk of data
+    #[tracing::instrument(skip(self))]
+    async fn upload_chunk(
+        &self,
+        request: Request<UploadChunkRequest>,
+    ) -> Result<Response<UploadChunkResponse>, Status> {
+        let id = get_id_from_req_or_err(&request)?;
+        self.check_account_status(id).await?;
+        process::upload_chunk(self, id, request).await
+    }
+
+    /// Complete a chunked upload
+    #[tracing::instrument(skip(self))]
+    async fn complete_upload(
+        &self,
+        request: Request<CompleteUploadRequest>,
+    ) -> Result<Response<CompleteUploadResponse>, Status> {
+        let id = get_id_from_req_or_err(&request)?;
+        self.check_account_status(id).await?;
+        process::complete_upload(self, id, request).await
+    }
+
+    /// Cancel an ongoing upload
+    #[tracing::instrument(skip(self))]
+    async fn cancel_upload(
+        &self,
+        request: Request<CancelUploadRequest>,
+    ) -> Result<Response<CancelUploadResponse>, Status> {
+        let id = get_id_from_req_or_err(&request)?;
+        self.check_account_status(id).await?;
+        process::cancel_upload(self, id, request).await
     }
 
     type DownloadStream = DownloadStream;

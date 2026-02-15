@@ -1,4 +1,6 @@
 pub mod v1 {
+    use std::fmt;
+
     use prost::bytes;
     use upload_request::Data;
 
@@ -32,6 +34,15 @@ pub mod v1 {
             Self {
                 data: Some(Data::Content(binary_data)),
             }
+        }
+    }
+
+    impl fmt::Debug for UploadChunkRequest {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            f.debug_struct("UploadChunkRequest")
+                .field("upload_id", &self.upload_id)
+                .field("chunk_id", &self.chunk_id)
+                .finish()
         }
     }
 }

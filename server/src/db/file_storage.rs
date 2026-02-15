@@ -1,5 +1,6 @@
 //! Manage the file storage with simple ownership model
 
+use base::constants::ID;
 use entities::{files, prelude::*};
 use parking_lot::RwLock;
 use sea_orm::{ColumnTrait, ConnectionTrait, DatabaseConnection, EntityTrait, QueryFilter};
@@ -120,14 +121,17 @@ pub async fn delete_file(
 /// Generate hierarchical storage path for better filesystem performance
 pub fn generate_hierarchical_path(
     base_path: &std::path::Path,
-    user_id: u64,
-    key: &str,
+    user_id: ID,
+    key: impl AsRef<str>,
 ) -> std::path::PathBuf {
     // Use first 2 characters of user_id and key for directory structure
-    let user_prefix = format!("{:02x}", user_id % 256);
-    let key_prefix = &key[..2];
+    let user_prefix = format!("{:02x}", user_id.0 % 256);
+    let key_prefix = &key.as_ref()[..2];
 
-    base_path.join(&user_prefix).join(key_prefix).join(key)
+    base_path
+        .join(&user_prefix)
+        .join(key_prefix)
+        .join(key.as_ref())
 }
 
 /// Clean up orphaned files (files that exist on disk but not in database)

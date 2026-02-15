@@ -11,6 +11,7 @@ pub mod not_found {
     pub const ROLE: &str = "Role Not Found";
     pub const FILE: &str = "File Not Found";
     pub const WEBRTC_ROOM: &str = "WebRTC Room Not Found";
+    pub const UPLOAD_SESSION: &str = "Upload Session Not Found";
 }
 
 pub mod exist {
@@ -52,6 +53,7 @@ pub const FILE_HASH_ERROR: &str = "File Hash Error";
 pub const STORAGE_FULL: &str = "Storage Full";
 pub const METADATA_ERROR: &str = "Metadata Error";
 pub const INCORRECT_ORDER: &str = "Incorrect Order Of Uploading";
+pub const UPLOAD_SESSION_NOT_IN_THIS_INSTANCE: &str = "Upload Session Not In This Instance";
 
 // Set Session Info
 pub const CANNOT_SET_NAME: &str = "Cannot Set Name";
