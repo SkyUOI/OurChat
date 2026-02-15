@@ -967,12 +967,15 @@ class _SessionTabState extends State<SessionTab> {
                           List<String> involvedFiles = [];
                           String text = value!;
                           int index = 0;
-                          showResultMessage(
-                            ourchatAppState,
-                            okStatusCode,
-                            null,
-                            okStatus: l10n.uploading,
-                          );
+                          if (sessionState.needUploadFiles.isNotEmpty) {
+                            showResultMessage(
+                              ourchatAppState,
+                              okStatusCode,
+                              null,
+                              okStatus: l10n.uploading,
+                            );
+                          }
+
                           for (String path in sessionState.needUploadFiles) {
                             try {
                               if (!sessionState.cacheFiles.containsKey(path)) {
@@ -1009,11 +1012,13 @@ class _SessionTabState extends State<SessionTab> {
                                   internalStatus: l10n.failTo(l10n.upload));
                             }
                           }
-                          showResultMessage(
-                            ourchatAppState,
-                            okStatusCode,
-                            null,
-                          );
+                          if (sessionState.needUploadFiles.isNotEmpty) {
+                            showResultMessage(
+                              ourchatAppState,
+                              okStatusCode,
+                              null,
+                            );
+                          }
                           UserMsg msg = UserMsg(ourchatAppState,
                               sender: ourchatAppState.thisAccount!,
                               markdownText: text,
@@ -1417,7 +1422,7 @@ class _MessageWidgetState extends State<MessageWidget> {
                 MarkdownToText.convert(msg.markdownText, ourchatAppState.l10n)),
         textDirection: TextDirection.ltr);
     textPainter.layout(
-        maxWidth: ourchatAppState.screenMode == desktop ? 500.0 : 300.0);
+        maxWidth: ourchatAppState.screenMode == desktop ? 500.0 : 250.0);
     Widget message = Column(
       crossAxisAlignment:
           (isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start),
