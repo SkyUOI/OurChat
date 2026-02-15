@@ -1411,26 +1411,22 @@ class _MessageWidgetState extends State<MessageWidget> {
             : msg.sender!.username;
     bool isMe = msg.sender!.isMe;
     Widget avatar = UserAvatar(imageUrl: msg.sender!.avatarUrl());
-    Widget message = ConstrainedBox(
-      constraints: BoxConstraints(
-          maxWidth: ourchatAppState.screenMode == desktop ? 500.0 : 300.0),
-      child: Column(
-        crossAxisAlignment:
-            (isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start),
-        children: [
-          Text(name),
-          Markdown(
-            styleSheet: MarkdownStyleSheet(
-              textAlign: isMe ? WrapAlignment.end : WrapAlignment.start,
-              h1Align: isMe ? WrapAlignment.end : WrapAlignment.start,
-              h2Align: isMe ? WrapAlignment.end : WrapAlignment.start,
-              h3Align: isMe ? WrapAlignment.end : WrapAlignment.start,
-              h4Align: isMe ? WrapAlignment.end : WrapAlignment.start,
-              h5Align: isMe ? WrapAlignment.end : WrapAlignment.start,
-              h6Align: isMe ? WrapAlignment.end : WrapAlignment.start,
-            ),
+    TextPainter textPainter = TextPainter(
+        text: TextSpan(
+            text:
+                MarkdownToText.convert(msg.markdownText, ourchatAppState.l10n)),
+        textDirection: TextDirection.ltr);
+    textPainter.layout(
+        maxWidth: ourchatAppState.screenMode == desktop ? 500.0 : 300.0);
+    Widget message = Column(
+      crossAxisAlignment:
+          (isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start),
+      children: [
+        Text(name),
+        ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: textPainter.width + 50),
+          child: Markdown(
             selectable: true,
-            shrinkWrap: true,
             softLineBreak: true,
             data: msg.markdownText,
             onTapLink: (text, href, title) {
@@ -1523,9 +1519,9 @@ class _MessageWidgetState extends State<MessageWidget> {
               return widget;
             },
             noScroll: true,
-          )
-        ],
-      ),
+          ),
+        )
+      ],
     );
     return Opacity(
       opacity: opacity,
