@@ -60,3 +60,5 @@ jobs:
         run: cd client && dart run build_runner build
       - name: Flutter Check
         run: cd client && flutter analyze
+      - name: Flutter Web Build Test
+        run: cd client && flutter build web
