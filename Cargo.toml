@@ -267,7 +267,7 @@ default-features = false
 features = ["json", "rustls"]
 
 [workspace.dependencies.tonic]
-version = "0.14.2"
+version = "0.14.4"
 default-features = false
 features = ["codegen", "channel", "transport", "router", "server", "_tls-any"]
 
