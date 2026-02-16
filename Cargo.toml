@@ -250,7 +250,7 @@ version = "0.14.2"
 default-features = false
 
 [workspace.dependencies.tonic-reflection]
-version = "0.14.2"
+version = "0.14.4"
 default-features = false
 features = ["server"]
 
