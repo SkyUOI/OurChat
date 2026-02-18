@@ -5,7 +5,6 @@ import 'package:ourchat/l10n/app_localizations.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/core/database.dart';
 import 'core/account.dart';
-import 'package:ourchat/home.dart';
 import 'package:provider/provider.dart';
 
 // Auth界面
@@ -161,11 +160,6 @@ class _LoginState extends State<Login> {
                                 if (context.mounted) {
                                   // 跳转主界面
                                   Navigator.pop(context);
-                                  Navigator.push(context, MaterialPageRoute(
-                                    builder: (context) {
-                                      return const Home();
-                                    },
-                                  ));
                                 }
                               }
                             },
@@ -298,11 +292,6 @@ class _RegisterState extends State<Register> {
                               if (context.mounted) {
                                 // 注册成功后跳转到主页
                                 Navigator.pop(context);
-                                Navigator.push(context, MaterialPageRoute(
-                                  builder: (context) {
-                                    return const Home();
-                                  },
-                                ));
                               }
                             }
                           },

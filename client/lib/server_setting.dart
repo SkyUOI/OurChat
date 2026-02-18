@@ -213,8 +213,7 @@ class _ServerSettingState extends State<ServerSetting> {
                       // 进入Auth界面
                       ourchatAppState.server = server;
                       ourchatAppState.update();
-                      Navigator.pop(context);
-                      Navigator.push(context,
+                      Navigator.pushReplacement(context,
                           MaterialPageRoute(builder: (context) {
                         return Auth();
                       }));

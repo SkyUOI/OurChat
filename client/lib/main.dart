@@ -200,7 +200,7 @@ class _MainAppState extends State<MainApp> with WindowListener, TrayListener {
                   });
                 }
               }
-              return Scaffold();
+              return Home();
             }),
           ),
           scaffoldMessengerKey: rootScaffoldMessengerKey,
@@ -338,11 +338,7 @@ class AutoLogin extends StatelessWidget {
     ourchatAppState.update();
     if (context.mounted) {
       // 跳转主界面
-      Navigator.pushReplacement(context, MaterialPageRoute(
-        builder: (context) {
-          return Home();
-        },
-      ));
+      Navigator.pop(context);
     }
   }
 
