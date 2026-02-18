@@ -50,7 +50,9 @@ class SessionState extends ChangeNotifier {
 
   void update() {
     if (alreadyDispose) return;
-    notifyListeners();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
   }
 
   void receiveMsg(UserMsg eventObj) async {
