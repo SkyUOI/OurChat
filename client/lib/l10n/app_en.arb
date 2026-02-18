@@ -483,5 +483,9 @@
     "uploading": "Uploading...",
     "@uploading": {
         "description": "Uploading..."
+    },
+    "selectServer": "Select Server",
+    "@selectServer": {
+        "description": "Select Server"
     }
 }

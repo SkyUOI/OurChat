@@ -4,6 +4,7 @@ import 'package:ourchat/core/event.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/core/database.dart';
+import 'package:ourchat/server_setting.dart';
 import 'core/account.dart';
 import 'package:provider/provider.dart';
 
@@ -117,53 +118,73 @@ class _LoginState extends State<Login> {
                               savePassword = !savePassword;
                             });
                           }),
-                      Padding(
-                        padding: EdgeInsets.all(AppStyles.mediumPadding),
-                        child: ElevatedButton.icon(
-                            style: AppStyles.defaultButtonStyle,
-                            icon: Icon(Icons.login),
-                            onPressed: () async {
-                              key.currentState!.save(); // 保存表单信息
-                              // 创建ocAccount对象并登录
-                              OurChatAccount ocAccount =
-                                  OurChatAccount(ourchatAppState);
-                              String? email, ocid;
-                              if (account.contains('@')) {
-                                // 判断邮箱/ocid登录
-                                email = account;
-                              } else {
-                                ocid = account;
-                              }
-                              bool res = await ocAccount.login(
-                                password,
-                                ocid,
-                                email,
-                              );
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Padding(
+                            padding: EdgeInsets.all(AppStyles.mediumPadding),
+                            child: ElevatedButton.icon(
+                                style: AppStyles.defaultButtonStyle,
+                                icon: Icon(Icons.arrow_back),
+                                onPressed: () {
+                                  Navigator.pushReplacement(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) =>
+                                              ServerSetting()));
+                                },
+                                label: Text(l10n.selectServer)),
+                          ),
+                          Padding(
+                            padding: EdgeInsets.all(AppStyles.mediumPadding),
+                            child: ElevatedButton.icon(
+                                style: AppStyles.defaultButtonStyle,
+                                icon: Icon(Icons.login),
+                                onPressed: () async {
+                                  key.currentState!.save(); // 保存表单信息
+                                  // 创建ocAccount对象并登录
+                                  OurChatAccount ocAccount =
+                                      OurChatAccount(ourchatAppState);
+                                  String? email, ocid;
+                                  if (account.contains('@')) {
+                                    // 判断邮箱/ocid登录
+                                    email = account;
+                                  } else {
+                                    ocid = account;
+                                  }
+                                  bool res = await ocAccount.login(
+                                    password,
+                                    ocid,
+                                    email,
+                                  );
 
-                              if (res) {
-                                ourchatAppState.config["recent_account"] =
-                                    account;
-                                ourchatAppState.config["recent_password"] =
-                                    (savePassword ? password : "");
-                                ourchatAppState.config["recent_avatar_url"] =
-                                    ocAccount.avatarUrl();
-                                ourchatAppState.config.saveConfig();
-                                ourchatAppState.thisAccount = ocAccount;
-                                ourchatAppState.privateDB =
-                                    OurChatDatabase(ocAccount.id);
-                                ourchatAppState.eventSystem =
-                                    OurChatEventSystem(ourchatAppState);
-                                await ourchatAppState.thisAccount!
-                                    .getAccountInfo();
-                                ourchatAppState.eventSystem!.listenEvents();
-                                ourchatAppState.update();
-                                if (context.mounted) {
-                                  // 跳转主界面
-                                  Navigator.pop(context);
-                                }
-                              }
-                            },
-                            label: Text(l10n.login)),
+                                  if (res) {
+                                    ourchatAppState.config["recent_account"] =
+                                        account;
+                                    ourchatAppState.config["recent_password"] =
+                                        (savePassword ? password : "");
+                                    ourchatAppState
+                                            .config["recent_avatar_url"] =
+                                        ocAccount.avatarUrl();
+                                    ourchatAppState.config.saveConfig();
+                                    ourchatAppState.thisAccount = ocAccount;
+                                    ourchatAppState.privateDB =
+                                        OurChatDatabase(ocAccount.id);
+                                    ourchatAppState.eventSystem =
+                                        OurChatEventSystem(ourchatAppState);
+                                    await ourchatAppState.thisAccount!
+                                        .getAccountInfo();
+                                    ourchatAppState.eventSystem!.listenEvents();
+                                    ourchatAppState.update();
+                                    if (context.mounted) {
+                                      // 跳转主界面
+                                      Navigator.pop(context);
+                                    }
+                                  }
+                                },
+                                label: Text(l10n.login)),
+                          ),
+                        ],
                       )
                     ],
                   )),
@@ -256,46 +277,65 @@ class _RegisterState extends State<Register> {
                             savePassword = !savePassword;
                           });
                         }),
-                    Padding(
-                      padding: EdgeInsets.all(AppStyles.mediumPadding),
-                      child: ElevatedButton.icon(
-                          style: AppStyles.defaultButtonStyle,
-                          icon: Icon(Icons.app_registration),
-                          onPressed: () async {
-                            key.currentState!.save(); // 保存表单信息
-                            // 创建ocAccount对象并注册
-                            OurChatAccount ocAccount =
-                                OurChatAccount(ourchatAppState);
-                            bool res = await ocAccount.register(
-                              password,
-                              username,
-                              email,
-                            );
-                            if (res) {
-                              // 注册成功
-                              ourchatAppState.thisAccount = ocAccount;
-                              ourchatAppState.privateDB =
-                                  OurChatDatabase(ocAccount.id);
-                              ourchatAppState.eventSystem =
-                                  OurChatEventSystem(ourchatAppState);
-                              await ourchatAppState.thisAccount!
-                                  .getAccountInfo();
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Padding(
+                          padding: EdgeInsets.all(AppStyles.mediumPadding),
+                          child: ElevatedButton.icon(
+                              style: AppStyles.defaultButtonStyle,
+                              icon: Icon(Icons.arrow_back),
+                              onPressed: () {
+                                Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) => ServerSetting()));
+                              },
+                              label: Text(l10n.selectServer)),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.all(AppStyles.mediumPadding),
+                          child: ElevatedButton.icon(
+                              style: AppStyles.defaultButtonStyle,
+                              icon: Icon(Icons.app_registration),
+                              onPressed: () async {
+                                key.currentState!.save(); // 保存表单信息
+                                // 创建ocAccount对象并注册
+                                OurChatAccount ocAccount =
+                                    OurChatAccount(ourchatAppState);
+                                bool res = await ocAccount.register(
+                                  password,
+                                  username,
+                                  email,
+                                );
+                                if (res) {
+                                  // 注册成功
+                                  ourchatAppState.thisAccount = ocAccount;
+                                  ourchatAppState.privateDB =
+                                      OurChatDatabase(ocAccount.id);
+                                  ourchatAppState.eventSystem =
+                                      OurChatEventSystem(ourchatAppState);
+                                  await ourchatAppState.thisAccount!
+                                      .getAccountInfo();
 
-                              ourchatAppState.config["recent_account"] = email;
-                              ourchatAppState.config["recent_password"] =
-                                  (savePassword ? password : "");
-                              ourchatAppState.config["recent_avatar_url"] =
-                                  ocAccount.avatarUrl();
+                                  ourchatAppState.config["recent_account"] =
+                                      email;
+                                  ourchatAppState.config["recent_password"] =
+                                      (savePassword ? password : "");
+                                  ourchatAppState.config["recent_avatar_url"] =
+                                      ocAccount.avatarUrl();
 
-                              ourchatAppState.eventSystem!.listenEvents();
-                              ourchatAppState.update();
-                              if (context.mounted) {
-                                // 注册成功后跳转到主页
-                                Navigator.pop(context);
-                              }
-                            }
-                          },
-                          label: Text(l10n.register)),
+                                  ourchatAppState.eventSystem!.listenEvents();
+                                  ourchatAppState.update();
+                                  if (context.mounted) {
+                                    // 注册成功后跳转到主页
+                                    Navigator.pop(context);
+                                  }
+                                }
+                              },
+                              label: Text(l10n.register)),
+                        ),
+                      ],
                     ),
                   ],
                 )),

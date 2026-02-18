@@ -283,11 +283,17 @@ class _MainAppState extends State<MainApp> with WindowListener, TrayListener {
   }
 }
 
-class AutoLogin extends StatelessWidget {
+class AutoLogin extends StatefulWidget {
   const AutoLogin({
     super.key,
   });
 
+  @override
+  State<AutoLogin> createState() => _AutoLoginState();
+}
+
+class _AutoLoginState extends State<AutoLogin> {
+  bool triedAutoLogin = false;
   Future autoLogin(BuildContext context) async {
     logger.i("AUTO login");
     var ourchatAppState = context.watch<OurChatAppState>();
@@ -347,7 +353,10 @@ class AutoLogin extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var l10n = context.watch<OurChatAppState>().l10n;
-    autoLogin(context);
+    if (!triedAutoLogin) {
+      autoLogin(context);
+      triedAutoLogin = true;
+    }
     return Scaffold(
       body: Center(
           child: Column(

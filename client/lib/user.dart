@@ -219,7 +219,6 @@ class User extends StatelessWidget {
                     ourchatAppState.accountCachePool = {};
                     ourchatAppState.sessionCachePool = {};
                     ourchatAppState.eventSystem!.stopListening();
-                    Navigator.pop(context);
                     Navigator.push(
                         context,
                         MaterialPageRoute(

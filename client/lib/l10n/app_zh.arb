@@ -106,5 +106,6 @@
     "failTo": "{sth}失败",
     "load": "加载",
     "upload": "上传",
-    "uploading": "正在上传..."
+    "uploading": "正在上传...",
+    "selectServer": "选择服务器"
 }
