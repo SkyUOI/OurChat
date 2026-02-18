@@ -44,7 +44,10 @@ dependencies:
       ref: desktop_dev
   device_info_plus: ^12.3.0
   flutter_cache_manager: ^3.4.1
-  image_compression: ^1.0.5
+  image_compression: 
+    git:
+      url: git@github.com:skyuoi/image_compression.git
+      ref: main
   mime: ^1.0.0
   flutter_single_instance:
     git:

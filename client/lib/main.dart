@@ -16,17 +16,17 @@ import 'package:ourchat/core/log.dart';
 import 'package:ourchat/auth.dart';
 import 'package:ourchat/home.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-// // Conditionally import desktop-specific packages only when not on web
-// import 'package:flutter_single_instance/flutter_single_instance.dart'
-//     if (dart.library.html) 'package:ourchat/core/stubs/flutter_single_instance.dart';
-// import 'package:window_manager/window_manager.dart'
-//     if (dart.library.html) 'package:ourchat/core/stubs/window_manager_stub.dart';
-// import 'package:tray_manager/tray_manager.dart'
-//     if (dart.library.html) 'package:ourchat/core/stubs/tray_manager_stub.dart';
+// Conditionally import desktop-specific packages only when not on web
+import 'package:flutter_single_instance/flutter_single_instance.dart'
+    if (dart.library.html) 'package:ourchat/core/stubs/flutter_single_instance.dart';
+import 'package:window_manager/window_manager.dart'
+    if (dart.library.html) 'package:ourchat/core/stubs/window_manager_stub.dart';
+import 'package:tray_manager/tray_manager.dart'
+    if (dart.library.html) 'package:ourchat/core/stubs/tray_manager_stub.dart';
 
-import 'package:ourchat/core/stubs/flutter_single_instance.dart';
-import 'package:ourchat/core/stubs/tray_manager_stub.dart';
-import 'package:ourchat/core/stubs/window_manager_stub.dart';
+// import 'package:ourchat/core/stubs/flutter_single_instance.dart';
+// import 'package:ourchat/core/stubs/tray_manager_stub.dart';
+// import 'package:ourchat/core/stubs/window_manager_stub.dart';
 
 import 'dart:core';
 import 'dart:async';
