@@ -143,6 +143,7 @@ aoOj+FKc4agHnVwZavuV9s0T6Pg9017iplMbzXeZEWo0hwQa0rhFNvB90beAyCjp
         publicUpdateTime = accountCache.publicUpdateTime;
         lastCheckTime = accountCache.lastCheckTime;
         stub = accountCache.stub;
+        avatarKey = accountCache.avatarKey;
         if (isMe) {
           email = accountCache.email;
           updatedTime = accountCache.updatedTime;
