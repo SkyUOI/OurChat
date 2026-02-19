@@ -364,6 +364,29 @@ class MarkdownToText {
     return _cleanText(textBuffer.toString());
   }
 
+  /// 新增：检测 Markdown 字符串中是否包含图片
+  /// [markdownText] 需要检测的 markdown 字符串
+  /// 返回值：true 包含图片，false 不包含图片
+  static bool containsImage(String markdownText) {
+    if (markdownText.isEmpty) return false;
+
+    // 使用相同的解析规则解析 Markdown
+    final document = md.Document(extensionSet: md.ExtensionSet.gitHubFlavored);
+    final nodes = document.parseLines(markdownText.split('\n'));
+
+    // 创建图片检测器并遍历所有节点
+    final imageDetector = _ImageDetector();
+    for (final node in nodes) {
+      node.accept(imageDetector);
+      // 一旦检测到图片，立即返回 true，提升性能
+      if (imageDetector.hasImage) {
+        return true;
+      }
+    }
+
+    return imageDetector.hasImage;
+  }
+
   /// 清理多余空格和换行（优化：保留单个换行，更贴近原文结构）
   static String _cleanText(String text) {
     return text
@@ -372,6 +395,31 @@ class MarkdownToText {
         .replaceAll(RegExp(r'\n\s+'), '\n') // 换行后的多余空格 → 仅保留换行
         .replaceAll(RegExp(r'[ \t]+'), ' ') // 多个空格/制表符 → 单个空格
         .trim(); // 去除首尾空格和换行
+  }
+}
+
+/// 图片检测器：遍历 Markdown 节点树，检测是否包含图片节点
+class _ImageDetector implements md.NodeVisitor {
+  bool hasImage = false;
+
+  @override
+  void visitText(md.Text text) {
+    // 文本节点无需处理
+  }
+
+  @override
+  bool visitElementBefore(md.Element element) {
+    // 检测 img 标签（图片节点）
+    if (element.tag == 'img') {
+      hasImage = true;
+      return false; // 图片节点无子节点，无需继续遍历
+    }
+    return true; // 继续遍历其他节点的子节点
+  }
+
+  @override
+  void visitElementAfter(md.Element element) {
+    // 无需处理
   }
 }
 

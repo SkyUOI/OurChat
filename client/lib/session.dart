@@ -1437,7 +1437,11 @@ class _MessageWidgetState extends State<MessageWidget> {
       children: [
         Text(name),
         ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: textPainter.width + 50),
+          constraints: BoxConstraints(
+              maxWidth: textPainter.width +
+                  (MarkdownToText.containsImage(msg.markdownText)
+                      ? 150.0
+                      : 50.0)),
           child: Markdown(
             selectable: true,
             softLineBreak: true,
