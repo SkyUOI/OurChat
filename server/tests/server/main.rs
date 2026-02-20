@@ -7,6 +7,7 @@ mod friend;
 mod log;
 mod msg_recall;
 mod msg_send;
+mod oauth;
 mod server_manage;
 mod session;
 mod tls;

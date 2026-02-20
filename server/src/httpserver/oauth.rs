@@ -117,7 +117,7 @@ async fn github_oauth_callback(
 async fn exchange_code_for_token(
     config: &OAuthConfig,
     code: &str,
-) -> Result<GitHubTokenResponse, Box<dyn std::error::Error>> {
+) -> anyhow::Result<GitHubTokenResponse> {
     let client = reqwest::Client::new();
     let token_request = GitHubTokenRequest {
         client_id: config.github_client_id.clone(),
@@ -137,9 +137,7 @@ async fn exchange_code_for_token(
     Ok(token_response)
 }
 
-async fn get_github_user_info(
-    access_token: &str,
-) -> Result<GitHubUserInfo, Box<dyn std::error::Error>> {
+async fn get_github_user_info(access_token: &str) -> anyhow::Result<GitHubUserInfo> {
     let client = reqwest::Client::new();
     let response = client
         .get("https://api.github.com/user")
@@ -155,7 +153,7 @@ async fn get_github_user_info(
 async fn create_or_update_user_from_github(
     db_pool: &DbPool,
     github_user: GitHubUserInfo,
-) -> Result<i64, Box<dyn std::error::Error>> {
+) -> anyhow::Result<i64> {
     use entities::user::Entity as UserEntity;
     use sea_orm::{ActiveValue::Set, ColumnTrait, EntityTrait, QueryFilter};
 
@@ -220,125 +218,4 @@ pub fn config() -> axum::Router<Arc<OAuthState>> {
     axum::Router::new()
         .route("/oauth/github", get(github_oauth_start))
         .route("/oauth/github/callback", get(github_oauth_callback))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use axum::extract::State;
-    use http::StatusCode;
-    use std::sync::Arc;
-
-    #[tokio::test]
-    async fn test_github_oauth_start() {
-        let state = Arc::new(OAuthState {
-            db_pool: create_mock_db_pool().await,
-            oauth_config: OAuthConfig {
-                github_client_id: "test_client_id".to_string(),
-                github_client_secret: "test_client_secret".to_string(),
-                github_redirect_uri: "http://localhost:7777/oauth/github/callback".to_string(),
-            },
-            oauth_states: dashmap::DashMap::new(),
-        });
-
-        let response = github_oauth_start(State(state.clone())).await.unwrap();
-        let response = response.into_response();
-
-        assert_eq!(response.status(), StatusCode::SEE_OTHER);
-
-        let location = response
-            .headers()
-            .get("location")
-            .unwrap()
-            .to_str()
-            .unwrap();
-        assert!(location.starts_with("https://github.com/login/oauth/authorize"));
-        assert!(location.contains("client_id=test_client_id"));
-        assert!(location.contains("redirect_uri=http://localhost:7777/oauth/github/callback"));
-
-        // Check that state was stored
-        let state_param = extract_state_from_url(location);
-        assert!(state.oauth_states.contains_key(&state_param));
-    }
-
-    #[tokio::test]
-    async fn test_github_oauth_callback_invalid_state() {
-        let state = Arc::new(OAuthState {
-            db_pool: create_mock_db_pool().await,
-            oauth_config: OAuthConfig {
-                github_client_id: "test_client_id".to_string(),
-                github_client_secret: "test_client_secret".to_string(),
-                github_redirect_uri: "http://localhost:7777/oauth/github/callback".to_string(),
-            },
-            oauth_states: dashmap::DashMap::new(),
-        });
-
-        let params = OAuthCallbackParams {
-            code: "test_code".to_string(),
-            state: "invalid_state".to_string(),
-        };
-
-        let result = github_oauth_callback(State(state), Query(params)).await;
-        assert!(result.is_err());
-        assert_eq!(result.err().unwrap(), StatusCode::BAD_REQUEST);
-    }
-
-    #[tokio::test]
-    async fn test_github_oauth_callback_expired_state() {
-        let state = Arc::new(OAuthState {
-            db_pool: create_mock_db_pool().await,
-            oauth_config: OAuthConfig {
-                github_client_id: "test_client_id".to_string(),
-                github_client_secret: "test_client_secret".to_string(),
-                github_redirect_uri: "http://localhost:7777/oauth/github/callback".to_string(),
-            },
-            oauth_states: dashmap::DashMap::new(),
-        });
-
-        // Add an expired state (11 minutes old)
-        let expired_time = Utc::now() - chrono::Duration::minutes(11);
-        state
-            .oauth_states
-            .insert("expired_state".to_string(), expired_time);
-
-        let params = OAuthCallbackParams {
-            code: "test_code".to_string(),
-            state: "expired_state".to_string(),
-        };
-
-        let result = github_oauth_callback(State(state), Query(params)).await;
-        assert!(result.is_err());
-        assert_eq!(result.err().unwrap(), StatusCode::BAD_REQUEST);
-    }
-
-    #[tokio::test]
-    async fn test_state_parameter_generation() {
-        let state1 = generate_random_string(16);
-        let state2 = generate_random_string(16);
-
-        assert_eq!(state1.len(), 16);
-        assert_eq!(state2.len(), 16);
-        assert_ne!(state1, state2); // Should be different each time
-    }
-
-    // Helper function to extract state parameter from GitHub OAuth URL
-    fn extract_state_from_url(url: &str) -> String {
-        let url_parts: Vec<&str> = url.split('&').collect();
-        for part in url_parts {
-            if let Some(stripped) = part.strip_prefix("state=") {
-                return stripped.to_string();
-            }
-        }
-        panic!("State parameter not found in URL: {}", url);
-    }
-
-    // Create a mock database pool for testing
-    async fn create_mock_db_pool() -> DbPool {
-        let redis_client = ::redis::Client::open("redis://localhost:6379").unwrap();
-        let redis_conn = redis_client.get_connection_manager().await.unwrap();
-        DbPool {
-            db_pool: sea_orm::DatabaseConnection::Disconnected,
-            redis_conn,
-        }
-    }
 }
