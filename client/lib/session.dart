@@ -47,6 +47,8 @@ class SessionState extends ChangeNotifier {
   Map<String, ValueNotifier<bool>> cacheFilesSendRaw = {};
   List<String> needUploadFiles = [];
   final ValueNotifier<String> inputText = ValueNotifier<String>("");
+  int recordLoadCnt = 1;
+  double lastPixels = 0;
 
   void update() {
     if (alreadyDispose) return;
@@ -532,6 +534,7 @@ class _SessionListState extends State<SessionList> {
                               sessionState.tabTitle = session.getDisplayName();
                               sessionState.cacheFiles = {};
                               sessionState.cacheFilesContentType = {};
+                              sessionState.recordLoadCnt = 1;
                               sessionState.update();
                             },
                           );
@@ -568,6 +571,7 @@ class _SessionListState extends State<SessionList> {
                                             BorderRadius.circular(10.0)))),
                             onPressed: () async {
                               sessionState.currentSession = currentSession;
+                              sessionState.recordLoadCnt = 1;
                               sessionState.tabIndex = sessionTab;
                               sessionState.tabTitle =
                                   currentSession.getDisplayName();
@@ -1038,6 +1042,7 @@ class _SessionTabState extends State<SessionTab> {
                           sessionState.cacheFiles = {};
                           sessionState.cacheFilesContentType = {};
                           await msg.send(sessionState.currentSession!);
+                          sessionState.lastPixels = 0;
                         },
                         onChanged: (value) {
                           sessionState.inputText.value = value;
@@ -1371,11 +1376,27 @@ class SessionRecord extends StatefulWidget {
 }
 
 class _SessionRecordState extends State<SessionRecord> {
+  ScrollController scrollController = ScrollController();
+  late SessionState sessionState;
+  late OurChatAppState ourchatAppState;
+
+  @override
+  void initState() {
+    scrollController.addListener(onScroll);
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
-    SessionState sessionState = context.watch<SessionState>();
-    OurChatAppState ourchatAppState = context.watch<OurChatAppState>();
+    sessionState = context.watch<SessionState>();
+    if (sessionState.recordLoadCnt != 1) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        scrollController.jumpTo(sessionState.lastPixels);
+      });
+    }
+    ourchatAppState = context.watch<OurChatAppState>();
     return ListView.builder(
+      controller: scrollController,
       itemBuilder: (context, index) {
         if (index == 0) {
           return ValueListenableBuilder(
@@ -1399,6 +1420,24 @@ class _SessionRecordState extends State<SessionRecord> {
       itemCount: sessionState.currentSessionRecords.length + 1,
       reverse: true,
     );
+  }
+
+  void onScroll() async {
+    if (scrollController.position.maxScrollExtent -
+            scrollController.position.pixels <
+        300) {
+      sessionState.lastPixels = scrollController.position.pixels;
+      List<UserMsg> records = await ourchatAppState.eventSystem!
+          .getSessionEvent(ourchatAppState, sessionState.currentSession!,
+              offset: 50 * sessionState.recordLoadCnt);
+      if (records.isEmpty ||
+          sessionState.currentSessionRecords.contains(records.first)) {
+        return;
+      }
+      sessionState.currentSessionRecords.addAll(records);
+      sessionState.recordLoadCnt++;
+      sessionState.update();
+    }
   }
 }
 

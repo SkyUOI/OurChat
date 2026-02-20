@@ -84,6 +84,17 @@ class OurChatEvent {
     data = jsonDecode(row.data);
     read = row.read == 1 ? true : false;
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (other is OurChatEvent) {
+      return other.eventId == eventId;
+    }
+    return false;
+  }
+
+  @override
+  int get hashCode => eventId!.toInt();
 }
 
 class UserMsg extends OurChatEvent {
