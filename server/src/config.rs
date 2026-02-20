@@ -3,6 +3,7 @@ mod http;
 use std::{path::PathBuf, time::Duration};
 
 use anyhow::{Context, bail};
+use base::constants::OCID;
 use serde::de::Error as _;
 use serde::{Deserialize, Deserializer, Serialize};
 use size::Size;
@@ -32,6 +33,8 @@ pub struct MainCfg {
     pub enable_file_cache: bool,
     pub enable_hierarchical_storage: bool,
     pub enable_file_deduplication: bool,
+    pub enable_metrics: bool,
+    pub metrics_snapshot_interval: Duration,
     pub cache_max_size: Size,
     pub verification_expire_time: Duration,
     pub user_defined_status_expire_time: Duration,
@@ -50,6 +53,7 @@ pub struct MainCfg {
     pub default_session: Option<SessionID>,
     pub lock_account_after_failed_logins: u32,
     pub lock_account_duration: Duration,
+    pub initial_admin_ocid: Option<OCID>,
 
     #[serde(skip)]
     pub cmd_args: ParserCfg,
@@ -155,6 +159,13 @@ pub struct RawMainCfg {
     pub enable_hierarchical_storage: bool,
     #[serde(default = "constants::default_enable_file_deduplication")]
     pub enable_file_deduplication: bool,
+    #[serde(default = "constants::default_enable_metrics")]
+    pub enable_metrics: bool,
+    #[serde(
+        default = "constants::default_metrics_snapshot_interval",
+        with = "humantime_serde"
+    )]
+    pub metrics_snapshot_interval: Duration,
     #[serde(default = "constants::default_cache_max_size")]
     pub cache_max_size: Size,
     #[serde(
@@ -207,6 +218,8 @@ pub struct RawMainCfg {
         with = "humantime_serde"
     )]
     pub lock_account_duration: Duration,
+    #[serde(default)]
+    pub initial_admin_ocid: Option<OCID>,
 }
 
 impl<'de> Deserialize<'de> for MainCfg {
@@ -255,6 +268,8 @@ impl<'de> Deserialize<'de> for MainCfg {
             enable_file_cache: raw.enable_file_cache,
             enable_hierarchical_storage: raw.enable_hierarchical_storage,
             enable_file_deduplication: raw.enable_file_deduplication,
+            enable_metrics: raw.enable_metrics,
+            metrics_snapshot_interval: raw.metrics_snapshot_interval,
             cache_max_size: raw.cache_max_size,
             verification_expire_time: raw.verification_expire_time,
             user_defined_status_expire_time: raw.user_defined_status_expire_time,
@@ -273,6 +288,7 @@ impl<'de> Deserialize<'de> for MainCfg {
             default_session: raw.default_session,
             lock_account_after_failed_logins: raw.lock_account_after_failed_logins,
             lock_account_duration: raw.lock_account_duration,
+            initial_admin_ocid: raw.initial_admin_ocid,
             cmd_args: ParserCfg::default(),
         })
     }

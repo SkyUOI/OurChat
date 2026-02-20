@@ -7,6 +7,7 @@ pub mod db;
 pub mod helper;
 pub mod httpserver;
 pub mod matrix;
+pub mod metrics;
 pub mod process;
 pub mod rabbitmq;
 mod server;
@@ -26,6 +27,7 @@ use process::error_msg::MAINTAINING;
 use rand::RngExt;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
+use std::time::Duration;
 use std::{
     fs,
     path::{Path, PathBuf},
@@ -300,6 +302,7 @@ pub struct SharedData {
     pub upload_local_state: DashMap<String, process::LocalUploadState>,
     maintaining: Mutex<bool>,
     sched: tokio::sync::Mutex<JobSchedulerWrapper>,
+    pub metrics: Option<Arc<metrics::recorder::OurChatRecorder>>,
 }
 
 impl SharedData {
@@ -412,6 +415,9 @@ impl Application {
         // connect to db
         let db_pool = DbPool::build(&cfg.db_cfg, &cfg.redis_cfg, true).await?;
         db_pool.init().await?;
+        // Bootstrap initial admin if configured
+        db::manager::bootstrap_initial_admin(&cfg.main_cfg.initial_admin_ocid, &db_pool.db_pool)
+            .await?;
         // connect to rabbitmq
         let rmq_pool = cfg.rabbitmq_cfg.build().await?;
         if cfg.main_cfg.unique_instance() {
@@ -443,6 +449,19 @@ impl Application {
         // Create FileSys with the temporary SharedData
         let file_sys = db::file_storage::FileSys::new(db_pool.db_pool.clone(), cfg.clone());
 
+        // Create metrics collector
+        let enable = cfg.read().main_cfg.enable_metrics;
+        let metrics = if enable {
+            // Set up the global recorder - this creates, installs, and returns an Arc
+            // Pass abort_sender so the metrics task can register with the shutdown system
+            Some(metrics::recorder::setup_global_recorder(
+                cfg.read().main_cfg.metrics_snapshot_interval,
+                abort_sender.clone(),
+            ))
+        } else {
+            None
+        };
+
         // Create final SharedData with the FileSys
         let shared = Arc::new(SharedData {
             cfg,
@@ -451,6 +470,7 @@ impl Application {
             upload_local_state: DashMap::new(),
             maintaining: Mutex::new(maintaining),
             sched,
+            metrics,
         });
 
         Ok(Self {
@@ -519,6 +539,18 @@ impl Application {
         let job = self.shared.file_sys.generate_job().await?;
         // Start the database file system
         self.shared.sched.lock().await.add(job).await?;
+
+        // Add metrics snapshot job
+        if let Some(metrics) = self.shared.metrics.as_ref() {
+            let metrics_snapshot_interval = self.shared.cfg().main_cfg.metrics_snapshot_interval;
+            let metrics_job = generate_metrics_snapshot_job(
+                metrics.clone(),
+                self.pool.clone(),
+                metrics_snapshot_interval,
+            )?;
+            self.shared.sched.lock().await.add(metrics_job).await?;
+        }
+
         self.shared.sched.lock().await.start().await?;
         info!("Start to register service to registry");
         info!("Waiting http server to be ready");
@@ -547,4 +579,39 @@ impl Application {
 #[ctor::ctor]
 fn init() {
     let _ = rustls::crypto::ring::default_provider().install_default();
+}
+
+/// Generate a job for periodic metrics snapshots
+///
+/// Creates a scheduled job that saves metrics to the database at the configured interval
+fn generate_metrics_snapshot_job(
+    metrics: Arc<metrics::recorder::OurChatRecorder>,
+    db_pool: base::database::DbPool,
+    interval: Duration,
+) -> anyhow::Result<tokio_cron_scheduler::Job> {
+    use tokio_cron_scheduler::Job;
+
+    Ok(Job::new_repeated_async(interval, move |_uuid, _l| {
+        let metrics = metrics.clone();
+        let db_pool = db_pool.clone();
+        Box::pin(async move {
+            if let Err(e) = save_metrics_snapshot_worker(metrics, db_pool).await {
+                tracing::error!("Failed to save metrics snapshot: {}", e);
+            }
+        })
+    })?)
+}
+
+async fn save_metrics_snapshot_worker(
+    metrics: Arc<metrics::recorder::OurChatRecorder>,
+    db_pool: base::database::DbPool,
+) -> anyhow::Result<()> {
+    // Update system metrics before saving
+    metrics.update_system_metrics();
+
+    let metrics_data = metrics
+        .get_monitoring_metrics(&db_pool.db_pool, &db_pool.pg_pool, true, true)
+        .await;
+    db::metrics::save_metrics_snapshot(&db_pool.db_pool, &metrics_data, chrono::Utc::now()).await?;
+    Ok(())
 }

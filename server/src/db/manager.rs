@@ -1,8 +1,9 @@
-use base::constants::ID;
+use base::constants::{ID, OCID};
 use entities::{
     manager_role_relation, prelude::ServerManagementRolePermissions, server_management_role,
     server_management_role_permissions,
 };
+use migration::predefined::PredefinedServerManagementRole;
 use sea_orm::{DatabaseTransaction, QuerySelect, prelude::*};
 
 /// Checks if the manager has the given permission.
@@ -119,4 +120,56 @@ pub async fn remove_role(
         .exec(db_conn)
         .await?;
     Ok(())
+}
+
+/// Bootstrap: assigns admin role to a user if configured in settings.
+/// This is called on server startup to handle the initial admin account.
+///
+/// # Arguments
+///
+/// * `ocid` - The OCID of the user to make admin (optional)
+/// * `db_conn` - A reference to the database connection
+///
+/// # Returns
+///
+/// * `Result<Option<String>, DbErr>` - The OCID of the user that was made admin, or None if not configured
+pub async fn bootstrap_initial_admin(
+    ocid: &Option<OCID>,
+    db_conn: &impl ConnectionTrait,
+) -> Result<Option<OCID>, DbErr> {
+    let Some(ocid) = ocid else {
+        return Ok(None);
+    };
+
+    use entities::prelude::User;
+    use entities::user::Column as UserColumn;
+
+    // Find user by OCID
+    let user = User::find()
+        .filter(UserColumn::Ocid.eq(ocid))
+        .one(db_conn)
+        .await?;
+
+    let Some(user) = user else {
+        tracing::warn!("initial_admin_ocid configured but user not found: {}", ocid);
+        return Ok(None);
+    };
+
+    let id: ID = user.id.into();
+    let already_admin = match manager_role_relation::Entity::find_by_id(id)
+        .one(db_conn)
+        .await?
+    {
+        None => false,
+        Some(role) => role.role_id == PredefinedServerManagementRole::Admin as i64,
+    };
+
+    if already_admin {
+        tracing::info!("User {} is already an admin", ocid);
+        return Ok(Some(ocid.clone()));
+    }
+
+    set_role(id, PredefinedServerManagementRole::Admin as i64, db_conn).await?;
+    tracing::info!("Bootstrap: assigned admin role to user with OCID: {}", ocid);
+    Ok(Some(ocid.clone()))
 }

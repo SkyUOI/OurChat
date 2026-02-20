@@ -41,6 +41,18 @@ reqwest.workspace = true
 tokio-cron-scheduler.workspace = true
 croner.workspace = true
 
+# System metrics
+sysinfo = "0.38.2"
+
+# Runtime metrics
+tokio-metrics = { version = "0.4.8", features = [
+    "rt",
+    "metrics-rs-integration",
+] }
+
+# Metrics facade
+metrics = "0.24"
+
 # Useful crates
 collection_literals.workspace = true
 size.workspace = true
@@ -78,6 +90,7 @@ http-serde.workspace = true
 rustls.workspace = true
 ctor.workspace = true
 tower_governor.workspace = true
+scopeguard.workspace = true
 
 #[dependencies.matrix-sdk]
 #version = "0"

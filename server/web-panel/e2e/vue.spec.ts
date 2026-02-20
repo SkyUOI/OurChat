@@ -1,8 +1,10 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '@playwright/test'
 
-// See here how to get started:
-// https://playwright.dev/docs/intro
-test('visits the app root url', async ({ page }) => {
-  await page.goto('/');
-  await expect(page.locator('h1')).toHaveText('You did it!');
+test('visits the app root url redirects to login when not authenticated', async ({
+  page,
+}) => {
+  await page.goto('/')
+
+  await expect(page).toHaveURL(/.*login/)
+  await expect(page.locator('h2')).toContainText('Admin Login')
 })

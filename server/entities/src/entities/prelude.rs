@@ -6,6 +6,7 @@ pub use super::files::Entity as Files;
 pub use super::friend::Entity as Friend;
 pub use super::manager_role_relation::Entity as ManagerRoleRelation;
 pub use super::message_records::Entity as MessageRecords;
+pub use super::metrics_history::Entity as MetricsHistory;
 pub use super::permission::Entity as Permission;
 pub use super::role::Entity as Role;
 pub use super::role_permissions::Entity as RolePermissions;

@@ -47,6 +47,16 @@ const routes = [
     name: 'Config',
     component: () => import('@/views/ConfigView.vue'),
   },
+  {
+    path: '/announcements',
+    name: 'Announcements',
+    component: () => import('@/views/AnnouncementsView.vue'),
+  },
+  {
+    path: '/settings',
+    name: 'Settings',
+    component: () => import('@/views/SettingsView.vue'),
+  },
 ]
 
 const router = createRouter({

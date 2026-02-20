@@ -55,6 +55,8 @@ npm run format
 - **Element Plus** (v2.11.7) UI component library
 - **Tailwind CSS** (v4.1.16) via `@tailwindcss/vite` plugin
 - **Element Plus Icons** for iconography
+- **ECharts** (v5.5.1+) for data visualization
+- **vue-echarts** (v7.0.3+) Vue 3 wrapper for ECharts
 
 ### gRPC Integration
 - **@protobuf-ts/runtime** (v2.11.1) - Protobuf TypeScript runtime
@@ -77,10 +79,15 @@ server/web-panel/
 ├── src/
 │   ├── api/                    # Generated gRPC client code (from protobuf)
 │   │   ├── google/            # Google protobuf definitions
+│   │   │   ├── timestamp.ts   # Timestamp type for time-based APIs
+│   │   │   └── duration.ts    # Duration type for interval-based APIs
 │   │   └── service/           # OurChat service definitions
 │   │       ├── auth/          # Authentication services
 │   │       ├── basic/         # Basic services (server, support, etc.)
-│   │       └── ourchat/       # OurChat core services
+│   │       ├── ourchat/       # OurChat core services
+│   │       └── server_manage/ # Server management services
+│   │           └── monitoring/  # Metrics monitoring APIs
+│   │               └── v1/monitoring.ts  # MonitoringMetrics types
 │   ├── assets/                # Static assets
 │   ├── components/            # Vue components
 │   │   ├── icons/            # Icon components
@@ -165,13 +172,94 @@ The web-panel uses **gRPC-Web** to communicate with the Rust backend. The protoc
 - **AuthService** - User authentication and registration
 - **BasicService** - Server information and support
 - **OurChatService** - Core chat functionality
-- **ServerManageService** - Server management (referenced)
+- **ServerManageService** - Server management operations
+  - `GetMonitoringMetrics` - Current server metrics
+  - `GetHistoricalMetrics` - Historical metrics for time ranges
+  - `GetConfig`/`SetConfig` - Configuration management
+  - `ListUsers`/`BanUser`/`UnbanUser` - User management
+  - `ListSessions` - Session management
 
 ### Authentication Flow
 1. Login at `/login` route
 2. JWT token obtained from Rust server
 3. Token stored in `localStorage`
 4. Route guards redirect to login if token missing
+
+## Metrics Monitoring UI
+
+The web-panel includes a comprehensive metrics monitoring interface (`MonitorView.vue`) that displays real-time and historical server metrics.
+
+### Key Features
+- **Real-time charts** for connections, message throughput, CPU, and memory usage
+- **Historical metrics** with configurable time ranges (1h, 6h, 24h, 7d)
+- **Auto-refresh** every 30 seconds
+- **Export functionality** to download metrics as JSON
+- **System metrics toggle** to include/exclude CPU, memory, disk metrics
+- **Full i18n support** for English and Chinese
+
+### Technology Stack for Charts
+- **ECharts** (v5.5.1+) - Charting library
+- **vue-echarts** (v7.0.3+) - Vue 3 wrapper for ECharts
+
+### gRPC APIs Used
+The metrics UI uses two gRPC endpoints from `ServerManageService`:
+
+1. **GetMonitoringMetrics** - Fetches current server metrics
+   - `includeSystemMetrics`: Include CPU, memory, disk usage
+   - `includeTokioMetrics`: Include Tokio runtime metrics
+   - Returns: `MonitoringMetrics` with active connections, users, sessions, etc.
+
+2. **GetHistoricalMetrics** - Fetches historical metrics for charts
+   - `startTime`/`endTime`: Time range (as `google.protobuf.Timestamp`)
+   - `interval`: Aggregation interval (as `google.protobuf.Duration`)
+   - Returns: Array of `MetricDataPoint` with timestamped metrics
+
+### Implementation Details
+
+**Chart Configuration:**
+```typescript
+// ECharts is configured with tree-shaking for optimal bundle size
+import { use } from 'echarts/core'
+import { CanvasRenderer } from 'echarts/renderers'
+import { LineChart } from 'echarts/charts'
+import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components'
+
+use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, LegendComponent])
+```
+
+**Protobuf Types:**
+- `Timestamp` from `@/api/google/protobuf/timestamp` - Use `Timestamp.fromDate()` for conversion
+- `Duration` from `@/api/google/protobuf/duration` - Use `Duration.create()` for construction
+
+**Auto-refresh Pattern:**
+```typescript
+onMounted(() => {
+  refreshMetrics()
+  refreshInterval = setInterval(refreshMetrics, 30000) // 30 seconds
+})
+
+onUnmounted(() => {
+  if (refreshInterval) clearInterval(refreshInterval)
+})
+```
+
+### Modifying Metrics Display
+
+**To add a new metric chart:**
+1. Add chart option computed property in `MonitorView.vue`
+2. Create `<v-chart>` component with the option
+3. Map historical data points to the chart series
+
+**To change refresh interval:**
+- Modify the `setInterval` duration in `onMounted()` hook
+
+**To add new time range options:**
+- Add `<el-option>` to the time range `<el-select>` with value in seconds
+
+### File Locations
+- `src/views/MonitorView.vue` - Main metrics view component
+- `src/api/service/server_manage/monitoring/v1/monitoring.ts` - Generated protobuf types
+- `src/locales/en.json` & `src/locales/zh.json` - Translation keys (prefixed with metrics-related keys)
 
 ## Build and Deployment
 

@@ -3,6 +3,7 @@ use crate::process::error_msg::not_found;
 use crate::{db, process::error_msg::SERVER_ERROR, server::RpcServer};
 use anyhow::anyhow;
 use base::constants::{ID, SessionID};
+use metrics::gauge;
 use pb::service::ourchat::session::leave_session::v1::{LeaveSessionRequest, LeaveSessionResponse};
 use sea_orm::{ActiveModelTrait, ActiveValue, IntoActiveModel, TransactionTrait};
 use tonic::{Request, Response, Status};
@@ -56,6 +57,8 @@ async fn leave_session_impl(
     match db::session::leave_session(session_id, id, &transaction).await {
         Ok(_) => {
             transaction.commit().await?;
+            // Decrement active sessions metric when user leaves
+            gauge!("active_sessions").decrement(1.0);
         }
         Err(SessionError::SessionNotFound) => {
             tracing::error!("Relation exist but session not found");

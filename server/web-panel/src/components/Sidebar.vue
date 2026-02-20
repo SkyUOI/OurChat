@@ -32,6 +32,7 @@ export default {
           icon: 'el-icon-chat-dot-round',
         },
         { id: 7, titleKey: 'config', path: '/config', icon: 'el-icon-files' },
+        { id: 8, titleKey: 'announcements', path: '/announcements', icon: 'el-icon-bell' },
       ],
     }
   },

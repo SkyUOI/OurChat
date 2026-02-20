@@ -23,6 +23,8 @@ message SendMsgRequest {
 message FetchMsgsRequest {
   // Get messages after this time
   google.protobuf.Timestamp time = 1;
+  // If true, only fetch announcements
+  bool announcement_only = 2;
 }
 
 message FetchMsgsResponse {

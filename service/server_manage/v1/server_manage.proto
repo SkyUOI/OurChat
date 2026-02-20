@@ -31,6 +31,8 @@ service ServerManageService {
   rpc AssignServerRole(user_manage.v1.AssignServerRoleRequest) returns (user_manage.v1.AssignServerRoleResponse);
   rpc RemoveServerRole(user_manage.v1.RemoveServerRoleRequest) returns (user_manage.v1.RemoveServerRoleResponse);
   rpc ListUserServerRoles(user_manage.v1.ListUserServerRolesRequest) returns (user_manage.v1.ListUserServerRolesResponse);
+  rpc ListServerRoles(user_manage.v1.ListServerRolesRequest) returns (user_manage.v1.ListServerRolesResponse);
+  rpc ListServerRolePermissions(user_manage.v1.ListServerRolePermissionsRequest) returns (user_manage.v1.ListServerRolePermissionsResponse);
 
   // Session management
   rpc ListSessions(session_manage.v1.ListSessionsRequest) returns (session_manage.v1.ListSessionsResponse);

@@ -9,6 +9,7 @@ use crate::{db, process::error_msg::SERVER_ERROR, server::RpcServer};
 use anyhow::{Context, anyhow};
 use base::constants::{ID, SessionID};
 use bytes::Bytes;
+use metrics::gauge;
 use migration::predefined::PredefinedPermissions;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
@@ -148,6 +149,10 @@ async fn join_session_impl(
         )
         .await?;
     }
+
+    // Increment active sessions metric when user joins
+    gauge!("active_sessions").increment(1.0);
+
     let ret = JoinSessionResponse {};
     Ok(ret)
 }

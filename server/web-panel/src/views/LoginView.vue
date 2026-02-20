@@ -69,6 +69,7 @@ import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import * as basicPb from '../api/service/basic/v1/basic'
+import { AuthRequest } from '../api/service/auth/authorize/v1/authorize'
 import { useGrpcStore } from '../stores/grpc'
 
 const loginFormRef = ref<InstanceType<typeof ElForm> | null>(null)
@@ -90,7 +91,6 @@ const loginRules = {
 const router = useRouter()
 const grpcStore = useGrpcStore()
 
-// Check connection automatically on component mount
 onMounted(async () => {
   await checkConnection()
 })
@@ -99,8 +99,6 @@ const checkConnection = async () => {
   try {
     const client = grpcStore.basicConn
     const request = basicPb.GetServerInfoRequest.create()
-
-    // Make actual GetServerInfo RPC call
     await client.getServerInfo(request, {})
     connectionStatus.value = 'success'
   } catch (error) {
@@ -110,19 +108,36 @@ const checkConnection = async () => {
   }
 }
 
-const handleLogin = () => {
-  loginFormRef.value?.validate((valid) => {
-    if (valid) {
-      loading.value = true
-      // Simulate login request
-      setTimeout(() => {
-        loading.value = false
-        ElMessage.success(t('loginSuccess'))
-        // TODO: Store authentication token from server response
-        // Redirect to home page
-        router.push('/')
-      }, 1500)
-    }
-  })
+const handleLogin = async () => {
+  const valid = await loginFormRef.value?.validate().catch(() => false)
+  if (!valid) return
+
+  loading.value = true
+
+  try {
+    const client = grpcStore.authConn
+    const request = AuthRequest.create({
+      account: {
+        oneofKind: 'email',
+        email: loginForm.value.username,
+      },
+      password: loginForm.value.password,
+    })
+
+    const response = await client.auth(request, {})
+    const authResponse = response.response
+
+    localStorage.setItem('token', authResponse.token)
+    localStorage.setItem('userId', authResponse.id.toString())
+    localStorage.setItem('userOcid', authResponse.ocid)
+
+    ElMessage.success(t('loginSuccess'))
+    router.push('/')
+  } catch (error) {
+    console.error('Login failed:', error)
+    ElMessage.error(t('loginFailed'))
+  } finally {
+    loading.value = false
+  }
 }
 </script>

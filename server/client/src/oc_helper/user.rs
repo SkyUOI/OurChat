@@ -601,6 +601,7 @@ impl<'a> FetchMsgBuilder<'a> {
     ) -> Result<Vec<FetchMsgsResponse>, FetchMsgErr> {
         let msg_get = FetchMsgsRequest {
             time: Some(self.timestamp.into()),
+            announcement_only: false,
         };
         tracing::info!("timestamp_receive_msg: {}", self.timestamp);
         let ret = self
@@ -642,6 +643,7 @@ impl<'a> FetchMsgBuilder<'a> {
     ) -> Result<Vec<FetchMsgsResponse>, Status> {
         let msg_get = FetchMsgsRequest {
             time: Some(self.timestamp.into()),
+            announcement_only: false,
         };
         let ret = self.user.oc().fetch_msgs(msg_get).await?;
         let mut ret_stream = ret.into_inner();

@@ -1,8 +1,9 @@
 use crate::setting::Setting;
 use migration::MigratorTrait;
-use sea_orm::{ConnectOptions, DatabaseConnection};
+use sea_orm::{DatabaseConnection, SqlxPostgresPoolConnection};
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
+use sqlx::PgPool;
+use sqlx::postgres::PgPoolOptions;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct PostgresDbCfg {
@@ -34,7 +35,7 @@ impl Setting for PostgresDbCfg {}
 async fn try_create_postgres_db(
     url: &str,
     run_migration: bool,
-) -> anyhow::Result<DatabaseConnection> {
+) -> anyhow::Result<(DatabaseConnection, PgPool)> {
     use sqlx::{Postgres, migrate::MigrateDatabase};
     if !Postgres::database_exists(url).await.unwrap_or(false) {
         tracing::info!("Creating postgres database");
@@ -50,18 +51,26 @@ async fn try_create_postgres_db(
             }
         }
     }
-    let mut opt = ConnectOptions::new(url);
-    opt.connect_timeout(Duration::from_mins(1));
-    let db = sea_orm::Database::connect(opt).await?;
+
+    // Create SQLx connection pool for monitoring
+    let pool = PgPoolOptions::new().connect(url).await?;
+    let db = DatabaseConnection::SqlxPostgresPoolConnection(SqlxPostgresPoolConnection::from(
+        pool.clone(),
+    ));
+
     tracing::info!("Ran all migrations of databases");
     if run_migration {
         migration::Migrator::up(&db, None).await?;
     }
-    Ok(db)
+
+    Ok((db, pool))
 }
 
 /// connect to the database according to url
-pub async fn connect_to_db(url: &str, run_migration: bool) -> anyhow::Result<DatabaseConnection> {
+pub async fn connect_to_db(
+    url: &str,
+    run_migration: bool,
+) -> anyhow::Result<(DatabaseConnection, PgPool)> {
     tracing::info!("Connecting to {}", url);
     try_create_postgres_db(url, run_migration).await
 }

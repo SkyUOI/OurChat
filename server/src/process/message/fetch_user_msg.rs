@@ -55,6 +55,7 @@ async fn fetch_user_msg_impl(
     request: tonic::Request<FetchMsgsRequest>,
 ) -> Result<Response<FetchMsgsStream>, FetchMsgError> {
     let request = request.into_inner();
+    let announcement_only = request.announcement_only;
     let time: TimeStampUtc = match match request.time {
         Some(t) => t,
         None => {
@@ -72,11 +73,25 @@ async fn fetch_user_msg_impl(
     let db_conn = server.db.clone();
     let fetch_page_size = server.shared_data.cfg().main_cfg.db.fetch_msg_page_size;
     let connection = server.get_rabbitmq_manager().await?;
+
+    // Track active connection
+    metrics::gauge!("active_connections").increment(1.0);
+
     tokio::spawn(async move {
+        scopeguard::defer! {
+            metrics::gauge!("active_connections").decrement(1.0);
+        }
+
         let tx_clone = tx.clone();
         let batch = async move {
-            match db::messages::get_session_msgs(id, time.into(), &db_conn.db_pool, fetch_page_size)
-                .await
+            match db::messages::get_session_msgs(
+                id,
+                time.into(),
+                &db_conn.db_pool,
+                fetch_page_size,
+                announcement_only,
+            )
+            .await
             {
                 Ok(mut pag) => {
                     let db_logic = async {

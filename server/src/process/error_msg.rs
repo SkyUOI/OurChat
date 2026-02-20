@@ -30,6 +30,13 @@ pub mod invalid {
     pub const PUBLIC_KEY: &str = "Public Key Is Invalid";
 }
 
+pub mod metrics {
+    pub const METRICS_DISABLED: &str = "Metrics Disabled";
+    pub const INVALID_START_TIME: &str = "Invalid Start Time";
+    pub const INVALID_END_TIME: &str = "Invalid End Time";
+    pub const INVALID_INTERVAL: &str = "Invalid Interval";
+}
+
 pub const SERVER_ERROR: &str = "Server Error";
 pub const PERMISSION_DENIED: &str = "Permission Denied";
 pub const REQUEST_INVALID_VALUE: &str = "Request Invalid Value";

@@ -12,6 +12,7 @@ use crate::{SERVER_INFO, SharedData};
 use anyhow::Context;
 use base::constants::{ID, JWT_HEADER, OCID, VERSION_SPLIT};
 use base::database::DbPool;
+use metrics::gauge;
 use migration::predefined::AccountStatus;
 use pb::service::auth::authorize::v1::{AuthRequest, AuthResponse};
 use pb::service::auth::email_verify::v1::{VerifyRequest, VerifyResponse};
@@ -46,8 +47,10 @@ use pb::service::server_manage::set_server_status::v1::{
 };
 use pb::service::server_manage::user_manage::v1::{
     AssignServerRoleRequest, AssignServerRoleResponse, BanUserRequest, BanUserResponse,
-    ListUserServerRolesRequest, ListUserServerRolesResponse, ListUsersRequest, ListUsersResponse,
-    RemoveServerRoleRequest, RemoveServerRoleResponse, UnbanUserRequest, UnbanUserResponse,
+    ListServerRolePermissionsRequest, ListServerRolePermissionsResponse, ListServerRolesRequest,
+    ListServerRolesResponse, ListUserServerRolesRequest, ListUserServerRolesResponse,
+    ListUsersRequest, ListUsersResponse, RemoveServerRoleRequest, RemoveServerRoleResponse,
+    UnbanUserRequest, UnbanUserResponse,
 };
 use pb::service::server_manage::v1::server_manage_service_server::{
     ServerManageService, ServerManageServiceServer,
@@ -76,12 +79,39 @@ pub struct ServerManageServiceProvider {
     pub rabbitmq: deadpool_lapin::Pool,
 }
 
+/// Wrapper around deadpool_lapin::Object that tracks connection metrics
+pub struct TrackedRabbitMqObject {
+    pub inner: deadpool_lapin::Object,
+}
+
+impl Drop for TrackedRabbitMqObject {
+    fn drop(&mut self) {
+        gauge!("rabbitmq_connections").decrement(1.0);
+    }
+}
+
+impl std::ops::Deref for TrackedRabbitMqObject {
+    type Target = deadpool_lapin::Object;
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl std::ops::DerefMut for TrackedRabbitMqObject {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
+
 impl ServerManageServiceProvider {
-    pub async fn get_rabbitmq_manager(&self) -> anyhow::Result<deadpool_lapin::Object> {
-        self.rabbitmq
+    pub async fn get_rabbitmq_manager(&self) -> anyhow::Result<TrackedRabbitMqObject> {
+        let inner = self
+            .rabbitmq
             .get()
             .await
-            .context("cannot get rabbitmq connection")
+            .context("cannot get rabbitmq connection")?;
+        gauge!("rabbitmq_connections").increment(1.0);
+        Ok(TrackedRabbitMqObject { inner })
     }
 }
 
@@ -259,11 +289,14 @@ impl RpcServer {
         Ok(())
     }
 
-    pub async fn get_rabbitmq_manager(&self) -> anyhow::Result<deadpool_lapin::Object> {
-        self.rabbitmq
+    pub async fn get_rabbitmq_manager(&self) -> anyhow::Result<TrackedRabbitMqObject> {
+        let inner = self
+            .rabbitmq
             .get()
             .await
-            .context("cannot get rabbitmq connection")
+            .context("cannot get rabbitmq connection")?;
+        gauge!("rabbitmq_connections").increment(1.0);
+        Ok(TrackedRabbitMqObject { inner })
     }
 }
 
@@ -276,11 +309,14 @@ pub struct AuthServiceProvider {
 }
 
 impl AuthServiceProvider {
-    pub async fn get_rabbitmq_manager(&self) -> anyhow::Result<deadpool_lapin::Object> {
-        self.rabbitmq
+    pub async fn get_rabbitmq_manager(&self) -> anyhow::Result<TrackedRabbitMqObject> {
+        let inner = self
+            .rabbitmq
             .get()
             .await
-            .context("cannot get rabbitmq connection")
+            .context("cannot get rabbitmq connection")?;
+        gauge!("rabbitmq_connections").increment(1.0);
+        Ok(TrackedRabbitMqObject { inner })
     }
 }
 
@@ -454,17 +490,17 @@ impl ServerManageService for ServerManageServiceProvider {
     #[tracing::instrument(skip(self))]
     async fn get_monitoring_metrics(
         &self,
-        _request: Request<GetMonitoringMetricsRequest>,
+        request: Request<GetMonitoringMetricsRequest>,
     ) -> Result<Response<GetMonitoringMetricsResponse>, Status> {
-        Err(Status::unimplemented("not yet implemented"))
+        process::get_monitoring_metrics(self, request).await
     }
 
     #[tracing::instrument(skip(self))]
     async fn get_historical_metrics(
         &self,
-        _request: Request<GetHistoricalMetricsRequest>,
+        request: Request<GetHistoricalMetricsRequest>,
     ) -> Result<Response<GetHistoricalMetricsResponse>, Status> {
-        Err(Status::unimplemented("not yet implemented"))
+        process::get_historical_metrics(self, request).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -478,33 +514,33 @@ impl ServerManageService for ServerManageServiceProvider {
     #[tracing::instrument(skip(self))]
     async fn ban_user(
         &self,
-        _request: Request<BanUserRequest>,
+        request: Request<BanUserRequest>,
     ) -> Result<Response<BanUserResponse>, Status> {
-        process::server_ban_user(self, _request).await
+        process::server_ban_user(self, request).await
     }
 
     #[tracing::instrument(skip(self))]
     async fn unban_user(
         &self,
-        _request: Request<UnbanUserRequest>,
+        request: Request<UnbanUserRequest>,
     ) -> Result<Response<UnbanUserResponse>, Status> {
-        process::server_unban_user(self, _request).await
+        process::server_unban_user(self, request).await
     }
 
     #[tracing::instrument(skip(self))]
     async fn assign_server_role(
         &self,
-        _request: Request<AssignServerRoleRequest>,
+        request: Request<AssignServerRoleRequest>,
     ) -> Result<Response<AssignServerRoleResponse>, Status> {
-        process::assign_server_role(self, _request).await
+        process::assign_server_role(self, request).await
     }
 
     #[tracing::instrument(skip(self))]
     async fn remove_server_role(
         &self,
-        _request: Request<RemoveServerRoleRequest>,
+        request: Request<RemoveServerRoleRequest>,
     ) -> Result<Response<RemoveServerRoleResponse>, Status> {
-        process::remove_server_role(self, _request).await
+        process::remove_server_role(self, request).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -513,6 +549,22 @@ impl ServerManageService for ServerManageServiceProvider {
         request: Request<ListUserServerRolesRequest>,
     ) -> Result<Response<ListUserServerRolesResponse>, Status> {
         process::list_user_server_roles(self, request).await
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn list_server_roles(
+        &self,
+        request: Request<ListServerRolesRequest>,
+    ) -> Result<Response<ListServerRolesResponse>, Status> {
+        process::list_server_roles(self, request).await
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn list_server_role_permissions(
+        &self,
+        request: Request<ListServerRolePermissionsRequest>,
+    ) -> Result<Response<ListServerRolePermissionsResponse>, Status> {
+        process::list_server_role_permissions(self, request).await
     }
 
     #[tracing::instrument(skip(self))]

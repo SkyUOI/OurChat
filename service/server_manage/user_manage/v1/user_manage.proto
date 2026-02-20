@@ -90,3 +90,33 @@ message ListUserServerRolesRequest {
 message ListUserServerRolesResponse {
   repeated uint64 role_ids = 1;
 }
+
+// Server role information
+message ServerRoleInfo {
+  uint64 id = 1;
+  string name = 2;
+  string description = 3;
+}
+
+// Permission information
+message PermissionInfo {
+  uint64 id = 1;
+  string name = 2;
+  string description = 3;
+}
+
+// List all server roles request
+message ListServerRolesRequest {}
+
+message ListServerRolesResponse {
+  repeated ServerRoleInfo roles = 1;
+}
+
+// List permissions for a server role
+message ListServerRolePermissionsRequest {
+  uint64 role_id = 1;
+}
+
+message ListServerRolePermissionsResponse {
+  repeated PermissionInfo permissions = 1;
+}
