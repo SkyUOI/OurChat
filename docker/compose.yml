@@ -27,7 +27,7 @@ services:
       POSTGRES_DB: OurChat
       POSTGRES_PASSWORD: 123456
     volumes:
-      - "./data/postgres-data:/var/lib/postgresql/data"
+      - "./data/postgres-data:/var/lib/postgresql/18/docker"
     # If you want to expose the postgres port, uncomment the following lines
     # ports:
     #   - "5432:5432"
