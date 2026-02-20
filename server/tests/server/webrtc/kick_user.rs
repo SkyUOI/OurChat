@@ -1,9 +1,9 @@
 use client::TestApp;
-use deadpool_redis::redis::AsyncCommands;
 use pb::service::ourchat::webrtc::room::accept_room_invitation::v1::AcceptRoomInvitationRequest;
 use pb::service::ourchat::webrtc::room::create_room::v1::CreateRoomRequest;
 use pb::service::ourchat::webrtc::room::invite_user::v1::InviteUserToRoomRequest;
 use pb::service::ourchat::webrtc::room::kick_user::v1::KickUserFromRoomRequest;
+use redis::AsyncCommands;
 use server::webrtc::{RoomId, room_admins_key, room_members_key};
 
 /// Tests that a room admin can kick a user from the room.
@@ -61,7 +61,7 @@ async fn kick_user_from_room_success() {
         .unwrap();
 
     // Verify user is in room
-    let mut conn = app.get_redis_connection().get().await.unwrap();
+    let mut conn = app.redis();
     let members_key = room_members_key(room_id);
     let is_member_before: bool = conn.sismember(&members_key, *member_user_id).await.unwrap();
     assert!(is_member_before, "User should be member before kick");
@@ -379,7 +379,7 @@ async fn kick_user_from_room_cannot_kick_creator() {
     );
 
     // Verify creator is still in room
-    let mut conn = app.get_redis_connection().get().await.unwrap();
+    let mut conn = app.redis();
     let members_key = room_members_key(room_id);
     let is_creator_member: bool = conn.sismember(&members_key, *creator_id).await.unwrap();
 
@@ -554,7 +554,7 @@ async fn kick_user_from_room_admin_removed_from_both_sets() {
         .unwrap();
 
     // Verify user is in both sets
-    let mut conn = app.get_redis_connection().get().await.unwrap();
+    let mut conn = app.redis();
     let members_key = room_members_key(room_id);
     let admins_key = room_admins_key(room_id);
 

@@ -1,7 +1,7 @@
-use std::time::Duration;
+use std::{collections::HashSet, time::Duration};
 
 use base::{database::DbPool, wrapper::JobSchedulerWrapper};
-use deadpool_redis::redis::AsyncTypedCommands;
+use redis::AsyncCommands;
 use sea_orm::ActiveModelTrait;
 use tokio::sync::MutexGuard;
 use tokio_cron_scheduler::Job;
@@ -23,7 +23,7 @@ pub mod signal;
 pub async fn move_room_from_redis_to_postgres(
     room_key: &str,
     room_info: RoomInfo,
-    redis_conn: &mut deadpool_redis::Connection,
+    redis_conn: &mut impl redis::AsyncCommands,
     db_conn: &impl sea_orm::ConnectionTrait,
 ) -> anyhow::Result<()> {
     let entity = entities::rtc_room::ActiveModel {
@@ -32,7 +32,7 @@ pub async fn move_room_from_redis_to_postgres(
         users_num: sea_orm::ActiveValue::Set(room_info.users_num as i32),
     };
     entity.insert(db_conn).await?;
-    redis_conn.del(room_key).await?;
+    let _: () = redis_conn.del(room_key).await?;
     Ok(())
 }
 
@@ -45,14 +45,14 @@ pub async fn clean_rooms<'a>(
         let db_pool = db_pool.clone();
         Box::pin(async move {
             let logic = async move {
-                let mut conn = db_pool.redis_pool.get().await?;
-                let empty_rooms = conn.smembers(empty_room_name()).await?;
+                let mut conn = db_pool.redis();
+                let empty_rooms: HashSet<String> = conn.smembers(empty_room_name()).await?;
                 for i in empty_rooms.iter() {
                     let room_id = i.parse()?;
                     let room_key = room_key(room_id);
-                    let room_info = RoomInfo::from_redis(&mut conn, &room_key).await?;
+                    let room_info: RoomInfo = conn.get(&room_key).await?;
                     if room_info.auto_delete {
-                        let mut pipe = deadpool_redis::redis::pipe();
+                        let mut pipe = redis::pipe();
                         pipe.atomic();
                         pipe.srem(empty_room_name(), i);
                         pipe.del(room_key);

@@ -1,11 +1,10 @@
-use crate::db::redis::{
+use crate::db::redis_mappings::{
     map_ban_all_to_redis, map_ban_to_redis, map_mute_all_to_redis, map_mute_to_redis,
 };
 use base::{
     constants::{ID, SessionID},
     types::{PermissionId, RoleId},
 };
-use deadpool_redis::redis::AsyncCommands;
 use entities::{role, role_permissions, session, session_relation, user_role_relation};
 use sea_orm::{ActiveValue, DatabaseTransaction, QuerySelect, prelude::*};
 use std::time::Duration;
@@ -91,8 +90,8 @@ pub enum MuteStatus {
 pub async fn user_muted_status(
     user_id: ID,
     session_id: SessionID,
-    redis_connection: &mut deadpool_redis::Connection,
-) -> Result<Option<MuteStatus>, deadpool_redis::redis::RedisError> {
+    redis_connection: &mut impl redis::AsyncCommands,
+) -> Result<Option<MuteStatus>, redis::RedisError> {
     let key = map_mute_to_redis(session_id, user_id);
     let user_muted: i64 = redis_connection.ttl(&key).await?;
     let key = map_mute_all_to_redis(session_id);
@@ -117,8 +116,8 @@ pub enum BanStatus {
 pub async fn user_banned_status(
     user_id: ID,
     session_id: SessionID,
-    redis_connection: &mut deadpool_redis::Connection,
-) -> Result<Option<BanStatus>, deadpool_redis::redis::RedisError> {
+    redis_connection: &mut impl redis::AsyncCommands,
+) -> Result<Option<BanStatus>, redis::RedisError> {
     let key = map_ban_to_redis(session_id, user_id);
     let user_banned: i64 = redis_connection.ttl(&key).await?;
     let key = map_ban_all_to_redis(session_id);

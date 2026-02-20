@@ -1,23 +1,21 @@
 use crate::database::postgres::PostgresDbCfg;
-use crate::database::redis::RedisCfg;
-use anyhow::Context;
+use crate::database::redis_cfg::RedisCfg;
 use sea_orm::DatabaseConnection;
 
 pub mod postgres;
-pub mod redis;
+pub mod redis_cfg;
 
-/// The database connection pool, redis connection pool
+/// The database connection pool, redis connection manager
 /// you can clone it freely without many extra cost
 #[derive(Debug, Clone)]
 pub struct DbPool {
     pub db_pool: DatabaseConnection,
-    pub redis_pool: deadpool_redis::Pool,
+    pub redis_conn: redis::aio::ConnectionManager,
 }
 
 impl DbPool {
     pub async fn close(&mut self) -> anyhow::Result<()> {
         self.db_pool.clone().close().await?;
-        self.redis_pool.close();
         Ok(())
     }
 
@@ -27,10 +25,10 @@ impl DbPool {
         run_migration: bool,
     ) -> anyhow::Result<Self> {
         let db_pool = postgres::connect_to_db(&postgres.url(), run_migration).await?;
-        let redis_pool = redis::connect_to_redis(&redis.get_redis_url()?).await?;
+        let redis_conn = redis_cfg::connect_to_redis(&redis.get_redis_url()?).await?;
         Ok(Self {
             db_pool,
-            redis_pool,
+            redis_conn,
         })
     }
 
@@ -39,10 +37,9 @@ impl DbPool {
         Ok(())
     }
 
-    pub async fn get_redis_connection(&self) -> anyhow::Result<deadpool_redis::Connection> {
-        self.redis_pool
-            .get()
-            .await
-            .context("cannot get redis connection")
+    /// Get a clone of the redis connection manager.
+    /// The ConnectionManager is cheap to clone and can be used directly.
+    pub fn redis(&self) -> redis::aio::ConnectionManager {
+        self.redis_conn.clone()
     }
 }

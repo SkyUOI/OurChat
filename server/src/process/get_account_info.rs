@@ -6,10 +6,10 @@ use crate::process::error_msg::SERVER_ERROR;
 use crate::server::RpcServer;
 use anyhow::Context;
 use base::constants::ID;
-use deadpool_redis::redis::AsyncCommands;
 use pb::service::ourchat::get_account_info::v1::{
     GetAccountInfoRequest, GetAccountInfoResponse, OWNER_PRIVILEGE, QueryValues,
 };
+use redis::AsyncCommands;
 use std::cmp::PartialEq;
 use std::sync::OnceLock;
 use tonic::Request;
@@ -102,7 +102,7 @@ async fn get_account_info_impl(
                 }
                 QueryValues::Status => {
                     // ret.status = Some(queried_user.status.clone().unwrap_or_default());
-                    let mut redis_conn = server.db.get_redis_connection().await?;
+                    let mut redis_conn = server.db.redis();
                     ret.status = redis_conn
                         .get(mapped_to_user_defined_status(queried_user.id))
                         .await

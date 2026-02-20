@@ -402,7 +402,7 @@ impl HttpServer {
                         tracing::error!("{}", e);
                     }
                 }
-                let redis_conn = db_pool.redis_pool.clone();
+                let mut redis_conn = db_pool.redis();
                 let verify_email_expiry = shared_data.cfg().user_setting.verify_email_expiry;
                 tokio::spawn(async move {
                     tokio::time::sleep(verify_email_expiry).await;
@@ -416,7 +416,7 @@ impl HttpServer {
                     };
                     let token_exists = match verify::check_token_exist_and_del_token(
                         &verify_record.token,
-                        &redis_conn,
+                        &mut redis_conn,
                     )
                     .await
                     {

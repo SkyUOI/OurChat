@@ -320,10 +320,15 @@ features = ["getrandom", "password-hash", "alloc"]
 version = "6"
 default-features = false
 
-[workspace.dependencies.deadpool-redis]
-version = "0"
+[workspace.dependencies.redis]
+version = "1"
 default-features = false
-features = ["rt_tokio_1"]
+features = ["tokio-comp", "connection-manager", "aio", "json"]
+
+[workspace.dependencies.redis-macros]
+version = "1"
+default-features = false
+features = ["macros"]
 
 [workspace.dependencies.chrono]
 version = "0"

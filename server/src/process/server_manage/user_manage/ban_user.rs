@@ -1,9 +1,9 @@
-use crate::db::redis;
+use crate::db::redis_mappings;
 use crate::{process::error_msg::SERVER_ERROR, server::ServerManageServiceProvider};
 use base::constants::ID;
-use deadpool_redis::redis::AsyncCommands;
 use migration::predefined::PredefinedServerManagementPermission;
 use pb::service::server_manage::user_manage::v1::{BanUserRequest, BanUserResponse};
+use redis::AsyncCommands;
 use tonic::{Request, Response, Status};
 use tracing::info;
 
@@ -12,7 +12,7 @@ enum BanUserError {
     #[error("database error:{0:?}")]
     DbError(#[from] sea_orm::DbErr),
     #[error("redis error:{0:?}")]
-    RedisError(#[from] deadpool_redis::redis::RedisError),
+    RedisError(#[from] redis::RedisError),
     #[error("internal error:{0:?}")]
     InternalError(#[from] anyhow::Error),
     #[error("permission denied")]
@@ -41,10 +41,9 @@ async fn ban_user_impl(
     let req = request.into_inner();
     let user_id: ID = req.user_id.into();
 
-    // Get Redis connection
-    let mut conn = server.db.get_redis_connection().await?;
+    let mut conn = server.db.redis();
 
-    let key = redis::map_server_ban_to_redis(user_id);
+    let key = redis_mappings::map_server_ban_to_redis(user_id);
 
     // Store ban with optional TTL
     match req.duration {

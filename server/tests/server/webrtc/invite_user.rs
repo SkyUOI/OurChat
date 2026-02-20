@@ -1,7 +1,7 @@
 use client::TestApp;
-use deadpool_redis::redis::AsyncCommands;
 use pb::service::ourchat::webrtc::room::create_room::v1::CreateRoomRequest;
 use pb::service::ourchat::webrtc::room::invite_user::v1::InviteUserToRoomRequest;
+use redis::AsyncCommands;
 use server::webrtc::{RoomId, room_invitations_key};
 
 /// Tests that a room admin can invite a user to a room.
@@ -54,7 +54,7 @@ async fn invite_user_to_room_success() {
     assert!(invite_response.success, "Invitation should succeed");
 
     // Check Redis for invitation
-    let mut conn = app.get_redis_connection().get().await.unwrap();
+    let mut conn = app.redis();
     let invitations_key = room_invitations_key(room_id);
     let is_invited: bool = conn
         .sismember(&invitations_key, *target_user_id)

@@ -7,10 +7,10 @@ use crate::{
     },
 };
 use base::constants::ID;
-use deadpool_redis::redis::AsyncTypedCommands;
 use pb::service::ourchat::webrtc::room::kick_user::v1::{
     KickUserFromRoomRequest, KickUserFromRoomResponse,
 };
+use redis::AsyncCommands;
 use tonic::{Request, Response, Status};
 
 pub async fn kick_user_from_room(
@@ -40,7 +40,7 @@ pub async fn kick_user_from_room(
 #[derive(thiserror::Error, Debug)]
 enum KickErr {
     #[error("redis error:{0:?}")]
-    Redis(#[from] deadpool_redis::redis::RedisError),
+    Redis(#[from] redis::RedisError),
     #[error("internal error:{0:?}")]
     Internal(#[from] anyhow::Error),
     #[error("room not found")]
@@ -66,7 +66,7 @@ async fn kick_user_from_room_impl(
     let room_id = RoomId(req.room_id);
     let target_user_id = ID(req.user_id);
 
-    let mut redis_conn = server.db.get_redis_connection().await?;
+    let mut redis_conn = server.db.redis();
 
     // Check if room exists
     let room_key_str = room_key(room_id);
@@ -110,7 +110,7 @@ async fn kick_user_from_room_impl(
 
     if was_in_joined > 0 {
         // User had joined, so decrement the count
-        let room_info = RoomInfo::from_redis(&mut redis_conn, &room_key_str).await?;
+        let room_info: RoomInfo = redis_conn.get(&room_key_str).await?;
 
         // Update user count
         let new_count = room_info.users_num.saturating_sub(1);
@@ -118,8 +118,7 @@ async fn kick_user_from_room_impl(
             users_num: new_count,
             ..room_info
         };
-        let pipe = updated_info.hset_pipe(&room_key_str);
-        let _: () = pipe.query_async(&mut redis_conn).await?;
+        let _: () = redis_conn.set(&room_key_str, &updated_info).await?;
     }
 
     Ok(KickUserFromRoomResponse { success: true })

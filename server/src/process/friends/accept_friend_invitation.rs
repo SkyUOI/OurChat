@@ -6,7 +6,6 @@ use crate::process::{Dest, transmit_msg};
 use crate::{db, process::error_msg::SERVER_ERROR, server::RpcServer};
 use anyhow::Context;
 use base::constants::ID;
-use deadpool_redis::redis::AsyncCommands;
 use pb::service::ourchat::friends::accept_friend_invitation::v1::{
     AcceptFriendInvitationRequest, AcceptFriendInvitationResponse, AcceptFriendInvitationResult,
     FriendInvitationResultNotification,
@@ -14,6 +13,7 @@ use pb::service::ourchat::friends::accept_friend_invitation::v1::{
 use pb::service::ourchat::friends::add_friend::v1::AddFriendRequest;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
+use redis::AsyncCommands;
 use sea_orm::TransactionTrait;
 use tonic::{Request, Response, Status};
 
@@ -43,7 +43,7 @@ enum AcceptFriendErr {
     #[error("internal error:{0:?}")]
     Internal(#[from] anyhow::Error),
     #[error("redis error:{0:?}")]
-    Redis(#[from] deadpool_redis::redis::RedisError),
+    Redis(#[from] redis::RedisError),
 }
 
 impl From<SessionError> for AcceptFriendErr {
@@ -84,7 +84,7 @@ async fn accept_friend_invitation_impl(
 ) -> Result<AcceptFriendInvitationResponse, AcceptFriendErr> {
     let req = request.into_inner();
     let inviter_id: ID = req.friend_id.into();
-    let mut redis_conn = server.db.get_redis_connection().await?;
+    let mut redis_conn = server.db.redis();
     let key = mapped_add_friend_to_redis(inviter_id, id);
     let exist: bool = redis_conn.exists(&key).await?;
     if !exist {

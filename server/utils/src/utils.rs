@@ -36,7 +36,7 @@ macro_rules! impl_newtype {
 #[macro_export]
 macro_rules! impl_newtype_int {
     ($name:ident, $type:ty, $($derive:tt)*) => {
-        $crate::impl_newtype!($name, $type, #[derive(Clone, Debug, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default, $($derive)*)]);
+        $crate::impl_newtype!($name, $type, #[derive(serde::Serialize, serde::Deserialize, Clone, Debug, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default, $($derive)*)]);
 
         impl std::fmt::Display for $name {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -65,22 +65,20 @@ macro_rules! impl_newtype_string {
 }
 
 pub macro impl_redis_value_from_for_newint($name:ident) {
-    impl deadpool_redis::redis::ToRedisArgs for $name {
+    impl redis::ToRedisArgs for $name {
         fn write_redis_args<W>(&self, out: &mut W)
         where
-            W: ?Sized + deadpool_redis::redis::RedisWrite,
+            W: ?Sized + redis::RedisWrite,
         {
             self.0.write_redis_args(out)
         }
     }
 
-    impl deadpool_redis::redis::FromRedisValue for $name {
-        fn from_redis_value(
-            v: &deadpool_redis::redis::Value,
-        ) -> deadpool_redis::redis::RedisResult<Self> {
-            Ok($name(
-                deadpool_redis::redis::FromRedisValue::from_redis_value(v)?,
-            ))
+    impl redis::ToSingleRedisArg for $name {}
+
+    impl redis::FromRedisValue for $name {
+        fn from_redis_value(v: redis::Value) -> Result<Self, redis::ParsingError> {
+            Ok($name(redis::FromRedisValue::from_redis_value(v)?))
         }
     }
 }

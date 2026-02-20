@@ -41,10 +41,10 @@ pub const fn default_add_friend_request_expiry() -> Duration {
 }
 
 // define ID type to fit many types of databases
-impl_newtype_int!(ID, u64, serde::Serialize, serde::Deserialize);
+impl_newtype_int!(ID, u64,);
 impl_redis_value_from_for_newint!(ID);
-impl_newtype_int!(SessionID, u64, serde::Serialize, serde::Deserialize);
-impl_newtype_int!(MsgID, u64, serde::Serialize, serde::Deserialize);
+impl_newtype_int!(SessionID, u64,);
+impl_newtype_int!(MsgID, u64,);
 
 pub macro impl_from($from:path, $ty:ty) {
     impl From<$ty> for $from {

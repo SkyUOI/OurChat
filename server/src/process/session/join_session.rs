@@ -45,7 +45,7 @@ enum JoinInSessionErr {
     #[error("internal error:{0:?}")]
     Internal(#[from] anyhow::Error),
     #[error("redis error:{0:?}")]
-    Redis(#[from] deadpool_redis::redis::RedisError),
+    Redis(#[from] redis::RedisError),
 }
 
 impl From<db::messages::MsgError> for JoinInSessionErr {
@@ -86,7 +86,7 @@ async fn join_session_impl(
     }
 
     // Check if user is banned
-    let mut conn = server.db.get_redis_connection().await?;
+    let mut conn = server.db.redis();
     if user_banned_status(id, session_id, &mut conn)
         .await?
         .is_some()

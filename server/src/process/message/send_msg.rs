@@ -47,7 +47,7 @@ enum SendMsgErr {
     #[error("internal error:{0:?}")]
     Internal(#[from] anyhow::Error),
     #[error("redis error:{0:?}")]
-    Redis(#[from] deadpool_redis::redis::RedisError),
+    Redis(#[from] redis::RedisError),
     #[error("message error:{0:?}")]
     MessageError(#[from] MsgInsTransmitErr),
 }
@@ -79,7 +79,7 @@ async fn send_msg_impl(
         Err(Status::permission_denied(not_found::USER_IN_SESSION))?;
     }
     // check mute
-    let mut redis_connection = server.db.get_redis_connection().await?;
+    let mut redis_connection = server.db.redis();
     if user_muted_status(id, req.session_id.into(), &mut redis_connection)
         .await?
         .is_some()

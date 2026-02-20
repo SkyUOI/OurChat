@@ -1,14 +1,14 @@
-use crate::db::redis;
+use crate::db::redis_mappings;
 use crate::db::session::{get_members, if_permission_exist, leave_session};
 use crate::process::error_msg::PERMISSION_DENIED;
 use crate::process::error_msg::not_found::NOT_BE_BANNED;
 use crate::{process::error_msg::SERVER_ERROR, server::RpcServer};
 use base::constants::{ID, SessionID};
-use deadpool_redis::redis::AsyncCommands;
 use migration::predefined::PredefinedPermissions;
 use pb::service::ourchat::session::ban::v1::{
     BanUserRequest, BanUserResponse, UnbanUserRequest, UnbanUserResponse,
 };
+use redis::AsyncCommands;
 use sea_orm::TransactionTrait;
 use tonic::{Request, Response, Status};
 
@@ -38,7 +38,7 @@ enum BanUserErr {
     #[error("internal error:{0:?}")]
     Internal(#[from] anyhow::Error),
     #[error("redis error:{0:?}")]
-    Redis(#[from] deadpool_redis::redis::RedisError),
+    Redis(#[from] redis::RedisError),
 }
 
 async fn ban_user_impl(
@@ -60,7 +60,7 @@ async fn ban_user_impl(
             PERMISSION_DENIED,
         )));
     }
-    let mut conn = server.db.get_redis_connection().await?;
+    let mut conn = server.db.redis();
     let mut exec_ban_user = async |key| {
         match req.duration {
             Some(duration) => {
@@ -70,7 +70,7 @@ async fn ban_user_impl(
                 let _: () = conn.set(&key, "1").await?;
             }
         }
-        Result::<(), deadpool_redis::redis::RedisError>::Ok(())
+        Result::<(), redis::RedisError>::Ok(())
     };
     let kick_user = async |kick_id| {
         tracing::info!("{} kicking...", kick_id);
@@ -81,13 +81,13 @@ async fn ban_user_impl(
     };
     for i in &req.user_ids {
         let user: ID = (*i).into();
-        let key = redis::map_ban_to_redis(req.session_id.into(), user);
+        let key = redis_mappings::map_ban_to_redis(req.session_id.into(), user);
         exec_ban_user(key).await?;
         kick_user(user).await?;
     }
     // ban all
     if req.user_ids.is_empty() {
-        let key = redis::map_ban_all_to_redis(req.session_id.into());
+        let key = redis_mappings::map_ban_all_to_redis(req.session_id.into());
         exec_ban_user(key).await?;
         for i in get_members(session_id, &server.db.db_pool).await? {
             let user_id: ID = i.user_id.into();
@@ -141,10 +141,10 @@ async fn unban_user_impl(
             PERMISSION_DENIED,
         )));
     }
-    let mut conn = server.db.get_redis_connection().await?;
+    let mut conn = server.db.redis();
     for i in req.user_ids {
         let user: ID = i.into();
-        let key = redis::map_ban_to_redis(req.session_id.into(), user);
+        let key = redis_mappings::map_ban_to_redis(req.session_id.into(), user);
 
         // Check if key exists
         let exists: bool = conn.exists(&key).await?;

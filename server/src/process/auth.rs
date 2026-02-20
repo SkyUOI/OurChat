@@ -1,5 +1,5 @@
 use super::{error_msg::not_found, generate_access_token};
-use crate::db::redis::map_failed_login_to_redis;
+use crate::db::redis_mappings::map_failed_login_to_redis;
 use crate::process::error_msg::{
     ACCOUNT_LOCKED, EMAIL_NOT_VERIFIED, MISSING_AUTH_TYPE, WRONG_PASSWORD,
 };
@@ -10,7 +10,6 @@ use anyhow::Context;
 use argon2::{PasswordHash, PasswordVerifier};
 use base::constants::ID;
 use base::database::DbPool;
-use deadpool_redis::redis::AsyncCommands;
 use entities::{prelude::*, user};
 use pb::service::auth::authorize::v1::{AuthRequest, AuthResponse, auth_request::Account};
 use sea_orm::{ColumnTrait, DbErr, EntityTrait, QueryFilter};
@@ -33,7 +32,7 @@ enum AuthError {
     #[error("Unknown Error:{0:?}")]
     UnknownError(#[from] anyhow::Error),
     #[error("redis error:{0:?}")]
-    Redis(#[from] deadpool_redis::redis::RedisError),
+    Redis(#[from] redis::RedisError),
 }
 
 /// Check if the user account is locked due to too many failed login attempts.
@@ -41,7 +40,7 @@ enum AuthError {
 /// Returns Ok if not locked, Err(AuthError::AccountLocked) if locked.
 async fn check_account_locked(
     user_id: ID,
-    redis_conn: &mut deadpool_redis::Connection,
+    redis_conn: &mut impl redis::AsyncCommands,
     max_attempts: u32,
 ) -> Result<(), AuthError> {
     let key = map_failed_login_to_redis(user_id);
@@ -58,7 +57,7 @@ async fn check_account_locked(
 /// Increment the failed login counter for a user.
 async fn increment_failed_login(
     user_id: ID,
-    redis_conn: &mut deadpool_redis::Connection,
+    redis_conn: &mut impl redis::AsyncCommands,
     lock_duration_seconds: u64,
 ) -> Result<(), AuthError> {
     let key = map_failed_login_to_redis(user_id);
@@ -78,7 +77,7 @@ async fn increment_failed_login(
 /// Clear failed login attempts for a user after successful login.
 async fn clear_failed_login(
     user_id: ID,
-    redis_conn: &mut deadpool_redis::Connection,
+    redis_conn: &mut impl redis::AsyncCommands,
 ) -> Result<(), AuthError> {
     let key = map_failed_login_to_redis(user_id);
     let _: () = redis_conn.del(&key).await?;
@@ -132,7 +131,7 @@ async fn auth_db(
                 let Some(passwd) = user.passwd else {
                     return Err(AuthError::WrongPassword);
                 };
-                let mut redis_conn = db_connection.get_redis_connection().await?;
+                let mut redis_conn = db_connection.redis();
                 // Check if account is locked before verifying password
                 check_account_locked(user.id.into(), &mut redis_conn, max_failed_attempts).await?;
 

@@ -1,14 +1,14 @@
-use crate::db::redis;
-use crate::db::redis::map_mute_all_to_redis;
+use crate::db::redis_mappings;
+use crate::db::redis_mappings::map_mute_all_to_redis;
 use crate::db::session::if_permission_exist;
 use crate::process::error_msg::{PERMISSION_DENIED, SERVER_ERROR, not_found::NOT_BE_MUTED};
 use crate::server::RpcServer;
 use base::constants::ID;
-use deadpool_redis::redis::AsyncCommands;
 use migration::predefined::PredefinedPermissions;
 use pb::service::ourchat::session::mute::v1::{
     MuteUserRequest, MuteUserResponse, UnmuteUserRequest, UnmuteUserResponse,
 };
+use redis::AsyncCommands;
 use tonic::{Request, Response, Status};
 
 pub async fn mute_user(
@@ -37,7 +37,7 @@ enum MuteUserErr {
     #[error("internal error:{0:?}")]
     Internal(#[from] anyhow::Error),
     #[error("redis error:{0:?}")]
-    Redis(#[from] deadpool_redis::redis::RedisError),
+    Redis(#[from] redis::RedisError),
 }
 
 async fn mute_user_impl(
@@ -58,7 +58,7 @@ async fn mute_user_impl(
             PERMISSION_DENIED,
         )));
     }
-    let mut conn = server.db.get_redis_connection().await?;
+    let mut conn = server.db.redis();
     let mut set_mute_in_redis = async |key| {
         match req.duration {
             Some(duration) => {
@@ -68,11 +68,11 @@ async fn mute_user_impl(
                 let _: () = conn.set(&key, "1").await?;
             }
         }
-        Result::<(), deadpool_redis::redis::RedisError>::Ok(())
+        Result::<(), redis::RedisError>::Ok(())
     };
 
     for i in &req.user_ids {
-        let key = redis::map_mute_to_redis(req.session_id.into(), (*i).into());
+        let key = redis_mappings::map_mute_to_redis(req.session_id.into(), (*i).into());
         set_mute_in_redis(key).await?;
     }
     // mute all users
@@ -119,11 +119,11 @@ async fn unmute_user_impl(
         )));
     }
     // remove it in redis
-    let mut conn = server.db.get_redis_connection().await?;
+    let mut conn = server.db.redis();
 
     for i in req.user_ids {
         let user: ID = i.into();
-        let key = redis::map_mute_to_redis(req.session_id.into(), user);
+        let key = redis_mappings::map_mute_to_redis(req.session_id.into(), user);
         // Check if key exists
         let exists: bool = conn.exists(&key).await?;
         if !exists {

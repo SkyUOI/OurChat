@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use base::constants::{ID, SessionID};
-use deadpool_redis::redis::AsyncCommands;
 use pb::service::ourchat::upload::v1::{
     CancelUploadRequest, CancelUploadResponse, CompleteUploadRequest, CompleteUploadResponse,
     StartUploadRequest, StartUploadResponse, UploadChunkRequest, UploadChunkResponse,
@@ -37,7 +36,7 @@ use crate::{
 
 /// Helper: Save upload session metadata to Redis
 async fn save_session_to_redis(
-    redis: &mut deadpool_redis::Connection,
+    redis: &mut impl redis::AsyncCommands,
     metadata: &UploadSessionMetadata,
 ) -> Result<(), UploadError> {
     let key = upload_session_key(&metadata.upload_id);
@@ -50,7 +49,7 @@ async fn save_session_to_redis(
 
 /// Helper: Get upload session metadata from Redis
 async fn get_session_from_redis(
-    redis: &mut deadpool_redis::Connection,
+    redis: &mut impl redis::AsyncCommands,
     upload_id: &str,
 ) -> Result<Option<UploadSessionMetadata>, UploadError> {
     let key = upload_session_key(upload_id);
@@ -66,7 +65,7 @@ async fn get_session_from_redis(
 
 /// Helper: Delete upload session metadata from Redis
 async fn delete_session_from_redis(
-    redis: &mut deadpool_redis::Connection,
+    redis: &mut impl redis::AsyncCommands,
     upload_id: &str,
 ) -> Result<(), UploadError> {
     let key = upload_session_key(upload_id);
@@ -81,7 +80,7 @@ pub async fn start_upload_impl(
     request: tonic::Request<StartUploadRequest>,
 ) -> Result<StartUploadResponse, UploadError> {
     let req = request.into_inner();
-    let mut redis = server.db.get_redis_connection().await?;
+    let mut redis = server.db.redis();
 
     // Check user quota and size limits
     let limit_size = server.shared_data.cfg().main_cfg.user_files_limit;
@@ -179,7 +178,7 @@ pub async fn upload_chunk_impl(
     request: tonic::Request<UploadChunkRequest>,
 ) -> Result<UploadChunkResponse, UploadError> {
     let req = request.into_inner();
-    let mut redis = server.db.get_redis_connection().await?;
+    let mut redis = server.db.redis();
 
     // Get metadata from Redis
     let mut metadata = match get_session_from_redis(&mut redis, &req.upload_id).await? {
@@ -256,7 +255,7 @@ pub async fn complete_upload_impl(
     request: tonic::Request<CompleteUploadRequest>,
 ) -> Result<CompleteUploadResponse, UploadError> {
     let req = request.into_inner();
-    let mut redis = server.db.get_redis_connection().await?;
+    let mut redis = server.db.redis();
 
     // Get metadata from Redis
     let metadata = match get_session_from_redis(&mut redis, &req.upload_id).await? {
@@ -367,7 +366,7 @@ pub async fn cancel_upload_impl(
     request: tonic::Request<CancelUploadRequest>,
 ) -> Result<CancelUploadResponse, UploadError> {
     let req = request.into_inner();
-    let mut redis = server.db.get_redis_connection().await?;
+    let mut redis = server.db.redis();
 
     // Get metadata from Redis (if exists)
     if let Ok(Some(metadata)) = get_session_from_redis(&mut redis, &req.upload_id).await {

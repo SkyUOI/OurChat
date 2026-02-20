@@ -13,10 +13,10 @@ use crate::{
 use anyhow::{Context, anyhow};
 use base::constants::ID;
 use chrono::Duration;
-use deadpool_redis::redis::AsyncCommands;
 use entities::user;
 use migration::constants::{OCID_MAX_LEN, USERNAME_MAX_LEN};
 use pb::service::ourchat::set_account_info::v1::{SetSelfInfoRequest, SetSelfInfoResponse};
+use redis::AsyncCommands;
 use sea_orm::{ActiveModelTrait, ActiveValue, DbErr, EntityTrait, TransactionTrait};
 use tonic::{Request, Response, Status};
 
@@ -93,7 +93,7 @@ async fn update_account(
         user.name = ActiveValue::Set(name);
         public_updated = true;
     }
-    let mut redis_conn = server.db.get_redis_connection().await?;
+    let mut redis_conn = server.db.redis();
     if let Some(status) = request_data.user_defined_status {
         let key = mapped_to_user_defined_status(user.id.as_ref());
         let _: () = redis_conn

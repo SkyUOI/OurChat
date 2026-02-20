@@ -1,9 +1,8 @@
 use base::constants::{ID, impl_from_all_ints};
-use deadpool_redis::redis::AsyncCommands;
-use derive::RedisHset;
+use serde::{Deserialize, Serialize};
 use utils::{impl_newtype_int, impl_redis_value_from_for_newint};
 
-use crate::db::redis::redis_key;
+use crate::db::redis_mappings::redis_key;
 
 impl_newtype_int!(RoomId, u64,);
 
@@ -11,7 +10,9 @@ impl_redis_value_from_for_newint!(RoomId);
 
 impl_from_all_ints!(RoomId);
 
-#[derive(RedisHset)]
+#[derive(
+    Serialize, Deserialize, redis_macros::FromRedisValue, redis_macros::ToRedisArgs, Debug,
+)]
 pub struct RoomInfo {
     pub title: Option<String>,
     pub room_id: RoomId,
@@ -55,10 +56,10 @@ pub fn room_pending_key(room_id: RoomId) -> String {
 
 /// Check if a user is an admin of a room
 pub async fn is_room_admin(
-    redis_conn: &mut deadpool_redis::Connection,
+    redis_conn: &mut impl redis::AsyncCommands,
     room_id: RoomId,
     user_id: u64,
-) -> Result<bool, deadpool_redis::redis::RedisError> {
+) -> Result<bool, redis::RedisError> {
     let admins_key = room_admins_key(room_id);
     redis_conn.sismember(&admins_key, user_id).await
 }
@@ -66,7 +67,7 @@ pub async fn is_room_admin(
 /// Check if a user is the creator of a room
 /// The creator is always an admin and cannot be removed
 pub async fn is_room_creator(
-    redis_conn: &mut deadpool_redis::Connection,
+    redis_conn: &mut impl redis::AsyncCommands,
     room_id: RoomId,
     user_id: ID,
 ) -> anyhow::Result<bool> {

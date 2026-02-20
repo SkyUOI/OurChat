@@ -1,10 +1,10 @@
 use client::TestApp;
-use deadpool_redis::redis::AsyncCommands;
 use pb::service::ourchat::webrtc::room::create_room::v1::CreateRoomRequest;
 use pb::service::ourchat::webrtc::room::invite_user::v1::InviteUserToRoomRequest;
 use pb::service::ourchat::webrtc::room::join_room::v1::JoinRoomRequest;
 use pb::service::ourchat::webrtc::room::leave_room::v1::LeaveRoomRequest;
-use server::webrtc::{RoomId, room_key, room_members_key};
+use redis::AsyncCommands;
+use server::webrtc::{RoomId, RoomInfo, room_key, room_members_key};
 
 /// Tests the successful leave of a WebRTC room.
 ///
@@ -61,7 +61,7 @@ async fn leave_room_success() {
         .unwrap();
 
     // Verify user is in the room
-    let mut conn = app.get_redis_connection().get().await.unwrap();
+    let mut conn = app.redis();
     let member_key = room_members_key(room_id);
     let members_before: Vec<String> = conn.smembers(&member_key).await.unwrap();
     assert_eq!(members_before.len(), 1);
@@ -87,9 +87,7 @@ async fn leave_room_success() {
 
     // Verify user count is updated
     let room_key_str = room_key(room_id);
-    let room_data = server::webrtc::RoomInfo::from_redis(&mut conn, &room_key_str)
-        .await
-        .unwrap();
+    let room_data: RoomInfo = conn.get(&room_key_str).await.unwrap();
 
     assert_eq!(room_data.users_num, 0, "User count should be 0");
 
@@ -249,7 +247,7 @@ async fn leave_room_multiple_users() {
         .unwrap();
 
     // Verify all members are in Redis
-    let mut conn = app.get_redis_connection().get().await.unwrap();
+    let mut conn = app.redis();
     let members_count: usize = conn.scard(&member_key).await.unwrap();
     assert_eq!(members_count, 3, "Should have three members");
 
@@ -364,11 +362,9 @@ async fn leave_room_updates_user_count() {
         .unwrap();
 
     // Check user count is 2
-    let mut conn = app.get_redis_connection().get().await.unwrap();
+    let mut conn = app.redis();
     let room_key_str = room_key(room_id_wrapper);
-    let room_data = server::webrtc::RoomInfo::from_redis(&mut conn, &room_key_str)
-        .await
-        .unwrap();
+    let room_data: RoomInfo = conn.get(&room_key_str).await.unwrap();
 
     assert_eq!(room_data.users_num, 2, "User count should be 2");
 
@@ -382,9 +378,7 @@ async fn leave_room_updates_user_count() {
         .unwrap();
 
     // Verify user count is decremented
-    let room_data_after = server::webrtc::RoomInfo::from_redis(&mut conn, &room_key_str)
-        .await
-        .unwrap();
+    let room_data_after: RoomInfo = conn.get(&room_key_str).await.unwrap();
 
     assert_eq!(
         room_data_after.users_num, 1,

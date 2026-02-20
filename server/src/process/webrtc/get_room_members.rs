@@ -4,10 +4,10 @@ use crate::{
     webrtc::{RoomId, room_key, room_members_key},
 };
 use base::constants::ID;
-use deadpool_redis::redis::AsyncCommands;
 use pb::service::ourchat::webrtc::room::get_room_members::v1::{
     GetRoomMembersRequest, GetRoomMembersResponse,
 };
+use redis::AsyncCommands;
 use tonic::{Request, Response, Status};
 
 pub async fn get_room_members(
@@ -34,7 +34,7 @@ pub async fn get_room_members(
 #[derive(thiserror::Error, Debug)]
 enum GetRoomMembersErr {
     #[error("redis error:{0:?}")]
-    Redis(#[from] deadpool_redis::redis::RedisError),
+    Redis(#[from] redis::RedisError),
     #[error("internal error:{0:?}")]
     Internal(#[from] anyhow::Error),
     #[error("room not found")]
@@ -54,7 +54,7 @@ async fn get_room_members_impl(
     let room_id = RoomId(req.room_id);
 
     // Get Redis connection
-    let mut redis_conn = server.db.get_redis_connection().await?;
+    let mut redis_conn = server.db.redis();
 
     // Check if room exists
     let room_key_str = room_key(room_id);

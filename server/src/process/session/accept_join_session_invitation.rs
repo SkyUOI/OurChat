@@ -23,7 +23,7 @@ enum AcceptJoinSessionInvitationError {
     #[error("status error:{0:?}")]
     Status(#[from] Status),
     #[error("redis error:{0:?}")]
-    Redis(#[from] deadpool_redis::redis::RedisError),
+    Redis(#[from] redis::RedisError),
     #[error("message error:{0:?}")]
     MessageError(#[from] MsgInsTransmitErr),
 }
@@ -37,7 +37,7 @@ async fn accept_join_session_invitation_impl(
     let session_id: SessionID = req.session_id.into();
     let inviter = req.inviter_id;
     // check if banned from the session
-    if user_banned_status(id, session_id, &mut server.db.get_redis_connection().await?)
+    if user_banned_status(id, session_id, &mut server.db.redis())
         .await?
         .is_some()
     {

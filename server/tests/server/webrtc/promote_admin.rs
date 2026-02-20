@@ -1,9 +1,9 @@
 use client::TestApp;
-use deadpool_redis::redis::AsyncCommands;
 use pb::service::ourchat::webrtc::room::accept_room_invitation::v1::AcceptRoomInvitationRequest;
 use pb::service::ourchat::webrtc::room::create_room::v1::CreateRoomRequest;
 use pb::service::ourchat::webrtc::room::invite_user::v1::InviteUserToRoomRequest;
 use pb::service::ourchat::webrtc::room::promote_admin::v1::PromoteRoomAdminRequest;
+use redis::AsyncCommands;
 use server::webrtc::{RoomId, room_admins_key};
 
 /// Tests that a room admin can promote a member to admin.
@@ -78,7 +78,7 @@ async fn promote_room_admin_success() {
     assert!(promote_response.success, "Promotion should succeed");
 
     // Check Redis - user should be in admins set
-    let mut conn = app.get_redis_connection().get().await.unwrap();
+    let mut conn = app.redis();
     let admins_key = room_admins_key(room_id);
     let is_admin: bool = conn.sismember(&admins_key, *member_user_id).await.unwrap();
 

@@ -23,13 +23,8 @@ impl RedisCfg {
 impl Setting for RedisCfg {}
 
 /// connect to redis database according to url
-pub async fn connect_to_redis(url: &str) -> anyhow::Result<deadpool_redis::Pool> {
-    let cfg = deadpool_redis::Config::from_url(url);
-    let pool = cfg.create_pool(Some(deadpool_redis::Runtime::Tokio1))?;
-    #[cfg(debug_assertions)]
-    {
-        // try getting a connection
-        pool.get().await?;
-    }
-    Ok(pool)
+pub async fn connect_to_redis(url: &str) -> anyhow::Result<::redis::aio::ConnectionManager> {
+    let client = ::redis::Client::open(url)?;
+    // ConnectionManager will handle the connection and auto-reconnect
+    Ok(::redis::aio::ConnectionManager::new(client).await?)
 }

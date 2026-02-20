@@ -11,7 +11,7 @@ use utils::{merge_json, serde_default};
 use crate::{ParserCfg, config::http::HttpCfg};
 use base::{
     constants::{self, CONFIG_FILE_ENV_VAR, SessionID},
-    database::{postgres::PostgresDbCfg, redis::RedisCfg},
+    database::{postgres::PostgresDbCfg, redis_cfg::RedisCfg},
     rabbitmq::RabbitMQCfg,
     setting::{self, PathConvert, Setting, UserSetting, debug::DebugCfg},
 };

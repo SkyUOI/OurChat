@@ -4,10 +4,10 @@ use crate::{
     webrtc::{RoomId, room_invitations_key, room_key, room_members_key},
 };
 use base::constants::ID;
-use deadpool_redis::redis::AsyncTypedCommands;
 use pb::service::ourchat::webrtc::room::accept_room_invitation::v1::{
     AcceptRoomInvitationRequest, AcceptRoomInvitationResponse,
 };
+use redis::AsyncTypedCommands;
 use tonic::{Request, Response, Status};
 
 pub async fn accept_room_invitation(
@@ -37,7 +37,7 @@ pub async fn accept_room_invitation(
 #[derive(thiserror::Error, Debug)]
 enum AcceptInviteErr {
     #[error("redis error:{0:?}")]
-    Redis(#[from] deadpool_redis::redis::RedisError),
+    Redis(#[from] redis::RedisError),
     #[error("internal error:{0:?}")]
     Internal(#[from] anyhow::Error),
     #[error("room not found")]
@@ -58,7 +58,7 @@ async fn accept_room_invitation_impl(
     let req = request.into_inner();
     let room_id = RoomId(req.room_id);
 
-    let mut redis_conn = server.db.get_redis_connection().await?;
+    let mut redis_conn = server.db.redis();
 
     // Check if room exists
     let room_key_str = room_key(room_id);

@@ -6,7 +6,7 @@
 use std::{num::TryFromIntError, time::Duration};
 
 use crate::{
-    db::redis::redis_key,
+    db::redis_mappings::redis_key,
     helper::generate_random_string,
     process::error_msg::{
         FILE_HASH_ERROR, FILE_SIZE_ERROR, INCORRECT_ORDER, METADATA_ERROR, SERVER_ERROR,
@@ -45,7 +45,7 @@ pub enum UploadError {
     #[error("file's size overflows")]
     FileSizeOverflow,
     #[error("redis error:{0:?}")]
-    RedisError(#[from] deadpool_redis::redis::RedisError),
+    RedisError(#[from] redis::RedisError),
     #[error("json error:{0:?}")]
     JsonError(#[from] serde_json::Error),
 }

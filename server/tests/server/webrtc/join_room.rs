@@ -1,9 +1,9 @@
 use client::TestApp;
-use deadpool_redis::redis::AsyncCommands;
 use pb::service::ourchat::webrtc::room::create_room::v1::CreateRoomRequest;
 use pb::service::ourchat::webrtc::room::invite_user::v1::InviteUserToRoomRequest;
 use pb::service::ourchat::webrtc::room::join_room::v1::JoinRoomRequest;
-use server::webrtc::{RoomId, room_members_key};
+use redis::AsyncCommands;
+use server::webrtc::{RoomId, RoomInfo, room_members_key};
 
 /// Tests the successful join of a WebRTC room with invitation.
 ///
@@ -76,7 +76,7 @@ async fn join_room_success() {
     );
 
     // Check Redis for member information
-    let mut conn = app.get_redis_connection().get().await.unwrap();
+    let mut conn = app.redis();
     let member_key = room_members_key(room_id);
     let members: Vec<String> = conn.smembers(&member_key).await.unwrap();
 
@@ -90,9 +90,7 @@ async fn join_room_success() {
 
     // Verify user count is updated (creator is counted)
     let room_key_str = server::webrtc::room_key(room_id);
-    let room_data = server::webrtc::RoomInfo::from_redis(&mut conn, &room_key_str)
-        .await
-        .unwrap();
+    let room_data: RoomInfo = conn.get(&room_key_str).await.unwrap();
 
     assert_eq!(
         room_data.users_num, 1,
@@ -200,7 +198,7 @@ async fn join_room_with_existing_members() {
     );
 
     // Check Redis for all members
-    let mut conn = app.get_redis_connection().get().await.unwrap();
+    let mut conn = app.redis();
     let member_key = room_members_key(room_id);
     let members_count: usize = conn.scard(&member_key).await.unwrap();
 
@@ -302,7 +300,7 @@ async fn join_room_same_user_multiple_times() {
         .unwrap();
 
     // Check Redis - user should only be counted once
-    let mut conn = app.get_redis_connection().get().await.unwrap();
+    let mut conn = app.redis();
     let member_key = room_members_key(room_id);
     let members_count: usize = conn.scard(&member_key).await.unwrap();
 
@@ -445,11 +443,9 @@ async fn open_join_flag_stored_correctly() {
     let room_id = create_response.room_id;
 
     // Check Redis for room info
-    let mut conn = app.get_redis_connection().get().await.unwrap();
+    let mut conn = app.redis();
     let room_key_str = server::webrtc::room_key(server::webrtc::RoomId(room_id));
-    let room_data = server::webrtc::RoomInfo::from_redis(&mut conn, &room_key_str)
-        .await
-        .unwrap();
+    let room_data: RoomInfo = conn.get(&room_key_str).await.unwrap();
 
     assert!(
         room_data.open_join,

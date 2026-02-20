@@ -136,7 +136,7 @@ pub use webrtc::{
 
 use crate::SERVER_INFO;
 use crate::db::messages::MsgError;
-use crate::db::redis::redis_key;
+use crate::db::redis_mappings::redis_key;
 use crate::db::session::get_members;
 use crate::process::error_msg::SERVER_ERROR;
 use crate::rabbitmq::USER_MSG_BROADCAST_EXCHANGE;

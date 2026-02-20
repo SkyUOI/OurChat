@@ -5,8 +5,8 @@ use crate::{
     webrtc::{RoomInfo, empty_room_name, room_admins_key, room_creator_key, room_key},
 };
 use base::constants::ID;
-use deadpool_redis::redis::AsyncTypedCommands;
 use pb::service::ourchat::webrtc::room::create_room::v1::{CreateRoomRequest, CreateRoomResponse};
+use redis::AsyncTypedCommands;
 use tonic::{Request, Response, Status};
 
 pub async fn create_room(
@@ -33,7 +33,7 @@ enum CreateRoomErr {
     #[error("status error:{0:?}")]
     Status(#[from] Status),
     #[error("redis error:{0:?}")]
-    Redis(#[from] deadpool_redis::redis::RedisError),
+    Redis(#[from] redis::RedisError),
     #[error("internal error:{0:?}")]
     Internal(#[from] anyhow::Error),
 }
@@ -46,7 +46,7 @@ async fn create_room_impl(
     let req = request.into_inner();
     let room_id = generate_webrtc_room_id()?;
     let key = room_key(room_id);
-    let mut conn = server.db.get_redis_connection().await?;
+    let mut conn = server.db.redis();
 
     let info = RoomInfo {
         title: req.title,
@@ -57,9 +57,7 @@ async fn create_room_impl(
         creator: id,
     };
 
-    // Set room info
-    let pipe = info.hset_pipe(&key);
-    let _: () = pipe.query_async(&mut conn).await?;
+    conn.set(&key, &info).await?;
 
     // Set creator
     let creator_key = room_creator_key(room_id);

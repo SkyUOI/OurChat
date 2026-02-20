@@ -1,10 +1,10 @@
 use client::TestApp;
-use deadpool_redis::redis::AsyncCommands;
 use pb::service::ourchat::webrtc::room::accept_room_invitation::v1::AcceptRoomInvitationRequest;
 use pb::service::ourchat::webrtc::room::create_room::v1::CreateRoomRequest;
 use pb::service::ourchat::webrtc::room::demote_admin::v1::DemoteRoomAdminRequest;
 use pb::service::ourchat::webrtc::room::invite_user::v1::InviteUserToRoomRequest;
 use pb::service::ourchat::webrtc::room::promote_admin::v1::PromoteRoomAdminRequest;
+use redis::AsyncCommands;
 use server::webrtc::{RoomId, room_admins_key};
 
 /// Tests that a room creator can demote an admin.
@@ -75,7 +75,7 @@ async fn demote_room_admin_success() {
         .unwrap();
 
     // Verify user is admin
-    let mut conn = app.get_redis_connection().get().await.unwrap();
+    let mut conn = app.redis();
     let admins_key = room_admins_key(room_id);
     let is_admin_before: bool = conn.sismember(&admins_key, *admin_user_id).await.unwrap();
     assert!(is_admin_before, "User should be admin before demotion");
@@ -319,7 +319,7 @@ async fn demote_room_admin_cannot_demote_creator() {
     );
 
     // Verify creator is still admin
-    let mut conn = app.get_redis_connection().get().await.unwrap();
+    let mut conn = app.redis();
     let admins_key = room_admins_key(room_id);
     let is_creator_admin: bool = conn.sismember(&admins_key, *creator_id).await.unwrap();
 

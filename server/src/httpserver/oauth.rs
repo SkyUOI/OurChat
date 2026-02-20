@@ -232,7 +232,7 @@ mod tests {
     #[tokio::test]
     async fn test_github_oauth_start() {
         let state = Arc::new(OAuthState {
-            db_pool: create_mock_db_pool(),
+            db_pool: create_mock_db_pool().await,
             oauth_config: OAuthConfig {
                 github_client_id: "test_client_id".to_string(),
                 github_client_secret: "test_client_secret".to_string(),
@@ -264,7 +264,7 @@ mod tests {
     #[tokio::test]
     async fn test_github_oauth_callback_invalid_state() {
         let state = Arc::new(OAuthState {
-            db_pool: create_mock_db_pool(),
+            db_pool: create_mock_db_pool().await,
             oauth_config: OAuthConfig {
                 github_client_id: "test_client_id".to_string(),
                 github_client_secret: "test_client_secret".to_string(),
@@ -286,7 +286,7 @@ mod tests {
     #[tokio::test]
     async fn test_github_oauth_callback_expired_state() {
         let state = Arc::new(OAuthState {
-            db_pool: create_mock_db_pool(),
+            db_pool: create_mock_db_pool().await,
             oauth_config: OAuthConfig {
                 github_client_id: "test_client_id".to_string(),
                 github_client_secret: "test_client_secret".to_string(),
@@ -333,15 +333,12 @@ mod tests {
     }
 
     // Create a mock database pool for testing
-    fn create_mock_db_pool() -> DbPool {
-        // For unit tests, we don't need actual database connections
-        // since we're testing the OAuth logic, not database operations
-        let redis_config = deadpool_redis::Config::from_url("redis://localhost:6379");
+    async fn create_mock_db_pool() -> DbPool {
+        let redis_client = ::redis::Client::open("redis://localhost:6379").unwrap();
+        let redis_conn = redis_client.get_connection_manager().await.unwrap();
         DbPool {
             db_pool: sea_orm::DatabaseConnection::Disconnected,
-            redis_pool: redis_config
-                .create_pool(Some(deadpool_redis::Runtime::Tokio1))
-                .unwrap(),
+            redis_conn,
         }
     }
 }

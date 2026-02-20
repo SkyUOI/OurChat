@@ -2,7 +2,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use crate::SharedData;
-use crate::db::redis::redis_key;
+use crate::db::redis_mappings::redis_key;
 use crate::httpserver::EmailClientType;
 use anyhow::Context;
 use axum::extract::{Query, State};
@@ -11,7 +11,6 @@ use axum::routing::get;
 use base::constants;
 use base::database::DbPool;
 use base::rabbitmq::http_server::VerifyRecord;
-use deadpool_redis::redis::AsyncCommands;
 use entities::user;
 use sea_orm::{ActiveModelTrait, ActiveValue, ColumnTrait, EntityTrait, QueryFilter};
 use serde::Deserialize;
@@ -28,8 +27,10 @@ async fn verify_token(
     State(pool): State<DbPool>,
     Query(param): Query<Param>,
 ) -> Result<(), StatusCode> {
+    let mut redis_conn = pool.redis();
+
     // check if the token is valid and get the email
-    let email = match check_token_exist_and_del_token(&param.token, &pool.redis_pool).await {
+    let email = match check_token_exist_and_del_token(&param.token, &mut redis_conn).await {
         Ok(Some(email)) => email,
         Ok(None) => {
             tracing::warn!("Token not found or expired: {}", param.token);
@@ -107,7 +108,8 @@ pub async fn verify_client(
         };
     }
     let expiry = shared_data.cfg().user_setting.verify_email_expiry;
-    add_token(&data.token, &data.email, expiry, &db.redis_pool).await?;
+    let mut redis_conn = db.redis();
+    add_token(&data.token, &data.email, expiry, &mut redis_conn).await?;
     Ok(())
 }
 
@@ -117,9 +119,8 @@ fn mapped_to_redis(key: &str) -> String {
 
 pub async fn check_token_exist_and_del_token(
     token: &str,
-    conn: &deadpool_redis::Pool,
+    conn: &mut impl redis::AsyncCommands,
 ) -> anyhow::Result<Option<String>> {
-    let mut conn = conn.get().await?;
     let key = mapped_to_redis(token);
     let email: Option<String> = conn.get(&key).await?;
     let _: () = conn.del(&key).await?;
@@ -130,9 +131,8 @@ async fn add_token(
     token: &str,
     email: &str,
     ex_time: Duration,
-    conn: &deadpool_redis::Pool,
+    conn: &mut impl redis::AsyncCommands,
 ) -> anyhow::Result<()> {
-    let mut conn = conn.get().await?;
     let _: () = conn
         .set_ex(mapped_to_redis(token), email, ex_time.as_secs())
         .await?;

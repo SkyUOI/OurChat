@@ -1,6 +1,6 @@
 use client::TestApp;
-use deadpool_redis::redis::AsyncCommands;
 use pb::service::ourchat::webrtc::room::create_room::v1::CreateRoomRequest;
+use redis::AsyncCommands;
 use server::webrtc::{RoomId, RoomInfo, empty_room_name, room_key};
 
 /// Tests the successful creation of a WebRTC room with a title and auto_delete enabled.
@@ -39,11 +39,11 @@ async fn create_room_success() {
     let room_id = RoomId(response.room_id);
 
     // Check Redis for room information
-    let mut conn = app.get_redis_connection().get().await.unwrap();
+    let mut conn = app.redis();
     let key = room_key(room_id);
 
     // Verify room info is stored correctly
-    let stored_data = RoomInfo::from_redis(&mut conn, &key).await.unwrap();
+    let stored_data: RoomInfo = conn.get(&key).await.unwrap();
 
     assert_eq!(stored_data.title, Some("Test Room".to_owned()));
     assert_eq!(stored_data.room_id, room_id);
@@ -93,11 +93,11 @@ async fn create_room_no_title() {
     let room_id = RoomId(response.room_id);
 
     // Check Redis for room information
-    let mut conn = app.get_redis_connection().get().await.unwrap();
+    let mut conn = app.redis();
     let key = room_key(room_id);
 
     // Verify room info is stored correctly
-    let stored_data = RoomInfo::from_redis(&mut conn, &key).await.unwrap();
+    let stored_data: RoomInfo = conn.get(&key).await.unwrap();
 
     assert_eq!(stored_data.title, None);
     assert_eq!(stored_data.room_id, room_id);

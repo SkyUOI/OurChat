@@ -9,8 +9,8 @@ use crate::{
 use base::constants::ID;
 use deadpool_lapin::lapin::BasicProperties;
 use deadpool_lapin::lapin::options::BasicPublishOptions;
-use deadpool_redis::redis::AsyncTypedCommands;
 use pb::service::ourchat::webrtc::room::join_room::v1::{JoinRoomRequest, JoinRoomResponse};
+use redis::AsyncCommands;
 use serde::{Deserialize, Serialize};
 use tonic::{Request, Response, Status};
 
@@ -48,7 +48,7 @@ enum JoinRoomErr {
     #[error("status error:{0:?}")]
     Status(#[from] Status),
     #[error("redis error:{0:?}")]
-    Redis(#[from] deadpool_redis::redis::RedisError),
+    Redis(#[from] redis::RedisError),
     #[error("internal error:{0:?}")]
     Internal(#[from] anyhow::Error),
     #[error("room not found")]
@@ -66,7 +66,7 @@ async fn join_room_impl(
     let room_id = RoomId(req.room_id);
 
     // Check if room exists in Redis
-    let mut redis_conn = server.db.get_redis_connection().await?;
+    let mut redis_conn = server.db.redis();
 
     let room_key_str = room_key(room_id);
 
@@ -77,7 +77,7 @@ async fn join_room_impl(
     }
 
     // Parse room info to check if it's an open join room
-    let room_info: RoomInfo = RoomInfo::from_redis(&mut redis_conn, &room_key_str).await?;
+    let room_info: RoomInfo = redis_conn.get(&room_key_str).await?;
 
     // Check if user is already a member (idempotent operation)
     let member_key = room_members_key(room_id);
@@ -111,8 +111,7 @@ async fn join_room_impl(
             users_num: new_count,
             ..room_info
         };
-        let pipe = updated_info.hset_pipe(&room_key_str);
-        let _: () = pipe.query_async(&mut redis_conn).await?;
+        let _: () = redis_conn.set(&room_key_str, &updated_info).await?;
     }
 
     // Get existing members

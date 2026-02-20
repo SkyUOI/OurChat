@@ -1,6 +1,6 @@
 use base::constants::ID;
 
-use crate::db::redis::redis_key;
+use crate::db::redis_mappings::redis_key;
 
 pub mod accept_friend_invitation;
 pub mod add_friend;

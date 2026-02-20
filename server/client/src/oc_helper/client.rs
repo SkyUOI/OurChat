@@ -433,8 +433,9 @@ impl TestApp {
         &self.db_pool.db_pool
     }
 
-    pub fn get_redis_connection(&self) -> &deadpool_redis::Pool {
-        &self.db_pool.redis_pool
+    /// Get a clone of the redis connection manager.
+    pub fn redis(&self) -> redis::aio::ConnectionManager {
+        self.db_pool.redis_conn.clone()
     }
 
     pub async fn check_ban_status(
@@ -442,7 +443,7 @@ impl TestApp {
         user: ID,
         session_id: SessionID,
     ) -> anyhow::Result<Option<BanStatus>> {
-        let mut redis_connection = self.db_pool.redis_pool.get().await?;
+        let mut redis_connection = self.redis();
         Ok(user_banned_status(user, session_id, &mut redis_connection).await?)
     }
 
@@ -451,7 +452,7 @@ impl TestApp {
         user: ID,
         session_id: SessionID,
     ) -> anyhow::Result<Option<MuteStatus>> {
-        let mut redis_connection = self.db_pool.redis_pool.get().await?;
+        let mut redis_connection = self.redis();
         Ok(user_muted_status(user, session_id, &mut redis_connection).await?)
     }
 }

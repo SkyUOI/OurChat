@@ -5,13 +5,13 @@ use crate::process::{Dest, friends, transmit_msg};
 use crate::{process::error_msg::SERVER_ERROR, server::RpcServer};
 use anyhow::Context;
 use base::constants::ID;
-use deadpool_redis::redis::AsyncCommands;
 use entities::prelude::Friend;
 use pb::service::ourchat::friends::add_friend::v1::{
     AddFriendRequest, AddFriendResponse, NewFriendInvitationNotification,
 };
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
+use redis::AsyncCommands;
 use sea_orm::{EntityTrait, TransactionTrait};
 use tonic::{Request, Response, Status};
 
@@ -41,7 +41,7 @@ enum AddFriendErr {
     #[error("internal error:{0:?}")]
     Internal(#[from] anyhow::Error),
     #[error("redis error:{0:?}")]
-    Redis(#[from] deadpool_redis::redis::RedisError),
+    Redis(#[from] redis::RedisError),
 }
 
 impl From<MsgError> for AddFriendErr {
@@ -79,7 +79,7 @@ async fn add_friend_impl(
     }
     // save invitation to redis
     let key = friends::mapped_add_friend_to_redis(id, friend_id);
-    let mut conn = server.db.get_redis_connection().await?;
+    let mut conn = server.db.redis();
     let ex = server
         .shared_data
         .cfg()

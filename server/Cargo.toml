@@ -28,7 +28,8 @@ dashmap.workspace = true
 sha3.workspace = true
 uuid.workspace = true
 argon2.workspace = true
-deadpool-redis.workspace = true
+redis.workspace = true
+redis-macros.workspace = true
 fake = { workspace = true, optional = true }
 zxcvbn.workspace = true
 email_address.workspace = true

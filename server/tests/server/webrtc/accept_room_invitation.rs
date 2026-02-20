@@ -1,8 +1,8 @@
 use client::TestApp;
-use deadpool_redis::redis::AsyncCommands;
 use pb::service::ourchat::webrtc::room::accept_room_invitation::v1::AcceptRoomInvitationRequest;
 use pb::service::ourchat::webrtc::room::create_room::v1::CreateRoomRequest;
 use pb::service::ourchat::webrtc::room::invite_user::v1::InviteUserToRoomRequest;
+use redis::AsyncCommands;
 use server::webrtc::{RoomId, room_invitations_key, room_members_key};
 
 /// Tests accepting a room invitation successfully.
@@ -67,7 +67,7 @@ async fn accept_room_invitation_success() {
     );
 
     // Check Redis - user should be in members, not in invitations
-    let mut conn = app.get_redis_connection().get().await.unwrap();
+    let mut conn = app.redis();
     let members_key = room_members_key(room_id);
     let invitations_key = room_invitations_key(room_id);
 
@@ -276,7 +276,7 @@ async fn accept_room_invitation_workflow() {
     let room_id = RoomId(create_response.room_id);
     let invited_user_id = invited_user.lock().await.id;
 
-    let mut conn = app.get_redis_connection().get().await.unwrap();
+    let mut conn = app.redis();
     let members_key = room_members_key(room_id);
     let invitations_key = room_invitations_key(room_id);
 
