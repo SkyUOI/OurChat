@@ -5,7 +5,8 @@ import 'dart:io';
 
 // Desktop version - file + console
 Future<Logger> createDesktopLogger(Level logLevel) async {
-  var path = await getApplicationDocumentsDirectory();
+  var path = (await getExternalStorageDirectory()) ??
+      (await getApplicationSupportDirectory());
   var file = File('${path.path}/ourchat.log');
   file.openWrite(mode: FileMode.writeOnlyAppend);
 
