@@ -9,7 +9,7 @@ use pb::service::{
     server_manage::publish_announcement::v1::PublishAnnouncementRequest,
 };
 use server::process::{add_announcement, get_announcement_by_id, get_announcements_by_time};
-use tokio::{join, time::sleep};
+use tokio::{join, sync::oneshot, time::sleep};
 use tonic::Request;
 
 #[tokio::test]
@@ -93,6 +93,9 @@ async fn publish_and_fetch_announcement() {
     };
     let announcement_clone = announcement.clone();
 
+    // Create a channel for proper synchronization
+    let (tx, rx) = oneshot::channel::<()>();
+
     let task = tokio::spawn(async move {
         let announcement_bef = Announcement {
             title: "testbef".to_string(),
@@ -108,7 +111,11 @@ async fn publish_and_fetch_announcement() {
             }))
             .await
             .unwrap();
-        sleep(Duration::from_millis(200)).await;
+
+        // Wait for main thread to publish the second announcement
+        rx.await.unwrap();
+
+        // Now fetch both messages
         let receive = user_clone2
             .lock()
             .await
@@ -132,7 +139,10 @@ async fn publish_and_fetch_announcement() {
             _ => panic!("Wrong message type"),
         };
     });
-    sleep(Duration::from_millis(400)).await;
+
+    // Small delay to ensure spawned task publishes first
+    sleep(Duration::from_millis(100)).await;
+
     user.lock()
         .await
         .server_manage()
@@ -141,6 +151,9 @@ async fn publish_and_fetch_announcement() {
         }))
         .await
         .unwrap();
+
+    // Signal the spawned task that we've published
+    tx.send(()).unwrap();
 
     join!(task).0.unwrap();
     app.async_drop().await
