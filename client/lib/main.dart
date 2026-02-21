@@ -119,9 +119,13 @@ class OurChatAppState extends ChangeNotifier {
   }
 
   void update() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    try {
       notifyListeners();
-    });
+    } catch (_) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        notifyListeners();
+      });
+    }
   }
 }
 
