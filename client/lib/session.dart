@@ -497,6 +497,17 @@ class _SessionListState extends State<SessionList> {
                               sessionState.cacheFiles = {};
                               sessionState.cacheFilesContentType = {};
                               sessionState.update();
+                              if (ourchatAppState.screenMode == mobile) {
+                                Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) =>
+                                            ChangeNotifierProvider.value(
+                                              value: Provider.of<SessionState>(
+                                                  context_),
+                                              child: TabWidget(),
+                                            )));
+                              }
                             },
                           );
                         },
@@ -522,7 +533,7 @@ class _SessionListState extends State<SessionList> {
                     // NotFount
                     return Padding(
                         padding: const EdgeInsets.only(top: 5.0),
-                        child: Text(l10n.notFound(l10n.user)));
+                        child: Text(l10n.notFound(l10n.session)));
                   }
                   return SizedBox(
                     height: sessionList.length * 50,
@@ -539,6 +550,7 @@ class _SessionListState extends State<SessionList> {
                               sessionState.cacheFiles = {};
                               sessionState.cacheFilesContentType = {};
                               sessionState.recordLoadCnt = 1;
+
                               sessionState.update();
                             },
                           );
@@ -590,7 +602,6 @@ class _SessionListState extends State<SessionList> {
                                               child: TabWidget(),
                                             )));
                               }
-                              sessionState.update();
                               sessionState.currentSessionRecords =
                                   await ourchatAppState.eventSystem!
                                       .getSessionEvent(
@@ -709,13 +720,14 @@ class _SessionListState extends State<SessionList> {
 
     if (sessionId != null) {
       // By sessionId
+
+      OurChatSession session = OurChatSession(appState, sessionId);
       try {
-        OurChatSession session = OurChatSession(appState, sessionId);
-        await session.getSessionInfo();
-        matchSessions.add(session);
-      } on grpc.GrpcError catch (e) {
-        showResultMessage(ourchatAppState, e.code, e.message,
-            notFoundStatus: "");
+        if (await session.getSessionInfo()) {
+          matchSessions.add(session);
+        }
+      } catch (e) {
+        print(e);
       }
     }
 
@@ -1146,7 +1158,6 @@ class _TabWidgetState extends State<TabWidget> {
                       sessionState.currentSession = null;
                       sessionState.currentSessionRecords = [];
                       Navigator.pop(context);
-                      sessionState.update();
                     },
                   ),
                   Text(sessionState.tabTitle, style: TextStyle(fontSize: 20))

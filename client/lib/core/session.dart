@@ -40,7 +40,7 @@ class OurChatSession {
         await Future.delayed(Duration(milliseconds: 10));
       }
       getSessionInfo(ignoreCache: ignoreCache);
-      return;
+      return true;
     }
     ourchatAppState.gettingInfoSessionList.add(sessionId);
     if (ourchatAppState.sessionCachePool.keys.contains(sessionId)) {
@@ -63,7 +63,7 @@ class OurChatSession {
         ourchatAppState.gettingInfoSessionList.remove(sessionId);
         myPermissions = sessionCache.myPermissions;
         logger.d("use session info cache");
-        return;
+        return true;
       }
     }
 
@@ -279,10 +279,5 @@ class OurChatSession {
     return displayName!;
   }
 
-  void getSessionInfoOnError(GrpcError e) {
-    var l10n = ourchatAppState.l10n;
-    showResultMessage(ourchatAppState, e.code, e.message,
-        notFoundStatus: l10n.notFound(l10n.session),
-        invalidArgumentStatus: l10n.internalError);
-  }
+  void getSessionInfoOnError(GrpcError e) {}
 }
