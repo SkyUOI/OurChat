@@ -289,7 +289,7 @@ async fn metrics_comprehensive_test() {
         let points = response.into_inner().data_points;
         for dp in &points {
             assert_some!(dp.metrics);
-            let ts: TimeStampUtc = dp.timestamp.clone().unwrap().try_into().unwrap();
+            let ts: TimeStampUtc = dp.timestamp.unwrap().try_into().unwrap();
             assert_le!(ts, after_snapshot);
         }
         assert_le!(points.len(), 10, "Should have reasonable number of points");

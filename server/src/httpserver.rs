@@ -3,10 +3,13 @@ mod oauth;
 mod status;
 pub mod verify;
 
+use crate::process::error_msg;
 use crate::{Cfg, SharedData};
 use anyhow::{Context, anyhow};
+use axum::body::Body;
+use axum::extract::Request;
 use axum::{
-    extract::Request,
+    extract::State,
     middleware::{self, Next},
     response::{IntoResponse, Redirect, Response},
     routing::get,
@@ -18,7 +21,7 @@ use base::{
     shutdown::{ShutdownRev, ShutdownSdr},
 };
 use deadpool_lapin::lapin::options::{BasicAckOptions, BasicRejectOptions};
-use http::{Method, StatusCode};
+use http::{Method, StatusCode, header};
 use rustls::{
     RootCertStore, ServerConfig,
     pki_types::{CertificateDer, PrivateKeyDer, pem::PemObject},
@@ -177,7 +180,11 @@ impl HttpServer {
                     .layer(tower_http::trace::TraceLayer::new_for_http())
                     .layer(tower_http::trace::TraceLayer::new_for_grpc())
                     .layer(tower_http::normalize_path::NormalizePathLayer::trim_trailing_slash())
-                    .layer(middleware::from_fn(redirect_middleware)),
+                    .layer(middleware::from_fn(redirect_middleware))
+                    .layer(middleware::from_fn_with_state(
+                        shared_data.clone(),
+                        maintaining_middleware,
+                    )),
             );
         if shared_data.cfg().http_cfg.rate_limit.enable {
             info!("Http rate limit enabled");
@@ -566,4 +573,41 @@ async fn redirect_middleware(request: Request, next: Next) -> Result<Response, S
         return Ok(Redirect::permanent(&new_uri.to_string()).into_response());
     }
     Ok(next.run(request).await)
+}
+
+async fn maintaining_middleware(
+    State(state): State<Arc<SharedData>>,
+    request: Request,
+    next: Next,
+) -> Response {
+    let path = request.uri().path().to_string();
+
+    // Allow SetServerStatus to bypass maintaining check (for exiting maintenance mode)
+    // Also allow /health or /status endpoints
+    let allowed_paths = [
+        "/service.server_manage.v1.ServerManageService/SetServerStatus",
+        "/v1/status",
+    ];
+    let is_allowed = allowed_paths.iter().any(|p| path.contains(p));
+
+    if is_allowed {
+        return next.run(request).await;
+    }
+
+    // Check if server is in maintenance mode
+    if state.get_maintaining() {
+        debug!(
+            "Refusing request to {} because server is under maintenance",
+            path
+        );
+        return Response::builder()
+            .status(StatusCode::OK)
+            .header(header::CONTENT_TYPE, "application/grpc")
+            .header("grpc-status", (tonic::Code::Unavailable as i32).to_string())
+            .header("grpc-message", error_msg::MAINTAINING)
+            .body(Body::empty())
+            .expect("Failed to build maintenance response");
+    }
+
+    next.run(request).await
 }

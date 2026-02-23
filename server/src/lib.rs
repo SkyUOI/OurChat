@@ -23,7 +23,6 @@ use base::wrapper::JobSchedulerWrapper;
 use clap::Parser;
 use dashmap::DashMap;
 use parking_lot::{Mutex, Once, RwLock};
-use process::error_msg::MAINTAINING;
 use rand::RngExt;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
@@ -313,15 +312,6 @@ impl SharedData {
 
     pub fn get_maintaining(&self) -> bool {
         *self.maintaining.lock()
-    }
-
-    #[allow(clippy::result_large_err)]
-    pub fn convert_maintaining_into_grpc_status(&self) -> Result<(), tonic::Status> {
-        if self.get_maintaining() {
-            Err(tonic::Status::unavailable(MAINTAINING))
-        } else {
-            Ok(())
-        }
     }
 
     pub fn cfg(&self) -> parking_lot::RwLockReadGuard<'_, Cfg> {

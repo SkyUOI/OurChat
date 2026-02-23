@@ -155,33 +155,18 @@ impl RpcServer {
             rabbitmq: self.rabbitmq.clone(),
         };
 
-        // Clone shared data for service interceptors
-        let main_interceptor_data = self.shared_data.clone();
-        let basic_interceptor_data = self.shared_data.clone();
-        let auth_interceptor_data = self.shared_data.clone();
-        let server_manage_interceptor_data = self.shared_data.clone();
-
         // Create service instances with interceptors for authentication and maintenance checks
         let main_svc = OurChatServiceServer::with_interceptor(self, move |mut req| {
-            // Check if server is in maintenance mode
-            main_interceptor_data.convert_maintaining_into_grpc_status()?;
             Self::check_auth(&mut req)?;
             Ok(req)
         });
 
-        let basic_svc = BasicServiceServer::with_interceptor(basic_service, move |req| {
-            basic_interceptor_data.convert_maintaining_into_grpc_status()?;
-            Ok(req)
-        });
+        let basic_svc = BasicServiceServer::new(basic_service);
 
-        let auth_svc = AuthServiceServer::with_interceptor(auth_service, move |req| {
-            auth_interceptor_data.convert_maintaining_into_grpc_status()?;
-            Ok(req)
-        });
+        let auth_svc = AuthServiceServer::new(auth_service);
 
         let server_manage_svc =
             ServerManageServiceServer::with_interceptor(server_manage_service, move |mut req| {
-                server_manage_interceptor_data.convert_maintaining_into_grpc_status()?;
                 Self::check_auth(&mut req)?;
                 Ok(req)
             });
@@ -403,6 +388,7 @@ impl BasicService for BasicServiceProvider {
     }
 
     /// Handle support requests
+    #[tracing::instrument(skip(self))]
     async fn support(
         &self,
         request: Request<SupportRequest>,
@@ -410,6 +396,7 @@ impl BasicService for BasicServiceProvider {
         support(self, request).await
     }
 
+    #[tracing::instrument(skip(self))]
     async fn get_preset_user_status(
         &self,
         request: Request<GetPresetUserStatusRequest>,
