@@ -127,7 +127,7 @@ aoOj+FKc4agHnVwZavuV9s0T6Pg9017iplMbzXeZEWo0hwQa0rhFNvB90beAyCjp
         await Future.delayed(Duration(milliseconds: 10));
       }
       await getAccountInfo(ignoreCache: ignoreCache);
-      return;
+      return true;
     }
     ourchatAppState.gettingInfoAccountList.add(id);
     if (ourchatAppState.accountCachePool.containsKey(id)) {
