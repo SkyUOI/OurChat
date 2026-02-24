@@ -45,7 +45,7 @@ croner.workspace = true
 sysinfo = "0.38.2"
 
 # Runtime metrics
-tokio-metrics = { version = "0.4.8", features = [
+tokio-metrics = { version = "0.4.9", features = [
     "rt",
     "metrics-rs-integration",
 ] }
