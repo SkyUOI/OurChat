@@ -58,6 +58,12 @@ pub struct UserSetting {
 
 impl Setting for UserSetting {}
 
+impl PathConvert for UserSetting {
+    fn convert_to_abs_path(&mut self, _full_basepath: &std::path::Path) -> anyhow::Result<()> {
+        Ok(())
+    }
+}
+
 /// Read a config file from the given path
 ///
 /// This function returns Ok(config::Config) if the file is valid, or

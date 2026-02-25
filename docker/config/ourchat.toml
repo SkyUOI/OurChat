@@ -6,6 +6,15 @@ redis_cfg = "redis.toml"
 rabbitmq_cfg = "rabbitmq.toml"
 user_setting = "user_setting.toml"
 http_cfg = "http.toml"
+
+# Alternatively, you can define configuration inline using TOML tables.
+# For example, instead of referencing external files, you can write:
+# [redis_cfg]
+# host = "localhost"
+# port = 6379
+# passwd = "secret"
+# user = "default"
+
 # The duration of cleaning the files which are out-of-date
 auto_clean_duration = "0 0 0 * * *"
 # The total file size limit of a single user

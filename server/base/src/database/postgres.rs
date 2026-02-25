@@ -32,6 +32,12 @@ impl PostgresDbCfg {
 
 impl Setting for PostgresDbCfg {}
 
+impl crate::setting::PathConvert for PostgresDbCfg {
+    fn convert_to_abs_path(&mut self, _full_basepath: &std::path::Path) -> anyhow::Result<()> {
+        Ok(())
+    }
+}
+
 async fn try_create_postgres_db(
     url: &str,
     run_migration: bool,

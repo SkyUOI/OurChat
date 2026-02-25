@@ -22,6 +22,12 @@ impl RedisCfg {
 
 impl Setting for RedisCfg {}
 
+impl crate::setting::PathConvert for RedisCfg {
+    fn convert_to_abs_path(&mut self, _full_basepath: &std::path::Path) -> anyhow::Result<()> {
+        Ok(())
+    }
+}
+
 /// connect to redis database according to url
 pub async fn connect_to_redis(url: &str) -> anyhow::Result<::redis::aio::ConnectionManager> {
     let client = ::redis::Client::open(url)?;

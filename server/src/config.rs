@@ -5,9 +5,9 @@ use std::{path::PathBuf, time::Duration};
 use anyhow::{Context, bail};
 use base::constants::OCID;
 use serde::de::Error as _;
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, de::DeserializeOwned};
 use size::Size;
-use utils::{merge_json, serde_default};
+use utils::{merge_json, resolve_relative_path, serde_default};
 
 use crate::{ParserCfg, config::http::HttpCfg};
 use base::{
@@ -17,14 +17,58 @@ use base::{
     setting::{self, PathConvert, Setting, UserSetting, debug::DebugCfg},
 };
 
+/// A configuration source that can be either a path to a config file or an inline configuration.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+#[serde(bound = "T: Serialize + DeserializeOwned")]
+pub enum ConfigSource<T> {
+    Path(PathBuf),
+    Inline(T),
+}
+
+impl<T> ConfigSource<T> {
+    /// Load configuration from either a path or inline value.
+    pub fn load(&self) -> anyhow::Result<T>
+    where
+        T: Setting + Clone + DeserializeOwned,
+    {
+        match self {
+            ConfigSource::Path(path) => T::build_from_path(path),
+            ConfigSource::Inline(config) => Ok(config.clone()),
+        }
+    }
+}
+
+impl<T> PathConvert for ConfigSource<T>
+where
+    T: PathConvert,
+{
+    fn convert_to_abs_path(&mut self, full_basepath: &std::path::Path) -> anyhow::Result<()> {
+        match self {
+            ConfigSource::Path(path) => {
+                *path = resolve_relative_path(full_basepath, path)?;
+            }
+            ConfigSource::Inline(config) => {
+                config.convert_to_abs_path(full_basepath)?;
+            }
+        }
+        Ok(())
+    }
+}
+
 #[derive(Debug, Serialize, Clone, derive::PathConvert)]
 pub struct MainCfg {
     pub inherit: Option<String>,
-    pub redis_cfg: PathBuf,
-    pub db_cfg: PathBuf,
-    pub rabbitmq_cfg: PathBuf,
-    pub user_setting: PathBuf,
-    pub http_cfg: PathBuf,
+    #[path_convert]
+    pub redis_cfg: ConfigSource<RedisCfg>,
+    #[path_convert]
+    pub db_cfg: ConfigSource<PostgresDbCfg>,
+    #[path_convert]
+    pub rabbitmq_cfg: ConfigSource<RabbitMQCfg>,
+    #[path_convert]
+    pub user_setting: ConfigSource<UserSetting>,
+    #[path_convert]
+    pub http_cfg: ConfigSource<HttpCfg>,
     pub auto_clean_duration: croner::Cron,
     pub files_save_time: Duration,
     pub user_files_limit: Size,
@@ -133,11 +177,11 @@ serde_default!(DbArgCfg);
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RawMainCfg {
-    pub redis_cfg: PathBuf,
-    pub db_cfg: PathBuf,
-    pub rabbitmq_cfg: PathBuf,
-    pub user_setting: PathBuf,
-    pub http_cfg: PathBuf,
+    pub redis_cfg: ConfigSource<RedisCfg>,
+    pub db_cfg: ConfigSource<PostgresDbCfg>,
+    pub rabbitmq_cfg: ConfigSource<RabbitMQCfg>,
+    pub user_setting: ConfigSource<UserSetting>,
+    pub http_cfg: ConfigSource<HttpCfg>,
     #[serde(default)]
     pub inherit: Option<String>,
     #[serde(default = "constants::default_clear_interval")]
@@ -340,27 +384,31 @@ impl MainCfg {
 
     /// Validates that all configured file paths exist
     fn validate_all_paths(&self) -> anyhow::Result<()> {
-        // Validate sub-config files exist
-        if !self.redis_cfg.exists() {
-            bail!("redis_cfg does not exist: {}", self.redis_cfg.display());
+        // Validate sub-config files exist (only for Path variants)
+        if let ConfigSource::Path(path) = &self.redis_cfg
+            && !path.exists()
+        {
+            bail!("redis_cfg does not exist: {}", path.display());
         }
-        if !self.db_cfg.exists() {
-            bail!("db_cfg does not exist: {}", self.db_cfg.display());
+        if let ConfigSource::Path(path) = &self.db_cfg
+            && !path.exists()
+        {
+            bail!("db_cfg does not exist: {}", path.display());
         }
-        if !self.rabbitmq_cfg.exists() {
-            bail!(
-                "rabbitmq_cfg does not exist: {}",
-                self.rabbitmq_cfg.display()
-            );
+        if let ConfigSource::Path(path) = &self.rabbitmq_cfg
+            && !path.exists()
+        {
+            bail!("rabbitmq_cfg does not exist: {}", path.display());
         }
-        if !self.user_setting.exists() {
-            bail!(
-                "user_setting does not exist: {}",
-                self.user_setting.display()
-            );
+        if let ConfigSource::Path(path) = &self.user_setting
+            && !path.exists()
+        {
+            bail!("user_setting does not exist: {}", path.display());
         }
-        if !self.http_cfg.exists() {
-            bail!("http_cfg does not exist: {}", self.http_cfg.display());
+        if let ConfigSource::Path(path) = &self.http_cfg
+            && !path.exists()
+        {
+            bail!("http_cfg does not exist: {}", path.display());
         }
 
         // Validate files_storage_path (create if needed)
@@ -385,17 +433,15 @@ pub struct Cfg {
 
 impl Cfg {
     pub fn new(main_cfg: MainCfg) -> anyhow::Result<Self> {
-        let db_cfg = PostgresDbCfg::build_from_path(&main_cfg.db_cfg)?;
-        let redis_cfg = RedisCfg::build_from_path(&main_cfg.redis_cfg)?;
-        let rabbitmq_cfg = RabbitMQCfg::build_from_path(&main_cfg.rabbitmq_cfg)?;
-        let user_setting = UserSetting::build_from_path(&main_cfg.user_setting)?;
-        let mut http_cfg = HttpCfg::build_from_path(&main_cfg.http_cfg)?;
-        http_cfg.convert_to_abs_path(
-            main_cfg
-                .http_cfg
-                .parent()
-                .context("The path of http_cfg is invalid")?,
-        )?;
+        let db_cfg = main_cfg.db_cfg.load()?;
+        let redis_cfg = main_cfg.redis_cfg.load()?;
+        let rabbitmq_cfg = main_cfg.rabbitmq_cfg.load()?;
+        let user_setting = main_cfg.user_setting.load()?;
+        let mut http_cfg = main_cfg.http_cfg.load()?;
+        if let ConfigSource::Path(ref path) = main_cfg.http_cfg {
+            http_cfg
+                .convert_to_abs_path(path.parent().context("The path of http_cfg is invalid")?)?;
+        }
         // Validate http_cfg paths exist
         http_cfg.validate_paths()?;
         Ok(Self {
@@ -530,5 +576,143 @@ mod tests {
             "Error was {}",
             err
         );
+    }
+
+    #[test]
+    fn test_inline_redis_config() {
+        let mut config = minimal_valid_config();
+        // Replace path string with inline configuration
+        config["redis_cfg"] = json!({
+            "host": "localhost",
+            "port": 6379,
+            "passwd": "secret",
+            "user": "default"
+        });
+        let result: Result<MainCfg, _> = serde_json::from_value(config);
+        assert!(result.is_ok(), "Inline redis config should deserialize");
+        let cfg = result.unwrap();
+        // Verify it's the Inline variant
+        match &cfg.redis_cfg {
+            ConfigSource::Inline(_) => {} // success
+            ConfigSource::Path(_) => panic!("Expected inline config, got path"),
+        }
+    }
+
+    #[test]
+    fn test_inline_db_config() {
+        let mut config = minimal_valid_config();
+        config["db_cfg"] = json!({
+            "host": "localhost",
+            "port": 5432,
+            "db": "ourchat",
+            "user": "postgres",
+            "passwd": "password"
+        });
+        let result: Result<MainCfg, _> = serde_json::from_value(config);
+        assert!(result.is_ok(), "Inline db config should deserialize");
+        let cfg = result.unwrap();
+        match &cfg.db_cfg {
+            ConfigSource::Inline(_) => {}
+            ConfigSource::Path(_) => panic!("Expected inline config, got path"),
+        }
+    }
+
+    #[test]
+    fn test_inline_rabbitmq_config() {
+        let mut config = minimal_valid_config();
+        config["rabbitmq_cfg"] = json!({
+            "host": "localhost",
+            "port": 5672,
+            "user": "guest",
+            "passwd": "guest",
+            "vhost": "/"
+        });
+        let result: Result<MainCfg, _> = serde_json::from_value(config);
+        assert!(result.is_ok(), "Inline rabbitmq config should deserialize");
+        let cfg = result.unwrap();
+        match &cfg.rabbitmq_cfg {
+            ConfigSource::Inline(_) => {}
+            ConfigSource::Path(_) => panic!("Expected inline config, got path"),
+        }
+    }
+
+    #[test]
+    fn test_inline_user_setting_config() {
+        let mut config = minimal_valid_config();
+        config["user_setting"] = json!({
+            "contacts": [],
+            "support_page": "http://example.com",
+            "password_strength_limit": 1,
+            "verify_email_expiry": "5min",
+            "add_friend_request_expiry": "1h"
+        });
+        let result: Result<MainCfg, _> = serde_json::from_value(config);
+        if let Err(ref e) = result {
+            println!("Deserialization error: {}", e);
+        }
+        assert!(
+            result.is_ok(),
+            "Inline user_setting config should deserialize"
+        );
+        let cfg = result.unwrap();
+        match &cfg.user_setting {
+            ConfigSource::Inline(_) => {}
+            ConfigSource::Path(_) => panic!("Expected inline config, got path"),
+        }
+    }
+
+    #[test]
+    fn test_inline_http_config() {
+        let mut config = minimal_valid_config();
+        config["http_cfg"] = json!({
+            "ip": "127.0.0.1",
+            "port": 8080,
+            "logo_path": "/tmp/logo.png",
+            "default_avatar_path": "/tmp/avatar.png",
+            "log_clean_duration": "1d",
+            "lop_keep": "7d"
+        });
+        let result: Result<MainCfg, _> = serde_json::from_value(config);
+        assert!(result.is_ok(), "Inline http config should deserialize");
+        let cfg = result.unwrap();
+        match &cfg.http_cfg {
+            ConfigSource::Inline(_) => {}
+            ConfigSource::Path(_) => panic!("Expected inline config, got path"),
+        }
+    }
+
+    #[test]
+    fn test_mixed_config() {
+        let mut config = minimal_valid_config();
+        // Mix inline and path configurations
+        config["redis_cfg"] = json!({
+            "host": "localhost",
+            "port": 6379,
+            "passwd": "secret",
+            "user": "default"
+        });
+        config["db_cfg"] = json!("/tmp/db.toml");
+        config["rabbitmq_cfg"] = json!({
+            "host": "localhost",
+            "port": 5672,
+            "user": "guest",
+            "passwd": "guest",
+            "vhost": "/"
+        });
+        let result: Result<MainCfg, _> = serde_json::from_value(config);
+        assert!(result.is_ok(), "Mixed config should deserialize");
+        let cfg = result.unwrap();
+        match &cfg.redis_cfg {
+            ConfigSource::Inline(_) => {}
+            ConfigSource::Path(_) => panic!("Expected inline config for redis, got path"),
+        }
+        match &cfg.db_cfg {
+            ConfigSource::Path(_) => {}
+            ConfigSource::Inline(_) => panic!("Expected path config for db, got inline"),
+        }
+        match &cfg.rabbitmq_cfg {
+            ConfigSource::Inline(_) => {}
+            ConfigSource::Path(_) => panic!("Expected inline config for rabbitmq, got path"),
+        }
     }
 }
