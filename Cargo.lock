@@ -744,7 +744,7 @@ dependencies = [
  "redis",
  "reqwest",
  "ring",
- "rsa 0.10.0-rc.15",
+ "rsa 0.10.0-rc.16",
  "sea-orm",
  "serde",
  "server",
@@ -1114,9 +1114,9 @@ checksum = "460fbee9c2c2f33933d720630a6a0bac33ba7053db5344fac858d4b8952d77d5"
 
 [[package]]
 name = "crypto-bigint"
-version = "0.7.0-rc.27"
+version = "0.7.0-rc.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b43308b9b6a47554f4612d5b1fb95ff935040aa3927dd42b1d6cbc015a262d96"
+checksum = "96dacf199529fb801ae62a9aafdc01b189e9504c0d1ee1512a4c16bcd8666a93"
 dependencies = [
  "cpubits",
  "ctutils",
@@ -3439,7 +3439,7 @@ version = "0.14.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "343d3bd7056eda839b03204e68deff7d1b13aba7af2b2fd16890697274262ee7"
 dependencies = [
- "heck 0.4.1",
+ "heck 0.5.0",
  "itertools 0.14.0",
  "log",
  "multimap",
@@ -3890,9 +3890,9 @@ dependencies = [
 
 [[package]]
 name = "rsa"
-version = "0.10.0-rc.15"
+version = "0.10.0-rc.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b342b99544549f37509ed7fd42b0cea04bfd9ce07c16ca56094cf0fbeefbbcd"
+checksum = "6fb9fd8c1edd9e6a2693623baf0fe77ff05ce022a5d7746900ffc38a15c233de"
 dependencies = [
  "const-oid 0.10.2",
  "crypto-bigint",
@@ -4406,7 +4406,7 @@ dependencies = [
  "redis",
  "redis-macros",
  "reqwest",
- "rsa 0.10.0-rc.15",
+ "rsa 0.10.0-rc.16",
  "rustls",
  "scopeguard",
  "sea-orm",
@@ -5676,7 +5676,7 @@ name = "utils"
 version = "0.1.0"
 dependencies = [
  "reqwest",
- "rsa 0.10.0-rc.15",
+ "rsa 0.10.0-rc.16",
  "serde",
  "serde_json",
  "sha3",
