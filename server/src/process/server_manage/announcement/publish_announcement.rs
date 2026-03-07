@@ -33,7 +33,10 @@ pub async fn publish_announcement(
 ) -> Result<Response<PublishAnnouncementResponse>, Status> {
     match publish_announcement_internal(server, request).await {
         Ok(response) => Ok(Response::new(response)),
-        Err(err) => Err(Status::internal(err.to_string())),
+        Err(err) => {
+            tracing::error!("{}", err);
+            Err(Status::internal(err.to_string()))
+        }
     }
 }
 

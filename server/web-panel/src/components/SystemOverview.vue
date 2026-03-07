@@ -25,7 +25,7 @@
         <div class="chart-container">
           <!-- Chart will be placed here -->
           <div class="chart-placeholder">
-            {{ $t('chartPlaceholder') }}
+            {{ cpuUsage !== null ? cpuUsage + '%' : $t('chartPlaceholder') }}
           </div>
         </div>
       </el-card>
@@ -38,7 +38,7 @@
         <div class="chart-container">
           <!-- Chart will be placed here -->
           <div class="chart-placeholder">
-            {{ $t('chartPlaceholder') }}
+            {{ memoryUsage !== null ? memoryUsage + '%' : $t('chartPlaceholder') }}
           </div>
         </div>
       </el-card>
@@ -72,18 +72,125 @@
 </template>
 
 <script lang="ts">
+import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { useGrpcStore } from '../stores/grpc'
+import type { MonitoringMetrics } from '../api/service/server_manage/monitoring/v1/monitoring'
+
 export default {
   name: 'SystemOverview',
-  data() {
+  setup() {
+    const grpcStore = useGrpcStore()
+    const metrics = ref<MonitoringMetrics | null>(null)
+    const loading = ref(false)
+    let refreshInterval: ReturnType<typeof setInterval> | null = null
+
+    // Computed stats
+    const stats = computed(() => [
+      {
+        titleKey: 'activeConnections',
+        value: metrics.value?.activeConnections?.toString() || '0',
+        icon: 'el-icon-connection',
+        color: '#409EFF',
+      },
+      {
+        titleKey: 'activeSessions',
+        value: metrics.value?.activeSessions?.toString() || '0',
+        icon: 'el-icon-chat-dot-round',
+        color: '#67C23A',
+      },
+      {
+        titleKey: 'totalUsers',
+        value: metrics.value?.totalUsers?.toString() || '0',
+        icon: 'el-icon-user',
+        color: '#E6A23C',
+      },
+      {
+        titleKey: 'messageRate',
+        value: (metrics.value?.messagesPerSecond || 0) + ' msg/s',
+        icon: 'el-icon-s-data',
+        color: '#909399',
+      },
+    ])
+
+    // CPU and memory usage
+    const cpuUsage = computed(() => {
+      if (!metrics.value?.cpuUsagePercent) return null
+      return Number(metrics.value.cpuUsagePercent).toFixed(1)
+    })
+
+    const memoryUsage = computed(() => {
+      if (!metrics.value?.memoryUsagePercent) return null
+      return Number(metrics.value.memoryUsagePercent).toFixed(1)
+    })
+
+    // Services list
+    const services = computed(() => [
+      {
+        name: 'OurChat Server',
+        statusKey: metrics.value ? 'running' : 'stopped',
+        uptime: formatUptime(metrics.value?.uptimeSeconds),
+        cpu: cpuUsage.value !== null ? cpuUsage.value + '%' : '-',
+        memory: memoryUsage.value !== null ? memoryUsage.value + '%' : '-',
+      },
+      {
+        name: 'PostgreSQL',
+        statusKey: (metrics.value?.databaseConnections || 0) > 0 ? 'running' : 'stopped',
+        uptime: '-',
+        cpu: '-',
+        memory: '-',
+      },
+      {
+        name: 'RabbitMQ',
+        statusKey: (metrics.value?.rabbitmqConnections || 0) > 0 ? 'running' : 'stopped',
+        uptime: '-',
+        cpu: '-',
+        memory: '-',
+      },
+    ])
+
+    const formatUptime = (seconds: bigint | undefined): string => {
+      if (!seconds) return '-'
+      const secs = Number(seconds)
+      const days = Math.floor(secs / 86400)
+      const hours = Math.floor((secs % 86400) / 3600)
+      const mins = Math.floor((secs % 3600) / 60)
+      if (days > 0) return `${days}d ${hours}h`
+      if (hours > 0) return `${hours}h ${mins}m`
+      return `${mins}m`
+    }
+
+    const fetchMetrics = async () => {
+      try {
+        loading.value = true
+        const response = await grpcStore.serverManageConn.getMonitoringMetrics({
+          includeSystemMetrics: true,
+          includeTokioMetrics: false,
+        })
+        metrics.value = response.response.metrics || null
+      } catch (error) {
+        console.error('Failed to fetch metrics:', error)
+      } finally {
+        loading.value = false
+      }
+    }
+
+    onMounted(() => {
+      fetchMetrics()
+      refreshInterval = setInterval(fetchMetrics, 30000)
+    })
+
+    onUnmounted(() => {
+      if (refreshInterval) {
+        clearInterval(refreshInterval)
+      }
+    })
+
     return {
-      stats: [] as Array<{ titleKey: string; value: string; icon: string; color: string }>,
-      services: [] as Array<{
-        name: string
-        statusKey: string
-        uptime: string
-        cpu: string
-        memory: string
-      }>,
+      stats,
+      cpuUsage,
+      memoryUsage,
+      services,
+      loading,
     }
   },
 }

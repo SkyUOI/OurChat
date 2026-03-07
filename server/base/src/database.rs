@@ -1,6 +1,7 @@
 use crate::database::postgres::PostgresDbCfg;
 use crate::database::redis_cfg::RedisCfg;
 use sea_orm::DatabaseConnection;
+use sqlx::PgPool;
 
 pub mod postgres;
 pub mod redis_cfg;
@@ -10,6 +11,7 @@ pub mod redis_cfg;
 #[derive(Debug, Clone)]
 pub struct DbPool {
     pub db_pool: DatabaseConnection,
+    pub pg_pool: PgPool,
     pub redis_conn: redis::aio::ConnectionManager,
 }
 
@@ -24,10 +26,11 @@ impl DbPool {
         redis: &RedisCfg,
         run_migration: bool,
     ) -> anyhow::Result<Self> {
-        let db_pool = postgres::connect_to_db(&postgres.url(), run_migration).await?;
+        let (db_pool, pg_pool) = postgres::connect_to_db(&postgres.url(), run_migration).await?;
         let redis_conn = redis_cfg::connect_to_redis(&redis.get_redis_url()?).await?;
         Ok(Self {
             db_pool,
+            pg_pool,
             redis_conn,
         })
     }

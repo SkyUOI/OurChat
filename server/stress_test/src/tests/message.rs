@@ -79,7 +79,10 @@ pub async fn test_fetch_msgs(users: &UsersGroup, report: &mut Report) {
             user.lock()
                 .await
                 .oc()
-                .fetch_msgs(FetchMsgsRequest { time: None })
+                .fetch_msgs(FetchMsgsRequest {
+                    time: None,
+                    announcement_only: false,
+                })
                 .await
                 .is_ok()
         },

@@ -33,6 +33,9 @@ rust-version = "1.91"
 version = "1"
 default-features = false
 
+[workspace.dependencies.scopeguard]
+version = "1"
+
 [workspace.dependencies.serde_json]
 version = "1"
 default-features = false

@@ -70,3 +70,11 @@ impl RabbitMQCfg {
         }
     }
 }
+
+impl setting::Setting for RabbitMQCfg {}
+
+impl setting::PathConvert for RabbitMQCfg {
+    fn convert_to_abs_path(&mut self, _full_basepath: &std::path::Path) -> anyhow::Result<()> {
+        Ok(())
+    }
+}

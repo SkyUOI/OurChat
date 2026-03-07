@@ -147,6 +147,7 @@ impl TestApp {
         }
         let mut config = server::get_configuration(args.shared_cfg.config.clone())?;
         config.http_cfg.rate_limit.enable = false;
+        config.main_cfg.enable_metrics = false;
         Ok((config, args))
     }
 
@@ -160,7 +161,7 @@ impl TestApp {
     /// let (mut config, args) = TestApp::get_test_config().unwrap();
     /// let user_files_limit = Size::from_mebibytes(10);
     /// config.main_cfg.user_files_limit = user_files_limit;
-    /// let mut app = TestApp::new_with_launching_instance_custom_cfg((config, args))
+    /// let mut app = TestApp::new_with_launching_instance_custom_cfg((config, args), |_| {})
     ///     .await
     ///     .unwrap();
     /// ```
@@ -276,6 +277,7 @@ impl TestApp {
 
     pub async fn async_drop(&mut self) {
         tracing::info!("async_drop called");
+
         for i in &self.owned_users {
             i.lock().await.async_drop().await;
         }

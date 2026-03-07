@@ -9,6 +9,7 @@ use crate::{
 use anyhow::{Context, anyhow};
 use base::constants::ID;
 use chrono::Utc;
+use metrics::counter;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
 use pb::service::ourchat::msg_delivery::v1::{Msg, SendMsgRequest, SendMsgResponse};
 use pb::service::ourchat::session::session_room_key::v1::{
@@ -165,6 +166,10 @@ async fn send_msg_impl(
             session.update(&server.db.db_pool).await?;
         }
     }
+
+    // Record message sent metric
+    counter!("messages_sent_total").increment(1);
+
     Ok(SendMsgResponse {
         msg_id: msg_id.msg_id as u64,
         time: Some(msg_id.time.into()),

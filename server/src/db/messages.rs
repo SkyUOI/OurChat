@@ -30,6 +30,8 @@ pub enum MsgError {
 /// The parameter `page_size` is used to limit the number of messages returned in one query,
 /// and the messages are returned in descending order of their timestamps.
 ///
+/// If `announcement_only` is true, only announcement messages are returned.
+///
 /// # Errors
 ///
 /// Returns `MsgError::DbError` if a database error occurs.
@@ -38,18 +40,31 @@ pub async fn get_session_msgs<T: ConnectionTrait>(
     end_timestamp: TimeStamp,
     db_conn: &T,
     page_size: u64,
+    announcement_only: bool,
 ) -> Result<Paginator<'_, T, sea_orm::SelectModel<message_records::Model>>, MsgError> {
-    let msgs = message_records::Entity::find()
-        .from_raw_sql(Statement::from_sql_and_values(
-            DatabaseBackend::Postgres,
-            r#"SELECT * FROM message_records
+    let msgs = if announcement_only {
+        // Filter for announcements only - check if msg_data contains "announcementResponse"
+        message_records::Entity::find()
+            .from_raw_sql(Statement::from_sql_and_values(
+                DatabaseBackend::Postgres,
+                r#"SELECT * FROM message_records
+WHERE time > $1 AND
+is_all_user = true AND
+msg_data ? 'announcementResponse'"#,
+                [end_timestamp.into()],
+            ))
+            .paginate(db_conn, page_size)
+    } else {
+        message_records::Entity::find()
+            .from_raw_sql(Statement::from_sql_and_values(
+                DatabaseBackend::Postgres,
+                r#"SELECT * FROM message_records
 WHERE time > $1 AND
 ((sender_id = $2 OR EXISTS (SELECT * FROM session_relation WHERE user_id = $2 AND session_id = message_records.session_id)) OR (is_all_user = true))"#,
-                [end_timestamp.into(), user_id.into()],
-            // r#"SELECT * FROM message_records"#,
-            // [],
-        ))
-        .paginate(db_conn, page_size);
+                    [end_timestamp.into(), user_id.into()],
+            ))
+            .paginate(db_conn, page_size)
+    };
     Ok(msgs)
 }
 

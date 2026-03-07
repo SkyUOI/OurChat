@@ -197,6 +197,14 @@ pub const fn default_enable_file_deduplication() -> bool {
     true
 }
 
+pub const fn default_enable_metrics() -> bool {
+    true
+}
+
+pub const fn default_metrics_snapshot_interval() -> Duration {
+    Duration::from_mins(1)
+}
+
 pub fn default_cache_max_size() -> Size {
     Size::from_mebibytes(100)
 }

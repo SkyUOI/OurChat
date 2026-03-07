@@ -1,0 +1,173 @@
+use sea_orm_migration::{prelude::*, schema::*};
+
+use crate::enums::MetricsHistory;
+
+#[derive(DeriveMigrationName)]
+pub struct Migration;
+
+#[async_trait::async_trait]
+impl MigrationTrait for Migration {
+    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .create_table(
+                Table::create()
+                    .table(MetricsHistory::Table)
+                    .col(big_unsigned(MetricsHistory::Id).primary_key())
+                    .col(timestamp_with_time_zone(MetricsHistory::Timestamp))
+                    .col(integer(MetricsHistory::ActiveConnections).default(0))
+                    .col(integer(MetricsHistory::TotalUsers).default(0))
+                    .col(double(MetricsHistory::MessagesPerSecond).default(0))
+                    .col(big_integer(MetricsHistory::UptimeSeconds))
+                    .col(double_null(MetricsHistory::CpuUsagePercent))
+                    .col(double_null(MetricsHistory::MemoryUsagePercent))
+                    .col(double_null(MetricsHistory::DiskUsagePercent))
+                    .col(integer(MetricsHistory::TotalSessions).default(0))
+                    .col(integer(MetricsHistory::ActiveSessions).default(0))
+                    .col(integer(MetricsHistory::DatabaseConnections).default(0))
+                    .col(integer(MetricsHistory::RabbitmqConnections).default(0))
+                    .col(
+                        timestamp_with_time_zone(MetricsHistory::CreatedAt)
+                            .default(Expr::current_timestamp()),
+                    )
+                    .col(integer_null(MetricsHistory::TokioWorkersCount))
+                    .col(big_integer_null(MetricsHistory::TokioTotalParkCount))
+                    .col(big_integer_null(MetricsHistory::TokioMaxParkCount))
+                    .col(big_integer_null(MetricsHistory::TokioMinParkCount))
+                    .col(big_integer_null(MetricsHistory::TokioTotalBusyDuration))
+                    .col(big_integer_null(MetricsHistory::TokioMaxBusyDuration))
+                    .col(big_integer_null(MetricsHistory::TokioMinBusyDuration))
+                    .col(big_integer_null(MetricsHistory::TokioGlobalQueueDepth))
+                    .col(big_integer_null(MetricsHistory::TokioElapsed))
+                    .col(big_integer_null(MetricsHistory::TokioLiveTasksCount))
+                    // Unstable base metrics
+                    .col(big_integer_null(MetricsHistory::TokioMeanPollDuration))
+                    .col(big_integer_null(
+                        MetricsHistory::TokioMeanPollDurationWorkerMin,
+                    ))
+                    .col(big_integer_null(
+                        MetricsHistory::TokioMeanPollDurationWorkerMax,
+                    ))
+                    .col(big_integer_null(MetricsHistory::TokioTotalNoopCount))
+                    .col(big_integer_null(MetricsHistory::TokioMaxNoopCount))
+                    .col(big_integer_null(MetricsHistory::TokioMinNoopCount))
+                    .col(big_integer_null(MetricsHistory::TokioTotalStealCount))
+                    .col(big_integer_null(MetricsHistory::TokioMaxStealCount))
+                    .col(big_integer_null(MetricsHistory::TokioMinStealCount))
+                    .col(big_integer_null(MetricsHistory::TokioTotalStealOperations))
+                    .col(big_integer_null(MetricsHistory::TokioMaxStealOperations))
+                    .col(big_integer_null(MetricsHistory::TokioMinStealOperations))
+                    .col(big_integer_null(MetricsHistory::TokioNumRemoteSchedules))
+                    .col(big_integer_null(
+                        MetricsHistory::TokioTotalLocalScheduleCount,
+                    ))
+                    .col(big_integer_null(MetricsHistory::TokioMaxLocalScheduleCount))
+                    .col(big_integer_null(MetricsHistory::TokioMinLocalScheduleCount))
+                    .col(big_integer_null(MetricsHistory::TokioTotalOverflowCount))
+                    .col(big_integer_null(MetricsHistory::TokioMaxOverflowCount))
+                    .col(big_integer_null(MetricsHistory::TokioMinOverflowCount))
+                    .col(big_integer_null(MetricsHistory::TokioTotalPollsCount))
+                    .col(big_integer_null(MetricsHistory::TokioMaxPollsCount))
+                    .col(big_integer_null(MetricsHistory::TokioMinPollsCount))
+                    .col(big_integer_null(MetricsHistory::TokioTotalLocalQueueDepth))
+                    .col(big_integer_null(MetricsHistory::TokioMaxLocalQueueDepth))
+                    .col(big_integer_null(MetricsHistory::TokioMinLocalQueueDepth))
+                    .col(big_integer_null(MetricsHistory::TokioBlockingQueueDepth))
+                    .col(big_integer_null(MetricsHistory::TokioBlockingThreadsCount))
+                    .col(big_integer_null(
+                        MetricsHistory::TokioIdleBlockingThreadsCount,
+                    ))
+                    .col(big_integer_null(
+                        MetricsHistory::TokioBudgetForcedYieldCount,
+                    ))
+                    .col(big_integer_null(MetricsHistory::TokioIoDriverReadyCount))
+                    // Derived metrics
+                    .col(double_null(MetricsHistory::TokioBusyRatio))
+                    .col(double_null(MetricsHistory::TokioMeanPollsPerPark))
+                    // Task metrics (29 fields)
+                    .col(big_integer_null(MetricsHistory::TokioTaskInstrumentedCount))
+                    .col(big_integer_null(MetricsHistory::TokioTaskDroppedCount))
+                    .col(big_integer_null(MetricsHistory::TokioTaskFirstPollCount))
+                    .col(big_integer_null(
+                        MetricsHistory::TokioTaskTotalFirstPollDelay,
+                    ))
+                    .col(big_integer_null(MetricsHistory::TokioTaskTotalIdledCount))
+                    .col(big_integer_null(MetricsHistory::TokioTaskTotalIdleDuration))
+                    .col(big_integer_null(MetricsHistory::TokioTaskMaxIdleDuration))
+                    .col(big_integer_null(
+                        MetricsHistory::TokioTaskTotalScheduledCount,
+                    ))
+                    .col(big_integer_null(
+                        MetricsHistory::TokioTaskTotalScheduledDuration,
+                    ))
+                    .col(big_integer_null(MetricsHistory::TokioTaskTotalPollCount))
+                    .col(big_integer_null(MetricsHistory::TokioTaskTotalPollDuration))
+                    .col(big_integer_null(
+                        MetricsHistory::TokioTaskTotalFastPollCount,
+                    ))
+                    .col(big_integer_null(
+                        MetricsHistory::TokioTaskTotalFastPollDuration,
+                    ))
+                    .col(big_integer_null(
+                        MetricsHistory::TokioTaskTotalSlowPollCount,
+                    ))
+                    .col(big_integer_null(
+                        MetricsHistory::TokioTaskTotalSlowPollDuration,
+                    ))
+                    .col(big_integer_null(
+                        MetricsHistory::TokioTaskTotalShortDelayCount,
+                    ))
+                    .col(big_integer_null(
+                        MetricsHistory::TokioTaskTotalShortDelayDuration,
+                    ))
+                    .col(big_integer_null(
+                        MetricsHistory::TokioTaskTotalLongDelayCount,
+                    ))
+                    .col(big_integer_null(
+                        MetricsHistory::TokioTaskTotalLongDelayDuration,
+                    ))
+                    .col(big_integer_null(
+                        MetricsHistory::TokioTaskMeanFirstPollDelay,
+                    ))
+                    .col(big_integer_null(MetricsHistory::TokioTaskMeanIdleDuration))
+                    .col(big_integer_null(
+                        MetricsHistory::TokioTaskMeanScheduledDuration,
+                    ))
+                    .col(big_integer_null(MetricsHistory::TokioTaskMeanPollDuration))
+                    .col(double_null(MetricsHistory::TokioTaskSlowPollRatio))
+                    .col(double_null(MetricsHistory::TokioTaskLongDelayRatio))
+                    .col(big_integer_null(
+                        MetricsHistory::TokioTaskMeanFastPollDuration,
+                    ))
+                    .col(big_integer_null(
+                        MetricsHistory::TokioTaskMeanSlowPollDuration,
+                    ))
+                    .col(big_integer_null(
+                        MetricsHistory::TokioTaskMeanShortDelayDuration,
+                    ))
+                    .col(big_integer_null(
+                        MetricsHistory::TokioTaskMeanLongDelayDuration,
+                    ))
+                    .to_owned(),
+            )
+            .await?;
+
+        // Create index for timestamp queries
+        manager
+            .create_index(
+                Index::create()
+                    .name("idx_metrics_history_timestamp")
+                    .table(MetricsHistory::Table)
+                    .col(MetricsHistory::Timestamp)
+                    .to_owned(),
+            )
+            .await?;
+
+        Ok(())
+    }
+
+    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .drop_table(Table::drop().table(MetricsHistory::Table).to_owned())
+            .await
+    }
+}

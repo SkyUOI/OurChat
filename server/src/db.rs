@@ -5,6 +5,7 @@ pub mod friend;
 pub mod helper;
 pub mod manager;
 pub mod messages;
+pub mod metrics;
 pub mod redis_mappings;
 pub mod session;
 pub mod user;

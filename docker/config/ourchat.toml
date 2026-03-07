@@ -6,6 +6,15 @@ redis_cfg = "redis.toml"
 rabbitmq_cfg = "rabbitmq.toml"
 user_setting = "user_setting.toml"
 http_cfg = "http.toml"
+
+# Alternatively, you can define configuration inline using TOML tables.
+# For example, instead of referencing external files, you can write:
+# [redis_cfg]
+# host = "localhost"
+# port = 6379
+# passwd = "secret"
+# user = "default"
+
 # The duration of cleaning the files which are out-of-date
 auto_clean_duration = "0 0 0 * * *"
 # The total file size limit of a single user
@@ -48,6 +57,15 @@ unregister_policy = "disable"
 lock_account_after_failed_logins = 5
 # The duration of locking the account after too many failed login attempts
 lock_account_duration = "15m"
+
+# Bootstrap: assign server admin role to this user on startup (one-time)
+# User must register first, then restart server with this config
+# The OCID can be found in the user's account info
+# initial_admin_ocid = ""
+
+# If record the metrics of the server, which will be used for monitoring and debugging
+enable_metrics = true
+metrics_snapshot_interval = "1m"
 
 [password_hash]
 # The memory size in 1 KiB blocks. Between 8*`p_cost` and (2^32)-1

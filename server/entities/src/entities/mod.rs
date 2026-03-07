@@ -8,6 +8,7 @@ pub mod files;
 pub mod friend;
 pub mod manager_role_relation;
 pub mod message_records;
+pub mod metrics_history;
 pub mod permission;
 pub mod role;
 pub mod role_permissions;

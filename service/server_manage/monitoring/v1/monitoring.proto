@@ -2,6 +2,102 @@ syntax = "proto3";
 
 package service.server_manage.monitoring.v1;
 
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+// Task-level metrics from TaskMonitor
+message TokioTaskMetrics {
+  // Base metrics
+  uint64 instrumented_count = 1; // Number of tasks instrumented
+  uint64 dropped_count = 2; // Number of tasks dropped
+  uint64 first_poll_count = 3; // Tasks polled for first time
+  uint64 total_first_poll_delay = 4; // Duration between instrumentation and first poll (nanoseconds)
+  uint64 total_idled_count = 5; // Times tasks idled
+  uint64 total_idle_duration = 6; // Total duration tasks idled (nanoseconds)
+  uint64 max_idle_duration = 7; // Maximum idle duration (nanoseconds)
+  uint64 total_scheduled_count = 8; // Times tasks were awoken
+  uint64 total_scheduled_duration = 9; // Duration waiting after awakening (nanoseconds)
+  uint64 total_poll_count = 10; // Times tasks were polled
+  uint64 total_poll_duration = 11; // Duration of polls (nanoseconds)
+  uint64 total_fast_poll_count = 12; // Fast polls
+  uint64 total_fast_poll_duration = 13; // Fast poll duration (nanoseconds)
+  uint64 total_slow_poll_count = 14; // Slow polls
+  uint64 total_slow_poll_duration = 15; // Slow poll duration (nanoseconds)
+  uint64 total_short_delay_count = 16; // Short scheduling delays
+  uint64 total_short_delay_duration = 17; // Short delay duration (nanoseconds)
+  uint64 total_long_delay_count = 18; // Long scheduling delays
+  uint64 total_long_delay_duration = 19; // Long delay duration (nanoseconds)
+
+  // Derived metrics
+  uint64 mean_first_poll_delay = 20; // Mean delay to first poll (nanoseconds)
+  uint64 mean_idle_duration = 21; // Mean idle duration (nanoseconds)
+  uint64 mean_scheduled_duration = 22; // Mean scheduled duration (nanoseconds)
+  uint64 mean_poll_duration = 23; // Mean poll duration (nanoseconds)
+  double slow_poll_ratio = 24; // Ratio of slow to fast polls
+  double long_delay_ratio = 25; // Ratio of long to short delays
+  uint64 mean_fast_poll_duration = 26; // Mean fast poll duration (nanoseconds)
+  uint64 mean_slow_poll_duration = 27; // Mean slow poll duration (nanoseconds)
+  uint64 mean_short_delay_duration = 28; // Mean short delay duration (nanoseconds)
+  uint64 mean_long_delay_duration = 29; // Mean long delay duration (nanoseconds)
+}
+
+// Tokio runtime metrics from RuntimeMonitor
+message TokioRuntimeMetrics {
+  // Stable base metrics
+  uint32 workers_count = 1; // Number of worker threads
+  uint64 total_park_count = 2; // Times worker threads parked
+  uint64 max_park_count = 3; // Max parks by any worker
+  uint64 min_park_count = 4; // Min parks by any worker
+  uint64 total_busy_duration = 5; // Time workers were busy (nanoseconds)
+  uint64 max_busy_duration = 6; // Max busy time (nanoseconds)
+  uint64 min_busy_duration = 7; // Min busy time (nanoseconds)
+  uint64 global_queue_depth = 8; // Tasks in global queue
+  uint64 elapsed = 9; // Time elapsed (nanoseconds)
+  uint64 live_tasks_count = 10; // Current alive tasks
+
+  // Unstable base metrics (requires tokio_unstable)
+  uint64 mean_poll_duration = 11; // Mean poll duration (nanoseconds)
+  uint64 mean_poll_duration_worker_min = 12; // Min mean poll duration (nanoseconds)
+  uint64 mean_poll_duration_worker_max = 13; // Max mean poll duration (nanoseconds)
+  uint64 total_noop_count = 14; // Times workers unparked but found no work
+  uint64 max_noop_count = 15; // Max noop count by any worker
+  uint64 min_noop_count = 16; // Min noop count by any worker
+  uint64 total_steal_count = 17; // Tasks stolen between workers
+  uint64 max_steal_count = 18; // Max stolen by any worker
+  uint64 min_steal_count = 19; // Min stolen by any worker
+  uint64 total_steal_operations = 20; // Times workers stole tasks
+  uint64 max_steal_operations = 21; // Max steal operations by any worker
+  uint64 min_steal_operations = 22; // Min steal operations by any worker
+  uint64 num_remote_schedules = 23; // Tasks scheduled from outside runtime
+  uint64 total_local_schedule_count = 24; // Tasks scheduled from workers
+  uint64 max_local_schedule_count = 25; // Max local schedules by any worker
+  uint64 min_local_schedule_count = 26; // Min local schedules by any worker
+  uint64 total_overflow_count = 27; // Times workers saturated local queues
+  uint64 max_overflow_count = 28; // Max overflows by any worker
+  uint64 min_overflow_count = 29; // Min overflows by any worker
+  uint64 total_polls_count = 30; // Tasks polled across all workers
+  uint64 max_polls_count = 31; // Max polls by any worker
+  uint64 min_polls_count = 32; // Min polls by any worker
+  uint64 total_local_queue_depth = 33; // Tasks in workers' local queues
+  uint64 max_local_queue_depth = 34; // Max local queue depth by any worker
+  uint64 min_local_queue_depth = 35; // Min local queue depth by any worker
+  uint64 blocking_queue_depth = 36; // Tasks in blocking threadpool queue
+  uint64 blocking_threads_count = 37; // Additional blocking threads spawned
+  uint64 idle_blocking_threads_count = 38; // Idle blocking threads
+  uint64 budget_forced_yield_count = 39; // Times tasks forced yield by budget
+  uint64 io_driver_ready_count = 40; // Ready events from I/O driver
+
+  // Derived metrics
+  double busy_ratio = 41; // Ratio of busy time to elapsed time
+  double mean_polls_per_park = 42; // Ratio of polls to parks
+}
+
+// Complete tokio metrics including both runtime and task metrics
+message TokioMetrics {
+  TokioRuntimeMetrics runtime = 1;
+  TokioTaskMetrics task = 2;
+}
+
 // Server monitoring metrics
 message MonitoringMetrics {
   // Number of active connections
@@ -26,16 +122,18 @@ message MonitoringMetrics {
   int32 active_sessions = 10;
   // Database connections in pool
   int32 database_connections = 11;
-  // Redis connections
-  int32 redis_connections = 12;
   // RabbitMQ connections
   int32 rabbitmq_connections = 13;
+  // Tokio metrics (both runtime and task)
+  optional TokioMetrics tokio = 14;
 }
 
 // Request for monitoring metrics
 message GetMonitoringMetricsRequest {
   // If true, include system resource metrics (CPU, memory, disk)
   bool include_system_metrics = 1;
+  // Whether to include detailed Tokio metrics
+  bool include_tokio_metrics = 2;
 }
 
 // Response with monitoring metrics
@@ -45,17 +143,17 @@ message GetMonitoringMetricsResponse {
 
 // Request for historical metrics over time range
 message GetHistoricalMetricsRequest {
-  // Start timestamp (Unix seconds)
-  int64 start_time = 1;
-  // End timestamp (Unix seconds)
-  int64 end_time = 2;
-  // Metrics aggregation interval in seconds (e.g., 60 for per-minute)
-  int32 interval_seconds = 3;
+  // Start timestamp
+  google.protobuf.Timestamp start_time = 1;
+  // End timestamp
+  google.protobuf.Timestamp end_time = 2;
+  // Metrics aggregation interval
+  google.protobuf.Duration interval = 3;
 }
 
 // Historical data point
 message MetricDataPoint {
-  int64 timestamp = 1;
+  google.protobuf.Timestamp timestamp = 1;
   MonitoringMetrics metrics = 2;
 }
 

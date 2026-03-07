@@ -167,6 +167,13 @@
               >
               <el-button
                 size="small"
+                type="info"
+                icon="el-icon-user"
+                @click="openRoleDialog(scope.row)"
+                >{{ $t('roles') }}</el-button
+              >
+              <el-button
+                size="small"
                 type="danger"
                 icon="el-icon-delete"
                 @click="deleteUser(scope.row)"
@@ -217,12 +224,12 @@
         <h4 class="mb-2">{{ $t('currentRoles') }}: {{ selectedUser.userName }}</h4>
         <el-tag
           v-for="role in userRoles"
-          :key="role"
+          :key="role.id"
           closable
           @close="removeRole(role)"
           class="mr-2 mb-2"
         >
-          {{ role }}
+          {{ role.name }}
         </el-tag>
         <div class="mt-4">
           <el-select v-model="newRole" :placeholder="$t('selectRole')" style="width: 300px">
@@ -322,6 +329,9 @@ import type {
   ListUsersRequest,
   BanUserRequest,
   AssignServerRoleRequest,
+  RemoveServerRoleRequest,
+  ListServerRolesRequest,
+  ListUserServerRolesRequest,
 } from '@/api/service/server_manage/user_manage/v1/user_manage'
 
 // Reactive state
@@ -335,7 +345,7 @@ const selectedUser = ref<UserInfo | null>(null)
 const selectedUsers = ref<UserInfo[]>([])
 const batchAction = ref('')
 const batchLoading = ref(false)
-const newRole = ref('')
+const newRole = ref<bigint | ''>('')
 
 // Pagination
 const pagination = reactive({
@@ -371,11 +381,11 @@ const userStats = reactive({
 // Users list
 const users = ref<UserInfo[]>([])
 
-// Available roles (to be fetched from server)
-const availableRoles = ref<{ id: number; name: string }[]>([])
+// Available roles (fetched from server)
+const availableRoles = ref<{ id: bigint; name: string }[]>([])
 
-// User roles (to be fetched from server)
-const userRoles = ref<string[]>([])
+// User roles (fetched from server)
+const userRoles = ref<{ id: bigint; name: string }[]>([])
 
 // gRPC store
 const grpcStore = useGrpcStore()
@@ -591,6 +601,50 @@ const deleteUser = async (user: UserInfo) => {
   }
 }
 
+// Fetch all available server roles
+const fetchAvailableRoles = async () => {
+  try {
+    const request: ListServerRolesRequest = {}
+    const response = await grpcStore.serverManageConn.listServerRoles(request)
+    availableRoles.value = (response.response.roles || []).map((r) => ({
+      id: r.id,
+      name: r.name,
+    }))
+  } catch (error) {
+    console.error('Fetch available roles error:', error)
+  }
+}
+
+// Fetch user's current roles
+const fetchUserRoles = async (userId: bigint) => {
+  try {
+    const request: ListUserServerRolesRequest = { userId }
+    const response = await grpcStore.serverManageConn.listUserServerRoles(request)
+    const roleIds = response.response.roleIds || []
+
+    // Filter available roles to get user's roles
+    userRoles.value = availableRoles.value
+      .filter((r) => roleIds.includes(r.id))
+      .map((r) => ({ id: r.id, name: r.name }))
+  } catch (error) {
+    console.error('Fetch user roles error:', error)
+  }
+}
+
+// Open role management dialog
+const openRoleDialog = async (user: UserInfo) => {
+  selectedUser.value = user
+  roleDialogVisible.value = true
+
+  // Fetch available roles if not already loaded
+  if (availableRoles.value.length === 0) {
+    await fetchAvailableRoles()
+  }
+
+  // Fetch user's current roles
+  await fetchUserRoles(user.id)
+}
+
 const closeRoleDialog = () => {
   roleDialogVisible.value = false
   selectedUser.value = null
@@ -604,10 +658,13 @@ const assignRole = async () => {
   try {
     const request: AssignServerRoleRequest = {
       userId: selectedUser.value.id,
-      roleId: BigInt(newRole.value),
+      roleId: newRole.value,
     }
     await grpcStore.serverManageConn.assignServerRole(request)
     ElMessage.success('Role assigned successfully')
+
+    // Refresh user's roles
+    await fetchUserRoles(selectedUser.value.id)
     newRole.value = ''
   } catch (error: unknown) {
     console.error('Assign role error:', error)
@@ -615,17 +672,22 @@ const assignRole = async () => {
   }
 }
 
-const removeRole = async (role: string) => {
+const removeRole = async (role: { id: bigint; name: string }) => {
   if (!selectedUser.value) return
 
   try {
-    // TODO: Call RemoveServerRole RPC when implemented
-    // For now, update local UI state
-    userRoles.value = userRoles.value.filter((r) => r !== role)
-    ElMessage.success(`Role ${role} removed from local UI`)
+    const request: RemoveServerRoleRequest = {
+      userId: selectedUser.value.id,
+      roleId: role.id,
+    }
+    await grpcStore.serverManageConn.removeServerRole(request)
+    ElMessage.success(`Role ${role.name} removed successfully`)
+
+    // Update local state
+    userRoles.value = userRoles.value.filter((r) => r.id !== role.id)
   } catch (error) {
     console.error('Remove role error:', error)
-    ElMessage.error('Failed to remove role')
+    ElMessage.error('Failed to remove role: server API not available')
   }
 }
 
