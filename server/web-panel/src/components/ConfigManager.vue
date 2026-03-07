@@ -768,13 +768,34 @@ const saveConfig = async () => {
       })
 
       if (response.response.success) {
-        ElMessage.success('Configuration saved successfully')
+        // Check if restart is required
+        const requiresRestart = response.response.requiresRestart || false
+        const restartReasons = response.response.restartReasons || []
+
+        if (requiresRestart) {
+          // Show warning with restart reasons
+          const reasonsText =
+            restartReasons.length > 0
+              ? restartReasons.join('\n')
+              : 'Some changes require server restart to take effect.'
+
+          ElMessageBox.alert(reasonsText, 'Configuration Saved - Restart Required', {
+            confirmButtonText: 'OK',
+            type: 'warning',
+            dangerouslyUseHTMLString: false,
+          })
+        } else {
+          ElMessage.success('Configuration saved successfully')
+        }
+
         // Add to history
         history.value.unshift({
           time: new Date().toLocaleString(),
           user: 'admin',
           type: activeTab.value,
-          description: 'Configuration saved via gRPC',
+          description: requiresRestart
+            ? 'Configuration saved (restart required)'
+            : 'Configuration saved',
         })
       } else {
         ElMessage.error(`Failed to save configuration: ${response.response.message}`)

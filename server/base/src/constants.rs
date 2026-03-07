@@ -226,6 +226,10 @@ pub const fn default_http_run_migration() -> bool {
     false
 }
 
+pub fn default_patches_directory() -> String {
+    "./patches".to_string()
+}
+
 pub const fn default_enable_matrix() -> bool {
     false
 }

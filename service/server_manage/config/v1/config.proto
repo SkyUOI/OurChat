@@ -19,4 +19,8 @@ message SetConfigRequest {
 message SetConfigResponse {
   bool success = 1;
   string message = 2;
+  // Whether the server needs to restart for changes to take effect
+  bool requires_restart = 3;
+  // List of reasons explaining why restart is needed (e.g., specific fields that changed)
+  repeated string restart_reasons = 4;
 }

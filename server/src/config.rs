@@ -69,7 +69,9 @@ pub struct MainCfg {
     pub user_setting: ConfigSource<UserSetting>,
     #[path_convert]
     pub http_cfg: ConfigSource<HttpCfg>,
+    #[serde(default = "constants::default_clear_interval")]
     pub auto_clean_duration: croner::Cron,
+    #[serde(with = "humantime_serde")]
     pub files_save_time: Duration,
     pub user_files_limit: Size,
     pub friends_number_limit: u32,
@@ -78,14 +80,20 @@ pub struct MainCfg {
     pub enable_hierarchical_storage: bool,
     pub enable_file_deduplication: bool,
     pub enable_metrics: bool,
+    #[serde(with = "humantime_serde")]
     pub metrics_snapshot_interval: Duration,
     pub cache_max_size: Size,
+    #[serde(with = "humantime_serde")]
     pub verification_expire_time: Duration,
+    #[serde(with = "humantime_serde")]
     pub user_defined_status_expire_time: Duration,
+    #[serde(with = "humantime_serde")]
     pub log_clean_duration: Duration,
+    #[serde(with = "humantime_serde")]
     pub log_keep: Duration,
     pub single_instance: bool,
     pub leader_node: bool,
+    #[serde(with = "humantime_serde")]
     pub room_key_duration: Duration,
     pub unregister_policy: UnregisterPolicy,
     pub password_hash: PasswordHash,
@@ -96,8 +104,11 @@ pub struct MainCfg {
     pub require_email_verification: bool,
     pub default_session: Option<SessionID>,
     pub lock_account_after_failed_logins: u32,
+    #[serde(with = "humantime_serde")]
     pub lock_account_duration: Duration,
     pub initial_admin_ocid: Option<OCID>,
+    #[serde(default = "constants::default_patches_directory")]
+    pub patches_directory: String,
 
     #[serde(skip)]
     pub cmd_args: ParserCfg,
@@ -264,6 +275,8 @@ pub struct RawMainCfg {
     pub lock_account_duration: Duration,
     #[serde(default)]
     pub initial_admin_ocid: Option<OCID>,
+    #[serde(default = "constants::default_patches_directory")]
+    pub patches_directory: String,
 }
 
 impl<'de> Deserialize<'de> for MainCfg {
@@ -333,6 +346,7 @@ impl<'de> Deserialize<'de> for MainCfg {
             lock_account_after_failed_logins: raw.lock_account_after_failed_logins,
             lock_account_duration: raw.lock_account_duration,
             initial_admin_ocid: raw.initial_admin_ocid,
+            patches_directory: raw.patches_directory,
             cmd_args: ParserCfg::default(),
         })
     }
@@ -369,6 +383,10 @@ impl MainCfg {
         cfg.cmd_args.config = configs_list;
         // convert the path relevant to the config file to a path relevant to the directory
         cfg.convert_to_abs_path(&full_basepath)?;
+
+        // Load and apply patches from patches_directory
+        cfg.load_and_apply_patches()?;
+
         // Validate all file paths exist
         cfg.validate_all_paths()?;
         Ok(cfg)
@@ -380,6 +398,94 @@ impl MainCfg {
 
     pub fn get_file_path_from_key(&self, key: &str) -> PathBuf {
         self.files_storage_path.join(key)
+    }
+
+    /// Load and apply patches from the patches_directory.
+    /// Patches are JSON files with names like "config_patch.1234567890.json"
+    /// They are applied in timestamp order (oldest to newest).
+    fn load_and_apply_patches(&mut self) -> anyhow::Result<()> {
+        let patches_dir = PathBuf::from(&self.patches_directory);
+
+        // If patches directory doesn't exist, no patches to apply
+        if !patches_dir.exists() {
+            return Ok(());
+        }
+
+        // Create patches directory if it doesn't exist (for future patches)
+        if !patches_dir.is_dir() {
+            bail!(
+                "patches_directory '{}' exists but is not a directory",
+                self.patches_directory
+            );
+        }
+
+        // Read all patch files matching the pattern config_patch.*.json
+        let mut patch_files: Vec<(PathBuf, u64)> = Vec::new();
+        let entries = std::fs::read_dir(&patches_dir).with_context(|| {
+            format!(
+                "Failed to read patches directory: {}",
+                patches_dir.display()
+            )
+        })?;
+
+        for entry in entries {
+            let entry = entry?;
+            let path = entry.path();
+
+            // Only process regular files
+            if !path.is_file() {
+                continue;
+            }
+
+            let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+
+            // Check if filename matches pattern "config_patch.{timestamp}.json"
+            if let Some(timestamp_str) = file_name
+                .strip_prefix("config_patch.")
+                .and_then(|s| s.strip_suffix(".json"))
+            {
+                if let Ok(timestamp) = timestamp_str.parse::<u64>() {
+                    patch_files.push((path, timestamp));
+                }
+            }
+        }
+
+        // Sort by timestamp (oldest first)
+        patch_files.sort_by_key(|(_, ts)| *ts);
+
+        // Apply each patch in order
+        for (patch_path, timestamp) in patch_files {
+            tracing::info!("Applying config patch from: {}", patch_path.display());
+
+            let patch_content = std::fs::read_to_string(&patch_path)
+                .with_context(|| format!("Failed to read patch file: {}", patch_path.display()))?;
+
+            let patch_json: serde_json::Value =
+                serde_json::from_str(&patch_content).with_context(|| {
+                    format!(
+                        "Failed to parse patch file as JSON: {}",
+                        patch_path.display()
+                    )
+                })?;
+
+            // Convert current config to JSON
+            let current_json =
+                serde_json::to_value(&*self).context("Failed to serialize current config")?;
+
+            // Merge patch with current config
+            let merged_json = merge_json(current_json, patch_json);
+
+            // Deserialize merged config back to MainCfg
+            *self = serde_json::from_value(merged_json)
+                .context("Failed to deserialize merged config")?;
+
+            tracing::info!(
+                "Successfully applied config patch with timestamp {}",
+                timestamp
+            );
+        }
+
+        Ok(())
     }
 
     /// Validates that all configured file paths exist
@@ -714,5 +820,325 @@ mod tests {
             ConfigSource::Inline(_) => {}
             ConfigSource::Path(_) => panic!("Expected inline config for rabbitmq, got path"),
         }
+    }
+
+    #[test]
+    fn test_patches_directory_default_value() {
+        let config = minimal_valid_config();
+        let result: Result<MainCfg, _> = serde_json::from_value(config);
+        assert!(result.is_ok());
+        let cfg = result.unwrap();
+        assert_eq!(cfg.patches_directory, "./patches");
+    }
+
+    #[test]
+    fn test_patches_directory_custom_value() {
+        let mut config = minimal_valid_config();
+        config["patches_directory"] = json!("/custom/patches/path");
+        let result: Result<MainCfg, _> = serde_json::from_value(config);
+        assert!(result.is_ok());
+        let cfg = result.unwrap();
+        assert_eq!(cfg.patches_directory, "/custom/patches/path");
+    }
+
+    #[test]
+    fn test_load_and_apply_patches_no_patches_directory() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let config_json = minimal_valid_config();
+        let mut cfg: MainCfg = serde_json::from_value(config_json).unwrap();
+
+        // Set patches directory to a non-existent path
+        cfg.patches_directory = temp_dir
+            .path()
+            .join("non_existent")
+            .to_str()
+            .unwrap()
+            .to_string();
+
+        // Should not fail when patches directory doesn't exist
+        let result = cfg.load_and_apply_patches();
+        assert!(
+            result.is_ok(),
+            "Should succeed when patches directory doesn't exist"
+        );
+    }
+
+    #[test]
+    fn test_load_and_apply_patches_empty_directory() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let config_json = minimal_valid_config();
+        let mut cfg: MainCfg = serde_json::from_value(config_json).unwrap();
+
+        // Set patches directory to existing empty directory
+        cfg.patches_directory = temp_dir.path().to_str().unwrap().to_string();
+
+        // Should not fail with empty patches directory
+        let result = cfg.load_and_apply_patches();
+        assert!(
+            result.is_ok(),
+            "Should succeed with empty patches directory"
+        );
+    }
+
+    #[test]
+    fn test_load_and_apply_patches_single_patch() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let config_json = minimal_valid_config();
+        let mut cfg: MainCfg = serde_json::from_value(config_json).unwrap();
+
+        // Set patches directory
+        let patches_dir = temp_dir.path().join("patches");
+        std::fs::create_dir_all(&patches_dir).unwrap();
+        cfg.patches_directory = patches_dir.to_str().unwrap().to_string();
+
+        // Create a patch file that changes friends_number_limit
+        let patch_path = patches_dir.join("config_patch.1234567890.json");
+        let patch = json!({
+            "friends_number_limit": 250
+        });
+        std::fs::write(&patch_path, serde_json::to_string_pretty(&patch).unwrap()).unwrap();
+
+        // Load and apply patches
+        let result = cfg.load_and_apply_patches();
+        if let Err(e) = &result {
+            eprintln!("Error loading patches: {}", e);
+            eprintln!("Error chain: {:?}", e.chain().collect::<Vec<_>>());
+        }
+        assert!(
+            result.is_ok(),
+            "Should successfully apply patch: {:?}",
+            result
+        );
+
+        // Verify the patch was applied
+        assert_eq!(
+            cfg.friends_number_limit, 250,
+            "friends_number_limit should be updated by patch"
+        );
+    }
+
+    #[test]
+    fn test_load_and_apply_patches_multiple_patches_ordered() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let config_json = minimal_valid_config();
+        let mut cfg: MainCfg = serde_json::from_value(config_json).unwrap();
+
+        // Set patches directory
+        let patches_dir = temp_dir.path().join("patches");
+        std::fs::create_dir_all(&patches_dir).unwrap();
+        cfg.patches_directory = patches_dir.to_str().unwrap().to_string();
+
+        // Create multiple patch files with different timestamps
+        // Note: Files are created out of timestamp order to test sorting
+        let patch2_path = patches_dir.join("config_patch.1234567892.json");
+        let patch2 = json!({
+            "friends_number_limit": 300
+        });
+        std::fs::write(&patch2_path, serde_json::to_string_pretty(&patch2).unwrap()).unwrap();
+
+        let patch1_path = patches_dir.join("config_patch.1234567891.json");
+        let patch1 = json!({
+            "friends_number_limit": 200
+        });
+        std::fs::write(&patch1_path, serde_json::to_string_pretty(&patch1).unwrap()).unwrap();
+
+        let patch3_path = patches_dir.join("config_patch.1234567893.json");
+        let patch3 = json!({
+            "friends_number_limit": 400
+        });
+        std::fs::write(&patch3_path, serde_json::to_string_pretty(&patch3).unwrap()).unwrap();
+
+        // Load and apply patches
+        let result = cfg.load_and_apply_patches();
+        assert!(result.is_ok(), "Should successfully apply multiple patches");
+
+        // Verify patches were applied in order (oldest to newest)
+        // The final value should be from patch3 (newest timestamp)
+        assert_eq!(
+            cfg.friends_number_limit, 400,
+            "Should apply newest patch last"
+        );
+    }
+
+    #[test]
+    fn test_load_and_apply_patches_ignores_non_matching_files() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let config_json = minimal_valid_config();
+        let mut cfg: MainCfg = serde_json::from_value(config_json).unwrap();
+
+        // Set patches directory
+        let patches_dir = temp_dir.path().join("patches");
+        std::fs::create_dir_all(&patches_dir).unwrap();
+        cfg.patches_directory = patches_dir.to_str().unwrap().to_string();
+
+        // Create files that don't match the pattern
+        std::fs::write(patches_dir.join("other_file.txt"), "not a patch").unwrap();
+        std::fs::write(patches_dir.join("config.json"), "{\"key\": \"value\"}").unwrap();
+        std::fs::write(patches_dir.join(".hidden_file"), "hidden").unwrap();
+
+        // Create a subdirectory
+        std::fs::create_dir(patches_dir.join("subdir")).unwrap();
+
+        // Create a valid patch file
+        let patch_path = patches_dir.join("config_patch.1234567890.json");
+        let patch = json!({
+            "friends_number_limit": 150
+        });
+        std::fs::write(&patch_path, serde_json::to_string_pretty(&patch).unwrap()).unwrap();
+
+        // Load and apply patches
+        let result = cfg.load_and_apply_patches();
+        assert!(result.is_ok(), "Should ignore non-matching files");
+
+        // Verify only the valid patch was applied
+        assert_eq!(cfg.friends_number_limit, 150);
+    }
+
+    #[test]
+    fn test_load_and_apply_patches_invalid_json_fails() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let config_json = minimal_valid_config();
+        let mut cfg: MainCfg = serde_json::from_value(config_json).unwrap();
+
+        // Set patches directory
+        let patches_dir = temp_dir.path().join("patches");
+        std::fs::create_dir_all(&patches_dir).unwrap();
+        cfg.patches_directory = patches_dir.to_str().unwrap().to_string();
+
+        // Create a patch file with invalid JSON
+        let patch_path = patches_dir.join("config_patch.1234567890.json");
+        std::fs::write(&patch_path, "{ invalid json }").unwrap();
+
+        // Load and apply patches should fail
+        let result = cfg.load_and_apply_patches();
+        assert!(result.is_err(), "Should fail on invalid JSON patch");
+
+        let err_msg = result.unwrap_err().to_string();
+        assert!(
+            err_msg.contains("Failed to parse patch file as JSON") || err_msg.contains("expected"),
+            "Error should mention JSON parsing failure, got: {}",
+            err_msg
+        );
+    }
+
+    #[test]
+    fn test_load_and_apply_patches_merges_nested_values() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let config_json = minimal_valid_config();
+        let mut cfg: MainCfg = serde_json::from_value(config_json).unwrap();
+
+        // Set patches directory
+        let patches_dir = temp_dir.path().join("patches");
+        std::fs::create_dir_all(&patches_dir).unwrap();
+        cfg.patches_directory = patches_dir.to_str().unwrap().to_string();
+
+        // Create a patch that changes nested db config
+        let original_page_size = cfg.db.fetch_msg_page_size;
+        let patch_path = patches_dir.join("config_patch.1234567890.json");
+        let patch = json!({
+            "db": {
+                "fetch_msg_page_size": 100
+            }
+        });
+        std::fs::write(&patch_path, serde_json::to_string_pretty(&patch).unwrap()).unwrap();
+
+        // Load and apply patches
+        let result = cfg.load_and_apply_patches();
+        assert!(result.is_ok(), "Should successfully apply nested patch");
+
+        // Verify the nested value was updated
+        assert_eq!(
+            cfg.db.fetch_msg_page_size, 100,
+            "Nested db config should be updated"
+        );
+        assert_ne!(
+            cfg.db.fetch_msg_page_size, original_page_size,
+            "Value should have changed"
+        );
+    }
+
+    #[test]
+    fn test_load_and_apply_patches_directory_not_dir_fails() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let config_json = minimal_valid_config();
+        let mut cfg: MainCfg = serde_json::from_value(config_json).unwrap();
+
+        // Create a file instead of a directory
+        let file_path = temp_dir.path().join("not_a_directory");
+        std::fs::write(&file_path, "I am a file, not a directory").unwrap();
+
+        // Set patches directory to point to a file
+        cfg.patches_directory = file_path.to_str().unwrap().to_string();
+
+        // Load and apply patches should fail
+        let result = cfg.load_and_apply_patches();
+        assert!(
+            result.is_err(),
+            "Should fail when patches_directory is not a directory"
+        );
+
+        let err_msg = result.unwrap_err().to_string();
+        assert!(
+            err_msg.contains("not a directory"),
+            "Error should mention not a directory, got: {}",
+            err_msg
+        );
+    }
+
+    #[test]
+    fn test_serialize_and_deserialize_main_cfg() {
+        // Test that MainCfg can be serialized and deserialized correctly
+        let config_json = minimal_valid_config();
+        let cfg: MainCfg = serde_json::from_value(config_json.clone()).unwrap();
+
+        // Serialize to JSON
+        let serialized = serde_json::to_value(&cfg).unwrap();
+
+        // The serialized JSON should have the same friends_number_limit
+        assert_eq!(serialized["friends_number_limit"], 100);
+
+        // Should be able to deserialize back
+        let deserialized: MainCfg = serde_json::from_value(serialized).unwrap();
+        assert_eq!(deserialized.friends_number_limit, 100);
+    }
+
+    #[test]
+    fn test_merge_json_preserves_all_fields() {
+        // Test that merge_json preserves all fields from the original
+        use utils::merge_json;
+
+        let config_json = minimal_valid_config();
+        let cfg: MainCfg = serde_json::from_value(config_json).unwrap();
+        let original_json = serde_json::to_value(&cfg).unwrap();
+
+        // Create a patch that only changes friends_number_limit
+        let patch = json!({
+            "friends_number_limit": 250
+        });
+
+        // Merge
+        let merged_json = merge_json(original_json, patch);
+
+        // Verify the merged JSON has all required fields
+        assert!(
+            merged_json.get("redis_cfg").is_some(),
+            "redis_cfg should exist after merge"
+        );
+        assert!(
+            merged_json.get("db_cfg").is_some(),
+            "db_cfg should exist after merge"
+        );
+        assert!(
+            merged_json.get("friends_number_limit").is_some(),
+            "friends_number_limit should exist after merge"
+        );
+
+        // Verify the value was updated
+        assert_eq!(merged_json["friends_number_limit"], 250);
+
+        // Should be able to deserialize the merged config
+        let merged_cfg: MainCfg = serde_json::from_value(merged_json)
+            .expect("Should be able to deserialize merged config");
+        assert_eq!(merged_cfg.friends_number_limit, 250);
     }
 }
