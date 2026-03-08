@@ -727,7 +727,7 @@ class _SessionListState extends State<SessionList> {
           matchSessions.add(session);
         }
       } catch (e) {
-        logger.e(e);
+        // do nothing
       }
     }
 
