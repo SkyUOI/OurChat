@@ -191,8 +191,8 @@ class _MainAppState extends State<MainApp> with WindowListener, TrayListener {
                 }
 
                 inited = true;
-                if (ourChatAppState.config["recent_account"] != null &&
-                    ourChatAppState.config["recent_password"] != null) {
+                if (ourChatAppState.config["recent_account"] != "" &&
+                    ourChatAppState.config["recent_password"] != "") {
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     Navigator.push(context,
                         MaterialPageRoute(builder: (context) => AutoLogin()));
