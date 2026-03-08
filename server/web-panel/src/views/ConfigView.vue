@@ -11,6 +11,14 @@ import ConfigManager from '@/components/ConfigManager.vue'
 
 <style scoped>
 .config-view {
-  padding: 20px;
+  padding: 24px;
+  animation: fadeInUp 0.4s ease-out;
+}
+
+.config-view h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 24px;
 }
 </style>

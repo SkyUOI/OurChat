@@ -210,26 +210,51 @@ onMounted(() => {
 
 <style scoped>
 .settings-view {
-  padding: 20px;
+  padding: 24px;
+  animation: fadeInUp 0.4s ease-out;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 24px;
+}
+
+.header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.el-card {
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease-out;
+}
+
+.el-card:hover {
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+}
+
+.el-card >>> .el-card__header {
+  padding: 20px;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .card-header {
-  font-weight: bold;
-  font-size: 16px;
+  font-weight: 600;
+  font-size: 18px;
+  color: #334155;
 }
 
 .mt-4 {
-  margin-top: 16px;
+  margin-top: 20px;
 }
 
 .text-gray-500 {
-  color: #909399;
+  color: #94a3b8;
 }
 
 .text-sm {

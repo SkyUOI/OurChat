@@ -1,15 +1,19 @@
 <template>
-  <div
-    class="flex justify-center items-center min-h-screen bg-linear-to-br from-[#f5f7fa] to-[#c3cfe2] p-5"
-  >
-    <el-card class="w-full max-w-md rounded-lg shadow-lg">
-      <div class="text-center mb-6">
-        <!-- <img src="../assets/logo.png" alt="Logo" class="w-20 h-20 mx-auto mb-4" /> -->
-        <h2 class="text-2xl font-bold">{{ $t('adminLogin') }}</h2>
+  <div class="login-container">
+    <div class="background-decoration">
+      <div class="circle circle-1"></div>
+      <div class="circle circle-2"></div>
+      <div class="circle circle-3"></div>
+    </div>
+
+    <el-card class="login-card card-hover">
+      <div class="text-center mb-8 logo-animation">
+        <h2 class="text-3xl font-bold gradient-text">{{ $t('serverControlPanel') }}</h2>
+        <p class="text-slate-500 mt-2">{{ $t('adminLogin') }}</p>
       </div>
 
       <!-- Connection status indicator -->
-      <div v-if="connectionStatus" class="mb-4 text-center">
+      <div v-if="connectionStatus" class="mb-4">
         <el-alert
           :title="connectionStatus === 'success' ? $t('connectionSuccess') : $t('connectionFailed')"
           :type="connectionStatus === 'success' ? 'success' : 'error'"
@@ -29,6 +33,7 @@
             v-model="loginForm.username"
             :placeholder="$t('usernamePlaceholder')"
             prefix-icon="el-icon-user"
+            size="large"
           ></el-input>
         </el-form-item>
 
@@ -39,6 +44,7 @@
             :placeholder="$t('passwordPlaceholder')"
             prefix-icon="el-icon-lock"
             show-password
+            size="large"
           ></el-input>
         </el-form-item>
 
@@ -46,9 +52,10 @@
           <el-button
             type="primary"
             native-type="submit"
-            class="w-full mt-3"
+            class="w-full mt-3 login-btn"
             :loading="loading"
             :disabled="connectionStatus === 'failed'"
+            size="large"
           >
             {{ $t('login') }}
           </el-button>
@@ -141,3 +148,120 @@ const handleLogin = async () => {
   }
 }
 </script>
+
+<style scoped>
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8fafc 0%, #dbeafe 50%, #f3e8ff 100%);
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.background-decoration .circle {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.15;
+  animation: float 20s infinite ease-in-out;
+}
+
+.circle-1 {
+  width: 400px;
+  height: 400px;
+  background: linear-gradient(135deg, #3b82f6, #60a5fa);
+  top: -100px;
+  left: -100px;
+  animation-delay: 0s;
+}
+
+.circle-2 {
+  width: 320px;
+  height: 320px;
+  background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+  top: 50%;
+  right: -80px;
+  animation-delay: 5s;
+}
+
+.circle-3 {
+  width: 240px;
+  height: 240px;
+  background: linear-gradient(135deg, #3b82f6, #60a5fa);
+  bottom: 40px;
+  left: 33%;
+  animation-delay: 10s;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(50px, -50px) scale(1.1);
+  }
+  50% {
+    transform: translate(-30px, 30px) scale(0.9);
+  }
+  75% {
+    transform: translate(40px, 20px) scale(1.05);
+  }
+}
+
+.login-card {
+  width: 100%;
+  max-width: 420px;
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  border: none;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  position: relative;
+  z-index: 10;
+  padding: 8px;
+}
+
+.logo-animation {
+  animation: fadeInDown 0.6s ease-out;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.gradient-text {
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.login-btn {
+  height: 44px;
+  font-size: 15px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  background: linear-gradient(90deg, #3b82f6, #6366f1);
+  border: none;
+}
+
+.login-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35);
+}
+
+.login-btn:active {
+  transform: translateY(0);
+}
+</style>

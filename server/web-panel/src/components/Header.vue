@@ -246,10 +246,13 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
-  height: 60px;
-  background-color: #fff;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  padding: 0 24px;
+  height: 64px;
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.6);
   z-index: 99;
 }
 
@@ -260,25 +263,53 @@ export default {
 
 .collapse-icon {
   font-size: 20px;
-  margin-right: 20px;
+  margin-right: 24px;
   cursor: pointer;
-  color: #606266;
+  color: #64748b;
+  transition: all 0.2s ease;
+}
+
+.collapse-icon:hover {
+  color: #3b82f6;
+  transform: scale(1.1);
 }
 
 .right {
   display: flex;
   align-items: center;
+  gap: 12px;
 }
 
 .user-info {
   display: flex;
   align-items: center;
   cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.user-info:hover {
+  background-color: rgba(241, 245, 249, 0.8);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .username {
-  margin-left: 8px;
+  margin-left: 12px;
   font-size: 14px;
-  color: #606266;
+  font-weight: 500;
+  color: #334155;
+}
+
+.language-switch {
+  color: #64748b;
+  transition: color 0.2s ease;
+  padding: 8px 12px;
+  border-radius: 6px;
+}
+
+.language-switch:hover {
+  color: #3b82f6;
+  background-color: rgba(241, 245, 249, 0.8);
 }
 </style>

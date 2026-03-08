@@ -170,38 +170,72 @@ onMounted(() => {
 
 <style scoped>
 .announcements-view {
-  padding: 20px;
+  padding: 24px;
+  animation: fadeInUp 0.4s ease-out;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 24px;
+}
+
+.header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.el-card {
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease-out;
+}
+
+.el-card:hover {
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+}
+
+.el-card >>> .el-card__header {
+  padding: 20px;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .announcement-item {
-  margin-bottom: 12px;
+  margin-bottom: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  background: linear-gradient(135deg, #fafafa, #f5f5f5);
+}
+
+.announcement-item:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .announcement-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .announcement-title {
-  font-weight: bold;
+  font-weight: 700;
   font-size: 16px;
+  color: #1e293b;
 }
 
 .announcement-time {
-  color: #909399;
-  font-size: 12px;
+  color: #94a3b8;
+  font-size: 13px;
 }
 
 .announcement-content {
-  color: #606266;
+  color: #475569;
   white-space: pre-wrap;
+  line-height: 1.6;
 }
 </style>

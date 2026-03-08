@@ -9,6 +9,9 @@ import en from './locales/en.json'
 import zh from './locales/zh.json'
 import { createPinia } from 'pinia'
 
+// Import styles
+import './assets/main.css'
+
 // Create i18n instance
 const i18n = createI18n({
   legacy: false,

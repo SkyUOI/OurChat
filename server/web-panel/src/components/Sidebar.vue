@@ -43,47 +43,106 @@ export default {
 .sidebar {
   width: 250px;
   height: 100%;
-  background-color: #2c3e50;
-  color: #ecf0f1;
-  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  color: #e2e8f0;
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
   z-index: 100;
+  border-right: 1px solid rgba(148, 163, 184, 0.1);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.sidebar.collapsed {
+  width: 64px;
 }
 
 .logo {
-  padding: 20px;
+  padding: 24px;
   text-align: center;
-  border-bottom: 1px solid #34495e;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+  transition: all 0.3s ease;
+}
+
+.logo h2 {
+  font-size: 18px;
+  font-weight: 700;
+  background: linear-gradient(90deg, #60a5fa, #a78bfa, #a78bfa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  background-size: 200% 200%;
+  animation: gradientShift 3s ease infinite;
 }
 
 .menu {
   list-style: none;
-  padding: 0;
+  padding: 16px 0;
   margin: 0;
 }
 
 .menu li {
-  border-bottom: 1px solid #34495e;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+}
+
+.menu li:last-child {
+  border-bottom: none;
 }
 
 .menu li a {
   display: flex;
   align-items: center;
-  padding: 15px 20px;
-  color: #ecf0f1;
+  padding: 14px 24px;
+  color: #cbd5e1;
   text-decoration: none;
-  transition: background 0.3s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.menu li a::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, #3b82f6, #8b5cf6);
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
 }
 
 .menu li a:hover {
-  background-color: #34495e;
+  background-color: rgba(51, 65, 85, 0.5);
+  color: #f1f5f9;
+  padding-left: 32px;
+}
+
+.menu li a:hover::before {
+  transform: translateX(0);
+}
+
+.menu li a.router-link-active {
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.15), rgba(139, 92, 246, 0.15));
+  color: #f1f5f9;
+  box-shadow: inset 0 0 20px rgba(59, 130, 246, 0.1);
+}
+
+.menu li a.router-link-active::before {
+  transform: translateX(0);
 }
 
 .menu li a i {
-  margin-right: 10px;
+  margin-right: 12px;
   font-size: 18px;
+  transition: transform 0.3s ease;
+}
+
+.menu li a:hover i {
+  transform: scale(1.1);
 }
 
 .menu li a span {
-  font-size: 16px;
+  font-size: 14px;
+  font-weight: 500;
 }
 </style>

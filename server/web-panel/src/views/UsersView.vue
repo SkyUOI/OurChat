@@ -847,31 +847,42 @@ onMounted(() => {
 
 <style scoped>
 .users-view {
-  padding: 20px;
+  padding: 24px;
+  animation: fadeInUp 0.4s ease-out;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+}
+
+.header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
 }
 
 .actions {
   display: flex;
-  gap: 10px;
+  gap: 12px;
 }
 
 .search-panel {
-  background-color: #f9fafb;
-  border-radius: 8px;
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  padding: 20px;
+  margin-bottom: 24px;
 }
 
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(1, 1fr);
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: 20px;
+  margin-bottom: 32px;
 }
 
 @media (min-width: 768px) {
@@ -880,10 +891,32 @@ onMounted(() => {
   }
 }
 
+.el-card {
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease-out;
+}
+
+.el-card:hover {
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+}
+
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
+}
+
+.card-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #334155;
+  margin: 0;
+}
+
+.el-table {
+  border-radius: 12px;
+  overflow: hidden;
 }
 </style>

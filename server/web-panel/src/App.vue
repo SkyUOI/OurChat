@@ -10,7 +10,11 @@ import Sidebar from '@/components/Sidebar.vue'
     <div class="main-container">
       <Header />
       <div class="content">
-        <RouterView />
+        <router-view v-slot="{ Component }">
+          <transition name="page" mode="out-in">
+            <component :is="Component" />
+          </transition>
+        </router-view>
       </div>
     </div>
   </div>
@@ -20,7 +24,7 @@ import Sidebar from '@/components/Sidebar.vue'
 .app-container {
   display: flex;
   height: 100vh;
-  background-color: #f5f7fa;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%);
 }
 
 .main-container {
@@ -31,7 +35,7 @@ import Sidebar from '@/components/Sidebar.vue'
 }
 
 .content {
-  padding: 20px;
+  padding: 24px;
   overflow-y: auto;
   flex: 1;
 }

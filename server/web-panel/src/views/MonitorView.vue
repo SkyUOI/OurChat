@@ -426,26 +426,33 @@ onUnmounted(() => {
 
 <style scoped>
 .monitor-view {
-  padding: 20px;
+  padding: 24px;
+  animation: fadeInUp 0.4s ease-out;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+}
+
+.header h1 {
+  color: #1e293b;
+  font-size: 28px;
 }
 
 .actions {
   display: flex;
   align-items: center;
+  gap: 12px;
 }
 
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 20px;
-  margin-bottom: 30px;
+  margin-bottom: 32px;
 }
 
 @media (max-width: 1200px) {
@@ -461,46 +468,53 @@ onUnmounted(() => {
 }
 
 .metric-card {
-  transition: transform 0.2s;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease-out;
+  overflow: hidden;
 }
 
 .metric-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
 }
 
 .stat-item {
   display: flex;
   align-items: center;
+  padding: 8px;
 }
 
 .icon {
-  width: 50px;
-  height: 50px;
-  border-radius: 8px;
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 15px;
+  margin-right: 16px;
   color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .info .value {
   font-size: 24px;
-  font-weight: bold;
-  color: #303133;
+  font-weight: 700;
+  color: #1e293b;
 }
 
 .info .title {
-  font-size: 14px;
-  color: #909399;
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
   margin-top: 2px;
 }
 
 .charts-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  margin-bottom: 30px;
+  gap: 24px;
+  margin-bottom: 32px;
 }
 
 @media (max-width: 768px) {
@@ -510,27 +524,39 @@ onUnmounted(() => {
 }
 
 .chart-card {
-  height: 350px;
+  height: 360px;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
+  margin-bottom: 16px;
 }
 
 .card-header h3 {
   margin: 0;
   font-size: 16px;
-  color: #303133;
+  font-weight: 600;
+  color: #334155;
 }
 
 .chart-container {
-  height: calc(100% - 40px);
+  height: calc(100% - 48px);
 }
 
 .detailed-metrics {
-  margin-bottom: 30px;
+  margin-bottom: 24px;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+}
+
+.el-table {
+  border-radius: 12px;
+  overflow: hidden;
 }
 </style>
