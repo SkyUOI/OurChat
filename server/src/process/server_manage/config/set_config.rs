@@ -116,23 +116,19 @@ fn find_changed_fields(
                         changed.push(full_path.clone());
                         changed.extend(collect_field_paths(new_val, &full_path));
                     }
-                    Some(_) => {
+                    Some(old_val) => {
                         // No change, but check nested fields
-                        changed.extend(find_changed_fields(
-                            old_map.get(key).unwrap(),
-                            new_val,
-                            &full_path,
-                        ));
+                        changed.extend(find_changed_fields(old_val, new_val, &full_path));
                     }
                 }
             }
         }
         (serde_json::Value::Array(old_arr), serde_json::Value::Array(new_arr)) => {
             for (idx, new_val) in new_arr.iter().enumerate() {
-                if let Some(old_val) = old_arr.get(idx) {
-                    if old_val != new_val {
-                        changed.extend(find_changed_fields(old_val, new_val, prefix));
-                    }
+                if let Some(old_val) = old_arr.get(idx)
+                    && old_val != new_val
+                {
+                    changed.extend(find_changed_fields(old_val, new_val, prefix));
                 }
             }
         }

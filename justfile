@@ -11,6 +11,9 @@ merge_and_push:
 rsfmt:
     @cargo fmt || echo "rust is not installed. Ignored"
 
+rscheck:
+    @cargo clippy || echo "rust is not installed. Ignored"
+
 # Format protobuf files
 buffmt:
     @buf format --write || echo "buf is not installed. Ignored"
@@ -31,4 +34,4 @@ typos:
     @typos|| echo "typos checker is not installed. Ignored"
 
 # Format all code - run as pre-commit
-pre-commit: typos rsfmt buffmt pyfmt dartfmt webfmt
+pre-commit: typos rsfmt buffmt pyfmt dartfmt webfmt rscheck

@@ -443,10 +443,9 @@ impl MainCfg {
             if let Some(timestamp_str) = file_name
                 .strip_prefix("config_patch.")
                 .and_then(|s| s.strip_suffix(".json"))
+                && let Ok(timestamp) = timestamp_str.parse::<u64>()
             {
-                if let Ok(timestamp) = timestamp_str.parse::<u64>() {
-                    patch_files.push((path, timestamp));
-                }
+                patch_files.push((path, timestamp));
             }
         }
 
