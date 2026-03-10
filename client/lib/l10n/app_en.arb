@@ -97,9 +97,9 @@
     "@username": {
         "description": "username"
     },
-    "serverAddress": "Server Address",
-    "@serverAddress": {
-        "description": "text for server address in setting"
+    "address": "Address",
+    "@address": {
+        "description": "text for address in setting"
     },
     "port": "Port",
     "@port": {
@@ -245,9 +245,9 @@
     "@userInfo": {
         "description": "User Info"
     },
-    "tlsEncryption": "TLS Encryption Status:",
+    "tlsEncryption": "TLS",
     "@tlsEncryption": {
-        "description": "TLS Encryption Status:"
+        "description": "TLS"
     },
     "tlsEnabled": "Enabled",
     "@tlsEnabled": {
