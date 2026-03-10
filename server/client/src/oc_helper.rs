@@ -42,15 +42,15 @@ pub struct Clients {
     pub basic: BasicServiceClient<Channel>,
 }
 
-struct FakeManager {
-    dup_name: HashSet<String>,
-    dup_email: HashSet<String>,
-    name_faker: Name<EN>,
-    email_faker: FreeEmail<EN>,
+pub struct FakeManager {
+    pub dup_name: HashSet<String>,
+    pub dup_email: HashSet<String>,
+    pub name_faker: Name<EN>,
+    pub email_faker: FreeEmail<EN>,
 }
 
 impl FakeManager {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             dup_name: HashSet::new(),
             name_faker: en::Name(),
@@ -59,7 +59,7 @@ impl FakeManager {
         }
     }
 
-    fn generate_unique_name(&mut self) -> String {
+    pub fn generate_unique_name(&mut self) -> String {
         loop {
             let name: String = self.name_faker.fake();
             if !self.dup_name.contains(&name) {
@@ -69,7 +69,7 @@ impl FakeManager {
         }
     }
 
-    fn generate_unique_email(&mut self) -> String {
+    pub fn generate_unique_email(&mut self) -> String {
         loop {
             let email: String = self.email_faker.fake();
             if !self.dup_email.contains(&email) {
@@ -80,7 +80,13 @@ impl FakeManager {
     }
 }
 
-static FAKE_MANAGER: LazyLock<Mutex<FakeManager>> =
+impl Default for FakeManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+pub static FAKE_MANAGER: LazyLock<Mutex<FakeManager>> =
     LazyLock::new(|| Mutex::new(FakeManager::new()));
 
 pub struct TestSession {

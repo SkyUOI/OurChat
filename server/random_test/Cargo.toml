@@ -1,0 +1,34 @@
+[package]
+name = "random_test"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+tokio.workspace = true
+client = { path = "../client" }
+parking_lot.workspace = true
+mimalloc.workspace = true
+dashmap.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+pb = { path = "../pb" }
+size.workspace = true
+base = { path = "../base" }
+dotenvy.workspace = true
+rand.workspace = true
+bytes.workspace = true
+migration = { path = "../migration" }
+comfy-table = "7"
+derive = { path = "../derive" }
+ctor.workspace = true
+tonic.workspace = true
+humantime.workspace = true
+humantime-serde.workspace = true
+
+# Additional dependencies for random testing
+statrs = "0.18.0"
+serde_json.workspace = true
+chrono.workspace = true
+hdrhistogram = "7.5"
+serde.workspace = true
+fake.workspace = true

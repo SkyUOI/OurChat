@@ -6,6 +6,7 @@ members = [
     "server/base",
     "server/client",
     "server/stress_test",
+    "server/random_test",
     "server/entities",
     "server/pb",
     "server/utils",
@@ -166,7 +167,7 @@ default-features = false
 features = ["proc_macro"]
 
 [workspace.dependencies.fake]
-version = "4"
+version = "5"
 default-features = false
 
 [workspace.dependencies.walkdir]

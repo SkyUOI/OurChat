@@ -133,9 +133,9 @@ impl ClientCore {
 
 #[derive(Debug, serde::Deserialize, Clone)]
 pub struct ClientCoreConfig {
-    ip: String,
-    port: u16,
-    enable_ssl: Option<bool>,
+    pub ip: String,
+    pub port: u16,
+    pub enable_ssl: Option<bool>,
 }
 
 impl TestApp {

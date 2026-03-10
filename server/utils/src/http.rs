@@ -17,6 +17,8 @@ pub async fn test_and_get_http_status(url_without_scheme: impl AsRef<str>) -> Re
     let final_url = response.url();
     if final_url.scheme() == "https" {
         return Ok(true);
+    } else if final_url.scheme() == "http" {
+        return Ok(false);
     }
 
     // test HTTPS directly
