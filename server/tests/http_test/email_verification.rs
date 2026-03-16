@@ -97,7 +97,8 @@ async fn test_oauth_user_email_verified() {
         public_key: sea_orm::ActiveValue::Set(vec![]),
         github_id: sea_orm::ActiveValue::Set(Some("12345".to_string())),
         oauth_provider: sea_orm::ActiveValue::Set(Some("github".to_string())),
-        email_verified: sea_orm::ActiveValue::Set(true), // OAuth users are always verified
+        email_verified: sea_orm::ActiveValue::Set(true),
+        email_visibility: sea_orm::ActiveValue::Set(true), // OAuth users are always verified
     };
 
     user::Entity::insert(new_user)
@@ -150,7 +151,8 @@ async fn test_oauth_user_email_verified_with_verification_enabled() {
         public_key: sea_orm::ActiveValue::Set(vec![]),
         github_id: sea_orm::ActiveValue::Set(Some("12346".to_string())),
         oauth_provider: sea_orm::ActiveValue::Set(Some("github".to_string())),
-        email_verified: sea_orm::ActiveValue::Set(true), // OAuth users are always verified
+        email_verified: sea_orm::ActiveValue::Set(true),
+        email_visibility: sea_orm::ActiveValue::Set(true), // OAuth users are always verified
     };
 
     user::Entity::insert(new_user)
