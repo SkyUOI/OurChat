@@ -38,6 +38,7 @@ impl MigrationTrait for Migration {
                     .col(string_null(User::GithubId).unique_key())
                     .col(string_null(User::OauthProvider))
                     .col(boolean(User::EmailVerified))
+                    .col(boolean(User::EmailVisibility))
                     .col(
                         timestamp_with_time_zone(User::PublicUpdateTime)
                             .default(Expr::current_timestamp()),

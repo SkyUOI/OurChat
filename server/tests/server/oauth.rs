@@ -136,6 +136,7 @@ async fn test_oauth_user_creation() {
         github_id: sea_orm::ActiveValue::Set(Some("99997".to_string())),
         oauth_provider: sea_orm::ActiveValue::Set(Some("github".to_string())),
         email_verified: sea_orm::ActiveValue::Set(true),
+        email_visibility: sea_orm::ActiveValue::Set(true),
     };
 
     user::Entity::insert(new_user)
@@ -187,6 +188,7 @@ async fn test_oauth_user_update() {
         github_id: sea_orm::ActiveValue::Set(Some("99996".to_string())),
         oauth_provider: sea_orm::ActiveValue::Set(Some("github".to_string())),
         email_verified: sea_orm::ActiveValue::Set(true),
+        email_visibility: sea_orm::ActiveValue::Set(true),
     };
 
     user::Entity::insert(new_user)
