@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "global": {
+      "allow": [
+        "flutter",
+        "dart",
+        "python script/*",
+        "git status",
+        "git diff",
+        "git log",
+        "git branch",
+        "git checkout"
+      ]
+    }
+  },
+  "preferences": {
+    "autoSave": true
+  },
+  "hooks": {
+    "beforeResponse": [
+      {
+        "command": "git status --short",
+        "description": "Show current git status"
+      }
+    ]
+  }
+}
