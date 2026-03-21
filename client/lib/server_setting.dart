@@ -68,7 +68,7 @@ class _ServerSettingState extends State<ServerSetting> {
           // 展示服务端ip
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text("${l10n.serverAddress}: "),
+            Text("${l10n.address}: "),
             Text(address, style: const TextStyle(color: Colors.grey)),
           ],
         ),
@@ -119,7 +119,9 @@ class _ServerSettingState extends State<ServerSetting> {
           // 展示是否支持tls
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text("${l10n.tlsEncryption} "),
+            Text(
+              "${l10n.tlsEncryption} ",
+            ),
             isTLS == null
                 ? Text("")
                 : (isTLS!
@@ -146,7 +148,7 @@ class _ServerSettingState extends State<ServerSetting> {
               // 地址输入框
               initialValue: address,
               decoration: InputDecoration(
-                label: Text(l10n.serverAddress),
+                label: Text(l10n.address),
               ),
               validator: (value) {
                 if (value!.isEmpty) {
