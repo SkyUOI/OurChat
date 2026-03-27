@@ -107,7 +107,6 @@ impl RandomTestConfig {
 pub struct ActionWeights {
     // Messaging actions (most common)
     pub send_message: f64,
-    pub fetch_messages: f64,
     pub recall_message: f64,
 
     // Session operations (less common)
@@ -149,7 +148,6 @@ impl Default for ActionWeights {
         Self {
             // Messaging - most frequent
             send_message: 100.0,
-            fetch_messages: 80.0,
             recall_message: 5.0,
 
             // Session operations

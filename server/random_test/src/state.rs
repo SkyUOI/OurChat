@@ -1,9 +1,27 @@
 use base::constants::{ID, OCID, SessionID};
 use dashmap::DashMap;
 use rand::RngExt;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Instant;
 
-/// State for tracking messages
+/// State for tracking messages that were sent
+#[derive(Clone, Debug)]
+pub struct SentMessage {
+    pub msg_id: u64,
+    pub sender_id: ID,
+    pub session_id: SessionID,
+    pub content: String,
+    pub expected_recipients: Vec<ID>,
+}
+
+/// Message delivery status tracking
+#[derive(Clone, Debug)]
+pub struct MessageDeliveryStatus {
+    pub sent_message: SentMessage,
+    pub received_by: DashMap<ID, bool>, // user_id -> received
+}
+
+/// Legacy MessageRecord for compatibility
 #[derive(Clone, Debug)]
 pub struct MessageRecord {
     pub _msg_id: u64,
@@ -63,6 +81,15 @@ pub struct TestState {
     pub restrictions: DashMap<(ID, SessionID), RestrictionState>,
     /// Message history for validation
     pub message_log: DashMap<SessionID, Vec<MessageRecord>>,
+    /// Message delivery tracking (msg_id -> delivery status)
+    pub message_delivery: DashMap<u64, MessageDeliveryStatus>,
+    /// Global message ID counter
+    pub next_msg_id: AtomicU64,
+    /// Message delivery statistics
+    pub messages_sent: AtomicU64,
+    pub messages_received: AtomicU64,
+    pub messages_missing: AtomicU64,
+    pub messages_wrong_content: AtomicU64,
 }
 
 impl TestState {
@@ -76,6 +103,12 @@ impl TestState {
             user_sessions: DashMap::new(),
             restrictions: DashMap::new(),
             message_log: DashMap::new(),
+            message_delivery: DashMap::new(),
+            next_msg_id: AtomicU64::new(1),
+            messages_sent: AtomicU64::new(0),
+            messages_received: AtomicU64::new(0),
+            messages_missing: AtomicU64::new(0),
+            messages_wrong_content: AtomicU64::new(0),
         }
     }
 
@@ -323,6 +356,195 @@ impl TestState {
                 .sum(),
         }
     }
+
+    /// Record a sent message with a specific message ID (from server response)
+    pub fn record_sent_message_with_id(
+        &self,
+        sender_id: ID,
+        session_id: SessionID,
+        content: String,
+        msg_id: u64,
+    ) -> u64 {
+        // Get expected recipients (all session members except sender)
+        let expected_recipients: Vec<ID> = self
+            .get_session_members(session_id)
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|id| *id != sender_id)
+            .collect();
+
+        let sent_message = SentMessage {
+            msg_id,
+            sender_id,
+            session_id,
+            content,
+            expected_recipients,
+        };
+
+        // Initialize delivery tracking
+        let received_by = DashMap::new();
+        for recipient in &sent_message.expected_recipients {
+            received_by.insert(*recipient, false);
+        }
+
+        let status = MessageDeliveryStatus {
+            sent_message,
+            received_by,
+        };
+
+        self.message_delivery.insert(msg_id, status);
+        self.messages_sent.fetch_add(1, Ordering::SeqCst);
+
+        msg_id
+    }
+
+    /// Record a received message and verify it
+    pub fn record_received_message(
+        &self,
+        receiver_id: ID,
+        msg_id: u64,
+        session_id: SessionID,
+        content: String,
+        sender_id: ID,
+    ) -> MessageVerificationResult {
+        self.messages_received.fetch_add(1, Ordering::SeqCst);
+
+        // Verify against expected message
+        if let Some(delivery_status) = self.message_delivery.get(&msg_id) {
+            let sent = &delivery_status.sent_message;
+
+            // Check session ID matches
+            if sent.session_id != session_id {
+                return MessageVerificationResult::WrongSession {
+                    expected: sent.session_id,
+                    actual: session_id,
+                };
+            }
+
+            // Check sender ID matches
+            if sent.sender_id != sender_id {
+                return MessageVerificationResult::WrongSender {
+                    expected: sent.sender_id,
+                    actual: sender_id,
+                };
+            }
+
+            // Check content matches
+            if sent.content != content {
+                self.messages_wrong_content.fetch_add(1, Ordering::SeqCst);
+                return MessageVerificationResult::ContentMismatch {
+                    expected: sent.content.clone(),
+                    actual: content,
+                };
+            }
+
+            // Check if this user was expected to receive this message
+            if !sent.expected_recipients.contains(&receiver_id) {
+                return MessageVerificationResult::UnexpectedRecipient {
+                    msg_id,
+                    receiver_id,
+                    session_id,
+                };
+            }
+
+            // Mark as received
+            if let Some(status) = self.message_delivery.get_mut(&msg_id) {
+                let _ = status.received_by.insert(receiver_id, true);
+            }
+
+            MessageVerificationResult::Valid
+        } else {
+            // Message not found in delivery tracking - might be from before tracking started
+            MessageVerificationResult::UnknownMessage(msg_id)
+        }
+    }
+
+    /// Check for missing messages and return statistics
+    pub fn get_delivery_stats(&self) -> MessageDeliveryStats {
+        let mut missing_count = 0;
+        let mut total_expected = 0;
+
+        for entry in self.message_delivery.iter() {
+            let status = entry.value();
+            for ref_entry in status.received_by.iter() {
+                total_expected += 1;
+                let received = ref_entry.value();
+                if !*received {
+                    missing_count += 1;
+                }
+            }
+        }
+
+        self.messages_missing.store(missing_count, Ordering::SeqCst);
+
+        MessageDeliveryStats {
+            messages_sent: self.messages_sent.load(Ordering::SeqCst),
+            messages_received: self.messages_received.load(Ordering::SeqCst),
+            messages_missing: self.messages_missing.load(Ordering::SeqCst),
+            messages_wrong_content: self.messages_wrong_content.load(Ordering::SeqCst),
+            delivery_rate: if total_expected > 0 {
+                (total_expected - missing_count) as f64 / total_expected as f64
+            } else {
+                1.0
+            },
+        }
+    }
+
+    /// Get missing message details for debugging
+    pub fn get_missing_messages(&self) -> Vec<(u64, ID, SessionID)> {
+        let mut missing = Vec::new();
+
+        for entry in self.message_delivery.iter() {
+            let status = entry.value();
+            for ref_entry in status.received_by.iter() {
+                let received = ref_entry.value();
+                if !*received {
+                    let recipient = *ref_entry.key();
+                    missing.push((
+                        status.sent_message.msg_id,
+                        recipient,
+                        status.sent_message.session_id,
+                    ));
+                }
+            }
+        }
+
+        missing
+    }
+}
+
+/// Result of message verification
+#[derive(Clone, Debug)]
+pub enum MessageVerificationResult {
+    /// Message is valid and delivery is tracked
+    Valid,
+    /// Message ID not found in tracking (might be from before tracking started)
+    UnknownMessage(u64),
+    /// Content doesn't match what was sent
+    ContentMismatch { expected: String, actual: String },
+    /// Wrong session ID
+    WrongSession {
+        expected: SessionID,
+        actual: SessionID,
+    },
+    /// Wrong sender ID
+    WrongSender { expected: ID, actual: ID },
+    /// User received message they weren't supposed to
+    UnexpectedRecipient {
+        msg_id: u64,
+        receiver_id: ID,
+        session_id: SessionID,
+    },
+}
+
+/// Message delivery statistics
+#[derive(Clone, Debug)]
+pub struct MessageDeliveryStats {
+    pub messages_sent: u64,
+    pub messages_received: u64,
+    pub messages_missing: u64,
+    pub messages_wrong_content: u64,
+    pub delivery_rate: f64,
 }
 
 /// State statistics snapshot

@@ -77,9 +77,6 @@ pub enum RandomAction {
         user_id: ID,
         message_id: u64,
     },
-    FetchMessages {
-        user_id: ID,
-    },
 
     // Friend Management
     AddFriend {
@@ -134,6 +131,7 @@ pub enum RandomAction {
 #[derive(Debug, Clone, Default)]
 pub enum ResponseData {
     SessionCreated(SessionID),
+    MessageSent(u64),
     #[default]
     None,
 }
@@ -205,7 +203,6 @@ impl ActionExecutor {
                 self.execute_send_message(*session_id, *user_id, content, *is_encrypted)
                     .await
             }
-            RandomAction::FetchMessages { user_id } => self.execute_fetch_messages(*user_id).await,
             RandomAction::RecallMessage {
                 session_id,
                 user_id,
@@ -361,10 +358,13 @@ impl ActionExecutor {
                 .send_msg(session_id, content, vec![], is_encrypted)
                 .await
             {
-                Ok(_) => ActionResult::Success {
-                    duration: start.elapsed(),
-                    data: ResponseData::None,
-                },
+                Ok(response) => {
+                    let msg_id = response.into_inner().msg_id;
+                    ActionResult::Success {
+                        duration: start.elapsed(),
+                        data: ResponseData::MessageSent(msg_id),
+                    }
+                }
                 Err(e) => {
                     let error_msg = e.to_string();
                     // Check if it's an expected error
@@ -383,30 +383,6 @@ impl ActionExecutor {
                         }
                     }
                 }
-            }
-        } else {
-            ActionResult::UnexpectedFailure {
-                error: format!("User {} not found", user_id.0),
-                duration: start.elapsed(),
-            }
-        }
-    }
-
-    async fn execute_fetch_messages(&self, user_id: ID) -> ActionResult {
-        let start = std::time::Instant::now();
-
-        if let Some(user) = self.get_user(user_id) {
-            let mut user_guard = user.lock().await;
-            // Fetch a small number of messages
-            match user_guard.fetch_msgs().fetch(1).await {
-                Ok(_) => ActionResult::Success {
-                    duration: start.elapsed(),
-                    data: ResponseData::None,
-                },
-                Err(_e) => ActionResult::Success {
-                    duration: start.elapsed(),
-                    data: ResponseData::None,
-                }, // Timeout is expected when no messages
             }
         } else {
             ActionResult::UnexpectedFailure {

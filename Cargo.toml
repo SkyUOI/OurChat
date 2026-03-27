@@ -30,6 +30,9 @@ version = "0.1.0"
 edition = "2024"
 rust-version = "1.91"
 
+[workspace.dependencies.tokio-util]
+version = "0.7"
+
 [workspace.dependencies.anyhow]
 version = "1"
 default-features = false

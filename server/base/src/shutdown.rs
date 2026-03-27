@@ -1,27 +1,30 @@
 use dashmap::DashMap;
 use parking_lot::Mutex;
-use rand::random;
 use std::sync::Arc;
-use tokio::{
-    sync::{Barrier, oneshot},
-    task::JoinSet,
-};
+use std::sync::atomic::{AtomicU64, Ordering};
+use tokio::sync::oneshot;
+use tokio::task::JoinSet;
+use tokio_util::sync::CancellationToken;
 
 pub type ShutdownFinishCallback = oneshot::Sender<()>;
 pub type TaskId = u64;
 pub type Tasks = Arc<DashMap<TaskId, Task>>;
 
+/// Global task ID counter
+static NEXT_TASK_ID: AtomicU64 = AtomicU64::new(1);
+
 #[derive(Debug)]
 pub struct Task {
     name: String,
     description: String,
-    shutdown_handle: Option<ShutdownSdrImpl>,
+    completion_receiver: Option<oneshot::Receiver<()>>,
 }
 
 #[derive(Debug, Clone)]
 pub struct ShutdownSdr {
     callback: Arc<Mutex<Option<ShutdownFinishCallback>>>,
     tasks: Tasks,
+    cancel: CancellationToken,
 }
 
 impl ShutdownSdr {
@@ -29,6 +32,7 @@ impl ShutdownSdr {
         Self {
             callback: Arc::new(Mutex::new(callback)),
             tasks: Arc::new(DashMap::new()),
+            cancel: CancellationToken::new(),
         }
     }
 
@@ -37,80 +41,67 @@ impl ShutdownSdr {
         name: impl Into<String>,
         description: impl Into<String>,
     ) -> ShutdownRev {
-        let mut task_id;
-        loop {
-            task_id = random();
-            if !self.tasks.contains_key(&task_id) {
-                break;
-            }
-        }
+        let task_id = NEXT_TASK_ID.fetch_add(1, Ordering::Relaxed);
         tracing::trace!("task {} created", task_id);
-        let (channel_sdr, channel_rev) = oneshot::channel();
+
+        let (completion_sdr, completion_rev) = oneshot::channel();
         let task = Task {
             name: name.into(),
             description: description.into(),
-            shutdown_handle: Some(channel_sdr),
+            completion_receiver: Some(completion_rev),
         };
         self.tasks.insert(task_id, task);
-        ShutdownRev::new(channel_rev, self.tasks.clone(), task_id)
+
+        ShutdownRev::new(
+            self.cancel.child_token(),
+            completion_sdr,
+            self.tasks.clone(),
+            task_id,
+        )
     }
 
     pub async fn shutdown_all_tasks(&mut self) -> anyhow::Result<()> {
+        // Signal all tasks simultaneously
+        self.cancel.cancel();
+
         let mut waiting_finished = JoinSet::new();
-        let cnt = Arc::new(Barrier::new(self.tasks.len() + 1));
-        let mut sent_operators = vec![];
-        let wrong_check = Arc::new(Mutex::new(0));
-        for mut task in self.tasks.iter_mut() {
-            tracing::trace!("task {} shutdown", task.key());
-            let (wait_stop_sdr, wait_stop_rev) = oneshot::channel::<()>();
+
+        for mut entry in self.tasks.iter_mut() {
+            let task_id = *entry.key();
+            let name = entry.value().name.clone();
+            let description = entry.value().description.clone();
             let tasks_ref = self.tasks.clone();
-            let task_id = *task.key();
-            let cnt_clone = cnt.clone();
-            let wrong_check1 = wrong_check.clone();
+
+            // Take the completion receiver — if ShutdownRev was already dropped
+            // without calling wait_shutting_down, this will be None.
+            let completion_rev = {
+                let task = entry.value_mut();
+                task.completion_receiver.take()
+            };
+
             waiting_finished.spawn(async move {
-                cnt_clone.wait().await;
-                match wait_stop_rev.await {
-                    Ok(()) => {}
-                    Err(_) => {
-                        *wrong_check1.lock() += 1;
+                if let Some(completion_rev) = completion_rev {
+                    if completion_rev.await.is_err() {
+                        // Sender dropped without sending (e.g. ShutdownRev
+                        // dropped without calling wait_shutting_down)
+                        tracing::error!(
+                            "task {} completion channel closed unexpectedly; name: {}, description: {}",
+                            task_id, name, description
+                        );
                     }
+                } else {
+                    tracing::error!(
+                        "task {} missing completion receiver (already taken?); name: {}, description: {}",
+                        task_id, name, description
+                    );
                 }
                 tasks_ref.remove(&task_id);
             });
-            let handle = match task.value_mut().shutdown_handle.take() {
-                Some(h) => h,
-                None => {
-                    tracing::error!("task {} missing shutdown handle, skipping", task_id);
-                    *wrong_check.lock() -= 1;
-                    continue;
-                }
-            };
-            let name = task.value().name.clone();
-            let description = task.value().description.clone();
-            let wrong_check2 = wrong_check.clone();
-            sent_operators.push(move || {
-                if let Err(e) = handle.send(wait_stop_sdr) {
-                    tracing::error!(
-                        "task {} send shutdown error: {:?} name: {}, description: {}",
-                        task_id,
-                        e,
-                        name,
-                        description
-                    );
-                    *wrong_check2.lock() -= 1;
-                }
-            });
         }
-        if *wrong_check.lock() != 0 {
-            tracing::error!("some tasks shutdown failed");
-        }
+
         tracing::trace!("total tasks: {}", self.tasks.len());
-        cnt.wait().await;
-        tracing::trace!("tasks are ready to fetch finish signal");
-        for operator in sent_operators {
-            operator();
-        }
         waiting_finished.join_all().await;
+
         if let Some(callback) = self.callback.lock().take()
             && let Err(e) = callback.send(())
         {
@@ -143,7 +134,8 @@ impl ShutdownSdr {
 }
 
 pub struct ShutdownRev {
-    receiver: Option<ShutdownRevImpl>,
+    cancel_token: CancellationToken,
+    completion_sender: Option<oneshot::Sender<()>>,
     manager_handle: Arc<DashMap<TaskId, Task>>,
     task_id: TaskId,
 }
@@ -151,41 +143,40 @@ pub struct ShutdownRev {
 impl ShutdownRev {
     pub async fn wait_shutting_down(&mut self) {
         let gen_err_info = || ShutdownSdr::gen_task_info(&self.manager_handle, self.task_id);
-        match &mut self.receiver {
-            Some(receiver) => {
-                match receiver.await {
-                    Ok(sender) => {
-                        if let Err(e) = sender.send(()) {
-                            tracing::error!(
-                                "receive shutdown error: {:?};details:{:?}",
-                                e,
-                                gen_err_info()
-                            );
-                        }
-                    }
-                    Err(e) => {
-                        tracing::error!(
-                            "failed to receive shutdown signal: {:?}; details:{:?}",
-                            e,
-                            gen_err_info()
-                        );
-                    }
-                }
-                self.remove_self();
+
+        self.cancel_token.cancelled().await;
+        tracing::trace!("task {} received shutdown signal", self.task_id);
+
+        // Take and drop the completion sender to signal that this task is done
+        if let Some(sender) = self.completion_sender.take() {
+            if let Err(e) = sender.send(()) {
+                tracing::error!(
+                    "task {} failed to send completion: {:?}; details: {:?}",
+                    self.task_id,
+                    e,
+                    gen_err_info()
+                );
             }
-            None => {
-                tracing::error!("without shutdown signal sender;task:{:?}", gen_err_info());
-            }
+        } else {
+            tracing::error!(
+                "task {} completion sender already consumed; details: {:?}",
+                self.task_id,
+                gen_err_info()
+            );
         }
+
+        self.remove_self();
     }
 
     pub fn new(
-        receiver: ShutdownRevImpl,
+        cancel_token: CancellationToken,
+        completion_sender: oneshot::Sender<()>,
         manager_handle: Arc<DashMap<TaskId, Task>>,
         task_id: TaskId,
     ) -> Self {
         Self {
-            receiver: Some(receiver),
+            cancel_token,
+            completion_sender: Some(completion_sender),
             manager_handle,
             task_id,
         }
@@ -199,11 +190,8 @@ impl ShutdownRev {
 
 impl Drop for ShutdownRev {
     fn drop(&mut self) {
-        if self.receiver.is_some() {
+        if self.completion_sender.is_some() {
             self.remove_self();
         }
     }
 }
-
-pub type ShutdownRevImpl = oneshot::Receiver<oneshot::Sender<()>>;
-pub type ShutdownSdrImpl = oneshot::Sender<oneshot::Sender<()>>;

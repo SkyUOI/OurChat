@@ -4,6 +4,7 @@ mod framework;
 mod generator;
 mod metrics;
 mod state;
+mod streaming;
 mod validators;
 
 use base::setting::read_config_and_deserialize;
@@ -46,6 +47,9 @@ async fn main() -> anyhow::Result<()> {
     // Create and run the test engine
     let mut engine = RandomTestEngine::new(config, client_core)?;
     let result = engine.run().await;
+
+    // Always print the final report
+    engine.print_final_report().await;
 
     // Cleanup on exit
     engine.cleanup().await;

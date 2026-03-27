@@ -13,7 +13,6 @@ seed = 0
 
 [action_weights]
 send_message = 100.0
-fetch_messages = 80.0
 recall_message = 5.0
 create_session = 5.0
 delete_session = 0.2

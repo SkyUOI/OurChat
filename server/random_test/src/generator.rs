@@ -68,11 +68,6 @@ impl ActionGenerator {
                 });
             }
 
-            // Try fetch messages
-            if self.random_select(&mut random_value, self.weights.fetch_messages) {
-                return Some(RandomAction::FetchMessages { user_id });
-            }
-
             // Try recall message (less common)
             if self.random_select(&mut random_value, self.weights.recall_message)
                 && let Some(session_id) = state.get_random_session_for_user(user_id)
@@ -352,7 +347,6 @@ impl ActionGenerator {
 
         // Always available actions
         total += self.weights.send_message;
-        total += self.weights.fetch_messages;
         total += self.weights.get_account_info;
 
         // Conditionally available actions

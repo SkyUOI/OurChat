@@ -5,6 +5,7 @@ edition.workspace = true
 
 [dependencies]
 tokio.workspace = true
+tokio-util.workspace = true
 client = { path = "../client" }
 parking_lot.workspace = true
 mimalloc.workspace = true

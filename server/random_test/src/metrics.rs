@@ -12,7 +12,6 @@ use std::time::{Duration, Instant};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize)]
 pub enum RandomActionType {
     SendMessage,
-    FetchMessages,
     RecallMessage,
     CreateSession,
     DeleteSession,
@@ -40,7 +39,6 @@ impl From<&RandomAction> for RandomActionType {
     fn from(action: &RandomAction) -> Self {
         match action {
             RandomAction::SendMessage { .. } => RandomActionType::SendMessage,
-            RandomAction::FetchMessages { .. } => RandomActionType::FetchMessages,
             RandomAction::RecallMessage { .. } => RandomActionType::RecallMessage,
             RandomAction::CreateSession { .. } => RandomActionType::CreateSession,
             RandomAction::DeleteSession { .. } => RandomActionType::DeleteSession,
@@ -72,7 +70,6 @@ impl std::fmt::Display for RandomActionType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             RandomActionType::SendMessage => write!(f, "send_msg"),
-            RandomActionType::FetchMessages => write!(f, "fetch_msgs"),
             RandomActionType::RecallMessage => write!(f, "recall_msg"),
             RandomActionType::CreateSession => write!(f, "create_session"),
             RandomActionType::DeleteSession => write!(f, "delete_session"),
@@ -211,7 +208,6 @@ impl MetricsCollector {
     fn extract_user_id(&self, action: &RandomAction) -> Option<u64> {
         match action {
             RandomAction::SendMessage { user_id, .. }
-            | RandomAction::FetchMessages { user_id }
             | RandomAction::AddFriend { user_id, .. }
             | RandomAction::GetSessionInfo { user_id, .. }
             | RandomAction::GetAccountInfo { user_id, .. } => Some(user_id.0),

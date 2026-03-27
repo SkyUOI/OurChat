@@ -3,16 +3,17 @@ use super::config::RandomTestConfig;
 use super::generator::ActionGenerator;
 use super::metrics::MetricsCollector;
 use super::state::{MessageRecord, TestState, UserState};
+use super::streaming::StreamingManager;
 use super::validators::StateValidator;
 use base::constants::ID;
 use client::ClientCore;
 use client::oc_helper::user::TestUser;
-use rand::RngExt;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 use tokio::sync::Mutex;
 use tokio::time::sleep;
+use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
 
 /// Core random test engine
@@ -35,8 +36,14 @@ pub struct RandomTestEngine {
     /// Action executor
     executor: Arc<ActionExecutor>,
 
+    /// Streaming manager for background message fetching
+    streaming_manager: Arc<StreamingManager>,
+
     /// Shutdown signal
     shutdown: Arc<AtomicBool>,
+
+    /// Cancellation token for Ctrl-C and graceful shutdown
+    cancel: CancellationToken,
 
     /// Test users
     users: Vec<Arc<Mutex<TestUser>>>,
@@ -60,7 +67,9 @@ impl RandomTestEngine {
             metrics: Arc::new(MetricsCollector::new()),
             generator,
             executor: Arc::new(ActionExecutor::new()),
+            streaming_manager: Arc::new(StreamingManager::new()),
             shutdown: Arc::new(AtomicBool::new(false)),
+            cancel: CancellationToken::new(),
             users: Vec::new(),
         })
     }
@@ -77,7 +86,13 @@ impl RandomTestEngine {
         info!("  Concurrency: {}", self.config.concurrency);
         info!("  Seed: {}", self.config.seed);
 
-        // TODO: Setup shutdown handler
+        // Spawn a background task to handle Ctrl-C
+        let cancel = self.cancel.clone();
+        tokio::spawn(async move {
+            tokio::signal::ctrl_c().await.ok();
+            warn!("Ctrl-C received, shutting down gracefully...");
+            cancel.cancel();
+        });
 
         // Initialize users
         info!("Creating {} test users...", self.config.num_users);
@@ -87,36 +102,50 @@ impl RandomTestEngine {
         info!("Starting action executors...");
         self.run_action_loop().await?;
 
-        // Generate final report
-        self.print_final_report().await;
-
         Ok(())
+    }
+
+    /// Print final report (call this even if run() is interrupted)
+    pub async fn print_final_report(&self) {
+        // (kept public so main can call it after Ctrl-C)
+        Self::print_final_report_impl(&self.state, &self.metrics).await
     }
 
     /// Initialize test users
     async fn initialize_users(&mut self) -> anyhow::Result<()> {
         for i in 0..self.config.num_users {
-            let mut user = TestUser::random_readable(&self.client_core).await;
-            user.register()
-                .await
-                .map_err(|e| anyhow::anyhow!("Failed to register user {}: {}", i, e))?;
+            let user_id;
+            {
+                let mut user = TestUser::random_readable(&self.client_core).await;
+                user.register()
+                    .await
+                    .map_err(|e| anyhow::anyhow!("Failed to register user {}: {}", i, e))?;
+                user_id = user.id;
 
-            // Add to state - use the user's fields directly before wrapping
-            let user_state = UserState {
-                id: user.id,
-                _ocid: user.ocid.clone(),
-                _name: user.name.clone(),
-                _email: user.email.clone(),
-                _is_online: true,
-                _created_at: Instant::now(),
-                _last_activity: Instant::now(),
-            };
-            self.state.add_user(user_state).await?;
+                // Add to state - use the user's fields directly before wrapping
+                let user_state = UserState {
+                    id: user.id,
+                    _ocid: user.ocid.clone(),
+                    _name: user.name.clone(),
+                    _email: user.email.clone(),
+                    _is_online: true,
+                    _created_at: Instant::now(),
+                    _last_activity: Instant::now(),
+                };
+                self.state.add_user(user_state).await?;
 
-            // Wrap in Arc<Mutex> and store
-            let user_arc = Arc::new(Mutex::new(user));
-            self.users.push(user_arc.clone());
-            self.executor.register_user(user_arc).await;
+                // Wrap in Arc<Mutex> and store
+                let user_arc = Arc::new(Mutex::new(user));
+                self.users.push(user_arc.clone());
+                self.executor.register_user(user_arc.clone()).await;
+
+                // Start background streaming for this user
+                self.streaming_manager.start_streaming_for_user(
+                    user_id,
+                    user_arc,
+                    Arc::clone(&self.state),
+                );
+            }
 
             if (i + 1) % 10 == 0 {
                 info!("Created {}/{} users", i + 1, self.config.num_users);
@@ -141,11 +170,21 @@ impl RandomTestEngine {
 
         info!("Starting action execution loop...");
 
-        while !self.shutdown.load(Ordering::SeqCst) && start_time.elapsed() < test_duration {
+        loop {
+            if self.shutdown.load(Ordering::SeqCst) || start_time.elapsed() >= test_duration {
+                break;
+            }
+
             // Generate action
             if let Some(action) = self.generator.generate(&self.state) {
-                // Execute action
-                let result = self.executor.execute(&action).await;
+                // Execute action, but abort if Ctrl-C is pressed mid-action
+                let result = tokio::select! {
+                    res = self.executor.execute(&action) => res,
+                    _ = self.cancel.cancelled() => {
+                        self.shutdown.store(true, Ordering::SeqCst);
+                        break;
+                    }
+                };
 
                 // Record metrics
                 self.metrics.record_action(&action, &result);
@@ -183,8 +222,14 @@ impl RandomTestEngine {
                 last_metrics = Instant::now();
             }
 
-            // Sleep for action interval
-            sleep(action_interval).await;
+            // Sleep for action interval, but wake on Ctrl-C
+            tokio::select! {
+                _ = sleep(action_interval) => {}
+                _ = self.cancel.cancelled() => {
+                    self.shutdown.store(true, Ordering::SeqCst);
+                    break;
+                }
+            }
         }
 
         info!("Action loop completed. Total actions: {}", action_count);
@@ -203,10 +248,28 @@ impl RandomTestEngine {
             RandomAction::SendMessage {
                 session_id,
                 user_id,
+                content,
                 ..
             } => {
+                // Get the actual message ID from the server response
+                let msg_id = if let ResponseData::MessageSent(id) = result.get_data() {
+                    id
+                } else {
+                    // Fallback to generating our own ID if response doesn't have it
+                    self.state.next_msg_id.fetch_add(1, Ordering::SeqCst)
+                };
+
+                // Record the sent message for delivery tracking using the server's msg_id
+                self.state.record_sent_message_with_id(
+                    *user_id,
+                    *session_id,
+                    content.clone(),
+                    msg_id,
+                );
+
+                // Also add to legacy message log
                 let msg = MessageRecord {
-                    _msg_id: rand::rng().random_range(1_u64..1000000),
+                    _msg_id: msg_id,
                     _sender_id: *user_id,
                     session_id: *session_id,
                     _timestamp: chrono::Utc::now().timestamp(),
@@ -437,8 +500,7 @@ impl RandomTestEngine {
             RandomAction::UploadFile { .. } | RandomAction::DownloadFile { .. } => {}
 
             // Info query operations - no state change
-            RandomAction::FetchMessages { .. }
-            | RandomAction::RecallMessage { .. }
+            RandomAction::RecallMessage { .. }
             | RandomAction::GetSessionInfo { .. }
             | RandomAction::GetAccountInfo { .. }
             | RandomAction::SetSessionInfo { .. }
@@ -485,23 +547,65 @@ impl RandomTestEngine {
     }
 
     /// Print final report
-    async fn print_final_report(&self) {
+    async fn print_final_report_impl(state: &TestState, metrics: &MetricsCollector) {
         info!("");
         info!("═══════════════════════════════════════════════════════════════");
         info!("                    Test Completed                              ");
         info!("═══════════════════════════════════════════════════════════════");
 
-        let report = self.metrics.generate_report();
+        let report = metrics.generate_report();
         println!("\n{}", report);
 
+        // Print message delivery statistics
+        let delivery_stats = state.get_delivery_stats();
+        println!("\n═══════════════════════════════════════════════════════════════");
+        println!("                    Message Delivery Stats                     ");
+        println!("═══════════════════════════════════════════════════════════════");
+        println!(
+            "  Messages Sent:            {}",
+            delivery_stats.messages_sent
+        );
+        println!(
+            "  Messages Received:        {}",
+            delivery_stats.messages_received
+        );
+        println!(
+            "  Messages Missing:         {}",
+            delivery_stats.messages_missing
+        );
+        println!(
+            "  Wrong Content:            {}",
+            delivery_stats.messages_wrong_content
+        );
+        println!(
+            "  Delivery Rate:            {:.2}%",
+            delivery_stats.delivery_rate * 100.0
+        );
+
+        // Print missing message details if any
+        if delivery_stats.messages_missing > 0 {
+            let missing = state.get_missing_messages();
+            println!("\n  Missing Messages (showing first 20):");
+            for (msg_id, recipient, session_id) in missing.iter().take(20) {
+                println!(
+                    "    Msg {} -> User {} in Session {:?}",
+                    msg_id, recipient.0, session_id
+                );
+            }
+            if missing.len() > 20 {
+                println!("    ... and {} more", missing.len() - 20);
+            }
+        }
+        println!("═══════════════════════════════════════════════════════════════");
+
         // Save report to JSON
-        if let Err(e) = self.save_report_to_json(&report) {
+        if let Err(e) = Self::save_report_to_json_impl(&report) {
             warn!("Failed to save report to JSON: {}", e);
         }
     }
 
     /// Save report to JSON file
-    fn save_report_to_json(&self, report: &super::metrics::RandomTestReport) -> anyhow::Result<()> {
+    fn save_report_to_json_impl(report: &super::metrics::RandomTestReport) -> anyhow::Result<()> {
         let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
         let filename = format!("random_test_report_{}.json", timestamp);
 
@@ -516,12 +620,13 @@ impl RandomTestEngine {
     pub async fn cleanup(self) {
         info!("Cleaning up...");
 
-        // Unregister all users
+        // Stop all streaming tasks
+        self.streaming_manager.stop_all();
+
+        // Unregister all users using async_drop which properly sets has_dropped
         for user in &self.users {
             let mut user_guard = user.lock().await;
-            if let Err(e) = user_guard.unregister().await {
-                warn!("Failed to unregister user: {}", e);
-            }
+            user_guard.async_drop().await;
         }
 
         info!("Cleanup complete");
