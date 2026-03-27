@@ -27,6 +27,7 @@ pub struct Model {
     pub github_id: Option<String>,
     pub oauth_provider: Option<String>,
     pub email_verified: bool,
+    pub email_visibility: bool,
     pub public_update_time: DateTimeWithTimeZone,
     pub update_time: DateTimeWithTimeZone,
 }

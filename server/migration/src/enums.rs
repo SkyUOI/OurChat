@@ -22,6 +22,7 @@ pub enum User {
     GithubId,
     OauthProvider,
     EmailVerified,
+    EmailVisibility,
 }
 
 #[derive(DeriveIden)]
