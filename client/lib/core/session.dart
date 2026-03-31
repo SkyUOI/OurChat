@@ -1,77 +1,116 @@
 import 'dart:convert';
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' hide JsonKey;
 import 'package:fixnum/fixnum.dart';
 import 'package:grpc/grpc.dart';
 import 'package:ourchat/core/account.dart';
 import 'package:ourchat/core/chore.dart';
-import 'package:ourchat/core/database.dart';
+import 'package:ourchat/core/database.dart' as db;
 import 'package:ourchat/core/log.dart';
-import 'package:ourchat/core/server.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/service/ourchat/session/get_role/v1/get_role.pb.dart';
 import 'package:ourchat/service/ourchat/session/get_session_info/v1/get_session_info.pb.dart';
 import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-class OurChatSession {
-  OurChatAppState ourchatAppState;
-  late OurChatServer server;
-  late OurChatServiceClient stub;
-  Int64 sessionId;
-  late String name, description;
-  late String? avatarKey;
-  late OurChatTime createdTime, updatedTime;
-  late List<Int64> members = [];
-  late Map<Int64, Int64> roles = {};
-  late int size;
-  late List<int> myPermissions = [];
-  String? displayName;
-  DateTime lastCheckTime = DateTime(0);
+part 'session.freezed.dart';
+part 'session.g.dart';
 
-  OurChatSession(this.ourchatAppState, this.sessionId) {
-    server = ourchatAppState.server!;
-    stub = OurChatServiceClient(server.channel!,
-        interceptors: [server.interceptor!]);
+@freezed
+abstract class OcSessionData with _$OcSessionData {
+  factory OcSessionData({
+    required Int64 sessionId,
+    required String name,
+    required String description,
+    String? avatarKey,
+    required OurChatTime createdTime,
+    required OurChatTime updatedTime,
+    required List<Int64> members,
+    required Map<Int64, Int64> roles,
+    required int size,
+    required List<int> myPermissions,
+    String? displayName,
+    required DateTime lastCheckTime,
+  }) = _OcSessionData;
+}
+
+@Riverpod(keepAlive: true)
+class OurChatSession extends _$OurChatSession {
+  late OurChatServiceClient _stub;
+  bool _isFetching = false;
+
+  @override
+  OcSessionData build(Int64 sessionId) {
+    final server = ref.read(ourChatServerProvider);
+    _stub = OurChatServiceClient(
+      server.channel,
+      interceptors: [server.interceptor!],
+    );
+    return OcSessionData(
+      sessionId: sessionId,
+      name: '',
+      description: '',
+      avatarKey: null,
+      createdTime: OurChatTime.fromDatetime(DateTime(0)),
+      updatedTime: OurChatTime.fromDatetime(DateTime(0)),
+      members: [],
+      roles: {},
+      size: 0,
+      myPermissions: [],
+      displayName: null,
+      lastCheckTime: DateTime(0),
+    );
+  }
+
+  String getDisplayName() {
+    if (state.name.isNotEmpty) {
+      return state.name;
+    }
+    if (state.displayName == null) {
+      return l10n.newSession;
+    }
+    return state.displayName!;
+  }
+
+  String avatarUrl() {
+    var server = ref.read(ourChatServerProvider);
+    return "http${server.isTLS! ? 's' : ''}://${server.host}:${server.port.toString()}/v1/avatar?session_id=${state.sessionId.toString()}&avatar_key=${state.avatarKey ?? ''}";
+  }
+
+  void recreateStub() {
+    final server = ref.read(ourChatServerProvider);
+    _stub = OurChatServiceClient(
+      server.channel,
+      interceptors: [server.interceptor!],
+    );
   }
 
   Future getSessionInfo({bool ignoreCache = false}) async {
+    final sessionId = state.sessionId;
     logger.d("get session info for id: ${sessionId.toString()}");
-    if (ourchatAppState.gettingInfoSessionList.contains(sessionId)) {
-      while (ourchatAppState.gettingInfoSessionList.contains(sessionId)) {
+    var thisAccountId = ref.read(thisAccountIdProvider);
+    if (_isFetching) {
+      while (_isFetching) {
         await Future.delayed(Duration(milliseconds: 10));
       }
-      getSessionInfo(ignoreCache: ignoreCache);
       return true;
     }
-    ourchatAppState.gettingInfoSessionList.add(sessionId);
-    if (ourchatAppState.sessionCachePool.keys.contains(sessionId)) {
-      OurChatSession sessionCache =
-          ourchatAppState.sessionCachePool[sessionId]!;
-      if (!ignoreCache &&
-          DateTime.now().difference(sessionCache.lastCheckTime).inMinutes < 5) {
-        // 上次检查更新在5min内 无需检查
-        sessionId = sessionCache.sessionId;
-        name = sessionCache.name;
-        avatarKey = sessionCache.avatarKey;
-        createdTime = sessionCache.createdTime;
-        updatedTime = sessionCache.updatedTime;
-        members = sessionCache.members;
-        roles = sessionCache.roles;
-        size = sessionCache.size;
-        description = sessionCache.description;
-        lastCheckTime = sessionCache.lastCheckTime;
-        displayName = sessionCache.displayName;
-        ourchatAppState.gettingInfoSessionList.remove(sessionId);
-        myPermissions = sessionCache.myPermissions;
-        logger.d("use session info cache");
-        return true;
-      }
+    _isFetching = true;
+
+    // 检查缓存 freshness
+    if (!ignoreCache &&
+        DateTime.now().difference(state.lastCheckTime).inMinutes < 5) {
+      _isFetching = false;
+      logger.d("use session info cache");
+      return true;
     }
 
     List<QueryValues> queryValues = [];
-    var localSessionData = await (ourchatAppState.publicDB
-            .select(ourchatAppState.publicDB.publicSession)
-          ..where((u) => u.sessionId.equals(BigInt.from(sessionId.toInt()))))
-        .getSingleOrNull();
+    var localSessionData =
+        await (publicDB.select(
+              publicDB.publicSession,
+            )..where((u) => u.sessionId.equals(BigInt.from(sessionId.toInt()))))
+            .getSingleOrNull();
     bool publicNeedUpdate = false, privateNeedUpdate = false;
     if (localSessionData == null) {
       publicNeedUpdate = true;
@@ -79,24 +118,33 @@ class OurChatSession {
       logger.d("get session updated time");
       try {
         GetSessionInfoResponse res = await safeRequest(
-            stub.getSessionInfo,
-            GetSessionInfoRequest(sessionId: sessionId, queryValues: [
-              QueryValues.QUERY_VALUES_UPDATED_TIME,
-            ]),
-            getSessionInfoOnError,
-            rethrowError: true);
-        publicNeedUpdate = (OurChatTime.fromTimestamp(res.updatedTime) !=
+          _stub.getSessionInfo,
+          GetSessionInfoRequest(
+            sessionId: sessionId,
+            queryValues: [QueryValues.QUERY_VALUES_UPDATED_TIME],
+          ),
+          getSessionInfoOnError,
+          rethrowError: true,
+        );
+        publicNeedUpdate =
+            (OurChatTime.fromTimestamp(res.updatedTime) !=
             OurChatTime.fromDatetime(localSessionData.updatedTime));
       } catch (e) {
-        ourchatAppState.gettingInfoSessionList.remove(sessionId);
+        _isFetching = false;
         return false;
       }
     }
     privateNeedUpdate =
-        ourchatAppState.thisAccount!.sessions.contains(sessionId) &&
-            publicNeedUpdate;
+        thisAccountId != null &&
+        ref
+                .read(ourChatAccountProvider(thisAccountId))
+                .sessions
+                .contains(sessionId) ==
+            true &&
+        publicNeedUpdate;
     logger.d(
-        "sessionId: $sessionId, session public need update: $publicNeedUpdate, private need update: $privateNeedUpdate");
+      "sessionId: $sessionId, session public need update: $publicNeedUpdate, private need update: $privateNeedUpdate",
+    );
     if (publicNeedUpdate) {
       logger.d("get session public info");
       queryValues.addAll([
@@ -108,175 +156,217 @@ class OurChatSession {
         QueryValues.QUERY_VALUES_DESCRIPTION,
       ]);
     } else {
-      name = localSessionData!.name;
-      avatarKey = localSessionData.avatarKey;
-      createdTime = OurChatTime.fromDatetime(localSessionData.createdTime);
-      updatedTime = OurChatTime.fromDatetime(localSessionData.updatedTime);
-      size = localSessionData.size;
-      description = localSessionData.description;
+      state = state.copyWith(
+        name: localSessionData!.name,
+        avatarKey: localSessionData.avatarKey,
+        createdTime: OurChatTime.fromDatetime(localSessionData.createdTime),
+        updatedTime: OurChatTime.fromDatetime(localSessionData.updatedTime),
+        size: localSessionData.size,
+        description: localSessionData.description,
+      );
     }
-    var privateDB = ourchatAppState.privateDB!;
-    var localSessionPrivateData = await (privateDB.select(privateDB.session)
-          ..where((u) => u.sessionId.equals(BigInt.from(sessionId.toInt()))))
-        .getSingleOrNull();
+    var pDB = privateDB!;
+    var localSessionPrivateData =
+        await (pDB.select(
+              pDB.session,
+            )..where((u) => u.sessionId.equals(BigInt.from(sessionId.toInt()))))
+            .getSingleOrNull();
     if (localSessionPrivateData == null &&
-        ourchatAppState.thisAccount!.sessions.contains(sessionId)) {
+        thisAccountId != null &&
+        ref
+                .read(ourChatAccountProvider(thisAccountId))
+                .sessions
+                .contains(sessionId) ==
+            true) {
       privateNeedUpdate = true;
     }
     if (privateNeedUpdate) {
       logger.d("get session private info");
-      queryValues.addAll(
-          [QueryValues.QUERY_VALUES_MEMBERS, QueryValues.QUERY_VALUES_ROLES]);
-    } else if (ourchatAppState.thisAccount!.sessions.contains(sessionId)) {
+      queryValues.addAll([
+        QueryValues.QUERY_VALUES_MEMBERS,
+        QueryValues.QUERY_VALUES_ROLES,
+      ]);
+    } else if (thisAccountId != null &&
+        ref
+                .read(ourChatAccountProvider(thisAccountId))
+                .sessions
+                .contains(sessionId) ==
+            true) {
       // get from local db
-      var privateDB = ourchatAppState.privateDB!;
-      var localSessionPrivateData = await (privateDB.select(privateDB.session)
-            ..where((u) => u.sessionId.equals(BigInt.from(sessionId.toInt()))))
-          .getSingle();
+      var localSessionPrivateData =
+          await (pDB.select(pDB.session)..where(
+                (u) => u.sessionId.equals(BigInt.from(sessionId.toInt())),
+              ))
+              .getSingle();
       var jsonMembers = jsonDecode(localSessionPrivateData.members);
       var jsonRoles = jsonDecode(localSessionPrivateData.roles);
       var jsonMyPermissions = jsonDecode(localSessionPrivateData.myPermissions);
 
-      myPermissions = [];
+      var myPerms = <int>[];
       for (int i = 0; i < jsonMyPermissions.length; i++) {
-        myPermissions.add(jsonMyPermissions[i]);
+        myPerms.add(jsonMyPermissions[i]);
       }
 
-      members = [];
+      var mems = <Int64>[];
       for (int i = 0; i < jsonMembers.length; i++) {
-        members.add(Int64.parseInt(jsonMembers[i].toString()));
+        mems.add(Int64.parseInt(jsonMembers[i].toString()));
       }
-      roles = {};
-      jsonRoles.forEach((key, value) =>
-          roles[Int64.parseInt(key)] = Int64.parseInt(value.toString()));
+      var rols = <Int64, Int64>{};
+      jsonRoles.forEach(
+        (key, value) =>
+            rols[Int64.parseInt(key)] = Int64.parseInt(value.toString()),
+      );
+
+      state = state.copyWith(
+        members: mems,
+        roles: rols,
+        myPermissions: myPerms,
+      );
     }
     try {
       GetSessionInfoResponse res = await safeRequest(
-          stub.getSessionInfo,
-          GetSessionInfoRequest(sessionId: sessionId, queryValues: queryValues),
-          getSessionInfoOnError,
-          rethrowError: true);
+        _stub.getSessionInfo,
+        GetSessionInfoRequest(sessionId: sessionId, queryValues: queryValues),
+        getSessionInfoOnError,
+        rethrowError: true,
+      );
 
       if (publicNeedUpdate) {
-        name = res.name;
-        avatarKey = res.avatarKey;
-        createdTime = OurChatTime.fromTimestamp(res.createdTime);
-        updatedTime = OurChatTime.fromTimestamp(res.updatedTime);
-        size = res.size.toInt();
-        description = res.description;
+        state = state.copyWith(
+          name: res.name,
+          avatarKey: res.avatarKey,
+          createdTime: OurChatTime.fromTimestamp(res.createdTime),
+          updatedTime: OurChatTime.fromTimestamp(res.updatedTime),
+          size: res.size.toInt(),
+          description: res.description,
+        );
 
         if (localSessionData == null) {
-          var publicDB = ourchatAppState.publicDB;
-          publicDB.into(publicDB.publicSession).insert(PublicSessionData(
-              sessionId: BigInt.from(sessionId.toInt()),
-              name: res.name,
-              createdTime: createdTime.datetime,
-              updatedTime: updatedTime.datetime,
-              size: size,
-              description: description));
+          publicDB
+              .into(publicDB.publicSession)
+              .insert(
+                db.PublicSessionData(
+                  sessionId: BigInt.from(sessionId.toInt()),
+                  name: res.name,
+                  createdTime: OurChatTime.fromTimestamp(
+                    res.createdTime,
+                  ).datetime,
+                  updatedTime: OurChatTime.fromTimestamp(
+                    res.updatedTime,
+                  ).datetime,
+                  size: res.size.toInt(),
+                  description: res.description,
+                ),
+              );
         } else {
-          var publicDB = ourchatAppState.publicDB;
-          (publicDB.update(publicDB.publicSession)
-                ..where((u) => u.sessionId
-                    .equals(BigInt.from(int.parse(sessionId.toString())))))
-              .write(PublicSessionCompanion(
-                  name: Value(name),
-                  avatarKey: Value(avatarKey),
-                  createdTime: Value(createdTime.datetime),
-                  updatedTime: Value(updatedTime.datetime),
-                  size: Value(size),
-                  description: Value(description)));
+          (publicDB.update(publicDB.publicSession)..where(
+                (u) => u.sessionId.equals(
+                  BigInt.from(int.parse(sessionId.toString())),
+                ),
+              ))
+              .write(
+                db.PublicSessionCompanion(
+                  name: Value(res.name),
+                  avatarKey: Value(res.avatarKey),
+                  createdTime: Value(
+                    OurChatTime.fromTimestamp(res.createdTime).datetime,
+                  ),
+                  updatedTime: Value(
+                    OurChatTime.fromTimestamp(res.updatedTime).datetime,
+                  ),
+                  size: Value(res.size.toInt()),
+                  description: Value(res.description),
+                ),
+              );
         }
       }
 
       if (privateNeedUpdate) {
-        members = res.members;
+        var mems = res.members;
+        var rols = <Int64, Int64>{};
         for (int i = 0; i < res.roles.length; i++) {
-          roles[res.roles[i].userId] = res.roles[i].role;
+          rols[res.roles[i].userId] = res.roles[i].role;
         }
-        var l10n = ourchatAppState.l10n;
+        var myPerms = <int>[];
         try {
-          var roleRes = await safeRequest(stub.getRole,
-              GetRoleRequest(roleId: roles[ourchatAppState.thisAccount!.id]),
-              (GrpcError e) {
-            showResultMessage(
-              ourchatAppState,
-              e.code,
-              e.message,
-              notFoundStatus: l10n.notFound(l10n.role),
-              permissionDeniedStatus: l10n.permissionDenied(l10n.notInSession),
-            );
-          });
-          myPermissions = [];
+          var roleRes = await safeRequest(
+            _stub.getRole,
+            GetRoleRequest(roleId: rols[thisAccountId!]),
+            (GrpcError e) {
+              showResultMessage(
+                e.code,
+                e.message,
+                notFoundStatus: l10n.notFound(l10n.role),
+                permissionDeniedStatus: l10n.permissionDenied(
+                  l10n.notInSession,
+                ),
+              );
+            },
+          );
           for (int i = 0; i < roleRes.permissions.length; i++) {
-            myPermissions.add(roleRes.permissions[i].toInt());
+            myPerms.add(roleRes.permissions[i].toInt());
           }
         } catch (e) {
           // continue
         }
 
         var intMembers = [];
-        for (int i = 0; i < members.length; i++) {
-          intMembers.add(members[i].toInt());
+        for (int i = 0; i < mems.length; i++) {
+          intMembers.add(mems[i].toInt());
         }
-        var intRoles = {};
-        roles.forEach((key, value) => intRoles[key.toString()] = value.toInt());
+        var intRoles = <String, dynamic>{};
+        rols.forEach((key, value) => intRoles[key.toString()] = value.toInt());
         if (localSessionPrivateData == null) {
-          privateDB.into(privateDB.session).insert(SessionData(
-              sessionId: BigInt.from(sessionId.toInt()),
-              members: jsonEncode(intMembers),
-              roles: jsonEncode(intRoles),
-              myPermissions: jsonEncode(myPermissions)));
+          pDB
+              .into(pDB.session)
+              .insert(
+                db.SessionData(
+                  sessionId: BigInt.from(sessionId.toInt()),
+                  members: jsonEncode(intMembers),
+                  roles: jsonEncode(intRoles),
+                  myPermissions: jsonEncode(myPerms),
+                ),
+              );
         } else {
-          (privateDB.update(privateDB.session)
-                ..where(
-                    (u) => u.sessionId.equals(BigInt.from(sessionId.toInt()))))
-              .write(SessionCompanion(
+          (pDB.update(pDB.session)..where(
+                (u) => u.sessionId.equals(BigInt.from(sessionId.toInt())),
+              ))
+              .write(
+                db.SessionCompanion(
                   members: Value(jsonEncode(intMembers)),
                   roles: Value(jsonEncode(intRoles)),
-                  myPermissions: Value(jsonEncode(myPermissions))));
+                  myPermissions: Value(jsonEncode(myPerms)),
+                ),
+              );
         }
 
-        if (members.length == 2) {
-          Int64 otherUserId = members.firstWhere(
-              (element) => element != ourchatAppState.thisAccount!.id);
-          OurChatAccount otherAccount = OurChatAccount(ourchatAppState);
-          otherAccount.id = otherUserId;
-          otherAccount.recreateStub();
+        String? dn;
+        if (mems.length == 2) {
+          Int64 otherUserId = mems.firstWhere(
+            (element) => element != thisAccountId!,
+          );
+          final otherAccount = ref.read(
+            ourChatAccountProvider(otherUserId).notifier,
+          );
           await otherAccount.getAccountInfo();
-          displayName = otherAccount.getDisplayNameOrName();
+          dn = otherAccount.getDisplayNameOrName();
         }
+
+        state = state.copyWith(
+          members: mems,
+          roles: rols,
+          myPermissions: myPerms,
+          displayName: dn,
+        );
       }
     } catch (e) {
-      ourchatAppState.gettingInfoSessionList.remove(sessionId);
+      _isFetching = false;
       return false;
     }
 
-    lastCheckTime = DateTime.now();
-    ourchatAppState.sessionCachePool[sessionId] = this;
-    ourchatAppState.gettingInfoSessionList.remove(sessionId);
+    state = state.copyWith(lastCheckTime: DateTime.now());
+    _isFetching = false;
     logger.d("save session info to cache");
-  }
-
-  @override
-  int get hashCode => sessionId.toInt();
-
-  @override
-  bool operator ==(Object other) {
-    if (other is OurChatSession) {
-      return sessionId == other.sessionId;
-    }
-    return false;
-  }
-
-  String getDisplayName() {
-    if (name.isNotEmpty) {
-      return name;
-    }
-    if (displayName == null) {
-      return ourchatAppState.l10n.newSession;
-    }
-    return displayName!;
   }
 
   void getSessionInfoOnError(GrpcError e) {}

@@ -33,7 +33,7 @@ class PublicAccount extends Table {
 @DriftDatabase(tables: [PublicSession, PublicAccount])
 class PublicOurChatDatabase extends _$PublicOurChatDatabase {
   PublicOurChatDatabase([QueryExecutor? executor])
-      : super(executor ?? _openConnection());
+    : super(executor ?? _openConnection());
 
   @override
   int get schemaVersion => 1;
@@ -87,7 +87,7 @@ class Record extends Table {
 @DriftDatabase(tables: [Account, Session, Record])
 class OurChatDatabase extends _$OurChatDatabase {
   OurChatDatabase(Int64 id, [QueryExecutor? executor])
-      : super(executor ?? _openConnection(id));
+    : super(executor ?? _openConnection(id));
 
   @override
   int get schemaVersion => 1;

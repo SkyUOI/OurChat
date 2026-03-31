@@ -21,7 +21,9 @@ class WindowManager {
   }
 
   Future<void> waitUntilReadyToShow(
-      WindowOptions options, Function() callback) async {
+    WindowOptions options,
+    Function() callback,
+  ) async {
     // No-op for web
   }
 

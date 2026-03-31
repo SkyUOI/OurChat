@@ -6,9 +6,10 @@ commands = []
 def generate(dir, to_path):
     for root, dirs, files in os.walk(dir):
         for file in files:
-            commands.append(
-                f"protoc {os.path.join(root, file)} --dart_out=grpc:{to_path}"
-            )
+            if ".proto" in file:
+                commands.append(
+                    f"protoc {os.path.join(root, file)} --dart_out=grpc:{to_path}"
+                )
 
 
 generate("service", "client/lib")

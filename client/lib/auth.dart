@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ourchat/core/chore.dart';
+import 'package:ourchat/core/config.dart';
 import 'package:ourchat/core/event.dart';
-import 'package:ourchat/l10n/app_localizations.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/core/database.dart';
 import 'package:ourchat/server_setting.dart';
 import 'core/account.dart';
-import 'package:provider/provider.dart';
+import 'core/auth_notifier.dart';
 
 // Auth界面
 class Auth extends StatelessWidget {
   const Auth({super.key});
   @override
   Widget build(BuildContext context) {
-    var l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: SafeArea(
         child: DefaultTabController(
@@ -27,7 +27,8 @@ class Auth extends StatelessWidget {
                 ],
               ),
               const Expanded(
-                  child: TabBarView(children: [Login(), Register()])),
+                child: TabBarView(children: [Login(), Register()]),
+              ),
             ],
           ),
         ),
@@ -36,311 +37,347 @@ class Auth extends StatelessWidget {
   }
 }
 
-class Login extends StatefulWidget {
+class Login extends ConsumerStatefulWidget {
   const Login({super.key});
 
   @override
-  State<Login> createState() => _LoginState();
+  ConsumerState<Login> createState() => _LoginState();
 }
 
-class _LoginState extends State<Login> {
+class _LoginState extends ConsumerState<Login> {
   String account = "", password = "", avatarUrl = "";
   bool savePassword = false, inited = false;
   @override
   Widget build(BuildContext context) {
     var key = GlobalKey<FormState>();
-    var ourchatAppState = context.watch<OurChatAppState>();
+    final config = ref.read(configProvider);
     if (!inited) {
-      account = ourchatAppState.config["recent_account"];
-      password = ourchatAppState.config["recent_password"];
-      avatarUrl = ourchatAppState.config["recent_avatar_url"];
+      account = config.recentAccount;
+      password = config.recentPassword;
+      avatarUrl = config.recentAvatarUrl;
       if (password.isNotEmpty) savePassword = true;
       inited = true;
     }
-    var l10n = AppLocalizations.of(context)!;
     return SafeArea(
       child: Form(
-          key: key,
-          child: Row(
-            children: [
-              Flexible(flex: 1, child: Container()),
-              Flexible(
-                  flex: 3,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Padding(
-                        padding: EdgeInsets.all(10.0),
-                        child: SizedBox(
-                            height: 100.0,
-                            width: 100.0,
-                            child: (avatarUrl.isEmpty
-                                ? Image.asset("assets/images/logo.png")
-                                : UserAvatar(
-                                    imageUrl: avatarUrl,
-                                    size: AppStyles.largeAvatarSize,
-                                  ))),
-                      ),
-                      TextFormField(
-                        // 账号输入框
-                        initialValue: account,
-                        decoration: InputDecoration(
-                            label: Text("${l10n.ocid}/${l10n.email}")),
-                        onSaved: (newValue) {
-                          setState(() {
-                            account = newValue!;
-                          });
-                        },
-                      ),
-                      TextFormField(
-                        // 密码输入框
-                        initialValue: password,
-                        decoration: InputDecoration(
-                          label: Text(l10n.password),
-                        ),
-                        onSaved: (newValue) {
-                          setState(() {
-                            password = newValue!;
-                          });
-                        },
-                        obscureText: true,
-                      ),
-                      CheckboxListTile(
-                          // 保存密码checkbox
-                          dense: true,
-                          contentPadding: const EdgeInsets.all(0.0),
-                          controlAffinity: ListTileControlAffinity.leading,
-                          title: Text(l10n.savePassword),
-                          value: savePassword,
-                          onChanged: (value) {
-                            setState(() {
-                              key.currentState!.save();
-                              savePassword = !savePassword;
-                            });
-                          }),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Padding(
-                            padding: EdgeInsets.all(AppStyles.mediumPadding),
-                            child: ElevatedButton.icon(
-                                style: AppStyles.defaultButtonStyle,
-                                icon: Icon(Icons.arrow_back),
-                                onPressed: () {
-                                  Navigator.pushReplacement(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (context) =>
-                                              ServerSetting()));
-                                },
-                                label: Text(l10n.selectServer)),
-                          ),
-                          Padding(
-                            padding: EdgeInsets.all(AppStyles.mediumPadding),
-                            child: ElevatedButton.icon(
-                                style: AppStyles.defaultButtonStyle,
-                                icon: Icon(Icons.login),
-                                onPressed: () async {
-                                  key.currentState!.save(); // 保存表单信息
-                                  // 创建ocAccount对象并登录
-                                  OurChatAccount ocAccount =
-                                      OurChatAccount(ourchatAppState);
-                                  String? email, ocid;
-                                  if (account.contains('@')) {
-                                    // 判断邮箱/ocid登录
-                                    email = account;
-                                  } else {
-                                    ocid = account;
-                                  }
-                                  bool res = await ocAccount.login(
-                                    password,
-                                    ocid,
-                                    email,
-                                  );
-
-                                  if (res) {
-                                    ourchatAppState.config["recent_account"] =
-                                        account;
-                                    ourchatAppState.config["recent_password"] =
-                                        (savePassword ? password : "");
-                                    ourchatAppState
-                                            .config["recent_avatar_url"] =
-                                        ocAccount.avatarUrl();
-                                    ourchatAppState.config.saveConfig();
-                                    ourchatAppState.thisAccount = ocAccount;
-                                    ourchatAppState.privateDB =
-                                        OurChatDatabase(ocAccount.id);
-                                    ourchatAppState.eventSystem =
-                                        OurChatEventSystem(ourchatAppState);
-                                    await ourchatAppState.thisAccount!
-                                        .getAccountInfo();
-                                    ourchatAppState.eventSystem!.listenEvents();
-                                    ourchatAppState.update();
-                                    if (context.mounted) {
-                                      // 跳转主界面
-                                      Navigator.pop(context);
-                                    }
-                                  }
-                                },
-                                label: Text(l10n.login)),
-                          ),
-                        ],
-                      )
-                    ],
-                  )),
-              Flexible(flex: 1, child: Container())
-            ],
-          )),
-    );
-  }
-}
-
-// 注册
-class Register extends StatefulWidget {
-  const Register({super.key});
-
-  @override
-  State<Register> createState() => _RegisterState();
-}
-
-class _RegisterState extends State<Register> {
-  String email = "", password = "", username = "";
-  bool showPassword = false, savePassword = false;
-  @override
-  Widget build(BuildContext context) {
-    var key = GlobalKey<FormState>();
-    var ourchatAppState = context.watch<OurChatAppState>();
-    var l10n = AppLocalizations.of(context)!;
-    return Form(
         key: key,
         child: Row(
           children: [
             Flexible(flex: 1, child: Container()),
             Flexible(
-                flex: 3,
-                child: Column(
+              flex: 3,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.all(10.0),
+                    child: SizedBox(
+                      height: 100.0,
+                      width: 100.0,
+                      child: (avatarUrl.isEmpty
+                          ? Image.asset("assets/images/logo.png")
+                          : UserAvatar(
+                              imageUrl: avatarUrl,
+                              size: AppStyles.largeAvatarSize,
+                            )),
+                    ),
+                  ),
+                  TextFormField(
+                    // 账号输入框
+                    initialValue: account,
+                    decoration: InputDecoration(
+                      label: Text("${l10n.ocid}/${l10n.email}"),
+                    ),
+                    onSaved: (newValue) {
+                      setState(() {
+                        account = newValue!;
+                      });
+                    },
+                  ),
+                  TextFormField(
+                    // 密码输入框
+                    initialValue: password,
+                    decoration: InputDecoration(label: Text(l10n.password)),
+                    onSaved: (newValue) {
+                      setState(() {
+                        password = newValue!;
+                      });
+                    },
+                    obscureText: true,
+                  ),
+                  CheckboxListTile(
+                    // 保存密码checkbox
+                    dense: true,
+                    contentPadding: const EdgeInsets.all(0.0),
+                    controlAffinity: ListTileControlAffinity.leading,
+                    title: Text(l10n.savePassword),
+                    value: savePassword,
+                    onChanged: (value) {
+                      setState(() {
+                        key.currentState!.save();
+                        savePassword = !savePassword;
+                      });
+                    },
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.all(AppStyles.mediumPadding),
+                        child: ElevatedButton.icon(
+                          style: AppStyles.defaultButtonStyle,
+                          icon: Icon(Icons.arrow_back),
+                          onPressed: () {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ServerSetting(),
+                              ),
+                            );
+                          },
+                          label: Text(l10n.selectServer),
+                        ),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.all(AppStyles.mediumPadding),
+                        child: ElevatedButton.icon(
+                          style: AppStyles.defaultButtonStyle,
+                          icon: Icon(Icons.login),
+                          onPressed: () async {
+                            key.currentState!.save(); // 保存表单信息
+                            String? email, ocid;
+                            if (account.contains('@')) {
+                              // 判断邮箱/ocid登录
+                              email = account;
+                            } else {
+                              ocid = account;
+                            }
+                            bool res = await ref
+                                .read(authProvider.notifier)
+                                .login(
+                                  password: password,
+                                  ocid: ocid,
+                                  email: email,
+                                );
+
+                            if (res) {
+                              final authState = ref.read(authProvider);
+                              final accountId = authState.accountId!;
+
+                              // 保存配置
+                              var notifier = ref.read(configProvider.notifier);
+                              notifier.setRecent(
+                                account,
+                                (savePassword ? password : ""),
+                              );
+
+                              // 创建私有数据库
+                              privateDB = OurChatDatabase(accountId);
+                              // 获取账户信息
+                              await ref
+                                  .read(
+                                    ourChatAccountProvider(accountId).notifier,
+                                  )
+                                  .getAccountInfo();
+                              // 更新头像URL
+                              final avatarUrl = ref
+                                  .read(ourChatAccountProvider(accountId))
+                                  .avatarKey;
+                              if (avatarUrl != null) {
+                                notifier.setAvatarUrl(
+                                  "http${ref.read(ourChatServerProvider).isTLS! ? 's' : ''}://${ref.read(ourChatServerProvider).host}:${ref.read(ourChatServerProvider).port.toString()}/v1/avatar?user_id=${accountId.toString()}&avatar_key=$avatarUrl",
+                                );
+                              }
+
+                              ref
+                                  .read(ourChatEventSystemProvider.notifier)
+                                  .listenEvents();
+                              // 应用状态已由AuthNotifier更新，无需额外更新
+                              if (context.mounted) {
+                                // 跳转主界面
+                                Navigator.pop(context);
+                              }
+                            }
+                          },
+                          label: Text(l10n.login),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Flexible(flex: 1, child: Container()),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// 注册
+class Register extends ConsumerStatefulWidget {
+  const Register({super.key});
+
+  @override
+  ConsumerState<Register> createState() => _RegisterState();
+}
+
+class _RegisterState extends ConsumerState<Register> {
+  String email = "", password = "", username = "";
+  bool showPassword = false, savePassword = false;
+  @override
+  Widget build(BuildContext context) {
+    var key = GlobalKey<FormState>();
+    return Form(
+      key: key,
+      child: Row(
+        children: [
+          Flexible(flex: 1, child: Container()),
+          Flexible(
+            flex: 3,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextFormField(
+                  // 用户名输入框
+                  initialValue: username,
+                  decoration: InputDecoration(label: Text(l10n.username)),
+                  onSaved: (newValue) {
+                    setState(() {
+                      username = newValue!;
+                    });
+                  },
+                ),
+                TextFormField(
+                  // 邮箱输入框
+                  initialValue: email,
+                  decoration: InputDecoration(label: Text(l10n.email)),
+                  onSaved: (newValue) {
+                    setState(() {
+                      email = newValue!;
+                    });
+                  },
+                ),
+                TextFormField(
+                  // 密码输入框
+                  initialValue: password,
+                  decoration: InputDecoration(label: Text(l10n.password)),
+                  onSaved: (newValue) {
+                    setState(() {
+                      password = newValue!;
+                    });
+                  },
+                  obscureText: !showPassword,
+                ),
+                CheckboxListTile(
+                  // 显示密码checkbox
+                  dense: true,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  title: Text(l10n.show(l10n.password)),
+                  value: showPassword,
+                  onChanged: (value) {
+                    setState(() {
+                      key.currentState!.save();
+                      showPassword = !showPassword;
+                    });
+                  },
+                ),
+                CheckboxListTile(
+                  dense: true,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  title: Text(l10n.savePassword),
+                  value: savePassword,
+                  onChanged: (value) {
+                    setState(() {
+                      key.currentState!.save();
+                      savePassword = !savePassword;
+                    });
+                  },
+                ),
+                Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    TextFormField(
-                      // 用户名输入框
-                      initialValue: username,
-                      decoration: InputDecoration(label: Text(l10n.username)),
-                      onSaved: (newValue) {
-                        setState(() {
-                          username = newValue!;
-                        });
-                      },
-                    ),
-                    TextFormField(
-                      // 邮箱输入框
-                      initialValue: email,
-                      decoration: InputDecoration(label: Text(l10n.email)),
-                      onSaved: (newValue) {
-                        setState(() {
-                          email = newValue!;
-                        });
-                      },
-                    ),
-                    TextFormField(
-                      // 密码输入框
-                      initialValue: password,
-                      decoration: InputDecoration(
-                        label: Text(l10n.password),
+                    Padding(
+                      padding: EdgeInsets.all(AppStyles.mediumPadding),
+                      child: ElevatedButton.icon(
+                        style: AppStyles.defaultButtonStyle,
+                        icon: Icon(Icons.arrow_back),
+                        onPressed: () {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ServerSetting(),
+                            ),
+                          );
+                        },
+                        label: Text(l10n.selectServer),
                       ),
-                      onSaved: (newValue) {
-                        setState(() {
-                          password = newValue!;
-                        });
-                      },
-                      obscureText: !showPassword,
                     ),
-                    CheckboxListTile(
-                        // 显示密码checkbox
-                        dense: true,
-                        controlAffinity: ListTileControlAffinity.leading,
-                        title: Text(l10n.show(l10n.password)),
-                        value: showPassword,
-                        onChanged: (value) {
-                          setState(() {
-                            key.currentState!.save();
-                            showPassword = !showPassword;
-                          });
-                        }),
-                    CheckboxListTile(
-                        dense: true,
-                        controlAffinity: ListTileControlAffinity.leading,
-                        title: Text(l10n.savePassword),
-                        value: savePassword,
-                        onChanged: (value) {
-                          setState(() {
-                            key.currentState!.save();
-                            savePassword = !savePassword;
-                          });
-                        }),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Padding(
-                          padding: EdgeInsets.all(AppStyles.mediumPadding),
-                          child: ElevatedButton.icon(
-                              style: AppStyles.defaultButtonStyle,
-                              icon: Icon(Icons.arrow_back),
-                              onPressed: () {
-                                Navigator.pushReplacement(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (context) => ServerSetting()));
-                              },
-                              label: Text(l10n.selectServer)),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.all(AppStyles.mediumPadding),
-                          child: ElevatedButton.icon(
-                              style: AppStyles.defaultButtonStyle,
-                              icon: Icon(Icons.app_registration),
-                              onPressed: () async {
-                                key.currentState!.save(); // 保存表单信息
-                                // 创建ocAccount对象并注册
-                                OurChatAccount ocAccount =
-                                    OurChatAccount(ourchatAppState);
-                                bool res = await ocAccount.register(
-                                  password,
-                                  username,
-                                  email,
-                                );
-                                if (res) {
-                                  // 注册成功
-                                  ourchatAppState.thisAccount = ocAccount;
-                                  ourchatAppState.privateDB =
-                                      OurChatDatabase(ocAccount.id);
-                                  ourchatAppState.eventSystem =
-                                      OurChatEventSystem(ourchatAppState);
-                                  await ourchatAppState.thisAccount!
-                                      .getAccountInfo();
+                    Padding(
+                      padding: EdgeInsets.all(AppStyles.mediumPadding),
+                      child: ElevatedButton.icon(
+                        style: AppStyles.defaultButtonStyle,
+                        icon: Icon(Icons.app_registration),
+                        onPressed: () async {
+                          key.currentState!.save(); // 保存表单信息
+                          bool res = await ref
+                              .read(authProvider.notifier)
+                              .register(
+                                email: email,
+                                password: password,
+                                username: username,
+                              );
+                          if (res) {
+                            final authState = ref.read(authProvider);
+                            final accountId = authState.accountId!;
 
-                                  ourchatAppState.config["recent_account"] =
-                                      email;
-                                  ourchatAppState.config["recent_password"] =
-                                      (savePassword ? password : "");
-                                  ourchatAppState.config["recent_avatar_url"] =
-                                      ocAccount.avatarUrl();
+                            // 保存配置
+                            var notifier = ref.watch(configProvider.notifier);
+                            notifier.setRecent(
+                              email,
+                              (savePassword ? password : ""),
+                            );
 
-                                  ourchatAppState.eventSystem!.listenEvents();
-                                  ourchatAppState.update();
-                                  if (context.mounted) {
-                                    // 注册成功后跳转到主页
-                                    Navigator.pop(context);
-                                  }
-                                }
-                              },
-                              label: Text(l10n.register)),
-                        ),
-                      ],
+                            // 创建私有数据库
+                            privateDB = OurChatDatabase(accountId);
+                            // 获取账户信息
+                            await ref
+                                .read(
+                                  ourChatAccountProvider(accountId).notifier,
+                                )
+                                .getAccountInfo();
+                            // 更新头像URL
+                            final avatarUrl = ref
+                                .read(ourChatAccountProvider(accountId))
+                                .avatarKey;
+                            if (avatarUrl != null) {
+                              notifier.setAvatarUrl(
+                                "http${ref.read(ourChatServerProvider).isTLS! ? 's' : ''}://${ref.read(ourChatServerProvider).host}:${ref.read(ourChatServerProvider).port.toString()}/v1/avatar?user_id=${accountId.toString()}&avatar_key=$avatarUrl",
+                              );
+                            }
+
+                            ref
+                                .read(ourChatEventSystemProvider.notifier)
+                                .listenEvents();
+                            // 应用状态已由AuthNotifier更新，无需额外更新
+                            if (context.mounted) {
+                              // 注册成功后跳转到主页
+                              Navigator.pop(context);
+                            }
+                          }
+                        },
+                        label: Text(l10n.register),
+                      ),
                     ),
                   ],
-                )),
-            Flexible(flex: 1, child: Container())
-          ],
-        ));
+                ),
+              ],
+            ),
+          ),
+          Flexible(flex: 1, child: Container()),
+        ],
+      ),
+    );
   }
 }

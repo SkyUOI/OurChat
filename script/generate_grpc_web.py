@@ -6,11 +6,12 @@ commands = []
 def generate(dir):
     for root, dirs, files in os.walk(dir):
         for file in files:
-            commands.append(
-                f"pnpx protoc {os.path.join(root, file)} \
+            if ".proto" in file:
+                commands.append(
+                    f"pnpx protoc {os.path.join(root, file)} \
 --ts_out=server/web-panel/src/api \
 --ts_opt eslint_disable"
-            )
+                )
 
 
 generate("service")
