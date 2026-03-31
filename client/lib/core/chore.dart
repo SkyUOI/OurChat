@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hashlib/hashlib.dart';
 import 'package:image_compression/image_compression.dart';
 import 'package:markdown/markdown.dart' as md;
@@ -10,6 +11,7 @@ import 'package:ourchat/core/log.dart';
 import 'package:flutter/material.dart';
 import 'package:ourchat/core/const.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:ourchat/core/server.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
 import 'package:ourchat/main.dart';
 import 'package:http/http.dart' as http;
@@ -17,7 +19,6 @@ import 'package:ourchat/service/ourchat/download/v1/download.pb.dart';
 import 'dart:async';
 
 import 'package:ourchat/service/ourchat/upload/v1/upload.pb.dart';
-import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
 import 'package:protobuf/well_known_types/google/protobuf/timestamp.pb.dart';
 
 class OurChatTime {
@@ -42,7 +43,8 @@ class OurChatTime {
 
   void toTimestamp() {
     Int64 seconds = Int64.parseInt(
-        (datetime.microsecondsSinceEpoch / 1000000).round().toString());
+      (datetime.microsecondsSinceEpoch / 1000000).round().toString(),
+    );
     // print(datetime.microsecondsSinceEpoch);
     // print("=>timestamp$seconds,$nanos");
     timestamp = Timestamp(seconds: seconds);
@@ -68,7 +70,6 @@ class OurChatTime {
 }
 
 void showResultMessage(
-  OurChatAppState ourchatAppState,
   int code,
   String? errorMessage, {
   dynamic okStatus,
@@ -89,7 +90,6 @@ void showResultMessage(
   dynamic dataLossStatus,
   dynamic unauthenticatedStatus,
 }) {
-  var l10n = ourchatAppState.l10n;
   dynamic message = l10n.unknownError;
   switch (code) {
     case okStatusCode:
@@ -185,11 +185,13 @@ void showResultMessage(
   }
   try {
     if (message is String && message.isNotEmpty) {
-      rootScaffoldMessengerKey.currentState!
-          .showSnackBar(SnackBar(content: Text(message)));
+      rootScaffoldMessengerKey.currentState!.showSnackBar(
+        SnackBar(content: Text(message)),
+      );
     } else if (message is Map) {
-      rootScaffoldMessengerKey.currentState!
-          .showSnackBar(SnackBar(content: Text(message[errorMessage])));
+      rootScaffoldMessengerKey.currentState!.showSnackBar(
+        SnackBar(content: Text(message[errorMessage])),
+      );
     }
   } catch (e) {
     logger.w("showResultMessage error: $e");
@@ -298,10 +300,7 @@ class UserAvatar extends StatelessWidget {
                     topLeft: Radius.circular(AppStyles.smallPadding),
                   ),
                 ),
-                child: Icon(
-                  Icons.edit,
-                  size: AppStyles.smallIconSize,
-                ),
+                child: Icon(Icons.edit, size: AppStyles.smallIconSize),
               ),
             ),
         ],
@@ -310,8 +309,12 @@ class UserAvatar extends StatelessWidget {
   }
 }
 
-Future safeRequest(Function func, var args, Function onError,
-    {bool rethrowError = false}) async {
+Future safeRequest(
+  Function func,
+  var args,
+  Function onError, {
+  bool rethrowError = false,
+}) async {
   logger.d("safeRequest called $func with args: $args");
   bool retryFlag = false;
   while (true) {
@@ -474,7 +477,7 @@ List analyzeVersionString(String version) {
     latestZ,
     other,
     other.contains("alpha"),
-    other.contains("beta")
+    other.contains("beta"),
   ];
 }
 
@@ -508,7 +511,9 @@ Future needUpdate(Uri source, bool acceptAlpha, bool acceptBeta) async {
 
 /// Replace urls in markdown text (GENERATE BY AI)
 String replaceMarkdownImageUrls(
-    String markdown, String Function(String oldUrl) replaceUrl) {
+  String markdown,
+  String Function(String oldUrl) replaceUrl,
+) {
   final doc = md.Document(encodeHtml: false);
   final nodes = doc.parseLines(markdown.split('\n'));
 
@@ -668,16 +673,18 @@ class _MiniRenderer {
 }
 
 Future<UploadResponse> uploadStreaming(
-    OurChatAppState ourchatAppState, Uint8List rawData, bool autoClean,
-    {Int64? sessionId, bool compress = true, String? contentType}) async {
-  var l10n = ourchatAppState.l10n;
-  var stub = OurChatServiceClient(ourchatAppState.server!.channel!,
-      interceptors: [ourchatAppState.server!.interceptor!]);
+  OurChatServer server,
+  Uint8List rawData,
+  bool autoClean, {
+  Int64? sessionId,
+  bool compress = true,
+  String? contentType,
+}) async {
+  var stub = server.newStub();
   StreamController<UploadRequest> controller =
       StreamController<UploadRequest>();
   var call = safeRequest(stub.upload, controller.stream, (GrpcError e) {
     showResultMessage(
-      ourchatAppState,
       e.code,
       e.message,
       invalidArgumentStatus: "${l10n.internalError}(${e.message})",
@@ -686,33 +693,46 @@ Future<UploadResponse> uploadStreaming(
   }, rethrowError: true);
   Uint8List biData = rawData;
   if (compress) {
-    biData = (await compressInQueue(ImageFileConfiguration(
-      input:
-          ImageFile(filePath: "", rawBytes: rawData, contentType: contentType),
-    )))
-        .rawBytes;
+    biData = (await compressInQueue(
+      ImageFileConfiguration(
+        input: ImageFile(
+          filePath: "",
+          rawBytes: rawData,
+          contentType: contentType,
+        ),
+      ),
+    )).rawBytes;
     logger.i(
-        "upload: original size=${rawData.lengthInBytes}, compressed size=${biData.lengthInBytes}");
+      "upload: original size=${rawData.lengthInBytes}, compressed size=${biData.lengthInBytes}",
+    );
   }
-  controller.add(UploadRequest(
-    metadata: Header(
+  controller.add(
+    UploadRequest(
+      metadata: Header(
         hash: sha3_256.convert(biData.toList()).bytes,
         size: Int64.parseInt(biData.length.toString()),
         autoClean: autoClean,
-        sessionId: sessionId),
-  ));
+        sessionId: sessionId,
+      ),
+    ),
+  );
   int chunkSize = 1024 * 128;
   for (int i = 0; i < biData.lengthInBytes; i += chunkSize) {
     logger.i(
-        "upload: sending chunk ${i ~/ chunkSize + 1} of ${(biData.lengthInBytes / chunkSize).ceil()}");
-    controller.add(UploadRequest(
+      "upload: sending chunk ${i ~/ chunkSize + 1} of ${(biData.lengthInBytes / chunkSize).ceil()}",
+    );
+    controller.add(
+      UploadRequest(
         content: biData
             .sublist(
-                i,
-                biData.lengthInBytes > i + chunkSize
-                    ? i + chunkSize
-                    : biData.lengthInBytes)
-            .toList()));
+              i,
+              biData.lengthInBytes > i + chunkSize
+                  ? i + chunkSize
+                  : biData.lengthInBytes,
+            )
+            .toList(),
+      ),
+    );
     logger.i("finish");
   }
   controller.close();
@@ -720,36 +740,61 @@ Future<UploadResponse> uploadStreaming(
 }
 
 Future<UploadResponse> upload(
-    OurChatAppState ourchatAppState, Uint8List rawData, bool autoClean,
-    {Int64? sessionId, bool compress = true, String? contentType}) async {
+  OurChatServer server,
+  Uint8List rawData,
+  bool autoClean, {
+  Int64? sessionId,
+  bool compress = true,
+  String? contentType,
+}) async {
   if (kIsWeb) {
-    return await uploadChunked(ourchatAppState, rawData, autoClean,
-        sessionId: sessionId, compress: compress, contentType: contentType);
+    return await uploadChunked(
+      server,
+      rawData,
+      autoClean,
+      sessionId: sessionId,
+      compress: compress,
+      contentType: contentType,
+    );
   } else {
-    return await uploadStreaming(ourchatAppState, rawData, autoClean,
-        sessionId: sessionId, compress: compress, contentType: contentType);
+    return await uploadStreaming(
+      server,
+      rawData,
+      autoClean,
+      sessionId: sessionId,
+      compress: compress,
+      contentType: contentType,
+    );
   }
 }
 
 /// Chunked upload function for gRPC-web compatibility
 /// Uses multiple unary RPC calls instead of streaming
 Future<UploadResponse> uploadChunked(
-    OurChatAppState ourchatAppState, Uint8List rawData, bool autoClean,
-    {Int64? sessionId, bool compress = true, String? contentType}) async {
-  var l10n = ourchatAppState.l10n;
-  var stub = OurChatServiceClient(ourchatAppState.server!.channel!,
-      interceptors: [ourchatAppState.server!.interceptor!]);
+  OurChatServer server,
+  Uint8List rawData,
+  bool autoClean, {
+  Int64? sessionId,
+  bool compress = true,
+  String? contentType,
+}) async {
+  var stub = server.newStub();
 
   // Compress if needed
   Uint8List biData = rawData;
   if (compress) {
-    biData = (await compressInQueue(ImageFileConfiguration(
-      input:
-          ImageFile(filePath: "", rawBytes: rawData, contentType: contentType),
-    )))
-        .rawBytes;
+    biData = (await compressInQueue(
+      ImageFileConfiguration(
+        input: ImageFile(
+          filePath: "",
+          rawBytes: rawData,
+          contentType: contentType,
+        ),
+      ),
+    )).rawBytes;
     logger.i(
-        "uploadChunked: original size=${rawData.lengthInBytes}, compressed size=${biData.lengthInBytes}");
+      "uploadChunked: original size=${rawData.lengthInBytes}, compressed size=${biData.lengthInBytes}",
+    );
   }
 
   // Calculate hash
@@ -766,7 +811,6 @@ Future<UploadResponse> uploadChunked(
     ),
     (GrpcError e) {
       showResultMessage(
-        ourchatAppState,
         e.code,
         e.message,
         resourceExhaustedStatus: l10n.storageSpaceFull,
@@ -782,8 +826,9 @@ Future<UploadResponse> uploadChunked(
   int totalChunks = (biData.length / chunkSize).ceil();
   for (int i = 0; i < totalChunks; i++) {
     int start = i * chunkSize;
-    int end =
-        (start + chunkSize < biData.length) ? start + chunkSize : biData.length;
+    int end = (start + chunkSize < biData.length)
+        ? start + chunkSize
+        : biData.length;
     var chunk = biData.sublist(start, end);
 
     var chunkResp = await safeRequest(
@@ -795,7 +840,6 @@ Future<UploadResponse> uploadChunked(
       ),
       (GrpcError e) {
         showResultMessage(
-          ourchatAppState,
           e.code,
           e.message,
           invalidArgumentStatus: "${l10n.internalError}(${e.message})",
@@ -805,7 +849,8 @@ Future<UploadResponse> uploadChunked(
     );
 
     logger.i(
-        "Uploaded chunk ${i + 1}/$totalChunks (${chunkResp.bytesReceived}/${biData.length} bytes)");
+      "Uploaded chunk ${i + 1}/$totalChunks (${chunkResp.bytesReceived}/${biData.length} bytes)",
+    );
   }
 
   // Complete upload
@@ -814,7 +859,6 @@ Future<UploadResponse> uploadChunked(
     CompleteUploadRequest(uploadId: uploadId),
     (GrpcError e) {
       showResultMessage(
-        ourchatAppState,
         e.code,
         e.message,
         invalidArgumentStatus: "${l10n.internalError}(${e.message})",
@@ -827,10 +871,8 @@ Future<UploadResponse> uploadChunked(
 }
 
 /// Cancel an ongoing upload
-Future<void> cancelUpload(
-    OurChatAppState ourchatAppState, String uploadId) async {
-  var stub = OurChatServiceClient(ourchatAppState.server!.channel!,
-      interceptors: [ourchatAppState.server!.interceptor!]);
+Future<void> cancelUpload(OurChatServer server, String uploadId) async {
+  var stub = server.newStub();
 
   await safeRequest(
     stub.cancelUpload,
@@ -841,31 +883,34 @@ Future<void> cancelUpload(
   );
 }
 
-Future<Uint8List> getOurChatFile(
-    OurChatAppState ourchatAppState, String key) async {
+Future<Uint8List> getOurChatFile(WidgetRef ref, String key) async {
   try {
     var manager = DefaultCacheManager();
+    var server = ref.watch(ourChatServerProvider);
     FileInfo? cache = await manager.getFileFromCache(
-        "${ourchatAppState.server!.host}:${ourchatAppState.server!.port}/$key");
+      "${server.host}:${server.port}/$key",
+    );
     if (cache != null) {
       return await cache.file.readAsBytes();
     }
-    var stub = OurChatServiceClient(ourchatAppState.server!.channel!,
-        interceptors: [ourchatAppState.server!.interceptor!]);
-    var res = await safeRequest(stub.download, DownloadRequest(key: key),
-        (GrpcError e) {
-      showResultMessage(ourchatAppState, e.code, e.message);
-    }) as ResponseStream<DownloadResponse>;
+    var stub = server.newStub();
+    var res =
+        await safeRequest(stub.download, DownloadRequest(key: key), (
+              GrpcError e,
+            ) {
+              showResultMessage(e.code, e.message);
+            })
+            as ResponseStream<DownloadResponse>;
     List<int> data = [];
     for (DownloadResponse piece in await res.toList()) {
       data.addAll(piece.data);
     }
 
     manager.putFile(
-        "${ourchatAppState.server!.host}:${ourchatAppState.server!.port}/$key",
-        Uint8List.fromList(data),
-        key:
-            "${ourchatAppState.server!.host}:${ourchatAppState.server!.port}/$key");
+      "${server.host}:${server.port}/$key",
+      Uint8List.fromList(data),
+      key: "${server.host}:${server.port}/$key",
+    );
     return Uint8List.fromList(data);
   } catch (e) {
     logger.e("getOurChatFile(key:$key) error:$e");

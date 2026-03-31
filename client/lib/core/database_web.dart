@@ -36,7 +36,7 @@ class PublicAccount extends Table {
 @DriftDatabase(tables: [PublicSession, PublicAccount])
 class PublicOurChatDatabase extends _$PublicOurChatDatabase {
   PublicOurChatDatabase([QueryExecutor? executor])
-      : super(executor ?? _openConnection());
+    : super(executor ?? _openConnection());
 
   @override
   int get schemaVersion => 1;
@@ -44,26 +44,33 @@ class PublicOurChatDatabase extends _$PublicOurChatDatabase {
   static QueryExecutor _openConnection() {
     if (!_useWorker) {
       // Test without worker using in-memory database
-      return DatabaseConnection.delayed(Future<DatabaseConnection>(() async {
-        final sqlite3 =
-            await WasmSqlite3.loadFromUrl(Uri.parse('/sqlite3.wasm'));
-        sqlite3.registerVirtualFileSystem(InMemoryFileSystem(),
-            makeDefault: true);
-        return DatabaseConnection(WasmDatabase.inMemory(sqlite3));
-      }));
+      return DatabaseConnection.delayed(
+        Future<DatabaseConnection>(() async {
+          final sqlite3 = await WasmSqlite3.loadFromUrl(
+            Uri.parse('/sqlite3.wasm'),
+          );
+          sqlite3.registerVirtualFileSystem(
+            InMemoryFileSystem(),
+            makeDefault: true,
+          );
+          return DatabaseConnection(WasmDatabase.inMemory(sqlite3));
+        }),
+      );
     }
 
     // Use the stable WasmDatabase.open API for web platform
-    return DatabaseConnection.delayed(Future<DatabaseConnection>(() async {
-      final result = await WasmDatabase.open(
-        databaseName: 'publicOurChatDatabase',
-        sqlite3Uri: Uri.parse('/sqlite3.wasm'),
-        driftWorkerUri: Uri.parse(
-          kReleaseMode ? '/drift_worker.min.js' : '/drift_worker.js',
-        ),
-      );
-      return DatabaseConnection(result.resolvedExecutor);
-    }));
+    return DatabaseConnection.delayed(
+      Future<DatabaseConnection>(() async {
+        final result = await WasmDatabase.open(
+          databaseName: 'publicOurChatDatabase',
+          sqlite3Uri: Uri.parse('/sqlite3.wasm'),
+          driftWorkerUri: Uri.parse(
+            kReleaseMode ? '/drift_worker.min.js' : '/drift_worker.js',
+          ),
+        );
+        return DatabaseConnection(result.resolvedExecutor);
+      }),
+    );
   }
 }
 
@@ -105,7 +112,7 @@ class Record extends Table {
 @DriftDatabase(tables: [Account, Session, Record])
 class OurChatDatabase extends _$OurChatDatabase {
   OurChatDatabase(Int64 id, [QueryExecutor? executor])
-      : super(executor ?? _openConnection(id));
+    : super(executor ?? _openConnection(id));
 
   @override
   int get schemaVersion => 1;
@@ -113,25 +120,32 @@ class OurChatDatabase extends _$OurChatDatabase {
   static QueryExecutor _openConnection(Int64 id) {
     if (!_useWorker) {
       // Test without worker using in-memory database
-      return DatabaseConnection.delayed(Future<DatabaseConnection>(() async {
-        final sqlite3 =
-            await WasmSqlite3.loadFromUrl(Uri.parse('/sqlite3.wasm'));
-        sqlite3.registerVirtualFileSystem(InMemoryFileSystem(),
-            makeDefault: true);
-        return DatabaseConnection(WasmDatabase.inMemory(sqlite3));
-      }));
+      return DatabaseConnection.delayed(
+        Future<DatabaseConnection>(() async {
+          final sqlite3 = await WasmSqlite3.loadFromUrl(
+            Uri.parse('/sqlite3.wasm'),
+          );
+          sqlite3.registerVirtualFileSystem(
+            InMemoryFileSystem(),
+            makeDefault: true,
+          );
+          return DatabaseConnection(WasmDatabase.inMemory(sqlite3));
+        }),
+      );
     }
 
     // Use the stable WasmDatabase.open API for web platform
-    return DatabaseConnection.delayed(Future<DatabaseConnection>(() async {
-      final result = await WasmDatabase.open(
-        databaseName: 'OurChatDB_${id.toString()}',
-        sqlite3Uri: Uri.parse('/sqlite3.wasm'),
-        driftWorkerUri: Uri.parse(
-          kReleaseMode ? '/drift_worker.min.js' : '/drift_worker.js',
-        ),
-      );
-      return DatabaseConnection(result.resolvedExecutor);
-    }));
+    return DatabaseConnection.delayed(
+      Future<DatabaseConnection>(() async {
+        final result = await WasmDatabase.open(
+          databaseName: 'OurChatDB_${id.toString()}',
+          sqlite3Uri: Uri.parse('/sqlite3.wasm'),
+          driftWorkerUri: Uri.parse(
+            kReleaseMode ? '/drift_worker.min.js' : '/drift_worker.js',
+          ),
+        );
+        return DatabaseConnection(result.resolvedExecutor);
+      }),
+    );
   }
 }

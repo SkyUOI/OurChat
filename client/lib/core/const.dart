@@ -6,28 +6,28 @@ const List<Map<String, String>> contributorsList = [
   {
     "user": "limuy2022",
     "avatar": "https://avatars.githubusercontent.com/u/97649454?v=4",
-    "url": "https://github.com/limuy2022"
+    "url": "https://github.com/limuy2022",
   },
   {
     "user": "senlinjun",
     "avatar": "https://avatars.githubusercontent.com/u/78007298?v=4",
-    "url": "https://github.com/senlinjun"
+    "url": "https://github.com/senlinjun",
   },
   {
     "user": "OMObuan",
     "avatar": "https://avatars.githubusercontent.com/u/150120115?v=4",
-    "url": "https://github.com/OMObuan"
+    "url": "https://github.com/OMObuan",
   },
   {
     "user": "Hemenguelbindi",
     "avatar": "https://avatars.githubusercontent.com/u/20486626?v=4",
-    "url": "https://github.com/Hemenguelbindi"
+    "url": "https://github.com/Hemenguelbindi",
   },
   {
     "user": "liya123",
     "avatar": "https://avatars.githubusercontent.com/u/12387755?v=4",
-    "url": "https://github.com/liya123"
-  }
+    "url": "https://github.com/liya123",
+  },
 ];
 const List<Map<String, String>> donorsList = [];
 const currentVersion = "v0.0.0.beta";
@@ -55,8 +55,7 @@ const dataLossStatusCode = 15;
 const unauthenticatedStatusCode = 16;
 
 // Device
-const mobile = 0;
-const desktop = 1;
+enum ScreenMode { mobile, desktop }
 
 // PopupMenuValue
 const addFriendAndSession = "Add Friend/Session";
