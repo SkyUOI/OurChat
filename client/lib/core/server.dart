@@ -5,6 +5,7 @@ import 'package:ourchat/core/const.dart';
 import 'package:ourchat/core/log.dart';
 import 'package:ourchat/service/basic/server/v1/server.pb.dart';
 import 'package:ourchat/service/basic/v1/basic.pbgrpc.dart';
+import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
 
 class OurChatInterceptor implements ClientInterceptor {
   String token = "";
@@ -13,8 +14,12 @@ class OurChatInterceptor implements ClientInterceptor {
   }
 
   @override
-  ResponseFuture<R> interceptUnary<Q, R>(ClientMethod<Q, R> method, Q request,
-      CallOptions options, ClientUnaryInvoker<Q, R> invoker) {
+  ResponseFuture<R> interceptUnary<Q, R>(
+    ClientMethod<Q, R> method,
+    Q request,
+    CallOptions options,
+    ClientUnaryInvoker<Q, R> invoker,
+  ) {
     var newOptions = options.mergedWith(
       CallOptions(metadata: {'authorization': "Bearer $token"}),
     );
@@ -23,10 +28,11 @@ class OurChatInterceptor implements ClientInterceptor {
 
   @override
   ResponseStream<R> interceptStreaming<Q, R>(
-      ClientMethod<Q, R> method,
-      Stream<Q> requests,
-      CallOptions options,
-      ClientStreamingInvoker<Q, R> invoker) {
+    ClientMethod<Q, R> method,
+    Stream<Q> requests,
+    CallOptions options,
+    ClientStreamingInvoker<Q, R> invoker,
+  ) {
     var newOptions = options.mergedWith(
       CallOptions(metadata: {'authorization': "Bearer $token"}),
     );
@@ -40,10 +46,14 @@ class OurChatServer {
   int port;
   int? ping;
   RunningStatus? serverStatus;
-  ClientChannelBase? channel;
+  late ClientChannelBase channel;
   ServerVersion? serverVersion;
   OurChatInterceptor? interceptor;
   bool? isTLS;
+
+  OurChatServiceClient newStub() {
+    return OurChatServiceClient(channel, interceptors: [interceptor!]);
+  }
 
   OurChatServer(this.host, this.port, bool ssl) {
     // try ssl/tls connection
@@ -78,7 +88,7 @@ class OurChatServer {
   }
 
   Future getServerInfo() async {
-    BasicServiceClient stub = BasicServiceClient(channel!);
+    BasicServiceClient stub = BasicServiceClient(channel);
     try {
       int beginTime = DateTime.now().millisecondsSinceEpoch;
       var _ = await stub.ping(PingRequest());

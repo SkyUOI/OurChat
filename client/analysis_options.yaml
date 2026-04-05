@@ -5,3 +5,6 @@ analyzer:
     # These should be fixed or ignored in the proto generator
     implementation_imports: ignore
     use_super_parameters: ignore
+
+plugins:
+  riverpod_lint: 3.1.3
