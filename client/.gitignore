@@ -141,6 +141,7 @@ lib/service
 
 # generate
 **/*.g.dart
+**/*.freezed.dart
 
 # l10n
 lib/l10n/*.dart

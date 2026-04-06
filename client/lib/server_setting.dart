@@ -1,20 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ourchat/core/const.dart';
+import 'package:ourchat/core/config.dart';
 import 'package:ourchat/core/chore.dart';
-import 'package:provider/provider.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/auth.dart';
 import 'package:ourchat/core/server.dart';
 
-class ServerSetting extends StatefulWidget {
+class ServerSetting extends ConsumerStatefulWidget {
   const ServerSetting({super.key});
 
   @override
-  State<ServerSetting> createState() => _ServerSettingState();
+  ConsumerState<ServerSetting> createState() => _ServerSettingState();
 }
 
-class _ServerSettingState extends State<ServerSetting> {
+class _ServerSettingState extends ConsumerState<ServerSetting> {
   String address = "skyuoi.org";
   int port = 7777;
   int ping = -1;
@@ -27,12 +28,11 @@ class _ServerSettingState extends State<ServerSetting> {
 
   @override
   Widget build(BuildContext context) {
-    var ourchatAppState = context.watch<OurChatAppState>();
-    var l10n = AppLocalizations.of(context)!;
+    final config = ref.watch(configProvider);
     // 从配置中读取地址和端口
     if (!inited) {
-      address = ourchatAppState.config["servers"][0]["host"];
-      port = ourchatAppState.config["servers"][0]["port"];
+      address = config.servers[0].host;
+      port = config.servers[0].port;
       inited = true;
     }
     var key = GlobalKey<FormState>();
@@ -62,8 +62,9 @@ class _ServerSettingState extends State<ServerSetting> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Padding(
-            padding: EdgeInsets.all(10.0),
-            child: SizedBox(height: 200.0, width: 200.0, child: serverLogo)),
+          padding: EdgeInsets.all(10.0),
+          child: SizedBox(height: 200.0, width: 200.0, child: serverLogo),
+        ),
         Row(
           // 展示服务端ip
           mainAxisAlignment: MainAxisAlignment.center,
@@ -119,20 +120,18 @@ class _ServerSettingState extends State<ServerSetting> {
           // 展示是否支持tls
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              "${l10n.tlsEncryption} ",
-            ),
+            Text("${l10n.tlsEncryption} "),
             isTLS == null
                 ? Text("")
                 : (isTLS!
-                    ? Text(
-                        l10n.tlsEnabled,
-                        style: const TextStyle(color: Colors.green),
-                      )
-                    : Text(
-                        l10n.tlsDisabled,
-                        style: const TextStyle(color: Colors.red),
-                      ))
+                      ? Text(
+                          l10n.tlsEnabled,
+                          style: const TextStyle(color: Colors.green),
+                        )
+                      : Text(
+                          l10n.tlsDisabled,
+                          style: const TextStyle(color: Colors.red),
+                        )),
           ],
         ),
       ],
@@ -147,9 +146,7 @@ class _ServerSettingState extends State<ServerSetting> {
             TextFormField(
               // 地址输入框
               initialValue: address,
-              decoration: InputDecoration(
-                label: Text(l10n.address),
-              ),
+              decoration: InputDecoration(label: Text(l10n.address)),
               validator: (value) {
                 if (value!.isEmpty) {
                   return l10n.cantBeEmpty;
@@ -165,9 +162,7 @@ class _ServerSettingState extends State<ServerSetting> {
             TextFormField(
               // 端口输入框
               initialValue: port.toString(),
-              decoration: InputDecoration(
-                label: Text(l10n.port),
-              ),
+              decoration: InputDecoration(label: Text(l10n.port)),
               validator: (value) {
                 if (value!.isEmpty) {
                   return l10n.cantBeEmpty;
@@ -191,9 +186,11 @@ class _ServerSettingState extends State<ServerSetting> {
                 padding: EdgeInsets.all(AppStyles.mediumPadding),
                 child: ElevatedButton.icon(
                   style: AppStyles.defaultButtonStyle,
-                  icon: Icon(isOnline
-                      ? Icons.arrow_forward
-                      : Icons.connect_without_contact),
+                  icon: Icon(
+                    isOnline
+                        ? Icons.arrow_forward
+                        : Icons.connect_without_contact,
+                  ),
                   label: Text(
                     // 如果服务端在线(尝试连接成功)，则显示"继续"
                     isOnline ? l10n.continue_ : l10n.connect,
@@ -213,17 +210,20 @@ class _ServerSettingState extends State<ServerSetting> {
                         prevPort == port &&
                         isOnline) {
                       // 进入Auth界面
-                      ourchatAppState.server = server;
-                      ourchatAppState.update();
-                      Navigator.pushReplacement(context,
-                          MaterialPageRoute(builder: (context) {
-                        return Auth();
-                      }));
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) {
+                            return Auth();
+                          },
+                        ),
+                      );
                       return;
                     }
                     // 连接新的服务端地址
                     isTLS = await OurChatServer.tlsEnabled(address, port);
                     server = OurChatServer(address, port, isTLS!);
+                    ref.read(ourChatServerProvider.notifier).update(server);
                     setState(() {
                       isOnline = false;
                       serverState = "";
@@ -248,9 +248,9 @@ class _ServerSettingState extends State<ServerSetting> {
                     }
                     // 连接成功
                     if (!context.mounted) return;
-                    ourchatAppState.config["servers"][0]["host"] = address;
-                    ourchatAppState.config["servers"][0]["port"] = port;
-                    ourchatAppState.config.saveConfig();
+                    ref.read(configProvider.notifier).setServers([
+                      ServerConfig(host: address, port: port),
+                    ]);
                     // 保存服务器地址
                     setState(() {
                       isOnline = true;
@@ -267,8 +267,7 @@ class _ServerSettingState extends State<ServerSetting> {
                         case unavailableStatusCode:
                           serverState = AppLocalizations.of(
                             context,
-                          )!
-                              .serverStatusUnderMaintenance;
+                          )!.serverStatusUnderMaintenance;
                           serverStatusColor = Colors.orange;
                           break;
                         default:
@@ -290,7 +289,7 @@ class _ServerSettingState extends State<ServerSetting> {
                 child: CircularProgressIndicator(
                   color: Theme.of(context).primaryColor,
                 ),
-              )
+              ),
           ],
         ),
       ),
@@ -300,13 +299,14 @@ class _ServerSettingState extends State<ServerSetting> {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            if (ourchatAppState.screenMode == mobile) {
+            if (ref.watch(screenModeProvider) == ScreenMode.mobile) {
               // 移动端，纵向展示
               return Padding(
                 padding: const EdgeInsets.all(20.0),
                 child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [serverInfoLabels, serverForm]),
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [serverInfoLabels, serverForm],
+                ),
               );
             }
             return Padding(

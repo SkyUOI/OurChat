@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ourchat/core/config.dart';
 import 'package:ourchat/core/const.dart';
 import 'package:ourchat/core/log.dart';
 import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/main.dart';
-import 'package:provider/provider.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
 
 class Setting extends StatelessWidget {
@@ -32,7 +33,7 @@ class Setting extends StatelessWidget {
                   ),
                 ),
               ),
-              DialogButtons(formKey: formKey) // 确定/重置
+              DialogButtons(formKey: formKey), // 确定/重置
             ],
           ),
         ),
@@ -41,60 +42,68 @@ class Setting extends StatelessWidget {
   }
 }
 
-class UpdateSourceEditor extends StatefulWidget {
+class UpdateSourceEditor extends ConsumerStatefulWidget {
   const UpdateSourceEditor({super.key});
 
   @override
-  State<UpdateSourceEditor> createState() => _UpdateSourceEditorState();
+  ConsumerState<UpdateSourceEditor> createState() => _UpdateSourceEditorState();
 }
 
-class _UpdateSourceEditorState extends State<UpdateSourceEditor> {
+class _UpdateSourceEditorState extends ConsumerState<UpdateSourceEditor> {
   @override
   Widget build(BuildContext context) {
-    OurChatAppState ourChatAppState = context.watch<OurChatAppState>();
+    final config = ref.watch(configProvider);
     return Row(
       children: [
         Padding(
           padding: const EdgeInsets.all(AppStyles.defaultPadding),
-          child: SizedBox(
-            height: 30.0,
-            width: 30.0,
-            child: Icon(Icons.link),
-          ),
+          child: SizedBox(height: 30.0, width: 30.0, child: Icon(Icons.link)),
         ),
         Expanded(
-            child: TextFormField(
-          initialValue: ourChatAppState.config["update_source"],
-          decoration: InputDecoration(label: Text("URL")),
-          autovalidateMode: AutovalidateMode.onUnfocus,
-          validator: (value) {
-            ourChatAppState.config["update_source"] = value;
-            return null;
-          },
-        ))
+          child: TextFormField(
+            initialValue: config.updateSource,
+            decoration: InputDecoration(label: Text("URL")),
+            autovalidateMode: AutovalidateMode.onUnfocus,
+            validator: (value) {
+              ref.read(configProvider.notifier).setUpdateSource(value!);
+              return null;
+            },
+          ),
+        ),
       ],
     );
   }
 }
 
-class LanguageEditor extends StatelessWidget {
-  const LanguageEditor({
-    super.key,
-  });
+class LanguageEditor extends ConsumerWidget {
+  const LanguageEditor({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    var ourchatAppState = context.watch<OurChatAppState>();
-    var l10n = AppLocalizations.of(context)!;
-    var language = ourchatAppState.config["language"];
+  Widget build(BuildContext context, WidgetRef ref) {
+    var config = ref.watch(configProvider);
+    var language = config.language ?? LanguageConfig.defaults;
     List<DropdownMenuItem> languages = [];
     for (int i = 0; i < AppLocalizations.supportedLocales.length; i++) {
-      languages.add(DropdownMenuItem(
+      languages.add(
+        DropdownMenuItem(
           value:
               "${AppLocalizations.supportedLocales.elementAt(i).languageCode}-${AppLocalizations.supportedLocales.elementAt(i).scriptCode}-${AppLocalizations.supportedLocales.elementAt(i).countryCode}",
           child: Text(
-              AppLocalizations.supportedLocales.elementAt(i).languageCode)));
+            AppLocalizations.supportedLocales.elementAt(i).languageCode,
+          ),
+        ),
+      );
     }
+    // Find matching item by language code, not exact string
+    String initialValue =
+        languages
+                .firstWhere(
+                  (item) =>
+                      (item.value as String).startsWith(language.languageCode),
+                  orElse: () => languages.first,
+                )
+                .value
+            as String;
     return Row(
       children: [
         Padding(
@@ -108,7 +117,7 @@ class LanguageEditor extends StatelessWidget {
         Expanded(
           child: DropdownButtonFormField(
             decoration: InputDecoration(label: Text(l10n.language)),
-            initialValue: "${language[0]}-${language[1]}-${language[2]}",
+            initialValue: initialValue,
             items: languages,
             onChanged: (value) {
               List languageStringData = value.split("-");
@@ -120,18 +129,33 @@ class LanguageEditor extends StatelessWidget {
                   languageData.add(languageStringData[i]);
                 }
               }
-              ourchatAppState.config["language"] = languageData;
+              ref
+                  .read(configProvider.notifier)
+                  .setLanguage(
+                    LanguageConfig(
+                      languageCode: languageData[0] ?? '',
+                      scriptCode: languageData[1] ?? '',
+                      countryCode: languageData[2] ?? '',
+                    ),
+                  );
 
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
                   content: Localizations.override(
-                      context: context,
-                      locale: Locale.fromSubtags(
-                          languageCode: languageData[0]!,
-                          scriptCode: languageData[1],
-                          countryCode: languageData[2]),
-                      child: Builder(builder: (context) {
+                    context: context,
+                    locale: Locale.fromSubtags(
+                      languageCode: languageData[0]!,
+                      scriptCode: languageData[1],
+                      countryCode: languageData[2],
+                    ),
+                    child: Builder(
+                      builder: (context) {
                         return Text(AppLocalizations.of(context)!.needRestart);
-                      }))));
+                      },
+                    ),
+                  ),
+                ),
+              );
             },
           ),
         ),
@@ -140,16 +164,13 @@ class LanguageEditor extends StatelessWidget {
   }
 }
 
-class SeedColorEditor extends StatelessWidget {
-  const SeedColorEditor({
-    super.key,
-  });
+class SeedColorEditor extends ConsumerWidget {
+  const SeedColorEditor({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    var ourchatAppState = context.watch<OurChatAppState>();
-    var l10n = AppLocalizations.of(context)!;
-    var seedColor = ourchatAppState.config["color"];
+  Widget build(BuildContext context, WidgetRef ref) {
+    var config = ref.watch(configProvider);
+    var seedColor = config.color;
     return Row(
       children: [
         Padding(
@@ -164,73 +185,52 @@ class SeedColorEditor extends StatelessWidget {
                     seedColor: Color(seedColor),
                   ).secondary,
                 ),
-                color: Color(
-                  ourchatAppState.config["color"],
-                ),
+                color: Color(config.color),
               ),
             ),
           ),
         ),
         Expanded(
           child: TextFormField(
-              decoration: InputDecoration(
-                labelText: l10n.themeColorSeed,
-              ),
-              controller: TextEditingController(
-                text: "0x${ourchatAppState.config["color"].toRadixString(16)}",
-              ),
-              autovalidateMode: AutovalidateMode.onUnfocus,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return AppLocalizations.of(
-                    context,
-                  )!
-                      .cantBeEmpty;
-                }
-                int colorCode;
-                try {
-                  colorCode = int.parse(
-                    value,
-                  );
-                } catch (e) {
-                  return AppLocalizations.of(
-                    context,
-                  )!
-                      .invalidColorCode;
-                }
-                ourchatAppState.config["color"] = colorCode;
-                return null;
-              }),
+            decoration: InputDecoration(labelText: l10n.themeColorSeed),
+            controller: TextEditingController(
+              text: "0x${config.color.toRadixString(16)}",
+            ),
+            autovalidateMode: AutovalidateMode.onUnfocus,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return AppLocalizations.of(context)!.cantBeEmpty;
+              }
+              int colorCode;
+              try {
+                colorCode = int.parse(value);
+              } catch (e) {
+                return AppLocalizations.of(context)!.invalidColorCode;
+              }
+              ref.read(configProvider.notifier).setColor(colorCode);
+              return null;
+            },
+          ),
         ),
       ],
     );
   }
 }
 
-class DialogButtons extends StatelessWidget {
-  const DialogButtons({
-    super.key,
-    required this.formKey,
-  });
+class DialogButtons extends ConsumerWidget {
+  const DialogButtons({super.key, required this.formKey});
 
   final GlobalKey<FormState> formKey;
 
   @override
-  Widget build(BuildContext context) {
-    var appState = context.watch<OurChatAppState>();
-    var l10n = AppLocalizations.of(context)!;
+  Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
       padding: EdgeInsets.all(AppStyles.mediumPadding),
       child: ElevatedButton.icon(
         style: AppStyles.defaultButtonStyle,
         icon: Icon(Icons.refresh),
         onPressed: () {
-          var defaultConfig = appState.config.getDefaultConfig();
-          List keys = ["color", "log_level"];
-          for (String key in keys) {
-            appState.config.data[key] = defaultConfig[key];
-          }
-          appState.update();
+          ref.read(configProvider.notifier).reset();
         },
         label: Text(l10n.reset),
       ),
@@ -238,50 +238,55 @@ class DialogButtons extends StatelessWidget {
   }
 }
 
-class LogLevelSelector extends StatelessWidget {
+class LogLevelSelector extends ConsumerWidget {
   const LogLevelSelector({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    var ourchatAppState = context.watch<OurChatAppState>();
-    var l10n = AppLocalizations.of(context)!;
+  Widget build(BuildContext context, WidgetRef ref) {
+    var config = ref.watch(configProvider);
     List<DropdownMenuItem> dropDownItems = [];
     for (var i = 0; i < logLevels.length; i++) {
       var value = logLevels[i];
-      dropDownItems.add(DropdownMenuItem(
+      dropDownItems.add(
+        DropdownMenuItem(
           value: value,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [getLevelIcon(value), Text(value)],
-          )));
+          ),
+        ),
+      );
     }
     return Row(
       children: [
         Padding(
           padding: const EdgeInsets.all(AppStyles.defaultPadding),
           child: SizedBox(
-              width: 30.0,
-              height: 30.0,
-              child: getLevelIcon(ourchatAppState.config["log_level"])),
+            width: 30.0,
+            height: 30.0,
+            child: getLevelIcon(config.logLevel),
+          ),
         ),
         Expanded(
-            child: DropdownButtonFormField(
-                decoration: InputDecoration(label: Text(l10n.logLevel)),
-                initialValue: ourchatAppState.config["log_level"],
-                items: dropDownItems,
-                selectedItemBuilder: (context) {
-                  List<DropdownMenuItem> selectedItems = [];
-                  for (var i = 0; i < logLevels.length; i++) {
-                    var value = logLevels[i];
-                    selectedItems.add(
-                        DropdownMenuItem(value: value, child: Text(value)));
-                  }
-                  return selectedItems;
-                },
-                onChanged: (value) {
-                  ourchatAppState.config["log_level"] = value;
-                  ourchatAppState.update();
-                })),
+          child: DropdownButtonFormField(
+            decoration: InputDecoration(label: Text(l10n.logLevel)),
+            initialValue: config.logLevel,
+            items: dropDownItems,
+            selectedItemBuilder: (context) {
+              List<DropdownMenuItem> selectedItems = [];
+              for (var i = 0; i < logLevels.length; i++) {
+                var value = logLevels[i];
+                selectedItems.add(
+                  DropdownMenuItem(value: value, child: Text(value)),
+                );
+              }
+              return selectedItems;
+            },
+            onChanged: (value) {
+              ref.read(configProvider.notifier).setLogLevel(value);
+            },
+          ),
+        ),
       ],
     );
   }
@@ -304,32 +309,17 @@ class LogLevelSelector extends StatelessWidget {
     var size = 35.0;
     switch (level) {
       case 'debug':
-        return Icon(
-          Icons.bug_report,
-          size: size,
-        );
+        return Icon(Icons.bug_report, size: size);
       case 'info':
         return Icon(Icons.info, size: size);
       case 'warning':
-        return Icon(
-          Icons.warning,
-          size: size,
-        );
+        return Icon(Icons.warning, size: size);
       case 'error':
-        return Icon(
-          Icons.error,
-          size: size,
-        );
+        return Icon(Icons.error, size: size);
       case 'fatal':
-        return Icon(
-          Icons.dangerous,
-          size: size,
-        );
+        return Icon(Icons.dangerous, size: size);
       case 'trace':
-        return Icon(
-          Icons.code,
-          size: size,
-        );
+        return Icon(Icons.code, size: size);
       default:
         return Icon(Icons.help);
     }

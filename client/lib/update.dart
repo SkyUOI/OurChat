@@ -1,91 +1,90 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ota_update/ota_update.dart';
 import "package:device_info_plus/device_info_plus.dart";
 import 'package:ourchat/core/const.dart';
-import 'package:provider/provider.dart';
 import 'main.dart';
 
-class UpdateWidget extends StatefulWidget {
+class UpdateWidget extends ConsumerStatefulWidget {
   final dynamic updateData;
   const UpdateWidget({super.key, required this.updateData});
 
   @override
-  State<UpdateWidget> createState() => _UpdateWidgetState();
+  ConsumerState<UpdateWidget> createState() => _UpdateWidgetState();
 }
 
-class _UpdateWidgetState extends State<UpdateWidget> {
+class _UpdateWidgetState extends ConsumerState<UpdateWidget> {
   @override
   Widget build(BuildContext context) {
-    var ourchatAppState = context.watch<OurChatAppState>();
     String? text;
     return SafeArea(
       child: Scaffold(
         body: Column(
           children: [
-            Row(
-              children: [
-                BackButton(),
-              ],
-            ),
+            Row(children: [BackButton()]),
             Expanded(
               child: FutureBuilder(
-                  future: getDownloadInfo(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.done &&
-                        snapshot.data != null) {
-                      Stream<OtaEvent> stream;
-                      if (Platform.isAndroid) {
-                        OtaUpdate otaUpdate = OtaUpdate();
-                        stream = otaUpdate.execute(snapshot.data,
-                            destinationFilename: "OurChat.apk",
-                            usePackageInstaller: true);
-                      } else {
-                        OtaUpdate otaUpdate = OtaUpdate();
-                        stream = otaUpdate.execute(snapshot.data,
-                            destinationFilename: "OurChat.tar.gz");
-                      }
-                      return StreamBuilder(
-                          stream: stream,
-                          builder: (context, snapshot) {
-                            double? value;
-                            if (snapshot.hasData) {
-                              value = (snapshot.data!.status ==
-                                      OtaStatus.DOWNLOADING
-                                  ? double.parse(snapshot.data!.value!)
-                                  : null);
-                            }
-                            return Center(
-                                child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                CircularProgressIndicator(value: value),
-                                Text(ourchatAppState.l10n.updateDownloading)
-                              ],
-                            ));
-                          });
-                    } else if (snapshot.connectionState !=
-                            ConnectionState.done ||
-                        snapshot.data == null) {
-                      text = ourchatAppState.l10n.updateGettingInfo;
-                    } else if (snapshot.hasError) {
-                      if (snapshot.error == notFoundStatusCode) {
-                        text = ourchatAppState.l10n
-                            .notFound(ourchatAppState.l10n.installationPackage);
-                      }
+                future: getDownloadInfo(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.done &&
+                      snapshot.data != null) {
+                    Stream<OtaEvent> stream;
+                    if (Platform.isAndroid) {
+                      OtaUpdate otaUpdate = OtaUpdate();
+                      stream = otaUpdate.execute(
+                        snapshot.data,
+                        destinationFilename: "OurChat.apk",
+                        usePackageInstaller: true,
+                      );
+                    } else {
+                      OtaUpdate otaUpdate = OtaUpdate();
+                      stream = otaUpdate.execute(
+                        snapshot.data,
+                        destinationFilename: "OurChat.tar.gz",
+                      );
                     }
+                    return StreamBuilder(
+                      stream: stream,
+                      builder: (context, snapshot) {
+                        double? value;
+                        if (snapshot.hasData) {
+                          value =
+                              (snapshot.data!.status == OtaStatus.DOWNLOADING
+                              ? double.parse(snapshot.data!.value!)
+                              : null);
+                        }
+                        return Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              CircularProgressIndicator(value: value),
+                              Text(l10n.updateDownloading),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  } else if (snapshot.connectionState != ConnectionState.done ||
+                      snapshot.data == null) {
+                    text = l10n.updateGettingInfo;
+                  } else if (snapshot.hasError) {
+                    if (snapshot.error == notFoundStatusCode) {
+                      text = l10n.notFound(l10n.installationPackage);
+                    }
+                  }
 
-                    return Center(
-                        child: Column(
+                  return Center(
+                    child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        CircularProgressIndicator(
-                          value: 0,
-                        ),
-                        Text(text!)
+                        CircularProgressIndicator(value: 0),
+                        Text(text!),
                       ],
-                    ));
-                  }),
+                    ),
+                  );
+                },
+              ),
             ),
           ],
         ),
