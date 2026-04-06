@@ -385,10 +385,9 @@ class OurChatAccount extends _$OurChatAccount {
   }
 
   String avatarUrl() {
-    var server = ref.read(ourChatServerProvider);
-    final id = state.id;
-    final avatarKey = state.avatarKey;
-    return "http${server.isTLS! ? 's' : ''}://${server.host}:${server.port.toString()}/v1/avatar?user_id=${id.toString()}&avatar_key=${avatarKey ?? ''}";
+    return ref
+        .read(ourChatServerProvider)
+        .avatarUrl(userId: state.id, avatarKey: state.avatarKey);
   }
 
   String getNameWithDisplayName() {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fixnum/fixnum.dart';
 import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/core/config.dart';
 import 'package:ourchat/core/event.dart';
@@ -8,6 +9,35 @@ import 'package:ourchat/core/database.dart';
 import 'package:ourchat/server_setting.dart';
 import 'core/account.dart';
 import 'core/auth_notifier.dart';
+
+Future<void> _handleAuthSuccess({
+  required WidgetRef ref,
+  required BuildContext context,
+  required Int64 accountId,
+  required String recentAccount,
+  required String recentPassword,
+}) async {
+  var notifier = ref.read(configProvider.notifier);
+  notifier.setRecent(recentAccount, recentPassword);
+
+  privateDB = OurChatDatabase(accountId);
+  await ref.read(ourChatAccountProvider(accountId).notifier).getAccountInfo();
+
+  final avatarKey = ref.read(ourChatAccountProvider(accountId)).avatarKey;
+  if (avatarKey != null) {
+    notifier.setAvatarUrl(
+      ref
+          .read(ourChatServerProvider)
+          .avatarUrl(userId: accountId, avatarKey: avatarKey),
+    );
+  }
+
+  ref.read(ourChatEventSystemProvider.notifier).listenEvents();
+
+  if (context.mounted) {
+    Navigator.pop(context);
+  }
+}
 
 // Auth界面
 class Auth extends StatelessWidget {
@@ -161,41 +191,17 @@ class _LoginState extends ConsumerState<Login> {
                                 );
 
                             if (res) {
-                              final authState = ref.read(authProvider);
-                              final accountId = authState.accountId!;
-
-                              // 保存配置
-                              var notifier = ref.read(configProvider.notifier);
-                              notifier.setRecent(
-                                account,
-                                (savePassword ? password : ""),
-                              );
-
-                              // 创建私有数据库
-                              privateDB = OurChatDatabase(accountId);
-                              // 获取账户信息
-                              await ref
-                                  .read(
-                                    ourChatAccountProvider(accountId).notifier,
-                                  )
-                                  .getAccountInfo();
-                              // 更新头像URL
-                              final avatarUrl = ref
-                                  .read(ourChatAccountProvider(accountId))
-                                  .avatarKey;
-                              if (avatarUrl != null) {
-                                notifier.setAvatarUrl(
-                                  "http${ref.read(ourChatServerProvider).isTLS! ? 's' : ''}://${ref.read(ourChatServerProvider).host}:${ref.read(ourChatServerProvider).port.toString()}/v1/avatar?user_id=${accountId.toString()}&avatar_key=$avatarUrl",
-                                );
-                              }
-
-                              ref
-                                  .read(ourChatEventSystemProvider.notifier)
-                                  .listenEvents();
-                              // 应用状态已由AuthNotifier更新，无需额外更新
+                              final accountId = ref
+                                  .read(authProvider)
+                                  .accountId!;
                               if (context.mounted) {
-                                // 跳转主界面
-                                Navigator.pop(context);
+                                await _handleAuthSuccess(
+                                  ref: ref,
+                                  context: context,
+                                  accountId: accountId,
+                                  recentAccount: account,
+                                  recentPassword: savePassword ? password : "",
+                                );
                               }
                             }
                           },
@@ -329,41 +335,15 @@ class _RegisterState extends ConsumerState<Register> {
                                 username: username,
                               );
                           if (res) {
-                            final authState = ref.read(authProvider);
-                            final accountId = authState.accountId!;
-
-                            // 保存配置
-                            var notifier = ref.watch(configProvider.notifier);
-                            notifier.setRecent(
-                              email,
-                              (savePassword ? password : ""),
-                            );
-
-                            // 创建私有数据库
-                            privateDB = OurChatDatabase(accountId);
-                            // 获取账户信息
-                            await ref
-                                .read(
-                                  ourChatAccountProvider(accountId).notifier,
-                                )
-                                .getAccountInfo();
-                            // 更新头像URL
-                            final avatarUrl = ref
-                                .read(ourChatAccountProvider(accountId))
-                                .avatarKey;
-                            if (avatarUrl != null) {
-                              notifier.setAvatarUrl(
-                                "http${ref.read(ourChatServerProvider).isTLS! ? 's' : ''}://${ref.read(ourChatServerProvider).host}:${ref.read(ourChatServerProvider).port.toString()}/v1/avatar?user_id=${accountId.toString()}&avatar_key=$avatarUrl",
-                              );
-                            }
-
-                            ref
-                                .read(ourChatEventSystemProvider.notifier)
-                                .listenEvents();
-                            // 应用状态已由AuthNotifier更新，无需额外更新
+                            final accountId = ref.read(authProvider).accountId!;
                             if (context.mounted) {
-                              // 注册成功后跳转到主页
-                              Navigator.pop(context);
+                              await _handleAuthSuccess(
+                                ref: ref,
+                                context: context,
+                                accountId: accountId,
+                                recentAccount: email,
+                                recentPassword: savePassword ? password : "",
+                              );
                             }
                           }
                         },

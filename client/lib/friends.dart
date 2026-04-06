@@ -122,7 +122,7 @@ class Friends extends ConsumerWidget {
           ),
         ),
         if (thisAccountData.friends.isEmpty)
-          Flexible(flex: 1, child: Text("你还没有好友哦")),
+          Flexible(flex: 1, child: Text(l10n.noFriend)),
       ],
     );
   }

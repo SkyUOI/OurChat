@@ -487,5 +487,9 @@
     "selectServer": "Select Server",
     "@selectServer": {
         "description": "Select Server"
+    },
+    "noFriend": "You have no friend now",
+    "@noFriend": {
+        "description": "You have no friend now"
     }
 }

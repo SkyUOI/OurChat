@@ -68,7 +68,7 @@ void startFlashTray() {
 }
 
 void stopFlashTray() {
-  if (!kIsWeb && !isFlashing) {
+  if (!kIsWeb && isFlashing) {
     flashTrayTimer.cancel();
     trayStatus = true;
     trayManager.setIcon(

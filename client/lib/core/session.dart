@@ -73,8 +73,9 @@ class OurChatSession extends _$OurChatSession {
   }
 
   String avatarUrl() {
-    var server = ref.read(ourChatServerProvider);
-    return "http${server.isTLS! ? 's' : ''}://${server.host}:${server.port.toString()}/v1/avatar?session_id=${state.sessionId.toString()}&avatar_key=${state.avatarKey ?? ''}";
+    return ref
+        .read(ourChatServerProvider)
+        .avatarUrl(sessionId: state.sessionId, avatarKey: state.avatarKey);
   }
 
   void recreateStub() {
