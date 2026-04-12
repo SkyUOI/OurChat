@@ -385,7 +385,7 @@ class OurChatAccount extends _$OurChatAccount {
   }
 
   String avatarUrl() {
-    return "${ref.read(ourChatServerProvider).baseUrl()}/avatar?${state.id}&avatar_key=${state.avatarKey ?? ''}";
+    return "${ref.read(ourChatServerProvider).baseUrl()}/avatar?user_id=${state.id}&avatar_key=${state.avatarKey ?? ''}";
   }
 
   String getNameWithDisplayName() {
