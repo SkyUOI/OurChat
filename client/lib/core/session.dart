@@ -73,9 +73,7 @@ class OurChatSession extends _$OurChatSession {
   }
 
   String avatarUrl() {
-    return ref
-        .read(ourChatServerProvider)
-        .avatarUrl(sessionId: state.sessionId, avatarKey: state.avatarKey);
+    return "${ref.read(ourChatServerProvider).baseUrl()}/avatar?session_id=$sessionId&avatar_key=${state.avatarKey ?? ''}";
   }
 
   void recreateStub() {

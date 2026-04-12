@@ -26,9 +26,7 @@ Future<void> _handleAuthSuccess({
   final avatarKey = ref.read(ourChatAccountProvider(accountId)).avatarKey;
   if (avatarKey != null) {
     notifier.setAvatarUrl(
-      ref
-          .read(ourChatServerProvider)
-          .avatarUrl(userId: accountId, avatarKey: avatarKey),
+      "${ref.read(ourChatServerProvider).baseUrl()}/avatar?user_id=$accountId&avatar_key=$avatarKey",
     );
   }
 

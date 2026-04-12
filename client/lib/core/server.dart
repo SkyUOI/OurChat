@@ -1,4 +1,3 @@
-import 'package:fixnum/fixnum.dart';
 import 'package:grpc/grpc.dart';
 import 'package:grpc/grpc_connection_interface.dart';
 import 'package:grpc/grpc_or_grpcweb.dart';
@@ -52,8 +51,8 @@ class OurChatServer {
   OurChatInterceptor? interceptor;
   bool? isTLS;
 
-  String avatarUrl({Int64? userId, Int64? sessionId, String? avatarKey}) {
-    return "http${isTLS == true ? 's' : ''}://$host:$port/v1/avatar?${userId != null ? 'user_id=$userId' : 'session_id=$sessionId'}&avatar_key=${avatarKey ?? ''}";
+  String baseUrl() {
+    return "http${isTLS == true ? 's' : ''}://$host:$port/v1";
   }
 
   OurChatServiceClient newStub() {
