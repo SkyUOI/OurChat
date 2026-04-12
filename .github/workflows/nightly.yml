@@ -47,5 +47,7 @@ jobs:
         env:
           SCCACHE_OSS_BUCKET: ${{ secrets.SCCACHE_BUCKET }}
           SCCACHE_OSS_ENDPOINT: ${{ secrets.SCCACHE_OSS_ENDPOINT }}
+          # python3 script/build_production_container.py --extension nightly --skip-base --push --sccache-bucket $SCCACHE_OSS_BUCKET --sccache-endpoint $SCCACHE_OSS_ENDPOINT
+          # Because of the lack of OSS now, disable it
         run: |
-          python3 script/build_production_container.py --extension nightly --skip-base --push --sccache-bucket $SCCACHE_OSS_BUCKET --sccache-endpoint $SCCACHE_OSS_ENDPOINT
+          python3 script/build_production_container.py --extension nightly --skip-base --push
