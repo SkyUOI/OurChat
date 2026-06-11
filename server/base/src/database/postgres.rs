@@ -1,6 +1,6 @@
 use crate::setting::Setting;
 use migration::MigratorTrait;
-use sea_orm::{DatabaseConnection, SqlxPostgresPoolConnection};
+use sea_orm::{DatabaseConnection, DatabaseConnectionType, SqlxPostgresPoolConnection};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use sqlx::postgres::PgPoolOptions;
@@ -60,9 +60,10 @@ async fn try_create_postgres_db(
 
     // Create SQLx connection pool for monitoring
     let pool = PgPoolOptions::new().connect(url).await?;
-    let db = DatabaseConnection::SqlxPostgresPoolConnection(SqlxPostgresPoolConnection::from(
-        pool.clone(),
-    ));
+    let db: DatabaseConnection = DatabaseConnectionType::SqlxPostgresPoolConnection(
+        SqlxPostgresPoolConnection::from(pool.clone()),
+    )
+    .into();
 
     tracing::info!("Ran all migrations of databases");
     if run_migration {

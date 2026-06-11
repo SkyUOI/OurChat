@@ -87,7 +87,11 @@ pub async fn init(rmq: &deadpool_lapin::Pool) -> anyhow::Result<()> {
     channel
         .queue_declare(
             VERIFY_QUEUE,
-            QueueDeclareOptions::default(),
+            QueueDeclareOptions {
+                exclusive: true,
+                auto_delete: true,
+                ..Default::default()
+            },
             FieldTable::default(),
         )
         .await?;

@@ -26,7 +26,7 @@ pub fn get_hash_from_file(content: impl Iterator<Item = Vec<u8>> + Clone) -> Str
         hasher.update(&chunks);
     }
     let hash = hasher.finalize();
-    format!("{hash:x}")
+    hex::encode(hash.as_slice())
 }
 
 pub async fn get_hash_from_download(
@@ -38,6 +38,6 @@ pub async fn get_hash_from_download(
         let stream = stream?;
         hasher.update(stream.data);
     }
-    let hash = format!("{:x}", hasher.finalize());
+    let hash = hex::encode(hasher.finalize().as_slice());
     Ok(hash)
 }

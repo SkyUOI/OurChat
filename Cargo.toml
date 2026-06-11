@@ -28,7 +28,7 @@ strip = true
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.91"
+rust-version = "1.95"
 
 [workspace.dependencies.tokio-util]
 version = "0.7"
@@ -165,7 +165,7 @@ version = "0"
 default-features = false
 
 [workspace.dependencies.ctor]
-version = "0"
+version = "1.0"
 default-features = false
 features = ["proc_macro"]
 
@@ -247,6 +247,10 @@ default-features = false
 version = "0"
 default-features = false
 
+[workspace.dependencies.hex]
+version = "0"
+default-features = false
+
 [workspace.dependencies.tower_governor]
 version = "0"
 default-features = false
@@ -279,12 +283,12 @@ default-features = false
 features = ["codegen", "channel", "transport", "router", "server", "_tls-any"]
 
 [workspace.dependencies.sqlx]
-version = "0"
+version = "0.9.0"
 default-features = false
-features = ["runtime-tokio-rustls", "migrate"]
+features = ["runtime-tokio", "tls-rustls", "migrate", "postgres"]
 
 [workspace.dependencies.sea-orm]
-version = "1"
+version = "2.0.0-rc.40"
 default-features = false
 features = [
     "sqlx-postgres",
@@ -292,6 +296,7 @@ features = [
     "macros",
     "with-json",
     "with-chrono",
+    "with-uuid",
 ]
 
 [workspace.dependencies.uuid]

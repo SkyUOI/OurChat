@@ -479,7 +479,7 @@ impl Launcher {
             None => None,
         };
         let http_listener =
-            tokio::net::TcpListener::bind(format!("{}:{}", &cfg.http_cfg.ip, cfg.http_cfg.port))
+            tokio::net::TcpListener::bind(format!("{}:{}", cfg.http_cfg.ip, cfg.http_cfg.port))
                 .await?;
         // deal with port 0
         cfg.http_cfg.port = http_listener.local_addr()?.port();

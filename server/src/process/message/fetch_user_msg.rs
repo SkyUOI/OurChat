@@ -142,6 +142,7 @@ async fn fetch_user_msg_impl(
                 .queue_declare(
                     &queue_name,
                     QueueDeclareOptions {
+                        exclusive: true,
                         auto_delete: true,
                         durable: false,
                         ..Default::default()

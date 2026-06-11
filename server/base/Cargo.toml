@@ -4,7 +4,7 @@ edition.workspace = true
 version.workspace = true
 
 [dependencies]
-shadow-rs = "1"
+shadow-rs = "2"
 serde.workspace = true
 anyhow.workspace = true
 chrono.workspace = true
@@ -42,7 +42,7 @@ cfg-if.workspace = true
 const_format.workspace = true
 
 [build-dependencies]
-shadow-rs = "1"
+shadow-rs = "2"
 anyhow.workspace = true
 
 [features]

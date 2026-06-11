@@ -14,9 +14,13 @@ const POSTGRES_UNIQUE_VIOLATION: &str = "23505";
 pub fn is_conflict(e: &DbErr) -> bool {
     match e {
         DbErr::RecordNotInserted => true,
-        DbErr::Query(RuntimeErr::SqlxError(sqlx::Error::Database(e))) => {
-            if let Some(code) = e.code() {
-                code == POSTGRES_UNIQUE_VIOLATION
+        DbErr::Query(RuntimeErr::SqlxError(e)) => {
+            if let sqlx::Error::Database(ref db_err) = **e {
+                if let Some(code) = db_err.code() {
+                    code == POSTGRES_UNIQUE_VIOLATION
+                } else {
+                    false
+                }
             } else {
                 false
             }

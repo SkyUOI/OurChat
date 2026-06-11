@@ -118,14 +118,14 @@ async fn get_account_info_impl(
                 QueryValues::UpdatedTime => {
                     // only owner can get
                     if privilege != Privilege::Owner {
-                        return Err(GetInfoError::PermissionDenied)?;
+                        Err(GetInfoError::PermissionDenied)?;
                     }
                     ret.updated_time = Some(queried_user.update_time.into())
                 }
                 QueryValues::Sessions => {
                     // only owner can get
                     if privilege != Privilege::Owner {
-                        return Err(GetInfoError::PermissionDenied)?;
+                        Err(GetInfoError::PermissionDenied)?;
                     }
                     let sessions = get_all_session_relations(id, &server.db.db_pool).await?;
                     let ids = sessions.into_iter().map(|x| x.session_id as u64).collect();

@@ -85,7 +85,7 @@ pub fn register_test(args: TokenStream, input: TokenStream) -> TokenStream {
         // Generate a constructor function that runs at program startup
         // This automatically registers the test with the global registry
         #[doc(hidden)]
-        #[ctor::ctor]
+        #[ctor::ctor(unsafe)]
         fn #ctor_fn_name() {
             // Get module name from the current module path
             let module_name = module_path!()

@@ -209,9 +209,9 @@ async fn upload_impl(
         }
         if hash.as_slice() != metadata.hash {
             tracing::trace!(
-                "received hash:{:?}, expected hash {:?}",
-                format!("{:x}", metadata.hash),
-                format!("{:x}", hash)
+                "received hash:{:?}, expected hash {}",
+                metadata.hash,
+                hex::encode(hash.as_slice()),
             );
             return Err(UploadError::FileHashError);
         }

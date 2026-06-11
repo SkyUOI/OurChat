@@ -42,10 +42,10 @@ tokio-cron-scheduler.workspace = true
 croner.workspace = true
 
 # System metrics
-sysinfo = "0.38.2"
+sysinfo = "0"
 
 # Runtime metrics
-tokio-metrics = { version = "0.4.9", features = [
+tokio-metrics = { version = "0", features = [
     "rt",
     "metrics-rs-integration",
 ] }
@@ -57,6 +57,7 @@ metrics = "0.24"
 collection_literals.workspace = true
 size.workspace = true
 color-eyre.workspace = true
+hex.workspace = true
 
 # num_enum = "0"
 async-trait.workspace = true

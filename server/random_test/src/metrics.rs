@@ -390,9 +390,7 @@ impl std::fmt::Display for RandomTestReport {
         table.set_header(vec![
             "════════════════════════════════════════════════════════════════",
         ]);
-        table.add_row(vec![format!(
-            "                    Random Test Report                        "
-        )]);
+        table.add_row(vec!["                    Random Test Report                        ".to_string()]);
         table.add_row(vec![
             "════════════════════════════════════════════════════════════════",
         ]);
@@ -425,14 +423,14 @@ impl std::fmt::Display for RandomTestReport {
 
         // Peak state
         table.set_header(vec!["Metric", "Peak Value"]);
-        table.add_row(vec![format!("Users"), format!("{}", self.peak_users)]);
-        table.add_row(vec![format!("Sessions"), format!("{}", self.peak_sessions)]);
+        table.add_row(vec!["Users".to_string(), format!("{}", self.peak_users)]);
+        table.add_row(vec!["Sessions".to_string(), format!("{}", self.peak_sessions)]);
         table.add_row(vec![
-            format!("Friendships"),
+            "Friendships".to_string(),
             format!("{}", self.peak_friendships),
         ]);
         table.add_row(vec![
-            format!("Messages"),
+            "Messages".to_string(),
             format!("{}", self.total_messages),
         ]);
 
@@ -441,7 +439,7 @@ impl std::fmt::Display for RandomTestReport {
         // Errors
         table.set_header(vec!["Error Type", "Count"]);
         table.add_row(vec![
-            format!("Unexpected Errors"),
+            "Unexpected Errors".to_string(),
             format!("{}", self.unexpected_errors),
         ]);
 

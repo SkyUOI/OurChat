@@ -87,13 +87,13 @@ impl_newtype_string!(OCID, serde::Serialize, serde::Deserialize);
 
 impl From<OCID> for sea_orm::Value {
     fn from(value: OCID) -> Self {
-        Self::String(Some(Box::new(value.0)))
+        Self::String(Some(value.0))
     }
 }
 
 impl From<&OCID> for sea_orm::Value {
     fn from(value: &OCID) -> Self {
-        Self::String(Some(Box::new(value.0.clone())))
+        Self::String(Some(value.0.clone()))
     }
 }
 

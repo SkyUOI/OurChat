@@ -7,7 +7,7 @@ pub use oc_helper::client::ClientCore;
 pub use oc_helper::client::TestApp;
 pub use oc_helper::user::TestUser;
 
-#[ctor::ctor]
+#[ctor::ctor(unsafe)]
 fn init() {
     dotenvy::dotenv().ok();
 }
