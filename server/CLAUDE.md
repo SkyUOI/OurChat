@@ -2,18 +2,38 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with the **server** portion of this repository.
 
+## ⚠️ MANDATORY DATABASE WORKFLOW — READ THIS FIRST
+
+Whenever you add, remove, or rename a column/table, you MUST follow these steps **in order**:
+
+1. **Write the migration** (`server/migration/src/m*.rs`) — add the column/enum variant there. Also update `server/migration/src/enums.rs` if adding to an existing table.
+2. **Run the migration** against the real database (so SeaORM sees the actual schema):
+   ```bash
+   cd server && python ../script/db_migration.py
+   ```
+3. **Regenerate entities** — this reads the live database schema and writes `server/entities/src/entities/*.rs`:
+   ```bash
+   cd server && python ../script/regenerate_entity.py
+   ```
+
+**🚫 NEVER hand-edit `server/entities/src/entities/*.rs`.** The entity files are automatically generated from the live database schema. Any manual edit will be overwritten the next time someone runs the regeneration script. If a field is missing from the entity, it means you skipped step 2 or 3 — go back and run them.
+
+**🚫 Skipping steps leads to**: mysterious compilation errors (missing fields in ActiveModel, mismatched column types), test failures, and drift between the entity code and the actual database.
+
+Summary checklist for every schema change:
+
+- [ ] `migration/src/m*.rs` — migration written
+- [ ] `migration/src/enums.rs` — column ident added (for existing tables)
+- [ ] `migration/src/lib.rs` — migration registered
+- [ ] `python script/db_migration.py` — migration applied to DB
+- [ ] `python script/regenerate_entity.py` — entities regenerated from DB
+- [ ] `cargo check --workspace --all-targets` — everything compiles
+
 ## Project Overview
 
 OurChat server is a cross-platform chat application backend built with Rust. It uses a modern async architecture with gRPC and HTTP APIs, supporting real-time messaging, group chats, end-to-end encryption, and self-hosting capabilities.
 
 ## Quick Reference
-
-### Database Workflow
-
-1. **Create migration**: `sea migrate generate xxx` in `server/` directory
-2. **Run migration**: `python scripts/db_migration.py`
-3. **Update entities**: `scripts/regenerate_entities.py`
-4. **Full example**: `sea migrate generate xxx && python scripts/db_migration.py down -n 100 && python scripts/regenerate_entities.py`
 
 ### Critical Notes
 

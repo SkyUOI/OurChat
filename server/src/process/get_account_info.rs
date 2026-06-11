@@ -81,7 +81,15 @@ async fn get_account_info_impl(
             // can access the info,get from the database
             match i {
                 QueryValues::Ocid => ret.ocid = Some(queried_user.ocid.clone()),
-                QueryValues::Email => ret.email = Some(queried_user.email.clone()),
+                QueryValues::Email => {
+                    if privilege != Privilege::Owner && !queried_user.email_visible {
+                        Err(GetInfoError::PermissionDenied)?;
+                    }
+                    ret.email = Some(queried_user.email.clone());
+                }
+                QueryValues::EmailVisible => {
+                    ret.email_visible = Some(queried_user.email_visible);
+                }
                 QueryValues::DisplayName => {
                     if let Privilege::Owner = privilege {
                         // invalid for the owner, ignore

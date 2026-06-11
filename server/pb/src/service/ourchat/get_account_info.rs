@@ -8,7 +8,6 @@ pub mod v1 {
             QueryValues::Sessions,
             QueryValues::Friends,
             QueryValues::UpdatedTime,
-            QueryValues::Email,
         }
     });
 }

@@ -311,3 +311,222 @@ async fn join_in_session_with_update_time_changed() {
     assert_gt!(now_timestamp, origin_timestamp);
     app.async_drop().await;
 }
+
+// ── email_visible privacy tests ──
+
+/// New users should have email_visible = false by default (migration default).
+#[tokio::test]
+async fn email_visible_default_false() {
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
+    let user = app.new_user().await.unwrap();
+
+    let ret = user
+        .lock()
+        .await
+        .get_self_info(vec![QueryValues::EmailVisible])
+        .await
+        .unwrap();
+    assert_eq!(ret.email_visible, Some(false));
+
+    app.async_drop().await;
+}
+
+/// Owners can always see their own email regardless of email_visible value.
+#[tokio::test]
+async fn email_privacy_owner_always_sees_email() {
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
+    let user = app.new_user().await.unwrap();
+    let user_email = user.lock().await.email.clone();
+
+    // email_visible is false by default, but owner should still see their email
+    let ret = user
+        .lock()
+        .await
+        .get_self_info(vec![QueryValues::Email, QueryValues::EmailVisible])
+        .await
+        .unwrap();
+    assert_eq!(ret.email.as_ref(), Some(&user_email));
+    assert_eq!(ret.email_visible, Some(false));
+
+    // Set email_visible to true, owner should still see email
+    user.lock()
+        .await
+        .oc()
+        .set_self_info(SetSelfInfoRequest {
+            email_visible: Some(true),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+
+    let ret = user
+        .lock()
+        .await
+        .get_self_info(vec![QueryValues::Email, QueryValues::EmailVisible])
+        .await
+        .unwrap();
+    assert_eq!(ret.email.as_ref(), Some(&user_email));
+    assert_eq!(ret.email_visible, Some(true));
+
+    app.async_drop().await;
+}
+
+/// Strangers cannot see email when email_visible is false.
+#[tokio::test]
+async fn email_privacy_stranger_blocked() {
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
+    let user1 = app.new_user().await.unwrap();
+    let user2 = app.new_user().await.unwrap();
+    let user2_id = user2.lock().await.id;
+
+    // user2 has email_visible = false by default, so user1 should get PermissionDenied
+    let err = user1
+        .lock()
+        .await
+        .get_account_info(user2_id, vec![QueryValues::Email])
+        .await
+        .unwrap_err();
+    assert!(err.to_string().contains("permission"));
+
+    app.async_drop().await;
+}
+
+/// Strangers can see email when email_visible is true.
+#[tokio::test]
+async fn email_privacy_stranger_allowed() {
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
+    let user1 = app.new_user().await.unwrap();
+    let user2 = app.new_user().await.unwrap();
+    let user2_id = user2.lock().await.id;
+    let user2_email = user2.lock().await.email.clone();
+
+    // user2 enables email visibility
+    user2
+        .lock()
+        .await
+        .oc()
+        .set_self_info(SetSelfInfoRequest {
+            email_visible: Some(true),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+
+    // user1 should now see user2's email
+    let ret = user1
+        .lock()
+        .await
+        .get_account_info(user2_id, vec![QueryValues::Email])
+        .await
+        .unwrap();
+    assert_eq!(ret.email, Some(user2_email));
+
+    app.async_drop().await;
+}
+
+/// email_visible itself is always publicly queryable.
+#[tokio::test]
+async fn email_visible_always_public() {
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
+    let user1 = app.new_user().await.unwrap();
+    let user2 = app.new_user().await.unwrap();
+    let user2_id = user2.lock().await.id;
+
+    // Stranger can always see email_visible status
+    let ret = user1
+        .lock()
+        .await
+        .get_account_info(user2_id, vec![QueryValues::EmailVisible])
+        .await
+        .unwrap();
+    assert_eq!(ret.email_visible, Some(false));
+
+    // user2 toggles it on
+    user2
+        .lock()
+        .await
+        .oc()
+        .set_self_info(SetSelfInfoRequest {
+            email_visible: Some(true),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+
+    // user1 should see the update
+    let ret = user1
+        .lock()
+        .await
+        .get_account_info(user2_id, vec![QueryValues::EmailVisible])
+        .await
+        .unwrap();
+    assert_eq!(ret.email_visible, Some(true));
+
+    app.async_drop().await;
+}
+
+/// Toggling email_visible via SetSelfInfo should be reflected in get_account_info.
+#[tokio::test]
+async fn set_email_visible_toggle() {
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
+    let user = app.new_user().await.unwrap();
+
+    // Initially false
+    let ret = user
+        .lock()
+        .await
+        .get_self_info(vec![QueryValues::EmailVisible])
+        .await
+        .unwrap();
+    assert_eq!(ret.email_visible, Some(false));
+
+    // Toggle to true
+    user.lock()
+        .await
+        .oc()
+        .set_self_info(SetSelfInfoRequest {
+            email_visible: Some(true),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+    let ret = user
+        .lock()
+        .await
+        .get_self_info(vec![QueryValues::EmailVisible])
+        .await
+        .unwrap();
+    assert_eq!(ret.email_visible, Some(true));
+
+    // Toggle back to false
+    user.lock()
+        .await
+        .oc()
+        .set_self_info(SetSelfInfoRequest {
+            email_visible: Some(false),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+    let ret = user
+        .lock()
+        .await
+        .get_self_info(vec![QueryValues::EmailVisible])
+        .await
+        .unwrap();
+    assert_eq!(ret.email_visible, Some(false));
+
+    // Setting again to false (no-op) should not error
+    assert_ok!(
+        user.lock()
+            .await
+            .oc()
+            .set_self_info(SetSelfInfoRequest {
+                email_visible: Some(false),
+                ..Default::default()
+            })
+            .await
+    );
+
+    app.async_drop().await;
+}

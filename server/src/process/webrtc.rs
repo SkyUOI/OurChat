@@ -29,7 +29,7 @@ pub async fn move_room_from_redis_to_postgres(
     let entity = entities::rtc_room::ActiveModel {
         room_id: sea_orm::ActiveValue::Set(room_info.room_id.into()),
         title: sea_orm::ActiveValue::Set(room_info.title.unwrap_or_default()),
-        users_num: sea_orm::ActiveValue::Set(room_info.users_num as i32),
+        users_num: sea_orm::ActiveValue::Set((room_info.users_num as i32).into()),
     };
     entity.insert(db_conn).await?;
     let _: () = redis_conn.del(room_key).await?;

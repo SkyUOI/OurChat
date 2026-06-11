@@ -28,6 +28,8 @@ enum QueryValues {
   QUERY_VALUES_SESSIONS = 10;
   // All friends
   QUERY_VALUES_FRIENDS = 11;
+  // Whether email is visible to other users
+  QUERY_VALUES_EMAIL_VISIBLE = 12;
 }
 
 // Get account info
@@ -51,4 +53,5 @@ message GetAccountInfoResponse {
   optional google.protobuf.Timestamp updated_time = 9;
   repeated uint64 sessions = 10;
   repeated uint64 friends = 11;
+  optional bool email_visible = 12;
 }

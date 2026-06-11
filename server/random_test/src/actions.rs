@@ -1149,6 +1149,7 @@ impl ActionExecutor {
                 avatar_key: None,
                 user_defined_status: None,
                 ocid: None,
+                email_visible: None,
             };
             match user_guard.oc().set_self_info(req).await {
                 Ok(_) => ActionResult::Success {

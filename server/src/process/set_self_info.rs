@@ -122,6 +122,12 @@ async fn update_account(
         user.avatar = ActiveValue::Set(Some(avatar_key));
         public_updated = true;
     }
+    if let Some(email_visible) = request_data.email_visible
+        && email_visible != original_user.email_visible
+    {
+        user.email_visible = ActiveValue::Set(email_visible);
+        public_updated = true;
+    }
     if let Some(new_ocid) = request_data.ocid {
         if new_ocid.len() > OCID_MAX_LEN {
             return Err(SetError::Status(Status::invalid_argument(OCID_TOO_LONG)));
