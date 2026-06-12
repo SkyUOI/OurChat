@@ -44,13 +44,13 @@ void changeTrayIcon() {
         Platform.isWindows
             ? "assets/images/empty.ico"
             : "assets/images/empty.png",
-      );
+      ).catchError((_) {});
     } else {
       trayManager.setIcon(
         Platform.isWindows
-            ? "assets/images/logo_without_text.ico"
-            : "assets/images/logo_without_text.png",
-      );
+          ? "assets/images/logo_without_text.ico"
+          : "assets/images/logo_without_text.png",
+      ).catchError((_) {});
     }
     trayStatus = !trayStatus;
   }
@@ -75,7 +75,7 @@ void stopFlashTray() {
       Platform.isWindows
           ? "assets/images/logo_without_text.ico"
           : "assets/images/logo_without_text.png",
-    );
+    ).catchError((_) {});
     isFlashing = false;
   }
 }
@@ -200,8 +200,8 @@ class _MainAppState extends ConsumerState<MainApp>
         Platform.isWindows
             ? "assets/images/logo_without_text.ico"
             : "assets/images/logo_without_text.png",
-      );
-      trayManager.setToolTip("OurChat");
+      ).catchError((_) {});
+      trayManager.setToolTip("OurChat").catchError((_) {});
     }
   }
 
@@ -239,7 +239,7 @@ class _MainAppState extends ConsumerState<MainApp>
                       MenuItem(key: "exit", label: l10n.exit),
                     ],
                   ),
-                );
+                ).catchError((_) {});
               }
 
               inited = true;
@@ -320,7 +320,7 @@ class _MainAppState extends ConsumerState<MainApp>
 
   @override
   void onTrayIconRightMouseDown() {
-    trayManager.popUpContextMenu();
+    trayManager.popUpContextMenu().catchError((_) {});
     super.onTrayIconRightMouseDown();
   }
 
@@ -330,7 +330,7 @@ class _MainAppState extends ConsumerState<MainApp>
       windowManager.show();
       stopFlashTray();
     } else if (menuItem.key == "exit") {
-      trayManager.destroy();
+      trayManager.destroy().catchError((_) {});
       windowManager.destroy();
     }
     super.onTrayMenuItemClick(menuItem);

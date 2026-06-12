@@ -10,7 +10,7 @@ import 'package:ourchat/core/event.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
 import 'package:ourchat/service/ourchat/friends/accept_friend_invitation/v1/accept_friend_invitation.pb.dart';
 import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
-import 'package:ourchat/session.dart';
+import 'package:ourchat/user_profile_page.dart';
 import 'main.dart';
 
 class Friends extends ConsumerWidget {
@@ -67,12 +67,16 @@ class Friends extends ConsumerWidget {
                   ),
                 ),
                 child: ListTile(
-                  leading: FutureBuilder(
-                    future: accountNotifier.getAccountInfo(),
-                    builder: (context, snapshot) {
-                      return UserAvatar(
-                        imageUrl: accountNotifier.avatarUrl(),
-                        size: AppStyles.smallAvatarSize,
+                  leading: UserAvatar(
+                    imageUrl: accountNotifier.avatarUrl(),
+                    size: AppStyles.smallAvatarSize,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              UserProfilePage(userId: friendId),
+                        ),
                       );
                     },
                   ),
@@ -92,27 +96,11 @@ class Friends extends ConsumerWidget {
                     },
                   ),
                   onTap: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) {
-                        return AlertDialog(
-                          title: Text(accountData.username),
-                          content: SizedBox(
-                            width: 150,
-                            child: Consumer(
-                              builder: (context, ref, _) {
-                                ref
-                                    .read(sessionProvider.notifier)
-                                    .openUserTab(accountData.id, l10n.userInfo);
-                                return Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [UserTab()],
-                                );
-                              },
-                            ),
-                          ),
-                        );
-                      },
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => UserProfilePage(userId: friendId),
+                      ),
                     );
                   },
                 ),

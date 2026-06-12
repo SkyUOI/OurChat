@@ -8,6 +8,7 @@ import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/core/const.dart';
 import 'package:ourchat/core/event.dart';
 import 'package:ourchat/main.dart';
+import 'package:ourchat/user_profile_page.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'state.dart';
 
@@ -110,7 +111,19 @@ class _MessageWidgetState extends ConsumerState<MessageWidget> {
         ? dn
         : (senderData?.username ?? "");
     bool isMe = msg.senderId != null && msg.senderId == thisAccountId;
-    Widget avatar = UserAvatar(imageUrl: senderNotifier?.avatarUrl() ?? "");
+    Widget avatar = UserAvatar(
+      imageUrl: senderNotifier?.avatarUrl() ?? "",
+      onTap: msg.senderId != null && !isMe
+          ? () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => UserProfilePage(userId: msg.senderId!),
+                ),
+              );
+            }
+          : null,
+    );
     TextPainter textPainter = TextPainter(
       text: TextSpan(text: MarkdownToText.convert(msg.markdownText, l10n)),
       textDirection: TextDirection.ltr,

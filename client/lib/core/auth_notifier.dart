@@ -2,6 +2,7 @@ import 'package:fixnum/fixnum.dart';
 import 'package:grpc/grpc.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:ourchat/core/crypto.dart';
 import 'package:ourchat/core/log.dart';
 import 'package:ourchat/core/server.dart';
 import 'package:ourchat/main.dart';
@@ -104,11 +105,24 @@ class AuthNotifier extends _$AuthNotifier {
       final channel = server.channel;
       final authClient = AuthServiceClient(channel);
 
+      // Generate RSA key pair on first registration if no public key provided
+      var keyBytes = publicKey ?? <int>[];
+      if (keyBytes.isEmpty) {
+        try {
+          final keyPair = generateRsaKeyPair();
+          keyBytes = keyPair.publicKey;
+          logger.i('Generated new RSA key pair for registration');
+        } catch (e) {
+          logger.e('Failed to generate RSA key pair: $e');
+          // Continue with empty key if generation fails — server will reject
+        }
+      }
+
       final request = RegisterRequest(
         email: email,
         password: password,
         name: username,
-        publicKey: publicKey ?? <int>[],
+        publicKey: keyBytes,
       );
 
       final response = await authClient.register(request);

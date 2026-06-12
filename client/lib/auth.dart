@@ -9,6 +9,7 @@ import 'package:ourchat/core/database.dart';
 import 'package:ourchat/server_setting.dart';
 import 'core/account.dart';
 import 'core/auth_notifier.dart';
+import 'core/crypto.dart';
 
 Future<void> _handleAuthSuccess({
   required WidgetRef ref,
@@ -325,12 +326,15 @@ class _RegisterState extends ConsumerState<Register> {
                         icon: Icon(Icons.app_registration),
                         onPressed: () async {
                           key.currentState!.save(); // 保存表单信息
+                          // Generate RSA key pair client-side before registering
+                          final keyPair = generateRsaKeyPair();
                           bool res = await ref
                               .read(authProvider.notifier)
                               .register(
                                 email: email,
                                 password: password,
                                 username: username,
+                                publicKey: keyPair.publicKey,
                               );
                           if (res) {
                             final accountId = ref.read(authProvider).accountId!;

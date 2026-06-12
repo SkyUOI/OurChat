@@ -25,6 +25,7 @@ abstract class AccountData with _$AccountData {
     String? displayName,
     String? status,
     String? email,
+    @Default(false) bool emailVisible,
     required bool isMe,
     required OurChatTime publicUpdateTime,
     required OurChatTime updatedTime,
@@ -212,6 +213,7 @@ class OurChatAccount extends _$OurChatAccount {
         QueryValues.QUERY_VALUES_PUBLIC_UPDATED_TIME,
         QueryValues.QUERY_VALUES_STATUS,
         QueryValues.QUERY_VALUES_OCID,
+        QueryValues.QUERY_VALUES_EMAIL_VISIBLE,
       ]);
     }
     if (privateDataNeedUpdate) {
