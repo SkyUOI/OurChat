@@ -40,17 +40,21 @@ bool trayStatus = true, isFlashing = false;
 void changeTrayIcon() {
   if (!kIsWeb) {
     if (trayStatus) {
-      trayManager.setIcon(
-        Platform.isWindows
-            ? "assets/images/empty.ico"
-            : "assets/images/empty.png",
-      ).catchError((_) {});
+      trayManager
+          .setIcon(
+            Platform.isWindows
+                ? "assets/images/empty.ico"
+                : "assets/images/empty.png",
+          )
+          .catchError((_) {});
     } else {
-      trayManager.setIcon(
-        Platform.isWindows
-          ? "assets/images/logo_without_text.ico"
-          : "assets/images/logo_without_text.png",
-      ).catchError((_) {});
+      trayManager
+          .setIcon(
+            Platform.isWindows
+                ? "assets/images/logo_without_text.ico"
+                : "assets/images/logo_without_text.png",
+          )
+          .catchError((_) {});
     }
     trayStatus = !trayStatus;
   }
@@ -71,11 +75,13 @@ void stopFlashTray() {
   if (!kIsWeb && isFlashing) {
     flashTrayTimer.cancel();
     trayStatus = true;
-    trayManager.setIcon(
-      Platform.isWindows
-          ? "assets/images/logo_without_text.ico"
-          : "assets/images/logo_without_text.png",
-    ).catchError((_) {});
+    trayManager
+        .setIcon(
+          Platform.isWindows
+              ? "assets/images/logo_without_text.ico"
+              : "assets/images/logo_without_text.png",
+        )
+        .catchError((_) {});
     isFlashing = false;
   }
 }
@@ -196,11 +202,13 @@ class _MainAppState extends ConsumerState<MainApp>
       windowManager.addListener(this);
       windowManager.setPreventClose(true);
       trayManager.addListener(this);
-      trayManager.setIcon(
-        Platform.isWindows
-            ? "assets/images/logo_without_text.ico"
-            : "assets/images/logo_without_text.png",
-      ).catchError((_) {});
+      trayManager
+          .setIcon(
+            Platform.isWindows
+                ? "assets/images/logo_without_text.ico"
+                : "assets/images/logo_without_text.png",
+          )
+          .catchError((_) {});
       trayManager.setToolTip("OurChat").catchError((_) {});
     }
   }
@@ -232,14 +240,16 @@ class _MainAppState extends ConsumerState<MainApp>
                 ); // 通过屏幕比例判断桌面端/移动端
             if (!inited) {
               if (!kIsWeb) {
-                trayManager.setContextMenu(
-                  Menu(
-                    items: [
-                      MenuItem(key: "show", label: l10n.show("")),
-                      MenuItem(key: "exit", label: l10n.exit),
-                    ],
-                  ),
-                ).catchError((_) {});
+                trayManager
+                    .setContextMenu(
+                      Menu(
+                        items: [
+                          MenuItem(key: "show", label: l10n.show("")),
+                          MenuItem(key: "exit", label: l10n.exit),
+                        ],
+                      ),
+                    )
+                    .catchError((_) {});
               }
 
               inited = true;

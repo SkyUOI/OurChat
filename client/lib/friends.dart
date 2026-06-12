@@ -74,8 +74,7 @@ class Friends extends ConsumerWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) =>
-                              UserProfilePage(userId: friendId),
+                          builder: (_) => UserProfilePage(userId: friendId),
                         ),
                       );
                     },

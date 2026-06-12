@@ -82,6 +82,7 @@ pub async fn test_fetch_msgs(users: &UsersGroup, report: &mut Report) {
                 .fetch_msgs(FetchMsgsRequest {
                     time: None,
                     announcement_only: false,
+                    history_limit: 0,
                 })
                 .await
                 .is_ok()

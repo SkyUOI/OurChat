@@ -25,6 +25,9 @@ message FetchMsgsRequest {
   google.protobuf.Timestamp time = 1;
   // If true, only fetch announcements
   bool announcement_only = 2;
+  // Max number of historical DB messages before switching to live mode.
+  // 0 means unlimited (backward compatible default).
+  uint64 history_limit = 3;
 }
 
 message FetchMsgsResponse {
@@ -65,4 +68,18 @@ message SendMsgResponse {
   uint64 msg_id = 1;
   // time the message is sent
   google.protobuf.Timestamp time = 2;
+}
+
+message FetchSessionHistoryRequest {
+  uint64 session_id = 1;
+  // Get messages strictly before this time
+  google.protobuf.Timestamp before_time = 2;
+  // Max number of messages to return
+  uint64 limit = 3;
+}
+
+message FetchSessionHistoryResponse {
+  repeated FetchMsgsResponse messages = 1;
+  // True if there are more older messages available
+  bool has_more = 2;
 }

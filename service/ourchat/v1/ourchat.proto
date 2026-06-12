@@ -60,6 +60,9 @@ service OurChatService {
   // Turn on the delivery, continuing to receive messages
   rpc FetchMsgs(msg_delivery.v1.FetchMsgsRequest) returns (stream msg_delivery.v1.FetchMsgsResponse);
 
+  // Get older messages from a specific session (scroll-to-load-more)
+  rpc FetchSessionHistory(msg_delivery.v1.FetchSessionHistoryRequest) returns (msg_delivery.v1.FetchSessionHistoryResponse);
+
   rpc SendMsg(msg_delivery.v1.SendMsgRequest) returns (msg_delivery.v1.SendMsgResponse);
 
   rpc Upload(stream upload.v1.UploadRequest) returns (upload.v1.UploadResponse);

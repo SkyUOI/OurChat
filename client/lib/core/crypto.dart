@@ -82,17 +82,19 @@ Uint8List _encodeRsaPrivateKeyToPkcs1Der(RSAPrivateKey key) {
   final dQ = _encodeInteger(key.privateExponent! % (key.q! - BigInt.one));
   final qInv = _encodeInteger(key.q!.modInverse(key.p!));
 
-  return _encodeSequence(Uint8List.fromList([
-    ...version,
-    ...modulus,
-    ...publicExponent,
-    ...privateExponent,
-    ...p,
-    ...q,
-    ...dP,
-    ...dQ,
-    ...qInv,
-  ]));
+  return _encodeSequence(
+    Uint8List.fromList([
+      ...version,
+      ...modulus,
+      ...publicExponent,
+      ...privateExponent,
+      ...p,
+      ...q,
+      ...dP,
+      ...dQ,
+      ...qInv,
+    ]),
+  );
 }
 
 // ── ASN.1 DER primitives ──
@@ -119,7 +121,10 @@ Uint8List _encodeInteger(BigInt value) {
     bytes = '0$bytes';
   }
   final hexBytes = Uint8List.fromList(
-    List.generate(bytes.length ~/ 2, (i) => int.parse(bytes.substring(i * 2, i * 2 + 2), radix: 16)),
+    List.generate(
+      bytes.length ~/ 2,
+      (i) => int.parse(bytes.substring(i * 2, i * 2 + 2), radix: 16),
+    ),
   );
   // Add leading zero byte if high bit is set (to keep value positive)
   final withSign = (hexBytes[0] & 0x80) != 0

@@ -127,3 +127,38 @@ pub async fn insert_msg_record(
     let msg = msg.insert(db_conn).await?;
     Ok(msg)
 }
+
+/// Get messages from a specific session that were sent before `before_time`,
+/// ordered by time descending (newest first among the older messages).
+///
+/// The function checks that the user is either the sender of the message,
+/// a member of the session, or the message is a broadcast (is_all_user).
+///
+/// Returns at most `limit` messages. Use `limit + 1` in the caller to determine
+/// `has_more` by checking if the result count exceeds the requested limit.
+pub async fn get_session_history_msgs<T: ConnectionTrait>(
+    user_id: ID,
+    session_id: SessionID,
+    before_time: TimeStamp,
+    limit: u64,
+    db_conn: &T,
+) -> Result<Vec<message_records::Model>, MsgError> {
+    let msgs = message_records::Entity::find()
+        .from_raw_sql(Statement::from_sql_and_values(
+            DatabaseBackend::Postgres,
+            r#"SELECT * FROM message_records
+WHERE session_id = $1 AND time < $2 AND
+((sender_id = $3 OR EXISTS (SELECT * FROM session_relation WHERE user_id = $3 AND session_id = message_records.session_id)) OR (is_all_user = true))
+ORDER BY time DESC
+LIMIT $4"#,
+            [
+                session_id.into(),
+                before_time.into(),
+                user_id.into(),
+                limit.into(),
+            ],
+        ))
+        .all(db_conn)
+        .await?;
+    Ok(msgs)
+}

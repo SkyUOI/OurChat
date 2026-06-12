@@ -87,7 +87,10 @@ pub use friends::{
     accept_friend_invitation::accept_friend_invitation, add_friend::add_friend,
     delete_friend::delete_friend, set_friend_info::set_friend_info,
 };
-pub use message::{fetch_user_msg::fetch_user_msg, recall::recall_msg, send_msg::send_msg};
+pub use message::{
+    fetch_session_history::fetch_session_history, fetch_user_msg::fetch_user_msg,
+    recall::recall_msg, send_msg::send_msg,
+};
 pub use server_manage::{
     announcement::{
         add_announcement::add_announcement,

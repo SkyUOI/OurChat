@@ -50,7 +50,8 @@ use pb::service::ourchat::friends::set_friend_info::v1::{
 use pb::service::ourchat::get_account_info::v1::{GetAccountInfoRequest, GetAccountInfoResponse};
 use pb::service::ourchat::msg_delivery::recall::v1::{RecallMsgRequest, RecallMsgResponse};
 use pb::service::ourchat::msg_delivery::v1::{
-    FetchMsgsRequest, FetchMsgsResponse, SendMsgRequest, SendMsgResponse,
+    FetchMsgsRequest, FetchMsgsResponse, FetchSessionHistoryRequest, FetchSessionHistoryResponse,
+    SendMsgRequest, SendMsgResponse,
 };
 use pb::service::ourchat::session::accept_join_session_invitation::v1::{
     AcceptJoinSessionInvitationRequest, AcceptJoinSessionInvitationResponse,
@@ -149,6 +150,17 @@ impl OurChatService for RpcServer {
         let id = get_id_from_req_or_err(&request)?;
         self.check_account_status(id).await?;
         process::fetch_user_msg(self, id, request).await
+    }
+
+    /// Get older messages from a specific session (scroll-to-load-more)
+    #[tracing::instrument(skip(self))]
+    async fn fetch_session_history(
+        &self,
+        request: Request<FetchSessionHistoryRequest>,
+    ) -> Result<Response<FetchSessionHistoryResponse>, Status> {
+        let id = get_id_from_req_or_err(&request)?;
+        self.check_account_status(id).await?;
+        process::fetch_session_history(self, id, request).await
     }
 
     #[tracing::instrument(skip(self))]

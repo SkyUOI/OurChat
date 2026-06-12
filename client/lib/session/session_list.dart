@@ -267,7 +267,10 @@ class _SessionListState extends ConsumerState<SessionList> {
                                   }
                                   var records = await ref
                                       .read(ourChatEventSystemProvider.notifier)
-                                      .getSessionEvent(currentSessionId);
+                                      .getSessionEvent(
+                                        currentSessionId,
+                                        fetchFromServer: true,
+                                      );
                                   ref
                                       .read(sessionProvider.notifier)
                                       .openSessionTab(

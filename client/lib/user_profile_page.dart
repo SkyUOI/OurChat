@@ -78,7 +78,8 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> {
               ? ref.read(ourChatAccountProvider(thisAccountId))
               : null;
           final isMe = thisAccountId == widget.userId;
-          final isFriend = currentAccountData != null &&
+          final isFriend =
+              currentAccountData != null &&
               currentAccountData.friends.contains(widget.userId);
 
           return Center(
@@ -123,8 +124,7 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> {
                     ElevatedButton.icon(
                       style: AppStyles.defaultButtonStyle,
                       icon: Icon(Icons.edit),
-                      onPressed: () =>
-                          _showSetDisplayNameDialog(context),
+                      onPressed: () => _showSetDisplayNameDialog(context),
                       label: Text(l10n.modify),
                     ),
                 ],

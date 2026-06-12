@@ -56,6 +56,7 @@ async fn fetch_user_msg_impl(
 ) -> Result<Response<FetchMsgsStream>, FetchMsgError> {
     let request = request.into_inner();
     let announcement_only = request.announcement_only;
+    let history_limit = request.history_limit;
     let time: TimeStampUtc = match match request.time {
         Some(t) => t,
         None => {
@@ -94,6 +95,7 @@ async fn fetch_user_msg_impl(
             .await
             {
                 Ok(mut pag) => {
+                    let mut sent_count: u64 = 0;
                     let db_logic = async {
                         while let Some(msgs) = pag.fetch_and_next().await? {
                             for msg_model in msgs {
@@ -111,6 +113,10 @@ async fn fetch_user_msg_impl(
                                     time: Some(msg_model.time.into()),
                                 }))
                                 .await?;
+                                sent_count += 1;
+                                if history_limit > 0 && sent_count >= history_limit {
+                                    return anyhow::Ok(());
+                                }
                             }
                         }
                         anyhow::Ok(())

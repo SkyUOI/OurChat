@@ -281,7 +281,10 @@ class OurChatEventSystem extends _$OurChatEventSystem {
     var stub = ref.read(ourChatServerProvider).newStub();
 
     _connection = stub.fetchMsgs(
-      FetchMsgsRequest(time: thisAccount.getLatestMsgTime().timestamp),
+      FetchMsgsRequest(
+        time: thisAccount.getLatestMsgTime().timestamp,
+        historyLimit: Int64(200), // Only sync 200 recent messages, then go live
+      ),
     );
     _listening = true;
     logger.i("start to listen event");
@@ -443,6 +446,7 @@ class OurChatEventSystem extends _$OurChatEventSystem {
     Int64 targetSessionId, {
     int offset = 0,
     int num = 0,
+    bool fetchFromServer = false,
   }) async {
     var pDB = privateDB!;
     var res =
@@ -462,7 +466,79 @@ class OurChatEventSystem extends _$OurChatEventSystem {
       await msg.loadFromDB(ref, pDB, res[i]);
       msgsList.add(msg);
     }
+
+    // If local DB has no results and we're allowed to fetch from server
+    if (msgsList.isEmpty && fetchFromServer && offset == 0) {
+      final result = await fetchSessionHistoryFromServer(
+        targetSessionId,
+        OurChatTime.fromDatetime(DateTime.now()),
+        limit: num == 0 ? 50 : num,
+      );
+      return result.messages;
+    }
+
     return msgsList;
+  }
+
+  /// Fetch older messages from the server for a specific session.
+  /// Returns the list of messages and whether there are more.
+  Future<({bool hasMore, List<UserMsg> messages})>
+  fetchSessionHistoryFromServer(
+    Int64 sessionId,
+    OurChatTime beforeTime, {
+    int limit = 50,
+  }) async {
+    var stub = ref.read(ourChatServerProvider).newStub();
+    try {
+      var res = await safeRequest(
+        stub.fetchSessionHistory,
+        FetchSessionHistoryRequest(
+          sessionId: sessionId,
+          beforeTime: beforeTime.timestamp,
+          limit: Int64(limit),
+        ),
+        (GrpcError e) {
+          showResultMessage(
+            e.code,
+            e.message,
+            internalStatus: l10n.serverError,
+          );
+        },
+        rethrowError: true,
+      );
+      if (res == null) return (hasMore: false, messages: <UserMsg>[]);
+
+      List<UserMsg> msgs = [];
+      for (var event in res.messages) {
+        if (!event.hasRespondEventType()) continue;
+
+        // Check if already in local DB
+        var existing =
+            await (privateDB!.select(privateDB!.record)..where(
+                  (u) => u.eventId.equals(BigInt.from(event.msgId.toInt())),
+                ))
+                .getSingleOrNull();
+        if (existing != null) continue;
+
+        final eventType = event.whichRespondEventType();
+        if (eventType == FetchMsgsResponse_RespondEventType.msg) {
+          UserMsg msg = UserMsg(
+            eventId: Int64(event.msgId),
+            senderId: Int64(event.msg.senderId),
+            sessionId: Int64(event.msg.sessionId),
+            sendTime: OurChatTime.fromTimestamp(event.time),
+            markdownText: event.msg.markdownText,
+            involvedFiles: event.msg.involvedFiles,
+          );
+          await msg.saveToDB(privateDB!);
+          msgs.add(msg);
+        }
+      }
+      return (hasMore: res.hasMore as bool, messages: msgs);
+    } catch (e) {
+      logger.w("Failed to fetch session history: $e");
+      return (hasMore: false, messages: <UserMsg>[]);
+    }
   }
 
   void addListener(

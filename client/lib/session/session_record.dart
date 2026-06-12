@@ -69,14 +69,31 @@ class _SessionRecordState extends ConsumerState<SessionRecord> {
       ref
           .read(sessionProvider.notifier)
           .setLastPixels(scrollController.position.pixels);
+
+      // First try local DB
       List<UserMsg> records = await ref
           .read(ourChatEventSystemProvider.notifier)
           .getSessionEvent(
             sessionState.currentSessionId!,
             offset: 50 * sessionState.recordLoadCnt,
           );
+
+      // If local DB returns nothing, try server
+      if (records.isEmpty && sessionState.currentSessionRecords.isNotEmpty) {
+        final oldestMsg = sessionState.currentSessionRecords.last;
+        final result = await ref
+            .read(ourChatEventSystemProvider.notifier)
+            .fetchSessionHistoryFromServer(
+              sessionState.currentSessionId!,
+              oldestMsg.sendTime!,
+              limit: 50,
+            );
+        records = result.messages;
+      }
+
       if (records.isEmpty ||
-          sessionState.currentSessionRecords.contains(records.first)) {
+          (sessionState.currentSessionRecords.isNotEmpty &&
+              sessionState.currentSessionRecords.contains(records.first))) {
         return;
       }
       ref.read(sessionProvider.notifier).addRecords(records);

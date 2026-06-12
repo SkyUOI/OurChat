@@ -602,6 +602,7 @@ impl<'a> FetchMsgBuilder<'a> {
         let msg_get = FetchMsgsRequest {
             time: Some(self.timestamp.into()),
             announcement_only: false,
+            history_limit: 0, // unlimited for test helper
         };
         tracing::info!("timestamp_receive_msg: {}", self.timestamp);
         let ret = self
@@ -644,6 +645,7 @@ impl<'a> FetchMsgBuilder<'a> {
         let msg_get = FetchMsgsRequest {
             time: Some(self.timestamp.into()),
             announcement_only: false,
+            history_limit: 0, // unlimited for test helper
         };
         let ret = self.user.oc().fetch_msgs(msg_get).await?;
         let mut ret_stream = ret.into_inner();
