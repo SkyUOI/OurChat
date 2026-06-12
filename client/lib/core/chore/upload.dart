@@ -13,6 +13,21 @@ import 'package:ourchat/main.dart';
 import 'package:ourchat/service/ourchat/download/v1/download.pb.dart';
 import 'package:ourchat/service/ourchat/upload/v1/upload.pb.dart';
 
+/// Result of a file download, including both metadata and content
+class OurChatFileResult {
+  final Uint8List bytes;
+  final String contentType;
+  final String filename;
+  final int size;
+
+  OurChatFileResult({
+    required this.bytes,
+    this.contentType = '',
+    this.filename = '',
+    this.size = 0,
+  });
+}
+
 Future<UploadResponse> uploadStreaming(
   OurChatServer server,
   Uint8List rawData,
@@ -20,6 +35,7 @@ Future<UploadResponse> uploadStreaming(
   Int64? sessionId,
   bool compress = true,
   String? contentType,
+  String? filename,
 }) async {
   var stub = server.newStub();
   StreamController<UploadRequest> controller =
@@ -54,6 +70,8 @@ Future<UploadResponse> uploadStreaming(
         size: Int64.parseInt(biData.length.toString()),
         autoClean: autoClean,
         sessionId: sessionId,
+        contentType: contentType ?? '',
+        filename: filename ?? '',
       ),
     ),
   );
@@ -87,6 +105,7 @@ Future<UploadResponse> upload(
   Int64? sessionId,
   bool compress = true,
   String? contentType,
+  String? filename,
 }) async {
   if (kIsWeb) {
     return await uploadChunked(
@@ -96,6 +115,7 @@ Future<UploadResponse> upload(
       sessionId: sessionId,
       compress: compress,
       contentType: contentType,
+      filename: filename,
     );
   } else {
     return await uploadStreaming(
@@ -105,6 +125,7 @@ Future<UploadResponse> upload(
       sessionId: sessionId,
       compress: compress,
       contentType: contentType,
+      filename: filename,
     );
   }
 }
@@ -118,6 +139,7 @@ Future<UploadResponse> uploadChunked(
   Int64? sessionId,
   bool compress = true,
   String? contentType,
+  String? filename,
 }) async {
   var stub = server.newStub();
 
@@ -149,6 +171,8 @@ Future<UploadResponse> uploadChunked(
       size: Int64.parseInt(biData.length.toString()),
       autoClean: autoClean,
       sessionId: sessionId,
+      contentType: contentType ?? '',
+      filename: filename ?? '',
     ),
     (GrpcError e) {
       showResultMessage(
@@ -224,7 +248,7 @@ Future<void> cancelUpload(OurChatServer server, String uploadId) async {
   );
 }
 
-Future<Uint8List> getOurChatFile(WidgetRef ref, String key) async {
+Future<OurChatFileResult> getOurChatFile(WidgetRef ref, String key) async {
   try {
     var manager = DefaultCacheManager();
     var server = ref.watch(ourChatServerProvider);
@@ -232,7 +256,7 @@ Future<Uint8List> getOurChatFile(WidgetRef ref, String key) async {
       "${server.host}:${server.port}/$key",
     );
     if (cache != null) {
-      return await cache.file.readAsBytes();
+      return OurChatFileResult(bytes: await cache.file.readAsBytes());
     }
     var stub = server.newStub();
     var res =
@@ -243,8 +267,17 @@ Future<Uint8List> getOurChatFile(WidgetRef ref, String key) async {
             })
             as ResponseStream<DownloadResponse>;
     List<int> data = [];
-    for (DownloadResponse piece in await res.toList()) {
-      data.addAll(piece.data);
+    String contentType = '';
+    String filename = '';
+    int size = 0;
+    await for (DownloadResponse piece in res) {
+      if (piece.hasMetadata()) {
+        contentType = piece.metadata.contentType;
+        filename = piece.metadata.filename;
+        size = piece.metadata.size.toInt();
+      } else {
+        data.addAll(piece.content);
+      }
     }
 
     manager.putFile(
@@ -252,9 +285,19 @@ Future<Uint8List> getOurChatFile(WidgetRef ref, String key) async {
       Uint8List.fromList(data),
       key: "${server.host}:${server.port}/$key",
     );
-    return Uint8List.fromList(data);
+    return OurChatFileResult(
+      bytes: Uint8List.fromList(data),
+      contentType: contentType,
+      filename: filename,
+      size: size,
+    );
   } catch (e) {
     logger.e("getOurChatFile(key:$key) error:$e");
     rethrow;
   }
+}
+
+/// Legacy helper that returns just bytes for backward compatibility
+Future<Uint8List> getOurChatFileBytes(WidgetRef ref, String key) async {
+  return (await getOurChatFile(ref, key)).bytes;
 }

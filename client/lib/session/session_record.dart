@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
@@ -168,6 +167,33 @@ class _MessageWidgetState extends ConsumerState<MessageWidget> {
             data: msg.markdownText,
             onTapLink: (text, href, title) {
               if (href == null) return;
+              // Handle IO:// links for file downloads
+              final parsedUri = Uri.tryParse(href);
+              if (parsedUri != null &&
+                  parsedUri.scheme.length >= 2 &&
+                  parsedUri.scheme[0] == 'i' &&
+                  parsedUri.scheme[1] == 'o') {
+                final index = int.tryParse(
+                  parsedUri.toString().split("://")[1],
+                );
+                if (index != null && index < msg.involvedFiles.length) {
+                  // Trigger file download in background
+                  getOurChatFile(ref, msg.involvedFiles[index])
+                      .then((_) {
+                        // File downloaded successfully
+                      })
+                      .catchError((_) {
+                        showResultMessage(
+                          internalStatusCode,
+                          null,
+                          internalStatus: l10n.failTo(
+                            "${l10n.load} ${l10n.file}",
+                          ),
+                        );
+                      });
+                  return;
+                }
+              }
               showDialog(
                 context: context,
                 builder: (context) {
@@ -195,38 +221,53 @@ class _MessageWidgetState extends ConsumerState<MessageWidget> {
             },
             imageBuilder: (uri, title, alt) {
               Widget widget = Text(l10n.internalError);
+              // Preview cached local files before upload
               if (sessionState.cacheFiles.containsKey(uri.toString())) {
-                widget = InkWell(
-                  onTap: () {
-                    ref
-                        .read(sessionProvider.notifier)
-                        .switchSendRaw(uri.toString());
-                  },
-                  child: Stack(
-                    children: [
-                      Image.memory(sessionState.cacheFiles[uri.toString()]!),
-                      if (sessionState.cacheFilesSendRaw[uri.toString()]!)
-                        Icon(Icons.raw_on)
-                      else
-                        Icon(Icons.raw_off),
-                    ],
-                  ),
-                );
+                bool isImage =
+                    sessionState.cacheFilesContentType[uri.toString()]
+                        ?.startsWith('image/') ??
+                    true;
+                if (isImage) {
+                  widget = InkWell(
+                    onTap: () {
+                      ref
+                          .read(sessionProvider.notifier)
+                          .switchSendRaw(uri.toString());
+                    },
+                    child: Stack(
+                      children: [
+                        Image.memory(sessionState.cacheFiles[uri.toString()]!),
+                        if (sessionState.cacheFilesSendRaw[uri.toString()]!)
+                          Icon(Icons.raw_on)
+                        else
+                          Icon(Icons.raw_off),
+                      ],
+                    ),
+                  );
+                } else {
+                  // Non-image file preview
+                  widget = _buildFileCard(
+                    contentType:
+                        sessionState.cacheFilesContentType[uri.toString()] ??
+                        '',
+                    filename: sessionState.cacheFileNames[uri.toString()] ?? '',
+                    size: sessionState.cacheFiles[uri.toString()]!.length,
+                    isLocal: true,
+                  );
+                }
               }
               try {
                 String content = uri.toString().split("://")[1];
                 if (uri.scheme[0] == 'i') {
                   if (uri.scheme[1] == 'o') {
-                    widget = FutureBuilder(
+                    widget = FutureBuilder<OurChatFileResult>(
                       future: getOurChatFile(
                         ref,
                         msg.involvedFiles[int.parse(content)],
                       ),
-                      builder: (content, snapshot) {
+                      builder: (context, snapshot) {
                         if (snapshot.hasError) {
-                          return Text(
-                            l10n.failTo("${l10n.load} ${l10n.image}"),
-                          );
+                          return Text(l10n.failTo("${l10n.load} ${l10n.file}"));
                         }
                         if (snapshot.connectionState != ConnectionState.done ||
                             snapshot.data == null) {
@@ -234,8 +275,16 @@ class _MessageWidgetState extends ConsumerState<MessageWidget> {
                             color: Theme.of(context).primaryColor,
                           );
                         }
-                        Uint8List fileBytes = snapshot.data as Uint8List;
-                        return Image.memory(fileBytes);
+                        final result = snapshot.data!;
+                        if (result.contentType.startsWith('image/')) {
+                          return Image.memory(result.bytes);
+                        } else {
+                          return _buildFileCard(
+                            contentType: result.contentType,
+                            filename: result.filename,
+                            size: result.size,
+                          );
+                        }
                       },
                     );
                   } else if (uri.scheme[1] == 'n') {
@@ -272,6 +321,73 @@ class _MessageWidgetState extends ConsumerState<MessageWidget> {
               : MainAxisAlignment.start),
           children: [(isMe ? message : avatar), (isMe ? avatar : message)],
         ),
+      ),
+    );
+  }
+
+  /// Build a file attachment card for non-image files
+  Widget _buildFileCard({
+    required String contentType,
+    required String filename,
+    required int size,
+    bool isLocal = false,
+  }) {
+    IconData fileIcon;
+    if (contentType.startsWith('video/')) {
+      fileIcon = Icons.videocam;
+    } else if (contentType.startsWith('audio/')) {
+      fileIcon = Icons.audiotrack;
+    } else if (contentType.startsWith('image/')) {
+      fileIcon = Icons.image;
+    } else if (contentType.contains('pdf')) {
+      fileIcon = Icons.picture_as_pdf;
+    } else if (contentType.contains('zip') ||
+        contentType.contains('tar') ||
+        contentType.contains('compress')) {
+      fileIcon = Icons.archive;
+    } else {
+      fileIcon = Icons.insert_drive_file;
+    }
+
+    String sizeStr;
+    if (size < 1024) {
+      sizeStr = '$size B';
+    } else if (size < 1024 * 1024) {
+      sizeStr = '${(size / 1024).toStringAsFixed(1)} KB';
+    } else {
+      sizeStr = '${(size / 1024 / 1024).toStringAsFixed(1)} MB';
+    }
+
+    String displayName = filename.isNotEmpty ? filename : l10n.file;
+    if (displayName.length > 30) {
+      displayName = '${displayName.substring(0, 27)}...';
+    }
+
+    return Container(
+      width: 220,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(fileIcon, size: 40, color: Colors.grey.shade600),
+          const SizedBox(height: 6),
+          Text(
+            displayName,
+            style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            sizeStr,
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+          ),
+        ],
       ),
     );
   }

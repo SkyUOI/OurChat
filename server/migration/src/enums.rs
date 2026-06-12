@@ -80,6 +80,8 @@ pub enum Files {
     Path,
     UserId,
     SessionId,
+    ContentType,
+    OriginalFilename,
 }
 
 #[derive(DeriveIden)]

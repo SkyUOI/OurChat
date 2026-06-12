@@ -1,6 +1,6 @@
 pub mod rabbitmq;
 
-use pb::service::ourchat::download::v1::DownloadResponse;
+use pb::service::ourchat::download::v1::{DownloadResponse, download_response};
 use size::Size;
 use std::iter;
 use tokio_stream::StreamExt;
@@ -36,7 +36,9 @@ pub async fn get_hash_from_download(
     let mut hasher = Sha3_256::new();
     while let Some(stream) = content.next().await {
         let stream = stream?;
-        hasher.update(stream.data);
+        if let Some(download_response::Data::Content(data)) = stream.data {
+            hasher.update(data);
+        }
     }
     let hash = hex::encode(hasher.finalize().as_slice());
     Ok(hash)

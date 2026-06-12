@@ -7,7 +7,21 @@ message DownloadRequest {
   string key = 1;
 }
 
+// Metadata about the file, sent as the first response before data
+message FileMetadata {
+  // MIME content type (e.g. "image/png", "video/mp4")
+  string content_type = 1;
+  // Original filename
+  string filename = 2;
+  // File size in bytes
+  uint64 size = 3;
+}
+
 message DownloadResponse {
-  // The data of the file
-  bytes data = 1;
+  oneof data {
+    // File metadata (sent first, before any data chunks)
+    FileMetadata metadata = 2;
+    // A chunk of the file data
+    bytes content = 1;
+  }
 }

@@ -12,7 +12,7 @@ use pb::service::auth::register::v1::RegisterRequest;
 use pb::service::basic::v1::TimestampRequest;
 use pb::service::basic::v1::basic_service_client::BasicServiceClient;
 use pb::service::ourchat::delete::v1::DeleteFileRequest;
-use pb::service::ourchat::download::v1::{DownloadRequest, DownloadResponse};
+use pb::service::ourchat::download::v1::{DownloadRequest, DownloadResponse, download_response};
 use pb::service::ourchat::get_account_info;
 use pb::service::ourchat::get_account_info::v1::{GetAccountInfoRequest, GetAccountInfoResponse};
 use pb::service::ourchat::msg_delivery::v1::{
@@ -320,7 +320,9 @@ impl TestUser {
         let mut file_download = Vec::new();
         while let Some(part) = files_part.next().await {
             let part = part?;
-            file_download.extend_from_slice(&part.data);
+            if let Some(download_response::Data::Content(data)) = part.data {
+                file_download.extend_from_slice(&data);
+            }
         }
         Ok(file_download)
     }
@@ -362,6 +364,8 @@ impl TestUser {
                 size,
                 auto_clean: true,
                 session_id: session_id.map(|x| x.0),
+                content_type: String::new(),
+                filename: String::new(),
             })
             .await?
             .into_inner();

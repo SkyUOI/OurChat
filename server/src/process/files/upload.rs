@@ -28,6 +28,8 @@ pub struct AddFileRecordConfig {
     pub files_storage_path: PathBuf,
     pub limit_size: Size,
     pub session_id: Option<SessionID>,
+    pub content_type: Option<String>,
+    pub filename: Option<String>,
 }
 
 /// Local state for open file handles (only on the server instance that created the upload)
@@ -98,6 +100,8 @@ pub async fn add_file_record(
         auto_clean: sea_orm::Set(config.auto_clean),
         user_id: sea_orm::Set(config.id.into()),
         session_id: sea_orm::Set(config.session_id.map(|s| s.0 as i64)),
+        content_type: sea_orm::Set(config.content_type),
+        original_filename: sea_orm::Set(config.filename),
     };
     file.insert(db_connection).await?;
     Ok(())
@@ -175,6 +179,8 @@ async fn upload_impl(
         return Err(UploadError::FileSizeOverflow);
     }
     let session_id = metadata.session_id.map(SessionID);
+    let _content_type = metadata.content_type.clone();
+    let _filename = metadata.filename.clone();
 
     // Create temporary file path for streaming using hierarchical structure
     let temp_key = format!("{}.tmp", key);
@@ -228,6 +234,16 @@ async fn upload_impl(
             files_storage_path: files_storage_path.clone(),
             limit_size,
             session_id,
+            content_type: if metadata.content_type.is_empty() {
+                None
+            } else {
+                Some(metadata.content_type.clone())
+            },
+            filename: if metadata.filename.is_empty() {
+                None
+            } else {
+                Some(metadata.filename.clone())
+            },
         };
         add_file_record(config, &server.db.db_pool).await?;
         temp_file.flush().await?;

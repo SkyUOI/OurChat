@@ -26,6 +26,28 @@ pub mod v1 {
                     size: size as u64,
                     auto_clean,
                     session_id,
+                    content_type: String::new(),
+                    filename: String::new(),
+                })),
+            }
+        }
+
+        pub fn new_header_full(
+            size: usize,
+            hash: bytes::Bytes,
+            auto_clean: bool,
+            session_id: Option<u64>,
+            content_type: String,
+            filename: String,
+        ) -> Self {
+            Self {
+                data: Some(Data::Metadata(Header {
+                    hash,
+                    size: size as u64,
+                    auto_clean,
+                    session_id,
+                    content_type,
+                    filename,
                 })),
             }
         }

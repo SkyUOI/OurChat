@@ -486,6 +486,8 @@ async fn upload_chunked_cancel() {
             size,
             auto_clean: true,
             session_id: None,
+            content_type: String::new(),
+            filename: String::new(),
         })
         .await
         .unwrap()

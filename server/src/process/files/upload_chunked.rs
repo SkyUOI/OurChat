@@ -114,6 +114,8 @@ pub async fn start_upload_impl(
         req.auto_clean,
         session_id,
         temp_path.clone(),
+        req.content_type,
+        req.filename,
     );
 
     // Save to Redis with TTL
@@ -339,6 +341,16 @@ pub async fn complete_upload_impl(
         files_storage_path: server.shared_data.cfg().main_cfg.files_storage_path.clone(),
         limit_size: server.shared_data.cfg().main_cfg.user_files_limit,
         session_id: metadata.session_id,
+        content_type: if metadata.content_type.is_empty() {
+            None
+        } else {
+            Some(metadata.content_type.clone())
+        },
+        filename: if metadata.filename.is_empty() {
+            None
+        } else {
+            Some(metadata.filename.clone())
+        },
     };
     add_file_record(config, &server.db.db_pool).await?;
 

@@ -108,5 +108,14 @@
     "upload": "上传",
     "uploading": "正在上传...",
     "selectServer": "选择服务器",
-    "noFriend": "你还没有好友哦"
+    "noFriend": "你还没有好友哦",
+    "file": "文件",
+    "video": "视频",
+    "audio": "音频",
+    "camera": "相机",
+    "openFile": "打开文件",
+    "saveFile": "保存文件",
+    "downloading": "正在下载...",
+    "fileSize": "文件大小",
+    "uploadingFile": "正在上传 ({current}/{total})..."
 }

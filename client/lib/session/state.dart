@@ -25,6 +25,7 @@ abstract class SessionState with _$SessionState {
     @Default({}) Map<String, Uint8List> cacheFiles,
     @Default({}) Map<String, String> cacheFilesContentType,
     @Default({}) Map<String, bool> cacheFilesSendRaw,
+    @Default({}) Map<String, String> cacheFileNames,
     @Default([]) List<String> needUploadFiles,
     @Default(1) int recordLoadCnt,
     @Default(0) double lastPixels,
@@ -107,6 +108,7 @@ class SessionNotifier extends _$SessionNotifier {
       tabTitle: title,
       cacheFiles: {},
       cacheFilesContentType: {},
+      cacheFileNames: {},
     );
   }
 
@@ -118,6 +120,7 @@ class SessionNotifier extends _$SessionNotifier {
       currentSessionRecords: records ?? [],
       cacheFiles: {},
       cacheFilesContentType: {},
+      cacheFileNames: {},
       recordLoadCnt: 1,
     );
   }
@@ -151,6 +154,7 @@ class SessionNotifier extends _$SessionNotifier {
       needUploadFiles: [],
       cacheFiles: {},
       cacheFilesContentType: {},
+      cacheFileNames: {},
     );
   }
 
@@ -161,12 +165,14 @@ class SessionNotifier extends _$SessionNotifier {
   void updateCacheFiles(
     Map<String, Uint8List> files,
     Map<String, String> contentTypes,
-    Map<String, bool> sendRaw,
-  ) {
+    Map<String, bool> sendRaw, {
+    Map<String, String>? fileNames,
+  }) {
     state = state.copyWith(
       cacheFiles: files,
       cacheFilesContentType: contentTypes,
       cacheFilesSendRaw: sendRaw,
+      cacheFileNames: fileNames ?? state.cacheFileNames,
     );
   }
 

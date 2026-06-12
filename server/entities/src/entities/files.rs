@@ -12,6 +12,8 @@ pub struct Model {
     pub path: String,
     pub user_id: i64,
     pub session_id: Option<i64>,
+    pub content_type: Option<String>,
+    pub original_filename: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

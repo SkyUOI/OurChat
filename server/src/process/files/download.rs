@@ -9,7 +9,9 @@ use base::constants::ID;
 use base::database::DbPool;
 use bytes::BytesMut;
 use entities::session_relation;
-use pb::service::ourchat::download::v1::{DownloadRequest, DownloadResponse};
+use pb::service::ourchat::download::v1::{
+    DownloadRequest, DownloadResponse, FileMetadata, download_response,
+};
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use tokio::{io::AsyncReadExt, sync::mpsc};
 use tokio_stream::wrappers::ReceiverStream;
@@ -71,6 +73,19 @@ async fn download_impl(
 
     // Use the stored path from database (which should be hierarchical)
     let path = PathBuf::from(&file_info.path);
+
+    // Send file metadata as the first response
+    let file_meta = tokio::fs::metadata(&path).await?;
+    tx.send(Ok(DownloadResponse {
+        data: Some(download_response::Data::Metadata(FileMetadata {
+            content_type: file_info.content_type.unwrap_or_default(),
+            filename: file_info.original_filename.unwrap_or_default(),
+            size: file_meta.len(),
+        })),
+    }))
+    .await
+    .ok();
+
     let file = tokio::fs::File::open(&path).await?;
     let mut buf_reader = tokio::io::BufReader::new(file);
     let mut buf = BytesMut::with_capacity(1024);
@@ -83,7 +98,11 @@ async fn download_impl(
         }
         let chunk = buf.split().freeze();
         file_data.extend_from_slice(&chunk);
-        tx.send(Ok(DownloadResponse { data: chunk })).await.ok();
+        tx.send(Ok(DownloadResponse {
+            data: Some(download_response::Data::Content(chunk)),
+        }))
+        .await
+        .ok();
     }
     Ok(())
 }

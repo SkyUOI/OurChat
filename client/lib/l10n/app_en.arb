@@ -491,5 +491,51 @@
     "noFriend": "You have no friend now",
     "@noFriend": {
         "description": "You have no friend now"
+    },
+    "file": "file",
+    "@file": {
+        "description": "File"
+    },
+    "video": "video",
+    "@video": {
+        "description": "Video"
+    },
+    "audio": "audio",
+    "@audio": {
+        "description": "Audio"
+    },
+    "camera": "Camera",
+    "@camera": {
+        "description": "Camera"
+    },
+    "openFile": "Open file",
+    "@openFile": {
+        "description": "Open file"
+    },
+    "saveFile": "Save file",
+    "@saveFile": {
+        "description": "Save file"
+    },
+    "downloading": "Downloading...",
+    "@downloading": {
+        "description": "Downloading..."
+    },
+    "fileSize": "File size",
+    "@fileSize": {
+        "description": "File size"
+    },
+    "uploadingFile": "Uploading ({current}/{total})...",
+    "@uploadingFile": {
+        "description": "Uploading files with progress",
+        "placeholders": {
+            "current": {
+                "type": "int",
+                "example": "1"
+            },
+            "total": {
+                "type": "int",
+                "example": "5"
+            }
+        }
     }
 }

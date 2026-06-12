@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:file_picker/file_picker.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -31,6 +32,106 @@ class SessionTab extends ConsumerStatefulWidget {
 class _SessionTabState extends ConsumerState<SessionTab> {
   TextEditingController controller = TextEditingController();
   GlobalKey<FormState> inputBoxKey = GlobalKey<FormState>();
+
+  /// Insert a file into the chat input area, caching its data for upload
+  void _cacheFileForUpload({
+    required String path,
+    required String name,
+    required Uint8List bytes,
+    required String contentType,
+    bool isImage = true,
+  }) {
+    final sessionState = ref.read(sessionProvider);
+    var newCacheFiles = Map<String, Uint8List>.from(sessionState.cacheFiles);
+    newCacheFiles[path] = bytes;
+    var newSendRaw = Map<String, bool>.from(sessionState.cacheFilesSendRaw);
+    newSendRaw[path] = false;
+    var newContentTypes = Map<String, String>.from(
+      sessionState.cacheFilesContentType,
+    );
+    newContentTypes[path] = contentType;
+    var newFileNames = Map<String, String>.from(sessionState.cacheFileNames);
+    newFileNames[path] = name;
+
+    String breakLine = controller.text.isEmpty || controller.text.endsWith("\n")
+        ? ""
+        : "\n";
+    if (isImage) {
+      controller.text = "${controller.text}$breakLine![$name]($path)";
+    } else {
+      controller.text = "${controller.text}$breakLine[$name]($path)";
+    }
+    ref.read(inputTextProvider.notifier).setText(controller.text);
+    ref
+        .read(sessionProvider.notifier)
+        .updateCacheFiles(
+          newCacheFiles,
+          newContentTypes,
+          newSendRaw,
+          fileNames: newFileNames,
+        );
+    ref.read(sessionProvider.notifier).addNeedUploadFile(path);
+  }
+
+  Future<void> _pickImages() async {
+    var picker = ImagePicker();
+    List<XFile> images = await picker.pickMultiImage();
+    for (XFile i in images) {
+      var bytes = await i.readAsBytes();
+      var contentType = lookupMimeType(i.path, headerBytes: List.from(bytes))!;
+      _cacheFileForUpload(
+        path: i.path,
+        name: i.name,
+        bytes: bytes,
+        contentType: contentType,
+        isImage: true,
+      );
+    }
+  }
+
+  Future<void> _pickFiles() async {
+    var result = await FilePicker.platform.pickFiles(
+      type: FileType.any,
+      allowMultiple: true,
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) return;
+    for (var file in result.files) {
+      if (file.bytes == null) continue;
+      var contentType =
+          lookupMimeType(
+            file.name,
+            headerBytes: file.bytes!.take(256).toList(),
+          ) ??
+          'application/octet-stream';
+      var isImage = contentType.startsWith('image/');
+      _cacheFileForUpload(
+        path: file.path ?? file.name,
+        name: file.name,
+        bytes: file.bytes!,
+        contentType: contentType,
+        isImage: isImage,
+      );
+    }
+  }
+
+  Future<void> _pickCamera() async {
+    var picker = ImagePicker();
+    var image = await picker.pickImage(source: ImageSource.camera);
+    if (image == null) return;
+    var bytes = await image.readAsBytes();
+    var contentType = lookupMimeType(
+      image.path,
+      headerBytes: List.from(bytes),
+    )!;
+    _cacheFileForUpload(
+      path: image.path,
+      name: image.name,
+      bytes: bytes,
+      contentType: contentType,
+      isImage: true,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,15 +168,19 @@ class _SessionTabState extends ConsumerState<SessionTab> {
                             List<String> involvedFiles = [];
                             String text = value!;
                             int index = 0;
-                            if (sessionState.needUploadFiles.isNotEmpty) {
+                            final totalFiles =
+                                sessionState.needUploadFiles.length;
+                            if (totalFiles > 0) {
                               showResultMessage(
                                 okStatusCode,
                                 null,
-                                okStatus: l10n.uploading,
+                                okStatus: l10n.uploadingFile(1, totalFiles),
                               );
                             }
 
+                            int fileIdx = 0;
                             for (String path in sessionState.needUploadFiles) {
+                              fileIdx++;
                               try {
                                 if (!sessionState.cacheFiles.containsKey(
                                   path,
@@ -84,13 +189,13 @@ class _SessionTabState extends ConsumerState<SessionTab> {
                                     notFoundStatusCode,
                                     null,
                                     notFoundStatus: l10n.notFound(
-                                      "${l10n.image}($path)",
+                                      "${l10n.file}($path)",
                                     ),
                                   );
                                   continue;
                                 }
                                 logger.i(
-                                  "Uploading file: $path, compress: ${!sessionState.cacheFilesSendRaw[path]!}",
+                                  "Uploading file $fileIdx/$totalFiles: $path",
                                 );
 
                                 var res = await upload(
@@ -102,7 +207,21 @@ class _SessionTabState extends ConsumerState<SessionTab> {
                                       !sessionState.cacheFilesSendRaw[path]!,
                                   contentType:
                                       sessionState.cacheFilesContentType[path]!,
+                                  filename:
+                                      sessionState.cacheFileNames[path] ?? '',
                                 );
+
+                                // Update progress
+                                if (fileIdx < totalFiles) {
+                                  showResultMessage(
+                                    okStatusCode,
+                                    null,
+                                    okStatus: l10n.uploadingFile(
+                                      fileIdx + 1,
+                                      totalFiles,
+                                    ),
+                                  );
+                                }
 
                                 String newPath = "IO://$index";
                                 text = replaceMarkdownImageUrls(text, (oldUrl) {
@@ -168,49 +287,39 @@ class _SessionTabState extends ConsumerState<SessionTab> {
                 children: [
                   IconButton(
                     onPressed: () async {
-                      var picker = ImagePicker();
-                      List<XFile> images = await picker.pickMultiImage();
-                      for (XFile i in images) {
-                        var uri = Uri.parse(i.path);
-                        var bytes = await i.readAsBytes();
-                        var sendRaw = false;
-                        var contentType = lookupMimeType(
-                          i.path,
-                          headerBytes: List.from(bytes),
-                        )!;
-                        var newCacheFiles = Map<String, Uint8List>.from(
-                          sessionState.cacheFiles,
-                        );
-                        newCacheFiles[uri.toString()] = bytes;
-                        var newSendRaw = Map<String, bool>.from(
-                          sessionState.cacheFilesSendRaw,
-                        );
-                        newSendRaw[uri.toString()] = sendRaw;
-                        var newContentTypes = Map<String, String>.from(
-                          sessionState.cacheFilesContentType,
-                        );
-                        newContentTypes[uri.toString()] = contentType;
-                        String breakLine =
-                            controller.text.isEmpty ||
-                                controller.text.endsWith("\n") // 已有换行
-                            ? ""
-                            : "\n";
-                        controller.text =
-                            "${controller.text}$breakLine![${i.name}](${uri.toString()})";
-                        ref
-                            .read(inputTextProvider.notifier)
-                            .setText(controller.text);
-                        ref
-                            .read(sessionProvider.notifier)
-                            .updateCacheFiles(
-                              newCacheFiles,
-                              newContentTypes,
-                              newSendRaw,
-                            );
-                        ref
-                            .read(sessionProvider.notifier)
-                            .addNeedUploadFile(uri.toString());
-                      }
+                      showModalBottomSheet(
+                        context: context,
+                        builder: (ctx) => SafeArea(
+                          child: Wrap(
+                            children: [
+                              ListTile(
+                                leading: Icon(Icons.image),
+                                title: Text(l10n.image),
+                                onTap: () async {
+                                  Navigator.pop(ctx);
+                                  await _pickImages();
+                                },
+                              ),
+                              ListTile(
+                                leading: Icon(Icons.attach_file),
+                                title: Text(l10n.file),
+                                onTap: () async {
+                                  Navigator.pop(ctx);
+                                  await _pickFiles();
+                                },
+                              ),
+                              ListTile(
+                                leading: Icon(Icons.camera_alt),
+                                title: Text(l10n.camera),
+                                onTap: () async {
+                                  Navigator.pop(ctx);
+                                  await _pickCamera();
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
                     },
                     icon: Icon(Icons.add),
                   ),

@@ -83,10 +83,13 @@ pub struct UploadSessionMetadata {
     pub bytes_received: usize,
     pub created_at: TimeStampUtc,
     pub last_activity: TimeStampUtc,
+    pub content_type: String,
+    pub filename: String,
 }
 
 impl UploadSessionMetadata {
     /// Create new upload session metadata
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         upload_id: String,
         user_id: ID,
@@ -95,6 +98,8 @@ impl UploadSessionMetadata {
         auto_clean: bool,
         session_id: Option<SessionID>,
         temp_path: std::path::PathBuf,
+        content_type: String,
+        filename: String,
     ) -> Self {
         let now = chrono::Utc::now();
         Self {
@@ -108,6 +113,8 @@ impl UploadSessionMetadata {
             bytes_received: 0,
             created_at: now,
             last_activity: now,
+            content_type,
+            filename,
         }
     }
 
