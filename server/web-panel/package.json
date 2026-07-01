@@ -23,7 +23,7 @@
     "@protobuf-ts/runtime": "^2.11.1",
     "@protobuf-ts/runtime-rpc": "^2.11.1",
     "@tailwindcss/vite": "^4.3.0",
-    "echarts": "^5.6.0",
+    "echarts": "^6.1.0",
     "element-plus": "^2.14.1",
     "pinia": "^3.0.4",
     "vue": "^3.5.35",
