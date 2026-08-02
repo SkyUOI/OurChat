@@ -1,9 +1,12 @@
+import 'dart:typed_data';
+
 import 'package:fixnum/fixnum.dart';
 import 'package:grpc/grpc.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:ourchat/core/crypto.dart';
 import 'package:ourchat/core/log.dart';
+import 'package:ourchat/core/secret_store.dart';
 import 'package:ourchat/core/server.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/service/auth/authorize/v1/authorize.pb.dart';
@@ -31,11 +34,22 @@ abstract class AuthState with _$AuthState {
 
 @Riverpod(keepAlive: true)
 class AuthNotifier extends _$AuthNotifier {
+  /// In-memory cache of the logged-in account's RSA private key, used for E2EE
+  /// decryption. Persisted in [SecretStore] keyed by account id.
+  Uint8List? _privateKey;
+
+  /// The pending private key from a registration that hasn't been persisted
+  /// yet (the account id is only known after register() succeeds).
+  Uint8List? _pendingPrivateKey;
+
   @override
   AuthState build() {
     // 暂时不自动恢复登录状态，由上层处理
     return AuthState();
   }
+
+  /// The currently loaded RSA private key (DER PKCS#1), or null if none.
+  Uint8List? get privateKey => _privateKey;
 
   /// 登录：使用邮箱或 OCID 和密码
   Future<bool> login({
@@ -79,6 +93,9 @@ class AuthNotifier extends _$AuthNotifier {
       // 更新应用状态中的当前账户 ID
       ref.read(thisAccountIdProvider.notifier).setAccountId(response.id);
 
+      // Load this account's E2EE private key from secure storage.
+      await loadPrivateKey(response.id);
+
       return true;
     } on GrpcError catch (e) {
       final errorMessage = _handleAuthError(e);
@@ -105,12 +122,15 @@ class AuthNotifier extends _$AuthNotifier {
       final channel = server.channel;
       final authClient = AuthServiceClient(channel);
 
-      // Generate RSA key pair on first registration if no public key provided
+      // Generate RSA key pair on registration. The public key is sent to the
+      // server; the private key is captured locally and persisted to
+      // SecretStore once we know the account id (see persistPrivateKey).
       var keyBytes = publicKey ?? <int>[];
       if (keyBytes.isEmpty) {
         try {
           final keyPair = generateRsaKeyPair();
           keyBytes = keyPair.publicKey;
+          _pendingPrivateKey = keyPair.privateKey;
           logger.i('Generated new RSA key pair for registration');
         } catch (e) {
           logger.e('Failed to generate RSA key pair: $e');
@@ -156,6 +176,34 @@ class AuthNotifier extends _$AuthNotifier {
     }
   }
 
+  /// Allow the UI to hand over a private key it generated alongside the
+  /// public key used for registration.
+  void setPendingPrivateKey(Uint8List privateKey) {
+    _pendingPrivateKey = privateKey;
+  }
+
+  /// Persist the pending private key (from registration) for [accountId] to
+  /// secure storage and load it into memory.
+  Future<void> persistPrivateKey(Int64 accountId) async {
+    if (_pendingPrivateKey != null) {
+      await SecretStore.savePrivateKey(accountId, _pendingPrivateKey!);
+      _privateKey = _pendingPrivateKey;
+      _pendingPrivateKey = null;
+      logger.i('E2EE private key persisted for account $accountId');
+    } else {
+      // No pending key (e.g. login); just ensure memory is populated.
+      await loadPrivateKey(accountId);
+    }
+  }
+
+  /// Load the private key for [accountId] from secure storage into memory.
+  Future<void> loadPrivateKey(Int64 accountId) async {
+    _privateKey = await SecretStore.readPrivateKey(accountId);
+    if (_privateKey == null) {
+      logger.w('No E2EE private key found for account $accountId');
+    }
+  }
+
   /// 注销
   void logout() {
     final server = ref.read(ourChatServerProvider);
@@ -164,6 +212,8 @@ class AuthNotifier extends _$AuthNotifier {
     }
 
     state = AuthState();
+    _privateKey = null;
+    _pendingPrivateKey = null;
 
     // 清除应用状态中的当前账户 ID
     ref.read(thisAccountIdProvider.notifier).clear();

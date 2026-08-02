@@ -281,6 +281,14 @@ impl HttpServer {
                 .serve(router.into_make_service_with_connect_info::<SocketAddr>())
                 .await?;
             } else {
+                // Transport encryption is disabled. Passwords and JWTs travel in
+                // cleartext over this listener. Warn loudly so operators do not
+                // accidentally expose a production deployment without TLS.
+                tracing::warn!("################################################################");
+                tracing::warn!("# TLS IS DISABLED. Passwords, JWT tokens and chat content will #");
+                tracing::warn!("# travel in CLEARTEXT. Enable [tls] in http.toml for any server #");
+                tracing::warn!("# reachable beyond localhost.                                   #");
+                tracing::warn!("################################################################");
                 axum::serve(
                     listener,
                     router.into_make_service_with_connect_info::<SocketAddr>(),

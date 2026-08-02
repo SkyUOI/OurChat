@@ -5,12 +5,16 @@ import 'package:fixnum/fixnum.dart';
 import 'package:ourchat/core/account.dart';
 import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/core/const.dart';
+import 'package:ourchat/core/crypto.dart';
 import 'package:ourchat/core/database.dart';
+import 'package:ourchat/core/e2ee.dart';
 import 'package:ourchat/core/log.dart';
 import 'package:ourchat/core/session.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/service/ourchat/friends/accept_friend_invitation/v1/accept_friend_invitation.pb.dart';
 import 'package:ourchat/service/ourchat/msg_delivery/v1/msg_delivery.pb.dart';
+import 'package:ourchat/service/ourchat/session/allow_user_join_session/v1/allow_user_join_session.pb.dart';
+import 'package:ourchat/service/ourchat/session/session_room_key/v1/session_room_key.pb.dart';
 import 'package:grpc/grpc.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -145,14 +149,36 @@ class UserMsg extends OurChatEvent {
 
   Future<SendMsgResponse?> send(Ref ref, Int64 targetSessionId) async {
     var stub = ref.read(ourChatServerProvider).newStub();
+    // Encrypt when we hold a room key for this session (E2EE).
+    final e2ee = ref.read(e2eeStoreProvider.notifier);
+    String wireText = markdownText;
+    List<String> wireFiles = involvedFiles;
+    bool isEncrypted = false;
+    if (e2ee.hasKey(targetSessionId)) {
+      try {
+        wireText = e2ee.encryptMessage(
+          targetSessionId,
+          EncryptedPayload(
+            markdownText: markdownText,
+            involvedFiles: involvedFiles,
+          ),
+        );
+        wireFiles = const [];
+        isEncrypted = true;
+      } catch (e) {
+        logger.w(
+          'E2EE: failed to encrypt outgoing message: $e; sending plaintext',
+        );
+      }
+    }
     try {
       var res = await safeRequest(
         stub.sendMsg,
         SendMsgRequest(
           sessionId: targetSessionId,
-          markdownText: markdownText,
-          involvedFiles: involvedFiles,
-          isEncrypted: false,
+          markdownText: wireText,
+          involvedFiles: wireFiles,
+          isEncrypted: isEncrypted,
         ),
         (GrpcError e) {
           showResultMessage(
@@ -394,13 +420,50 @@ class OurChatEventSystem extends _$OurChatEventSystem {
               ourChatAccountProvider(event.msg.senderId).notifier,
             );
             senderNotifier.recreateStub();
+            String mdText = event.msg.markdownText;
+            List<String> files = event.msg.involvedFiles.toList();
+            if (event.msg.isEncrypted) {
+              final payload = await ref
+                  .read(e2eeStoreProvider.notifier)
+                  .decryptMessage(event.msg.sessionId, event.msg.markdownText);
+              if (payload != null) {
+                mdText = payload.markdownText;
+                files = payload.involvedFiles;
+              } else {
+                // Decryption failed (missing key / tampered). Surface a
+                // placeholder so the user knows a message arrived.
+                mdText = '[encrypted message]';
+                files = const [];
+              }
+            }
             eventObj = UserMsg(
               eventId: event.msgId,
               senderId: event.msg.senderId,
               sessionId: event.msg.sessionId,
               sendTime: OurChatTime.fromTimestamp(event.time),
-              markdownText: event.msg.markdownText,
-              involvedFiles: event.msg.involvedFiles,
+              markdownText: mdText,
+              involvedFiles: files,
+            );
+
+          case FetchMsgsResponse_RespondEventType.receiveRoomKey:
+            // A peer (the e2eeize initiator) sent us a wrapped room key.
+            await _handleReceiveRoomKey(event.receiveRoomKey);
+
+          case FetchMsgsResponse_RespondEventType.sendRoomKey:
+            // We are the e2eeize initiator: the server gave us a member's
+            // public key so we can wrap our room key for them.
+            await _handleSendRoomKeyNotification(event.sendRoomKey);
+
+          case FetchMsgsResponse_RespondEventType.updateRoomKey:
+            // Generate / rotate our room key for this session.
+            await _handleUpdateRoomKey(event.updateRoomKey);
+
+          case FetchMsgsResponse_RespondEventType
+              .allowUserJoinSessionNotification:
+            // We were approved to join a session. If it is E2EE the approver
+            // wrapped the room key to our public key — decrypt and store it.
+            await _handleAllowUserJoinSession(
+              event.allowUserJoinSessionNotification,
             );
 
           default:
@@ -424,6 +487,85 @@ class OurChatEventSystem extends _$OurChatEventSystem {
         }
       }
     }
+  }
+
+  // ── E2EE room-key protocol handlers ──────────────────────────────────────
+
+  /// We triggered E2eeizeSession (or a room-key rotation): generate a fresh
+  /// symmetric room key for the session. Subsequent SendRoomKey notifications
+  /// will wrap this key for each member.
+  Future<void> _handleUpdateRoomKey(UpdateRoomKeyNotification n) async {
+    final store = ref.read(e2eeStoreProvider.notifier);
+    final roomKey = generateRoomKey();
+    await store.storeKey(n.sessionId, roomKey);
+  }
+
+  /// We are the e2eeize initiator and received a member's public key: wrap our
+  /// room key for them and deliver it via the SendRoomKey RPC.
+  Future<void> _handleSendRoomKeyNotification(SendRoomKeyNotification n) async {
+    final sessionId = n.sessionId;
+    final store = ref.read(e2eeStoreProvider.notifier);
+    // Ensure we have a room key (generate lazily if updateRoomKey was missed).
+    Uint8List roomKey;
+    final existing = store.keyFor(sessionId) ?? await store.loadKey(sessionId);
+    if (existing != null) {
+      roomKey = existing;
+    } else {
+      roomKey = generateRoomKey();
+      await store.storeKey(sessionId, roomKey);
+    }
+    try {
+      final wrapped = store.wrapRoomKey(
+        roomKey,
+        Uint8List.fromList(n.publicKey),
+      );
+      final stub = ref.read(ourChatServerProvider).newStub();
+      await safeRequest(
+        stub.sendRoomKey,
+        SendRoomKeyRequest(
+          sessionId: n.sessionId,
+          userId: n.sender,
+          roomKey: wrapped,
+        ),
+        (GrpcError e) {
+          logger.w('SendRoomKey failed: ${e.code} ${e.message}');
+        },
+      );
+    } catch (e) {
+      logger.w('E2EE: failed to distribute room key to ${n.sender}: $e');
+    }
+  }
+
+  /// We received a room key (wrapped to our public key) from a peer: decrypt
+  /// it with our private key and store it for the session.
+  Future<void> _handleReceiveRoomKey(ReceiveRoomKeyNotification n) async {
+    final sessionId = n.sessionId;
+    final store = ref.read(e2eeStoreProvider.notifier);
+    final wrapped = Uint8List.fromList(n.roomKey);
+    final roomKey = await store.unwrapRoomKey(wrapped);
+    if (roomKey == null) {
+      logger.w('E2EE: could not unwrap room key for session $sessionId');
+      return;
+    }
+    await store.storeKey(sessionId, roomKey);
+  }
+
+  /// We were approved to join a session. If the approver included a wrapped
+  /// room key (E2EE session), decrypt it with our private key and store it so
+  /// we can immediately read/write encrypted messages.
+  Future<void> _handleAllowUserJoinSession(
+    AllowUserJoinSessionNotification n,
+  ) async {
+    if (!n.accepted) return;
+    if (n.roomKey.isEmpty) return;
+    final sessionId = n.sessionId;
+    final store = ref.read(e2eeStoreProvider.notifier);
+    final roomKey = await store.unwrapRoomKey(Uint8List.fromList(n.roomKey));
+    if (roomKey == null) {
+      logger.w('E2EE: could not unwrap join room key for session $sessionId');
+      return;
+    }
+    await store.storeKey(sessionId, roomKey);
   }
 
   Future selectNewFriendInvitation() async {
@@ -522,13 +664,27 @@ class OurChatEventSystem extends _$OurChatEventSystem {
 
         final eventType = event.whichRespondEventType();
         if (eventType == FetchMsgsResponse_RespondEventType.msg) {
+          String mdText = event.msg.markdownText;
+          List<String> files = event.msg.involvedFiles.toList();
+          if (event.msg.isEncrypted) {
+            final payload = await ref
+                .read(e2eeStoreProvider.notifier)
+                .decryptMessage(event.msg.sessionId, event.msg.markdownText);
+            if (payload != null) {
+              mdText = payload.markdownText;
+              files = payload.involvedFiles;
+            } else {
+              mdText = '[encrypted message]';
+              files = const [];
+            }
+          }
           UserMsg msg = UserMsg(
             eventId: Int64(event.msgId),
             senderId: Int64(event.msg.senderId),
             sessionId: Int64(event.msg.sessionId),
             sendTime: OurChatTime.fromTimestamp(event.time),
-            markdownText: event.msg.markdownText,
-            involvedFiles: event.msg.involvedFiles,
+            markdownText: mdText,
+            involvedFiles: files,
           );
           await msg.saveToDB(privateDB!);
           msgs.add(msg);

@@ -35,6 +35,11 @@ venv.bak/
 docker/data/
 
 server_info.json
+# Never bake the JWT signing secret (docker/config/server_info.json) into any
+# image. The server auto-generates a fresh, per-deployment secret on first start
+# when the file is absent, so shipping one would let anyone forge tokens across
+# all deployments using the published image.
+docker/config/server_info.json
 log/
 *.log
 

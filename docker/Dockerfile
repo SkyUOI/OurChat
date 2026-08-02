@@ -25,9 +25,27 @@ RUN if [ "$SCCACHE_ENABLED" = "true" ]; then \
         cargo build --release --bin server --features=official; \
     fi
 
+# NOTE: `docker/config/server_info.json` is excluded from the build context via
+# .dockerignore, so the JWT signing secret is NEVER baked into the image. The
+# server generates a fresh, per-deployment secret on first start when the file
+# is absent.
 FROM alpine:latest AS ourchat-server
+
+# Create a dedicated unprivileged user/group. The server runs as `ourchat`
+# instead of root so that any exploit gains a non-root principal.
+RUN addgroup -S ourchat && adduser -S -G ourchat -h /app ourchat
 
 COPY --from=builder /app/target/release/server /usr/local/bin/server
 COPY docker/config /etc/ourchat
+
+# Lay out writable runtime directories and hand them to the non-root user.
+RUN mkdir -p /app/log /app/files_storage /app/resource && \
+    chown -R ourchat:ourchat /etc/ourchat /app
+
+WORKDIR /app
+USER ourchat
+
+# HTTP (7777) and gRPC (7779). The debug console (7776) is disabled by default.
+EXPOSE 7777 7779
 
 CMD ["server", "-c", "/etc/ourchat/ourchat.toml", "--server-info", "/etc/ourchat/server_info.json"]

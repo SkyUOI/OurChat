@@ -2,6 +2,7 @@ mod ban;
 mod cleanup;
 mod default_session;
 mod delete;
+mod e2ee_new_session_bootstrap_test;
 mod e2ee_update;
 mod e2eeize_and_dee2eeize_session;
 mod invite;

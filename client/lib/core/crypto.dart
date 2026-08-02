@@ -1,6 +1,16 @@
 import 'dart:math';
 import 'dart:typed_data';
+import 'package:pointycastle/asn1.dart';
 import 'package:pointycastle/export.dart';
+
+/// Symmetric room-key length (AES-256).
+const int roomKeyLength = 32;
+
+/// AES-GCM initialization-vector length.
+const int _gcmIvLength = 12;
+
+/// AES-GCM authentication-tag length.
+const int _gcmTagLength = 16;
 
 /// Generates a 2048-bit RSA key pair.
 ///
@@ -137,4 +147,108 @@ Uint8List _encodeInteger(BigInt value) {
 Uint8List _encodeSequence(Uint8List contents) {
   final len = _encodeLength(contents.length);
   return Uint8List.fromList([0x30, ...len, ...contents]);
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// E2EE primitives: key decoding, RSA-OAEP key wrap, AES-GCM message encryption
+// ──────────────────────────────────────────────────────────────────────────
+
+/// Decodes a PKCS#1 DER RSA private key into an [RSAPrivateKey].
+RSAPrivateKey decodeRsaPrivateKey(Uint8List der) {
+  final seq = ASN1Parser(der).nextObject() as ASN1Sequence;
+  final ints = seq.elements!.cast<ASN1Integer>();
+  // PKCS#1 RSAPrivateKey layout:
+  // version, modulus, publicExponent, privateExponent, prime1, prime2,
+  // exponent1, exponent2, coefficient
+  // RSAPrivateKey(modulus, privateExponent, p, q) — public exponent is derived.
+  return RSAPrivateKey(
+    ints[1].integer!,
+    ints[3].integer!,
+    ints[4].integer!,
+    ints[5].integer!,
+  );
+}
+
+/// Decodes a PKCS#1 DER RSA public key into an [RSAPublicKey].
+RSAPublicKey decodeRsaPublicKey(Uint8List der) {
+  final seq = ASN1Parser(der).nextObject() as ASN1Sequence;
+  final ints = seq.elements!.cast<ASN1Integer>();
+  // PKCS#1 RSAPublicKey layout: modulus, publicExponent
+  return RSAPublicKey(ints[0].integer!, ints[1].integer!);
+}
+
+/// Generates a fresh random symmetric room key.
+Uint8List generateRoomKey() => _randomBytes(roomKeyLength);
+
+/// RSA-OAEP (SHA-256) encrypt [plaintext] under [publicKey].
+///
+/// Used to wrap the per-session room key for each recipient. With RSA-2048 the
+/// maximum plaintext size is 190 bytes, comfortably larger than the 32-byte
+/// room key.
+Uint8List rsaEncrypt(Uint8List derPublicKey, Uint8List plaintext) {
+  final pub = decodeRsaPublicKey(derPublicKey);
+  final engine = OAEPEncoding.withSHA256(RSAEngine())
+    ..init(true, PublicKeyParameter<RSAPublicKey>(pub));
+  return engine.process(plaintext);
+}
+
+/// RSA-OAEP (SHA-256) decrypt [ciphertext] with [derPrivateKey].
+Uint8List rsaDecrypt(Uint8List derPrivateKey, Uint8List ciphertext) {
+  final priv = decodeRsaPrivateKey(derPrivateKey);
+  final engine = OAEPEncoding.withSHA256(RSAEngine())
+    ..init(false, PrivateKeyParameter<RSAPrivateKey>(priv));
+  return engine.process(ciphertext);
+}
+
+/// AES-256-GCM encryption of [plaintext].
+///
+/// Returns `iv(12) || ciphertext || tag(16)`. A fresh random IV is generated
+/// per call. The caller must base64-encode the result for transport in a text
+/// protobuf field.
+Uint8List aesGcmEncrypt(Uint8List key, Uint8List plaintext) {
+  if (key.length != roomKeyLength) {
+    throw ArgumentError('AES key must be $roomKeyLength bytes');
+  }
+  final iv = _randomBytes(_gcmIvLength);
+  final cipher = GCMBlockCipher(AESEngine())
+    ..init(
+      true,
+      AEADParameters(KeyParameter(key), _gcmTagLength * 8, iv, Uint8List(0)),
+    );
+  final tmp = Uint8List(plaintext.length + _gcmTagLength);
+  var n = cipher.processBytes(plaintext, 0, plaintext.length, tmp, 0);
+  n += cipher.doFinal(tmp, n);
+  return Uint8List.fromList([...iv, ...tmp.sublist(0, n)]);
+}
+
+/// AES-256-GCM decryption of `iv(12) || ciphertext || tag(16)`.
+///
+/// Throws if the authentication tag does not verify (tampered/ciphertext).
+Uint8List aesGcmDecrypt(Uint8List key, Uint8List packed) {
+  if (key.length != roomKeyLength) {
+    throw ArgumentError('AES key must be $roomKeyLength bytes');
+  }
+  if (packed.length < _gcmIvLength + _gcmTagLength) {
+    throw ArgumentError('ciphertext too short');
+  }
+  final iv = packed.sublist(0, _gcmIvLength);
+  final ct = packed.sublist(_gcmIvLength);
+  final cipher = GCMBlockCipher(AESEngine())
+    ..init(
+      false,
+      AEADParameters(KeyParameter(key), _gcmTagLength * 8, iv, Uint8List(0)),
+    );
+  final tmp = Uint8List(ct.length);
+  var n = cipher.processBytes(ct, 0, ct.length, tmp, 0);
+  n += cipher.doFinal(tmp, n);
+  return tmp.sublist(0, n);
+}
+
+Uint8List _randomBytes(int length) {
+  final random = Random.secure();
+  final out = Uint8List(length);
+  for (var i = 0; i < length; i++) {
+    out[i] = random.nextInt(256);
+  }
+  return out;
 }

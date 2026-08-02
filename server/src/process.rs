@@ -240,6 +240,33 @@ pub fn get_id_from_req_or_err<T: Debug>(req: &Request<T>) -> Result<ID, tonic::S
     })
 }
 
+/// Centralized server-management permission check.
+///
+/// Extracts the caller's ID from the request metadata (set by the JWT
+/// interceptor) and verifies that the caller holds the given server-management
+/// permission. This is the single entry point that every `ServerManageService`
+/// handler MUST use, so that authorization cannot be silently forgotten when a
+/// new handler is added.
+///
+/// Returns the authenticated caller's ID on success.
+pub async fn check_server_manage_permission<T: Debug>(
+    req: &Request<T>,
+    permission: migration::predefined::PredefinedServerManagementPermission,
+    db: &base::database::DbPool,
+) -> Result<ID, tonic::Status> {
+    let id = get_id_from_req_or_err(req)?;
+    match crate::db::manager::manage_permission_existed(id, permission as i64, &db.db_pool).await {
+        Ok(true) => Ok(id),
+        Ok(false) => Err(tonic::Status::permission_denied(
+            error_msg::PERMISSION_DENIED,
+        )),
+        Err(e) => {
+            tracing::error!("permission check db error: {:?}", e);
+            Err(tonic::Status::internal(SERVER_ERROR))
+        }
+    }
+}
+
 pub async fn check_user_exist(
     id: ID,
     db_conn: &impl ConnectionTrait,

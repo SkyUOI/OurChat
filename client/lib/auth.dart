@@ -4,6 +4,7 @@ import 'package:fixnum/fixnum.dart';
 import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/core/config.dart';
 import 'package:ourchat/core/event.dart';
+import 'package:ourchat/core/secret_store.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/core/database.dart';
 import 'package:ourchat/server_setting.dart';
@@ -19,7 +20,15 @@ Future<void> _handleAuthSuccess({
   required String recentPassword,
 }) async {
   var notifier = ref.read(configProvider.notifier);
+  // Keep the account identifier in plain config (non-secret) but persist the
+  // password only through the platform-backed SecretStore.
   notifier.setRecent(recentAccount, recentPassword);
+  if (recentPassword.isNotEmpty) {
+    await SecretStore.saveCredential(recentAccount, recentPassword);
+  }
+
+  // Persist the freshly generated E2EE private key for this account.
+  await ref.read(authProvider.notifier).persistPrivateKey(accountId);
 
   privateDB = OurChatDatabase(accountId);
   await ref.read(ourChatAccountProvider(accountId).notifier).getAccountInfo();
@@ -76,15 +85,36 @@ class Login extends ConsumerStatefulWidget {
 class _LoginState extends ConsumerState<Login> {
   String account = "", password = "", avatarUrl = "";
   bool savePassword = false, inited = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Pre-fill the saved password from platform-backed secure storage (never
+    // from plaintext SharedPreferences).
+    _loadSavedCredential();
+  }
+
+  Future<void> _loadSavedCredential() async {
+    final config = ref.read(configProvider);
+    final savedAccount = config.recentAccount;
+    if (savedAccount.isEmpty) return;
+    final savedPassword = await SecretStore.readCredential(savedAccount);
+    if (!mounted) return;
+    setState(() {
+      if (savedPassword != null && savedPassword.isNotEmpty) {
+        password = savedPassword;
+        savePassword = true;
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     var key = GlobalKey<FormState>();
     final config = ref.read(configProvider);
     if (!inited) {
       account = config.recentAccount;
-      password = config.recentPassword;
       avatarUrl = config.recentAvatarUrl;
-      if (password.isNotEmpty) savePassword = true;
       inited = true;
     }
     return SafeArea(
@@ -326,8 +356,13 @@ class _RegisterState extends ConsumerState<Register> {
                         icon: Icon(Icons.app_registration),
                         onPressed: () async {
                           key.currentState!.save(); // 保存表单信息
-                          // Generate RSA key pair client-side before registering
+                          // Generate RSA key pair client-side before registering.
+                          // The public key goes to the server; the private key
+                          // is handed to AuthNotifier for secure persistence.
                           final keyPair = generateRsaKeyPair();
+                          ref
+                              .read(authProvider.notifier)
+                              .setPendingPrivateKey(keyPair.privateKey);
                           bool res = await ref
                               .read(authProvider.notifier)
                               .register(

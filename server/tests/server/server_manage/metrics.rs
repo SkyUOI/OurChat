@@ -22,6 +22,14 @@ async fn metrics_comprehensive_test() {
 
     tracing::info!("Testing basic metrics retrieval with system metrics");
     let user = app.new_user().await.unwrap();
+    // Metrics access now requires the ViewMonitoring permission (C-1 hardening),
+    // so promote the test user to admin (which carries every server-management
+    // permission).
+    user.lock()
+        .await
+        .promote_to_admin(app.get_db_connection())
+        .await
+        .unwrap();
 
     let response = user
         .lock()
@@ -353,6 +361,13 @@ async fn metrics_comprehensive_test() {
     tracing::info!("Testing multiple users accessing metrics");
     let user2 = app.new_user().await.unwrap();
     let user3 = app.new_user().await.unwrap();
+    for u in [&user2, &user3] {
+        u.lock()
+            .await
+            .promote_to_admin(app.get_db_connection())
+            .await
+            .unwrap();
+    }
 
     for u in [&user, &user2, &user3] {
         let response = u
@@ -375,6 +390,12 @@ async fn metrics_comprehensive_test() {
         .unwrap();
     let user_a = session_users[0].clone();
     let user_b = session_users[1].clone();
+    user_a
+        .lock()
+        .await
+        .promote_to_admin(app.get_db_connection())
+        .await
+        .unwrap();
 
     user_a
         .lock()

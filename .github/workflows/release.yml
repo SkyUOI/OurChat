@@ -58,6 +58,9 @@ jobs:
           cp docker/compose.yml bundle/
           cp docker/compose.debian.yml bundle/
           cp -r docker/config bundle/
+          # Never ship the JWT signing secret in the release bundle. The server
+          # auto-generates a fresh per-deployment secret on first start.
+          rm -f bundle/config/server_info.json
 
       - name: Update image tags in compose files
         run: |

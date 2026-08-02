@@ -1,5 +1,15 @@
+use base::constants::JWT_HEADER;
 use client::TestApp;
 use pb::service::basic::voip::v1::GetVoipConfigRequest;
+
+/// Build an authenticated GetVoipConfig request (the endpoint now requires a
+/// valid JWT, see C-5).
+fn authed_request(token: &str) -> tonic::Request<GetVoipConfigRequest> {
+    let mut req = tonic::Request::new(GetVoipConfigRequest {});
+    req.metadata_mut()
+        .insert(JWT_HEADER, format!("Bearer {token}").parse().unwrap());
+    req
+}
 
 /// Tests getting VoIP configuration with default values.
 ///
@@ -12,13 +22,14 @@ use pb::service::basic::voip::v1::GetVoipConfigRequest;
 async fn get_voip_config() {
     let mut app = TestApp::new_with_launching_instance().await.unwrap();
     let user = app.new_user().await.unwrap();
+    let token = user.lock().await.token.clone();
 
     // First call to get config
     let response1 = user
         .lock()
         .await
         .basic()
-        .get_voip_config(GetVoipConfigRequest {})
+        .get_voip_config(authed_request(&token))
         .await
         .unwrap()
         .into_inner();
@@ -62,7 +73,7 @@ async fn get_voip_config() {
         .lock()
         .await
         .basic()
-        .get_voip_config(GetVoipConfigRequest {})
+        .get_voip_config(authed_request(&token))
         .await
         .unwrap()
         .into_inner();

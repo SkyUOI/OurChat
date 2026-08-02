@@ -41,7 +41,12 @@ abstract class OurChatConfig with _$OurChatConfig {
     @Default(0xFF2196F3) int color,
     @Default('info') String logLevel,
     @Default('') String recentAccount,
-    @Default('') String recentPassword,
+    // Transient only: never serialized to SharedPreferences (plaintext password
+    // storage is a security bug). Persisted via SecretStore instead. Kept in
+    // memory purely for form pre-fill during the same app session.
+    @JsonKey(includeToJson: false, includeFromJson: false)
+    @Default('')
+    String recentPassword,
     @Default('') String recentAvatarUrl,
     LanguageConfig? language,
     @Default('https://api.github.com/repos/skyuoi/ourchat/releases')

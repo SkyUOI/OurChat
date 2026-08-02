@@ -1,6 +1,9 @@
 mod announcement;
+mod authorization_test;
 mod ban_user;
 mod bootstrap_initial_admin;
+mod get_config_masking_test;
 mod maintaining;
 mod metrics;
 mod role_management;
+mod server_ban_enforcement_test;

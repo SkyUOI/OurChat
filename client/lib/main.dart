@@ -15,6 +15,7 @@ import 'package:ourchat/server_setting.dart';
 import 'package:ourchat/core/server.dart';
 import 'package:ourchat/core/event.dart';
 import 'package:ourchat/core/log.dart';
+import 'package:ourchat/core/secret_store.dart';
 import 'package:ourchat/auth.dart';
 import 'package:ourchat/home.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -380,10 +381,22 @@ class _AutoLoginState extends ConsumerState<AutoLogin> {
 
     final cfg = ref.read(configProvider);
     final recentAccount = cfg.recentAccount;
-    final recentPassword = cfg.recentPassword;
 
-    if (recentAccount.isEmpty || recentPassword.isEmpty) {
-      logger.i("no saved credentials, redirect to auth");
+    if (recentAccount.isEmpty) {
+      logger.i("no saved account, redirect to auth");
+      if (context.mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => Auth()),
+        );
+      }
+      return;
+    }
+
+    // Fetch the saved password from platform-backed secure storage.
+    final recentPassword = await SecretStore.readCredential(recentAccount);
+    if (recentPassword == null || recentPassword.isEmpty) {
+      logger.i("no saved credential, redirect to auth");
       if (context.mounted) {
         Navigator.pushReplacement(
           context,

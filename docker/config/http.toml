@@ -5,9 +5,9 @@ port = 7777
 # If not set, the email will be disabled
 email_cfg = "email.toml"
 # The logo of this server
-logo_path = "/root/resource/logo.png"
-default_avatar_path = "/root/resource/logo.png"
-verification_html_template_path = "/root/resource/email.html"
+logo_path = "/app/resource/logo.png"
+default_avatar_path = "/app/resource/logo.png"
+verification_html_template_path = "/app/resource/email.html"
 run_migration = false
 # enable Matrix Api
 enable_matrix = false
@@ -24,8 +24,13 @@ replenish_duration = "500ms"
 # Web Control Panel
 [web_panel]
 enable = true
-dist_path = "/root/resource/web-panel"
+dist_path = "/app/resource/web-panel"
 
+# TLS encryption. Transport encryption is STRONGLY recommended for any
+# deployment reachable beyond localhost: passwords, JWTs and all chat content
+# travel over this connection. Set `enable = true` and provide certificate paths
+# for any non-local deployment. The server prints a prominent warning at startup
+# when TLS is disabled.
 [tls]
 # Enable tls encryption
 enable = false

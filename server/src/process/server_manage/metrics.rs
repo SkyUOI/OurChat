@@ -1,3 +1,4 @@
+use migration::predefined::PredefinedServerManagementPermission;
 use pb::{
     service::server_manage::monitoring::v1::{
         GetHistoricalMetricsRequest, GetHistoricalMetricsResponse, GetMonitoringMetricsRequest,
@@ -7,18 +8,20 @@ use pb::{
 };
 use tonic::{Request, Response, Status};
 
-use crate::{
-    process::error_msg::{
-        SERVER_ERROR,
-        metrics::{INVALID_END_TIME, INVALID_INTERVAL, INVALID_START_TIME, METRICS_DISABLED},
-    },
-    server::ServerManageServiceProvider,
-};
+use crate::{process, server::ServerManageServiceProvider};
 
 pub async fn get_monitoring_metrics(
     server: &ServerManageServiceProvider,
     request: Request<GetMonitoringMetricsRequest>,
 ) -> Result<Response<GetMonitoringMetricsResponse>, Status> {
+    // Authorization: internal runtime metrics are gated by ViewMonitoring.
+    process::check_server_manage_permission(
+        &request,
+        PredefinedServerManagementPermission::ViewMonitoring,
+        &server.db,
+    )
+    .await?;
+
     // Check if metrics are enabled
     if let Some(metrics) = server.shared_data.metrics.as_ref() {
         let req = request.into_inner();
@@ -69,7 +72,7 @@ pub async fn get_historical_metrics(
         Err(e) => match e {
             MetricsErr::Db(_) | MetricsErr::Internal(_) => {
                 tracing::error!("{}", e);
-                Err(Status::internal(SERVER_ERROR))
+                Err(Status::internal(crate::process::error_msg::SERVER_ERROR))
             }
             MetricsErr::Status(status) => Err(status),
         },
@@ -80,9 +83,19 @@ async fn get_historical_metrics_impl(
     server: &ServerManageServiceProvider,
     request: Request<GetHistoricalMetricsRequest>,
 ) -> Result<GetHistoricalMetricsResponse, MetricsErr> {
+    // Authorization: historical runtime metrics are gated by ViewMonitoring.
+    process::check_server_manage_permission(
+        &request,
+        PredefinedServerManagementPermission::ViewMonitoring,
+        &server.db,
+    )
+    .await?;
+
     // Check if metrics are enabled
     if !server.shared_data.cfg().main_cfg.enable_metrics {
-        Err(Status::unimplemented(METRICS_DISABLED))?
+        Err(Status::unimplemented(
+            crate::process::error_msg::metrics::METRICS_DISABLED,
+        ))?
     }
 
     let req = request.into_inner();
@@ -92,18 +105,24 @@ async fn get_historical_metrics_impl(
         .start_time
         .map(|t| t.try_into())
         .transpose()
-        .map_err(|_| Status::invalid_argument(INVALID_START_TIME))?;
-    let end_time: Option<TimeStampUtc> = req
-        .end_time
-        .map(|t| t.try_into())
-        .transpose()
-        .map_err(|_| Status::invalid_argument(INVALID_END_TIME))?;
+        .map_err(|_| {
+            Status::invalid_argument(crate::process::error_msg::metrics::INVALID_START_TIME)
+        })?;
+    let end_time: Option<TimeStampUtc> =
+        req.end_time
+            .map(|t| t.try_into())
+            .transpose()
+            .map_err(|_| {
+                Status::invalid_argument(crate::process::error_msg::metrics::INVALID_END_TIME)
+            })?;
 
     let interval = req
         .interval
         .map(|x| x.try_into())
         .transpose()
-        .map_err(|_| Status::invalid_argument(INVALID_INTERVAL))?;
+        .map_err(|_| {
+            Status::invalid_argument(crate::process::error_msg::metrics::INVALID_INTERVAL)
+        })?;
 
     // Query metrics_history table for requested time range
     let data_points = crate::db::metrics::get_historical_metrics(

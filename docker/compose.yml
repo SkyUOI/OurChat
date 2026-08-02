@@ -5,7 +5,7 @@ services:
     init: true
     image: skyuoi/ourchat:nightly
     restart: always
-    working_dir: /root
+    working_dir: /app
     ports:
       - "7777:7777"
       - "7779:7779"
@@ -16,8 +16,8 @@ services:
         condition: service_healthy
     volumes:
       - ./config/:/etc/ourchat
-      - ./log:/root/log
-      - ../resource/:/root/resource
+      - ./log:/app/log
+      - ../resource/:/app/resource
     # environment:
     #   OURCHAT_LOG: trace,mio=off,h2=off,tonic=off,tower=off,tokio::task::waker=off,runtime::resource=off,lapin=off,pinky_swear=off,async_io=off,polling=off
   db:

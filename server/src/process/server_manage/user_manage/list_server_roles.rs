@@ -1,5 +1,6 @@
-use crate::{process::error_msg::SERVER_ERROR, server::ServerManageServiceProvider};
+use crate::{process, server::ServerManageServiceProvider};
 use entities::server_management_role;
+use migration::predefined::PredefinedServerManagementPermission;
 use pb::service::server_manage::user_manage::v1::{
     ListServerRolesRequest, ListServerRolesResponse, ServerRoleInfo,
 };
@@ -10,14 +11,25 @@ use tonic::{Request, Response, Status};
 enum ListServerRolesError {
     #[error("database error:{0:?}")]
     DbError(#[from] sea_orm::DbErr),
+    #[error("permission denied")]
+    PermissionDenied,
 }
 
 async fn list_server_roles_impl(
-    _server: &ServerManageServiceProvider,
-    _request: Request<ListServerRolesRequest>,
+    server: &ServerManageServiceProvider,
+    request: Request<ListServerRolesRequest>,
 ) -> Result<ListServerRolesResponse, ListServerRolesError> {
+    // Authorization: enumerating role definitions is gated by AssignRole.
+    process::check_server_manage_permission(
+        &request,
+        PredefinedServerManagementPermission::AssignRole,
+        &server.db,
+    )
+    .await
+    .map_err(|_| ListServerRolesError::PermissionDenied)?;
+
     let roles = server_management_role::Entity::find()
-        .all(&_server.db.db_pool)
+        .all(&server.db.db_pool)
         .await?;
 
     let role_infos: Vec<ServerRoleInfo> = roles
@@ -40,7 +52,12 @@ pub async fn list_server_roles(
         Ok(response) => Ok(Response::new(response)),
         Err(e) => {
             tracing::error!("{}", e);
-            Err(Status::internal(SERVER_ERROR))
+            match e {
+                ListServerRolesError::PermissionDenied => Err(Status::permission_denied(
+                    crate::process::error_msg::PERMISSION_DENIED,
+                )),
+                _ => Err(Status::internal(crate::process::error_msg::SERVER_ERROR)),
+            }
         }
     }
 }

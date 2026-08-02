@@ -1,5 +1,5 @@
 use anyhow::{Context, anyhow};
-use base::constants::ID;
+use base::constants::{ID, SessionID};
 use chrono::Utc;
 use migration::predefined::PredefinedPermissions;
 use pb::service::ourchat::{
@@ -90,7 +90,29 @@ async fn e2eeize_session_impl(
     if session.e2ee_on {
         Err(Status::already_exists("session already e2eeized"))?;
     }
-    let msg = RespondEventType::UpdateRoomKey(UpdateRoomKeyNotification { session_id });
+    bootstrap_e2ee_room_key(server, id, session_id.into()).await?;
+    Ok(E2eeizeSessionResponse {})
+}
+
+/// Trigger E2EE room-key distribution for a session.
+///
+/// Sends an `UpdateRoomKeyNotification` to the [initiator_id] (so its client
+/// generates a fresh symmetric room key) followed by one
+/// `SendRoomKeyNotification` per other member (carrying that member's RSA
+/// public key, so the initiator can wrap the room key for them). Finally
+/// records `room_key_time` and clears `leaving_to_process`.
+///
+/// This is shared by the explicit `E2eeizeSession` RPC and by `NewSession`
+/// (when `e2ee_on = true`), so that creating an E2EE session immediately
+/// bootstraps key distribution instead of waiting for the first message.
+pub(crate) async fn bootstrap_e2ee_room_key(
+    server: &RpcServer,
+    initiator_id: ID,
+    session_id: SessionID,
+) -> anyhow::Result<()> {
+    let msg = RespondEventType::UpdateRoomKey(UpdateRoomKeyNotification {
+        session_id: session_id.into(),
+    });
     let rmq_conn = server.get_rabbitmq_manager().await?;
     let mut conn = rmq_conn
         .create_channel()
@@ -98,30 +120,30 @@ async fn e2eeize_session_impl(
         .context("cannot create rabbitmq channel")?;
     message_insert_and_transmit(
         None,
-        Some(session_id.into()),
+        Some(session_id),
         msg,
-        Dest::User(id),
+        Dest::User(initiator_id),
         false,
         &server.db.db_pool,
         &mut conn,
     )
     .await?;
-    let sender_id: u64 = id.into();
-    for members in get_members(session_id.into(), &server.db.db_pool).await? {
+    let sender_id: u64 = initiator_id.into();
+    for members in get_members(session_id, &server.db.db_pool).await? {
         if members.user_id != sender_id as i64 {
             let user = get_account_info_db(members.user_id.into(), &server.db.db_pool)
                 .await?
                 .ok_or(anyhow!("cannot find user"))?;
             let msg = RespondEventType::SendRoomKey(SendRoomKeyNotification {
-                session_id,
+                session_id: session_id.into(),
                 sender: members.user_id as u64,
                 public_key: user.public_key.into(),
             });
             message_insert_and_transmit(
                 ID::from(members.user_id).into(),
-                Some(session_id.into()),
+                Some(session_id),
                 msg,
-                Dest::User(id),
+                Dest::User(initiator_id),
                 false,
                 &server.db.db_pool,
                 &mut conn,
@@ -129,11 +151,14 @@ async fn e2eeize_session_impl(
             .await?;
         }
     }
-    let mut session = session.into_active_model();
+    let mut session = get_session_by_id(session_id, &server.db.db_pool)
+        .await?
+        .ok_or(anyhow!("cannot find session"))?
+        .into_active_model();
     session.room_key_time = ActiveValue::Set(Utc::now().into());
     session.leaving_to_process = ActiveValue::Set(false);
     session.update(&server.db.db_pool).await?;
-    Ok(E2eeizeSessionResponse {})
+    Ok(())
 }
 pub async fn dee2eeize_session(
     server: &RpcServer,

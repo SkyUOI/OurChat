@@ -1,6 +1,7 @@
-use crate::{process::error_msg::SERVER_ERROR, server::ServerManageServiceProvider};
+use crate::{process, server::ServerManageServiceProvider};
 use base::constants::ID;
 use entities::manager_role_relation;
+use migration::predefined::PredefinedServerManagementPermission;
 use pb::service::server_manage::user_manage::v1::{
     ListUserServerRolesRequest, ListUserServerRolesResponse,
 };
@@ -12,12 +13,24 @@ use tracing::info;
 enum ListUserServerRolesError {
     #[error("database error:{0:?}")]
     DbError(#[from] sea_orm::DbErr),
+    #[error("permission denied")]
+    PermissionDenied,
 }
 
 async fn list_user_server_roles_impl(
     server: &ServerManageServiceProvider,
     request: Request<ListUserServerRolesRequest>,
 ) -> Result<ListUserServerRolesResponse, ListUserServerRolesError> {
+    // Authorization: querying any user's roles (including locating admins) is
+    // gated by ViewUsers.
+    process::check_server_manage_permission(
+        &request,
+        PredefinedServerManagementPermission::ViewUsers,
+        &server.db,
+    )
+    .await
+    .map_err(|_| ListUserServerRolesError::PermissionDenied)?;
+
     let req = request.into_inner();
     let user_id: ID = req.user_id.into();
 
@@ -50,7 +63,12 @@ pub async fn list_user_server_roles(
         Ok(response) => Ok(Response::new(response)),
         Err(e) => {
             tracing::error!("{}", e);
-            Err(Status::internal(SERVER_ERROR))
+            match e {
+                ListUserServerRolesError::PermissionDenied => Err(Status::permission_denied(
+                    crate::process::error_msg::PERMISSION_DENIED,
+                )),
+                _ => Err(Status::internal(crate::process::error_msg::SERVER_ERROR)),
+            }
         }
     }
 }

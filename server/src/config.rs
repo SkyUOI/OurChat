@@ -172,6 +172,13 @@ pub struct VOIP {
     /// TTL for TURN credentials in seconds
     #[serde(default = "constants::default_turn_ttl")]
     pub turn_ttl: u64,
+    /// Optional static auth secret for generating time-limited (REST API)
+    /// TURN credentials (coturn `--use-auth-secret --static-auth-secret`).
+    /// When set, GetVoipConfig returns HMAC-SHA1-signed credentials scoped to
+    /// the authenticated user and the TTL above, instead of the static shared
+    /// `turn_username`/`turn_password`.
+    #[serde(default)]
+    pub turn_static_auth_secret: Option<String>,
 }
 
 serde_default!(VOIP);

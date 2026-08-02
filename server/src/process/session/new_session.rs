@@ -129,6 +129,14 @@ async fn new_session_impl(
         send_verification_request(server, id, member_id, session_id, req.leave_message.clone())
             .await?;
     }
+    // Bootstrap E2EE room-key distribution immediately when the session is
+    // created encrypted, so the creator's client generates a room key and wraps
+    // it for every member without having to wait for an explicit E2eeizeSession
+    // call or the first message.
+    if req.e2ee_on {
+        super::e2eeize_and_dee2eeize_session::bootstrap_e2ee_room_key(server, id, session_id)
+            .await?;
+    }
     Ok(NewSessionResponse {
         session_id: session_id.into(),
         failed_members,

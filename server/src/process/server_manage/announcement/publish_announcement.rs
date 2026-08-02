@@ -1,4 +1,5 @@
 use anyhow::Context;
+use migration::predefined::PredefinedServerManagementPermission;
 use pb::service::{
     ourchat::msg_delivery::{
         announcement::v1::AnnouncementResponse,
@@ -12,7 +13,7 @@ use pb::service::{
 use tonic::{Request, Response, Status};
 
 use crate::{
-    process::{Dest, add_announcement, transmit_msg},
+    process::{self, Dest, add_announcement, transmit_msg},
     server::ServerManageServiceProvider,
 };
 
@@ -26,6 +27,8 @@ pub enum PublishAnnouncementErr {
     GetAnnouncementErr(#[from] GetAnnouncementErr),
     #[error("add announcement error: {0:?}")]
     AddAnnouncementErr(#[from] AddAnnouncementErr),
+    #[error("permission denied")]
+    PermissionDenied,
 }
 pub async fn publish_announcement(
     server: &ServerManageServiceProvider,
@@ -35,7 +38,12 @@ pub async fn publish_announcement(
         Ok(response) => Ok(Response::new(response)),
         Err(err) => {
             tracing::error!("{}", err);
-            Err(Status::internal(err.to_string()))
+            match err {
+                PublishAnnouncementErr::PermissionDenied => Err(Status::permission_denied(
+                    crate::process::error_msg::PERMISSION_DENIED,
+                )),
+                _ => Err(Status::internal(err.to_string())),
+            }
         }
     }
 }
@@ -44,6 +52,15 @@ async fn publish_announcement_internal(
     server: &ServerManageServiceProvider,
     request: Request<PublishAnnouncementRequest>,
 ) -> Result<PublishAnnouncementResponse, PublishAnnouncementErr> {
+    // Authorization: broadcasting to all users requires PublishAnnouncement.
+    process::check_server_manage_permission(
+        &request,
+        PredefinedServerManagementPermission::PublishAnnouncement,
+        &server.db,
+    )
+    .await
+    .map_err(|_| PublishAnnouncementErr::PermissionDenied)?;
+
     let announcement: AnnouncementResponse = add_announcement(
         &server.db.db_pool,
         request

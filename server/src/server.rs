@@ -62,6 +62,7 @@ use tonic::service::Routes;
 use tonic::{Request, Response, Status};
 
 pub use ourchat_service::*;
+use redis::AsyncCommands;
 
 /// RPC Server implementation for OurChat
 /// Handles all service requests and manages connections
@@ -247,14 +248,15 @@ impl RpcServer {
         }
     }
 
-    /// Check if the user account exists and is not deleted
+    /// Check if the user account exists, is not deleted, and is not banned
+    /// server-wide.
     ///
     /// # Arguments
     /// * `id` - User ID to check
     ///
     /// # Returns
     /// * `Ok(())` - Account exists and is active
-    /// * `Err(Status)` - Account not found or deleted
+    /// * `Err(Status)` - Account not found, deleted, or server-banned
     async fn check_account_status(&self, id: ID) -> Result<(), Status> {
         let account = match get_account_info_db(id, &self.db.db_pool)
             .await
@@ -269,6 +271,25 @@ impl RpcServer {
         // Return error if the account has been deleted
         if account.account_status == AccountStatus::Deleted as i32 {
             return Err(Status::unauthenticated(ACCOUNT_DELETED));
+        }
+
+        // Enforce server-wide bans written by BanUser. The ban key is set with
+        // an optional TTL, so an expired ban is treated as "not banned".
+        let ban_key = crate::db::redis_mappings::map_server_ban_to_redis(id);
+        let mut conn = self.db.redis();
+        let banned: bool = match conn.exists::<_, bool>(&ban_key).await {
+            Ok(exists) => exists,
+            // On a transient Redis error we fail open but log loudly, so the
+            // legitimate non-banned majority is not locked out by an infra
+            // blip. A banned user cannot exploit this without also taking down
+            // Redis.
+            Err(e) => {
+                tracing::warn!("failed to query server_ban for user {}: {:?}", id, e);
+                false
+            }
+        };
+        if banned {
+            return Err(Status::permission_denied(error_msg::BAN));
         }
 
         Ok(())
@@ -409,13 +430,14 @@ impl BasicService for BasicServiceProvider {
         Ok(Response::new(PingResponse {}))
     }
 
-    /// Get VoIP configuration (STUN/TURN servers)
+    /// Get VoIP configuration (STUN/TURN servers). Requires authentication so
+    /// TURN credentials are not handed out to anonymous clients.
     #[tracing::instrument(skip(self))]
     async fn get_voip_config(
         &self,
-        _request: Request<GetVoipConfigRequest>,
+        request: Request<GetVoipConfigRequest>,
     ) -> Result<Response<GetVoipConfigResponse>, Status> {
-        process::get_voip_config(self).await
+        process::get_voip_config(self, request).await
     }
 }
 

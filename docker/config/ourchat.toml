@@ -26,7 +26,7 @@ verification_expire_time = "3d"
 # The expiry time in hours of the user defined status
 user_defined_status_expire_time = "24h"
 # The path of the users' files storage
-files_storage_path = "../files_storage/"
+files_storage_path = "/app/files_storage/"
 # How long will the files be kept
 files_save_time = "10d"
 # Whether this is started in Single Instance Mode. If true, some actions like cleaning up files will be performed regularly
@@ -82,7 +82,9 @@ output_len = 32
 fetch_msg_page_size = 2000
 
 [debug]
-debug_console = true
+# The debug console (tokio-console) exposes deep runtime internals. It must be
+# disabled in production and only enabled temporarily for local debugging.
+debug_console = false
 # Warning: don't expose it to the world
 debug_console_port = 7776
 
