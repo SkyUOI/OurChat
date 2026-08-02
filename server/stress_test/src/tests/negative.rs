@@ -50,6 +50,7 @@ pub async fn test_send_msg_invalid_session(users: &UsersGroup, report: &mut Repo
                     markdown_text: "Test message".to_string(),
                     involved_files: vec![],
                     is_encrypted: false,
+                    quote_msg_id: 0,
                 })
                 .await
                 .is_err()
@@ -122,6 +123,7 @@ pub async fn test_send_empty_message(users: &UsersGroup, report: &mut Report) {
                     markdown_text: "".to_string(),
                     involved_files: vec![],
                     is_encrypted: false,
+                    quote_msg_id: 0,
                 })
                 .await
                 .is_err()

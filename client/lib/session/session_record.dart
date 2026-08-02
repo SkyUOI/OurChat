@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -110,6 +113,149 @@ class MessageWidget extends ConsumerStatefulWidget {
 }
 
 class _MessageWidgetState extends ConsumerState<MessageWidget> {
+  UserMsg? _resolvedQuote;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolveQuote();
+  }
+
+  @override
+  void didUpdateWidget(covariant MessageWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.msg.quoteMsgId != widget.msg.quoteMsgId) {
+      _resolvedQuote = null;
+      _resolveQuote();
+    }
+  }
+
+  /// For E2EE-sourced quotes the server cannot provide the quoted plaintext.
+  /// Best-effort: resolve the quoted content from the local database.
+  Future<void> _resolveQuote() async {
+    final msg = widget.msg;
+    if (msg.quoteMsgId == null) return;
+    if (msg.quoteMarkdownText.isNotEmpty || msg.quoteInvolvedFiles.isNotEmpty) {
+      return;
+    }
+    if (privateDB == null) return;
+    try {
+      final row =
+          await (privateDB!.select(privateDB!.record)..where(
+                (u) => u.eventId.equals(BigInt.from(msg.quoteMsgId!.toInt())),
+              ))
+              .getSingleOrNull();
+      if (row == null || !mounted) return;
+      final data = jsonDecode(row.data);
+      final resolved = UserMsg(
+        quoteMsgId: msg.quoteMsgId,
+        quoteSenderId: Int64.parseInt(row.sender.toString()),
+        quoteMarkdownText: data["markdown_text"] ?? "",
+        quoteInvolvedFiles: [
+          for (final f in (data["involved_files"] as List? ?? const []))
+            f.toString(),
+        ],
+      );
+      setState(() => _resolvedQuote = resolved);
+    } catch (e) {
+      // ignore resolution failures; the fallback placeholder is shown
+    }
+  }
+
+  bool get _hasQuote => widget.msg.quoteMsgId != null;
+
+  void _showQuoteMenu(Offset globalPosition) {
+    showMenu(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        globalPosition.dx,
+        globalPosition.dy,
+        globalPosition.dx + 1,
+        globalPosition.dy + 1,
+      ),
+      items: [
+        PopupMenuItem(
+          value: 'quote',
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.format_quote, size: 20),
+              const SizedBox(width: 8),
+              Text(l10n.quote),
+            ],
+          ),
+        ),
+      ],
+    ).then((value) {
+      if (value == 'quote') {
+        ref.read(quoteTargetProvider.notifier).setQuote(widget.msg);
+      }
+    });
+  }
+
+  /// Render the quoted message as a compact block above the message body.
+  Widget _buildQuoteBlock() {
+    final msg = widget.msg;
+    final resolved = _resolvedQuote;
+    final quoteText = msg.quoteMarkdownText.isNotEmpty
+        ? msg.quoteMarkdownText
+        : (resolved?.quoteMarkdownText ?? '');
+    final quoteFiles = msg.quoteInvolvedFiles.isNotEmpty
+        ? msg.quoteInvolvedFiles
+        : (resolved?.quoteInvolvedFiles ?? const []);
+    final quoteSenderId = msg.quoteSenderId ?? resolved?.quoteSenderId;
+
+    String quotedName = '';
+    if (quoteSenderId != null) {
+      final senderData = ref.read(ourChatAccountProvider(quoteSenderId));
+      final dn = senderData.displayName;
+      quotedName = dn != null && dn.isNotEmpty ? dn : senderData.username;
+    }
+
+    String preview;
+    if (quoteFiles.isNotEmpty && MarkdownToText.containsImage(quoteText)) {
+      preview = '[${l10n.image}]';
+    } else if (quoteText.isNotEmpty) {
+      preview = MarkdownToText.convert(quoteText, l10n);
+    } else {
+      preview = l10n.quoteUnavailable;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6.0),
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
+      constraints: const BoxConstraints(maxWidth: 260),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade200,
+        borderRadius: BorderRadius.circular(6.0),
+        border: Border(left: BorderSide(color: Colors.grey.shade400, width: 3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            quotedName,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey.shade700,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            preview,
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     UserMsg msg = widget.msg;
@@ -155,6 +301,7 @@ class _MessageWidgetState extends ConsumerState<MessageWidget> {
           : CrossAxisAlignment.start),
       children: [
         Text(name),
+        if (_hasQuote) _buildQuoteBlock(),
         ConstrainedBox(
           constraints: BoxConstraints(
             maxWidth:
@@ -313,13 +460,17 @@ class _MessageWidgetState extends ConsumerState<MessageWidget> {
       child: Container(
         margin: const EdgeInsets.all(5.0),
         decoration: BoxDecoration(),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: // 根据是否为本账号的发言决定左右对齐
-          (isMe
-              ? MainAxisAlignment.end
-              : MainAxisAlignment.start),
-          children: [(isMe ? message : avatar), (isMe ? avatar : message)],
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onLongPressStart: (details) => _showQuoteMenu(details.globalPosition),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: // 根据是否为本账号的发言决定左右对齐
+            (isMe
+                ? MainAxisAlignment.end
+                : MainAxisAlignment.start),
+            children: [(isMe ? message : avatar), (isMe ? avatar : message)],
+          ),
         ),
       ),
     );

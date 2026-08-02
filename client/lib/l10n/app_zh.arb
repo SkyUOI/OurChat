@@ -117,5 +117,7 @@
     "saveFile": "保存文件",
     "downloading": "正在下载...",
     "fileSize": "文件大小",
-    "uploadingFile": "正在上传 ({current}/{total})..."
+    "uploadingFile": "正在上传 ({current}/{total})...",
+    "quote": "引用",
+    "quoteUnavailable": "消息不可用"
 }

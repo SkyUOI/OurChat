@@ -68,6 +68,22 @@ WHERE time > $1 AND
     Ok(msgs)
 }
 
+/// Get a single message record by its id.
+///
+/// Returns `MsgError::NotFound` if no record exists with the given id.
+pub async fn get_msg_by_id<T: ConnectionTrait>(
+    msg_id: u64,
+    db_conn: &T,
+) -> Result<message_records::Model, MsgError> {
+    match MessageRecords::find_by_id(msg_id as i64)
+        .one(db_conn)
+        .await?
+    {
+        Some(m) => Ok(m),
+        None => Err(MsgError::NotFound),
+    }
+}
+
 /// Delete a message from the database. The message is specified by `msg_id`.
 /// If `deleter_id` is `Some`, the function will check whether the deleter has permission to delete the
 /// message, and return `MsgError::WithoutPrivilege` if not. If `deleter_id` is `None`, this check

@@ -18,6 +18,8 @@ message SendMsgRequest {
   string markdown_text = 2;
   repeated string involved_files = 3;
   bool is_encrypted = 4;
+  // id of the message being quoted (0 means no quote)
+  uint64 quote_msg_id = 5;
 }
 
 message FetchMsgsRequest {
@@ -61,6 +63,14 @@ message Msg {
   uint64 sender_id = 5;
   // Encrypted
   bool is_encrypted = 6;
+  // id of the quoted message (0 means no quote)
+  uint64 quote_msg_id = 7;
+  // sender id of the quoted message
+  uint64 quote_sender_id = 8;
+  // plaintext content of the quoted message (empty when it is encrypted)
+  string quote_markdown_text = 9;
+  // involved files of the quoted message
+  repeated string quote_involved_files = 10;
 }
 
 message SendMsgResponse {

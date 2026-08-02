@@ -94,12 +94,38 @@ async fn send_msg_impl(
     if !session.e2ee_on && req.is_encrypted {
         Err(Status::permission_denied(error_msg::E2EE_NOT_ON))?
     }
+    let mut quote_msg_id: u64 = 0;
+    let mut quote_sender_id: u64 = 0;
+    let mut quote_markdown_text = String::new();
+    let mut quote_involved_files: Vec<String> = vec![];
+    if req.quote_msg_id > 0 {
+        let quoted = crate::db::messages::get_msg_by_id(req.quote_msg_id, &db_conn.db_pool).await?;
+        if quoted.session_id != Some(req.session_id as i64) {
+            Err(Status::not_found(not_found::MSG))?;
+        }
+        quote_msg_id = req.quote_msg_id;
+        match serde_json::from_value::<RespondEventType>(quoted.msg_data.clone()) {
+            Ok(RespondEventType::Msg(quoted_msg)) => {
+                quote_sender_id = quoted_msg.sender_id;
+                if !quoted.is_encrypted {
+                    quote_markdown_text = quoted_msg.markdown_text;
+                    quote_involved_files = quoted_msg.involved_files;
+                }
+            }
+            // Quoting a non-Msg record (e.g. an announcement) is not supported
+            _ => Err(Status::not_found(not_found::MSG))?,
+        }
+    }
     let respond_msg = RespondEventType::Msg(Msg {
         markdown_text: req.markdown_text,
         involved_files: req.involved_files,
         session_id: req.session_id,
         is_encrypted: req.is_encrypted,
         sender_id: id.into(),
+        quote_msg_id,
+        quote_sender_id,
+        quote_markdown_text,
+        quote_involved_files,
     });
 
     let sender_id: u64 = id.into();

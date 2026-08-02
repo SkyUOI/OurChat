@@ -6,6 +6,7 @@ mod files;
 mod friend;
 mod log;
 mod msg_fetch_session_history;
+mod msg_quote;
 mod msg_recall;
 mod msg_send;
 mod oauth;

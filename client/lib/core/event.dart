@@ -9,6 +9,7 @@ import 'package:ourchat/core/crypto.dart';
 import 'package:ourchat/core/database.dart';
 import 'package:ourchat/core/e2ee.dart';
 import 'package:ourchat/core/log.dart';
+import 'package:ourchat/core/server.dart';
 import 'package:ourchat/core/session.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/service/ourchat/friends/accept_friend_invitation/v1/accept_friend_invitation.pb.dart';
@@ -120,6 +121,10 @@ class OurChatEvent {
 class UserMsg extends OurChatEvent {
   String markdownText;
   List<String> involvedFiles;
+  Int64? quoteMsgId;
+  Int64? quoteSenderId;
+  String quoteMarkdownText;
+  List<String> quoteInvolvedFiles;
 
   UserMsg({
     Int64? eventId,
@@ -128,13 +133,24 @@ class UserMsg extends OurChatEvent {
     OurChatTime? sendTime,
     this.markdownText = "",
     this.involvedFiles = const [],
+    this.quoteMsgId,
+    this.quoteSenderId,
+    this.quoteMarkdownText = "",
+    this.quoteInvolvedFiles = const [],
   }) : super(
          eventId: eventId,
          eventType: msgEvent,
          senderId: senderId,
          sessionId: sessionId,
          sendTime: sendTime,
-         data: {"markdown_text": markdownText, "involved_files": involvedFiles},
+         data: {
+           "markdown_text": markdownText,
+           "involved_files": involvedFiles,
+           "quote_msg_id": quoteMsgId?.toInt(),
+           "quote_sender_id": quoteSenderId?.toInt(),
+           "quote_markdown_text": quoteMarkdownText,
+           "quote_involved_files": quoteInvolvedFiles,
+         },
        );
 
   @override
@@ -145,18 +161,53 @@ class UserMsg extends OurChatEvent {
     for (int i = 0; i < data!["involved_files"].length; i++) {
       involvedFiles.add(data!["involved_files"][i]);
     }
+    final quotedMsgId = data!["quote_msg_id"];
+    quoteMsgId = (quotedMsgId != null && quotedMsgId != 0)
+        ? Int64(quotedMsgId)
+        : null;
+    final quotedSenderId = data!["quote_sender_id"];
+    quoteSenderId = (quotedSenderId != null && quotedSenderId != 0)
+        ? Int64(quotedSenderId)
+        : null;
+    quoteMarkdownText = data!["quote_markdown_text"] ?? "";
+    quoteInvolvedFiles = [];
+    final quotedFiles = data!["quote_involved_files"];
+    if (quotedFiles is List) {
+      for (int i = 0; i < quotedFiles.length; i++) {
+        quoteInvolvedFiles.add(quotedFiles[i].toString());
+      }
+    }
   }
 
-  Future<SendMsgResponse?> send(Ref ref, Int64 targetSessionId) async {
-    var stub = ref.read(ourChatServerProvider).newStub();
-    // Encrypt when we hold a room key for this session (E2EE).
-    final e2ee = ref.read(e2eeStoreProvider.notifier);
+  /// Map the wire `Msg` proto's quote fields onto nullable `UserMsg` fields.
+  /// Zero-valued proto fields (i.e. not set on the wire) map to `null`.
+  static ({
+    Int64? quoteMsgId,
+    Int64? quoteSenderId,
+    String quoteMarkdownText,
+    List<String> quoteInvolvedFiles,
+  })
+  quoteFieldsFromMsg(Msg msg) {
+    return (
+      quoteMsgId: msg.quoteMsgId == Int64.ZERO ? null : msg.quoteMsgId,
+      quoteSenderId: msg.quoteSenderId == Int64.ZERO ? null : msg.quoteSenderId,
+      quoteMarkdownText: msg.quoteMarkdownText,
+      quoteInvolvedFiles: msg.quoteInvolvedFiles.toList(),
+    );
+  }
+
+  Future<SendMsgResponse?> send(
+    OurChatServer server,
+    E2eeStore e2eeStore,
+    Int64 targetSessionId,
+  ) async {
+    var stub = server.newStub();
     String wireText = markdownText;
     List<String> wireFiles = involvedFiles;
     bool isEncrypted = false;
-    if (e2ee.hasKey(targetSessionId)) {
+    if (e2eeStore.hasKey(targetSessionId)) {
       try {
-        wireText = e2ee.encryptMessage(
+        wireText = e2eeStore.encryptMessage(
           targetSessionId,
           EncryptedPayload(
             markdownText: markdownText,
@@ -179,6 +230,7 @@ class UserMsg extends OurChatEvent {
           markdownText: wireText,
           involvedFiles: wireFiles,
           isEncrypted: isEncrypted,
+          quoteMsgId: quoteMsgId ?? Int64.ZERO,
         ),
         (GrpcError e) {
           showResultMessage(
@@ -436,6 +488,7 @@ class OurChatEventSystem extends _$OurChatEventSystem {
                 files = const [];
               }
             }
+            final quote = UserMsg.quoteFieldsFromMsg(event.msg);
             eventObj = UserMsg(
               eventId: event.msgId,
               senderId: event.msg.senderId,
@@ -443,6 +496,10 @@ class OurChatEventSystem extends _$OurChatEventSystem {
               sendTime: OurChatTime.fromTimestamp(event.time),
               markdownText: mdText,
               involvedFiles: files,
+              quoteMsgId: quote.quoteMsgId,
+              quoteSenderId: quote.quoteSenderId,
+              quoteMarkdownText: quote.quoteMarkdownText,
+              quoteInvolvedFiles: quote.quoteInvolvedFiles,
             );
 
           case FetchMsgsResponse_RespondEventType.receiveRoomKey:
@@ -678,6 +735,7 @@ class OurChatEventSystem extends _$OurChatEventSystem {
               files = const [];
             }
           }
+          final quote = UserMsg.quoteFieldsFromMsg(event.msg);
           UserMsg msg = UserMsg(
             eventId: Int64(event.msgId),
             senderId: Int64(event.msg.senderId),
@@ -685,6 +743,10 @@ class OurChatEventSystem extends _$OurChatEventSystem {
             sendTime: OurChatTime.fromTimestamp(event.time),
             markdownText: mdText,
             involvedFiles: files,
+            quoteMsgId: quote.quoteMsgId,
+            quoteSenderId: quote.quoteSenderId,
+            quoteMarkdownText: quote.quoteMarkdownText,
+            quoteInvolvedFiles: quote.quoteInvolvedFiles,
           );
           await msg.saveToDB(privateDB!);
           msgs.add(msg);

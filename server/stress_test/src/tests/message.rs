@@ -47,6 +47,7 @@ pub async fn test_send_msg(
                             markdown_text: format!("Test message {}", rand::random::<u32>()),
                             involved_files: vec![],
                             is_encrypted: false,
+                            quote_msg_id: 0,
                         })
                         .await
                     {

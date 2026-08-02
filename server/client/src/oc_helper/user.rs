@@ -413,11 +413,25 @@ impl TestUser {
         involved_files: Vec<String>,
         is_encrypted: bool,
     ) -> Result<Response<SendMsgResponse>, ClientErr> {
+        self.send_msg_with_quote(session_id, markdown_text, involved_files, is_encrypted, 0)
+            .await
+    }
+
+    /// Send a message that quotes another message in the same session.
+    pub async fn send_msg_with_quote(
+        &mut self,
+        session_id: SessionID,
+        markdown_text: impl Into<String>,
+        involved_files: Vec<String>,
+        is_encrypted: bool,
+        quote_msg_id: u64,
+    ) -> Result<Response<SendMsgResponse>, ClientErr> {
         let req = SendMsgRequest {
             session_id: session_id.into(),
             is_encrypted,
             markdown_text: markdown_text.into(),
             involved_files,
+            quote_msg_id,
         };
         Ok(self.oc().send_msg(req).await?)
     }

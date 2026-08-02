@@ -67,6 +67,12 @@ Key dependencies (see `pubspec.yaml` for full list):
 - **drift_dev**: Generates database code
 - **build_runner**: Orchestrates all code generation
 
+### Test Dependencies (dev_dependencies)
+
+- **mocktail**: Mocking library for widget tests (mock gRPC clients, `OurChatServer`)
+- **flutter_secure_storage_platform_interface**: In-memory `TestFlutterSecureStoragePlatform` for integration tests (mocks `SecretStore` without touching platform keychain)
+- **integration_test**: Flutter SDK integration test framework (real binding, real async)
+
 ### Build Commands
 
 **Code Generation:**
@@ -117,6 +123,28 @@ lib/
 │   └── stubs/              # Web stubs for desktop-only packages (window_manager, tray_manager, etc.)
 ├── service/               # Generated gRPC/protobuf Dart code (do not edit)
 └── l10n/                  # Internationalization ARB files (en, zh)
+```
+
+**Test directories:**
+
+```
+test/                               # Unit + widget tests (flutter test)
+├── core/                           # Pure-logic unit tests (crypto, config, event, chore)
+└── session/                        # Widget tests with mocked server
+    ├── test_harness.dart           # Shared helpers (MockOurChatClient, buildTestApp, etc.)
+    ├── quote_block_test.dart       # MessageWidget quote block rendering
+    ├── quote_banner_test.dart      # SessionTab quote banner show/clear
+    └── quote_send_flow_test.dart   # SessionTab send path with quote injection
+
+integration_test/                   # Integration tests (flutter test -d linux)
+├── helpers/                        # Shared integration test infrastructure
+│   ├── oc_test_app.dart            # Server probe + user/session provisioning (raw gRPC)
+│   ├── oc_test_user.dart           # Authenticated test user with action methods
+│   ├── fetch_msg_builder.dart      # Streaming message receiver with timeout
+│   └── live_client_fixture.dart    # Real providers + in-memory DB + real server harness
+├── quote_flow_test.dart            # Contract: raw gRPC server round-trip
+├── quote_client_logic_test.dart    # Provider: real UserMsg.send + EventSystem + quoteFieldsFromMsg
+└── quote_ui_e2e_test.dart          # UI: pump real SessionTab + drive interactions
 ```
 
 ### State Management (Riverpod)
@@ -264,9 +292,109 @@ dart run build_runner build --delete-conflicting-outputs
 
 ### Testing
 
-- Unit tests can be added in `test/` directory.
-- Integration tests in `integration_test/`.
-- Run with `flutter test`.
+#### Test Pyramid
+
+The client uses a three-layer test strategy. Each layer covers different bug classes — they are complementary, not redundant.
+
+```
+integration_test/   (slow, few)    ← real server, end-to-end
+test/               (medium, some) ← mocked server, widget rendering
+test/core/          (fast, many)   ← pure logic, no Flutter
+```
+
+#### Running Tests
+
+```bash
+# Unit + widget tests (no server needed, runs in fake environment)
+flutter test
+
+# Single integration test (requires -d and a running server for non-skip)
+flutter test integration_test/quote_flow_test.dart -d linux
+flutter test integration_test/quote_client_logic_test.dart -d linux
+flutter test integration_test/quote_ui_e2e_test.dart -d linux
+
+# Static analysis (must pass before committing)
+dart analyze lib/ test/ integration_test/
+```
+
+Integration tests auto-skip (`markTestSkipped`) when the server at `localhost:7777` is unreachable. To run them for real, start the dev server first:
+
+```bash
+# From repo root (requires docker db/redis/mq running)
+nohup target/debug/server -c config/ourchat.toml > log/e2e_server.log 2>&1 &
+```
+
+#### Unit & Widget Tests (`test/`)
+
+Run via `flutter test` — uses `TestWidgetsFlutterBinding` (fake time, no network). All HTTP/gRPC calls return errors; mock the server with `mocktail`.
+
+**Shared harness:** `test/session/test_harness.dart` provides:
+
+| Helper | Purpose |
+|---|---|
+| `buildTestAccount(id, username)` | Canned `AccountData` with sensible defaults |
+| `MockOurChatClient` | mocktail mock of `OurChatServiceClient` |
+| `FakeOurChatServer` | `OurChatServer` subclass whose `newStub()` returns a mock client |
+| `StubAccountNotifier` / `overrideAccount(id, account)` | Override `ourChatAccountProvider` without breaking `.notifier` access |
+| `responseFutureOf<T>(value)` | Build a resolving `ResponseFuture` for mock stubs |
+| `buildTestApp(container, child)` | Wrap a widget in `ProviderScope` + `MaterialApp` + set global `l10n` |
+
+**Key gotcha:** `l10n` is a top-level `late` global. Widget tests must pump through `buildTestApp` (which sets `l10n` in a `LayoutBuilder`) before any code that reads `l10n` runs.
+
+#### Integration Tests (`integration_test/`)
+
+Run via `flutter test integration_test/<file> -d linux` — uses `IntegrationTestWidgetsFlutterBinding` (real binding, real async). Connects to a live server.
+
+**Three layers of integration tests:**
+
+| Layer | File | What it exercises | What it catches |
+|---|---|---|---|
+| **Contract** | `quote_flow_test.dart` | Raw gRPC stubs → server → proto response | Server-side bugs, proto contract violations |
+| **Provider** | `quote_client_logic_test.dart` | Real `AuthNotifier.login` + `UserMsg.send` + `OurChatEventSystem.listenEvents` + `quoteFieldsFromMsg` + drift DB | Client parsing bugs, send-path bugs, stream→DB wiring |
+| **UI E2E** | `quote_ui_e2e_test.dart` | Pump real `SessionTab` widget + drive `tap`/`enterText`/`longPress` | Widget wiring, `SessionTab._send` quote injection, `MessageWidget` rendering |
+
+**Helpers** (`integration_test/helpers/`):
+
+| File | Key classes | Purpose |
+|---|---|---|
+| `oc_test_app.dart` | `OcTestApp` | Probe server, register users, create sessions (raw gRPC, **setup only**) |
+| `oc_test_user.dart` | `OcTestUser` | Authenticated stub with `sendMsg`/`sendMsgWithQuote`/`fetchMsgs`/`deleteSession` |
+| `fetch_msg_builder.dart` | `FetchMsgBuilder` | Stream receiver with timeout: `.fetch(n)` / `.fetchUntil(matcher)` |
+| `live_client_fixture.dart` | `LiveClientFixture` | **Core harness:** real providers + in-memory DB + real server |
+
+**`LiveClientFixture`** wires up real production code against a live server:
+
+1. Registers a user via raw gRPC (setup only)
+2. Installs `TestFlutterSecureStoragePlatform` (in-memory `SecretStore`)
+3. Creates in-memory drift DBs: `publicDB` / `privateDB` via `NativeDatabase.memory()`
+4. Initializes `l10n` via `AppLocalizations.delegate.load(Locale('en'))`
+5. Overrides only `ourChatServerProvider` — everything else (`authProvider`, `ourChatEventSystemProvider`, `e2eeStoreProvider`, `ourChatAccountProvider`) runs **unmodified production code**
+6. Calls real `AuthNotifier.login()` (exercises auth RPC + token injection + private-key load)
+7. Starts real `OurChatEventSystem.listenEvents()` (exercises stream parsing + `quoteFieldsFromMsg` + drift persistence)
+
+Key methods:
+- `sendAsClient(sessionId, markdownText, {quoteMsgId})` — calls real `UserMsg.send(ref, sid)`
+- `waitForMsg(matcher, {timeout})` — waits via real event system listener
+- `dbRecords()` — reads real in-memory drift `Record` rows
+
+#### Key Integration Test Gotchas
+
+1. **Auto-dispose provider lifecycle:** `sessionProvider` and `quoteTargetProvider` are `@riverpod` (auto-dispose). They are disposed when no widget watches them. **Always pump the widget BEFORE modifying these providers' state.** The widget's `ref.watch` keeps them alive.
+
+2. **`testTextInput` connection loss:** After a popup menu interaction (e.g., long-press → quote menu), `tester.enterText` may silently fail (text not entered). Workaround: set the controller directly:
+   ```dart
+   final tf = tester.widget<TextField>(find.byType(TextField));
+   tf.controller!.text = 'message text';
+   container.read(inputTextProvider.notifier).setText('message text');
+   ```
+
+3. **`FetchMsgsRequest.time` is required:** The server rejects `FetchMsgsRequest` with no `time` field (`INVALID_ARGUMENT: Time Missing`). `FetchMsgBuilder` defaults to `Timestamp()` (epoch).
+
+4. **`pumpAndSettle` may hang:** If the event system has a pending reconnect `Timer` or `MessageWidget` has async operations, `pumpAndSettle` can hang. Use `pump(Duration(milliseconds: 200))` in a loop with a timeout instead.
+
+5. **`Provider<Ref>` pattern for `UserMsg.send`:** `UserMsg.send(Ref ref, ...)` needs a real Riverpod `Ref`. Capture it via a test-only provider: `final ref = container.read(Provider<Ref>((ref) => ref));`
+
+6. **Running multiple integration test files:** `flutter test integration_test/` (all files at once) may fail with "Unable to start the app on the device" due to device startup conflicts. Run each file separately.
 
 ### Code Quality
 

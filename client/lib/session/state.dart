@@ -46,6 +46,22 @@ class InputText extends _$InputText {
 }
 
 @riverpod
+class QuoteTarget extends _$QuoteTarget {
+  @override
+  UserMsg? build() {
+    return null;
+  }
+
+  void setQuote(UserMsg msg) {
+    state = msg;
+  }
+
+  void clear() {
+    state = null;
+  }
+}
+
+@riverpod
 class SessionNotifier extends _$SessionNotifier {
   bool _disposed = false;
 
@@ -113,6 +129,7 @@ class SessionNotifier extends _$SessionNotifier {
   }
 
   void openSessionTab(Int64 sessionId, String title, {List<UserMsg>? records}) {
+    ref.read(quoteTargetProvider.notifier).clear();
     state = state.copyWith(
       currentSessionId: sessionId,
       tabIndex: TabType.session,
@@ -126,6 +143,7 @@ class SessionNotifier extends _$SessionNotifier {
   }
 
   void clearTab() {
+    ref.read(quoteTargetProvider.notifier).clear();
     state = state.copyWith(
       tabTitle: "",
       currentUserId: null,

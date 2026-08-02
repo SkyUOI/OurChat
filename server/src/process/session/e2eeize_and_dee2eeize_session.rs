@@ -157,6 +157,7 @@ pub(crate) async fn bootstrap_e2ee_room_key(
         .into_active_model();
     session.room_key_time = ActiveValue::Set(Utc::now().into());
     session.leaving_to_process = ActiveValue::Set(false);
+    session.e2ee_on = ActiveValue::Set(true);
     session.update(&server.db.db_pool).await?;
     Ok(())
 }

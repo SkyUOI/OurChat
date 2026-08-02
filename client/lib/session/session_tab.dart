@@ -9,11 +9,12 @@ import 'package:mime/mime.dart';
 import 'package:ourchat/core/account.dart';
 import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/core/const.dart';
+import 'package:ourchat/core/e2ee.dart';
+import 'package:ourchat/core/event.dart';
 import 'package:ourchat/core/log.dart';
 import 'package:ourchat/core/session.dart' as core_session;
 import 'package:ourchat/core/ui.dart';
 import 'package:ourchat/main.dart';
-import 'package:ourchat/service/ourchat/msg_delivery/v1/msg_delivery.pb.dart';
 import 'package:ourchat/service/ourchat/session/delete_session/v1/delete_session.pb.dart';
 import 'package:ourchat/service/ourchat/session/leave_session/v1/leave_session.pb.dart';
 import 'package:ourchat/service/ourchat/session/set_session_info/v1/set_session_info.pb.dart';
@@ -133,9 +134,51 @@ class _SessionTabState extends ConsumerState<SessionTab> {
     );
   }
 
+  /// The compact "quoting" banner shown above the input box.
+  Widget _buildQuoteBanner(UserMsg quoted) {
+    String quotedName = '';
+    if (quoted.senderId != null) {
+      final senderData = ref.read(ourChatAccountProvider(quoted.senderId!));
+      final dn = senderData.displayName;
+      quotedName = dn != null && dn.isNotEmpty ? dn : senderData.username;
+    }
+    String preview = MarkdownToText.convert(quoted.markdownText, l10n);
+    if (preview.isEmpty) preview = l10n.quoteUnavailable;
+    return Container(
+      margin: const EdgeInsets.fromLTRB(10, 4, 10, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade200,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.format_quote, size: 16, color: Colors.grey.shade600),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              quotedName.isEmpty ? preview : '$quotedName: $preview',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+            ),
+          ),
+          IconButton(
+            onPressed: () {
+              ref.read(quoteTargetProvider.notifier).clear();
+            },
+            icon: const Icon(Icons.close, size: 16),
+            visualDensity: VisualDensity.compact,
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     var sessionState = ref.watch(sessionProvider);
+    var quoteTarget = ref.watch(quoteTargetProvider);
     var key = GlobalKey<FormState>();
 
     return Form(
@@ -145,6 +188,7 @@ class _SessionTabState extends ConsumerState<SessionTab> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Expanded(child: cardWithPadding(const SessionRecord())), //聊天记录
+          if (quoteTarget != null) _buildQuoteBanner(quoteTarget),
           Row(
             children: [
               Expanded(
@@ -243,34 +287,22 @@ class _SessionTabState extends ConsumerState<SessionTab> {
                             if (sessionState.needUploadFiles.isNotEmpty) {
                               showResultMessage(okStatusCode, null);
                             }
-                            var stub = ref
-                                .read(ourChatServerProvider)
-                                .newStub();
-                            try {
-                              await safeRequest(
-                                stub.sendMsg,
-                                SendMsgRequest(
-                                  sessionId: sessionState.currentSessionId!,
-                                  markdownText: text,
-                                  involvedFiles: involvedFiles,
-                                  isEncrypted: false,
-                                ),
-                                (grpc.GrpcError e) {
-                                  showResultMessage(
-                                    e.code,
-                                    e.message,
-                                    notFoundStatus: l10n.notFound(l10n.session),
-                                    permissionDeniedStatus: l10n
-                                        .permissionDenied(l10n.send),
-                                  );
-                                },
-                              );
-                            } catch (e) {
-                              // do nothing
-                            }
+                            final quoteMsgId = ref
+                                .read(quoteTargetProvider)
+                                ?.eventId;
+                            await UserMsg(
+                              markdownText: text,
+                              involvedFiles: involvedFiles,
+                              quoteMsgId: quoteMsgId,
+                            ).send(
+                              ref.read(ourChatServerProvider),
+                              ref.read(e2eeStoreProvider.notifier),
+                              sessionState.currentSessionId!,
+                            );
                             controller.text = "";
                             ref.read(inputTextProvider.notifier).setText("");
                             ref.read(sessionProvider.notifier).resetInputArea();
+                            ref.read(quoteTargetProvider.notifier).clear();
                           },
                           onChanged: (value) {
                             ref.read(inputTextProvider.notifier).setText(value);
