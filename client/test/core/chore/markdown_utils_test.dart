@@ -1,13 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ourchat/core/chore/markdown_utils.dart';
 
-/// Tests for functions that do NOT depend on AppLocalizations.
-/// The MarkdownToText tests that need l10n are skipped because AppLocalizations
-/// is abstract and cannot be instantiated without a running MaterialApp.
-
+/// Tests for the pure (non-l10n) functions in `markdown_utils.dart`:
+/// `MarkdownToText.containsImage` and `replaceMarkdownImageUrls`.
+///
+/// `MarkdownToText.convert` requires a live `AppLocalizations` (it is abstract
+/// and can only be obtained through a MaterialApp), so it is not unit-tested
+/// here.
 void main() {
   group('MarkdownToText.containsImage', () {
-    test('no image returns false', () {
+    test('plain text returns false', () {
       expect(MarkdownToText.containsImage('hello world'), false);
     });
 
@@ -31,26 +33,26 @@ void main() {
     });
   });
 
-  group('replaceMarkdownFileUrls', () {
-    test('replaces image src', () {
-      final result = replaceMarkdownFileUrls('![a](/old.png)', (url) {
+  group('replaceMarkdownImageUrls', () {
+    test('replaces an image src', () {
+      final result = replaceMarkdownImageUrls('![a](/old.png)', (url) {
         if (url == '/old.png') return '/new.png';
         return url;
       });
       expect(result, contains('![a](/new.png)'));
+      expect(result, isNot(contains('/old.png')));
     });
 
-    test('replaces link href', () {
-      final result = replaceMarkdownFileUrls('[file](/old.dat)', (url) {
-        if (url == '/old.dat') return 'IO://0';
-        return url;
+    test('does NOT touch link hrefs (images only)', () {
+      final result = replaceMarkdownImageUrls('[file](/old.dat)', (url) {
+        fail('replaceUrl must not be called for non-image links');
       });
-      expect(result, contains('[file](IO://0)'));
+      expect(result, contains('/old.dat'));
     });
 
-    test('does not touch unrelated URLs', () {
-      final input = '[a](/a.dat) ![b](/b.png) [c](/c.dat)';
-      final result = replaceMarkdownFileUrls(input, (url) {
+    test('leaves unrelated image URLs untouched', () {
+      const input = '[a](/a.dat) ![b](/b.png) [c](/c.dat)';
+      final result = replaceMarkdownImageUrls(input, (url) {
         if (url == '/b.png') return 'IO://1';
         return url;
       });
@@ -59,69 +61,26 @@ void main() {
       expect(result, contains('[c](/c.dat)'));
     });
 
-    test('replaces multiple occurrences', () {
-      final input = '![a](/a.png) ![b](/a.png)';
-      final result = replaceMarkdownFileUrls(input, (url) {
+    test('replaces multiple image occurrences', () {
+      const input = '![a](/a.png) ![b](/a.png)';
+      final result = replaceMarkdownImageUrls(input, (url) {
         if (url == '/a.png') return 'IO://0';
         return url;
       });
       expect('IO://0'.allMatches(result).length, 2);
     });
 
-    test('mixed image and link replacement', () {
-      final input = '![img](/img.png) [file](/file.pdf)';
-      final result = replaceMarkdownFileUrls(input, (url) {
-        if (url == '/img.png') return 'IO://0';
-        if (url == '/file.pdf') return 'IO://1';
+    test('replaceUrl receives the original src', () {
+      final captured = <String>[];
+      replaceMarkdownImageUrls('![x](/p.png) ![y](/q.png)', (url) {
+        captured.add(url);
         return url;
       });
-      expect(result, contains('![img](IO://0)'));
-      expect(result, contains('[file](IO://1)'));
-    });
-
-    test('handles complex markdown with links and images', () {
-      final input = '''
-# Title
-Some text with ![image](/a.png) and a [link](/b.pdf).
-Another ![image2](/c.jpg) here.''';
-      final replaced = <String>[];
-      final result = replaceMarkdownFileUrls(input, (url) {
-        replaced.add(url);
-        return 'IO://${replaced.length - 1}';
-      });
-      expect(replaced, ['/a.png', '/b.pdf', '/c.jpg']);
-      expect(result, contains('IO://0'));
-      expect(result, contains('IO://1'));
-      expect(result, contains('IO://2'));
+      expect(captured, ['/p.png', '/q.png']);
     });
 
     test('empty input returns empty', () {
-      expect(replaceMarkdownFileUrls('', (url) => 'X'), '');
-    });
-
-    test('text with no URLs returns unchanged (modulo markdown formatting)', () {
-      const input = 'plain text **bold** *italic*';
-      final result = replaceMarkdownFileUrls(input, (url) {
-        fail('should not be called');
-      });
-      // The renderer normalises markdown, so bold/italic markers are stripped.
-      // What matters is no replaceUrl callback was called.
-    });
-  });
-
-  group('replaceMarkdownImageUrls (legacy)', () {
-    test('behaves same as replaceMarkdownFileUrls', () {
-      final input = '![a](/old.png) [b](/old.dat)';
-      final r1 = replaceMarkdownImageUrls(input, (url) => 'X');
-      final r2 = replaceMarkdownFileUrls(input, (url) => 'X');
-      expect(r1, r2);
-    });
-
-    test('still replaces links (new behavior, backward compat)', () {
-      // The legacy function now delegates to replaceMarkdownFileUrls,
-      // so it also replaces link hrefs.  This is intentional.
-      final result = replaceMarkdownImageUrls('[f](/a.dat)', (url) => 'IO://0');
-      expect(result, contains('IO://0'));
+      expect(replaceMarkdownImageUrls('', (url) => 'X'), '');
     });
   });
 }
