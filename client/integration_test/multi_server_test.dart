@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:ourchat/core/database.dart' as database;
@@ -8,6 +7,7 @@ import 'package:ourchat/core/instance.dart';
 import 'package:ourchat/core/auth_notifier.dart';
 import 'package:ourchat/main.dart';
 
+import 'helpers/memory_executor.dart';
 import 'helpers/multi_server_fixture.dart';
 
 /// Exercises the multi-server / multi-account features added in phase 2 of
@@ -159,7 +159,7 @@ void main() {
     final dbA2 = database.OurChatDatabase(
       fx.serverIdA,
       accountA2,
-      NativeDatabase.memory(),
+      inMemoryExecutor(),
     );
     fx.container
         .read(instancesProvider.notifier)

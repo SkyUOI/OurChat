@@ -12,7 +12,7 @@ import 'package:ourchat/core/instance.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
 import 'package:ourchat/core/const.dart';
 import 'package:ourchat/core/config.dart';
-import 'package:ourchat/server_setting.dart';
+import 'package:ourchat/auth.dart';
 import 'package:ourchat/core/server.dart';
 import 'package:ourchat/core/event.dart';
 import 'package:ourchat/core/log.dart';
@@ -268,11 +268,14 @@ class _MainAppState extends ConsumerState<MainApp>
                   );
                 });
               } else {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => ServerSetting()),
-                  );
+                WidgetsBinding.instance.addPostFrameCallback((_) async {
+                  await connectToOfficialServer(ref);
+                  if (context.mounted) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => Auth()),
+                    );
+                  }
                 });
               }
             }
@@ -383,6 +386,36 @@ void switchActive(WidgetRef ref, AccountKey key) {
       .setActiveAccount(key.serverId, key.accountId.toInt());
 }
 
+/// Connect to the default/official server (the first configured server, else
+/// the built-in `skyuoi.org:7777`) and ensure it is identified, so the login
+/// screen can authenticate against it. Returns true when the server is ready.
+Future<bool> connectToOfficialServer(WidgetRef ref) async {
+  final config = ref.read(configProvider);
+  final sc = config.servers.isNotEmpty
+      ? config.servers.first
+      : ServerConfig(host: 'skyuoi.org', port: 7777);
+  // Assume non-TLS unless the stored config says otherwise. Probing TLS here
+  // (via tlsEnabled) breaks on web: the browser CORS-preflights an HTTPS
+  // request to a plain-HTTP server, which replies without CORS headers.
+  final isTLS = sc.isTLS ?? false;
+  final server = OurChatServer(sc.host, sc.port, isTLS);
+  ref.read(ourChatServerProvider.notifier).update(server);
+  final res = await server.getServerInfo();
+  if (res != okStatusCode) return false;
+  ref
+      .read(configProvider.notifier)
+      .upsertServer(
+        ServerConfig(
+          host: sc.host,
+          port: sc.port,
+          label: sc.label,
+          uniqueIdentifier: server.uniqueIdentifier,
+          isTLS: isTLS,
+        ),
+      );
+  return true;
+}
+
 class _AutoLoginState extends ConsumerState<AutoLogin> {
   bool triedAutoLogin = false;
 
@@ -457,11 +490,12 @@ class _AutoLoginState extends ConsumerState<AutoLogin> {
     final cfg = ref.read(configProvider);
     final autoAccounts = cfg.savedAccounts.where((a) => a.autoLogin).toList();
     if (autoAccounts.isEmpty) {
-      logger.i("no saved account, redirect to server setting");
+      logger.i("no saved account, redirect to official server login");
+      await connectToOfficialServer(ref);
       if (context.mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => ServerSetting()),
+          MaterialPageRoute(builder: (context) => Auth()),
         );
       }
       return;
@@ -475,11 +509,14 @@ class _AutoLoginState extends ConsumerState<AutoLogin> {
     }
 
     if (successes.isEmpty) {
-      logger.w("auto-login: no account succeeded, redirect to server setting");
+      logger.w(
+        "auto-login: no account succeeded, redirect to official server login",
+      );
+      await connectToOfficialServer(ref);
       if (context.mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => ServerSetting()),
+          MaterialPageRoute(builder: (context) => Auth()),
         );
       }
       return;

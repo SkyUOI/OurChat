@@ -252,18 +252,32 @@ def wait_server(port, log_path, proc, timeout=60):
     return False
 
 
-def run_test(test_file):
+def run_test(test_file, device):
     # Accept either "multi_server_test.dart" or "integration_test/multi_server_test.dart".
     if test_file.startswith("integration_test/"):
         test_file = test_file[len("integration_test/") :]
     print(f"==> running {test_file}")
-    cmd = [
-        "flutter",
-        "test",
-        os.path.join("integration_test", test_file),
-        "-d",
-        "linux",
-    ]
+    if device == "chrome":
+        # `flutter test` does not support web devices for integration tests;
+        # use `flutter drive` with the standard driver instead. Debug (DDC)
+        # mode hits a DWDS AppConnectionException, so use profile mode.
+        cmd = [
+            "flutter",
+            "drive",
+            "--profile",
+            "--driver=test_driver/integration_test.dart",
+            f"--target=integration_test/{test_file}",
+            "-d",
+            device,
+        ]
+    else:
+        cmd = [
+            "flutter",
+            "test",
+            os.path.join("integration_test", test_file),
+            "-d",
+            device,
+        ]
     proc = subprocess.Popen(
         cmd,
         cwd=CLIENT_DIR,
@@ -283,6 +297,33 @@ def run_test(test_file):
     return rc, skipped
 
 
+def start_chromedriver(port=4444):
+    """Start chromedriver (needed for `flutter drive` web integration tests).
+    Returns the process if started, or None if one is already listening."""
+    if port_open(port):
+        print(f"==> chromedriver already listening on {port}")
+        return None
+    if shutil.which("chromedriver") is None:
+        fail(
+            "chromedriver is required for web integration tests (--device chrome).\n"
+            "Install a chromedriver matching your Chrome version and ensure it is on PATH."
+        )
+    print("==> starting chromedriver")
+    proc = subprocess.Popen(
+        ["chromedriver", f"--port={port}"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    deadline = time.time() + 30
+    while time.time() < deadline:
+        if port_open(port):
+            return proc
+        if proc.poll() is not None:
+            fail(f"chromedriver exited early (code {proc.returncode})")
+        time.sleep(0.5)
+    fail("chromedriver did not become ready within 30s")
+
+
 def main():
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -295,6 +336,11 @@ def main():
     )
     ap.add_argument("--port-a", type=int, default=7777)
     ap.add_argument("--port-b", type=int, default=7778)
+    ap.add_argument(
+        "--device",
+        default="linux",
+        help="flutter device to run the tests on (default: linux, e.g. chrome for web)",
+    )
     ap.add_argument(
         "--server-path", default=None, help="path to a prebuilt server binary"
     )
@@ -312,6 +358,10 @@ def main():
 
     preflight(args)
     server_bin = build_server(args)
+
+    chromedriver_proc = None
+    if args.device == "chrome":
+        chromedriver_proc = start_chromedriver()
 
     tmp = tempfile.mkdtemp(prefix="ourchat_e2e_")
     cfg_a = copy_and_patch_configs(tmp, "a", "/")
@@ -337,7 +387,7 @@ def main():
         tests = args.tests if args.tests else DEFAULT_TESTS
         results = {}
         for t in tests:
-            rc, skipped = run_test(t)
+            rc, skipped = run_test(t, args.device)
             results[t] = (rc, skipped)
 
         print("\n=== integration test results ===")
@@ -360,6 +410,12 @@ def main():
                     p.wait(timeout=10)
                 except subprocess.TimeoutExpired:
                     p.kill()
+        if chromedriver_proc is not None:
+            chromedriver_proc.terminate()
+            try:
+                chromedriver_proc.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                chromedriver_proc.kill()
         if not args.debug:
             shutil.rmtree(tmp, ignore_errors=True)
 

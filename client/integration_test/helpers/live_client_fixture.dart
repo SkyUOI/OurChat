@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:ui' show Locale;
 
-import 'package:drift/native.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/test/test_flutter_secure_storage_platform.dart';
@@ -18,6 +17,7 @@ import 'package:ourchat/l10n/app_localizations.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/service/ourchat/msg_delivery/v1/msg_delivery.pb.dart';
 
+import 'memory_executor.dart';
 import 'oc_test_app.dart';
 import 'oc_test_user.dart';
 
@@ -81,7 +81,7 @@ class LiveClientFixture {
     );
 
     // In-memory public database.
-    publicDB = database.PublicOurChatDatabase(NativeDatabase.memory());
+    publicDB = database.PublicOurChatDatabase(inMemoryExecutor());
 
     container = ProviderContainer(
       overrides: [ourChatServerProvider.overrideWithValue(server)],
@@ -100,7 +100,7 @@ class LiveClientFixture {
     final instancePrivateDB = database.OurChatDatabase(
       serverId,
       accountId,
-      NativeDatabase.memory(),
+      inMemoryExecutor(),
     );
     final instance = OurChatInstance(
       serverId: serverId,

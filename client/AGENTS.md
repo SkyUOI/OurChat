@@ -335,6 +335,24 @@ integration tests only need the server on 7777. The script creates both and
 tears them down afterwards (see `script/README.md` for options like
 `--keep-server` / `--debug`).
 
+**Running integration tests on web (Chrome):** the fixtures are
+platform-agnostic (drift in-memory DBs via `integration_test/helpers/memory_executor*.dart`).
+Run them with `--device chrome`; the script starts chromedriver (matching your
+Chrome version) on port 4444 automatically and uses `flutter drive --profile`
+(`flutter test` does not support web devices, and debug/DDC mode hits a DWDS
+`AppConnectionException`):
+
+```bash
+# From repo root (dev dependencies must be up: db/redis/mq)
+python script/run_integration_tests.py --device chrome
+
+# Single file
+python script/run_integration_tests.py --device chrome --test integration_test/quote_flow_test.dart
+```
+
+Requirements: a `chromedriver` binary matching the installed Chrome version on
+`PATH`, plus the driver harness in `test_driver/integration_test.dart`.
+
 #### Unit & Widget Tests (`test/`)
 
 Run via `flutter test` — uses `TestWidgetsFlutterBinding` (fake time, no network). All HTTP/gRPC calls return errors; mock the server with `mocktail`.

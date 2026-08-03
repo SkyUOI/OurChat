@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:ui' show Locale;
 
 import 'package:flutter/foundation.dart' show debugPrint;
-import 'package:drift/native.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/test/test_flutter_secure_storage_platform.dart';
@@ -19,6 +18,7 @@ import 'package:ourchat/l10n/app_localizations.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/service/ourchat/msg_delivery/v1/msg_delivery.pb.dart';
 
+import 'memory_executor.dart';
 import 'oc_test_app.dart';
 import 'oc_test_user.dart';
 
@@ -67,7 +67,7 @@ class MultiServerFixture {
       {},
     );
     l10n = await AppLocalizations.delegate.load(const Locale('en'));
-    publicDB = database.PublicOurChatDatabase(NativeDatabase.memory());
+    publicDB = database.PublicOurChatDatabase(inMemoryExecutor());
 
     // Probe getServerInfo to populate each server's uniqueIdentifier.
     serverA = OurChatServer('localhost', portA, false);
@@ -123,7 +123,7 @@ class MultiServerFixture {
     final dbA = database.OurChatDatabase(
       serverIdA,
       accountIdA,
-      NativeDatabase.memory(),
+      inMemoryExecutor(),
     );
     container
         .read(instancesProvider.notifier)
@@ -138,7 +138,7 @@ class MultiServerFixture {
     final dbB = database.OurChatDatabase(
       serverIdB,
       accountIdB,
-      NativeDatabase.memory(),
+      inMemoryExecutor(),
     );
     container
         .read(instancesProvider.notifier)

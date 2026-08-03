@@ -11,7 +11,7 @@ def msg_system(cmd: str, msg=None):
         sys.exit(1)
 
 
-VERSION = "2.0.0-rc.42"
+VERSION = "2.0.0"
 
 
 def version_check():
