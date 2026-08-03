@@ -1,33 +1,33 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
-/// 应用程序样式常量
+/// Application style constants
 class AppStyles {
-  // 间距
+  // Spacing
   static const double smallPadding = 5.0;
   static const double defaultPadding = 8.0;
   static const double mediumPadding = 10.0;
   static const double largePadding = 16.0;
 
-  // 圆角
+  // Border radius
   static const double defaultBorderRadius = 10.0;
 
-  // 字体大小
+  // Font size
   static const double smallFontSize = 14.0;
   static const double defaultFontSize = 16.0;
   static const double titleFontSize = 20.0;
   static const double largeFontSize = 25.0;
 
-  // 图标大小
+  // Icon size
   static const double smallIconSize = 20.0;
   static const double defaultIconSize = 24.0;
 
-  // 头像尺寸
+  // Avatar size
   static const double smallAvatarSize = 20.0;
   static const double defaultAvatarSize = 40.0;
   static const double largeAvatarSize = 100.0;
 
-  // 卡片样式
+  // Card style
   static BoxDecoration cardDecoration(BuildContext context) {
     return BoxDecoration(
       color: Theme.of(context).cardColor,
@@ -42,7 +42,7 @@ class AppStyles {
     );
   }
 
-  // 按钮样式
+  // Button style
   static ButtonStyle defaultButtonStyle = ButtonStyle(
     shape: WidgetStateProperty.all(
       RoundedRectangleBorder(

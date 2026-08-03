@@ -8,6 +8,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:ourchat/core/database.dart' as database;
 import 'package:ourchat/core/account.dart';
 import 'package:ourchat/core/auth_notifier.dart';
+import 'package:ourchat/core/instance.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
 import 'package:ourchat/core/const.dart';
 import 'package:ourchat/core/config.dart';
@@ -16,7 +17,6 @@ import 'package:ourchat/core/server.dart';
 import 'package:ourchat/core/event.dart';
 import 'package:ourchat/core/log.dart';
 import 'package:ourchat/core/secret_store.dart';
-import 'package:ourchat/auth.dart';
 import 'package:ourchat/home.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 // Conditionally import desktop-specific packages only when not on web
@@ -172,6 +172,12 @@ class ThisAccountIdNotifier extends _$ThisAccountIdNotifier {
 class OurChatServerNotifier extends _$OurChatServerNotifier {
   @override
   OurChatServer build() {
+    // After a login the "current" server is the active instance's connection.
+    final key = ref.watch(activeAccountProvider);
+    if (key != null) {
+      final inst = ref.watch(instancesProvider)[key];
+      if (inst != null) return inst.server;
+    }
     final config = ref.read(configProvider);
     final server = config.servers.isNotEmpty
         ? config.servers[0]
@@ -238,7 +244,7 @@ class _MainAppState extends ConsumerState<MainApp>
                   (constraints.maxHeight < constraints.maxWidth)
                       ? ScreenMode.desktop
                       : ScreenMode.mobile,
-                ); // 通过屏幕比例判断桌面端/移动端
+                ); // Determine desktop/mobile by aspect ratio
             if (!inited) {
               if (!kIsWeb) {
                 trayManager
@@ -254,7 +260,7 @@ class _MainAppState extends ConsumerState<MainApp>
               }
 
               inited = true;
-              if (config.recentAccount != "" && config.recentPassword != "") {
+              if (config.savedAccounts.any((a) => a.autoLogin)) {
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   Navigator.push(
                     context,
@@ -362,14 +368,96 @@ class AutoLogin extends ConsumerStatefulWidget {
   ConsumerState<AutoLogin> createState() => _AutoLoginState();
 }
 
+/// Switch the UI's focused account to [key]: update the active-account
+/// pointer, the legacy globals (privateDB / thisAccountId) that existing call
+/// sites read, and the persisted config. No-op when [key] has no live
+/// instance.
+void switchActive(WidgetRef ref, AccountKey key) {
+  final inst = ref.read(instancesProvider)[key];
+  if (inst == null) return;
+  ref.read(activeAccountProvider.notifier).set(key);
+  privateDB = inst.privateDB;
+  ref.read(thisAccountIdProvider.notifier).setAccountId(inst.accountId);
+  ref
+      .read(configProvider.notifier)
+      .setActiveAccount(key.serverId, key.accountId.toInt());
+}
+
 class _AutoLoginState extends ConsumerState<AutoLogin> {
   bool triedAutoLogin = false;
-  Future autoLogin(BuildContext context) async {
-    logger.i("AUTO login");
-    var server = ref.watch(ourChatServerProvider);
-    var connectRes = await server.getServerInfo();
+
+  /// Login one saved account, building its runtime instance + event system.
+  /// Returns true on success. Serialized by the caller to avoid racing the
+  /// shared auth state.
+  Future<bool> _loginOne(SavedAccount acc, OurChatConfig cfg) async {
+    final sc = cfg.servers.firstWhere(
+      (s) => s.uniqueIdentifier == acc.serverId,
+      orElse: () => ServerConfig(host: 'skyuoi.org', port: 7777),
+    );
+    final server = OurChatServer(sc.host, sc.port, sc.isTLS ?? false);
+    final connectRes = await server.getServerInfo();
     if (connectRes != okStatusCode) {
-      logger.w("failed to connect to server");
+      logger.w("auto-login: failed to connect to ${sc.host}:${sc.port}");
+      return false;
+    }
+    final serverId = server.uniqueIdentifier!;
+    final accountIdent = acc.email ?? acc.ocid;
+    if (accountIdent == null) return false;
+    final password = await SecretStore.readCredential(serverId, accountIdent);
+    if (password == null || password.isEmpty) return false;
+
+    String? email, ocid;
+    if (accountIdent.contains('@')) {
+      email = accountIdent;
+    } else {
+      ocid = accountIdent;
+    }
+
+    final ok = await ref
+        .read(authProvider.notifier)
+        .login(password: password, email: email, ocid: ocid, server: server);
+    if (!ok) return false;
+    final accountId = ref.read(authProvider).accountId!;
+    logger.i("auto-login successful, account ID: $accountId");
+
+    final newPrivateDB = database.OurChatDatabase(serverId, accountId);
+    final instance = OurChatInstance(
+      serverId: serverId,
+      accountId: accountId,
+      server: server,
+      privateDB: newPrivateDB,
+    );
+    ref.read(instancesProvider.notifier).add(instance);
+
+    ref
+        .read(configProvider.notifier)
+        .upsertSavedAccount(
+          SavedAccount(
+            serverId: serverId,
+            accountId: accountId.toInt(),
+            ocid: acc.ocid ?? ref.read(authProvider).ocid,
+            email: acc.email ?? email,
+            avatarKey: acc.avatarKey,
+            lastLoginAt: DateTime.now(),
+            autoLogin: true,
+          ),
+        );
+
+    ref
+        .read(ourChatEventSystemProvider(serverId, accountId).notifier)
+        .listenEvents();
+    ref
+        .read(ourChatAccountProvider(serverId, accountId).notifier)
+        .getAccountInfo();
+    return true;
+  }
+
+  Future<void> autoLogin(BuildContext context) async {
+    logger.i("AUTO login (multi)");
+    final cfg = ref.read(configProvider);
+    final autoAccounts = cfg.savedAccounts.where((a) => a.autoLogin).toList();
+    if (autoAccounts.isEmpty) {
+      logger.i("no saved account, redirect to server setting");
       if (context.mounted) {
         Navigator.pushReplacement(
           context,
@@ -379,74 +467,39 @@ class _AutoLoginState extends ConsumerState<AutoLogin> {
       return;
     }
 
-    final cfg = ref.read(configProvider);
-    final recentAccount = cfg.recentAccount;
+    // Serial login (avoids racing the shared auth state), building one live
+    // instance per account.
+    final successes = <SavedAccount>[];
+    for (final acc in autoAccounts) {
+      if (await _loginOne(acc, cfg)) successes.add(acc);
+    }
 
-    if (recentAccount.isEmpty) {
-      logger.i("no saved account, redirect to auth");
+    if (successes.isEmpty) {
+      logger.w("auto-login: no account succeeded, redirect to server setting");
       if (context.mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => Auth()),
+          MaterialPageRoute(builder: (context) => ServerSetting()),
         );
       }
       return;
     }
 
-    // Fetch the saved password from platform-backed secure storage.
-    final recentPassword = await SecretStore.readCredential(recentAccount);
-    if (recentPassword == null || recentPassword.isEmpty) {
-      logger.i("no saved credential, redirect to auth");
-      if (context.mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => Auth()),
-        );
-      }
-      return;
-    }
+    // Choose the active account: the config-preferred one if it succeeded,
+    // otherwise the first success.
+    final active = successes.firstWhere(
+      (a) =>
+          a.serverId == cfg.activeServerId &&
+          a.accountId == cfg.activeAccountId,
+      orElse: () => successes.first,
+    );
+    switchActive(ref, AccountKey(active.serverId, Int64(active.accountId)));
 
-    logger.i("attempting auto-login with saved credentials");
-    String? email, ocid;
-    if (recentAccount.contains('@')) {
-      email = recentAccount;
-    } else {
-      ocid = recentAccount;
-    }
-
-    bool loginSuccess = await ref
-        .read(authProvider.notifier)
-        .login(password: recentPassword, ocid: ocid, email: email);
-
-    if (loginSuccess) {
-      final authState = ref.read(authProvider);
-      final accountId = authState.accountId!;
-      logger.i("auto-login successful, account ID: $accountId");
-
-      // 创建私有数据库
-      privateDB = database.OurChatDatabase(accountId);
-      // 初始化事件系统
-      ref.read(ourChatEventSystemProvider.notifier).listenEvents();
-      // 获取账户信息
-      await ref
-          .read(ourChatAccountProvider(accountId).notifier)
-          .getAccountInfo();
-
-      if (context.mounted) {
-        // 跳转到主界面
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => Home()),
-        );
-      }
-    } else {
-      logger.w("auto-login failed, redirect to auth");
-      if (context.mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => Auth()),
-        );
-      }
+    if (context.mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => Home()),
+      );
     }
   }
 

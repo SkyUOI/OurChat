@@ -12,6 +12,7 @@ void main() {
 
   ProviderContainer makeContainer() {
     final c = ProviderContainer(overrides: [
+      activeAccountTestOverride,
       ourChatServerProvider.overrideWithValue(
         FakeOurChatServer(MockOurChatClient()),
       ),

@@ -5,6 +5,7 @@ import 'package:grpc/grpc.dart';
 import 'package:ourchat/core/account.dart';
 import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/core/database.dart' as db;
+import 'package:ourchat/core/instance.dart';
 import 'package:ourchat/core/log.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/service/ourchat/session/get_role/v1/get_role.pb.dart';
@@ -37,15 +38,22 @@ abstract class OcSessionData with _$OcSessionData {
 @Riverpod(keepAlive: true)
 class OurChatSession extends _$OurChatSession {
   late OurChatServiceClient _stub;
+
+  /// Server id this session provider is scoped to (family argument).
+  String get _serverId => serverId;
+  db.OurChatDatabase? _privateDB;
   bool _isFetching = false;
 
+  /// The active account key if it is on this provider's server, else null.
+  AccountKey? get _activeKey {
+    final k = ref.read(activeAccountProvider);
+    if (k == null || k.serverId != _serverId) return null;
+    return k;
+  }
+
   @override
-  OcSessionData build(Int64 sessionId) {
-    final server = ref.read(ourChatServerProvider);
-    _stub = OurChatServiceClient(
-      server.channel,
-      interceptors: [server.interceptor!],
-    );
+  OcSessionData build(String serverId, Int64 sessionId) {
+    _initStub();
     return OcSessionData(
       sessionId: sessionId,
       name: '',
@@ -62,6 +70,30 @@ class OurChatSession extends _$OurChatSession {
     );
   }
 
+  void _initStub() {
+    final inst = instanceForServer(ref.container, _serverId);
+    if (inst != null) {
+      _stub = OurChatServiceClient(
+        inst.server.channel,
+        interceptors: inst.server.interceptor != null
+            ? [inst.server.interceptor!]
+            : [],
+      );
+      _privateDB = inst.privateDB;
+    } else {
+      final srv = ref.read(ourChatServerProvider);
+      _stub = OurChatServiceClient(
+        srv.channel,
+        interceptors: srv.interceptor != null ? [srv.interceptor!] : [],
+      );
+      _privateDB = privateDB;
+    }
+  }
+
+  void recreateStub() {
+    _initStub();
+  }
+
   String getDisplayName() {
     if (state.name.isNotEmpty) {
       return state.name;
@@ -73,21 +105,16 @@ class OurChatSession extends _$OurChatSession {
   }
 
   String avatarUrl() {
-    return "${ref.read(ourChatServerProvider).baseUrl()}/avatar?session_id=$sessionId&avatar_key=${state.avatarKey ?? ''}";
-  }
-
-  void recreateStub() {
-    final server = ref.read(ourChatServerProvider);
-    _stub = OurChatServiceClient(
-      server.channel,
-      interceptors: [server.interceptor!],
-    );
+    final base =
+        instanceForServer(ref.container, _serverId)?.server.baseUrl() ??
+        ref.read(ourChatServerProvider).baseUrl();
+    return "$base/avatar?session_id=$sessionId&avatar_key=${state.avatarKey ?? ''}";
   }
 
   Future getSessionInfo({bool ignoreCache = false}) async {
     final sessionId = state.sessionId;
     logger.d("get session info for id: ${sessionId.toString()}");
-    var thisAccountId = ref.read(thisAccountIdProvider);
+    final activeKey = _activeKey;
     if (_isFetching) {
       while (_isFetching) {
         await Future.delayed(Duration(milliseconds: 10));
@@ -96,7 +123,7 @@ class OurChatSession extends _$OurChatSession {
     }
     _isFetching = true;
 
-    // 检查缓存 freshness
+    // Check cache freshness
     if (!ignoreCache &&
         DateTime.now().difference(state.lastCheckTime).inMinutes < 5) {
       _isFetching = false;
@@ -106,9 +133,11 @@ class OurChatSession extends _$OurChatSession {
 
     List<QueryValues> queryValues = [];
     var localSessionData =
-        await (publicDB.select(
-              publicDB.publicSession,
-            )..where((u) => u.sessionId.equals(BigInt.from(sessionId.toInt()))))
+        await (publicDB.select(publicDB.publicSession)..where(
+              (u) =>
+                  u.serverId.equals(_serverId) &
+                  u.sessionId.equals(BigInt.from(sessionId.toInt())),
+            ))
             .getSingleOrNull();
     bool publicNeedUpdate = false, privateNeedUpdate = false;
     if (localSessionData == null) {
@@ -133,14 +162,19 @@ class OurChatSession extends _$OurChatSession {
         return false;
       }
     }
-    privateNeedUpdate =
-        thisAccountId != null &&
+    final isActiveMember =
+        activeKey != null &&
         ref
-                .read(ourChatAccountProvider(thisAccountId))
+                .read(
+                  ourChatAccountProvider(
+                    activeKey.serverId,
+                    activeKey.accountId,
+                  ),
+                )
                 .sessions
                 .contains(sessionId) ==
-            true &&
-        publicNeedUpdate;
+            true;
+    privateNeedUpdate = isActiveMember && publicNeedUpdate;
     logger.d(
       "sessionId: $sessionId, session public need update: $publicNeedUpdate, private need update: $privateNeedUpdate",
     );
@@ -164,19 +198,13 @@ class OurChatSession extends _$OurChatSession {
         description: localSessionData.description,
       );
     }
-    var pDB = privateDB!;
+    var pDB = _privateDB!;
     var localSessionPrivateData =
         await (pDB.select(
               pDB.session,
             )..where((u) => u.sessionId.equals(BigInt.from(sessionId.toInt()))))
             .getSingleOrNull();
-    if (localSessionPrivateData == null &&
-        thisAccountId != null &&
-        ref
-                .read(ourChatAccountProvider(thisAccountId))
-                .sessions
-                .contains(sessionId) ==
-            true) {
+    if (localSessionPrivateData == null && isActiveMember) {
       privateNeedUpdate = true;
     }
     if (privateNeedUpdate) {
@@ -185,12 +213,7 @@ class OurChatSession extends _$OurChatSession {
         QueryValues.QUERY_VALUES_MEMBERS,
         QueryValues.QUERY_VALUES_ROLES,
       ]);
-    } else if (thisAccountId != null &&
-        ref
-                .read(ourChatAccountProvider(thisAccountId))
-                .sessions
-                .contains(sessionId) ==
-            true) {
+    } else if (isActiveMember) {
       // get from local db
       var localSessionPrivateData =
           await (pDB.select(pDB.session)..where(
@@ -245,6 +268,7 @@ class OurChatSession extends _$OurChatSession {
               .into(publicDB.publicSession)
               .insert(
                 db.PublicSessionData(
+                  serverId: _serverId,
                   sessionId: BigInt.from(sessionId.toInt()),
                   name: res.name,
                   createdTime: OurChatTime.fromTimestamp(
@@ -259,9 +283,11 @@ class OurChatSession extends _$OurChatSession {
               );
         } else {
           (publicDB.update(publicDB.publicSession)..where(
-                (u) => u.sessionId.equals(
-                  BigInt.from(int.parse(sessionId.toString())),
-                ),
+                (u) =>
+                    u.serverId.equals(_serverId) &
+                    u.sessionId.equals(
+                      BigInt.from(int.parse(sessionId.toString())),
+                    ),
               ))
               .write(
                 db.PublicSessionCompanion(
@@ -290,7 +316,7 @@ class OurChatSession extends _$OurChatSession {
         try {
           var roleRes = await safeRequest(
             _stub.getRole,
-            GetRoleRequest(roleId: rols[thisAccountId!]),
+            GetRoleRequest(roleId: rols[activeKey!.accountId]),
             (GrpcError e) {
               showResultMessage(
                 e.code,
@@ -342,10 +368,10 @@ class OurChatSession extends _$OurChatSession {
         String? dn;
         if (mems.length == 2) {
           Int64 otherUserId = mems.firstWhere(
-            (element) => element != thisAccountId!,
+            (element) => element != activeKey!.accountId,
           );
           final otherAccount = ref.read(
-            ourChatAccountProvider(otherUserId).notifier,
+            ourChatAccountProvider(_serverId, otherUserId).notifier,
           );
           await otherAccount.getAccountInfo();
           dn = otherAccount.getDisplayNameOrName();

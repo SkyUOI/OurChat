@@ -22,18 +22,19 @@ class Setting extends StatelessWidget {
             children: [
               Expanded(
                 child: SingleChildScrollView(
-                  // 可滚动
+                  // Scrollable
                   child: Column(
                     children: [
                       SeedColorEditor(),
                       LogLevelSelector(),
+                      DisplayModeEditor(),
                       LanguageEditor(),
                       if (enableVersionCheck) UpdateSourceEditor(),
                     ],
                   ),
                 ),
               ),
-              DialogButtons(formKey: formKey), // 确定/重置
+              DialogButtons(formKey: formKey), // Confirm/Reset
             ],
           ),
         ),
@@ -209,6 +210,44 @@ class SeedColorEditor extends ConsumerWidget {
               }
               ref.read(configProvider.notifier).setColor(colorCode);
               return null;
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class DisplayModeEditor extends ConsumerWidget {
+  const DisplayModeEditor({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final mode = ref.watch(configProvider).displayMode;
+    return Row(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(AppStyles.defaultPadding),
+          child: SizedBox(width: 30.0, height: 30.0, child: Icon(Icons.inbox)),
+        ),
+        Expanded(
+          child: DropdownButtonFormField<UiDisplayMode>(
+            decoration: InputDecoration(label: Text(l10n.displayMode)),
+            initialValue: mode,
+            items: [
+              DropdownMenuItem(
+                value: UiDisplayMode.accountSwitcher,
+                child: Text(l10n.accountSwitch),
+              ),
+              DropdownMenuItem(
+                value: UiDisplayMode.unifiedInbox,
+                child: Text(l10n.unifiedInbox),
+              ),
+            ],
+            onChanged: (v) {
+              if (v != null) {
+                ref.read(configProvider.notifier).setDisplayMode(v);
+              }
             },
           ),
         ),

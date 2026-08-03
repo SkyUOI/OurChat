@@ -1,9 +1,12 @@
 import 'dart:typed_data';
+import 'package:fixnum/fixnum.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grpc/grpc.dart';
 import 'package:flutter/material.dart';
 import 'package:ourchat/core/const.dart';
 import 'package:ourchat/core/account.dart';
+import 'package:ourchat/core/config.dart';
+import 'package:ourchat/core/instance.dart';
 import 'package:ourchat/server_setting.dart';
 import 'package:ourchat/about.dart';
 import 'package:ourchat/service/ourchat/set_account_info/v1/set_account_info.pb.dart';
@@ -19,10 +22,13 @@ class User extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final thisAccountId = ref.watch(thisAccountIdProvider);
+    final serverId = ref.watch(activeServerIdProvider);
     var thisAccountNotifier = ref.read(
-      ourChatAccountProvider(thisAccountId!).notifier,
+      ourChatAccountProvider(serverId!, thisAccountId!).notifier,
     );
-    var thisAccountData = ref.read(ourChatAccountProvider(thisAccountId));
+    var thisAccountData = ref.read(
+      ourChatAccountProvider(serverId, thisAccountId),
+    );
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -226,18 +232,63 @@ class User extends ConsumerWidget {
               padding: EdgeInsets.all(AppStyles.smallPadding),
               child: ElevatedButton.icon(
                 style: AppStyles.defaultButtonStyle,
-                icon: Icon(Icons.logout),
+                icon: Icon(Icons.add),
                 onPressed: () {
-                  ref.read(authProvider.notifier).logout();
-                  privateDB!.close();
-                  privateDB = null;
-                  ref.read(ourChatEventSystemProvider.notifier).stopListening();
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => ServerSetting()),
                   );
                 },
+                label: Text(l10n.addAccount),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.all(AppStyles.smallPadding),
+              child: ElevatedButton.icon(
+                style: AppStyles.defaultButtonStyle,
+                icon: Icon(Icons.logout),
+                onPressed: () async {
+                  final key = ref.read(activeAccountProvider);
+                  if (key != null) {
+                    ref
+                        .read(
+                          ourChatEventSystemProvider(
+                            key.serverId,
+                            key.accountId,
+                          ).notifier,
+                        )
+                        .stopListening();
+                    // Tear down the active instance: close its private DB and
+                    // remove it from the registry.
+                    final inst = ref.read(instancesProvider)[key];
+                    if (inst != null) {
+                      await inst.privateDB.close();
+                    }
+                    ref.read(instancesProvider.notifier).remove(key);
+                  }
+                  ref.read(activeAccountProvider.notifier).clear();
+                  ref
+                      .read(configProvider.notifier)
+                      .setActiveAccount(null, null);
+                  privateDB = null;
+                  ref.read(authProvider.notifier).logout();
+                  if (context.mounted) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => ServerSetting()),
+                    );
+                  }
+                },
                 label: Text(l10n.logout),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.all(AppStyles.smallPadding),
+              child: ElevatedButton.icon(
+                style: AppStyles.defaultButtonStyle,
+                icon: Icon(Icons.manage_accounts),
+                onPressed: () => _showAccountManager(context, ref),
+                label: Text(l10n.account),
               ),
             ),
             Padding(
@@ -257,6 +308,103 @@ class User extends ConsumerWidget {
           ],
         ),
       ],
+    );
+  }
+
+  String _serverLabelOf(WidgetRef ref, String serverId) {
+    final cfg = ref.read(configProvider);
+    for (final s in cfg.servers) {
+      if (s.uniqueIdentifier == serverId) {
+        if (s.label != null && s.label!.isNotEmpty) return s.label!;
+        return '${s.host}:${s.port}';
+      }
+    }
+    return serverId;
+  }
+
+  void _showAccountManager(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            final config = ref.read(configProvider);
+            final accounts = config.savedAccounts;
+            final instances = ref.read(instancesProvider);
+            return AlertDialog(
+              title: Text(l10n.accountManager),
+              content: SizedBox(
+                width: 420,
+                height: 320,
+                child: accounts.isEmpty
+                    ? Center(child: Text(l10n.noSavedAccount))
+                    : ListView.builder(
+                        itemCount: accounts.length,
+                        itemBuilder: (context, i) {
+                          final acc = accounts[i];
+                          final online = instances.containsKey(
+                            AccountKey(acc.serverId, Int64(acc.accountId)),
+                          );
+                          return ListTile(
+                            dense: true,
+                            leading: Icon(
+                              online ? Icons.circle : Icons.circle_outlined,
+                              size: 12,
+                              color: online ? Colors.green : Colors.grey,
+                            ),
+                            title: Text(
+                              acc.email ??
+                                  acc.ocid ??
+                                  l10n.accountId(acc.accountId),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            subtitle: Text(
+                              '${_serverLabelOf(ref, acc.serverId)} (id: ${acc.accountId})',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(l10n.autoLogin),
+                                Checkbox(
+                                  value: acc.autoLogin,
+                                  onChanged: (v) {
+                                    ref
+                                        .read(configProvider.notifier)
+                                        .upsertSavedAccount(
+                                          acc.copyWith(autoLogin: v ?? false),
+                                        );
+                                    setState(() {});
+                                  },
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline),
+                                  onPressed: () {
+                                    ref
+                                        .read(configProvider.notifier)
+                                        .removeSavedAccount(
+                                          acc.serverId,
+                                          acc.accountId,
+                                        );
+                                    setState(() {});
+                                  },
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(l10n.close),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }

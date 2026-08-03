@@ -3,8 +3,8 @@ import 'package:protobuf/well_known_types/google/protobuf/timestamp.pb.dart';
 
 class OurChatTime {
   /*
-  该类用于grpc的timestamp与datetime两种时间类型之间的转换
-  为了避免数据库的精度问题，转换所得的datetime并不准确
+  This class converts between grpc's timestamp and datetime.
+  To avoid database precision issues, the converted datetime is not exact.
    */
   Timestamp? inputTimestamp;
   DateTime? inputDatetime;

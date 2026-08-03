@@ -15,7 +15,7 @@ class SessionListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      // 显示匹配账号
+      // Show the matched account
       height: 50.0,
       child: Padding(
         padding: const EdgeInsets.only(top: 5.0),

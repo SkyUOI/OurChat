@@ -23,6 +23,7 @@ void main() {
         .thenAnswer((_) => responseFutureOf(SendMsgResponse(msgId: Int64(100))));
 
     final container = ProviderContainer(overrides: [
+      activeAccountTestOverride,
       ourChatServerProvider.overrideWithValue(FakeOurChatServer(client)),
       overrideAccount(Int64(1), buildTestAccount(Int64(1), 'alice')),
     ]);
@@ -65,6 +66,7 @@ void main() {
         .thenAnswer((_) => responseFutureOf(SendMsgResponse(msgId: Int64(100))));
 
     final container = ProviderContainer(overrides: [
+      activeAccountTestOverride,
       ourChatServerProvider.overrideWithValue(FakeOurChatServer(client)),
       overrideAccount(Int64(1), buildTestAccount(Int64(1), 'alice')),
     ]);
@@ -98,6 +100,7 @@ void main() {
         .thenAnswer((_) => responseFutureOf(SendMsgResponse(msgId: Int64(100))));
 
     final container = ProviderContainer(overrides: [
+      activeAccountTestOverride,
       ourChatServerProvider.overrideWithValue(FakeOurChatServer(client)),
     ]);
     addTearDown(container.dispose);

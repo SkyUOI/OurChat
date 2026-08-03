@@ -2,7 +2,10 @@ import 'dart:typed_data';
 import 'package:fixnum/fixnum.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:ourchat/core/account.dart';
+import 'package:ourchat/core/config.dart';
+import 'package:ourchat/core/const.dart';
 import 'package:ourchat/core/event.dart';
+import 'package:ourchat/core/instance.dart';
 import 'package:ourchat/core/session.dart' as core_session;
 import 'package:ourchat/main.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -22,6 +25,7 @@ abstract class SessionState with _$SessionState {
     @Default([]) List<UserMsg> currentSessionRecords,
     @Default([]) List<Int64> sessionsList,
     @Default({}) Map<Int64, UserMsg> sessionLatestMsg,
+    @Default({}) Map<Int64, String> sessionServerIds,
     @Default({}) Map<String, Uint8List> cacheFiles,
     @Default({}) Map<String, String> cacheFilesContentType,
     @Default({}) Map<String, bool> cacheFilesSendRaw,
@@ -88,31 +92,57 @@ class SessionNotifier extends _$SessionNotifier {
   Future<void> loadSessions() async {
     state = state.copyWith(sessionsLoading: true);
     final thisAccountId = ref.read(thisAccountIdProvider);
-    if (thisAccountId == null) return;
-    List<Int64> sessionsList = [];
-    Map<Int64, UserMsg> latestMsg = {};
-    final accountData = ref.read(ourChatAccountProvider(thisAccountId));
-    final eventSystem = ref.read(ourChatEventSystemProvider.notifier);
-    for (int i = 0; i < accountData.sessions.length; i++) {
-      Int64 sessionId = accountData.sessions[i];
-      core_session.OurChatSession sessionNotifier = ref.read(
-        core_session.ourChatSessionProvider(sessionId).notifier,
+    final serverId = ref.read(activeServerIdProvider);
+    if (thisAccountId == null || serverId == null) {
+      state = state.copyWith(sessionsLoading: false);
+      return;
+    }
+    final mode = ref.read(configProvider).displayMode;
+    final sessionsList = <Int64>[];
+    final latestMsg = <Int64, UserMsg>{};
+    final sessionServerIds = <Int64, String>{};
+
+    Future<void> loadFromAccount(String sid, Int64 accountId) async {
+      final accountData = ref.read(ourChatAccountProvider(sid, accountId));
+      final eventSystem = ref.read(
+        ourChatEventSystemProvider(sid, accountId).notifier,
       );
-      await sessionNotifier.getSessionInfo();
-      if (_disposed) return;
-      List<UserMsg> record = await eventSystem.getSessionEvent(
-        sessionId,
-        num: 1,
-      );
-      if (_disposed) return;
-      sessionsList.add(sessionId);
-      if (record.isNotEmpty) {
-        latestMsg[sessionId] = record[0];
+      for (int i = 0; i < accountData.sessions.length; i++) {
+        Int64 sessionId = accountData.sessions[i];
+        core_session.OurChatSession sessionNotifier = ref.read(
+          core_session.ourChatSessionProvider(sid, sessionId).notifier,
+        );
+        await sessionNotifier.getSessionInfo();
+        if (_disposed) return;
+        List<UserMsg> record = await eventSystem.getSessionEvent(
+          sessionId,
+          num: 1,
+        );
+        if (_disposed) return;
+        sessionsList.add(sessionId);
+        sessionServerIds[sessionId] = sid;
+        if (record.isNotEmpty) {
+          latestMsg[sessionId] = record[0];
+        }
       }
     }
+
+    if (mode == UiDisplayMode.unifiedInbox) {
+      // Aggregate conversations from every logged-in server/account.
+      final instances = ref.read(instancesProvider);
+      for (final inst in instances.values) {
+        await loadFromAccount(inst.serverId, inst.accountId);
+        if (_disposed) return;
+      }
+    } else {
+      await loadFromAccount(serverId, thisAccountId);
+      if (_disposed) return;
+    }
+
     state = state.copyWith(
       sessionsList: sessionsList,
       sessionLatestMsg: latestMsg,
+      sessionServerIds: sessionServerIds,
       sessionsLoading: false,
     );
   }

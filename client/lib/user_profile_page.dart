@@ -5,6 +5,7 @@ import 'package:grpc/grpc.dart' as grpc;
 import 'package:ourchat/core/account.dart';
 import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/core/const.dart';
+import 'package:ourchat/core/instance.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/service/ourchat/friends/add_friend/v1/add_friend.pb.dart';
 import 'package:ourchat/service/ourchat/friends/set_friend_info/v1/set_friend_info.pb.dart';
@@ -22,7 +23,10 @@ class UserProfilePage extends ConsumerStatefulWidget {
 
 class _UserProfilePageState extends ConsumerState<UserProfilePage> {
   Future<bool> _fetchAccountInfo() async {
-    final notifier = ref.read(ourChatAccountProvider(widget.userId).notifier);
+    final serverId = ref.read(activeServerIdProvider)!;
+    final notifier = ref.read(
+      ourChatAccountProvider(serverId, widget.userId).notifier,
+    );
     notifier.recreateStub();
     return await notifier.getAccountInfo();
   }
@@ -46,6 +50,7 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> {
   @override
   Widget build(BuildContext context) {
     final thisAccountId = ref.watch(thisAccountIdProvider);
+    final serverId = ref.watch(activeServerIdProvider)!;
 
     return Scaffold(
       appBar: AppBar(
@@ -69,13 +74,15 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> {
             );
           }
 
-          final accountData = ref.read(ourChatAccountProvider(widget.userId));
+          final accountData = ref.read(
+            ourChatAccountProvider(serverId, widget.userId),
+          );
           final accountNotifier = ref.read(
-            ourChatAccountProvider(widget.userId).notifier,
+            ourChatAccountProvider(serverId, widget.userId).notifier,
           );
 
           final currentAccountData = thisAccountId != null
-              ? ref.read(ourChatAccountProvider(thisAccountId))
+              ? ref.read(ourChatAccountProvider(serverId, thisAccountId))
               : null;
           final isMe = thisAccountId == widget.userId;
           final isFriend =
@@ -213,7 +220,10 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> {
   }
 
   void _showSetDisplayNameDialog(BuildContext context) {
-    final accountData = ref.read(ourChatAccountProvider(widget.userId));
+    final serverId = ref.read(activeServerIdProvider)!;
+    final accountData = ref.read(
+      ourChatAccountProvider(serverId, widget.userId),
+    );
     showDialog(
       context: context,
       builder: (context) {
@@ -242,7 +252,12 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> {
                       );
                       showResultMessage(okStatusCode, null);
                       await ref
-                          .read(ourChatAccountProvider(widget.userId).notifier)
+                          .read(
+                            ourChatAccountProvider(
+                              serverId,
+                              widget.userId,
+                            ).notifier,
+                          )
                           .getAccountInfo(ignoreCache: true);
                     } catch (_) {}
                     if (context.mounted) {

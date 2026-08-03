@@ -5,9 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grpc/grpc.dart' as grpc;
 import 'package:ourchat/core/chore.dart';
+import 'package:ourchat/core/config.dart';
 import 'package:ourchat/core/const.dart';
 import 'package:ourchat/core/account.dart';
 import 'package:ourchat/core/event.dart';
+import 'package:ourchat/core/instance.dart';
 import 'package:ourchat/core/session.dart' as core_session;
 import 'package:ourchat/main.dart';
 import 'package:ourchat/service/basic/v1/basic.pbgrpc.dart';
@@ -25,19 +27,23 @@ class SessionList extends ConsumerStatefulWidget {
 }
 
 class _SessionListState extends ConsumerState<SessionList> {
-  Timer? _debounceTimer = Timer(Duration.zero, () {}); // 搜索timer
-  bool search = false; // 搜索中
+  Timer? _debounceTimer = Timer(Duration.zero, () {}); // Search debounce timer
+  bool search = false; // Searching
   String searchKeyword = "";
 
-  late final OurChatEventSystem _eventSystem;
   late final SessionNotifier _sessionNotifier;
+  OurChatEventSystem? _eventSystem;
+  AccountKey? _boundKey;
 
   void _onMsgReceived(UserMsg eventObj) {
     _sessionNotifier.receiveMsg(eventObj);
     // Refresh sender account info asynchronously
-    ref
-        .read(ourChatAccountProvider(eventObj.senderId!).notifier)
-        .getAccountInfo();
+    final sid = _boundKey?.serverId;
+    if (sid != null) {
+      ref
+          .read(ourChatAccountProvider(sid, eventObj.senderId!).notifier)
+          .getAccountInfo();
+    }
   }
 
   Future<void> _loadSessions() async {
@@ -47,12 +53,7 @@ class _SessionListState extends ConsumerState<SessionList> {
   @override
   void initState() {
     super.initState();
-    _eventSystem = ref.read(ourChatEventSystemProvider.notifier);
     _sessionNotifier = ref.read(sessionProvider.notifier);
-    _eventSystem.addListener(
-      FetchMsgsResponse_RespondEventType.msg,
-      _onMsgReceived,
-    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadSessions();
     });
@@ -61,7 +62,7 @@ class _SessionListState extends ConsumerState<SessionList> {
   @override
   void dispose() {
     _debounceTimer?.cancel();
-    _eventSystem.removeListener(
+    _eventSystem?.removeListener(
       FetchMsgsResponse_RespondEventType.msg,
       _onMsgReceived,
     );
@@ -71,7 +72,32 @@ class _SessionListState extends ConsumerState<SessionList> {
   @override
   Widget build(BuildContext context) {
     final thisAccountId = ref.watch(thisAccountIdProvider);
+    final activeKey = ref.watch(activeAccountProvider);
     var sessionState = ref.watch(sessionProvider);
+
+    // (Re)bind the msg listener to the active account's event system.
+    if (activeKey != null && activeKey != _boundKey) {
+      _eventSystem?.removeListener(
+        FetchMsgsResponse_RespondEventType.msg,
+        _onMsgReceived,
+      );
+      final newEventSystem = ref.read(
+        ourChatEventSystemProvider(
+          activeKey.serverId,
+          activeKey.accountId,
+        ).notifier,
+      );
+      newEventSystem.addListener(
+        FetchMsgsResponse_RespondEventType.msg,
+        _onMsgReceived,
+      );
+      _eventSystem = newEventSystem;
+      _boundKey = activeKey;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadSessions();
+      });
+    }
+
     return LayoutBuilder(
       builder: (context, constraints) {
         return Column(
@@ -80,7 +106,7 @@ class _SessionListState extends ConsumerState<SessionList> {
               children: [
                 Expanded(
                   child: TextFormField(
-                    // 搜索框
+                    // Search box
                     decoration: InputDecoration(hintText: l10n.search),
                     onChanged: (value) {
                       setState(() {
@@ -91,7 +117,10 @@ class _SessionListState extends ConsumerState<SessionList> {
                       _debounceTimer = Timer(
                         const Duration(seconds: 1),
                         () => setState(() {
-                          search = true && value.isNotEmpty; // 一秒内没输入，搜索
+                          search =
+                              true &&
+                              value
+                                  .isNotEmpty; // No input for one second -> search
                         }),
                       );
                     },
@@ -107,7 +136,7 @@ class _SessionListState extends ConsumerState<SessionList> {
                     );
                   },
                   icon: const Icon(Icons.add),
-                ), // 创建会话
+                ), // Create session
               ],
             ),
             if (search)
@@ -134,7 +163,10 @@ class _SessionListState extends ConsumerState<SessionList> {
                       itemBuilder: (context, index) {
                         Int64 accountId = accountIds[index];
                         final accountNotifier = ref.read(
-                          ourChatAccountProvider(accountId).notifier,
+                          ourChatAccountProvider(
+                            activeKey!.serverId,
+                            accountId,
+                          ).notifier,
                         );
                         return SessionListItem(
                           avatar: UserAvatar(
@@ -186,7 +218,10 @@ class _SessionListState extends ConsumerState<SessionList> {
                         Int64 sessionId = sessionIds[index];
                         final sessionNotifier = ref.read(
                           core_session
-                              .ourChatSessionProvider(sessionId)
+                              .ourChatSessionProvider(
+                                activeKey!.serverId,
+                                sessionId,
+                              )
                               .notifier,
                         );
                         return SessionListItem(
@@ -219,9 +254,17 @@ class _SessionListState extends ConsumerState<SessionList> {
                         itemBuilder: (context, index) {
                           Int64 currentSessionId =
                               sessionState.sessionsList[index];
+                          final sessionServerId =
+                              sessionState.sessionServerIds[currentSessionId] ??
+                              activeKey!.serverId;
+                          final isForeign =
+                              sessionServerId != activeKey!.serverId;
                           final currentSessionNotifier = ref.read(
                             core_session
-                                .ourChatSessionProvider(currentSessionId)
+                                .ourChatSessionProvider(
+                                  sessionServerId,
+                                  currentSessionId,
+                                )
                                 .notifier,
                           );
                           String recentMsgText = "";
@@ -231,7 +274,10 @@ class _SessionListState extends ConsumerState<SessionList> {
                             final latestMsg = sessionState
                                 .sessionLatestMsg[currentSessionId]!;
                             final senderData = ref.read(
-                              ourChatAccountProvider(latestMsg.senderId!),
+                              ourChatAccountProvider(
+                                sessionServerId,
+                                latestMsg.senderId!,
+                              ),
                             );
                             recentMsgText =
                                 "${senderData.username}: ${MarkdownToText.convert(latestMsg.markdownText, l10n)}";
@@ -256,6 +302,21 @@ class _SessionListState extends ConsumerState<SessionList> {
                                   ),
                                 ),
                                 onPressed: () async {
+                                  if (isForeign) {
+                                    // Unified inbox: switch to the server that
+                                    // owns this conversation before opening it.
+                                    final inst = instanceForServer(
+                                      ref.container,
+                                      sessionServerId,
+                                    );
+                                    if (inst != null) {
+                                      switchActive(ref, inst.key);
+                                    }
+                                  }
+                                  final sid = ref.read(activeServerIdProvider)!;
+                                  final aid = ref.read(
+                                    activeAccountIdProvider,
+                                  )!;
                                   if (ref.read(screenModeProvider) ==
                                       ScreenMode.mobile) {
                                     Navigator.push(
@@ -266,7 +327,12 @@ class _SessionListState extends ConsumerState<SessionList> {
                                     );
                                   }
                                   var records = await ref
-                                      .read(ourChatEventSystemProvider.notifier)
+                                      .read(
+                                        ourChatEventSystemProvider(
+                                          sid,
+                                          aid,
+                                        ).notifier,
+                                      )
                                       .getSessionEvent(
                                         currentSessionId,
                                         fetchFromServer: true,
@@ -301,17 +367,35 @@ class _SessionListState extends ConsumerState<SessionList> {
                                             Align(
                                               alignment: Alignment.centerLeft,
                                               widthFactor: 1.0,
-                                              child: Text(
-                                                currentSessionNotifier
-                                                    .getDisplayName(),
-                                                style: TextStyle(
-                                                  fontSize: 20,
-                                                  color: Theme.of(context)
-                                                      .textTheme
-                                                      .labelMedium!
-                                                      .color,
-                                                ),
-                                                overflow: TextOverflow.ellipsis,
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Flexible(
+                                                    child: Text(
+                                                      currentSessionNotifier
+                                                          .getDisplayName(),
+                                                      style: TextStyle(
+                                                        fontSize: 20,
+                                                        color: Theme.of(context)
+                                                            .textTheme
+                                                            .labelMedium!
+                                                            .color,
+                                                      ),
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                                  if (isForeign)
+                                                    Padding(
+                                                      padding:
+                                                          const EdgeInsets.only(
+                                                            left: 6,
+                                                          ),
+                                                      child: _serverLabelChip(
+                                                        sessionServerId,
+                                                      ),
+                                                    ),
+                                                ],
                                               ),
                                             ),
                                             if (sessionState.sessionLatestMsg
@@ -352,6 +436,7 @@ class _SessionListState extends ConsumerState<SessionList> {
     String ocid,
     BuildContext context,
   ) async {
+    final serverId = ref.read(activeServerIdProvider)!;
     List<Int64> matchAccountIds = [];
     BasicServiceClient stub = BasicServiceClient(
       ref.read(ourChatServerProvider).channel,
@@ -372,7 +457,9 @@ class _SessionListState extends ConsumerState<SessionList> {
           notFoundStatus: "",
         );
       }, rethrowError: true);
-      final notifier = ref.read(ourChatAccountProvider(res.id).notifier);
+      final notifier = ref.read(
+        ourChatAccountProvider(serverId, res.id).notifier,
+      );
       notifier.recreateStub();
       if (await notifier.getAccountInfo()) {
         matchAccountIds.add(res.id);
@@ -384,8 +471,10 @@ class _SessionListState extends ConsumerState<SessionList> {
     // By username/display_name
 
     for (Int64 friendsId
-        in ref.read(ourChatAccountProvider(thisAccountId!)).friends) {
-      final notifier = ref.read(ourChatAccountProvider(friendsId).notifier);
+        in ref.read(ourChatAccountProvider(serverId, thisAccountId!)).friends) {
+      final notifier = ref.read(
+        ourChatAccountProvider(serverId, friendsId).notifier,
+      );
       notifier.recreateStub();
       if (await notifier.getAccountInfo() &&
           !matchAccountIds.contains(friendsId) &&
@@ -404,6 +493,7 @@ class _SessionListState extends ConsumerState<SessionList> {
     String searchKeyword,
     BuildContext context,
   ) async {
+    final serverId = ref.read(activeServerIdProvider)!;
     Int64? sessionId = Int64.tryParseInt(searchKeyword);
     List<Int64> matchSessions = [];
 
@@ -411,7 +501,7 @@ class _SessionListState extends ConsumerState<SessionList> {
       // By sessionId
 
       core_session.OurChatSession sessionNotifier = ref.read(
-        core_session.ourChatSessionProvider(sessionId).notifier,
+        core_session.ourChatSessionProvider(serverId, sessionId).notifier,
       );
       try {
         if (await sessionNotifier.getSessionInfo()) {
@@ -423,24 +513,52 @@ class _SessionListState extends ConsumerState<SessionList> {
     }
 
     // by name/description
-    final accountData = ref.read(ourChatAccountProvider(thisAccountId!));
-    for (Int64 sessionId in accountData.sessions) {
+    final accountData = ref.read(
+      ourChatAccountProvider(serverId, thisAccountId!),
+    );
+    for (Int64 sid in accountData.sessions) {
       core_session.OurChatSession sessionNotifier = ref.read(
-        core_session.ourChatSessionProvider(sessionId).notifier,
+        core_session.ourChatSessionProvider(serverId, sid).notifier,
       );
       await sessionNotifier.getSessionInfo();
       final sessionData = ref.read(
-        core_session.ourChatSessionProvider(sessionId),
+        core_session.ourChatSessionProvider(serverId, sid),
       );
       if ((sessionData.description.toLowerCase().contains(searchKeyword) ||
               sessionData.name.toLowerCase().contains(searchKeyword) ||
               sessionNotifier.getDisplayName().toLowerCase().contains(
                 searchKeyword,
               )) &&
-          !matchSessions.contains(sessionId)) {
-        matchSessions.add(sessionId);
+          !matchSessions.contains(sid)) {
+        matchSessions.add(sid);
       }
     }
     return matchSessions;
+  }
+
+  /// A small badge showing which server a conversation belongs to (used in
+  /// unified-inbox mode for conversations from other servers).
+  Widget _serverLabelChip(String serverId) {
+    final cfg = ref.read(configProvider);
+    String label = serverId;
+    for (final s in cfg.servers) {
+      if (s.uniqueIdentifier == serverId) {
+        if (s.label != null && s.label!.isNotEmpty) {
+          label = s.label!;
+        } else {
+          label = s.host;
+        }
+        break;
+      }
+    }
+    if (label.length > 8) label = label.substring(0, 8);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade300,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(label, style: const TextStyle(fontSize: 10)),
+    );
   }
 }

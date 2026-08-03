@@ -545,5 +545,42 @@
     "quoteUnavailable": "Message unavailable",
     "@quoteUnavailable": {
         "description": "The quoted message content is unavailable"
-    }
+    },
+    "addServer": "Add Server",
+    "addAccount": "Add Account",
+    "account": "Account",
+    "accountManager": "Account Management",
+    "noSavedAccount": "No saved accounts",
+    "accountId": "Account {id}",
+    "@accountId": {
+        "placeholders": {
+            "id": {
+                "type": "int"
+            }
+        }
+    },
+    "close": "Close",
+    "displayMode": "Message display mode",
+    "accountSwitch": "Account switch",
+    "unifiedInbox": "Unified inbox",
+    "add": "Add",
+    "edit": "Edit",
+    "remarkOptional": "Remark (optional)",
+    "noServer": "No servers yet",
+    "emailOrOcidRequired": "Email or OCID is required",
+    "serverNotIdentified": "Server not recognized, please reconnect",
+    "userNotFound": "User does not exist",
+    "wrongPassword": "Wrong password",
+    "invalidRequestParameters": "Invalid request parameters",
+    "emailOrUsernameExists": "Email or username already exists",
+    "authFailedCode": "Authentication failed, error code: {code}",
+    "@authFailedCode": {
+        "placeholders": {
+            "code": {
+                "type": "num"
+            }
+        }
+    },
+    "loginFailed": "Login failed",
+    "registerFailed": "Registration failed"
 }

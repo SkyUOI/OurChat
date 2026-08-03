@@ -11,6 +11,7 @@ import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/core/const.dart';
 import 'package:ourchat/core/e2ee.dart';
 import 'package:ourchat/core/event.dart';
+import 'package:ourchat/core/instance.dart';
 import 'package:ourchat/core/log.dart';
 import 'package:ourchat/core/session.dart' as core_session;
 import 'package:ourchat/core/ui.dart';
@@ -138,7 +139,10 @@ class _SessionTabState extends ConsumerState<SessionTab> {
   Widget _buildQuoteBanner(UserMsg quoted) {
     String quotedName = '';
     if (quoted.senderId != null) {
-      final senderData = ref.read(ourChatAccountProvider(quoted.senderId!));
+      final serverId = ref.read(activeServerIdProvider)!;
+      final senderData = ref.read(
+        ourChatAccountProvider(serverId, quoted.senderId!),
+      );
       final dn = senderData.displayName;
       quotedName = dn != null && dn.isNotEmpty ? dn : senderData.username;
     }
@@ -187,7 +191,9 @@ class _SessionTabState extends ConsumerState<SessionTab> {
         mainAxisSize: MainAxisSize.max,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Expanded(child: cardWithPadding(const SessionRecord())), //聊天记录
+          Expanded(
+            child: cardWithPadding(const SessionRecord()),
+          ), // Chat records
           if (quoteTarget != null) _buildQuoteBanner(quoteTarget),
           Row(
             children: [
@@ -290,13 +296,19 @@ class _SessionTabState extends ConsumerState<SessionTab> {
                             final quoteMsgId = ref
                                 .read(quoteTargetProvider)
                                 ?.eventId;
+                            final serverId = ref.read(activeServerIdProvider)!;
+                            final accountId = ref.read(
+                              activeAccountIdProvider,
+                            )!;
                             await UserMsg(
                               markdownText: text,
                               involvedFiles: involvedFiles,
                               quoteMsgId: quoteMsgId,
                             ).send(
                               ref.read(ourChatServerProvider),
-                              ref.read(e2eeStoreProvider.notifier),
+                              ref.read(
+                                e2eeStoreProvider(serverId, accountId).notifier,
+                              ),
                               sessionState.currentSessionId!,
                             );
                             controller.text = "";
@@ -400,7 +412,7 @@ class _TabWidgetState extends ConsumerState<TabWidget> {
         break;
     }
     Widget page = const Placeholder();
-    // 匹配不同设备类型
+    // Match different device types
     if (ref.watch(screenModeProvider) == ScreenMode.mobile) {
       page = SafeArea(
         child: Column(
@@ -471,8 +483,12 @@ class _TabWidgetState extends ConsumerState<TabWidget> {
     Int64? thisAccountId,
     SessionState sessionState,
   ) {
+    final serverId = ref.read(activeServerIdProvider)!;
     final sessionData = ref.read(
-      core_session.ourChatSessionProvider(sessionState.currentSessionId!),
+      core_session.ourChatSessionProvider(
+        serverId,
+        sessionState.currentSessionId!,
+      ),
     );
     String name = sessionData.name, description = sessionData.description;
     var key = GlobalKey<FormState>();
@@ -566,7 +582,10 @@ class _TabWidgetState extends ConsumerState<TabWidget> {
                         showResultMessage(okStatusCode, null);
                         await ref
                             .read(
-                              ourChatAccountProvider(thisAccountId!).notifier,
+                              ourChatAccountProvider(
+                                serverId,
+                                thisAccountId!,
+                              ).notifier,
                             )
                             .getAccountInfo(ignoreCache: true);
                         await ref.read(sessionProvider.notifier).loadSessions();
@@ -610,7 +629,12 @@ class _TabWidgetState extends ConsumerState<TabWidget> {
                       showResultMessage(okStatusCode, null);
                       // Navigator.pop(context);
                       await ref
-                          .read(ourChatAccountProvider(thisAccountId!).notifier)
+                          .read(
+                            ourChatAccountProvider(
+                              serverId,
+                              thisAccountId!,
+                            ).notifier,
+                          )
                           .getAccountInfo(ignoreCache: true);
                       await ref.read(sessionProvider.notifier).loadSessions();
                     } catch (e) {
@@ -651,6 +675,7 @@ class _TabWidgetState extends ConsumerState<TabWidget> {
                           .read(
                             core_session
                                 .ourChatSessionProvider(
+                                  serverId,
                                   sessionState.currentSessionId!,
                                 )
                                 .notifier,
@@ -659,6 +684,7 @@ class _TabWidgetState extends ConsumerState<TabWidget> {
                       setState(() {
                         final updatedData = ref.read(
                           core_session.ourChatSessionProvider(
+                            serverId,
                             sessionState.currentSessionId!,
                           ),
                         );

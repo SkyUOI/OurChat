@@ -5,6 +5,7 @@ import 'package:grpc/grpc.dart' as grpc;
 import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/core/const.dart';
 import 'package:ourchat/core/account.dart';
+import 'package:ourchat/core/instance.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/service/ourchat/friends/add_friend/v1/add_friend.pb.dart';
 import 'package:ourchat/service/ourchat/friends/set_friend_info/v1/set_friend_info.pb.dart';
@@ -21,7 +22,8 @@ class _UserTabState extends ConsumerState<UserTab> {
   String addFriendLeaveMessage = "", addFriendDisplayName = "";
 
   Future<bool> fetchAccountInfo(Int64 id) async {
-    final notifier = ref.read(ourChatAccountProvider(id).notifier);
+    final serverId = ref.read(activeServerIdProvider)!;
+    final notifier = ref.read(ourChatAccountProvider(serverId, id).notifier);
     notifier.recreateStub();
     return await notifier.getAccountInfo();
   }
@@ -43,7 +45,8 @@ class _UserTabState extends ConsumerState<UserTab> {
   }
 
   void showAddFriendDialog(BuildContext context, Int64 accountId) {
-    final accountData = ref.read(ourChatAccountProvider(accountId));
+    final serverId = ref.read(activeServerIdProvider)!;
+    final accountData = ref.read(ourChatAccountProvider(serverId, accountId));
     showDialog(
       context: context,
       builder: (context) {
@@ -124,6 +127,7 @@ class _UserTabState extends ConsumerState<UserTab> {
   @override
   Widget build(BuildContext context) {
     final thisAccountId = ref.watch(thisAccountIdProvider);
+    final serverId = ref.watch(activeServerIdProvider);
     var sessionState = ref.watch(sessionProvider);
     final userId = sessionState.currentUserId!;
     return FutureBuilder(
@@ -142,13 +146,13 @@ class _UserTabState extends ConsumerState<UserTab> {
             ),
           );
         }
-        final accountData = ref.read(ourChatAccountProvider(userId));
+        final accountData = ref.read(ourChatAccountProvider(serverId!, userId));
 
         final accountNotifier = ref.read(
-          ourChatAccountProvider(userId).notifier,
+          ourChatAccountProvider(serverId, userId).notifier,
         );
         final currentAccountData = ref.read(
-          ourChatAccountProvider(thisAccountId!),
+          ourChatAccountProvider(serverId, thisAccountId!),
         );
         bool isFriend = currentAccountData.friends.contains(accountData.id);
         return Center(
@@ -200,7 +204,8 @@ class _UserTabState extends ConsumerState<UserTab> {
   }
 
   void showSetDisplayNameDialog(BuildContext context, Int64 accountId) {
-    final accountData = ref.read(ourChatAccountProvider(accountId));
+    final serverId = ref.read(activeServerIdProvider)!;
+    final accountData = ref.read(ourChatAccountProvider(serverId, accountId));
     showDialog(
       context: context,
       builder: (context) {
@@ -232,7 +237,12 @@ class _UserTabState extends ConsumerState<UserTab> {
                       showResultMessage(okStatusCode, null);
 
                       await ref
-                          .read(ourChatAccountProvider(accountId).notifier)
+                          .read(
+                            ourChatAccountProvider(
+                              serverId,
+                              accountId,
+                            ).notifier,
+                          )
                           .getAccountInfo(ignoreCache: true);
                     } catch (e) {
                       // do nothing

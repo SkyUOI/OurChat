@@ -119,5 +119,42 @@
     "fileSize": "文件大小",
     "uploadingFile": "正在上传 ({current}/{total})...",
     "quote": "引用",
-    "quoteUnavailable": "消息不可用"
+    "quoteUnavailable": "消息不可用",
+    "addServer": "添加服务器",
+    "addAccount": "添加账户",
+    "account": "账户",
+    "accountManager": "账户管理",
+    "noSavedAccount": "暂无已保存账户",
+    "accountId": "账户 {id}",
+    "@accountId": {
+        "placeholders": {
+            "id": {
+                "type": "int"
+            }
+        }
+    },
+    "close": "关闭",
+    "displayMode": "消息显示模式",
+    "accountSwitch": "账户切换",
+    "unifiedInbox": "统一收件箱",
+    "add": "添加",
+    "edit": "编辑",
+    "remarkOptional": "备注（可选）",
+    "noServer": "尚未添加服务器",
+    "emailOrOcidRequired": "邮箱或 OCID 必须提供其一",
+    "serverNotIdentified": "服务器未识别，请重新连接服务器",
+    "userNotFound": "用户不存在",
+    "wrongPassword": "密码错误",
+    "invalidRequestParameters": "请求参数无效",
+    "emailOrUsernameExists": "邮箱或用户名已存在",
+    "authFailedCode": "认证失败，错误代码: {code}",
+    "@authFailedCode": {
+        "placeholders": {
+            "code": {
+                "type": "num"
+            }
+        }
+    },
+    "loginFailed": "登录失败",
+    "registerFailed": "注册失败"
 }

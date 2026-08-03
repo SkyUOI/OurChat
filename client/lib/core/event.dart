@@ -8,6 +8,7 @@ import 'package:ourchat/core/const.dart';
 import 'package:ourchat/core/crypto.dart';
 import 'package:ourchat/core/database.dart';
 import 'package:ourchat/core/e2ee.dart';
+import 'package:ourchat/core/instance.dart';
 import 'package:ourchat/core/log.dart';
 import 'package:ourchat/core/server.dart';
 import 'package:ourchat/core/session.dart';
@@ -63,7 +64,7 @@ class OurChatEvent {
       );
       return;
     }
-    // 不存在 将消息存入数据库
+    // Not present: store the message in the database
     await privateDB
         .into(privateDB.record)
         .insert(
@@ -81,19 +82,26 @@ class OurChatEvent {
         );
   }
 
-  Future loadFromDB(Ref ref, OurChatDatabase privateDB, RecordData row) async {
+  Future loadFromDB(
+    Ref ref,
+    String serverId,
+    OurChatDatabase privateDB,
+    RecordData row,
+  ) async {
     eventId = Int64.parseInt(row.eventId.toString());
     eventType = row.eventType;
     senderId = Int64.parseInt(row.sender.toString());
     // Load sender data via provider (side effect)
-    final senderNotifier = ref.read(ourChatAccountProvider(senderId!).notifier);
+    final senderNotifier = ref.read(
+      ourChatAccountProvider(serverId, senderId!).notifier,
+    );
     senderNotifier.recreateStub();
     await senderNotifier.getAccountInfo();
 
     if (row.sessionId != null) {
       sessionId = Int64.parseInt(row.sessionId.toString());
       final sessionNotifier = ref.read(
-        ourChatSessionProvider(sessionId!).notifier,
+        ourChatSessionProvider(serverId, sessionId!).notifier,
       );
       try {
         await sessionNotifier.getSessionInfo();
@@ -154,8 +162,13 @@ class UserMsg extends OurChatEvent {
        );
 
   @override
-  Future loadFromDB(Ref ref, OurChatDatabase privateDB, RecordData row) async {
-    await super.loadFromDB(ref, privateDB, row);
+  Future loadFromDB(
+    Ref ref,
+    String serverId,
+    OurChatDatabase privateDB,
+    RecordData row,
+  ) async {
+    await super.loadFromDB(ref, serverId, privateDB, row);
     markdownText = data!["markdown_text"];
     involvedFiles = [];
     for (int i = 0; i < data!["involved_files"].length; i++) {
@@ -277,13 +290,18 @@ class NewFriendInvitationNotification extends OurChatEvent {
        );
 
   @override
-  Future loadFromDB(Ref ref, OurChatDatabase privateDB, RecordData row) async {
-    await super.loadFromDB(ref, privateDB, row);
+  Future loadFromDB(
+    Ref ref,
+    String serverId,
+    OurChatDatabase privateDB,
+    RecordData row,
+  ) async {
+    await super.loadFromDB(ref, serverId, privateDB, row);
     leaveMessage = data!["leave_message"];
     final parsedInviteeId = Int64.parseInt(data!["invitee"].toString());
     inviteeId = parsedInviteeId;
     final inviteeNotifier = ref.read(
-      ourChatAccountProvider(parsedInviteeId).notifier,
+      ourChatAccountProvider(serverId, parsedInviteeId).notifier,
     );
     inviteeNotifier.recreateStub();
     await inviteeNotifier.getAccountInfo();
@@ -324,13 +342,18 @@ class FriendInvitationResultNotification extends OurChatEvent {
        );
 
   @override
-  Future loadFromDB(Ref ref, OurChatDatabase privateDB, RecordData row) async {
-    await super.loadFromDB(ref, privateDB, row);
+  Future loadFromDB(
+    Ref ref,
+    String serverId,
+    OurChatDatabase privateDB,
+    RecordData row,
+  ) async {
+    await super.loadFromDB(ref, serverId, privateDB, row);
     leaveMessage = data!["leave_message"];
     final parsedInviteeId = Int64.parseInt(data!["invitee"].toString());
     inviteeId = parsedInviteeId;
     final inviteeNotifier = ref.read(
-      ourChatAccountProvider(parsedInviteeId).notifier,
+      ourChatAccountProvider(serverId, parsedInviteeId).notifier,
     );
     inviteeNotifier.recreateStub();
     await inviteeNotifier.getAccountInfo();
@@ -348,15 +371,29 @@ class OurChatEventSystem extends _$OurChatEventSystem {
   bool _listening = false;
 
   @override
-  bool build() {
+  bool build(String serverId, Int64 accountId) {
     return false;
   }
 
+  /// The live instance this event system belongs to.
+  OurChatInstance? get _instance =>
+      ref.read(instancesProvider)[AccountKey(serverId, accountId)];
+
   void listenEvents() async {
     stopListening();
-    final accountId = ref.read(thisAccountIdProvider)!;
-    final thisAccount = ref.read(ourChatAccountProvider(accountId).notifier);
-    var stub = ref.read(ourChatServerProvider).newStub();
+    final accountId = this.accountId;
+    final inst = _instance;
+    if (inst == null) {
+      logger.e(
+        "event system: no live instance for $serverId/$accountId, not listening",
+      );
+      return;
+    }
+    final thisAccount = ref.read(
+      ourChatAccountProvider(serverId, accountId).notifier,
+    );
+    var stub = inst.server.newStub();
+    var pDB = inst.privateDB;
 
     _connection = stub.fetchMsgs(
       FetchMsgsRequest(
@@ -376,12 +413,12 @@ class OurChatEventSystem extends _$OurChatEventSystem {
         thisAccount.setLatestMsgTime(OurChatTime.fromTimestamp(event.time));
         thisAccount.updateLatestMsgTime();
         var row =
-            await (privateDB!.select(privateDB!.record)..where(
+            await (pDB.select(pDB.record)..where(
                   (u) => u.eventId.equals(BigInt.from(event.msgId.toInt())),
                 ))
                 .getSingleOrNull();
         if (row != null) {
-          // 重复事件
+          // Duplicate event
           continue;
         }
         FetchMsgsResponse_RespondEventType eventType = event
@@ -389,16 +426,18 @@ class OurChatEventSystem extends _$OurChatEventSystem {
         logger.i("receive new event(type:$eventType)");
         OurChatEvent? eventObj;
         switch (eventType) {
-          case FetchMsgsResponse_RespondEventType // 收到好友申请
+          case FetchMsgsResponse_RespondEventType // Received friend request
               .newFriendInvitationNotification:
             final senderNotifier = ref.read(
               ourChatAccountProvider(
+                serverId,
                 event.newFriendInvitationNotification.inviterId,
               ).notifier,
             );
             senderNotifier.recreateStub();
             final inviteeNotifier = ref.read(
               ourChatAccountProvider(
+                serverId,
                 event.newFriendInvitationNotification.inviteeId,
               ).notifier,
             );
@@ -411,15 +450,17 @@ class OurChatEventSystem extends _$OurChatEventSystem {
               inviteeId: event.newFriendInvitationNotification.inviteeId,
             );
             break;
-          case FetchMsgsResponse_RespondEventType // 收到好友申请结果
+          case FetchMsgsResponse_RespondEventType // Received friend request result
               .friendInvitationResultNotification:
             final senderNotifier = ref.read(
               ourChatAccountProvider(
+                serverId,
                 event.friendInvitationResultNotification.inviterId,
               ).notifier,
             );
             final inviteeNotifier = ref.read(
               ourChatAccountProvider(
+                serverId,
                 event.friendInvitationResultNotification.inviteeId,
               ).notifier,
             );
@@ -442,7 +483,7 @@ class OurChatEventSystem extends _$OurChatEventSystem {
                 eventObjList[i].read = true;
                 eventObjList[i].data!["result_event_id"] = event.msgId.toInt();
                 requestEventIds.add(eventObjList[i].eventId!);
-                await eventObjList[i].saveToDB(privateDB!);
+                await eventObjList[i].saveToDB(pDB);
               }
             }
             eventObj = FriendInvitationResultNotification(
@@ -469,14 +510,14 @@ class OurChatEventSystem extends _$OurChatEventSystem {
 
           case FetchMsgsResponse_RespondEventType.msg:
             final senderNotifier = ref.read(
-              ourChatAccountProvider(event.msg.senderId).notifier,
+              ourChatAccountProvider(serverId, event.msg.senderId).notifier,
             );
             senderNotifier.recreateStub();
             String mdText = event.msg.markdownText;
             List<String> files = event.msg.involvedFiles.toList();
             if (event.msg.isEncrypted) {
               final payload = await ref
-                  .read(e2eeStoreProvider.notifier)
+                  .read(e2eeStoreProvider(serverId, accountId).notifier)
                   .decryptMessage(event.msg.sessionId, event.msg.markdownText);
               if (payload != null) {
                 mdText = payload.markdownText;
@@ -527,9 +568,9 @@ class OurChatEventSystem extends _$OurChatEventSystem {
             break;
         }
         if (eventObj != null) {
-          await eventObj.saveToDB(privateDB!);
+          await eventObj.saveToDB(pDB);
           if (_listeners.containsKey(eventType)) {
-            // 通知对应listener
+            // Notify the corresponding listeners
             for (int i = 0; i < _listeners[eventType].length; i++) {
               try {
                 _listeners[eventType][i](eventObj);
@@ -539,7 +580,7 @@ class OurChatEventSystem extends _$OurChatEventSystem {
             }
           }
         } else {
-          // event 没有被任何case分支处理，属于未知事件类型
+          // Event not handled by any case branch: unknown event type
           logger.w("Unknown event type(id:${event.msgId})");
         }
       }
@@ -552,7 +593,7 @@ class OurChatEventSystem extends _$OurChatEventSystem {
   /// symmetric room key for the session. Subsequent SendRoomKey notifications
   /// will wrap this key for each member.
   Future<void> _handleUpdateRoomKey(UpdateRoomKeyNotification n) async {
-    final store = ref.read(e2eeStoreProvider.notifier);
+    final store = ref.read(e2eeStoreProvider(serverId, accountId).notifier);
     final roomKey = generateRoomKey();
     await store.storeKey(n.sessionId, roomKey);
   }
@@ -561,7 +602,7 @@ class OurChatEventSystem extends _$OurChatEventSystem {
   /// room key for them and deliver it via the SendRoomKey RPC.
   Future<void> _handleSendRoomKeyNotification(SendRoomKeyNotification n) async {
     final sessionId = n.sessionId;
-    final store = ref.read(e2eeStoreProvider.notifier);
+    final store = ref.read(e2eeStoreProvider(serverId, accountId).notifier);
     // Ensure we have a room key (generate lazily if updateRoomKey was missed).
     Uint8List roomKey;
     final existing = store.keyFor(sessionId) ?? await store.loadKey(sessionId);
@@ -576,7 +617,7 @@ class OurChatEventSystem extends _$OurChatEventSystem {
         roomKey,
         Uint8List.fromList(n.publicKey),
       );
-      final stub = ref.read(ourChatServerProvider).newStub();
+      final stub = _instance!.server.newStub();
       await safeRequest(
         stub.sendRoomKey,
         SendRoomKeyRequest(
@@ -597,7 +638,7 @@ class OurChatEventSystem extends _$OurChatEventSystem {
   /// it with our private key and store it for the session.
   Future<void> _handleReceiveRoomKey(ReceiveRoomKeyNotification n) async {
     final sessionId = n.sessionId;
-    final store = ref.read(e2eeStoreProvider.notifier);
+    final store = ref.read(e2eeStoreProvider(serverId, accountId).notifier);
     final wrapped = Uint8List.fromList(n.roomKey);
     final roomKey = await store.unwrapRoomKey(wrapped);
     if (roomKey == null) {
@@ -616,7 +657,7 @@ class OurChatEventSystem extends _$OurChatEventSystem {
     if (!n.accepted) return;
     if (n.roomKey.isEmpty) return;
     final sessionId = n.sessionId;
-    final store = ref.read(e2eeStoreProvider.notifier);
+    final store = ref.read(e2eeStoreProvider(serverId, accountId).notifier);
     final roomKey = await store.unwrapRoomKey(Uint8List.fromList(n.roomKey));
     if (roomKey == null) {
       logger.w('E2EE: could not unwrap join room key for session $sessionId');
@@ -626,8 +667,11 @@ class OurChatEventSystem extends _$OurChatEventSystem {
   }
 
   Future selectNewFriendInvitation() async {
+    final inst = _instance;
+    if (inst == null) return [];
+    var pDB = inst.privateDB;
     var rows =
-        await (privateDB!.select(privateDB!.record)..where(
+        await (pDB.select(pDB.record)..where(
               (u) => u.eventType.equals(newFriendInvitationNotificationEvent),
             ))
             .get();
@@ -635,7 +679,7 @@ class OurChatEventSystem extends _$OurChatEventSystem {
     for (int i = 0; i < rows.length; i++) {
       NewFriendInvitationNotification eventObj =
           NewFriendInvitationNotification();
-      await eventObj.loadFromDB(ref, privateDB!, rows[i]);
+      await eventObj.loadFromDB(ref, serverId, pDB, rows[i]);
       eventObjList.add(eventObj);
     }
     return eventObjList;
@@ -647,7 +691,9 @@ class OurChatEventSystem extends _$OurChatEventSystem {
     int num = 0,
     bool fetchFromServer = false,
   }) async {
-    var pDB = privateDB!;
+    final inst = _instance;
+    if (inst == null) return [];
+    var pDB = inst.privateDB;
     var res =
         await (pDB.select(pDB.record)
               ..where(
@@ -662,7 +708,7 @@ class OurChatEventSystem extends _$OurChatEventSystem {
     List<UserMsg> msgsList = [];
     for (int i = 0; i < res.length; i++) {
       UserMsg msg = UserMsg();
-      await msg.loadFromDB(ref, pDB, res[i]);
+      await msg.loadFromDB(ref, serverId, pDB, res[i]);
       msgsList.add(msg);
     }
 
@@ -687,7 +733,10 @@ class OurChatEventSystem extends _$OurChatEventSystem {
     OurChatTime beforeTime, {
     int limit = 50,
   }) async {
-    var stub = ref.read(ourChatServerProvider).newStub();
+    final inst = _instance;
+    if (inst == null) return (hasMore: false, messages: <UserMsg>[]);
+    var stub = inst.server.newStub();
+    var pDB = inst.privateDB;
     try {
       var res = await safeRequest(
         stub.fetchSessionHistory,
@@ -713,7 +762,7 @@ class OurChatEventSystem extends _$OurChatEventSystem {
 
         // Check if already in local DB
         var existing =
-            await (privateDB!.select(privateDB!.record)..where(
+            await (pDB.select(pDB.record)..where(
                   (u) => u.eventId.equals(BigInt.from(event.msgId.toInt())),
                 ))
                 .getSingleOrNull();
@@ -725,7 +774,7 @@ class OurChatEventSystem extends _$OurChatEventSystem {
           List<String> files = event.msg.involvedFiles.toList();
           if (event.msg.isEncrypted) {
             final payload = await ref
-                .read(e2eeStoreProvider.notifier)
+                .read(e2eeStoreProvider(serverId, accountId).notifier)
                 .decryptMessage(event.msg.sessionId, event.msg.markdownText);
             if (payload != null) {
               mdText = payload.markdownText;
@@ -748,7 +797,7 @@ class OurChatEventSystem extends _$OurChatEventSystem {
             quoteMarkdownText: quote.quoteMarkdownText,
             quoteInvolvedFiles: quote.quoteInvolvedFiles,
           );
-          await msg.saveToDB(privateDB!);
+          await msg.saveToDB(pDB);
           msgs.add(msg);
         }
       }

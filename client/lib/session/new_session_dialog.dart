@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grpc/grpc.dart' as grpc;
 import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/core/account.dart';
+import 'package:ourchat/core/instance.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/service/ourchat/session/new_session/v1/session.pb.dart';
 import 'state.dart';
@@ -24,11 +25,14 @@ class _NewSessionDialogState extends ConsumerState<NewSessionDialog> {
   void getFriendList() async {
     friends = [];
     final thisAccountId = ref.read(thisAccountIdProvider);
-    final currentAccountData = ref.read(ourChatAccountProvider(thisAccountId!));
+    final serverId = ref.read(activeServerIdProvider)!;
+    final currentAccountData = ref.read(
+      ourChatAccountProvider(serverId, thisAccountId!),
+    );
     for (int i = 0; i < currentAccountData.friends.length; i++) {
       Int64 friendId = currentAccountData.friends[i];
       final friendNotifier = ref.read(
-        ourChatAccountProvider(friendId).notifier,
+        ourChatAccountProvider(serverId, friendId).notifier,
       );
       friendNotifier.recreateStub();
       await friendNotifier.getAccountInfo();
@@ -43,6 +47,7 @@ class _NewSessionDialogState extends ConsumerState<NewSessionDialog> {
   @override
   Widget build(BuildContext context) {
     final thisAccountId = ref.watch(thisAccountIdProvider);
+    final serverId = ref.watch(activeServerIdProvider);
     if (!gotFriendList) {
       getFriendList();
     }
@@ -78,7 +83,10 @@ class _NewSessionDialogState extends ConsumerState<NewSessionDialog> {
                         child: UserAvatar(
                           imageUrl: ref
                               .read(
-                                ourChatAccountProvider(friends[index]).notifier,
+                                ourChatAccountProvider(
+                                  serverId!,
+                                  friends[index],
+                                ).notifier,
                               )
                               .avatarUrl(),
                         ),
@@ -94,7 +102,10 @@ class _NewSessionDialogState extends ConsumerState<NewSessionDialog> {
                                 child: Text(
                                   ref
                                       .read(
-                                        ourChatAccountProvider(friends[index]),
+                                        ourChatAccountProvider(
+                                          serverId,
+                                          friends[index],
+                                        ),
                                       )
                                       .username,
                                   style: TextStyle(
@@ -173,7 +184,12 @@ class _NewSessionDialogState extends ConsumerState<NewSessionDialog> {
                     rethrowError: true,
                   );
                   await ref
-                      .read(ourChatAccountProvider(thisAccountId!).notifier)
+                      .read(
+                        ourChatAccountProvider(
+                          serverId!,
+                          thisAccountId!,
+                        ).notifier,
+                      )
                       .getAccountInfo(ignoreCache: true);
                   await ref.read(sessionProvider.notifier).loadSessions();
                 } catch (e) {

@@ -58,8 +58,8 @@ pub fn logger_init<Sink>(
             .with(env())
             .with(formatting_layer)
             .with(fmt::layer().with_ansi(false).with_writer(non_blocking));
-        if let Some(debug_cfg) = debug_cfg {
-            if debug_cfg.debug_console {
+        match debug_cfg {
+            Some(debug_cfg) if debug_cfg.debug_console => {
                 // TODO:move this to "debug" section of config
                 let console_layer = console_subscriber::ConsoleLayer::builder()
                     .retention(Duration::from_secs(60))
@@ -67,8 +67,7 @@ pub fn logger_init<Sink>(
                     .spawn();
                 tmp.with(console_layer).init();
             }
-        } else {
-            tmp.init();
+            _ => tmp.init(),
         }
         Some(file_guard)
     });

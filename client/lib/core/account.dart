@@ -5,6 +5,7 @@ import 'package:ourchat/core/log.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/core/database.dart' as db;
+import 'package:ourchat/core/instance.dart';
 import 'package:ourchat/service/ourchat/get_account_info/v1/get_account_info.pb.dart';
 import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
 import 'package:fixnum/fixnum.dart';
@@ -39,17 +40,9 @@ abstract class AccountData with _$AccountData {
 @Riverpod(keepAlive: true)
 class OurChatAccount extends _$OurChatAccount {
   @override
-  AccountData build(Int64 id) {
-    // 初始化 _stub
-    final server = ref.read(ourChatServerProvider);
-    _stub = OurChatServiceClient(
-      server.channel,
-      interceptors: server.interceptor != null ? [server.interceptor!] : [],
-    );
-
-    // 尝试从缓存加载账户数据
-    // 这里可以查询本地数据库，或返回默认值
-    // 暂时返回一个默认的 AccountStateData，稍后通过 getAccountInfo 填充
+  AccountData build(String serverId, Int64 id) {
+    // Initialize _stub (connection & token from this server's instance)
+    _initStub();
     return AccountData(
       id: id,
       username: '',
@@ -69,16 +62,48 @@ class OurChatAccount extends _$OurChatAccount {
   }
 
   late OurChatServiceClient _stub;
-  // 客户端独有字段，仅isMe为True时使用
+
+  /// Server id this account provider is scoped to (from the family argument).
+  /// Used to scope public table queries and to find the right connection.
+  String get _serverId => serverId;
+  db.OurChatDatabase? _privateDB;
+  // Client-only fields, used only when isMe is true
   OurChatTime _latestMsgTime = OurChatTime.fromTimestamp(Timestamp());
   bool _isFetching = false;
 
+  void _initStub() {
+    final inst = instanceForServer(ref.container, _serverId);
+    if (inst != null) {
+      _stub = OurChatServiceClient(
+        inst.server.channel,
+        interceptors: inst.server.interceptor != null
+            ? [inst.server.interceptor!]
+            : [],
+      );
+      _privateDB = inst.privateDB;
+    } else {
+      // No instance for this server (e.g. not logged in yet): fall back to the global connection
+      final srv = ref.read(ourChatServerProvider);
+      _stub = OurChatServiceClient(
+        srv.channel,
+        interceptors: srv.interceptor != null ? [srv.interceptor!] : [],
+      );
+      _privateDB = privateDB;
+    }
+  }
+
   void recreateStub() {
-    final server = ref.read(ourChatServerProvider);
-    _stub = OurChatServiceClient(
-      server.channel,
-      interceptors: [server.interceptor!],
-    );
+    _initStub();
+  }
+
+  /// Whether [id] is on the friend list of the active account on this server.
+  bool _isFriendOfActive(Int64 id) {
+    final activeKey = ref.read(activeAccountProvider);
+    if (activeKey == null || activeKey.serverId != _serverId) return false;
+    return ref
+        .read(ourChatAccountProvider(activeKey.serverId, activeKey.accountId))
+        .friends
+        .contains(id);
   }
 
   OurChatTime getLatestMsgTime() => _latestMsgTime;
@@ -87,11 +112,11 @@ class OurChatAccount extends _$OurChatAccount {
   }
 
   Future<bool> getAccountInfo({bool ignoreCache = false}) async {
-    final id = state.id; // 当前账户ID
-    final thisAccountId = ref.read(thisAccountIdProvider);
+    final id = state.id; // Current account id
+    final activeKey = ref.read(activeAccountProvider);
     logger.d("get account info for id: ${id.toString()}");
 
-    // 防止重复请求
+    // Prevent duplicate requests
     if (_isFetching) {
       while (_isFetching) {
         await Future.delayed(Duration(milliseconds: 10));
@@ -100,7 +125,7 @@ class OurChatAccount extends _$OurChatAccount {
     }
     _isFetching = true;
 
-    // 检查缓存 freshness
+    // Check cache freshness
     if (!ignoreCache &&
         DateTime.now().difference(state.lastCheckTime).inMinutes < 5) {
       _isFetching = false;
@@ -109,16 +134,22 @@ class OurChatAccount extends _$OurChatAccount {
     }
 
     List<QueryValues> requestValues = [];
-    db.OurChatDatabase pdb = privateDB!;
+    db.OurChatDatabase pdb = _privateDB!;
     bool isMe = state.isMe;
-    if (thisAccountId != null && thisAccountId == id) {
+    if (activeKey != null &&
+        activeKey.serverId == _serverId &&
+        activeKey.accountId == id) {
       isMe = true;
       state = (state.copyWith(isMe: true));
     }
     bool publicDataNeedUpdate = false, privateDataNeedUpdate = false;
-    var publicData = await (publicDB.select(
-      publicDB.publicAccount,
-    )..where((u) => u.id.equals(BigInt.from((id.toInt()))))).getSingleOrNull();
+    var publicData =
+        await (publicDB.select(publicDB.publicAccount)..where(
+              (u) =>
+                  u.serverId.equals(_serverId) &
+                  u.id.equals(BigInt.from(id.toInt())),
+            ))
+            .getSingleOrNull();
     var privateData = await (pdb.select(
       pdb.account,
     )..where((u) => u.id.equals(BigInt.from((id.toInt()))))).getSingleOrNull();
@@ -146,7 +177,7 @@ class OurChatAccount extends _$OurChatAccount {
       }
     }
     if (!publicDataNeedUpdate) {
-      // 使用本地缓存
+      // Use local cache
       state = (state.copyWith(
         username: publicData!.username,
         ocid: publicData.ocid,
@@ -184,7 +215,7 @@ class OurChatAccount extends _$OurChatAccount {
       "accountId: $id,isMe: $isMe, private data need update: $privateDataNeedUpdate, public data need update: $publicDataNeedUpdate",
     );
     if (!privateDataNeedUpdate && isMe) {
-      // 使用本地缓存
+      // Use local cache
       state = (state.copyWith(
         updatedTime: OurChatTime.fromDatetime(privateData!.updateTime),
         email: privateData.email,
@@ -192,7 +223,7 @@ class OurChatAccount extends _$OurChatAccount {
         sessions: [],
         registerTime: OurChatTime.fromDatetime(privateData.registerTime),
       ));
-      // 解析friends和sessions
+      // Parse friends and sessions
       List<Int64> friends = [];
       List<dynamic> friendsList = jsonDecode(privateData.friendsJson);
       for (int i = 0; i < friendsList.length; i++) {
@@ -227,13 +258,7 @@ class OurChatAccount extends _$OurChatAccount {
     }
     if (publicDataNeedUpdate ||
         privateDataNeedUpdate ||
-        (thisAccountId != null &&
-            thisAccountId != id &&
-            ref
-                    .read(ourChatAccountProvider(thisAccountId))
-                    .friends
-                    .contains(id) ==
-                true)) {
+        (isMe == false && _isFriendOfActive(id))) {
       logger.d("get account info");
       try {
         GetAccountInfoResponse res = await safeRequest(
@@ -248,12 +273,7 @@ class OurChatAccount extends _$OurChatAccount {
         if (privateDataNeedUpdate) {
           await updatePrivateData(res, privateData != null);
         }
-        if (thisAccountId != null &&
-            ref
-                    .read(ourChatAccountProvider(thisAccountId))
-                    .friends
-                    .contains(id) ==
-                true) {
+        if (_isFriendOfActive(id)) {
           // get displayname
           logger.d("get account display_name info");
           res = await safeRequest(
@@ -288,26 +308,30 @@ class OurChatAccount extends _$OurChatAccount {
       ocid: res.ocid,
     ));
     final id = state.id;
+    final sid = _serverId;
     if (isDataExist) {
-      // 更新数据
-      (publicDB.update(
-        publicDB.publicAccount,
-      )..where((u) => u.id.equals(BigInt.from(id.toInt())))).write(
-        db.PublicAccountCompanion(
-          avatarKey: Value(res.avatarKey),
-          username: Value(res.userName),
-          publicUpdateTime: Value(
-            OurChatTime.fromTimestamp(res.publicUpdatedTime).datetime,
-          ),
-          status: Value(res.status),
-          ocid: Value(res.ocid),
-        ),
-      );
+      // Update data
+      (publicDB.update(publicDB.publicAccount)..where(
+            (u) =>
+                u.serverId.equals(sid) & u.id.equals(BigInt.from(id.toInt())),
+          ))
+          .write(
+            db.PublicAccountCompanion(
+              avatarKey: Value(res.avatarKey),
+              username: Value(res.userName),
+              publicUpdateTime: Value(
+                OurChatTime.fromTimestamp(res.publicUpdatedTime).datetime,
+              ),
+              status: Value(res.status),
+              ocid: Value(res.ocid),
+            ),
+          );
     } else {
       publicDB
           .into(publicDB.publicAccount)
           .insert(
             db.PublicAccountData(
+              serverId: sid,
               id: BigInt.from(id.toInt()),
               avatarKey: res.avatarKey,
               username: res.userName,
@@ -339,7 +363,7 @@ class OurChatAccount extends _$OurChatAccount {
     for (int i = 0; i < res.sessions.length; i++) {
       intSessionsId.add(res.sessions[i].toInt());
     }
-    var localDb = privateDB!;
+    var localDb = _privateDB!;
     if (isDataExist) {
       (localDb.update(
         localDb.account,
@@ -377,7 +401,7 @@ class OurChatAccount extends _$OurChatAccount {
   }
 
   void updateLatestMsgTime() {
-    var pdb = privateDB!;
+    var pdb = _privateDB!;
     final id = state.id;
     (pdb.update(
       pdb.account,
@@ -387,7 +411,10 @@ class OurChatAccount extends _$OurChatAccount {
   }
 
   String avatarUrl() {
-    return "${ref.read(ourChatServerProvider).baseUrl()}/avatar?user_id=${state.id}&avatar_key=${state.avatarKey ?? ''}";
+    final base =
+        instanceForServer(ref.container, _serverId)?.server.baseUrl() ??
+        ref.read(ourChatServerProvider).baseUrl();
+    return "$base/avatar?user_id=${state.id}&avatar_key=${state.avatarKey ?? ''}";
   }
 
   String getNameWithDisplayName() {

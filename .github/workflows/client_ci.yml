@@ -62,5 +62,9 @@ jobs:
         run: cd client && flutter analyze
       - name: Flutter Test
         run: cd client && flutter test
+      - name: Flutter Integration Test
+        uses: coactions/setup-xvfb@v1
+        with:
+          run: cd client && flutter test integration_test
       - name: Flutter Web Build Test
         run: cd client && flutter build web

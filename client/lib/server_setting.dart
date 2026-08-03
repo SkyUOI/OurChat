@@ -3,11 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ourchat/core/const.dart';
 import 'package:ourchat/core/config.dart';
 import 'package:ourchat/core/chore.dart';
-import 'package:ourchat/l10n/app_localizations.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/auth.dart';
 import 'package:ourchat/core/server.dart';
 
+/// Server management page: lists all saved servers, lets the user add / edit /
+/// delete them, and connects to one to reach the login/register screen.
 class ServerSetting extends ConsumerStatefulWidget {
   const ServerSetting({super.key});
 
@@ -16,310 +17,204 @@ class ServerSetting extends ConsumerStatefulWidget {
 }
 
 class _ServerSettingState extends ConsumerState<ServerSetting> {
-  String address = "skyuoi.org";
-  int port = 7777;
-  int ping = -1;
-  String serverName = "", serverState = "", serverVersion = "";
-  bool isOnline = false, isConnecting = false, inited = false;
-  bool? isTLS;
-  late OurChatServer server;
-  Color serverStatusColor = Colors.grey;
-  bool serverInfoLoaded = false;
+  bool _connectingId = false;
+
+  Future<void> _connectServer(ServerConfig sc) async {
+    setState(() {
+      _connectingId = true;
+    });
+    final isTLS = sc.isTLS ?? await OurChatServer.tlsEnabled(sc.host, sc.port);
+    final server = OurChatServer(sc.host, sc.port, isTLS);
+    ref.read(ourChatServerProvider.notifier).update(server);
+    final res = await server.getServerInfo();
+    if (!mounted) return;
+    setState(() {
+      _connectingId = false;
+    });
+    if (res == unavailableStatusCode || res == unknownStatusCode) {
+      showResultMessage(
+        unavailableStatusCode,
+        null,
+        internalStatus: '${l10n.serverStatus}: ${l10n.serverStatusOffline}',
+      );
+      return;
+    }
+    // Persist the freshly-probed server info (uniqueIdentifier + isTLS).
+    ref
+        .read(configProvider.notifier)
+        .upsertServer(
+          ServerConfig(
+            host: sc.host,
+            port: sc.port,
+            label: sc.label,
+            uniqueIdentifier: server.uniqueIdentifier,
+            isTLS: isTLS,
+          ),
+        );
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => Auth()),
+    );
+  }
+
+  Future<void> _addOrEditServer([ServerConfig? existing]) async {
+    final hostCtrl = TextEditingController(text: existing?.host ?? '');
+    final portCtrl = TextEditingController(
+      text: (existing?.port ?? 7777).toString(),
+    );
+    final labelCtrl = TextEditingController(text: existing?.label ?? '');
+
+    final result = await showDialog<(String host, int port, String label)>(
+      context: context,
+      builder: (context) {
+        final key = GlobalKey<FormState>();
+        String host = existing?.host ?? '';
+        int port = existing?.port ?? 7777;
+        String label = existing?.label ?? '';
+        return AlertDialog(
+          title: Text(existing == null ? l10n.add : l10n.edit),
+          content: Form(
+            key: key,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: hostCtrl,
+                  decoration: InputDecoration(label: Text(l10n.address)),
+                  validator: (v) =>
+                      (v == null || v.isEmpty) ? l10n.cantBeEmpty : null,
+                  onSaved: (v) => host = v!,
+                ),
+                TextFormField(
+                  controller: portCtrl,
+                  decoration: InputDecoration(label: Text(l10n.port)),
+                  validator: (v) {
+                    final p = int.tryParse(v ?? '');
+                    if (p == null || p < 0 || p > 65535) {
+                      return l10n.invalid(l10n.port);
+                    }
+                    return null;
+                  },
+                  onSaved: (v) => port = int.parse(v!),
+                ),
+                TextFormField(
+                  controller: labelCtrl,
+                  decoration: InputDecoration(label: Text(l10n.remarkOptional)),
+                  onSaved: (v) => label = v ?? '',
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(l10n.cancel),
+            ),
+            TextButton(
+              onPressed: () {
+                if (key.currentState!.validate()) {
+                  key.currentState!.save();
+                  Navigator.pop(context, (host, port, label));
+                }
+              },
+              child: Text(l10n.ok),
+            ),
+          ],
+        );
+      },
+    );
+    if (result == null || !mounted) return;
+    final (host, port, label) = result;
+    ref
+        .read(configProvider.notifier)
+        .upsertServer(
+          ServerConfig(
+            host: host,
+            port: port,
+            label: label,
+            uniqueIdentifier: existing?.uniqueIdentifier,
+            isTLS: existing?.isTLS,
+          ),
+        );
+  }
 
   @override
   Widget build(BuildContext context) {
     final config = ref.watch(configProvider);
-    // 从配置中读取地址和端口
-    if (!inited) {
-      address = config.servers[0].host;
-      port = config.servers[0].port;
-      inited = true;
-    }
-    var key = GlobalKey<FormState>();
-    Image serverLogo;
-    if (!serverInfoLoaded) {
-      serverLogo = Image.asset("assets/images/logo.png");
-    } else {
-      if (isTLS != null && isTLS!) {
-        serverLogo = Image.network(
-          "https://$address:${port.toString()}/v1/logo",
-          errorBuilder: (context, error, stackTrace) {
-            return Image.asset("assets/images/logo.png");
-          },
-          fit: BoxFit.contain,
-        );
-      } else {
-        serverLogo = Image.network(
-          "http://$address:${port.toString()}/v1/logo",
-          errorBuilder: (context, error, stackTrace) {
-            return Image.asset("assets/images/logo.png");
-          },
-          fit: BoxFit.contain,
-        );
-      }
-    }
-    var serverInfoLabels = Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Padding(
-          padding: EdgeInsets.all(10.0),
-          child: SizedBox(height: 200.0, width: 200.0, child: serverLogo),
-        ),
-        Row(
-          // 展示服务端ip
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text("${l10n.address}: "),
-            Text(address, style: const TextStyle(color: Colors.grey)),
-          ],
-        ),
-        Row(
-          // 展示服务端名称
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text("${l10n.serverName}: "),
-            Text(serverName, style: const TextStyle(color: Colors.grey)),
-          ],
-        ),
-        Row(
-          // 展示服务端端口
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text("${l10n.port}: "),
-            Text(port.toString(), style: const TextStyle(color: Colors.grey)),
-          ],
-        ),
-        Row(
-          // 展示服务端状态
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text("${l10n.serverStatus}: "),
-            Text(serverState, style: TextStyle(color: serverStatusColor)),
-          ],
-        ),
-        Row(
-          // 展示服务端版本
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text("${l10n.serverVersion}: "),
-            Text(serverVersion, style: const TextStyle(color: Colors.grey)),
-          ],
-        ),
-        Row(
-          // 展示连接延迟
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text("${l10n.ping}: "),
-            Text(
-              (ping == -1 ? "" : "$ping ms"),
-              style: const TextStyle(color: Colors.grey),
-            ),
-          ],
-        ),
-        Row(
-          // 展示是否支持tls
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text("${l10n.tlsEncryption} "),
-            isTLS == null
-                ? Text("")
-                : (isTLS!
-                      ? Text(
-                          l10n.tlsEnabled,
-                          style: const TextStyle(color: Colors.green),
-                        )
-                      : Text(
-                          l10n.tlsDisabled,
-                          style: const TextStyle(color: Colors.red),
-                        )),
-          ],
-        ),
-      ],
-    );
-    var serverForm = Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Form(
-        key: key,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextFormField(
-              // 地址输入框
-              initialValue: address,
-              decoration: InputDecoration(label: Text(l10n.address)),
-              validator: (value) {
-                if (value!.isEmpty) {
-                  return l10n.cantBeEmpty;
-                }
-                return null;
-              },
-              onSaved: (newValue) {
-                setState(() {
-                  address = newValue!;
-                });
-              },
-            ),
-            TextFormField(
-              // 端口输入框
-              initialValue: port.toString(),
-              decoration: InputDecoration(label: Text(l10n.port)),
-              validator: (value) {
-                if (value!.isEmpty) {
-                  return l10n.cantBeEmpty;
-                }
-
-                if (int.tryParse(value) == null ||
-                    int.parse(value) > 65535 ||
-                    int.parse(value) < 0) {
-                  return l10n.invalid(l10n.port);
-                }
-                return null;
-              },
-              onSaved: (newValue) {
-                setState(() {
-                  port = int.parse(newValue!);
-                });
-              },
-            ),
-            if (!isConnecting) // 没有连接进程
-              Padding(
-                padding: EdgeInsets.all(AppStyles.mediumPadding),
-                child: ElevatedButton.icon(
-                  style: AppStyles.defaultButtonStyle,
-                  icon: Icon(
-                    isOnline
-                        ? Icons.arrow_forward
-                        : Icons.connect_without_contact,
-                  ),
-                  label: Text(
-                    // 如果服务端在线(尝试连接成功)，则显示"继续"
-                    isOnline ? l10n.continue_ : l10n.connect,
-                  ),
-                  onPressed: () async {
-                    if (!key.currentState!.validate()) {
-                      // 检查服务端信息是否合法
-                      return;
-                    }
-                    setState(() {
-                      isConnecting = true;
-                    });
-                    var prevAddress = address;
-                    var prevPort = port;
-                    key.currentState!.save();
-                    if (prevAddress == address &&
-                        prevPort == port &&
-                        isOnline) {
-                      // 进入Auth界面
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) {
-                            return Auth();
-                          },
-                        ),
-                      );
-                      return;
-                    }
-                    // 连接新的服务端地址
-                    isTLS = await OurChatServer.tlsEnabled(address, port);
-                    server = OurChatServer(address, port, isTLS!);
-                    ref.read(ourChatServerProvider.notifier).update(server);
-                    setState(() {
-                      isOnline = false;
-                      serverState = "";
-                      serverVersion = "";
-                      serverName = "";
-                      ping = -1;
-                      serverStatusColor = Colors.grey;
-                    });
-                    var resCode = unavailableStatusCode;
-                    resCode = await server.getServerInfo();
-                    setState(() {
-                      isConnecting = false;
-                    });
-                    if (resCode == unavailableStatusCode ||
-                        resCode == unknownStatusCode) {
-                      // 连接失败
-                      setState(() {
-                        serverState = l10n.serverStatusOffline;
-                        serverStatusColor = Colors.red;
-                      });
-                      return;
-                    }
-                    // 连接成功
-                    if (!context.mounted) return;
-                    ref.read(configProvider.notifier).setServers([
-                      ServerConfig(host: address, port: port),
-                    ]);
-                    // 保存服务器地址
-                    setState(() {
-                      isOnline = true;
-                      serverInfoLoaded = true;
-                      switch (server.serverStatus!.value) {
-                        case okStatusCode:
-                          serverState = l10n.serverStatusOnline;
-                          serverStatusColor = Colors.green;
-                          break;
-                        case internalStatusCode:
-                          serverState = l10n.serverError;
-                          serverStatusColor = Colors.red;
-                          break;
-                        case unavailableStatusCode:
-                          serverState = AppLocalizations.of(
-                            context,
-                          )!.serverStatusUnderMaintenance;
-                          serverStatusColor = Colors.orange;
-                          break;
-                        default:
-                          serverState = l10n.serverStatusUnknown;
-                          serverStatusColor = Colors.grey;
-                          break;
-                      }
-                      serverVersion =
-                          "${server.serverVersion!.major}.${server.serverVersion!.minor}.${server.serverVersion!.patch}";
-                      serverName = server.serverName!;
-                      ping = server.ping!;
-                    });
-                  },
-                ),
-              ),
-            if (isConnecting) // 连接中
-              Padding(
-                padding: EdgeInsets.all(10.0),
-                child: CircularProgressIndicator(
-                  color: Theme.of(context).primaryColor,
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
+    final servers = config.servers;
 
     return Scaffold(
+      appBar: AppBar(title: Text(l10n.selectServer)),
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            if (ref.watch(screenModeProvider) == ScreenMode.mobile) {
-              // 移动端，纵向展示
-              return Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [serverInfoLabels, serverForm],
-                ),
-              );
-            }
-            return Padding(
-              // 桌面端，横向展示
-              padding: const EdgeInsets.all(20.0),
-              child: Row(
-                children: [
-                  Flexible(flex: 1, child: serverInfoLabels),
-                  Flexible(flex: 2, child: serverForm),
-                ],
+        child: Column(
+          children: [
+            Expanded(
+              child: servers.isEmpty
+                  ? Center(child: Text(l10n.noServer))
+                  : ListView.builder(
+                      itemCount: servers.length,
+                      itemBuilder: (context, i) {
+                        final sc = servers[i];
+                        final title = (sc.label != null && sc.label!.isNotEmpty)
+                            ? sc.label!
+                            : '${sc.host}:${sc.port}';
+                        final subtitle =
+                            '${sc.host}:${sc.port}'
+                            '${sc.isTLS == true ? '  (TLS)' : ''}';
+                        return Card(
+                          margin: EdgeInsets.symmetric(
+                            vertical: AppStyles.smallPadding,
+                            horizontal: AppStyles.mediumPadding,
+                          ),
+                          child: ListTile(
+                            leading: const Icon(Icons.dns),
+                            title: Text(title),
+                            subtitle: Text(subtitle),
+                            onTap: _connectingId
+                                ? null
+                                : () => _connectServer(sc),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.edit),
+                                  onPressed: () => _addOrEditServer(sc),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline),
+                                  onPressed: () {
+                                    if (sc.uniqueIdentifier != null) {
+                                      ref
+                                          .read(configProvider.notifier)
+                                          .removeServer(sc.uniqueIdentifier!);
+                                    } else {
+                                      ref
+                                          .read(configProvider.notifier)
+                                          .setServers(
+                                            config.servers
+                                                .where((s) => s != sc)
+                                                .toList(),
+                                          );
+                                    }
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+            Padding(
+              padding: EdgeInsets.all(AppStyles.mediumPadding),
+              child: ElevatedButton.icon(
+                style: AppStyles.defaultButtonStyle,
+                icon: const Icon(Icons.add),
+                onPressed: () => _addOrEditServer(),
+                label: Text(l10n.add),
               ),
-            );
-          },
+            ),
+          ],
         ),
       ),
     );

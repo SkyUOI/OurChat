@@ -8,7 +8,12 @@ part 'database_web.g.dart';
 
 const bool _useWorker = true; // Set to false to test without worker
 
+// ── Public (cross-account) schema ─────────────────────────────────────────
+// Scoped by `serverId` so the same numeric id on different servers does not
+// collide. See database_desktop.dart for the rationale.
+
 class PublicSession extends Table {
+  TextColumn get serverId => text()();
   Int64Column get sessionId => int64()();
   TextColumn get name => text()();
   TextColumn get avatarKey => text().nullable()();
@@ -18,10 +23,11 @@ class PublicSession extends Table {
   TextColumn get description => text()();
 
   @override
-  Set<Column> get primaryKey => {sessionId};
+  Set<Column> get primaryKey => {serverId, sessionId};
 }
 
 class PublicAccount extends Table {
+  TextColumn get serverId => text()();
   Int64Column get id => int64()();
   TextColumn get username => text()();
   TextColumn get status => text().nullable()();
@@ -30,20 +36,30 @@ class PublicAccount extends Table {
   DateTimeColumn get publicUpdateTime => dateTime()();
 
   @override
-  Set<Column> get primaryKey => {id};
+  Set<Column> get primaryKey => {serverId, id};
 }
 
 @DriftDatabase(tables: [PublicSession, PublicAccount])
 class PublicOurChatDatabase extends _$PublicOurChatDatabase {
   PublicOurChatDatabase([QueryExecutor? executor])
-    : super(executor ?? _openConnection());
+    : super(executor ?? _openPublicConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
-  static QueryExecutor _openConnection() {
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (m) => m.createAll(),
+    onUpgrade: (m, from, to) async {
+      for (final t in allTables) {
+        await m.deleteTable(t.actualTableName);
+      }
+      await m.createAll();
+    },
+  );
+
+  static QueryExecutor _openPublicConnection() {
     if (!_useWorker) {
-      // Test without worker using in-memory database
       return DatabaseConnection.delayed(
         Future<DatabaseConnection>(() async {
           final sqlite3 = await WasmSqlite3.loadFromUrl(
@@ -58,7 +74,6 @@ class PublicOurChatDatabase extends _$PublicOurChatDatabase {
       );
     }
 
-    // Use the stable WasmDatabase.open API for web platform
     return DatabaseConnection.delayed(
       Future<DatabaseConnection>(() async {
         final result = await WasmDatabase.open(
@@ -74,6 +89,8 @@ class PublicOurChatDatabase extends _$PublicOurChatDatabase {
   }
 }
 
+// ── Private (per account-on-a-server) schema ──────────────────────────────
+
 class Account extends Table {
   Int64Column get id => int64()();
   TextColumn get email => text()();
@@ -82,7 +99,6 @@ class Account extends Table {
   TextColumn get friendsJson => text()();
   TextColumn get sessionsJson => text()();
 
-  // 客户端独有字段
   DateTimeColumn get latestMsgTime => dateTime()();
 }
 
@@ -111,15 +127,14 @@ class Record extends Table {
 
 @DriftDatabase(tables: [Account, Session, Record])
 class OurChatDatabase extends _$OurChatDatabase {
-  OurChatDatabase(Int64 id, [QueryExecutor? executor])
-    : super(executor ?? _openConnection(id));
+  OurChatDatabase(String serverId, Int64 id, [QueryExecutor? executor])
+    : super(executor ?? _openConnection(serverId, id));
 
   @override
   int get schemaVersion => 1;
 
-  static QueryExecutor _openConnection(Int64 id) {
+  static QueryExecutor _openConnection(String serverId, Int64 id) {
     if (!_useWorker) {
-      // Test without worker using in-memory database
       return DatabaseConnection.delayed(
         Future<DatabaseConnection>(() async {
           final sqlite3 = await WasmSqlite3.loadFromUrl(
@@ -134,11 +149,10 @@ class OurChatDatabase extends _$OurChatDatabase {
       );
     }
 
-    // Use the stable WasmDatabase.open API for web platform
     return DatabaseConnection.delayed(
       Future<DatabaseConnection>(() async {
         final result = await WasmDatabase.open(
-          databaseName: 'OurChatDB_${id.toString()}',
+          databaseName: 'OurChatDB_${serverId}_${id.toString()}',
           sqlite3Uri: Uri.parse('/sqlite3.wasm'),
           driftWorkerUri: Uri.parse(
             kReleaseMode ? '/drift_worker.min.js' : '/drift_worker.js',

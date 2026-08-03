@@ -4,6 +4,7 @@ import 'package:fixnum/fixnum.dart';
 import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/core/config.dart';
 import 'package:ourchat/core/event.dart';
+import 'package:ourchat/core/instance.dart';
 import 'package:ourchat/core/secret_store.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/core/database.dart';
@@ -12,52 +13,126 @@ import 'core/account.dart';
 import 'core/auth_notifier.dart';
 import 'core/crypto.dart';
 
+/// Post-login/register wiring: open the private DB, build a runtime
+/// [OurChatInstance], register it as active, persist the [SavedAccount], and
+/// kick off the event system + account info fetch.
 Future<void> _handleAuthSuccess({
   required WidgetRef ref,
   required BuildContext context,
   required Int64 accountId,
-  required String recentAccount,
-  required String recentPassword,
+  required String accountIdent,
+  required String password,
+  required bool savePassword,
+  String? ocid,
+  String? email,
 }) async {
-  var notifier = ref.read(configProvider.notifier);
-  // Keep the account identifier in plain config (non-secret) but persist the
-  // password only through the platform-backed SecretStore.
-  notifier.setRecent(recentAccount, recentPassword);
-  if (recentPassword.isNotEmpty) {
-    await SecretStore.saveCredential(recentAccount, recentPassword);
-  }
+  final authState = ref.read(authProvider);
+  final serverId = authState.serverId!;
+  final accountIdInt = accountId.toInt();
 
   // Persist the freshly generated E2EE private key for this account.
   await ref.read(authProvider.notifier).persistPrivateKey(accountId);
 
-  privateDB = OurChatDatabase(accountId);
-  await ref.read(ourChatAccountProvider(accountId).notifier).getAccountInfo();
-
-  final avatarKey = ref.read(ourChatAccountProvider(accountId)).avatarKey;
-  if (avatarKey != null) {
-    notifier.setAvatarUrl(
-      "${ref.read(ourChatServerProvider).baseUrl()}/avatar?user_id=$accountId&avatar_key=$avatarKey",
-    );
+  // Persist the password via platform-backed secure storage (never via
+  // SharedPreferences). Only when the user opted in.
+  if (savePassword && password.isNotEmpty) {
+    await SecretStore.saveCredential(serverId, accountIdent, password);
   }
 
-  ref.read(ourChatEventSystemProvider.notifier).listenEvents();
+  // Build the runtime instance for this login and register it as active.
+  final server = ref.read(ourChatServerProvider);
+  final newPrivateDB = OurChatDatabase(serverId, accountId);
+  final instance = OurChatInstance(
+    serverId: serverId,
+    accountId: accountId,
+    server: server,
+    privateDB: newPrivateDB,
+  );
+  ref.read(instancesProvider.notifier).add(instance);
+  ref.read(activeAccountProvider.notifier).set(instance.key);
+  privateDB = newPrivateDB;
+
+  final ocidToSave = ocid ?? authState.ocid;
+  ref
+      .read(configProvider.notifier)
+      .upsertSavedAccount(
+        SavedAccount(
+          serverId: serverId,
+          accountId: accountIdInt,
+          ocid: ocidToSave,
+          email: email,
+          avatarKey: null,
+          lastLoginAt: DateTime.now(),
+          autoLogin: savePassword,
+        ),
+      );
+  ref.read(configProvider.notifier).setActiveAccount(serverId, accountIdInt);
+
+  await ref
+      .read(ourChatAccountProvider(serverId, accountId).notifier)
+      .getAccountInfo();
+  ref
+      .read(ourChatEventSystemProvider(serverId, accountId).notifier)
+      .listenEvents();
 
   if (context.mounted) {
     Navigator.pop(context);
   }
 }
 
-// Auth界面
-class Auth extends StatelessWidget {
+/// Resolve the saved account to pre-fill on the login screen (the active one,
+/// else the first saved account on the active server, else null).
+SavedAccount? _savedAccountForPrefill(OurChatConfig cfg) {
+  if (cfg.savedAccounts.isEmpty) return null;
+  for (final a in cfg.savedAccounts) {
+    if (a.serverId == cfg.activeServerId &&
+        a.accountId == cfg.activeAccountId) {
+      return a;
+    }
+  }
+  return cfg.savedAccounts.first;
+}
+
+// Auth screen
+class Auth extends ConsumerWidget {
   const Auth({super.key});
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final server = ref.watch(ourChatServerProvider);
+    final serverName = server.serverName ?? '${server.host}:${server.port}';
     return Scaffold(
       body: SafeArea(
         child: DefaultTabController(
           length: 2,
           child: Column(
             children: [
+              // Currently logged-in server + switch entry
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.dns, size: 18),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(serverName, overflow: TextOverflow.ellipsis),
+                    ),
+                    TextButton.icon(
+                      style: AppStyles.defaultButtonStyle,
+                      icon: const Icon(Icons.swap_horiz, size: 18),
+                      label: Text(l10n.selectServer),
+                      onPressed: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ServerSetting(),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
               TabBar(
                 tabs: [
                   Tab(text: l10n.login),
@@ -83,22 +158,25 @@ class Login extends ConsumerStatefulWidget {
 }
 
 class _LoginState extends ConsumerState<Login> {
-  String account = "", password = "", avatarUrl = "";
+  String account = "", password = "";
   bool savePassword = false, inited = false;
 
   @override
   void initState() {
     super.initState();
-    // Pre-fill the saved password from platform-backed secure storage (never
-    // from plaintext SharedPreferences).
     _loadSavedCredential();
   }
 
   Future<void> _loadSavedCredential() async {
     final config = ref.read(configProvider);
-    final savedAccount = config.recentAccount;
-    if (savedAccount.isEmpty) return;
-    final savedPassword = await SecretStore.readCredential(savedAccount);
+    final saved = _savedAccountForPrefill(config);
+    if (saved == null) return;
+    final ident = saved.email ?? saved.ocid;
+    if (ident == null) return;
+    final savedPassword = await SecretStore.readCredential(
+      saved.serverId,
+      ident,
+    );
     if (!mounted) return;
     setState(() {
       if (savedPassword != null && savedPassword.isNotEmpty) {
@@ -113,8 +191,10 @@ class _LoginState extends ConsumerState<Login> {
     var key = GlobalKey<FormState>();
     final config = ref.read(configProvider);
     if (!inited) {
-      account = config.recentAccount;
-      avatarUrl = config.recentAvatarUrl;
+      final saved = _savedAccountForPrefill(config);
+      if (saved != null) {
+        account = saved.email ?? saved.ocid ?? "";
+      }
       inited = true;
     }
     return SafeArea(
@@ -133,16 +213,11 @@ class _LoginState extends ConsumerState<Login> {
                     child: SizedBox(
                       height: 100.0,
                       width: 100.0,
-                      child: (avatarUrl.isEmpty
-                          ? Image.asset("assets/images/logo.png")
-                          : UserAvatar(
-                              imageUrl: avatarUrl,
-                              size: AppStyles.largeAvatarSize,
-                            )),
+                      child: Image.asset("assets/images/logo.png"),
                     ),
                   ),
                   TextFormField(
-                    // 账号输入框
+                    // Account input field
                     initialValue: account,
                     decoration: InputDecoration(
                       label: Text("${l10n.ocid}/${l10n.email}"),
@@ -154,7 +229,7 @@ class _LoginState extends ConsumerState<Login> {
                     },
                   ),
                   TextFormField(
-                    // 密码输入框
+                    // Password input field
                     initialValue: password,
                     decoration: InputDecoration(label: Text(l10n.password)),
                     onSaved: (newValue) {
@@ -165,7 +240,7 @@ class _LoginState extends ConsumerState<Login> {
                     obscureText: true,
                   ),
                   CheckboxListTile(
-                    // 保存密码checkbox
+                    // Save password checkbox
                     dense: true,
                     contentPadding: const EdgeInsets.all(0.0),
                     controlAffinity: ListTileControlAffinity.leading,
@@ -185,28 +260,12 @@ class _LoginState extends ConsumerState<Login> {
                         padding: EdgeInsets.all(AppStyles.mediumPadding),
                         child: ElevatedButton.icon(
                           style: AppStyles.defaultButtonStyle,
-                          icon: Icon(Icons.arrow_back),
-                          onPressed: () {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ServerSetting(),
-                              ),
-                            );
-                          },
-                          label: Text(l10n.selectServer),
-                        ),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.all(AppStyles.mediumPadding),
-                        child: ElevatedButton.icon(
-                          style: AppStyles.defaultButtonStyle,
                           icon: Icon(Icons.login),
                           onPressed: () async {
-                            key.currentState!.save(); // 保存表单信息
+                            key.currentState!.save(); // Save form
                             String? email, ocid;
                             if (account.contains('@')) {
-                              // 判断邮箱/ocid登录
+                              // Determine email/ocid login
                               email = account;
                             } else {
                               ocid = account;
@@ -228,8 +287,11 @@ class _LoginState extends ConsumerState<Login> {
                                   ref: ref,
                                   context: context,
                                   accountId: accountId,
-                                  recentAccount: account,
-                                  recentPassword: savePassword ? password : "",
+                                  accountIdent: account,
+                                  password: password,
+                                  savePassword: savePassword,
+                                  ocid: ocid,
+                                  email: email,
                                 );
                               }
                             }
@@ -250,7 +312,7 @@ class _LoginState extends ConsumerState<Login> {
   }
 }
 
-// 注册
+// Register
 class Register extends ConsumerStatefulWidget {
   const Register({super.key});
 
@@ -275,7 +337,7 @@ class _RegisterState extends ConsumerState<Register> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 TextFormField(
-                  // 用户名输入框
+                  // Username input field
                   initialValue: username,
                   decoration: InputDecoration(label: Text(l10n.username)),
                   onSaved: (newValue) {
@@ -285,7 +347,7 @@ class _RegisterState extends ConsumerState<Register> {
                   },
                 ),
                 TextFormField(
-                  // 邮箱输入框
+                  // Email input field
                   initialValue: email,
                   decoration: InputDecoration(label: Text(l10n.email)),
                   onSaved: (newValue) {
@@ -295,7 +357,7 @@ class _RegisterState extends ConsumerState<Register> {
                   },
                 ),
                 TextFormField(
-                  // 密码输入框
+                  // Password input field
                   initialValue: password,
                   decoration: InputDecoration(label: Text(l10n.password)),
                   onSaved: (newValue) {
@@ -306,7 +368,7 @@ class _RegisterState extends ConsumerState<Register> {
                   obscureText: !showPassword,
                 ),
                 CheckboxListTile(
-                  // 显示密码checkbox
+                  // Show password checkbox
                   dense: true,
                   controlAffinity: ListTileControlAffinity.leading,
                   title: Text(l10n.show(l10n.password)),
@@ -337,25 +399,9 @@ class _RegisterState extends ConsumerState<Register> {
                       padding: EdgeInsets.all(AppStyles.mediumPadding),
                       child: ElevatedButton.icon(
                         style: AppStyles.defaultButtonStyle,
-                        icon: Icon(Icons.arrow_back),
-                        onPressed: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ServerSetting(),
-                            ),
-                          );
-                        },
-                        label: Text(l10n.selectServer),
-                      ),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.all(AppStyles.mediumPadding),
-                      child: ElevatedButton.icon(
-                        style: AppStyles.defaultButtonStyle,
                         icon: Icon(Icons.app_registration),
                         onPressed: () async {
-                          key.currentState!.save(); // 保存表单信息
+                          key.currentState!.save(); // Save form
                           // Generate RSA key pair client-side before registering.
                           // The public key goes to the server; the private key
                           // is handed to AuthNotifier for secure persistence.
@@ -378,8 +424,10 @@ class _RegisterState extends ConsumerState<Register> {
                                 ref: ref,
                                 context: context,
                                 accountId: accountId,
-                                recentAccount: email,
-                                recentPassword: savePassword ? password : "",
+                                accountIdent: email,
+                                password: password,
+                                savePassword: savePassword,
+                                email: email,
                               );
                             }
                           }

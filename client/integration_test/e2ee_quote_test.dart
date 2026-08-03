@@ -38,11 +38,17 @@ void main() {
     // real OurChatEventSystem).
     final container = fx.container;
     for (int i = 0; i < 50; i++) {
-      if (container.read(e2eeStoreProvider.notifier).hasKey(sid)) break;
+      if (container
+          .read(e2eeStoreProvider(fx.serverId, fx.accountId).notifier)
+          .hasKey(sid)) {
+        break;
+      }
       await Future.delayed(const Duration(milliseconds: 200));
     }
     expect(
-      container.read(e2eeStoreProvider.notifier).hasKey(sid),
+      container
+          .read(e2eeStoreProvider(fx.serverId, fx.accountId).notifier)
+          .hasKey(sid),
       isTrue,
       reason: 'room key should be stored after e2eeizeSession',
     );

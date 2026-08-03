@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 
-// 将会在生成发行版时由脚本填入贡献者&赞助者名单
+// Will be filled by a script with contributor & donor lists when building a release
 // ===== AUTO GENERATED CODE BEGIN =====
 const List<Map<String, String>> contributorsList = [
   {
@@ -56,6 +56,9 @@ const unauthenticatedStatusCode = 16;
 
 // Device
 enum ScreenMode { mobile, desktop }
+
+// How the session list aggregates conversations across servers.
+enum UiDisplayMode { accountSwitcher, unifiedInbox }
 
 // PopupMenuValue
 const addFriendAndSession = "Add Friend/Session";

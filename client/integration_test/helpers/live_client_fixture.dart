@@ -7,9 +7,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/test/test_flutter_secure_storage_platform.dart';
 import 'package:flutter_secure_storage_platform_interface/flutter_secure_storage_platform_interface.dart';
 import 'package:ourchat/core/auth_notifier.dart';
+import 'package:ourchat/core/const.dart';
 import 'package:ourchat/core/database.dart' as database;
 import 'package:ourchat/core/e2ee.dart';
 import 'package:ourchat/core/event.dart';
+import 'package:ourchat/core/instance.dart';
 import 'package:ourchat/core/secret_store.dart';
 import 'package:ourchat/core/server.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
@@ -40,6 +42,7 @@ class LiveClientFixture {
   late final OcTestUser user;
   late final ProviderContainer container;
   late final Int64 accountId;
+  late final String serverId;
 
   bool _ready = false;
   bool _setUpRan = false;
@@ -59,18 +62,23 @@ class LiveClientFixture {
     FlutterSecureStoragePlatform.instance = TestFlutterSecureStoragePlatform(
       {},
     );
-    // Pre-seed the private key so E2EE loadKey works for later E2EE tests.
-    await SecretStore.savePrivateKey(user.id, user.keyPair.privateKey);
 
     // Initialize l10n without a widget tree (UserMsg.send error path needs it).
     l10n = await AppLocalizations.delegate.load(const Locale('en'));
 
-    // In-memory drift databases.
-    publicDB = database.PublicOurChatDatabase(NativeDatabase.memory());
-    privateDB = database.OurChatDatabase(user.id, NativeDatabase.memory());
-
-    // Real server + container. Only the server address is overridden.
+    // Real server + container. Probe getServerInfo first so the server's
+    // uniqueIdentifier is populated (needed as serverId everywhere).
     final server = OurChatServer(host, port, false);
+    final infoCode = await server.getServerInfo();
+    if (infoCode != okStatusCode) return false;
+    serverId = server.uniqueIdentifier!;
+
+    // Pre-seed the private key so E2EE loadKey works for later E2EE tests.
+    await SecretStore.savePrivateKey(serverId, user.id, user.keyPair.privateKey);
+
+    // In-memory public database.
+    publicDB = database.PublicOurChatDatabase(NativeDatabase.memory());
+
     container = ProviderContainer(
       overrides: [ourChatServerProvider.overrideWithValue(server)],
     );
@@ -79,14 +87,32 @@ class LiveClientFixture {
     // thisAccountId update, private-key load).
     final ok = await container
         .read(authProvider.notifier)
-        .login(email: user.email, password: user.password);
+        .login(email: user.email, password: user.password, server: server);
     if (!ok) return false;
 
     accountId = container.read(authProvider).accountId!;
 
+    // Build the runtime instance for this login and register it as active.
+    final instancePrivateDB = database.OurChatDatabase(
+      serverId,
+      accountId,
+      NativeDatabase.memory(),
+    );
+    final instance = OurChatInstance(
+      serverId: serverId,
+      accountId: accountId,
+      server: server,
+      privateDB: instancePrivateDB,
+    );
+    container.read(instancesProvider.notifier).add(instance);
+    container.read(activeAccountProvider.notifier).set(instance.key);
+    privateDB = instancePrivateDB;
+
     // REAL event system — exercises listenEvents (stream connect, parsing,
     // dedup, drift write, listener dispatch).
-    container.read(ourChatEventSystemProvider.notifier).listenEvents();
+    container
+        .read(ourChatEventSystemProvider(serverId, accountId).notifier)
+        .listenEvents();
 
     // Give the stream a moment to establish before tests send messages.
     await Future.delayed(const Duration(milliseconds: 500));
@@ -112,7 +138,7 @@ class LiveClientFixture {
       involvedFiles: involvedFiles,
     ).send(
       container.read(ourChatServerProvider),
-      container.read(e2eeStoreProvider.notifier),
+      container.read(e2eeStoreProvider(serverId, accountId).notifier),
       sessionId,
     );
   }
@@ -126,7 +152,9 @@ class LiveClientFixture {
     bool Function(UserMsg) matcher, {
     Duration timeout = const Duration(seconds: 15),
   }) async {
-    final eventSystem = container.read(ourChatEventSystemProvider.notifier);
+    final eventSystem = container.read(
+      ourChatEventSystemProvider(serverId, accountId).notifier,
+    );
     final completer = Completer<UserMsg>();
     void cb(dynamic eventObj) {
       if (eventObj is UserMsg && !completer.isCompleted && matcher(eventObj)) {
@@ -150,7 +178,9 @@ class LiveClientFixture {
   Future<void> tearDown() async {
     if (!_setUpRan) return;
     if (_ready) {
-      container.read(ourChatEventSystemProvider.notifier).stopListening();
+      container
+          .read(ourChatEventSystemProvider(serverId, accountId).notifier)
+          .stopListening();
       container.dispose();
     }
     await app.dispose();

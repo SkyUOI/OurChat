@@ -1,87 +1,95 @@
 import 'dart:convert';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ourchat/core/config.dart';
 
 /// Tests for `OurChatConfig` serialization.
 ///
-/// The most important property under test is a SECURITY invariant (C-4): the
-/// saved login password (`recentPassword`) must NEVER be written to the JSON
-/// blob that is persisted via SharedPreferences. Persisting happens through
-/// `saveConfig()` -> `jsonEncode(toJson())`. If `recentPassword` ever leaks
-/// back into the serialized form, every saved login would store the password in
-/// plaintext on disk again.
+/// Security invariant: credentials are NEVER stored in this config blob —
+/// passwords live only in `SecretStore` (platform-backed secure storage).
+/// `SavedAccount` carries only non-secret identity metadata (ocid, email,
+/// avatar key), never the password.
 void main() {
   group('OurChatConfig serialization', () {
-    test('recentPassword is excluded from toJson (C-4 security invariant)', () {
-      final cfg = OurChatConfig(
-        recentAccount: 'alice@example.com',
-        recentPassword: 'super-secret-123',
-      );
-      final json = jsonEncode(cfg.toJson());
-
-      // The plaintext password value must not appear anywhere in the blob.
-      expect(json, isNot(contains('super-secret-123')));
-      // The key must not appear either (so even an empty password is not
-      // serialized as a field).
-      expect(json, isNot(contains('recentPassword')));
-      expect(json, isNot(contains('recent_password')));
-    });
-
-    test('recentAccount (non-secret) IS persisted', () {
-      final cfg = OurChatConfig(recentAccount: 'alice@example.com');
-      final json = jsonEncode(cfg.toJson());
-      expect(json, contains('alice@example.com'));
-      expect(json, contains('recentAccount'));
-    });
-
-    test('fromJson ignores any recentPassword present in the blob', () {
-      // Even if an old/legacy blob (or a tampered one) carries a password, the
-      // deserialized config must not pick it up.
-      final legacy = {
-        'recentAccount': 'bob',
-        'recentPassword': 'legacy-leak',
-        'color': 0xFF2196F3,
-      };
-      final cfg = OurChatConfig.fromJson(legacy);
-      expect(cfg.recentAccount, 'bob');
-      expect(cfg.recentPassword, '',
-          reason: 'recentPassword must always deserialize to its default');
-    });
-
-    test('round trip preserves non-sensitive fields', () {
+    test('savedAccounts round trip', () {
       final original = OurChatConfig(
-        servers: [
-          ServerConfig(host: 'example.com', port: 7777),
-          ServerConfig(host: '1.2.3.4', port: 9999),
+        savedAccounts: [
+          SavedAccount(
+            serverId: 'srv-a',
+            accountId: 42,
+            ocid: 'oc_alice',
+            email: 'alice@example.com',
+            avatarKey: 'k1',
+            lastLoginAt: DateTime.utc(2024, 1, 2, 3, 4, 5),
+          ),
+          SavedAccount(
+            serverId: 'srv-b',
+            accountId: 42, // same numeric id, different server — must not collide
+            lastLoginAt: DateTime.utc(2024, 6, 7),
+          ),
         ],
-        color: 0xFF112233,
-        logLevel: 'warning',
-        recentAccount: 'alice',
-        recentAvatarUrl: 'http://example.com/a.png',
-        updateSource: 'https://example.com/releases',
-        language: const LanguageConfig(
-          languageCode: 'zh',
-          scriptCode: 'Hans',
-          countryCode: 'CN',
-        ),
       );
       final restored = OurChatConfig.fromJson(
         jsonDecode(jsonEncode(original.toJson())) as Map<String, dynamic>,
       );
-      expect(restored.servers.length, 2);
+      expect(restored.savedAccounts.length, 2);
+      expect(restored.savedAccounts[0].serverId, 'srv-a');
+      expect(restored.savedAccounts[0].accountId, 42);
+      expect(restored.savedAccounts[0].email, 'alice@example.com');
+      expect(restored.savedAccounts[1].serverId, 'srv-b');
+      expect(restored.savedAccounts[1].accountId, 42);
+    });
+
+    test('active account pointer round trip', () {
+      final original = OurChatConfig(
+        activeServerId: 'srv-a',
+        activeAccountId: 7,
+      );
+      final restored = OurChatConfig.fromJson(
+        jsonDecode(jsonEncode(original.toJson())) as Map<String, dynamic>,
+      );
+      expect(restored.activeServerId, 'srv-a');
+      expect(restored.activeAccountId, 7);
+    });
+
+    test('no password field is ever present in the serialized blob', () {
+      final cfg = OurChatConfig(
+        savedAccounts: [
+          SavedAccount(
+            serverId: 'srv',
+            accountId: 1,
+            lastLoginAt: DateTime.utc(2024),
+          ),
+        ],
+      );
+      final json = jsonEncode(cfg.toJson());
+      expect(json, isNot(contains('password')));
+      expect(json, isNot(contains('Password')));
+      expect(json, isNot(contains('credential')));
+    });
+
+    test('ServerConfig carries uniqueIdentifier + label + isTLS', () {
+      final original = OurChatConfig(
+        servers: [
+          ServerConfig(
+            host: 'example.com',
+            port: 7777,
+            uniqueIdentifier: 'srv-uuid-1',
+            label: 'My Server',
+            isTLS: true,
+          ),
+        ],
+      );
+      final restored = OurChatConfig.fromJson(
+        jsonDecode(jsonEncode(original.toJson())) as Map<String, dynamic>,
+      );
+      expect(restored.servers.length, 1);
       expect(restored.servers[0].host, 'example.com');
       expect(restored.servers[0].port, 7777);
-      expect(restored.servers[1].port, 9999);
-      expect(restored.color, 0xFF112233);
-      expect(restored.logLevel, 'warning');
-      expect(restored.recentAccount, 'alice');
-      expect(restored.recentAvatarUrl, 'http://example.com/a.png');
-      expect(restored.updateSource, 'https://example.com/releases');
-      expect(restored.language?.languageCode, 'zh');
-      expect(restored.language?.countryCode, 'CN');
-      // And the password did not survive the round trip.
-      expect(restored.recentPassword, '');
+      expect(restored.servers[0].uniqueIdentifier, 'srv-uuid-1');
+      expect(restored.servers[0].label, 'My Server');
+      expect(restored.servers[0].isTLS, isTrue);
     });
 
     test('defaults are sensible', () {
@@ -89,8 +97,37 @@ void main() {
       expect(d.servers, isNotEmpty);
       expect(d.color, isPositive);
       expect(d.logLevel, 'info');
-      expect(d.recentPassword, '');
+      expect(d.savedAccounts, isEmpty);
+      expect(d.activeServerId, isNull);
+      expect(d.activeAccountId, isNull);
       expect(d.updateSource, startsWith('https://'));
+    });
+
+    test('ConfigNotifier.upsertSavedAccount updates in place by key', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(configProvider.notifier);
+      notifier.init(OurChatConfig());
+      notifier.upsertSavedAccount(
+        SavedAccount(
+          serverId: 's1',
+          accountId: 1,
+          lastLoginAt: DateTime.utc(2024),
+        ),
+      );
+      notifier.upsertSavedAccount(
+        SavedAccount(
+          serverId: 's1',
+          accountId: 1,
+          email: 'updated@example.com',
+          lastLoginAt: DateTime.utc(2025),
+        ),
+      );
+      expect(container.read(configProvider).savedAccounts.length, 1);
+      expect(
+        container.read(configProvider).savedAccounts.single.email,
+        'updated@example.com',
+      );
     });
   });
 }

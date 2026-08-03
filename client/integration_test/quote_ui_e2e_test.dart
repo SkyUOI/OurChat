@@ -67,7 +67,9 @@ void main() {
       await tester.pump();
 
       // Register the msg listener (normally done by SessionList.initState).
-      final eventSystem = container.read(ourChatEventSystemProvider.notifier);
+      final eventSystem = container.read(
+        ourChatEventSystemProvider(fx.serverId, fx.accountId).notifier,
+      );
       void onMsg(UserMsg m) =>
           container.read(sessionProvider.notifier).receiveMsg(m);
       eventSystem.addListener(FetchMsgsResponse_RespondEventType.msg, onMsg);
@@ -97,7 +99,7 @@ void main() {
           .firstWhere((m) => m.markdownText == 'original from UI');
       expect(original.quoteMsgId, isNull, reason: 'original has no quote');
 
-      // ── ② Long-press the message → tap "引用" ──
+      // ── ② Long-press the message → tap "Quote" ──
       await tester.longPress(find.byType(MessageWidget).first);
       await tester.pumpAndSettle();
       await tester.tap(find.text(l10n.quote));

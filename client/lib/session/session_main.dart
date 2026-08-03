@@ -17,7 +17,7 @@ class _SessionWidgetState extends ConsumerState<Session> {
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
-      // 此builder可以在尺寸发生变化时重新构建
+      // This builder rebuilds when the size changes
       builder: (context, constraints) {
         if (ref.watch(screenModeProvider) == ScreenMode.desktop) {
           return Row(

@@ -317,12 +317,23 @@ flutter test integration_test/quote_ui_e2e_test.dart -d linux
 dart analyze lib/ test/ integration_test/
 ```
 
-Integration tests auto-skip (`markTestSkipped`) when the server at `localhost:7777` is unreachable. To run them for real, start the dev server first:
+Integration tests auto-skip (`markTestSkipped`) when their server is unreachable. To run them for real, bring up the dev dependencies and use the automation script (it builds the server, starts two live instances on 7777/7778 — the second with its own rabbitmq vhost — runs the tests, then cleans up):
 
 ```bash
-# From repo root (requires docker db/redis/mq running)
-nohup target/debug/server -c config/ourchat.toml > log/e2e_server.log 2>&1 &
+# From repo root (start the dev dependencies once — user-managed)
+docker compose -f docker/compose.devenv.yml up -d db redis mq
+
+# Run all client integration tests
+python script/run_integration_tests.py
+
+# Run a single file (e.g. the multi-server tests)
+python script/run_integration_tests.py --test integration_test/multi_server_test.dart
 ```
+
+`multi_server_test.dart` requires **two** servers (7777 + 7778); the other
+integration tests only need the server on 7777. The script creates both and
+tears them down afterwards (see `script/README.md` for options like
+`--keep-server` / `--debug`).
 
 #### Unit & Widget Tests (`test/`)
 

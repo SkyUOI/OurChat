@@ -20,7 +20,7 @@ void main() {
 
   setUp(() {
     container = ProviderContainer();
-    store = container.read(e2eeStoreProvider.notifier);
+    store = container.read(e2eeStoreProvider('test', Int64(1)).notifier);
   });
 
   tearDown(() => container.dispose());

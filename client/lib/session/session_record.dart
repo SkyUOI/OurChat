@@ -9,6 +9,7 @@ import 'package:ourchat/core/account.dart';
 import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/core/const.dart';
 import 'package:ourchat/core/event.dart';
+import 'package:ourchat/core/instance.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/user_profile_page.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -73,8 +74,10 @@ class _SessionRecordState extends ConsumerState<SessionRecord> {
           .setLastPixels(scrollController.position.pixels);
 
       // First try local DB
+      final serverId = ref.read(activeServerIdProvider)!;
+      final accountId = ref.read(activeAccountIdProvider)!;
       List<UserMsg> records = await ref
-          .read(ourChatEventSystemProvider.notifier)
+          .read(ourChatEventSystemProvider(serverId, accountId).notifier)
           .getSessionEvent(
             sessionState.currentSessionId!,
             offset: 50 * sessionState.recordLoadCnt,
@@ -84,7 +87,7 @@ class _SessionRecordState extends ConsumerState<SessionRecord> {
       if (records.isEmpty && sessionState.currentSessionRecords.isNotEmpty) {
         final oldestMsg = sessionState.currentSessionRecords.last;
         final result = await ref
-            .read(ourChatEventSystemProvider.notifier)
+            .read(ourChatEventSystemProvider(serverId, accountId).notifier)
             .fetchSessionHistoryFromServer(
               sessionState.currentSessionId!,
               oldestMsg.sendTime!,
@@ -138,10 +141,12 @@ class _MessageWidgetState extends ConsumerState<MessageWidget> {
     if (msg.quoteMarkdownText.isNotEmpty || msg.quoteInvolvedFiles.isNotEmpty) {
       return;
     }
-    if (privateDB == null) return;
+    final key = ref.read(activeAccountProvider);
+    final db = key == null ? null : ref.read(instancesProvider)[key]?.privateDB;
+    if (db == null) return;
     try {
       final row =
-          await (privateDB!.select(privateDB!.record)..where(
+          await (db.select(db.record)..where(
                 (u) => u.eventId.equals(BigInt.from(msg.quoteMsgId!.toInt())),
               ))
               .getSingleOrNull();
@@ -207,7 +212,10 @@ class _MessageWidgetState extends ConsumerState<MessageWidget> {
 
     String quotedName = '';
     if (quoteSenderId != null) {
-      final senderData = ref.read(ourChatAccountProvider(quoteSenderId));
+      final serverId = ref.read(activeServerIdProvider)!;
+      final senderData = ref.read(
+        ourChatAccountProvider(serverId, quoteSenderId),
+      );
       final dn = senderData.displayName;
       quotedName = dn != null && dn.isNotEmpty ? dn : senderData.username;
     }
@@ -262,11 +270,12 @@ class _MessageWidgetState extends ConsumerState<MessageWidget> {
     double opacity = widget.opacity;
     var sessionState = ref.watch(sessionProvider);
     final thisAccountId = ref.watch(thisAccountIdProvider);
+    final serverId = ref.watch(activeServerIdProvider);
     final senderData = msg.senderId != null
-        ? ref.read(ourChatAccountProvider(msg.senderId!))
+        ? ref.read(ourChatAccountProvider(serverId!, msg.senderId!))
         : null;
     final senderNotifier = msg.senderId != null
-        ? ref.read(ourChatAccountProvider(msg.senderId!).notifier)
+        ? ref.read(ourChatAccountProvider(serverId!, msg.senderId!).notifier)
         : null;
     final dn = senderData?.displayName;
     String name = dn != null && dn.isNotEmpty
@@ -465,7 +474,7 @@ class _MessageWidgetState extends ConsumerState<MessageWidget> {
           onLongPressStart: (details) => _showQuoteMenu(details.globalPosition),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: // 根据是否为本账号的发言决定左右对齐
+            mainAxisAlignment: // Align left/right based on whether this is our own message
             (isMe
                 ? MainAxisAlignment.end
                 : MainAxisAlignment.start),

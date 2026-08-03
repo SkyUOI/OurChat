@@ -5,6 +5,7 @@ import 'package:grpc/grpc.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:ourchat/core/account.dart';
 import 'package:ourchat/core/chore.dart';
+import 'package:ourchat/core/instance.dart';
 import 'package:ourchat/core/server.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
 import 'package:ourchat/main.dart';
@@ -38,6 +39,16 @@ AccountData buildTestAccount(
 /// tests must stub the specific calls they exercise.
 class MockOurChatClient extends Mock implements OurChatServiceClient {}
 
+/// The server id used by widget tests when overriding parameterized providers.
+const String testServerId = 'test-server';
+
+/// Override that makes the widget under test see a logged-in active account on
+/// [testServerId], so UI reads of `activeServerIdProvider` /
+/// `activeAccountIdProvider` return the expected values.
+final activeAccountTestOverride = activeAccountProvider.overrideWithValue(
+  AccountKey(testServerId, Int64(1)),
+);
+
 /// A notifier that returns a canned [AccountData], so widget tests don't need
 /// the database or network. Must be a real notifier subclass (not
 /// `overrideWithValue`) because the UI reads `.notifier` for `avatarUrl()`.
@@ -47,12 +58,13 @@ class StubAccountNotifier extends OurChatAccount {
   final AccountData account;
 
   @override
-  AccountData build(Int64 id) => account;
+  AccountData build(String serverId, Int64 id) => account;
 }
 
-/// Override [ourChatAccountProvider] for [id] to return [account].
+/// Override [ourChatAccountProvider] for [id] (on the test server) to return
+/// [account].
 Override overrideAccount(Int64 id, AccountData account) {
-  return ourChatAccountProvider(id).overrideWith(
+  return ourChatAccountProvider(testServerId, id).overrideWith(
     () => StubAccountNotifier(account),
   );
 }

@@ -7,6 +7,7 @@ import 'package:grpc/grpc.dart' as grpc;
 import 'package:ourchat/core/account.dart';
 import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/core/event.dart';
+import 'package:ourchat/core/instance.dart';
 import 'package:ourchat/l10n/app_localizations.dart';
 import 'package:ourchat/service/ourchat/friends/accept_friend_invitation/v1/accept_friend_invitation.pb.dart';
 import 'package:ourchat/service/ourchat/v1/ourchat.pbgrpc.dart';
@@ -19,7 +20,10 @@ class Friends extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final thisAccountId = ref.watch(thisAccountIdProvider);
-    final thisAccountData = ref.read(ourChatAccountProvider(thisAccountId!));
+    final serverId = ref.watch(activeServerIdProvider);
+    final thisAccountData = ref.read(
+      ourChatAccountProvider(serverId!, thisAccountId!),
+    );
     return Column(
       children: [
         Flexible(
@@ -52,9 +56,11 @@ class Friends extends ConsumerWidget {
             itemBuilder: (context, index) {
               final friendId = thisAccountData.friends[index];
               final accountNotifier = ref.read(
-                ourChatAccountProvider(friendId).notifier,
+                ourChatAccountProvider(serverId, friendId).notifier,
               );
-              final accountData = ref.read(ourChatAccountProvider(friendId));
+              final accountData = ref.read(
+                ourChatAccountProvider(serverId, friendId),
+              );
               accountNotifier.recreateStub();
               return Card(
                 margin: EdgeInsets.symmetric(
@@ -121,8 +127,9 @@ class FriendRequestDialog extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final thisAccountId = ref.watch(thisAccountIdProvider);
+    final serverId = ref.watch(activeServerIdProvider);
     final thisAccountNotifier = ref.read(
-      ourChatAccountProvider(thisAccountId!).notifier,
+      ourChatAccountProvider(serverId!, thisAccountId!).notifier,
     );
     return AlertDialog(
       title: Text(l10n.friendRequest),
@@ -131,7 +138,9 @@ class FriendRequestDialog extends ConsumerWidget {
         width: 150,
         child: FutureBuilder(
           future: ref
-              .read(ourChatEventSystemProvider.notifier)
+              .read(
+                ourChatEventSystemProvider(serverId, thisAccountId).notifier,
+              )
               .selectNewFriendInvitation(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.done) {
@@ -140,9 +149,11 @@ class FriendRequestDialog extends ConsumerWidget {
                 itemBuilder: (context, index) {
                   final senderId = data[index].senderId!;
                   final inviteeId = data[index].inviteeId!;
-                  final senderData = ref.read(ourChatAccountProvider(senderId));
+                  final senderData = ref.read(
+                    ourChatAccountProvider(serverId, senderId),
+                  );
                   final inviteeData = ref.read(
-                    ourChatAccountProvider(inviteeId),
+                    ourChatAccountProvider(serverId, inviteeId),
                   );
                   return Column(
                     children: [
@@ -214,6 +225,7 @@ class FriendRequestDialog extends ConsumerWidget {
                                     await ref
                                         .read(
                                           ourChatAccountProvider(
+                                            serverId,
                                             senderId,
                                           ).notifier,
                                         )
@@ -320,7 +332,7 @@ class FriendRequestDialog extends ConsumerWidget {
                         Align(
                           alignment: Alignment.centerLeft,
                           child: FutureBuilder(
-                            future: getRefuseReason(data[index]),
+                            future: getRefuseReason(ref, data[index]),
                             builder: (context, snapshot) {
                               String text = l10n.loading;
                               if (snapshot.connectionState ==
@@ -360,12 +372,20 @@ class FriendRequestDialog extends ConsumerWidget {
     );
   }
 
-  Future getRefuseReason(NewFriendInvitationNotification eventObj) async {
+  Future getRefuseReason(
+    WidgetRef ref,
+    NewFriendInvitationNotification eventObj,
+  ) async {
     String refuseReason = "";
     if (eventObj.status == 2) {
-      // 已拒绝
+      // Refused
+      final key = ref.read(activeAccountProvider);
+      final db = key == null
+          ? null
+          : ref.read(instancesProvider)[key]?.privateDB;
+      if (db == null) return refuseReason;
       var event =
-          await (privateDB!.select(privateDB!.record)..where(
+          await (db.select(db.record)..where(
                 (u) => u.eventId.equals(
                   BigInt.from(eventObj.resultEventId!.toInt()),
                 ),

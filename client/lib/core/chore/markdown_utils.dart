@@ -3,39 +3,39 @@ import 'package:ourchat/l10n/app_localizations.dart';
 
 /// MarkDown -> PlainText (GENERATE BY AI)
 class MarkdownToText {
-  /// 将 Markdown 文本转为纯文本，忽略所有语法（支持 flutter_markdown_plus 增强语法）
+  /// Convert Markdown text to plain text, ignoring all syntax (supports flutter_markdown_plus enhanced syntax)
   static String convert(String markdownText, AppLocalizations l10n) {
     if (markdownText.isEmpty) return "";
 
-    // 1. 用 flutter_markdown_plus 兼容的规则解析 Markdown
+    // 1. Parse Markdown with flutter_markdown_plus compatible rules
     final document = md.Document(extensionSet: md.ExtensionSet.gitHubFlavored);
     final nodes = document.parseLines(markdownText.split('\n'));
 
-    // 2. 用访问器遍历节点，只提取文本节点内容（避免重复）
+    // 2. Walk the nodes with a visitor, extracting only text node contents (avoid duplicates)
     final StringBuffer textBuffer = StringBuffer();
     for (final node in nodes) {
       node.accept(_NodeTextExtractor(textBuffer, l10n));
     }
 
-    // 3. 清理并返回纯文本
+    // 3. Clean up and return the plain text
     return _cleanText(textBuffer.toString());
   }
 
-  /// 新增：检测 Markdown 字符串中是否包含图片
-  /// [markdownText] 需要检测的 markdown 字符串
-  /// 返回值：true 包含图片，false 不包含图片
+  /// Detect whether a Markdown string contains images
+  /// [markdownText] the markdown string to inspect
+  /// Returns: true if it contains an image, false otherwise
   static bool containsImage(String markdownText) {
     if (markdownText.isEmpty) return false;
 
-    // 使用相同的解析规则解析 Markdown
+    // Parse Markdown with the same rules
     final document = md.Document(extensionSet: md.ExtensionSet.gitHubFlavored);
     final nodes = document.parseLines(markdownText.split('\n'));
 
-    // 创建图片检测器并遍历所有节点
+    // Create an image detector and walk all nodes
     final imageDetector = _ImageDetector();
     for (final node in nodes) {
       node.accept(imageDetector);
-      // 一旦检测到图片，立即返回 true，提升性能
+      // Stop as soon as an image is found, for performance
       if (imageDetector.hasImage) {
         return true;
       }
@@ -44,76 +44,87 @@ class MarkdownToText {
     return imageDetector.hasImage;
   }
 
-  /// 清理多余空格和换行（优化：保留单个换行，更贴近原文结构）
+  /// Collapse extra spaces and newlines (optimization: keep single newlines, closer to the original)
   static String _cleanText(String text) {
     return text
-        .replaceAll(RegExp(r'\n+'), '\n') // 多个换行 → 单个换行
-        .replaceAll(RegExp(r'\s+\n'), '\n') // 换行前的多余空格 → 仅保留换行
-        .replaceAll(RegExp(r'\n\s+'), '\n') // 换行后的多余空格 → 仅保留换行
-        .replaceAll(RegExp(r'[ \t]+'), ' ') // 多个空格/制表符 → 单个空格
-        .trim(); // 去除首尾空格和换行
+        .replaceAll(RegExp(r'\n+'), '\n') // Collapse multiple newlines to one
+        .replaceAll(
+          RegExp(r'\s+\n'),
+          '\n',
+        ) // Trim trailing spaces before newlines
+        .replaceAll(
+          RegExp(r'\n\s+'),
+          '\n',
+        ) // Trim leading spaces after newlines
+        .replaceAll(
+          RegExp(r'[ \t]+'),
+          ' ',
+        ) // Collapse multiple spaces/tabs to one
+        .trim(); // Trim leading/trailing spaces and newlines
   }
 }
 
-/// 图片检测器：遍历 Markdown 节点树，检测是否包含图片节点
+/// An image detector that walks the Markdown node tree looking for image nodes
 class _ImageDetector implements md.NodeVisitor {
   bool hasImage = false;
 
   @override
   void visitText(md.Text text) {
-    // 文本节点无需处理
+    // Text nodes need no handling
   }
 
   @override
   bool visitElementBefore(md.Element element) {
-    // 检测 img 标签（图片节点）
+    // Detect img tags (image nodes)
     if (element.tag == 'img') {
       hasImage = true;
-      return false; // 图片节点无子节点，无需继续遍历
+      return false; // Image nodes have no children to traverse
     }
-    return true; // 继续遍历其他节点的子节点
+    return true; // Continue traversing children of other nodes
   }
 
   @override
   void visitElementAfter(md.Element element) {
-    // 无需处理
+    // Nothing to do
   }
 }
 
-/// 修复重复文本：仅提取最底层文本节点（Text）的内容，忽略父节点
+/// Extract only the innermost Text node contents, ignoring parent nodes (fixes duplicates)
 class _NodeTextExtractor implements md.NodeVisitor {
   final StringBuffer buffer;
   AppLocalizations l10n;
 
   _NodeTextExtractor(this.buffer, this.l10n);
 
-  /// 只处理文本节点：这是最底层的文本来源，不会重复
+  /// Only process text nodes: the innermost text source, no duplicates
   @override
   void visitText(md.Text text) {
     final textContent = text.text.trim();
     if (textContent.isNotEmpty) {
       buffer.write(textContent);
-      // 文本节点之间添加单个空格（避免连在一起）
+      // Add a single space between text nodes (avoid merging)
       buffer.write(" ");
     }
   }
 
   @override
   bool visitElementBefore(md.Element element) {
-    // 处理图片节点：img 标签替换为 [图片]
+    // Handle image nodes: replace the img tag with [image]
     if (element.tag == 'img') {
-      buffer.write("[${l10n.image}] "); // 添加空格避免和其他内容粘连
-      return false; // 图片节点无子节点，无需继续遍历
+      buffer.write(
+        "[${l10n.image}] ",
+      ); // Add a space to avoid sticking to other content
+      return false; // Image nodes have no children to traverse
     }
 
-    // 特殊处理：列表项、段落、表格等节点，添加换行分隔（优化格式）
+    // Special handling: add newlines around list items, paragraphs, tables, etc. (better formatting)
     if (element.tag == 'li' || element.tag == 'p' || element.tag == 'tr') {
       buffer.write("\n");
     }
-    return true; // 必须返回 true，才会继续遍历子节点
+    return true; // Must return true to keep traversing children
   }
 
-  /// 访问元素节点之后：无需处理
+  /// After visiting an element node: nothing to do
   @override
   void visitElementAfter(md.Element element) {}
 }
@@ -126,7 +137,7 @@ String replaceMarkdownImageUrls(
   final doc = md.Document(encodeHtml: false);
   final nodes = doc.parseLines(markdown.split('\n'));
 
-  // 遍历 AST 并替换 img 节点的 src
+  // Walk the AST and replace img node src
   void walk(List<md.Node> list) {
     for (var node in list) {
       if (node is md.Element) {
@@ -143,7 +154,7 @@ String replaceMarkdownImageUrls(
 
   walk(nodes);
 
-  // 简单序列化回 Markdown（覆盖常见节点）
+  // Simple serialization back to Markdown (covers common nodes)
   final renderer = _MiniRenderer();
   return renderer.render(nodes);
 }
@@ -208,7 +219,7 @@ class _MiniRenderer {
           for (var li in node.children ?? []) {
             if (li.tag == 'li') {
               final tmp = StringBuffer();
-              // 渲染 li 到临时 buffer
+              // Render li to a temporary buffer
               final old = _swapBuffer(tmp);
               for (var c in li.children ?? []) {
                 _render(c, parent: li);
@@ -276,7 +287,7 @@ class _MiniRenderer {
     return '';
   }
 
-  // 简化版 buffer swap（用于列表项临时收集）
+  // Simplified buffer swap (for temporary collection in list items)
   StringBuffer _swapBuffer(StringBuffer newBuf) => _buf;
   void _restoreBuffer(StringBuffer old) {}
 }

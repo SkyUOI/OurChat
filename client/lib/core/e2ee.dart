@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:fixnum/fixnum.dart';
-import 'package:ourchat/core/auth_notifier.dart';
 import 'package:ourchat/core/crypto.dart';
 import 'package:ourchat/core/log.dart';
 import 'package:ourchat/core/secret_store.dart';
@@ -35,16 +34,24 @@ class EncryptedPayload {
 /// In-memory + persistent store of per-session E2EE room keys, plus helpers to
 /// encrypt/decrypt message payloads.
 ///
-/// A session is considered E2EE-from-our-point-of-view when we hold a room key
-/// for it. The room key is distributed by the e2eeize initiator (encrypted to
-/// each member's RSA public key) and decrypted locally with our private key.
+/// Scoped to one (serverId, accountId): each logged-in identity keeps its own
+/// room keys, persisted under its own SecretStore namespace.
 @Riverpod(keepAlive: true)
 class E2eeStore extends _$E2eeStore {
   /// sessionId (Int64.toInt()) -> room key bytes
   final Map<int, Uint8List> _keys = {};
 
+  /// This store's server id (family argument).
+  String get _serverId => serverId;
+
+  /// This store's account id (family argument).
+  Int64 get _accountId => accountId;
+
+  /// This identity's RSA private key, lazily loaded from SecretStore.
+  Uint8List? _privateKey;
+
   @override
-  Map<int, Uint8List> build() => _keys;
+  Map<int, Uint8List> build(String serverId, Int64 accountId) => _keys;
 
   /// Whether we hold a room key for [sessionId] (i.e. messages to/from it are
   /// end-to-end encrypted for us).
@@ -56,14 +63,14 @@ class E2eeStore extends _$E2eeStore {
   /// Store a freshly received/generated room key, persisting it securely.
   Future<void> storeKey(Int64 sessionId, Uint8List key) async {
     _keys[sessionId.toInt()] = key;
-    await SecretStore.saveRoomKey(sessionId, key);
+    await SecretStore.saveRoomKey(_serverId, sessionId, key);
     logger.i('E2EE: stored room key for session $sessionId');
   }
 
   /// Drop a session's room key (e.g. when the session is dee2eeized).
   Future<void> removeKey(Int64 sessionId) async {
     _keys.remove(sessionId.toInt());
-    await SecretStore.deleteRoomKey(sessionId);
+    await SecretStore.deleteRoomKey(_serverId, sessionId);
   }
 
   /// Load any persisted room keys on demand for a session.
@@ -71,7 +78,7 @@ class E2eeStore extends _$E2eeStore {
     if (_keys.containsKey(sessionId.toInt())) {
       return _keys[sessionId.toInt()];
     }
-    final k = await SecretStore.readRoomKey(sessionId);
+    final k = await SecretStore.readRoomKey(_serverId, sessionId);
     if (k != null) {
       _keys[sessionId.toInt()] = k;
     }
@@ -118,10 +125,17 @@ class E2eeStore extends _$E2eeStore {
     return rsaEncrypt(derPublicKey, roomKey);
   }
 
-  /// Unwrap (decrypt) a room key that was wrapped for us. Requires our private
-  /// key to be loaded in [AuthNotifier].
+  /// This identity's private key, loaded (and cached) from SecretStore.
+  Future<Uint8List?> _loadPrivateKey() async {
+    if (_privateKey != null) return _privateKey;
+    _privateKey = await SecretStore.readPrivateKey(_serverId, _accountId);
+    return _privateKey;
+  }
+
+  /// Unwrap (decrypt) a room key that was wrapped for us, using this
+  /// identity's own private key.
   Future<Uint8List?> unwrapRoomKey(Uint8List wrapped) async {
-    final priv = ref.read(authProvider.notifier).privateKey;
+    final priv = await _loadPrivateKey();
     if (priv == null) {
       logger.w('E2EE: cannot unwrap room key, private key not loaded');
       return null;
