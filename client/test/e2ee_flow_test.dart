@@ -22,7 +22,6 @@ void main() {
   group('E2EE two-party flow', () {
     test('full send/receive round trip recovers the original message', () {
       // --- setup: two participants ---
-      final alice = generateRsaKeyPair();
       final bob = generateRsaKeyPair();
 
       // --- step 1: Alice generates the room key (on UpdateRoomKey) ---
@@ -67,7 +66,6 @@ void main() {
     });
 
     test('group: one room key wrapped for multiple recipients', () {
-      final alice = generateRsaKeyPair();
       final members = [for (var i = 0; i < 5; i++) generateRsaKeyPair()];
 
       // Alice generates a single room key for the session.
@@ -100,8 +98,6 @@ void main() {
     test(
       'room key rotation produces a distinct key and old key is obsolete',
       () {
-        final bob = generateRsaKeyPair();
-
         final oldKey = generateRoomKey();
         final newKey = generateRoomKey();
         expect(oldKey, isNot(equals(newKey)));

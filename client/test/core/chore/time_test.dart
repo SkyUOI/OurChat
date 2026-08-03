@@ -48,6 +48,7 @@ void main() {
 
     test('comparing to a non-OurChatTime returns false', () {
       final a = OurChatTime.fromDatetime(DateTime.utc(2026, 1, 1));
+      // ignore: unrelated_type_equality_checks
       expect(a == 'not a time', isFalse);
     });
   });

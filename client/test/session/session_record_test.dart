@@ -9,7 +9,6 @@ class _FileCardBuilder {
     required String contentType,
     required String filename,
     required int size,
-    bool isLocal = false,
   }) {
     IconData fileIcon;
     if (contentType.startsWith('video/')) {
