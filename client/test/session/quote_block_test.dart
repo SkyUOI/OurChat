@@ -11,14 +11,19 @@ void main() {
   late ProviderContainer container;
 
   ProviderContainer makeContainer() {
-    final c = ProviderContainer(overrides: [
-      activeAccountTestOverride,
-      ourChatServerProvider.overrideWithValue(
-        FakeOurChatServer(MockOurChatClient()),
-      ),
-      overrideAccount(Int64(1), buildTestAccount(Int64(1), 'alice')),
-      overrideAccount(Int64(2), buildTestAccount(Int64(2), 'bob', displayName: 'Bob')),
-    ]);
+    final c = ProviderContainer(
+      overrides: [
+        activeAccountTestOverride,
+        ourChatServerProvider.overrideWithValue(
+          FakeOurChatServer(MockOurChatClient()),
+        ),
+        overrideAccount(Int64(1), buildTestAccount(Int64(1), 'alice')),
+        overrideAccount(
+          Int64(2),
+          buildTestAccount(Int64(2), 'bob', displayName: 'Bob'),
+        ),
+      ],
+    );
     addTearDown(c.dispose);
     return c;
   }
@@ -70,8 +75,9 @@ void main() {
       expect(find.text('[${l10n.image}]'), findsOneWidget);
     });
 
-    testWidgets('shows unavailable placeholder when quoted text is empty',
-        (tester) async {
+    testWidgets('shows unavailable placeholder when quoted text is empty', (
+      tester,
+    ) async {
       await pumpMessage(
         tester,
         UserMsg(
@@ -86,8 +92,9 @@ void main() {
       expect(find.text(l10n.quoteUnavailable), findsOneWidget);
     });
 
-    testWidgets('no quote block rendered when there is no quote',
-        (tester) async {
+    testWidgets('no quote block rendered when there is no quote', (
+      tester,
+    ) async {
       await pumpMessage(
         tester,
         UserMsg(senderId: Int64(1), eventId: Int64(10), markdownText: 'hi'),
@@ -98,8 +105,9 @@ void main() {
   });
 
   group('MessageWidget long-press quote menu', () {
-    testWidgets('long-press offers Quote and sets the quote target',
-        (tester) async {
+    testWidgets('long-press offers Quote and sets the quote target', (
+      tester,
+    ) async {
       final msg = UserMsg(
         senderId: Int64(1),
         eventId: Int64(10),
@@ -127,8 +135,9 @@ void main() {
       expect(container.read(quoteTargetProvider)?.markdownText, 'hello');
     });
 
-    testWidgets('dismissing the menu does not set a quote target',
-        (tester) async {
+    testWidgets('dismissing the menu does not set a quote target', (
+      tester,
+    ) async {
       final msg = UserMsg(
         senderId: Int64(1),
         eventId: Int64(10),

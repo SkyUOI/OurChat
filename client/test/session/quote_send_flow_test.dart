@@ -16,60 +16,74 @@ void main() {
   });
 
   testWidgets(
-      'sending with a quote target injects quoteMsgId and clears the target',
-      (tester) async {
+    'sending with a quote target injects quoteMsgId and clears the target',
+    (tester) async {
+      final client = MockOurChatClient();
+      when(
+        () => client.sendMsg(any(), options: any(named: 'options')),
+      ).thenAnswer((_) => responseFutureOf(SendMsgResponse(msgId: Int64(100))));
+
+      final container = ProviderContainer(
+        overrides: [
+          activeAccountTestOverride,
+          ourChatServerProvider.overrideWithValue(FakeOurChatServer(client)),
+          overrideAccount(Int64(1), buildTestAccount(Int64(1), 'alice')),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      container
+          .read(quoteTargetProvider.notifier)
+          .setQuote(
+            UserMsg(
+              senderId: Int64(2),
+              eventId: Int64(5),
+              markdownText: 'quote me',
+            ),
+          );
+      container.read(sessionProvider.notifier).state = SessionState(
+        tabIndex: TabType.session,
+        currentSessionId: Int64(1),
+        currentSessionRecords: const [],
+      );
+
+      await tester.pumpWidget(
+        buildTestApp(container: container, child: const SessionTab()),
+      );
+      await tester.pump();
+
+      await tester.enterText(find.byType(TextFormField), 'reply text');
+      await tester.tap(find.text(l10n.send));
+      await tester.pumpAndSettle();
+
+      final captured = verify(
+        () => client.sendMsg(captureAny(), options: any(named: 'options')),
+      ).captured;
+      final request = captured.single as SendMsgRequest;
+      expect(request.sessionId, Int64(1));
+      expect(request.markdownText, 'reply text');
+      expect(request.isEncrypted, isFalse);
+      expect(request.quoteMsgId, Int64(5));
+
+      expect(container.read(quoteTargetProvider), isNull);
+    },
+  );
+
+  testWidgets('sending without a quote target sends quoteMsgId zero', (
+    tester,
+  ) async {
     final client = MockOurChatClient();
-    when(() => client.sendMsg(any(), options: any(named: 'options')))
-        .thenAnswer((_) => responseFutureOf(SendMsgResponse(msgId: Int64(100))));
+    when(
+      () => client.sendMsg(any(), options: any(named: 'options')),
+    ).thenAnswer((_) => responseFutureOf(SendMsgResponse(msgId: Int64(100))));
 
-    final container = ProviderContainer(overrides: [
-      activeAccountTestOverride,
-      ourChatServerProvider.overrideWithValue(FakeOurChatServer(client)),
-      overrideAccount(Int64(1), buildTestAccount(Int64(1), 'alice')),
-    ]);
-    addTearDown(container.dispose);
-
-    container.read(quoteTargetProvider.notifier).setQuote(
-      UserMsg(senderId: Int64(2), eventId: Int64(5), markdownText: 'quote me'),
+    final container = ProviderContainer(
+      overrides: [
+        activeAccountTestOverride,
+        ourChatServerProvider.overrideWithValue(FakeOurChatServer(client)),
+        overrideAccount(Int64(1), buildTestAccount(Int64(1), 'alice')),
+      ],
     );
-    container.read(sessionProvider.notifier).state = SessionState(
-      tabIndex: TabType.session,
-      currentSessionId: Int64(1),
-      currentSessionRecords: const [],
-    );
-
-    await tester.pumpWidget(
-      buildTestApp(container: container, child: const SessionTab()),
-    );
-    await tester.pump();
-
-    await tester.enterText(find.byType(TextFormField), 'reply text');
-    await tester.tap(find.text(l10n.send));
-    await tester.pumpAndSettle();
-
-    final captured = verify(
-      () => client.sendMsg(captureAny(), options: any(named: 'options')),
-    ).captured;
-    final request = captured.single as SendMsgRequest;
-    expect(request.sessionId, Int64(1));
-    expect(request.markdownText, 'reply text');
-    expect(request.isEncrypted, isFalse);
-    expect(request.quoteMsgId, Int64(5));
-
-    expect(container.read(quoteTargetProvider), isNull);
-  });
-
-  testWidgets('sending without a quote target sends quoteMsgId zero',
-      (tester) async {
-    final client = MockOurChatClient();
-    when(() => client.sendMsg(any(), options: any(named: 'options')))
-        .thenAnswer((_) => responseFutureOf(SendMsgResponse(msgId: Int64(100))));
-
-    final container = ProviderContainer(overrides: [
-      activeAccountTestOverride,
-      ourChatServerProvider.overrideWithValue(FakeOurChatServer(client)),
-      overrideAccount(Int64(1), buildTestAccount(Int64(1), 'alice')),
-    ]);
     addTearDown(container.dispose);
 
     container.read(sessionProvider.notifier).state = SessionState(
@@ -96,13 +110,16 @@ void main() {
 
   testWidgets('input validator blocks empty sends', (tester) async {
     final client = MockOurChatClient();
-    when(() => client.sendMsg(any(), options: any(named: 'options')))
-        .thenAnswer((_) => responseFutureOf(SendMsgResponse(msgId: Int64(100))));
+    when(
+      () => client.sendMsg(any(), options: any(named: 'options')),
+    ).thenAnswer((_) => responseFutureOf(SendMsgResponse(msgId: Int64(100))));
 
-    final container = ProviderContainer(overrides: [
-      activeAccountTestOverride,
-      ourChatServerProvider.overrideWithValue(FakeOurChatServer(client)),
-    ]);
+    final container = ProviderContainer(
+      overrides: [
+        activeAccountTestOverride,
+        ourChatServerProvider.overrideWithValue(FakeOurChatServer(client)),
+      ],
+    );
     addTearDown(container.dispose);
     container.read(sessionProvider.notifier).state = SessionState(
       tabIndex: TabType.session,

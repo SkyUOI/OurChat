@@ -37,26 +37,28 @@ void main() {
     expect(store.keyFor(sessionId), equals(key));
   });
 
-  test('encryptMessage -> decryptMessage recovers the original payload',
-      () async {
-    final sessionId = Int64(42);
-    await store.storeKey(sessionId, Uint8List.fromList(List.filled(32, 9)));
+  test(
+    'encryptMessage -> decryptMessage recovers the original payload',
+    () async {
+      final sessionId = Int64(42);
+      await store.storeKey(sessionId, Uint8List.fromList(List.filled(32, 9)));
 
-    const payload = EncryptedPayload(
-      markdownText: 'hello **encrypted** world 🦀',
-      involvedFiles: ['filekey1', 'filekey2'],
-    );
+      const payload = EncryptedPayload(
+        markdownText: 'hello **encrypted** world 🦀',
+        involvedFiles: ['filekey1', 'filekey2'],
+      );
 
-    final ciphertext = store.encryptMessage(sessionId, payload);
-    // The wire form is base64 text, never the plaintext.
-    expect(ciphertext, isNot(contains('hello')));
-    expect(() => base64.decode(ciphertext), returnsNormally);
+      final ciphertext = store.encryptMessage(sessionId, payload);
+      // The wire form is base64 text, never the plaintext.
+      expect(ciphertext, isNot(contains('hello')));
+      expect(() => base64.decode(ciphertext), returnsNormally);
 
-    final recovered = await store.decryptMessage(sessionId, ciphertext);
-    expect(recovered, isNotNull);
-    expect(recovered!.markdownText, payload.markdownText);
-    expect(recovered.involvedFiles, payload.involvedFiles);
-  });
+      final recovered = await store.decryptMessage(sessionId, ciphertext);
+      expect(recovered, isNotNull);
+      expect(recovered!.markdownText, payload.markdownText);
+      expect(recovered.involvedFiles, payload.involvedFiles);
+    },
+  );
 
   test('encryptMessage without a room key throws StateError', () {
     final sessionId = Int64(9999); // no key stored
@@ -71,8 +73,10 @@ void main() {
 
   test('decryptMessage returns null for a session without a key', () async {
     final sessionId = Int64(1234); // no key
-    final result =
-        await store.decryptMessage(sessionId, 'dGhpcyBpcyBub3QgdmFsaWQ=');
+    final result = await store.decryptMessage(
+      sessionId,
+      'dGhpcyBpcyBub3QgdmFsaWQ=',
+    );
     expect(result, isNull);
   });
 
@@ -100,20 +104,23 @@ void main() {
     expect(result, isNull);
   });
 
-  test('two payloads under the same key produce different ciphertexts', () async {
-    final sessionId = Int64(100);
-    await store.storeKey(sessionId, Uint8List.fromList(List.filled(32, 5)));
-    final a = store.encryptMessage(
-      sessionId,
-      const EncryptedPayload(markdownText: 'same', involvedFiles: []),
-    );
-    final b = store.encryptMessage(
-      sessionId,
-      const EncryptedPayload(markdownText: 'same', involvedFiles: []),
-    );
-    // Random IV per encryption => distinct ciphertexts.
-    expect(a, isNot(equals(b)));
-  });
+  test(
+    'two payloads under the same key produce different ciphertexts',
+    () async {
+      final sessionId = Int64(100);
+      await store.storeKey(sessionId, Uint8List.fromList(List.filled(32, 5)));
+      final a = store.encryptMessage(
+        sessionId,
+        const EncryptedPayload(markdownText: 'same', involvedFiles: []),
+      );
+      final b = store.encryptMessage(
+        sessionId,
+        const EncryptedPayload(markdownText: 'same', involvedFiles: []),
+      );
+      // Random IV per encryption => distinct ciphertexts.
+      expect(a, isNot(equals(b)));
+    },
+  );
 
   test('wrapRoomKey produces RSA ciphertext decryptable to the original', () {
     // Simulates the e2eeize initiator wrapping the room key for a member whose

@@ -41,8 +41,11 @@ void main() {
       final instances = fx.container.read(instancesProvider);
       expect(instances.length, 2);
       final keys = instances.keys.toList();
-      expect(keys[0].serverId, isNot(keys[1].serverId),
-          reason: 'each account belongs to its own server');
+      expect(
+        keys[0].serverId,
+        isNot(keys[1].serverId),
+        reason: 'each account belongs to its own server',
+      );
       expect(
         {keys[0].serverId, keys[1].serverId},
         {fx.serverIdA, fx.serverIdB},
@@ -66,7 +69,10 @@ void main() {
       expect(fx.container.read(activeServerIdProvider), fx.serverIdB);
       expect(fx.container.read(activeAccountIdProvider), fx.accountIdB);
       expect(fx.container.read(thisAccountIdProvider), fx.accountIdB);
-      expect(privateDB, same(instances[AccountKey(fx.serverIdB, fx.accountIdB)]!.privateDB));
+      expect(
+        privateDB,
+        same(instances[AccountKey(fx.serverIdB, fx.accountIdB)]!.privateDB),
+      );
 
       // ── ④ Switch back to A ──
       fx.switchTo(fx.serverIdA, fx.accountIdA);
@@ -85,10 +91,15 @@ void main() {
 
       // Provision a peer + session on server A only.
       final bob = await fx.appA.registerUser();
-      final sessionA = await fx.userA.createSession([bob]).then((r) => r.sessionId);
+      final sessionA = await fx.userA
+          .createSession([bob])
+          .then((r) => r.sessionId);
 
       // Send a message as account A on server A.
-      await fx.sendAsAccountA(sessionId: sessionA, markdownText: 'hello from server A');
+      await fx.sendAsAccountA(
+        sessionId: sessionA,
+        markdownText: 'hello from server A',
+      );
 
       // Account A's event system delivers it.
       final received = await fx.waitForMsgA(
@@ -111,8 +122,11 @@ void main() {
         isTrue,
         reason: 'server A message persisted into A private DB',
       );
-      expect(bRecords, isEmpty,
-          reason: 'server B private DB must not contain server A messages');
+      expect(
+        bRecords,
+        isEmpty,
+        reason: 'server B private DB must not contain server A messages',
+      );
 
       // Cleanup
       try {
@@ -121,55 +135,59 @@ void main() {
     },
   );
 
-  testWidgets(
-    'two accounts on the SAME server coexist as separate instances',
-    (_) async {
-      final ok = await fx.setUp();
-      if (!ok) {
-        markTestSkipped('servers at localhost:7777 / 7778 are not reachable');
-        return;
-      }
+  testWidgets('two accounts on the SAME server coexist as separate instances', (
+    _,
+  ) async {
+    final ok = await fx.setUp();
+    if (!ok) {
+      markTestSkipped('servers at localhost:7777 / 7778 are not reachable');
+      return;
+    }
 
-      // Register + login a second account on server A.
-      final userA2 = await fx.appA.registerUser();
-      final okLogin = await fx.container
-          .read(authProvider.notifier)
-          .login(
-            email: userA2.email,
-            password: userA2.password,
-            server: fx.serverA,
-          );
-      expect(okLogin, isTrue);
-      final accountA2 = fx.container.read(authProvider).accountId!;
-
-      final dbA2 = database.OurChatDatabase(
-        fx.serverIdA,
-        accountA2,
-        NativeDatabase.memory(),
-      );
-      fx.container.read(instancesProvider.notifier).add(
-        OurChatInstance(
-          serverId: fx.serverIdA,
-          accountId: accountA2,
+    // Register + login a second account on server A.
+    final userA2 = await fx.appA.registerUser();
+    final okLogin = await fx.container
+        .read(authProvider.notifier)
+        .login(
+          email: userA2.email,
+          password: userA2.password,
           server: fx.serverA,
-          privateDB: dbA2,
-        ),
-      );
+        );
+    expect(okLogin, isTrue);
+    final accountA2 = fx.container.read(authProvider).accountId!;
 
-      final instances = fx.container.read(instancesProvider);
-      expect(instances.length, 3);
-      final onServerA = instances.values.where((i) => i.serverId == fx.serverIdA);
-      expect(onServerA.length, 2,
-          reason: 'two accounts share server A as separate instances');
-      expect(
-        onServerA.map((i) => i.accountId).toSet(),
-        {fx.accountIdA, accountA2},
-      );
-      expect(
-        onServerA.first.privateDB,
-        isNot(same(onServerA.last.privateDB)),
-        reason: 'per-account private DB even on the same server',
-      );
-    },
-  );
+    final dbA2 = database.OurChatDatabase(
+      fx.serverIdA,
+      accountA2,
+      NativeDatabase.memory(),
+    );
+    fx.container
+        .read(instancesProvider.notifier)
+        .add(
+          OurChatInstance(
+            serverId: fx.serverIdA,
+            accountId: accountA2,
+            server: fx.serverA,
+            privateDB: dbA2,
+          ),
+        );
+
+    final instances = fx.container.read(instancesProvider);
+    expect(instances.length, 3);
+    final onServerA = instances.values.where((i) => i.serverId == fx.serverIdA);
+    expect(
+      onServerA.length,
+      2,
+      reason: 'two accounts share server A as separate instances',
+    );
+    expect(onServerA.map((i) => i.accountId).toSet(), {
+      fx.accountIdA,
+      accountA2,
+    });
+    expect(
+      onServerA.first.privateDB,
+      isNot(same(onServerA.last.privateDB)),
+      reason: 'per-account private DB even on the same server',
+    );
+  });
 }

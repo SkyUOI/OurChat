@@ -41,8 +41,9 @@ void main() {
 
       // --- step 4: Alice encrypts a message ---
       const plaintext = 'Hey Bob, this is secret 🔒';
-      final payloadBytes =
-          Uint8List.fromList(utf8.encode('{"m":"$plaintext","f":[]}'));
+      final payloadBytes = Uint8List.fromList(
+        utf8.encode('{"m":"$plaintext","f":[]}'),
+      );
       final ciphertext = aesGcmEncrypt(roomKey, payloadBytes);
 
       // --- step 5: Bob decrypts with the unwrapped room key ---
@@ -79,7 +80,10 @@ void main() {
 
       // Every member can unwrap to the SAME room key...
       for (var i = 0; i < members.length; i++) {
-        expect(rsaDecrypt(members[i].privateKey, wrappedKeys[i]), equals(roomKey));
+        expect(
+          rsaDecrypt(members[i].privateKey, wrappedKeys[i]),
+          equals(roomKey),
+        );
       }
 
       // ...and thus all decrypt the same broadcast ciphertext.
@@ -93,21 +97,24 @@ void main() {
       }
     });
 
-    test('room key rotation produces a distinct key and old key is obsolete', () {
-      final bob = generateRsaKeyPair();
+    test(
+      'room key rotation produces a distinct key and old key is obsolete',
+      () {
+        final bob = generateRsaKeyPair();
 
-      final oldKey = generateRoomKey();
-      final newKey = generateRoomKey();
-      expect(oldKey, isNot(equals(newKey)));
+        final oldKey = generateRoomKey();
+        final newKey = generateRoomKey();
+        expect(oldKey, isNot(equals(newKey)));
 
-      // A message encrypted under the new key cannot be read with the old key.
-      final ciphertext = aesGcmEncrypt(
-        newKey,
-        Uint8List.fromList(utf8.encode('rotated')),
-      );
-      expect(() => aesGcmDecrypt(oldKey, ciphertext), throwsA(anything));
-      expect(utf8.decode(aesGcmDecrypt(newKey, ciphertext)), 'rotated');
-    });
+        // A message encrypted under the new key cannot be read with the old key.
+        final ciphertext = aesGcmEncrypt(
+          newKey,
+          Uint8List.fromList(utf8.encode('rotated')),
+        );
+        expect(() => aesGcmDecrypt(oldKey, ciphertext), throwsA(anything));
+        expect(utf8.decode(aesGcmDecrypt(newKey, ciphertext)), 'rotated');
+      },
+    );
 
     test('keypair round-trips through PKCS#1 DER persistence', () {
       // Verifies that persisting the private key to secure storage (as DER)

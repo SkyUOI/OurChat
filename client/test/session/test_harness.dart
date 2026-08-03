@@ -14,11 +14,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 /// Build an [AccountData] with sensible defaults so tests don't have to spell
 /// out every required field.
-AccountData buildTestAccount(
-  Int64 id,
-  String username, {
-  String? displayName,
-}) {
+AccountData buildTestAccount(Int64 id, String username, {String? displayName}) {
   final now = DateTime.now();
   return AccountData(
     id: id,
@@ -64,9 +60,10 @@ class StubAccountNotifier extends OurChatAccount {
 /// Override [ourChatAccountProvider] for [id] (on the test server) to return
 /// [account].
 Override overrideAccount(Int64 id, AccountData account) {
-  return ourChatAccountProvider(testServerId, id).overrideWith(
-    () => StubAccountNotifier(account),
-  );
+  return ourChatAccountProvider(
+    testServerId,
+    id,
+  ).overrideWith(() => StubAccountNotifier(account));
 }
 
 /// An [OurChatServer] whose `newStub()` returns a test-controlled client,
@@ -84,15 +81,15 @@ class FakeOurChatServer extends OurChatServer {
 /// transport. Used to build a resolvable `ResponseFuture` for mock stubs.
 class _ValueClientCall<R> extends ClientCall<dynamic, R> {
   _ValueClientCall(this._value)
-      : super(
-          ClientMethod<dynamic, R>(
-            '/fake',
-            (request) => const <int>[],
-            (bytes) => throw UnimplementedError(),
-          ),
-          const Stream.empty(),
-          CallOptions(),
-        );
+    : super(
+        ClientMethod<dynamic, R>(
+          '/fake',
+          (request) => const <int>[],
+          (bytes) => throw UnimplementedError(),
+        ),
+        const Stream.empty(),
+        CallOptions(),
+      );
 
   final R _value;
 

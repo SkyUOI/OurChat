@@ -25,7 +25,8 @@ void main() {
           ),
           SavedAccount(
             serverId: 'srv-b',
-            accountId: 42, // same numeric id, different server — must not collide
+            accountId:
+                42, // same numeric id, different server — must not collide
             lastLoginAt: DateTime.utc(2024, 6, 7),
           ),
         ],

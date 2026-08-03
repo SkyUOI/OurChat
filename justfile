@@ -24,7 +24,7 @@ pyfmt:
 
 # Format Dart code
 dartfmt:
-    @cd client && dart format lib/ || echo "dart is not installed. Ignored"
+    @cd client && dart format ./ || echo "dart is not installed. Ignored"
 
 # Format web-panel (TypeScript/JavaScript)
 webfmt:

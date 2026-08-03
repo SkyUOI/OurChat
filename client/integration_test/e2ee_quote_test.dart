@@ -20,8 +20,9 @@ void main() {
 
   tearDownAll(() async => await fx.tearDown());
 
-  testWidgets('E2EE message is encrypted on wire + quote preserves fields',
-      (_) async {
+  testWidgets('E2EE message is encrypted on wire + quote preserves fields', (
+    _,
+  ) async {
     final ok = await fx.setUp();
     if (!ok) {
       markTestSkipped('server at localhost:7777 is not reachable');
@@ -57,22 +58,36 @@ void main() {
     // MUST register waitForMsg listener right after send, before any other
     // async work, so the event system's listener doesn't miss the message.
     await fx.sendAsClient(sessionId: sid, markdownText: 'secret message');
-    final decrypted = await fx.waitForMsg((m) => m.markdownText == 'secret message');
-    expect(decrypted.markdownText, 'secret message',
-        reason: 'event system should decrypt using the room key');
+    final decrypted = await fx.waitForMsg(
+      (m) => m.markdownText == 'secret message',
+    );
+    expect(
+      decrypted.markdownText,
+      'secret message',
+      reason: 'event system should decrypt using the room key',
+    );
     expect(decrypted.eventId, isNotNull);
-    expect(decrypted.eventId, isNot(equals(Int64.ZERO)),
-        reason: 'server should assign a non-zero event id');
+    expect(
+      decrypted.eventId,
+      isNot(equals(Int64.ZERO)),
+      reason: 'server should assign a non-zero event id',
+    );
 
     // ── ③ Verify the wire-level message was encrypted ──
     final rawMsgs = await fx.user
         .fetchMsgs(historyLimit: Int64(10))
         .fetchUntil((m) => m.sessionId == sid && m.isEncrypted);
     final rawSecret = rawMsgs.firstWhere((m) => m.isEncrypted);
-    expect(rawSecret.isEncrypted, isTrue,
-        reason: 'BUG #4: message must be encrypted on the wire in E2EE sessions');
-    expect(rawSecret.markdownText, isNot(equals('secret message')),
-        reason: 'wire text should be ciphertext');
+    expect(
+      rawSecret.isEncrypted,
+      isTrue,
+      reason: 'BUG #4: message must be encrypted on the wire in E2EE sessions',
+    );
+    expect(
+      rawSecret.markdownText,
+      isNot(equals('secret message')),
+      reason: 'wire text should be ciphertext',
+    );
 
     // ── ④ Send a quote of the encrypted message ──
     await fx.sendAsClient(
@@ -80,26 +95,35 @@ void main() {
       markdownText: 'encrypted quote reply',
       quoteMsgId: decrypted.eventId,
     );
-    final reply =
-        await fx.waitForMsg((m) => m.markdownText == 'encrypted quote reply');
+    final reply = await fx.waitForMsg(
+      (m) => m.markdownText == 'encrypted quote reply',
+    );
 
     // ── ⑤ Verify E2EE quote behavior ──
     // Server fills in ID + sender (from metadata), but NOT the text
     // (it can't decrypt the quoted message).
-    expect(reply.quoteMsgId, decrypted.eventId,
-        reason: 'server fills in quote_msg_id from message metadata');
-    expect(reply.quoteSenderId, fx.accountId,
-        reason: 'server fills in quote_sender_id from message metadata');
+    expect(
+      reply.quoteMsgId,
+      decrypted.eventId,
+      reason: 'server fills in quote_msg_id from message metadata',
+    );
+    expect(
+      reply.quoteSenderId,
+      fx.accountId,
+      reason: 'server fills in quote_sender_id from message metadata',
+    );
 
     // ── ⑥ Verify local DB retains decrypted text for _resolveQuote ──
     final records = await fx.dbRecords();
     final originalRow = records.firstWhere(
       (r) => r.eventId == BigInt.from(decrypted.eventId!.toInt()),
     );
-    final originalData =
-        jsonDecode(originalRow.data) as Map<String, dynamic>;
-    expect(originalData['markdown_text'], 'secret message',
-        reason: 'local DB should have decrypted text for _resolveQuote');
+    final originalData = jsonDecode(originalRow.data) as Map<String, dynamic>;
+    expect(
+      originalData['markdown_text'],
+      'secret message',
+      reason: 'local DB should have decrypted text for _resolveQuote',
+    );
 
     // Cleanup
     try {

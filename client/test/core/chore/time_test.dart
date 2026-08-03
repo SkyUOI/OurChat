@@ -22,10 +22,7 @@ void main() {
       final t = OurChatTime.fromTimestamp(
         Timestamp(seconds: Int64(epochSeconds)),
       );
-      expect(
-        t.datetime.microsecondsSinceEpoch,
-        epochSeconds * 1000000,
-      );
+      expect(t.datetime.microsecondsSinceEpoch, epochSeconds * 1000000);
     });
 
     test('datetime -> timestamp records correct epoch seconds', () {
@@ -86,7 +83,9 @@ void main() {
       // Note: == compares the full-precision datetime, not the rounded
       // timestamp. Two OurChatTimes built from distinct datetimes are never
       // equal even if their rounded timestamps coincide.
-      final a = OurChatTime.fromDatetime(DateTime.utc(2026, 1, 1, 0, 0, 0, 100));
+      final a = OurChatTime.fromDatetime(
+        DateTime.utc(2026, 1, 1, 0, 0, 0, 100),
+      );
       final b = OurChatTime.fromDatetime(DateTime.utc(2026, 1, 1, 0, 0, 0, 0));
       expect(a == b, isFalse);
     });

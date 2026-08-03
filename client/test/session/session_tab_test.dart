@@ -17,8 +17,9 @@ class _CacheFileHelper {
     required String path,
     required bool isImage,
   }) {
-    final breakLine =
-        currentText.isEmpty || currentText.endsWith('\n') ? '' : '\n';
+    final breakLine = currentText.isEmpty || currentText.endsWith('\n')
+        ? ''
+        : '\n';
     if (isImage) {
       return '$currentText$breakLine![$filename]($path)';
     }

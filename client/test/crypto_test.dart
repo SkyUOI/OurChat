@@ -44,10 +44,7 @@ void main() {
 
     test('tampering with the ciphertext throws', () {
       final key = generateRoomKey();
-      final packed = aesGcmEncrypt(
-        key,
-        Uint8List.fromList(utf8.encode('msg')),
-      );
+      final packed = aesGcmEncrypt(key, Uint8List.fromList(utf8.encode('msg')));
       packed[packed.length - 1] ^= 0xFF; // flip a tag bit
       expect(() => aesGcmDecrypt(key, packed), throwsA(anything));
     });
@@ -55,10 +52,7 @@ void main() {
     test('wrong key fails authentication', () {
       final key = generateRoomKey();
       final other = generateRoomKey();
-      final packed = aesGcmEncrypt(
-        key,
-        Uint8List.fromList(utf8.encode('msg')),
-      );
+      final packed = aesGcmEncrypt(key, Uint8List.fromList(utf8.encode('msg')));
       expect(() => aesGcmDecrypt(other, packed), throwsA(anything));
     });
 

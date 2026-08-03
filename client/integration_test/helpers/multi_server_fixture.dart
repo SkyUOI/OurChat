@@ -63,7 +63,9 @@ class MultiServerFixture {
     userB = await appB.registerUser();
 
     // In-memory SecretStore.
-    FlutterSecureStoragePlatform.instance = TestFlutterSecureStoragePlatform({});
+    FlutterSecureStoragePlatform.instance = TestFlutterSecureStoragePlatform(
+      {},
+    );
     l10n = await AppLocalizations.delegate.load(const Locale('en'));
     publicDB = database.PublicOurChatDatabase(NativeDatabase.memory());
 
@@ -82,8 +84,16 @@ class MultiServerFixture {
       throw StateError('servers share the same uniqueIdentifier: $serverIdA');
     }
 
-    await SecretStore.savePrivateKey(serverIdA, userA.id, userA.keyPair.privateKey);
-    await SecretStore.savePrivateKey(serverIdB, userB.id, userB.keyPair.privateKey);
+    await SecretStore.savePrivateKey(
+      serverIdA,
+      userA.id,
+      userA.keyPair.privateKey,
+    );
+    await SecretStore.savePrivateKey(
+      serverIdB,
+      userB.id,
+      userB.keyPair.privateKey,
+    );
 
     container = ProviderContainer(
       overrides: [ourChatServerProvider.overrideWithValue(serverA)],
@@ -93,7 +103,9 @@ class MultiServerFixture {
     final okA = await container
         .read(authProvider.notifier)
         .login(email: userA.email, password: userA.password, server: serverA);
-    debugPrint('[MultiServer] login A ok=$okA err=${container.read(authProvider).error}');
+    debugPrint(
+      '[MultiServer] login A ok=$okA err=${container.read(authProvider).error}',
+    );
     if (!okA) return false;
     accountIdA = container.read(authProvider).accountId!;
 
@@ -101,7 +113,9 @@ class MultiServerFixture {
     final okB = await container
         .read(authProvider.notifier)
         .login(email: userB.email, password: userB.password, server: serverB);
-    debugPrint('[MultiServer] login B ok=$okB err=${container.read(authProvider).error}');
+    debugPrint(
+      '[MultiServer] login B ok=$okB err=${container.read(authProvider).error}',
+    );
     if (!okB) return false;
     accountIdB = container.read(authProvider).accountId!;
 
@@ -111,27 +125,31 @@ class MultiServerFixture {
       accountIdA,
       NativeDatabase.memory(),
     );
-    container.read(instancesProvider.notifier).add(
-      OurChatInstance(
-        serverId: serverIdA,
-        accountId: accountIdA,
-        server: serverA,
-        privateDB: dbA,
-      ),
-    );
+    container
+        .read(instancesProvider.notifier)
+        .add(
+          OurChatInstance(
+            serverId: serverIdA,
+            accountId: accountIdA,
+            server: serverA,
+            privateDB: dbA,
+          ),
+        );
     final dbB = database.OurChatDatabase(
       serverIdB,
       accountIdB,
       NativeDatabase.memory(),
     );
-    container.read(instancesProvider.notifier).add(
-      OurChatInstance(
-        serverId: serverIdB,
-        accountId: accountIdB,
-        server: serverB,
-        privateDB: dbB,
-      ),
-    );
+    container
+        .read(instancesProvider.notifier)
+        .add(
+          OurChatInstance(
+            serverId: serverIdB,
+            accountId: accountIdB,
+            server: serverB,
+            privateDB: dbB,
+          ),
+        );
 
     // Active account = A; mirror into legacy globals.
     container
@@ -164,7 +182,9 @@ class MultiServerFixture {
     final inst = container.read(instancesProvider)[key];
     if (inst != null) {
       privateDB = inst.privateDB;
-      container.read(thisAccountIdProvider.notifier).setAccountId(inst.accountId);
+      container
+          .read(thisAccountIdProvider.notifier)
+          .setAccountId(inst.accountId);
     }
   }
 
@@ -172,10 +192,7 @@ class MultiServerFixture {
     required Int64 sessionId,
     required String markdownText,
   }) {
-    return UserMsg(
-      sessionId: sessionId,
-      markdownText: markdownText,
-    ).send(
+    return UserMsg(sessionId: sessionId, markdownText: markdownText).send(
       serverA,
       container.read(e2eeStoreProvider(serverIdA, accountIdA).notifier),
       sessionId,
@@ -186,10 +203,7 @@ class MultiServerFixture {
     required Int64 sessionId,
     required String markdownText,
   }) {
-    return UserMsg(
-      sessionId: sessionId,
-      markdownText: markdownText,
-    ).send(
+    return UserMsg(sessionId: sessionId, markdownText: markdownText).send(
       serverB,
       container.read(e2eeStoreProvider(serverIdB, accountIdB).notifier),
       sessionId,
@@ -216,8 +230,9 @@ class MultiServerFixture {
     bool Function(UserMsg) matcher,
     Duration timeout,
   ) async {
-    final eventSystem = container
-        .read(ourChatEventSystemProvider(serverId, accountId).notifier);
+    final eventSystem = container.read(
+      ourChatEventSystemProvider(serverId, accountId).notifier,
+    );
     final completer = Completer<UserMsg>();
     void cb(dynamic eventObj) {
       if (eventObj is UserMsg && !completer.isCompleted && matcher(eventObj)) {

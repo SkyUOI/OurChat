@@ -10,23 +10,35 @@ import 'test_harness.dart';
 
 void main() {
   ProviderContainer makeContainer() {
-    final c = ProviderContainer(overrides: [
-      activeAccountTestOverride,
-      ourChatServerProvider.overrideWithValue(
-        FakeOurChatServer(MockOurChatClient()),
-      ),
-      overrideAccount(Int64(2), buildTestAccount(Int64(2), 'bob', displayName: 'Bob')),
-    ]);
+    final c = ProviderContainer(
+      overrides: [
+        activeAccountTestOverride,
+        ourChatServerProvider.overrideWithValue(
+          FakeOurChatServer(MockOurChatClient()),
+        ),
+        overrideAccount(
+          Int64(2),
+          buildTestAccount(Int64(2), 'bob', displayName: 'Bob'),
+        ),
+      ],
+    );
     addTearDown(c.dispose);
     return c;
   }
 
-  testWidgets('shows the quote banner above the input when a target is set',
-      (tester) async {
+  testWidgets('shows the quote banner above the input when a target is set', (
+    tester,
+  ) async {
     final container = makeContainer();
-    container.read(quoteTargetProvider.notifier).setQuote(
-      UserMsg(senderId: Int64(2), eventId: Int64(5), markdownText: 'quote me'),
-    );
+    container
+        .read(quoteTargetProvider.notifier)
+        .setQuote(
+          UserMsg(
+            senderId: Int64(2),
+            eventId: Int64(5),
+            markdownText: 'quote me',
+          ),
+        );
 
     await tester.pumpWidget(
       buildTestApp(container: container, child: const SessionTab()),
@@ -37,12 +49,19 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('close button clears the quote target and hides the banner',
-      (tester) async {
+  testWidgets('close button clears the quote target and hides the banner', (
+    tester,
+  ) async {
     final container = makeContainer();
-    container.read(quoteTargetProvider.notifier).setQuote(
-      UserMsg(senderId: Int64(2), eventId: Int64(5), markdownText: 'quote me'),
-    );
+    container
+        .read(quoteTargetProvider.notifier)
+        .setQuote(
+          UserMsg(
+            senderId: Int64(2),
+            eventId: Int64(5),
+            markdownText: 'quote me',
+          ),
+        );
 
     await tester.pumpWidget(
       buildTestApp(container: container, child: const SessionTab()),

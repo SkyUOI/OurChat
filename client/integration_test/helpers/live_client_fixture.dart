@@ -74,7 +74,11 @@ class LiveClientFixture {
     serverId = server.uniqueIdentifier!;
 
     // Pre-seed the private key so E2EE loadKey works for later E2EE tests.
-    await SecretStore.savePrivateKey(serverId, user.id, user.keyPair.privateKey);
+    await SecretStore.savePrivateKey(
+      serverId,
+      user.id,
+      user.keyPair.privateKey,
+    );
 
     // In-memory public database.
     publicDB = database.PublicOurChatDatabase(NativeDatabase.memory());
