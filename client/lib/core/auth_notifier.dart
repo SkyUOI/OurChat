@@ -167,7 +167,7 @@ class AuthNotifier extends _$AuthNotifier {
       var keyBytes = publicKey ?? <int>[];
       if (keyBytes.isEmpty) {
         try {
-          final keyPair = generateRsaKeyPair();
+          final keyPair = await generateRsaKeyPairAsync();
           keyBytes = keyPair.publicKey;
           _pendingPrivateKey = keyPair.privateKey;
           logger.i('Generated new RSA key pair for registration');

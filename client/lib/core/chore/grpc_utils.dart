@@ -135,6 +135,22 @@ void showResultMessage(
   }
 }
 
+/// Show a transient OurChat-style dark snackbar at the bottom of the screen,
+/// used for user-facing validation and request errors (e.g. on the auth
+/// screens).
+void showOurChatMessage(String message) {
+  try {
+    rootScaffoldMessengerKey.currentState?.showSnackBar(
+      SnackBar(
+        content: Text(message, textAlign: TextAlign.center),
+        backgroundColor: Colors.black87,
+      ),
+    );
+  } catch (e) {
+    logger.w("showOurChatMessage error: $e");
+  }
+}
+
 Future safeRequest(
   Function func,
   var args,

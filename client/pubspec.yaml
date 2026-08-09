@@ -35,6 +35,7 @@ dependencies:
       ref: noScroll
   markdown: ^7.3.0
   sqlite3: ^2.9.4 # Required for drift on Web
+  web: ^1.1.1 # Typed browser bindings (WebCrypto keygen on web)
   http: ^1.2.2
   # wait for PR
   # ota_update: ^7.1.0

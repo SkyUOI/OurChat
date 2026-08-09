@@ -3,6 +3,10 @@ import 'dart:typed_data';
 import 'package:pointycastle/asn1.dart';
 import 'package:pointycastle/export.dart';
 
+import 'crypto_keygen_io.dart'
+    if (dart.library.html) 'crypto_keygen_web.dart'
+    as async_keygen;
+
 /// Symmetric room-key length (AES-256).
 const int roomKeyLength = 32;
 
@@ -41,6 +45,15 @@ const int _gcmTagLength = 16;
   final privateKeyBytes = _encodeRsaPrivateKeyToPkcs1Der(privateKey);
 
   return (publicKey: publicKeyBytes, privateKey: privateKeyBytes);
+}
+
+/// Async RSA-2048 keypair generation. On web this uses the browser's native
+/// WebCrypto (fast, doesn't block the UI) instead of the slow pure-Dart
+/// pointycastle keygen. On desktop/mobile it wraps the synchronous
+/// implementation. Keys are returned as PKCS#1 DER in both cases.
+Future<({Uint8List publicKey, Uint8List privateKey})>
+generateRsaKeyPairAsync() {
+  return async_keygen.generateRsaKeyPairAsync();
 }
 
 // ── Fortuna-based CSPRNG ──

@@ -222,6 +222,9 @@ class _LoginState extends ConsumerState<Login> {
                     decoration: InputDecoration(
                       label: Text("${l10n.ocid}/${l10n.email}"),
                     ),
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? l10n.cantBeEmpty
+                        : null,
                     onSaved: (newValue) {
                       setState(() {
                         account = newValue!;
@@ -232,6 +235,8 @@ class _LoginState extends ConsumerState<Login> {
                     // Password input field
                     initialValue: password,
                     decoration: InputDecoration(label: Text(l10n.password)),
+                    validator: (v) =>
+                        (v == null || v.isEmpty) ? l10n.cantBeEmpty : null,
                     onSaved: (newValue) {
                       setState(() {
                         password = newValue!;
@@ -262,6 +267,12 @@ class _LoginState extends ConsumerState<Login> {
                           style: AppStyles.defaultButtonStyle,
                           icon: Icon(Icons.login),
                           onPressed: () async {
+                            // Intercept: require account + password to be
+                            // filled (inline field errors are shown by the
+                            // form validator).
+                            if (!key.currentState!.validate()) {
+                              return;
+                            }
                             key.currentState!.save(); // Save form
                             String? email, ocid;
                             if (account.contains('@')) {
@@ -278,22 +289,29 @@ class _LoginState extends ConsumerState<Login> {
                                   email: email,
                                 );
 
-                            if (res) {
-                              final accountId = ref
-                                  .read(authProvider)
-                                  .accountId!;
+                            if (!res) {
+                              // Surface the auth error via the black bottom bar.
                               if (context.mounted) {
-                                await _handleAuthSuccess(
-                                  ref: ref,
-                                  context: context,
-                                  accountId: accountId,
-                                  accountIdent: account,
-                                  password: password,
-                                  savePassword: savePassword,
-                                  ocid: ocid,
-                                  email: email,
+                                showOurChatMessage(
+                                  ref.read(authProvider).error ??
+                                      l10n.loginFailed,
                                 );
                               }
+                              return;
+                            }
+
+                            final accountId = ref.read(authProvider).accountId!;
+                            if (context.mounted) {
+                              await _handleAuthSuccess(
+                                ref: ref,
+                                context: context,
+                                accountId: accountId,
+                                accountIdent: account,
+                                password: password,
+                                savePassword: savePassword,
+                                ocid: ocid,
+                                email: email,
+                              );
                             }
                           },
                           label: Text(l10n.login),
@@ -340,6 +358,8 @@ class _RegisterState extends ConsumerState<Register> {
                   // Username input field
                   initialValue: username,
                   decoration: InputDecoration(label: Text(l10n.username)),
+                  validator: (v) =>
+                      (v == null || v.trim().isEmpty) ? l10n.cantBeEmpty : null,
                   onSaved: (newValue) {
                     setState(() {
                       username = newValue!;
@@ -350,6 +370,8 @@ class _RegisterState extends ConsumerState<Register> {
                   // Email input field
                   initialValue: email,
                   decoration: InputDecoration(label: Text(l10n.email)),
+                  validator: (v) =>
+                      (v == null || v.trim().isEmpty) ? l10n.cantBeEmpty : null,
                   onSaved: (newValue) {
                     setState(() {
                       email = newValue!;
@@ -360,6 +382,8 @@ class _RegisterState extends ConsumerState<Register> {
                   // Password input field
                   initialValue: password,
                   decoration: InputDecoration(label: Text(l10n.password)),
+                  validator: (v) =>
+                      (v == null || v.isEmpty) ? l10n.cantBeEmpty : null,
                   onSaved: (newValue) {
                     setState(() {
                       password = newValue!;
@@ -401,11 +425,19 @@ class _RegisterState extends ConsumerState<Register> {
                         style: AppStyles.defaultButtonStyle,
                         icon: Icon(Icons.app_registration),
                         onPressed: () async {
+                          // Intercept: require username/email/password to be
+                          // filled (inline field errors are shown by the form
+                          // validator).
+                          if (!key.currentState!.validate()) {
+                            return;
+                          }
                           key.currentState!.save(); // Save form
                           // Generate RSA key pair client-side before registering.
                           // The public key goes to the server; the private key
                           // is handed to AuthNotifier for secure persistence.
-                          final keyPair = generateRsaKeyPair();
+                          // Use the async generator so the UI stays responsive
+                          // (pointycastle keygen can take ~20s on web).
+                          final keyPair = await generateRsaKeyPairAsync();
                           ref
                               .read(authProvider.notifier)
                               .setPendingPrivateKey(keyPair.privateKey);
@@ -417,19 +449,27 @@ class _RegisterState extends ConsumerState<Register> {
                                 username: username,
                                 publicKey: keyPair.publicKey,
                               );
-                          if (res) {
-                            final accountId = ref.read(authProvider).accountId!;
+                          if (!res) {
+                            // Surface the register error via the black bottom bar.
                             if (context.mounted) {
-                              await _handleAuthSuccess(
-                                ref: ref,
-                                context: context,
-                                accountId: accountId,
-                                accountIdent: email,
-                                password: password,
-                                savePassword: savePassword,
-                                email: email,
+                              showOurChatMessage(
+                                ref.read(authProvider).error ??
+                                    l10n.registerFailed,
                               );
                             }
+                            return;
+                          }
+                          final accountId = ref.read(authProvider).accountId!;
+                          if (context.mounted) {
+                            await _handleAuthSuccess(
+                              ref: ref,
+                              context: context,
+                              accountId: accountId,
+                              accountIdent: email,
+                              password: password,
+                              savePassword: savePassword,
+                              email: email,
+                            );
                           }
                         },
                         label: Text(l10n.register),

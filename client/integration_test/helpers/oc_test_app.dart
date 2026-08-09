@@ -54,7 +54,7 @@ class OcTestApp {
     String? email,
     String password = 'oc_test_pass_123',
   }) async {
-    final kp = generateRsaKeyPair();
+    final kp = await generateRsaKeyPairAsync();
     final suffix = DateTime.now().microsecondsSinceEpoch;
     final emailAddr = email ?? 'oc_test_$suffix@test.local';
     final res = await auth.register(
