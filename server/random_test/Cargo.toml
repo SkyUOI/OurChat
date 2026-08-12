@@ -27,7 +27,7 @@ humantime.workspace = true
 humantime-serde.workspace = true
 
 # Additional dependencies for random testing
-statrs = "0.18.0"
+statrs = "0.19.0"
 serde_json.workspace = true
 chrono.workspace = true
 hdrhistogram = "7.5"
