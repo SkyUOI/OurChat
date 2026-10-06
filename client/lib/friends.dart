@@ -100,6 +100,31 @@ class Friends extends ConsumerWidget {
                       return Text(l10n.loading);
                     },
                   ),
+                  subtitle: FutureBuilder(
+                    future: accountNotifier.getAccountInfo(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState != ConnectionState.done) {
+                        return const SizedBox.shrink();
+                      }
+                      // Read the fresh state: the captured [accountData] may
+                      // predate the account-info fetch.
+                      final status = ref
+                          .read(ourChatAccountProvider(serverId, friendId))
+                          .status;
+                      if (status == null || status.isEmpty) {
+                        return const SizedBox.shrink();
+                      }
+                      return Text(
+                        status,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      );
+                    },
+                  ),
                   onTap: () {
                     Navigator.push(
                       context,

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,12 +10,224 @@ import 'package:ourchat/core/config.dart';
 import 'package:ourchat/core/instance.dart';
 import 'package:ourchat/server_setting.dart';
 import 'package:ourchat/about.dart';
+import 'package:ourchat/service/basic/preset_user_status/v1/preset_user_status.pb.dart';
+import 'package:ourchat/service/basic/v1/basic.pbgrpc.dart';
 import 'package:ourchat/service/ourchat/set_account_info/v1/set_account_info.pb.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/core/auth_notifier.dart';
 import 'package:ourchat/core/event.dart';
+import 'package:ourchat/core/notification_service.dart';
 import 'main.dart';
+
+/// Fetches the server's preset user status list (via `BasicService.
+/// GetPresetUserStatus`). Kept as an overridable provider so tests can inject
+/// canned presets without a live channel.
+final Provider<Future<List<String>> Function()> presetUserStatusProvider =
+    Provider<Future<List<String>> Function()>((ref) {
+      return () async {
+        final server = ref.read(ourChatServerProvider);
+        final stub = BasicServiceClient(server.channel);
+        final res = await stub.getPresetUserStatus(
+          GetPresetUserStatusRequest(),
+        );
+        return res.contents;
+      };
+    });
+
+/// Dialog editing the signed-in user's own info: username, OCID and the
+/// user-defined status (with the server's preset statuses offered as chips).
+class SelfInfoEditDialog extends ConsumerStatefulWidget {
+  const SelfInfoEditDialog({super.key, required this.accountData});
+
+  final AccountData accountData;
+
+  @override
+  ConsumerState<SelfInfoEditDialog> createState() => _SelfInfoEditDialogState();
+}
+
+class _SelfInfoEditDialogState extends ConsumerState<SelfInfoEditDialog> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  late final TextEditingController _statusController = TextEditingController(
+    text: widget.accountData.status ?? '',
+  );
+  // Session invitation privacy (issue #34): 0=everyone, 1=friends only,
+  // 2=nobody — mirrors the server-side SessionInvitationPolicy enum.
+  late int _invitePolicy = widget.accountData.sessionInvitationPolicy ?? 0;
+  Future<List<String>>? _presetStatusesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _presetStatusesFuture = ref.read(presetUserStatusProvider)();
+  }
+
+  @override
+  void dispose() {
+    _statusController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    String? username, ocid;
+    return AlertDialog(
+      content: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextFormField(
+              initialValue: widget.accountData.username,
+              decoration: InputDecoration(label: Text(l10n.username)),
+              validator: (value) {
+                if (value!.isEmpty) {
+                  return l10n.cantBeEmpty;
+                }
+                return null;
+              },
+              onSaved: (newValue) {
+                username = newValue!;
+              },
+            ),
+            TextFormField(
+              initialValue: widget.accountData.ocid,
+              decoration: InputDecoration(label: Text(l10n.ocid)),
+              validator: (value) {
+                if (value!.isEmpty) {
+                  return l10n.cantBeEmpty;
+                }
+                return null;
+              },
+              onSaved: (newValue) {
+                ocid = newValue!;
+              },
+            ),
+            TextFormField(
+              controller: _statusController,
+              decoration: InputDecoration(
+                label: Text(l10n.status),
+                helperMaxLines: 2,
+              ),
+              maxLength: 128,
+            ),
+            DropdownButtonFormField<int>(
+              initialValue: _invitePolicy,
+              decoration: InputDecoration(label: Text(l10n.invitePolicy)),
+              items: [
+                DropdownMenuItem(
+                  value: 0,
+                  child: Text(l10n.invitePolicyAllowAll),
+                ),
+                DropdownMenuItem(
+                  value: 1,
+                  child: Text(l10n.invitePolicyFriendsOnly),
+                ),
+                DropdownMenuItem(value: 2, child: Text(l10n.invitePolicyNobody)),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  _invitePolicy = value ?? 0;
+                });
+              },
+            ),
+            FutureBuilder<List<String>>(
+              future: _presetStatusesFuture,
+              builder: (context, snapshot) {
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const SizedBox.shrink();
+                }
+                return Align(
+                  alignment: Alignment.centerLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 4.0, bottom: 8.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          l10n.presetStatus,
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          children: [
+                            for (final preset in snapshot.data!)
+                              InputChip(
+                                label: Text(preset),
+                                visualDensity: VisualDensity.compact,
+                                onPressed: () {
+                                  _statusController.text = preset;
+                                },
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        IconButton(
+          onPressed: () async {
+            if (_formKey.currentState!.validate()) {
+              _formKey.currentState!.save();
+              final status = _statusController.text.trim();
+              var stub = ref.watch(ourChatServerProvider).newStub();
+
+              await safeRequest(
+                stub.setSelfInfo,
+                SetSelfInfoRequest(
+                  userName: username,
+                  ocid: ocid,
+                  userDefinedStatus: status,
+                  sessionInvitationPolicy: _invitePolicy,
+                ),
+                (GrpcError e) {
+                  showResultMessage(
+                    e.code,
+                    e.message,
+                    invalidArgumentStatus: {
+                      "Ocid Too Long": l10n.tooLong(l10n.ocid),
+                      "Status Too Long": l10n.tooLong(l10n.status),
+                    },
+                    alreadyExistsStatus: l10n.alreadyExists(l10n.info),
+                  );
+                },
+              );
+              final thisAccountId = ref.read(thisAccountIdProvider);
+              final serverId = ref.read(activeServerIdProvider);
+              if (thisAccountId != null && serverId != null) {
+                await ref
+                    .read(
+                      ourChatAccountProvider(serverId, thisAccountId).notifier,
+                    )
+                    .getAccountInfo(ignoreCache: true);
+              }
+              if (context.mounted) {
+                Navigator.pop(context);
+              }
+            }
+          },
+          icon: Icon(Icons.check),
+        ),
+        IconButton(
+          onPressed: () => Navigator.pop(context),
+          icon: Icon(Icons.close),
+        ),
+      ],
+    );
+  }
+}
 
 class User extends ConsumerWidget {
   const User({super.key});
@@ -103,6 +316,16 @@ class User extends ConsumerWidget {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
+                    if ((thisAccountData.status ?? '').isNotEmpty) ...[
+                      SizedBox(height: AppStyles.smallPadding),
+                      Text(
+                        thisAccountData.status!,
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: AppStyles.defaultFontSize,
+                        ),
+                      ),
+                    ],
                     SizedBox(height: AppStyles.smallPadding),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -129,96 +352,8 @@ class User extends ConsumerWidget {
               onPressed: () {
                 showDialog(
                   context: context,
-                  builder: (context) {
-                    var key = GlobalKey<FormState>();
-                    String? username, ocid;
-                    return AlertDialog(
-                      content: Form(
-                        key: key,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            TextFormField(
-                              initialValue: thisAccountData.username,
-                              decoration: InputDecoration(
-                                label: Text(l10n.username),
-                              ),
-                              validator: (value) {
-                                if (value!.isEmpty) {
-                                  return l10n.cantBeEmpty;
-                                }
-                                return null;
-                              },
-                              onSaved: (newValue) {
-                                username = newValue!;
-                              },
-                            ),
-                            TextFormField(
-                              initialValue: thisAccountData.ocid,
-                              decoration: InputDecoration(
-                                label: Text(l10n.ocid),
-                              ),
-                              validator: (value) {
-                                if (value!.isEmpty) {
-                                  return l10n.cantBeEmpty;
-                                }
-                                return null;
-                              },
-                              onSaved: (newValue) {
-                                ocid = newValue!;
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                      actions: [
-                        IconButton(
-                          onPressed: () async {
-                            if (key.currentState!.validate()) {
-                              key.currentState!.save();
-                              var stub = ref
-                                  .watch(ourChatServerProvider)
-                                  .newStub();
-
-                              await safeRequest(
-                                stub.setSelfInfo,
-                                SetSelfInfoRequest(
-                                  userName: username,
-                                  ocid: ocid,
-                                ),
-                                (GrpcError e) {
-                                  showResultMessage(
-                                    e.code,
-                                    e.message,
-                                    invalidArgumentStatus: {
-                                      "Ocid Too Long": l10n.tooLong(l10n.ocid),
-                                      "Status Too Long": l10n.tooLong(
-                                        l10n.status,
-                                      ),
-                                    },
-                                    alreadyExistsStatus: l10n.alreadyExists(
-                                      l10n.info,
-                                    ),
-                                  );
-                                },
-                              );
-                              await thisAccountNotifier.getAccountInfo(
-                                ignoreCache: true,
-                              );
-                              if (context.mounted) {
-                                Navigator.pop(context);
-                              }
-                            }
-                          },
-                          icon: Icon(Icons.check),
-                        ),
-                        IconButton(
-                          onPressed: () => Navigator.pop(context),
-                          icon: Icon(Icons.close),
-                        ),
-                      ],
-                    );
-                  },
+                  builder: (context) =>
+                      SelfInfoEditDialog(accountData: thisAccountData),
                 );
               },
               icon: Icon(Icons.edit),
@@ -272,6 +407,12 @@ class User extends ConsumerWidget {
                       .setActiveAccount(null, null);
                   privateDB = null;
                   ref.read(authProvider.notifier).logout();
+                  // Attention signals of the logged-out account must not
+                  // outlive the session (issue #199).
+                  unawaited(
+                    ref.read(ourChatNotificationServiceProvider).cancelAll(),
+                  );
+                  stopFlashTray();
                   if (context.mounted) {
                     Navigator.push(
                       context,

@@ -178,6 +178,8 @@ class _UserTabState extends ConsumerState<UserTab> {
                     if (accountData.displayName != null)
                       userInfoRow(l10n.displayName, accountData.displayName!),
                     userInfoRow(l10n.username, accountData.username),
+                    if ((accountData.status ?? '').isNotEmpty)
+                      userInfoRow(l10n.status, accountData.status!),
                     userInfoRow(l10n.ocid, accountData.ocid),
                   ],
                 ),

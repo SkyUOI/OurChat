@@ -114,7 +114,18 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> {
                             accountData.displayName!.isNotEmpty)
                           _infoRow(l10n.displayName, accountData.displayName!),
                         _infoRow(l10n.username, accountData.username),
+                        if ((accountData.status ?? '').isNotEmpty)
+                          _infoRow(l10n.status, accountData.status!),
                         _infoRow(l10n.ocid, accountData.ocid),
+                        if (accountData.sessionInvitationPolicy != null)
+                          _infoRow(
+                            l10n.invitePolicy,
+                            switch (accountData.sessionInvitationPolicy) {
+                              1 => l10n.invitePolicyFriendsOnly,
+                              2 => l10n.invitePolicyNobody,
+                              _ => l10n.invitePolicyAllowAll,
+                            },
+                          ),
                         if (isMe || accountData.emailVisible)
                           _infoRow(l10n.email, accountData.email ?? ''),
                       ],
