@@ -14,8 +14,10 @@ import 'package:ourchat/core/const.dart';
 import 'package:ourchat/core/config.dart';
 import 'package:ourchat/auth.dart';
 import 'package:ourchat/core/server.dart';
+import 'package:ourchat/core/version_check.dart';
 import 'package:ourchat/core/event.dart';
 import 'package:ourchat/core/log.dart';
+import 'package:ourchat/core/notification_service.dart';
 import 'package:ourchat/core/secret_store.dart';
 import 'package:ourchat/home.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -34,12 +36,77 @@ part 'main.g.dart';
 
 final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
-Timer flashTrayTimer = Timer.periodic(Duration.zero, (_) {});
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
+
+/// Announcement event ids for which a dialog has already been shown, so the
+/// same announcement never pops up twice.
+final Set<int> shownAnnouncementEventIds = {};
+
+/// Show an [AlertDialog] for a freshly received [AnnouncementResponseEvent]
+/// when the app is in the foreground. A no-op when the same announcement was
+/// already shown, when the app is backgrounded, or before the navigator is
+/// mounted.
+void maybeShowAnnouncementDialog(AnnouncementResponseEvent event) {
+  final eventId = event.eventId?.toInt();
+  if (eventId == null) return;
+  if (!shownAnnouncementEventIds.add(eventId)) {
+    // Already shown once — never repeat the same announcement.
+    return;
+  }
+  final lifecycleState = WidgetsBinding.instance.lifecycleState;
+  if (lifecycleState == AppLifecycleState.paused ||
+      lifecycleState == AppLifecycleState.detached) {
+    return;
+  }
+  final context = rootNavigatorKey.currentContext;
+  if (context == null) return;
+  showDialog(
+    context: context,
+    builder: (context) {
+      final time = event.sendTime?.datetime.toLocal();
+      return AlertDialog(
+        title: Text(
+          (event.title?.isNotEmpty ?? false) ? event.title! : l10n.announcement,
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (event.content?.isNotEmpty ?? false)
+              SelectableText(event.content!),
+            const SizedBox(height: 8),
+            Text(
+              l10n.announcementPublisherId(event.publisherId.toString()),
+              style: const TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+            if (time != null)
+              Text(
+                '${time.year}-${time.month.toString().padLeft(2, '0')}-${time.day.toString().padLeft(2, '0')} '
+                '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}',
+                style: const TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.close),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+/// Tray-flash timer. Nullable on purpose: the previous top-level initializer
+/// `Timer.periodic(Duration.zero, ...)` spun ~millions of ticks per second
+/// from library load (app start / tests) until replaced — see issue #199.
+Timer? flashTrayTimer;
 bool trayStatus = true, isFlashing = false;
 // true means icon is normal, false means icon is empty
 
 void changeTrayIcon() {
-  if (!kIsWeb) {
+  if (isDesktopPlatform) {
     if (trayStatus) {
       trayManager
           .setIcon(
@@ -61,10 +128,15 @@ void changeTrayIcon() {
   }
 }
 
+/// Start flashing the tray icon to signal unread messages (desktop only).
+/// Guarded by [isDesktopPlatform] — on mobile there is no tray, and the old
+/// web-only guard would have left a periodic timer calling missing platform
+/// channels there.
 void startFlashTray() {
-  if (isFlashing || kIsWeb) {
+  if (isFlashing || !isDesktopPlatform) {
     return;
   }
+  flashTrayTimer?.cancel();
   flashTrayTimer = Timer.periodic(
     Duration(milliseconds: 500),
     (_) => changeTrayIcon(),
@@ -73,8 +145,9 @@ void startFlashTray() {
 }
 
 void stopFlashTray() {
-  if (!kIsWeb && isFlashing) {
-    flashTrayTimer.cancel();
+  if (isDesktopPlatform && isFlashing) {
+    flashTrayTimer?.cancel();
+    flashTrayTimer = null;
     trayStatus = true;
     trayManager
         .setIcon(
@@ -138,6 +211,40 @@ late AppLocalizations l10n;
 late database.PublicOurChatDatabase publicDB;
 database.OurChatDatabase? privateDB;
 
+/// True when running on a desktop OS (Windows/Linux/macOS) and not on the
+/// web. Gates window/tray integration which only exists on desktop.
+bool get isDesktopPlatform =>
+    !kIsWeb &&
+    (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
+
+/// The most recent [AppLifecycleState] reported to [_MainAppState], or null
+/// before the first lifecycle event (issue #199). Prefer
+/// [currentAppLifecycleState], which falls back to the binding's state.
+AppLifecycleState? lastAppLifecycleState;
+
+/// Current app lifecycle state: the last state observed by [_MainAppState],
+/// falling back to what the engine binding reports. Null when no lifecycle
+/// event has been seen yet — treated as "foreground" by callers (the app is
+/// visibly running when it has just started).
+AppLifecycleState? get currentAppLifecycleState =>
+    lastAppLifecycleState ?? WidgetsBinding.instance.lifecycleState;
+
+/// Whether the conversation UI is potentially visible right now (used by the
+/// new-message notification logic, issue #199). Null lifecycle state counts
+/// as foreground (see [currentAppLifecycleState]).
+bool get appInForeground =>
+    currentAppLifecycleState == null ||
+    currentAppLifecycleState == AppLifecycleState.resumed;
+
+/// What the desktop window close (X) button should do, derived from the
+/// user's configured [CloseBehavior] (issue #203). Pure function so the
+/// decision can be unit tested without a window.
+CloseAction resolveWindowCloseAction(CloseBehavior closeBehavior) {
+  return closeBehavior == CloseBehavior.exit
+      ? CloseAction.exitApp
+      : CloseAction.minimizeToTray;
+}
+
 @riverpod
 class ScreenModeNotifier extends _$ScreenModeNotifier {
   @override
@@ -198,14 +305,14 @@ class MainApp extends ConsumerStatefulWidget {
 }
 
 class _MainAppState extends ConsumerState<MainApp>
-    with WindowListener, TrayListener {
+    with WindowListener, TrayListener, WidgetsBindingObserver {
   bool inited = false;
 
   @override
   void initState() {
     super.initState();
-    if (!kIsWeb &&
-        (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+    WidgetsBinding.instance.addObserver(this);
+    if (isDesktopPlatform) {
       windowManager.addListener(this);
       windowManager.setPreventClose(true);
       trayManager.addListener(this);
@@ -218,15 +325,33 @@ class _MainAppState extends ConsumerState<MainApp>
           .catchError((_) {});
       trayManager.setToolTip("OurChat").catchError((_) {});
     }
+    // Initialize system notifications (no-op stub on web). Tapping a
+    // notification brings the window back and stops the tray flash (issue
+    // #199). TODO(#199): deep-link to the conversation from the payload.
+    final notifications = ref.read(ourChatNotificationServiceProvider);
+    notifications.onNotificationTap = (_) {
+      if (isDesktopPlatform) {
+        windowManager.show().catchError((_) {});
+        stopFlashTray();
+      }
+    };
+    notifications.init();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     if (!kIsWeb) {
       windowManager.removeListener(this);
       trayManager.removeListener(this);
     }
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    lastAppLifecycleState = state;
+    super.didChangeAppLifecycleState(state);
   }
 
   @override
@@ -284,6 +409,7 @@ class _MainAppState extends ConsumerState<MainApp>
         ),
       ),
       scaffoldMessengerKey: rootScaffoldMessengerKey,
+      navigatorKey: rootNavigatorKey,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       localeResolutionCallback: (locale, supportedLocales) {
@@ -333,9 +459,26 @@ class _MainAppState extends ConsumerState<MainApp>
   @override
   void onWindowClose() async {
     if (!kIsWeb) {
-      windowManager.hide();
+      // The close (X) button is configurable: minimize to tray (default) or
+      // exit the app (issue #203).
+      switch (resolveWindowCloseAction(ref.read(configProvider).closeBehavior)) {
+        case CloseAction.minimizeToTray:
+          await windowManager.hide();
+        case CloseAction.exitApp:
+          await _exitApp();
+      }
       super.onWindowClose();
     }
+  }
+
+  /// Desktop quit sequence: tear down the tray icon then destroy the window.
+  /// Shared by the tray "exit" item and the close button when configured to
+  /// exit (issue #203).
+  Future<void> _exitApp() async {
+    stopFlashTray();
+    await ref.read(ourChatNotificationServiceProvider).cancelAll();
+    trayManager.destroy().catchError((_) {});
+    windowManager.destroy();
   }
 
   @override
@@ -350,8 +493,7 @@ class _MainAppState extends ConsumerState<MainApp>
       windowManager.show();
       stopFlashTray();
     } else if (menuItem.key == "exit") {
-      trayManager.destroy().catchError((_) {});
-      windowManager.destroy();
+      _exitApp();
     }
     super.onTrayMenuItemClick(menuItem);
   }
@@ -384,6 +526,10 @@ void switchActive(WidgetRef ref, AccountKey key) {
   ref
       .read(configProvider.notifier)
       .setActiveAccount(key.serverId, key.accountId.toInt());
+  // Attention signals belong to the previously focused account: clear them so
+  // stale notifications/flashes do not leak across the switch (issue #199).
+  unawaited(ref.read(ourChatNotificationServiceProvider).cancelAll());
+  stopFlashTray();
 }
 
 /// Connect to the default/official server (the first configured server, else
@@ -402,6 +548,7 @@ Future<bool> connectToOfficialServer(WidgetRef ref) async {
   ref.read(ourChatServerProvider.notifier).update(server);
   final res = await server.getServerInfo();
   if (res != okStatusCode) return false;
+  warnOnIncompatibleServer(server);
   ref
       .read(configProvider.notifier)
       .upsertServer(
@@ -414,6 +561,47 @@ Future<bool> connectToOfficialServer(WidgetRef ref) async {
         ),
       );
   return true;
+}
+
+/// Version negotiation warnings (issue #16), advisory only. Shown at most
+/// once per server per reason per app run so reconnect loops cannot spam.
+final Set<String> _versionWarnedServers = {};
+void warnOnIncompatibleServer(OurChatServer server) {
+  if (kIsWeb) return; // no dialog root on the web bootstrap path
+  final result = checkServerCompatibility(
+    serverVersion: server.serverVersion,
+    minimumClientVersion: server.minimumClientVersion,
+    clientVersion: currentVersion,
+  );
+  if (result == ServerCompatibility.ok) return;
+  final key =
+      '${server.uniqueIdentifier ?? server.host}:${server.port}:$result';
+  if (!_versionWarnedServers.add(key)) return;
+  final context = rootNavigatorKey.currentContext;
+  if (context == null) return;
+  final String title, body;
+  if (result == ServerCompatibility.serverTooOld) {
+    title = l10n.serverTooOldTitle;
+    body = l10n.serverTooOldBody;
+  } else {
+    title = l10n.clientTooOldTitle;
+    body = l10n.clientTooOldBody;
+  }
+  unawaited(
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: Text(body),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(l10n.ok),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _AutoLoginState extends ConsumerState<AutoLogin> {
@@ -433,6 +621,7 @@ class _AutoLoginState extends ConsumerState<AutoLogin> {
       logger.w("auto-login: failed to connect to ${sc.host}:${sc.port}");
       return false;
     }
+    warnOnIncompatibleServer(server);
     final serverId = server.uniqueIdentifier!;
     final accountIdent = acc.email ?? acc.ocid;
     if (accountIdent == null) return false;
