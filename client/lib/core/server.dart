@@ -48,6 +48,7 @@ class OurChatServer {
   RunningStatus? serverStatus;
   late ClientChannelBase channel;
   ServerVersion? serverVersion;
+  ServerVersion? minimumClientVersion;
   OurChatInterceptor? interceptor;
   bool? isTLS;
 
@@ -103,6 +104,7 @@ class OurChatServer {
       serverStatus = res.status;
       uniqueIdentifier = res.uniqueIdentifier;
       serverVersion = res.serverVersion;
+      minimumClientVersion = res.minimumClientVersion;
       serverName = res.serverName;
       return okStatusCode;
     } on GrpcError catch (e) {
