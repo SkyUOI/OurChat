@@ -134,6 +134,12 @@ pub mod unregister {
     }
 }
 
+pub mod sticker {
+    pub mod v1 {
+        include!("../generated/service.ourchat.sticker.v1.rs");
+    }
+}
+
 pub mod friends {
     pub mod add_friend {
         pub mod v1 {

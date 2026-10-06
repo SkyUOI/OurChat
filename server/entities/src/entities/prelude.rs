@@ -8,6 +8,8 @@ pub use super::manager_role_relation::Entity as ManagerRoleRelation;
 pub use super::message_records::Entity as MessageRecords;
 pub use super::metrics_history::Entity as MetricsHistory;
 pub use super::permission::Entity as Permission;
+pub use super::recall_vote_records::Entity as RecallVoteRecords;
+pub use super::recall_votes::Entity as RecallVotes;
 pub use super::role::Entity as Role;
 pub use super::role_permissions::Entity as RolePermissions;
 pub use super::rtc_room::Entity as RtcRoom;
@@ -17,6 +19,7 @@ pub use super::server_management_role_permissions::Entity as ServerManagementRol
 pub use super::session::Entity as Session;
 pub use super::session_invitation::Entity as SessionInvitation;
 pub use super::session_relation::Entity as SessionRelation;
+pub use super::stickers::Entity as Stickers;
 pub use super::user::Entity as User;
 pub use super::user_contact_info::Entity as UserContactInfo;
 pub use super::user_role_relation::Entity as UserRoleRelation;

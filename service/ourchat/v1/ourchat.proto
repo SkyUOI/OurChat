@@ -10,6 +10,7 @@ import "service/ourchat/friends/delete_friend/v1/delete_friend.proto";
 import "service/ourchat/friends/set_friend_info/v1/set_friend_info.proto";
 import "service/ourchat/get_account_info/v1/get_account_info.proto";
 import "service/ourchat/msg_delivery/recall/v1/recall.proto";
+import "service/ourchat/msg_delivery/recall_vote/v1/recall_vote.proto";
 import "service/ourchat/msg_delivery/v1/msg_delivery.proto";
 import "service/ourchat/session/accept_join_session_invitation/v1/accept_join_session_invitation.proto";
 import "service/ourchat/session/add_role/v1/add_role.proto";
@@ -29,6 +30,7 @@ import "service/ourchat/session/session_room_key/v1/session_room_key.proto";
 import "service/ourchat/session/set_role/v1/set_role.proto";
 import "service/ourchat/session/set_session_info/v1/set_session_info.proto";
 import "service/ourchat/set_account_info/v1/set_account_info.proto";
+import "service/ourchat/sticker/v1/sticker.proto";
 import "service/ourchat/unregister/v1/unregister.proto";
 import "service/ourchat/upload/v1/upload.proto";
 import "service/ourchat/webrtc/room/accept_room_invitation/v1/accept_room_invitation.proto";
@@ -92,6 +94,26 @@ service OurChatService {
   rpc LeaveSession(session.leave_session.v1.LeaveSessionRequest) returns (session.leave_session.v1.LeaveSessionResponse);
 
   rpc RecallMsg(msg_delivery.recall.v1.RecallMsgRequest) returns (msg_delivery.recall.v1.RecallMsgResponse);
+
+  // Start a vote to recall a message the caller cannot recall on their own
+  rpc StartRecallVote(msg_delivery.recall_vote.v1.StartRecallVoteRequest) returns (msg_delivery.recall_vote.v1.StartRecallVoteResponse);
+
+  // Cast an approve/reject vote on a recall vote
+  rpc VoteRecall(msg_delivery.recall_vote.v1.VoteRecallRequest) returns (msg_delivery.recall_vote.v1.VoteRecallResponse);
+
+  // Query the state of a recall vote (session members only)
+  rpc GetRecallVote(msg_delivery.recall_vote.v1.GetRecallVoteRequest) returns (msg_delivery.recall_vote.v1.GetRecallVoteResponse);
+
+  // Sticker operations
+
+  // Add an uploaded file to the user's private sticker collection
+  rpc AddSticker(sticker.v1.AddStickerRequest) returns (sticker.v1.AddStickerResponse);
+
+  // Remove a sticker from the user's private sticker collection
+  rpc RemoveSticker(sticker.v1.RemoveStickerRequest) returns (sticker.v1.RemoveStickerResponse);
+
+  // List all stickers of the requesting user
+  rpc GetStickers(sticker.v1.GetStickersRequest) returns (sticker.v1.GetStickersResponse);
 
   rpc SetRole(session.set_role.v1.SetRoleRequest) returns (session.set_role.v1.SetRoleResponse);
 

@@ -49,6 +49,10 @@ use pb::service::ourchat::friends::set_friend_info::v1::{
 };
 use pb::service::ourchat::get_account_info::v1::{GetAccountInfoRequest, GetAccountInfoResponse};
 use pb::service::ourchat::msg_delivery::recall::v1::{RecallMsgRequest, RecallMsgResponse};
+use pb::service::ourchat::msg_delivery::recall_vote::v1::{
+    GetRecallVoteRequest, GetRecallVoteResponse, StartRecallVoteRequest, StartRecallVoteResponse,
+    VoteRecallRequest, VoteRecallResponse,
+};
 use pb::service::ourchat::msg_delivery::v1::{
     FetchMsgsRequest, FetchMsgsResponse, FetchSessionHistoryRequest, FetchSessionHistoryResponse,
     SendMsgRequest, SendMsgResponse,
@@ -81,6 +85,10 @@ use pb::service::ourchat::session::set_session_info::v1::{
     SetSessionInfoRequest, SetSessionInfoResponse,
 };
 use pb::service::ourchat::set_account_info::v1::{SetSelfInfoRequest, SetSelfInfoResponse};
+use pb::service::ourchat::sticker::v1::{
+    AddStickerRequest, AddStickerResponse, GetStickersRequest, GetStickersResponse,
+    RemoveStickerRequest, RemoveStickerResponse,
+};
 use pb::service::ourchat::unregister::v1::{UnregisterRequest, UnregisterResponse};
 use pb::service::ourchat::upload::v1::{
     CancelUploadRequest, CancelUploadResponse, CompleteUploadRequest, CompleteUploadResponse,
@@ -317,6 +325,72 @@ impl OurChatService for RpcServer {
         let id = get_id_from_req_or_err(&request)?;
         self.check_account_status(id).await?;
         process::recall_msg(self, id, request).await
+    }
+
+    /// Start a vote to recall a message the caller cannot recall alone
+    #[tracing::instrument(skip(self))]
+    async fn start_recall_vote(
+        &self,
+        request: Request<StartRecallVoteRequest>,
+    ) -> Result<Response<StartRecallVoteResponse>, Status> {
+        let id = get_id_from_req_or_err(&request)?;
+        self.check_account_status(id).await?;
+        process::start_recall_vote(self, id, request).await
+    }
+
+    /// Cast an approve/reject vote on a recall vote
+    #[tracing::instrument(skip(self))]
+    async fn vote_recall(
+        &self,
+        request: Request<VoteRecallRequest>,
+    ) -> Result<Response<VoteRecallResponse>, Status> {
+        let id = get_id_from_req_or_err(&request)?;
+        self.check_account_status(id).await?;
+        process::vote_recall(self, id, request).await
+    }
+
+    /// Query the state of a recall vote (session members only)
+    #[tracing::instrument(skip(self))]
+    async fn get_recall_vote(
+        &self,
+        request: Request<GetRecallVoteRequest>,
+    ) -> Result<Response<GetRecallVoteResponse>, Status> {
+        let id = get_id_from_req_or_err(&request)?;
+        self.check_account_status(id).await?;
+        process::get_recall_vote(self, id, request).await
+    }
+
+    /// Add an uploaded file to the user's private sticker collection
+    #[tracing::instrument(skip(self))]
+    async fn add_sticker(
+        &self,
+        request: Request<AddStickerRequest>,
+    ) -> Result<Response<AddStickerResponse>, Status> {
+        let id = get_id_from_req_or_err(&request)?;
+        self.check_account_status(id).await?;
+        process::add_sticker(self, id, request).await
+    }
+
+    /// Remove a sticker from the user's private sticker collection
+    #[tracing::instrument(skip(self))]
+    async fn remove_sticker(
+        &self,
+        request: Request<RemoveStickerRequest>,
+    ) -> Result<Response<RemoveStickerResponse>, Status> {
+        let id = get_id_from_req_or_err(&request)?;
+        self.check_account_status(id).await?;
+        process::remove_sticker(self, id, request).await
+    }
+
+    /// List all stickers of the requesting user
+    #[tracing::instrument(skip(self))]
+    async fn get_stickers(
+        &self,
+        request: Request<GetStickersRequest>,
+    ) -> Result<Response<GetStickersResponse>, Status> {
+        let id = get_id_from_req_or_err(&request)?;
+        self.check_account_status(id).await?;
+        process::get_stickers(self, id, request).await
     }
 
     #[tracing::instrument(skip(self))]

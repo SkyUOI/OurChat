@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package service.ourchat.sticker.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// Add an uploaded file to the user's private sticker collection.
+// The file must exist and belong to the requesting user.
+message AddStickerRequest {
+  // key of an uploaded file owned by the requesting user
+  string file_key = 1;
+}
+
+message AddStickerResponse {}
+
+// Remove a sticker from the user's private sticker collection.
+message RemoveStickerRequest {
+  string file_key = 1;
+}
+
+message RemoveStickerResponse {}
+
+// List all stickers of the requesting user, ordered by `added_at`.
+message GetStickersRequest {}
+
+message GetStickersResponse {
+  repeated Sticker stickers = 1;
+}
+
+message Sticker {
+  string file_key = 1;
+  google.protobuf.Timestamp added_at = 2;
+}

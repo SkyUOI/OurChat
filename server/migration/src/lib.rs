@@ -25,6 +25,10 @@ mod m20251231_120000_add_assign_role_permission;
 pub mod m20260220_120000_create_metrics_history_table;
 pub mod m20260612_000000_add_email_visible;
 pub mod m20260612_add_file_metadata;
+mod m20261006_000000_remove_member_recall_permission;
+mod m20261006_000001_add_session_invitation_policy;
+mod m20261006_000002_create_recall_votes;
+mod m20261006_000003_create_stickers;
 
 pub struct Migrator;
 
@@ -48,6 +52,10 @@ impl MigratorTrait for Migrator {
             Box::new(m20260220_120000_create_metrics_history_table::Migration),
             Box::new(m20260612_000000_add_email_visible::Migration),
             Box::new(m20260612_add_file_metadata::Migration),
+            Box::new(m20261006_000000_remove_member_recall_permission::Migration),
+            Box::new(m20261006_000001_add_session_invitation_policy::Migration),
+            Box::new(m20261006_000002_create_recall_votes::Migration),
+            Box::new(m20261006_000003_create_stickers::Migration),
         ]
     }
 }
