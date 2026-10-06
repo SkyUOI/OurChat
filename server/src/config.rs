@@ -85,6 +85,16 @@ pub struct MainCfg {
     pub cache_max_size: Size,
     #[serde(with = "humantime_serde")]
     pub verification_expire_time: Duration,
+    /// How long after sending a message its sender is allowed to recall it.
+    /// Users with the `RecallMsg` permission are not bound by this limit.
+    /// A zero value means no time limit.
+    #[serde(with = "humantime_serde")]
+    pub recall_time_limit: Duration,
+    /// How long a recall vote stays open. Votes which reached neither an
+    /// early pass nor an early fail are settled as failed once the deadline
+    /// is over.
+    #[serde(with = "humantime_serde")]
+    pub recall_vote_duration: Duration,
     #[serde(with = "humantime_serde")]
     pub user_defined_status_expire_time: Duration,
     #[serde(with = "humantime_serde")]
@@ -112,6 +122,10 @@ pub struct MainCfg {
 
     #[serde(skip)]
     pub cmd_args: ParserCfg,
+    /// The minimum client version the server allows to connect.
+    /// Clients with a lower version should ask the user to update.
+    /// `0.0.0` means no limit.
+    pub minimum_client_version: ClientVersion,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Default)]
@@ -191,6 +205,65 @@ pub struct DbArgCfg {
 
 serde_default!(DbArgCfg);
 
+/// A parsed `major.minor.patch` version, currently used for the
+/// `minimum_client_version` requirement.
+///
+/// It is stored in config files as a `"major.minor.patch"` string, and it is
+/// serialized back into that string form so that config round-trips (e.g. the
+/// `SetConfig` RPC) keep working.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ClientVersion {
+    pub major: i32,
+    pub minor: i32,
+    pub patch: i32,
+}
+
+impl ClientVersion {
+    /// Parse a `"major.minor.patch"` string (e.g. `"1.2.3"`).
+    ///
+    /// Returns `None` if the string is not exactly three non-negative integers
+    /// separated by dots.
+    fn parse(s: &str) -> Option<Self> {
+        let mut parts = s.split('.');
+        let mut next_number = || -> Option<i32> {
+            let number = parts.next()?.parse().ok()?;
+            (number >= 0).then_some(number)
+        };
+        let version = Self {
+            major: next_number()?,
+            minor: next_number()?,
+            patch: next_number()?,
+        };
+        // reject strings with more than three components (e.g. "1.2.3.4")
+        parts.next().is_none().then_some(version)
+    }
+}
+
+impl std::fmt::Display for ClientVersion {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}.{}.{}", self.major, self.minor, self.patch)
+    }
+}
+
+impl Serialize for ClientVersion {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&self.to_string())
+    }
+}
+
+impl From<ClientVersion> for pb::service::basic::server::v1::ServerVersion {
+    fn from(value: ClientVersion) -> Self {
+        Self {
+            major: value.major,
+            minor: value.minor,
+            patch: value.patch,
+        }
+    }
+}
+
 /// Raw struct for deserialization with all serde attributes
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -235,6 +308,16 @@ pub struct RawMainCfg {
         with = "humantime_serde"
     )]
     pub verification_expire_time: Duration,
+    #[serde(
+        default = "constants::default_recall_time_limit",
+        with = "humantime_serde"
+    )]
+    pub recall_time_limit: Duration,
+    #[serde(
+        default = "constants::default_recall_vote_duration",
+        with = "humantime_serde"
+    )]
+    pub recall_vote_duration: Duration,
     #[serde(
         default = "constants::default_user_defined_status_expire_time",
         with = "humantime_serde"
@@ -284,6 +367,8 @@ pub struct RawMainCfg {
     pub initial_admin_ocid: Option<OCID>,
     #[serde(default = "constants::default_patches_directory")]
     pub patches_directory: String,
+    #[serde(default = "constants::default_minimum_client_version")]
+    pub minimum_client_version: String,
 }
 
 impl<'de> Deserialize<'de> for MainCfg {
@@ -316,6 +401,16 @@ impl<'de> Deserialize<'de> for MainCfg {
                 "fetch_msg_page_size must be greater than 0",
             ));
         }
+        if raw.recall_vote_duration.is_zero() {
+            return Err(D::Error::custom("recall_vote_duration cannot be zero"));
+        }
+        let minimum_client_version = ClientVersion::parse(&raw.minimum_client_version).ok_or_else(
+            || {
+                D::Error::custom(
+                    "minimum_client_version must be in the format \"major.minor.patch\" (e.g. \"1.2.0\")",
+                )
+            },
+        )?;
 
         Ok(MainCfg {
             inherit: raw.inherit,
@@ -336,6 +431,8 @@ impl<'de> Deserialize<'de> for MainCfg {
             metrics_snapshot_interval: raw.metrics_snapshot_interval,
             cache_max_size: raw.cache_max_size,
             verification_expire_time: raw.verification_expire_time,
+            recall_time_limit: raw.recall_time_limit,
+            recall_vote_duration: raw.recall_vote_duration,
             user_defined_status_expire_time: raw.user_defined_status_expire_time,
             log_clean_duration: raw.log_clean_duration,
             log_keep: raw.log_keep,
@@ -354,6 +451,7 @@ impl<'de> Deserialize<'de> for MainCfg {
             lock_account_duration: raw.lock_account_duration,
             initial_admin_ocid: raw.initial_admin_ocid,
             patches_directory: raw.patches_directory,
+            minimum_client_version,
             cmd_args: ParserCfg::default(),
         })
     }
@@ -607,6 +705,50 @@ mod tests {
         );
         let cfg = result.unwrap();
         assert_eq!(cfg.friends_number_limit, 100);
+    }
+
+    #[test]
+    fn test_recall_time_limit_default_value() {
+        let config = minimal_valid_config();
+        let result: Result<MainCfg, _> = serde_json::from_value(config);
+        assert!(result.is_ok());
+        let cfg = result.unwrap();
+        assert_eq!(cfg.recall_time_limit, Duration::from_secs(2 * 60));
+    }
+
+    #[test]
+    fn test_recall_time_limit_zero_allowed() {
+        let mut config = minimal_valid_config();
+        // zero means no time limit, so it must be accepted
+        config["recall_time_limit"] = json!("0s");
+        let result: Result<MainCfg, _> = serde_json::from_value(config);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().recall_time_limit, Duration::ZERO);
+    }
+
+    #[test]
+    fn test_recall_vote_duration_default_value() {
+        let config = minimal_valid_config();
+        let result: Result<MainCfg, _> = serde_json::from_value(config);
+        assert!(result.is_ok());
+        assert_eq!(
+            result.unwrap().recall_vote_duration,
+            Duration::from_hours(24)
+        );
+    }
+
+    #[test]
+    fn test_recall_vote_duration_zero_fails() {
+        let mut config = minimal_valid_config();
+        config["recall_vote_duration"] = json!("0s");
+        let result: Result<MainCfg, _> = serde_json::from_value(config);
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("recall_vote_duration cannot be zero"),
+            "Error was: {}",
+            err
+        );
     }
 
     #[test]
@@ -1146,5 +1288,71 @@ mod tests {
         let merged_cfg: MainCfg = serde_json::from_value(merged_json)
             .expect("Should be able to deserialize merged config");
         assert_eq!(merged_cfg.friends_number_limit, 250);
+    }
+
+    #[test]
+    fn test_minimum_client_version_default_value() {
+        let config = minimal_valid_config();
+        let result: Result<MainCfg, _> = serde_json::from_value(config);
+        assert!(result.is_ok());
+        let cfg = result.unwrap();
+        assert_eq!(
+            cfg.minimum_client_version,
+            ClientVersion {
+                major: 0,
+                minor: 0,
+                patch: 0
+            }
+        );
+    }
+
+    #[test]
+    fn test_minimum_client_version_custom_value() {
+        let mut config = minimal_valid_config();
+        config["minimum_client_version"] = json!("1.2.3");
+        let result: Result<MainCfg, _> = serde_json::from_value(config);
+        assert!(result.is_ok());
+        let cfg = result.unwrap();
+        assert_eq!(
+            cfg.minimum_client_version,
+            ClientVersion {
+                major: 1,
+                minor: 2,
+                patch: 3
+            }
+        );
+    }
+
+    #[test]
+    fn test_minimum_client_version_invalid_format_fails() {
+        for invalid in ["1.2", "1.2.3.4", "a.b.c", "-1.0.0", "1..3", "1.2.x"] {
+            let mut config = minimal_valid_config();
+            config["minimum_client_version"] = json!(invalid);
+            let result: Result<MainCfg, _> = serde_json::from_value(config);
+            assert!(
+                result.is_err(),
+                "\"{invalid}\" should be rejected as minimum_client_version"
+            );
+            let err = result.unwrap_err().to_string();
+            assert!(
+                err.contains("minimum_client_version must be in the format"),
+                "Error was: {}",
+                err
+            );
+        }
+    }
+
+    #[test]
+    fn test_minimum_client_version_serializes_back_to_string() {
+        // The SetConfig RPC serializes MainCfg to JSON and deserializes it
+        // back through RawMainCfg, so the field must keep its string form.
+        let mut config = minimal_valid_config();
+        config["minimum_client_version"] = json!("2.3.4");
+        let cfg: MainCfg = serde_json::from_value(config).unwrap();
+        let serialized = serde_json::to_value(&cfg).unwrap();
+        assert_eq!(serialized["minimum_client_version"], json!("2.3.4"));
+        // ...and the serialized form must be parseable again
+        let reparsed: MainCfg = serde_json::from_value(serialized).unwrap();
+        assert_eq!(reparsed.minimum_client_version, cfg.minimum_client_version);
     }
 }

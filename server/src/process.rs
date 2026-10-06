@@ -55,6 +55,7 @@ pub mod register;
 mod server_manage;
 mod session;
 mod set_self_info;
+pub mod sticker;
 pub mod unregister;
 pub mod verify;
 pub mod voip;
@@ -62,6 +63,7 @@ pub mod webrtc;
 
 use base::constants::SessionID;
 use deadpool_lapin::lapin::options::BasicPublishOptions;
+use deadpool_lapin::lapin::types::ShortString;
 use entities::message_records;
 use jsonwebtoken::DecodingKey;
 use jsonwebtoken::EncodingKey;
@@ -89,7 +91,8 @@ pub use friends::{
 };
 pub use message::{
     fetch_session_history::fetch_session_history, fetch_user_msg::fetch_user_msg,
-    recall::recall_msg, send_msg::send_msg,
+    recall::recall_msg, recall_vote::get_recall_vote, recall_vote::start_recall_vote,
+    recall_vote::vote_recall, send_msg::send_msg,
 };
 pub use server_manage::{
     announcement::{
@@ -131,6 +134,7 @@ pub use session::{
     set_session_info::set_session_info,
 };
 pub use set_self_info::set_self_info;
+pub use sticker::{add_sticker, get_stickers, remove_sticker};
 pub use unregister::unregister;
 pub use voip::get_config::get_voip_config;
 pub use webrtc::{
@@ -296,8 +300,8 @@ async fn transmit_msg(
         Dest::User(id) => {
             rabbitmq_connection
                 .basic_publish(
-                    USER_MSG_DIRECT_EXCHANGE,
-                    &generate_route_key(id),
+                    ShortString::from(USER_MSG_DIRECT_EXCHANGE),
+                    ShortString::from(generate_route_key(id)),
                     BasicPublishOptions::default(),
                     buf.as_ref(),
                     Default::default(),
@@ -309,8 +313,8 @@ async fn transmit_msg(
                 let dest_id = i.user_id.into();
                 rabbitmq_connection
                     .basic_publish(
-                        USER_MSG_DIRECT_EXCHANGE,
-                        &generate_route_key(dest_id),
+                        ShortString::from(USER_MSG_DIRECT_EXCHANGE),
+                        ShortString::from(generate_route_key(dest_id)),
                         BasicPublishOptions::default(),
                         buf.as_ref(),
                         Default::default(),
@@ -321,8 +325,8 @@ async fn transmit_msg(
         Dest::All => {
             rabbitmq_connection
                 .basic_publish(
-                    USER_MSG_BROADCAST_EXCHANGE,
-                    "",
+                    ShortString::from(USER_MSG_BROADCAST_EXCHANGE),
+                    ShortString::from(""),
                     BasicPublishOptions::default(),
                     buf.as_ref(),
                     Default::default(),
@@ -351,6 +355,7 @@ impl From<MsgError> for MsgInsTransmitErr {
             MsgError::DbError(db_err) => Self::Db(db_err),
             MsgError::UnknownError(error) => Self::Unknown(error),
             MsgError::PermissionDenied => Self::PermissionDenied,
+            MsgError::TimeLimitExceeded => Self::PermissionDenied,
             MsgError::NotFound => Self::NotFound,
             MsgError::SerdeError(error) => Self::Unknown(error.into()),
         }

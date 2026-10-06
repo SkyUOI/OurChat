@@ -48,6 +48,9 @@ impl From<MsgError> for FetchSessionHistoryErr {
             MsgError::PermissionDenied => {
                 FetchSessionHistoryErr::Status(Status::permission_denied("permission denied"))
             }
+            MsgError::TimeLimitExceeded => {
+                FetchSessionHistoryErr::Status(Status::permission_denied("permission denied"))
+            }
             MsgError::NotFound => FetchSessionHistoryErr::Status(Status::not_found("not found")),
             MsgError::SerdeError(e) => FetchSessionHistoryErr::Internal(e.into()),
         }

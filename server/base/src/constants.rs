@@ -149,6 +149,14 @@ pub const fn default_verification_expire_time() -> Duration {
     Duration::from_days(3)
 }
 
+pub const fn default_recall_time_limit() -> Duration {
+    Duration::from_mins(2)
+}
+
+pub const fn default_recall_vote_duration() -> Duration {
+    Duration::from_hours(24)
+}
+
 pub const fn default_user_defined_status_expire_time() -> Duration {
     Duration::from_hours(24)
 }
@@ -277,6 +285,10 @@ pub const fn default_lock_account_after_failed_logins() -> u32 {
 
 pub const fn default_lock_account_duration() -> Duration {
     Duration::from_mins(15)
+}
+
+pub fn default_minimum_client_version() -> String {
+    "0.0.0".to_string()
 }
 
 pub mod option {

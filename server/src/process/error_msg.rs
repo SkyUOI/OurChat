@@ -12,6 +12,8 @@ pub mod not_found {
     pub const FILE: &str = "File Not Found";
     pub const WEBRTC_ROOM: &str = "WebRTC Room Not Found";
     pub const UPLOAD_SESSION: &str = "Upload Session Not Found";
+    pub const RECALL_VOTE: &str = "Recall Vote Not Found";
+    pub const STICKER: &str = "Sticker Not Found";
 }
 
 pub mod exist {
@@ -20,6 +22,10 @@ pub mod exist {
     pub const USER_IN_SESSION: &str = "User Already In Session";
     pub const MSG: &str = "Message Already Exists";
     pub const FRIEND: &str = "Friend Already Exists";
+    pub const RECALL_VOTE_RECORD: &str = "Recall Vote Record Already Exists";
+    pub const UNSETTLED_RECALL_VOTE: &str =
+        "An Unsettled Recall Vote Already Exists For The Message";
+    pub const STICKER: &str = "Sticker Already Exists";
 }
 
 pub mod invalid {
@@ -28,6 +34,7 @@ pub mod invalid {
     pub const STATUS_TOO_LONG: &str = "Status Too Long";
     pub const OCID_TOO_LONG: &str = "Ocid Too Long";
     pub const PUBLIC_KEY: &str = "Public Key Is Invalid";
+    pub const SESSION_INVITATION_POLICY: &str = "Session Invitation Policy Is Invalid";
 }
 
 pub mod metrics {
@@ -39,6 +46,7 @@ pub mod metrics {
 
 pub const SERVER_ERROR: &str = "Server Error";
 pub const PERMISSION_DENIED: &str = "Permission Denied";
+pub const RECALL_TIME_LIMIT_EXCEEDED: &str = "Recall Time Limit Exceeded";
 pub const REQUEST_INVALID_VALUE: &str = "Request Invalid Value";
 pub const NOT_IN_SESSION: &str = "Not In Session";
 pub const CONFLICT: &str = "Conflict";
@@ -47,6 +55,10 @@ pub const MUTE: &str = "User Muted";
 pub const BAN: &str = "User Banned";
 pub const ACCOUNT_DELETED: &str = "Account Deleted";
 pub const E2EE_NOT_ON: &str = "E2EE Not On";
+
+// Session invitation policy
+pub const SESSION_INVITATION_NOT_ALLOWED: &str = "Session Invitation Not Allowed";
+pub const SESSION_INVITATION_FRIENDS_ONLY: &str = "Only Friends Can Invite This User";
 
 // fetch msg
 
@@ -78,6 +90,12 @@ pub const ROLE_NAME_EMPTY: &str = "Role Name Empty";
 
 // Register
 pub const NOT_STRONG_PASSWORD: &str = "Password Is Not Strong Enough";
+
+// Recall votes
+pub const VOTE_SETTLED: &str = "Recall Vote Already Settled";
+pub const VOTE_EXPIRED: &str = "Recall Vote Expired";
+pub const CANNOT_RECALL_BY_VOTE: &str = "Message Cannot Be Recalled By Vote";
+pub const RECALL_PERMISSION_HELD: &str = "Use RecallMsg Directly: RecallMsg Permission Held";
 
 pub mod token {
     pub const INVALID: &str = "Token Invalid";

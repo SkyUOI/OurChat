@@ -25,6 +25,10 @@ friends_number_limit = 5000
 verification_expire_time = "3d"
 # The expiry time in hours of the user defined status
 user_defined_status_expire_time = "24h"
+# How long after sending a message its sender is allowed to recall it
+# Users with the `RecallMsg` permission (e.g. Owner/Admin) are not bound by this limit
+# 0s means no time limit
+recall_time_limit = "2m"
 # The path of the users' files storage
 files_storage_path = "/app/files_storage/"
 # How long will the files be kept
@@ -57,6 +61,12 @@ unregister_policy = "disable"
 lock_account_after_failed_logins = 5
 # The duration of locking the account after too many failed login attempts
 lock_account_duration = "15m"
+
+# The minimum client version this server allows to connect
+# Clients with a lower version should ask the user to update
+# Format: "major.minor.patch"
+# "0.0.0" means no limit (default)
+minimum_client_version = "0.0.0"
 
 # Bootstrap: assign server admin role to this user on startup (one-time)
 # User must register first, then restart server with this config

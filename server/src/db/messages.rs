@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use entities::{message_records, prelude::MessageRecords};
 use migration::predefined::PredefinedPermissions;
 use pb::time::TimeStamp;
@@ -18,6 +20,8 @@ pub enum MsgError {
     UnknownError(#[from] anyhow::Error),
     #[error("Don't have privilege")]
     PermissionDenied,
+    #[error("recall time limit exceeded")]
+    TimeLimitExceeded,
     #[error("not found")]
     NotFound,
     #[error("serde error:{0:?}")]
@@ -89,12 +93,17 @@ pub async fn get_msg_by_id<T: ConnectionTrait>(
 /// message, and return `MsgError::WithoutPrivilege` if not. If `deleter_id` is `None`, this check
 /// will be skipped.
 ///
+/// A user may only recall their own messages within `recall_time_limit` after they were sent,
+/// unless they hold the `RecallMsg` permission, which is not bound by the time limit.
+/// A zero `recall_time_limit` disables the time limit.
+///
 /// Returns `MsgError::NotFound` if the message is not found, or `MsgError::DbError` if a database
 /// error occurs.
 pub async fn del_msg(
     msg_id: u64,
     session_id: SessionID,
     deleter_id: Option<ID>,
+    recall_time_limit: Duration,
     db_conn: &impl ConnectionTrait,
 ) -> Result<(), MsgError> {
     let msg_id = msg_id as i64;
@@ -102,17 +111,30 @@ pub async fn del_msg(
         None => return Err(MsgError::NotFound),
         Some(d) => d,
     };
-    if let (Some(deleter), Some(sender)) = (deleter_id, msg.sender_id)
-        && i64::from(deleter) != sender
-        && !if_permission_exist(
-            deleter,
-            session_id,
-            PredefinedPermissions::RecallMsg.into(),
-            db_conn,
-        )
-        .await?
-    {
-        return Err(MsgError::PermissionDenied);
+    if let Some(deleter) = deleter_id {
+        let is_sender = msg
+            .sender_id
+            .is_some_and(|sender| i64::from(deleter) == sender);
+        let within_time_limit = is_sender
+            && (recall_time_limit.is_zero() || chrono::Utc::now() <= msg.time + recall_time_limit);
+        if !within_time_limit {
+            // Either the deleter is not the sender, or the sender is out of time:
+            // the `RecallMsg` permission is required in both cases.
+            if !if_permission_exist(
+                deleter,
+                session_id,
+                PredefinedPermissions::RecallMsg.into(),
+                db_conn,
+            )
+            .await?
+            {
+                return Err(if is_sender {
+                    MsgError::TimeLimitExceeded
+                } else {
+                    MsgError::PermissionDenied
+                });
+            }
+        }
     }
     msg.delete(db_conn).await?;
     Ok(())

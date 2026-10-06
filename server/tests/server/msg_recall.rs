@@ -10,6 +10,23 @@ use std::time::Duration;
 use tokio::join;
 use tokio::sync::{Notify, oneshot};
 
+/// Move the timestamp of a message `ago` into the past, to simulate an old message
+async fn backdate_msg(app: &TestApp, msg_id: u64, ago: Duration) {
+    use sea_orm::{ConnectionTrait, Statement};
+    let old_time = chrono::Utc::now() - ago;
+    let values: [sea_orm::Value; 2] = [old_time.into(), (msg_id as i64).into()];
+    let ret = app
+        .get_db_connection()
+        .execute_raw(Statement::from_sql_and_values(
+            sea_orm::DatabaseBackend::Postgres,
+            "UPDATE message_records SET time = $1 WHERE msg_id = $2",
+            values,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(ret.rows_affected(), 1, "backdate_msg matched no message");
+}
+
 #[tokio::test]
 async fn test_recall() {
     let mut app = TestApp::new_with_launching_instance().await.unwrap();
@@ -84,5 +101,122 @@ async fn test_recall() {
     join!(task).0.unwrap();
     let tmp = { res.lock().clone().unwrap() };
     check(tmp, 2, 1).await;
+    app.async_drop().await;
+}
+
+#[tokio::test]
+async fn test_recall_time_limit_exceeded() {
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
+    let (session_user, session) = app
+        .new_session_db_level(3, "session1", false)
+        .await
+        .unwrap();
+    // `session_user[0]` is the session Owner, so the message must be sent by the non-privileged user 1
+    let (b, c) = (session_user[1].clone(), session_user[2].clone());
+    let ret = b
+        .lock()
+        .await
+        .send_msg(session.session_id, "hello", vec![], false)
+        .await
+        .unwrap();
+    let msg_id = ret.into_inner().msg_id;
+    // Simulate an old message (the default recall_time_limit is 2m)
+    backdate_msg(&app, msg_id, Duration::from_secs(10 * 60)).await;
+    // The sender can no longer recall their own message
+    let e = b
+        .lock()
+        .await
+        .oc()
+        .recall_msg(RecallMsgRequest {
+            msg_id,
+            session_id: session.session_id.into(),
+        })
+        .await
+        .unwrap_err();
+    assert_eq!(e.code(), tonic::Code::OutOfRange, "{e:?}");
+    // A user without the RecallMsg permission cannot recall another one's old message
+    let e = c
+        .lock()
+        .await
+        .oc()
+        .recall_msg(RecallMsgRequest {
+            msg_id,
+            session_id: session.session_id.into(),
+        })
+        .await
+        .unwrap_err();
+    assert_eq!(e.code(), tonic::Code::PermissionDenied, "{e:?}");
+    app.async_drop().await;
+}
+
+#[tokio::test]
+async fn test_recall_time_limit_permission_exempt() {
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
+    let (session_user, session) = app
+        .new_session_db_level(3, "session1", false)
+        .await
+        .unwrap();
+    let (a, b, _c) = (
+        session_user[0].clone(),
+        session_user[1].clone(),
+        session_user[2].clone(),
+    );
+    // b sends a message
+    let ret = b
+        .lock()
+        .await
+        .send_msg(session.session_id, "hello", vec![], false)
+        .await
+        .unwrap();
+    let msg_id = ret.into_inner().msg_id;
+    // Simulate an old message (the default recall_time_limit is 2m)
+    backdate_msg(&app, msg_id, Duration::from_secs(10 * 60)).await;
+    // a is the Owner of the session, whose RecallMsg permission is not bound by the time limit
+    a.lock()
+        .await
+        .oc()
+        .recall_msg(RecallMsgRequest {
+            msg_id,
+            session_id: session.session_id.into(),
+        })
+        .await
+        .unwrap();
+    app.async_drop().await;
+}
+
+#[tokio::test]
+async fn test_recall_no_time_limit() {
+    let (mut config, args) = TestApp::get_test_config().unwrap();
+    // Disable the time limit
+    config.main_cfg.recall_time_limit = Duration::ZERO;
+    let mut app = TestApp::new_with_launching_instance_custom_cfg((config, args), |_| {})
+        .await
+        .unwrap();
+    let (session_user, session) = app
+        .new_session_db_level(3, "session1", false)
+        .await
+        .unwrap();
+    // `session_user[0]` is the session Owner, so the message must be sent by the non-privileged user 1
+    let b = session_user[1].clone();
+    // Send Msg
+    let ret = b
+        .lock()
+        .await
+        .send_msg(session.session_id, "hello", vec![], false)
+        .await
+        .unwrap();
+    let msg_id = ret.into_inner().msg_id;
+    // Simulate an old message
+    backdate_msg(&app, msg_id, Duration::from_secs(10 * 60)).await;
+    // The sender can still recall their own message when the limit is disabled
+    b.lock()
+        .await
+        .oc()
+        .recall_msg(RecallMsgRequest {
+            msg_id,
+            session_id: session.session_id.into(),
+        })
+        .await
+        .unwrap();
     app.async_drop().await;
 }

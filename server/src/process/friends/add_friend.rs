@@ -52,6 +52,9 @@ impl From<MsgError> for AddFriendErr {
             MsgError::PermissionDenied => {
                 Self::Status(Status::permission_denied(PERMISSION_DENIED))
             }
+            MsgError::TimeLimitExceeded => {
+                Self::Status(Status::permission_denied(PERMISSION_DENIED))
+            }
             MsgError::NotFound => {
                 tracing::error!(
                     "Insert a new message record into the database, but a not found was returned."
