@@ -582,5 +582,158 @@
         }
     },
     "loginFailed": "Login failed",
-    "registerFailed": "Registration failed"
+    "registerFailed": "Registration failed",
+    "joinSession": "Join Session",
+    "@joinSession": {
+        "description": "Join Session dialog title / action"
+    },
+    "joinSessionLeaveMessage": "Leave message (optional)",
+    "@joinSessionLeaveMessage": {
+        "description": "Optional message attached to a join session request"
+    },
+    "joinRequestSent": "Join request sent",
+    "@joinRequestSent": {
+        "description": "Confirmation shown after a join session request is submitted"
+    },
+    "alreadyJoinedSession": "Already joined this session",
+    "@alreadyJoinedSession": {
+        "description": "Error hint when the user is already a member of the session"
+    },
+    "sessionIdSearchNoResult": "No session found for this ID",
+    "@sessionIdSearchNoResult": {
+        "description": "Hint shown when searching by session id finds nothing"
+    },
+    "emoji": "Emoji",
+    "@emoji": {
+        "description": "Emoji picker toggle button"
+    },
+    "emojiCategorySmileys": "Smileys",
+    "@emojiCategorySmileys": {
+        "description": "Emoji picker category: smileys & emotions"
+    },
+    "emojiCategoryPeople": "People & Gestures",
+    "@emojiCategoryPeople": {
+        "description": "Emoji picker category: people & gestures"
+    },
+    "emojiCategoryAnimals": "Animals & Nature",
+    "@emojiCategoryAnimals": {
+        "description": "Emoji picker category: animals & nature"
+    },
+    "emojiCategoryFood": "Food & Drink",
+    "@emojiCategoryFood": {
+        "description": "Emoji picker category: food & drink"
+    },
+    "emojiCategoryActivities": "Activities & Travel",
+    "@emojiCategoryActivities": {
+        "description": "Emoji picker category: activities & travel"
+    },
+    "emojiCategoryObjects": "Objects & Symbols",
+    "@emojiCategoryObjects": {
+        "description": "Emoji picker category: objects & symbols"
+    },
+    "announcement": "Announcements",
+    "@announcement": {
+        "description": "Server announcement(s)"
+    },
+    "announcementPublisherId": "Publisher ID: {id}",
+    "@announcementPublisherId": {
+        "description": "Label showing the publisher account id of an announcement",
+        "placeholders": {
+            "id": {
+                "type": "String",
+                "example": "42"
+            }
+        }
+    },
+    "noAnnouncement": "No announcements yet",
+    "@noAnnouncement": {
+        "description": "Placeholder shown when the announcement list is empty"
+    },
+    "presetStatus": "Preset status",
+    "@presetStatus": {
+        "description": "Label above the preset user status chips"
+    },
+    "untrustedImageSource": "From an untrusted source",
+    "@untrustedImageSource": {
+        "description": "Tooltip on the badge of an external network image"
+    },
+    "externalImagesTitle": "External images detected",
+    "@externalImagesTitle": {
+        "description": "Title of the dialog asking what to do with external http(s) images"
+    },
+    "externalImagesCount": "{count} image(s) in this message come from external websites. Upload them to this server, or keep the external links?",
+    "@externalImagesCount": {
+        "description": "Body of the dialog asking what to do with external http(s) images",
+        "placeholders": {
+            "count": {
+                "type": "num",
+                "example": "2"
+            }
+        }
+    },
+    "uploadToServer": "Upload to the server",
+    "@uploadToServer": {
+        "description": "Dialog action: download external images and upload them to this server"
+    },
+    "keepExternalLinks": "Keep external links",
+    "@keepExternalLinks": {
+        "description": "Dialog action: keep external image links as-is"
+    },
+    "failToDownloadImage": "Failed to download image",
+    "@failToDownloadImage": {
+        "description": "Error shown when an external network image could not be downloaded"
+    },
+    "newMessage": "New message",
+    "@newMessage": {
+        "description": "Generic notification body/title fallback for an incoming message (used when content preview is disabled or the conversation name is unknown)"
+    },
+    "notificationShowMessageContent": "Show message content in notifications",
+    "@notificationShowMessageContent": {
+        "description": "Settings switch: whether new-message notifications include the message text (privacy toggle)"
+    },
+    "closeBehavior": "Close button behavior",
+    "@closeBehavior": {
+        "description": "Settings label: what the desktop window close (X) button does"
+    },
+    "closeBehaviorMinimizeToTray": "Minimize to tray",
+    "@closeBehaviorMinimizeToTray": {
+        "description": "Close button behavior option: hide the window and keep running in the system tray"
+    },
+    "closeBehaviorExit": "Exit OurChat",
+    "@closeBehaviorExit": {
+        "description": "Close button behavior option: quit the application entirely"
+    },
+    "serverTooOldTitle": "Server version too old",
+    "serverTooOldBody": "This server is running an older version than this client supports. Some features may not work correctly.",
+    "clientTooOldTitle": "Client update required",
+    "clientTooOldBody": "The server requires a newer client version. Please update OurChat to keep using this server.",
+    "invitePolicy": "Who can invite me into sessions",
+    "invitePolicyAllowAll": "Everyone",
+    "invitePolicyFriendsOnly": "Friends only",
+    "invitePolicyNobody": "Nobody",
+    "voteRecall": "Vote to recall",
+    "voteRecallStarted": "Recall vote started",
+    "voteRecallBanner": "Recall vote in progress",
+    "voteYesLabel": "For",
+    "voteNoLabel": "Against",
+    "votePassed": "Vote passed — message recalled",
+    "voteFailed": "Vote failed — message kept",
+    "voteVotedYes": "You voted for",
+    "voteVotedNo": "You voted against",
+    "voteVotedAlready": "You have already voted",
+    "voteDeadline": "ends {time}",
+    "@voteDeadline": {
+        "placeholders": {
+            "time": {
+                "type": "String"
+            }
+        }
+    },
+    "stickersTab": "Stickers",
+    "stickersEmpty": "No stickers yet. Long-press an image message and choose \"Save as sticker\".",
+    "stickerSaved": "Sticker saved",
+    "stickerAlreadySaved": "Already in your stickers",
+    "saveSticker": "Save as sticker",
+    "removeSticker": "Remove sticker",
+    "removeStickerConfirm": "Remove this sticker from your collection?"
 }

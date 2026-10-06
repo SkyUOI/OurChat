@@ -15,6 +15,57 @@ part 'state.g.dart';
 
 enum TabType { empty, session, user }
 
+/// Live state of one recall vote (issue #33), mirrored from
+/// `RecallVoteNotificationEvent` pushes. `myVote` is client-local (the server
+/// does not tell who voted) and only disables the buttons in the banner.
+class RecallVoteData {
+  final Int64 voteId;
+  final Int64 sessionId;
+  final Int64 targetMsgId;
+  final Int64 initiatorId;
+  final int yesCount;
+  final int noCount;
+  final int eligibleCount;
+  final DateTime deadline;
+  final bool settled;
+  final bool passed;
+  final bool? myVote;
+
+  const RecallVoteData({
+    required this.voteId,
+    required this.sessionId,
+    required this.targetMsgId,
+    required this.initiatorId,
+    required this.yesCount,
+    required this.noCount,
+    required this.eligibleCount,
+    required this.deadline,
+    required this.settled,
+    required this.passed,
+    this.myVote,
+  });
+
+  RecallVoteData copyWith({
+    int? yesCount,
+    int? noCount,
+    bool? settled,
+    bool? passed,
+    bool? myVote,
+  }) => RecallVoteData(
+    voteId: voteId,
+    sessionId: sessionId,
+    targetMsgId: targetMsgId,
+    initiatorId: initiatorId,
+    yesCount: yesCount ?? this.yesCount,
+    noCount: noCount ?? this.noCount,
+    eligibleCount: eligibleCount,
+    deadline: deadline,
+    settled: settled ?? this.settled,
+    passed: passed ?? this.passed,
+    myVote: myVote ?? this.myVote,
+  );
+}
+
 @freezed
 abstract class SessionState with _$SessionState {
   factory SessionState({
@@ -34,6 +85,8 @@ abstract class SessionState with _$SessionState {
     @Default(1) int recordLoadCnt,
     @Default(0) double lastPixels,
     @Default(false) bool sessionsLoading,
+    // Recall votes (issue #33): live vote banners keyed by vote id.
+    @Default({}) Map<Int64, RecallVoteData> sessionVotes,
   }) = _SessionState;
 }
 
@@ -160,6 +213,9 @@ class SessionNotifier extends _$SessionNotifier {
 
   void openSessionTab(Int64 sessionId, String title, {List<UserMsg>? records}) {
     ref.read(quoteTargetProvider.notifier).clear();
+    // Clear the draft so switching sessions does not leak the previous
+    // input text (and its translucent preview bubble) into the new tab.
+    ref.read(inputTextProvider.notifier).setText("");
     state = state.copyWith(
       currentSessionId: sessionId,
       tabIndex: TabType.session,
@@ -174,6 +230,8 @@ class SessionNotifier extends _$SessionNotifier {
 
   void clearTab() {
     ref.read(quoteTargetProvider.notifier).clear();
+    // Leaving the tab must also discard the draft (#256).
+    ref.read(inputTextProvider.notifier).setText("");
     state = state.copyWith(
       tabTitle: "",
       currentUserId: null,
@@ -187,6 +245,35 @@ class SessionNotifier extends _$SessionNotifier {
       currentSessionRecords: [...records, ...state.currentSessionRecords],
       recordLoadCnt: state.recordLoadCnt + 1,
     );
+  }
+
+  /// Upsert a recall-vote update coming from the event stream (issue #33),
+  /// preserving the client-local `myVote` flag across tally updates.
+  void updateSessionVote(RecallVoteData vote) {
+    final previous = state.sessionVotes[vote.voteId];
+    final merged = previous == null
+        ? vote
+        : vote.copyWith(myVote: previous.myVote);
+    state = state.copyWith(
+      sessionVotes: {...state.sessionVotes, vote.voteId: merged},
+    );
+  }
+
+  /// Record the local user's own choice so the banner buttons disable until
+  /// the next server tally arrives.
+  void setMyVote(Int64 voteId, bool approve) {
+    final vote = state.sessionVotes[voteId];
+    if (vote == null) return;
+    state = state.copyWith(
+      sessionVotes: {...state.sessionVotes, voteId: vote.copyWith(myVote: approve)},
+    );
+  }
+
+  /// Drop a vote banner (user dismissed it).
+  void dismissSessionVote(Int64 voteId) {
+    final votes = Map<Int64, RecallVoteData>.from(state.sessionVotes);
+    votes.remove(voteId);
+    state = state.copyWith(sessionVotes: votes);
   }
 
   void setLastPixels(double pixels) {
