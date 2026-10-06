@@ -10,6 +10,8 @@ import 'package:ourchat/core/const.dart';
 import 'package:ourchat/core/account.dart';
 import 'package:ourchat/core/event.dart';
 import 'package:ourchat/core/instance.dart';
+import 'package:ourchat/core/log.dart';
+import 'package:ourchat/core/notification_service.dart';
 import 'package:ourchat/core/session.dart' as core_session;
 import 'package:ourchat/main.dart';
 import 'package:ourchat/service/basic/v1/basic.pbgrpc.dart';
@@ -17,6 +19,7 @@ import 'package:ourchat/service/ourchat/msg_delivery/v1/msg_delivery.pb.dart';
 import 'state.dart';
 import 'session_list_item.dart';
 import 'new_session_dialog.dart';
+import 'join_session_dialog.dart';
 import 'session_tab.dart';
 
 class SessionList extends ConsumerStatefulWidget {
@@ -37,6 +40,7 @@ class _SessionListState extends ConsumerState<SessionList> {
 
   void _onMsgReceived(UserMsg eventObj) {
     _sessionNotifier.receiveMsg(eventObj);
+    unawaited(_notifyNewMessage(eventObj));
     // Refresh sender account info asynchronously
     final sid = _boundKey?.serverId;
     if (sid != null) {
@@ -44,6 +48,89 @@ class _SessionListState extends ConsumerState<SessionList> {
           .read(ourChatAccountProvider(sid, eventObj.senderId!).notifier)
           .getAccountInfo();
     }
+  }
+
+  /// Fire the system notification + tray flash for an incoming message when
+  /// the user is not already looking at that conversation (issue #199).
+  /// Best effort: never throws into the event-stream handler.
+  Future<void> _notifyNewMessage(UserMsg msg) async {
+    final key = _boundKey;
+    final sessionId = msg.sessionId;
+    if (key == null || sessionId == null) return;
+    try {
+      final config = ref.read(configProvider);
+      final sessionState = ref.read(sessionProvider);
+
+      // Conversation title: session name, else the 2-person display name,
+      // else the sender's username, else a generic label.
+      final sessionNotifier = ref.read(
+        core_session.ourChatSessionProvider(key.serverId, sessionId).notifier,
+      );
+      // Warm the session cache in the background so later notifications can
+      // use the real name; never block the notification on the network.
+      unawaited(
+        sessionNotifier.getSessionInfo().catchError((_) => false),
+      );
+      final sessionData = ref.read(
+        core_session.ourChatSessionProvider(key.serverId, sessionId),
+      );
+      String title = sessionData.name;
+      if (title.isEmpty) title = sessionData.displayName ?? '';
+      if (title.isEmpty && msg.senderId != null) {
+        title = ref
+            .read(ourChatAccountProvider(key.serverId, msg.senderId!))
+            .username;
+      }
+      if (title.isEmpty) title = l10n.newMessage;
+
+      // Plain-text preview of the message body (replaced by a generic string
+      // by the privacy switch when it is off).
+      var preview = MarkdownToText.convert(msg.markdownText, l10n);
+      if (preview.length > 50) {
+        preview = "${preview.substring(0, 50)}...";
+      }
+
+      await notifyNewMessage(
+        msg,
+        notificationService: ref.read(ourChatNotificationServiceProvider),
+        currentSessionId: sessionState.currentSessionId,
+        appInForeground: appInForeground,
+        thisAccountId: key.accountId,
+        showContent: config.notificationShowMessageContent,
+        title: title,
+        preview: preview,
+        genericBody: l10n.newMessage,
+        flashTray: isDesktopPlatform ? startFlashTray : null,
+      );
+    } catch (e) {
+      logger.w("new message notification failed: $e");
+    }
+  }
+
+  void _onJoinApproved(OurChatEvent eventObj) {
+    // A join request of ours was accepted — reload the session list so the
+    // new conversation appears without a manual refresh (issue #289).
+    _loadSessions();
+  }
+
+  void _onVoteNotification(OurChatEvent eventObj) {
+    // Recall-vote lifecycle update (issue #33): mirror it into the session
+    // state so the vote banner in the session tab stays current.
+    if (eventObj is! RecallVoteNotificationEvent) return;
+    _sessionNotifier.updateSessionVote(
+      RecallVoteData(
+        voteId: eventObj.voteId,
+        sessionId: eventObj.sessionId!,
+        targetMsgId: eventObj.targetMsgId,
+        initiatorId: eventObj.initiatorId,
+        yesCount: eventObj.yesCount,
+        noCount: eventObj.noCount,
+        eligibleCount: eventObj.eligibleCount,
+        deadline: eventObj.deadline,
+        settled: eventObj.settled,
+        passed: eventObj.passed,
+      ),
+    );
   }
 
   Future<void> _loadSessions() async {
@@ -66,6 +153,14 @@ class _SessionListState extends ConsumerState<SessionList> {
       FetchMsgsResponse_RespondEventType.msg,
       _onMsgReceived,
     );
+    _eventSystem?.removeListener(
+      FetchMsgsResponse_RespondEventType.allowUserJoinSessionNotification,
+      _onJoinApproved,
+    );
+    _eventSystem?.removeListener(
+      FetchMsgsResponse_RespondEventType.recallVoteNotification,
+      _onVoteNotification,
+    );
     super.dispose();
   }
 
@@ -81,6 +176,14 @@ class _SessionListState extends ConsumerState<SessionList> {
         FetchMsgsResponse_RespondEventType.msg,
         _onMsgReceived,
       );
+      _eventSystem?.removeListener(
+        FetchMsgsResponse_RespondEventType.allowUserJoinSessionNotification,
+        _onJoinApproved,
+      );
+      _eventSystem?.removeListener(
+        FetchMsgsResponse_RespondEventType.recallVoteNotification,
+        _onVoteNotification,
+      );
       final newEventSystem = ref.read(
         ourChatEventSystemProvider(
           activeKey.serverId,
@@ -90,6 +193,14 @@ class _SessionListState extends ConsumerState<SessionList> {
       newEventSystem.addListener(
         FetchMsgsResponse_RespondEventType.msg,
         _onMsgReceived,
+      );
+      newEventSystem.addListener(
+        FetchMsgsResponse_RespondEventType.allowUserJoinSessionNotification,
+        _onJoinApproved,
+      );
+      newEventSystem.addListener(
+        FetchMsgsResponse_RespondEventType.recallVoteNotification,
+        _onVoteNotification,
       );
       _eventSystem = newEventSystem;
       _boundKey = activeKey;
@@ -206,9 +317,16 @@ class _SessionListState extends ConsumerState<SessionList> {
                   }
                   List<Int64> sessionIds = snapshot.data;
                   if (sessionIds.isEmpty) {
+                    // Give a dedicated hint when the keyword looks like a
+                    // session id but no session matches it (issue #289).
+                    final isIdQuery = Int64.tryParseInt(searchKeyword) != null;
                     return Padding(
                       padding: const EdgeInsets.only(top: 5.0),
-                      child: Text(l10n.notFound(l10n.session)),
+                      child: Text(
+                        isIdQuery
+                            ? l10n.sessionIdSearchNoResult
+                            : l10n.notFound(l10n.session),
+                      ),
                     );
                   }
                   return SizedBox(
@@ -228,12 +346,35 @@ class _SessionListState extends ConsumerState<SessionList> {
                           avatar: Placeholder(),
                           name: sessionNotifier.getDisplayName(),
                           onPressed: () {
+                            final accountData = ref.read(
+                              ourChatAccountProvider(
+                                activeKey.serverId,
+                                thisAccountId!,
+                              ),
+                            );
+                            if (!accountData.sessions.contains(sessionId)) {
+                              // Not a member yet: ask to join instead of
+                              // opening the conversation (issue #289).
+                              showDialog(
+                                context: context,
+                                builder: (context) =>
+                                    JoinSessionDialog(sessionId: sessionId),
+                              );
+                              return;
+                            }
                             ref
                                 .read(sessionProvider.notifier)
                                 .openSessionTab(
                                   sessionId,
                                   sessionNotifier.getDisplayName(),
                                 );
+                            if (ref.read(screenModeProvider) ==
+                                ScreenMode.mobile) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => TabWidget()),
+                              );
+                            }
                           },
                         );
                       },

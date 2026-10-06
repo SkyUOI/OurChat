@@ -1,7 +1,5 @@
 use crate::db::messages::insert_msg_record;
-use crate::db::session::{
-    get_all_session_relations, get_session_by_id, if_permission_exist, user_banned_status,
-};
+use crate::db::session::{get_members, get_session_by_id, if_permission_exist, user_banned_status};
 use crate::db::user::get_account_info_db;
 use crate::process::error_msg::{BAN, PERMISSION_DENIED, not_found};
 use crate::process::{Dest, transmit_msg};
@@ -54,6 +52,9 @@ impl From<db::messages::MsgError> for JoinInSessionErr {
         match value {
             db::messages::MsgError::DbError(db_err) => Self::Db(db_err),
             db::messages::MsgError::PermissionDenied => {
+                Self::Status(Status::permission_denied(PERMISSION_DENIED))
+            }
+            db::messages::MsgError::TimeLimitExceeded => {
                 Self::Status(Status::permission_denied(PERMISSION_DENIED))
             }
             db::messages::MsgError::NotFound => {
@@ -124,7 +125,12 @@ async fn join_session_impl(
         time: Some(msg_model.time.into()),
         respond_event_type: Some(respond_msg),
     };
-    let peoples_should_be_sent = get_all_session_relations(id, &server.db.db_pool).await?;
+    // Send the approval request to the session members holding the
+    // AcceptJoinRequest permission (e.g. the owner). This must query the
+    // TARGET SESSION's relations — querying by the joiner's user id would
+    // return the joiner's own rows from unrelated sessions and the approval
+    // would never reach anyone.
+    let peoples_should_be_sent = get_members(session_id, &server.db.db_pool).await?;
     let rmq_conn = server.get_rabbitmq_manager().await?;
     let mut rmq_channel = rmq_conn
         .create_channel()

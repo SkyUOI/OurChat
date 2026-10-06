@@ -364,6 +364,250 @@ class FriendInvitationResultNotification extends OurChatEvent {
   }
 }
 
+class JoinSessionApprovalNotification extends OurChatEvent {
+  Int64? userId;
+  String? leaveMessage;
+  List<int> publicKey;
+
+  JoinSessionApprovalNotification({
+    Int64? eventId,
+    Int64? senderId,
+    Int64? sessionId,
+    OurChatTime? sendTime,
+    this.userId,
+    this.leaveMessage,
+    this.publicKey = const [],
+  }) : super(
+         eventId: eventId,
+         eventType: joinSessionApprovalEvent,
+         senderId: senderId,
+         sessionId: sessionId,
+         sendTime: sendTime,
+         data: {
+           "user_id": userId?.toInt(),
+           "leave_message": leaveMessage,
+           "public_key": publicKey,
+         },
+       );
+
+  @override
+  Future loadFromDB(
+    Ref ref,
+    String serverId,
+    OurChatDatabase privateDB,
+    RecordData row,
+  ) async {
+    await super.loadFromDB(ref, serverId, privateDB, row);
+    userId = data!["user_id"] == null
+        ? null
+        : Int64.parseInt(data!["user_id"].toString());
+    leaveMessage = data!["leave_message"];
+    publicKey = [];
+    final pk = data!["public_key"];
+    if (pk is List) {
+      for (int i = 0; i < pk.length; i++) {
+        publicKey.add(pk[i]);
+      }
+    }
+  }
+}
+
+/// A server-wide announcement pushed through the message stream
+/// (`FetchMsgsResponse.announcement_response`). Announcements are not bound to
+/// any session, so `sessionId` stays null.
+class AnnouncementResponseEvent extends OurChatEvent {
+  String? title;
+  String? content;
+  Int64? publisherId;
+
+  AnnouncementResponseEvent({
+    Int64? eventId,
+    Int64? senderId,
+    OurChatTime? sendTime,
+    this.title,
+    this.content,
+    this.publisherId,
+  }) : super(
+         eventId: eventId,
+         eventType: announcementResponseEvent,
+         senderId: senderId,
+         sendTime: sendTime,
+         data: {
+           "id": eventId?.toInt(),
+           "title": title,
+           "content": content,
+           "publisher_id": publisherId?.toInt(),
+           "created_at": sendTime?.datetime.toIso8601String(),
+         },
+       );
+
+  @override
+  Future loadFromDB(
+    Ref ref,
+    String serverId,
+    OurChatDatabase privateDB,
+    RecordData row,
+  ) async {
+    // Unlike session-bound events, announcements never trigger an account-info
+    // fetch for their sender (the publisher may be an unknown admin account).
+    eventId = Int64.parseInt(row.eventId.toString());
+    eventType = row.eventType;
+    senderId = Int64.parseInt(row.sender.toString());
+    sendTime = OurChatTime.fromDatetime(row.time);
+    data = jsonDecode(row.data);
+    read = row.read == 1 ? true : false;
+    title = data!["title"];
+    content = data!["content"];
+    publisherId = data!["publisher_id"] == null
+        ? null
+        : Int64.parseInt(data!["publisher_id"].toString());
+  }
+}
+
+/// Map a `FetchMsgsResponse` carrying an `announcement_response` onto an
+/// [AnnouncementResponseEvent].
+AnnouncementResponseEvent announcementEventFromResponse(
+  FetchMsgsResponse event,
+) {
+  final response = event.announcementResponse;
+  return AnnouncementResponseEvent(
+    eventId: event.msgId,
+    senderId: response.announcement.publisherId,
+    sendTime: OurChatTime.fromTimestamp(event.time),
+    title: response.announcement.title,
+    content: response.announcement.content,
+    publisherId: response.announcement.publisherId,
+  );
+}
+
+/// A recall-vote lifecycle update pushed to a session
+/// (`FetchMsgsResponse.recall_vote_notification`, issue #33): a vote was
+/// started, a tally changed, or the vote settled (passed → the message gets
+/// recalled by the server, failed → nothing happens).
+class RecallVoteNotificationEvent extends OurChatEvent {
+  Int64 voteId;
+  Int64 targetMsgId;
+  Int64 initiatorId;
+  int yesCount;
+  int noCount;
+  int eligibleCount;
+  DateTime deadline;
+  bool settled;
+  bool passed;
+
+  RecallVoteNotificationEvent({
+    Int64? eventId,
+    required this.voteId,
+    required Int64 sessionId,
+    required this.targetMsgId,
+    required this.initiatorId,
+    required this.yesCount,
+    required this.noCount,
+    required this.eligibleCount,
+    required this.deadline,
+    required this.settled,
+    required this.passed,
+    OurChatTime? sendTime,
+  }) : super(
+          eventId: eventId,
+          eventType: recallVoteNotificationEvent,
+          sessionId: sessionId,
+          senderId: initiatorId,
+          sendTime: sendTime,
+          data: {
+            "vote_id": voteId.toInt(),
+            "msg_id": targetMsgId.toInt(),
+            "initiator_id": initiatorId.toInt(),
+            "yes_count": yesCount,
+            "no_count": noCount,
+            "eligible_count": eligibleCount,
+            "deadline": deadline.millisecondsSinceEpoch,
+            "settled": settled,
+            "passed": passed,
+          },
+        );
+
+  @override
+  Future loadFromDB(
+    Ref ref,
+    String serverId,
+    OurChatDatabase privateDB,
+    RecordData row,
+  ) async {
+    eventId = Int64.parseInt(row.eventId.toString());
+    eventType = row.eventType;
+    senderId = Int64.parseInt(row.sender.toString());
+    sessionId = Int64.parseInt(row.sessionId.toString());
+    sendTime = OurChatTime.fromDatetime(row.time);
+    data = jsonDecode(row.data);
+    read = row.read == 1 ? true : false;
+    voteId = Int64.parseInt(data!["vote_id"].toString());
+    targetMsgId = Int64.parseInt(data!["msg_id"].toString());
+    initiatorId = Int64.parseInt(data!["initiator_id"].toString());
+    yesCount = data!["yes_count"] as int;
+    noCount = data!["no_count"] as int;
+    eligibleCount = data!["eligible_count"] as int;
+    deadline = DateTime.fromMillisecondsSinceEpoch(data!["deadline"] as int);
+    settled = data!["settled"] as bool;
+    passed = data!["passed"] as bool;
+  }
+}
+
+/// Map a `FetchMsgsResponse` carrying a `recall_vote_notification` onto a
+/// [RecallVoteNotificationEvent].
+RecallVoteNotificationEvent recallVoteEventFromResponse(
+  FetchMsgsResponse event,
+) {
+  final v = event.recallVoteNotification;
+  return RecallVoteNotificationEvent(
+    eventId: event.msgId,
+    voteId: v.voteId,
+    sessionId: v.sessionId,
+    targetMsgId: v.msgId,
+    initiatorId: v.initiatorId,
+    yesCount: v.yesCount,
+    noCount: v.noCount,
+    eligibleCount: v.eligibleCount,
+    deadline: v.deadline.toDateTime(),
+    settled: v.settled,
+    passed: v.passed,
+    sendTime: OurChatTime.fromTimestamp(event.time),
+  );
+}
+
+/// Received by the joiner once a session administrator answers their join
+/// request. When accepted, the account data (and therefore the session list)
+/// is refreshed so the new conversation shows up immediately.
+class AllowUserJoinSessionEvent extends OurChatEvent {
+  bool accepted;
+
+  AllowUserJoinSessionEvent({
+    Int64? eventId,
+    Int64? senderId,
+    Int64? sessionId,
+    OurChatTime? sendTime,
+    this.accepted = false,
+  }) : super(
+         eventId: eventId,
+         eventType: allowUserJoinSessionNotificationEvent,
+         senderId: senderId,
+         sessionId: sessionId,
+         sendTime: sendTime,
+         data: {"accepted": accepted},
+       );
+
+  @override
+  Future loadFromDB(
+    Ref ref,
+    String serverId,
+    OurChatDatabase privateDB,
+    RecordData row,
+  ) async {
+    await super.loadFromDB(ref, serverId, privateDB, row);
+    accepted = data!["accepted"];
+  }
+}
+
 @Riverpod(keepAlive: true)
 class OurChatEventSystem extends _$OurChatEventSystem {
   final Map _listeners = {};
@@ -563,6 +807,44 @@ class OurChatEventSystem extends _$OurChatEventSystem {
             await _handleAllowUserJoinSession(
               event.allowUserJoinSessionNotification,
             );
+            if (event.allowUserJoinSessionNotification.accepted) {
+              // Refresh the account data first so the session list picks up
+              // the newly joined conversation, then notify listeners.
+              await ref
+                  .read(ourChatAccountProvider(serverId, accountId).notifier)
+                  .getAccountInfo(ignoreCache: true);
+              eventObj = AllowUserJoinSessionEvent(
+                eventId: event.msgId,
+                senderId: accountId,
+                sessionId: event.allowUserJoinSessionNotification.sessionId,
+                sendTime: OurChatTime.fromTimestamp(event.time),
+                accepted: true,
+              );
+              eventObj.read = true;
+            }
+
+          case FetchMsgsResponse_RespondEventType.joinSessionApproval:
+            // Somebody asked to join one of our sessions; persist the request
+            // and notify listeners (e.g. an approval UI).
+            eventObj = JoinSessionApprovalNotification(
+              eventId: event.msgId,
+              senderId: event.joinSessionApproval.userId,
+              sessionId: event.joinSessionApproval.sessionId,
+              sendTime: OurChatTime.fromTimestamp(event.time),
+              userId: event.joinSessionApproval.userId,
+              leaveMessage: event.joinSessionApproval.leaveMessage,
+              publicKey: event.joinSessionApproval.publicKey,
+            );
+
+          case FetchMsgsResponse_RespondEventType.announcementResponse:
+            // A server-wide announcement: persist it and notify listeners
+            // (e.g. the foreground announcement dialog).
+            eventObj = announcementEventFromResponse(event);
+
+          case FetchMsgsResponse_RespondEventType.recallVoteNotification:
+            // Recall-vote lifecycle update (issue #33): persist it and notify
+            // the session tab so the vote banner can update.
+            eventObj = recallVoteEventFromResponse(event);
 
           default:
             break;
