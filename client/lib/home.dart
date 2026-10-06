@@ -5,6 +5,7 @@ import 'package:ourchat/core/account.dart';
 import 'package:ourchat/core/config.dart';
 import 'package:ourchat/core/const.dart';
 import 'package:ourchat/core/chore.dart';
+import 'package:ourchat/core/event.dart';
 import 'package:ourchat/core/instance.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/server_setting.dart';
@@ -12,6 +13,7 @@ import 'package:ourchat/session.dart';
 import 'package:ourchat/setting.dart';
 import 'package:ourchat/friends.dart';
 import 'package:ourchat/user.dart';
+import 'package:ourchat/service/ourchat/msg_delivery/v1/msg_delivery.pb.dart';
 
 class Home extends ConsumerStatefulWidget {
   const Home({super.key});
@@ -22,6 +24,35 @@ class Home extends ConsumerStatefulWidget {
 
 class _HomeState extends ConsumerState<Home> {
   int index = 0;
+
+  /// Instance keys whose event system already has the announcement listener.
+  final Set<AccountKey> _announcementListenerKeys = {};
+
+  @override
+  void initState() {
+    super.initState();
+    // Register the global announcement dialog on every live instance's event
+    // system, including instances logged in while Home stays mounted.
+    ref.listenManual(instancesProvider, (previous, next) {
+      _registerAnnouncementListeners(next.values);
+    });
+    _registerAnnouncementListeners(ref.read(instancesProvider).values);
+  }
+
+  void _registerAnnouncementListeners(Iterable<OurChatInstance> instances) {
+    for (final inst in instances) {
+      if (!_announcementListenerKeys.add(inst.key)) continue;
+      ref
+          .read(
+            ourChatEventSystemProvider(inst.serverId, inst.accountId).notifier,
+          )
+          .addListener(
+            FetchMsgsResponse_RespondEventType.announcementResponse,
+            maybeShowAnnouncementDialog,
+          );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final thisAccountId = ref.watch(thisAccountIdProvider);
