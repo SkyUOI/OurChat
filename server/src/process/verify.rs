@@ -57,8 +57,10 @@ async fn email_verify_impl(
             .context("Cannot get json")?;
     channel
         .basic_publish(
-            "",
-            base::rabbitmq::http_server::VERIFY_QUEUE,
+            deadpool_lapin::lapin::types::ShortString::from(""),
+            deadpool_lapin::lapin::types::ShortString::from(
+                base::rabbitmq::http_server::VERIFY_QUEUE,
+            ),
             BasicPublishOptions::default(),
             json_record.as_bytes(),
             Default::default(),

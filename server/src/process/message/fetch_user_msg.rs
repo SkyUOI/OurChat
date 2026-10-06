@@ -146,7 +146,7 @@ async fn fetch_user_msg_impl(
             tracing::info!("queue name: {}", queue_name);
             channel
                 .queue_declare(
-                    &queue_name,
+                    deadpool_lapin::lapin::types::ShortString::from(queue_name.clone()),
                     QueueDeclareOptions {
                         exclusive: true,
                         auto_delete: true,
@@ -160,9 +160,13 @@ async fn fetch_user_msg_impl(
             create_user_message_direct_exchange(&channel).await?;
             channel
                 .queue_bind(
-                    &queue_name,
-                    crate::rabbitmq::USER_MSG_DIRECT_EXCHANGE,
-                    &crate::rabbitmq::generate_route_key(id),
+                    deadpool_lapin::lapin::types::ShortString::from(queue_name.clone()),
+                    deadpool_lapin::lapin::types::ShortString::from(
+                        crate::rabbitmq::USER_MSG_DIRECT_EXCHANGE,
+                    ),
+                    deadpool_lapin::lapin::types::ShortString::from(
+                        crate::rabbitmq::generate_route_key(id),
+                    ),
                     QueueBindOptions::default(),
                     FieldTable::default(),
                 )
@@ -171,9 +175,11 @@ async fn fetch_user_msg_impl(
             create_user_message_broadcast_exchange(&channel).await?;
             channel
                 .queue_bind(
-                    &queue_name,
-                    crate::rabbitmq::USER_MSG_BROADCAST_EXCHANGE,
-                    "",
+                    deadpool_lapin::lapin::types::ShortString::from(queue_name.clone()),
+                    deadpool_lapin::lapin::types::ShortString::from(
+                        crate::rabbitmq::USER_MSG_BROADCAST_EXCHANGE,
+                    ),
+                    deadpool_lapin::lapin::types::ShortString::from(""),
                     QueueBindOptions::default(),
                     FieldTable::default(),
                 )
@@ -182,8 +188,8 @@ async fn fetch_user_msg_impl(
             tracing::trace!("starting to consume");
             let mut consumer = channel
                 .basic_consume(
-                    &queue_name,
-                    "",
+                    deadpool_lapin::lapin::types::ShortString::from(queue_name),
+                    deadpool_lapin::lapin::types::ShortString::from(""),
                     deadpool_lapin::lapin::options::BasicConsumeOptions::default(),
                     FieldTable::default(),
                 )

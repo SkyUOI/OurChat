@@ -372,8 +372,10 @@ impl HttpServer {
             let mut consumer = loop {
                 match mq_channel
                     .basic_consume(
-                        base::rabbitmq::http_server::VERIFY_QUEUE,
-                        "http_server",
+                        deadpool_lapin::lapin::types::ShortString::from(
+                            base::rabbitmq::http_server::VERIFY_QUEUE,
+                        ),
+                        deadpool_lapin::lapin::types::ShortString::from("http_server"),
                         deadpool_lapin::lapin::options::BasicConsumeOptions::default(),
                         deadpool_lapin::lapin::types::FieldTable::default(),
                     )

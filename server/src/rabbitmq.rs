@@ -1,7 +1,7 @@
 use base::constants::ID;
 use base::rabbitmq::http_server::VERIFY_QUEUE;
 use deadpool_lapin::lapin::options::{ExchangeDeclareOptions, QueueDeclareOptions};
-use deadpool_lapin::lapin::types::FieldTable;
+use deadpool_lapin::lapin::types::{FieldTable, ShortString};
 use deadpool_lapin::lapin::{Channel, ExchangeKind};
 
 pub const USER_MSG_DIRECT_EXCHANGE: &str = "user_msg";
@@ -14,7 +14,7 @@ pub const WEBRTC_FANOUT_EXCHANGE: &str = "webrtc_fanout";
 pub async fn create_user_message_direct_exchange(channel: &Channel) -> anyhow::Result<()> {
     channel
         .exchange_declare(
-            USER_MSG_DIRECT_EXCHANGE,
+            ShortString::from(USER_MSG_DIRECT_EXCHANGE),
             ExchangeKind::Direct,
             ExchangeDeclareOptions {
                 auto_delete: false,
@@ -30,7 +30,7 @@ pub async fn create_user_message_direct_exchange(channel: &Channel) -> anyhow::R
 pub async fn create_user_message_broadcast_exchange(channel: &Channel) -> anyhow::Result<()> {
     channel
         .exchange_declare(
-            USER_MSG_BROADCAST_EXCHANGE,
+            ShortString::from(USER_MSG_BROADCAST_EXCHANGE),
             ExchangeKind::Fanout,
             ExchangeDeclareOptions {
                 auto_delete: false,
@@ -46,7 +46,7 @@ pub async fn create_user_message_broadcast_exchange(channel: &Channel) -> anyhow
 pub async fn create_webrtc_signal_exchange(channel: &Channel) -> anyhow::Result<()> {
     channel
         .exchange_declare(
-            WEBRTC_SIGNAL_EXCHANGE,
+            ShortString::from(WEBRTC_SIGNAL_EXCHANGE),
             ExchangeKind::Direct,
             ExchangeDeclareOptions {
                 auto_delete: false,
@@ -62,7 +62,7 @@ pub async fn create_webrtc_signal_exchange(channel: &Channel) -> anyhow::Result<
 pub async fn create_webrtc_fanout_exchange(channel: &Channel) -> anyhow::Result<()> {
     channel
         .exchange_declare(
-            WEBRTC_FANOUT_EXCHANGE,
+            ShortString::from(WEBRTC_FANOUT_EXCHANGE),
             ExchangeKind::Fanout,
             ExchangeDeclareOptions {
                 auto_delete: false,
@@ -86,7 +86,7 @@ pub async fn init(rmq: &deadpool_lapin::Pool) -> anyhow::Result<()> {
     // Declare the verify queue
     channel
         .queue_declare(
-            VERIFY_QUEUE,
+            ShortString::from(VERIFY_QUEUE),
             QueueDeclareOptions {
                 exclusive: true,
                 auto_delete: true,
@@ -105,7 +105,7 @@ pub async fn check_exchange_exist(
 ) -> anyhow::Result<()> {
     channel
         .exchange_declare(
-            exchange_name.as_ref(),
+            ShortString::from(exchange_name.as_ref()),
             kind,
             ExchangeDeclareOptions {
                 passive: true,

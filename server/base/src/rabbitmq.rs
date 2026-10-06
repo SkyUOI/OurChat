@@ -58,9 +58,12 @@ impl RabbitMQCfg {
         };
         match tokio::time::timeout(
             Duration::from_secs(10),
-            tokio::spawn(
-                async move { rmq_pool_cfg.create_pool(Some(deadpool_lapin::Runtime::Tokio1)) },
-            ),
+            tokio::spawn(async move {
+                rmq_pool_cfg.create_pool(
+                    deadpool_lapin::lapin::ConnectionProperties::default,
+                    deadpool_lapin::Runtime::Tokio1,
+                )
+            }),
         )
         .await
         {

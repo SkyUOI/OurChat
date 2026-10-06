@@ -101,8 +101,8 @@ async fn leave_room_impl(
 
     channel
         .basic_publish(
-            exchange,
-            "",
+            deadpool_lapin::lapin::types::ShortString::from(exchange),
+            deadpool_lapin::lapin::types::ShortString::from(""),
             BasicPublishOptions::default(),
             &notification_bytes,
             BasicProperties::default(),

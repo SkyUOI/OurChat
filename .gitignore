@@ -29,7 +29,10 @@ venv.bak/
 
 /target
 
-# data mapped from docker
+# Legacy docker bind-mount data dir from before the named-volume switch
+# (issue #337). Current compose stacks store state in named volumes and no
+# longer create this directory; the rule stays so leftover directories from
+# older checkouts remain ignored.
 docker/data/
 
 server_info.json
@@ -52,3 +55,8 @@ flamegraph.svg
 
 # vscode
 *.code-workspace
+# machine-local test config overrides
+config/*.local.toml
+
+# ZCode session files
+.zcode/

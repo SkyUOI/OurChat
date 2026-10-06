@@ -124,8 +124,8 @@ async fn signal_impl(
 
     channel
         .basic_publish(
-            WEBRTC_SIGNAL_EXCHANGE,
-            &routing_key,
+            deadpool_lapin::lapin::types::ShortString::from(WEBRTC_SIGNAL_EXCHANGE),
+            deadpool_lapin::lapin::types::ShortString::from(routing_key),
             BasicPublishOptions::default(),
             &signal_bytes,
             BasicProperties::default(),

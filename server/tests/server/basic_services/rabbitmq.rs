@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use client::{TestApp, oc_helper::user::FetchMsgErr};
 use deadpool_lapin::lapin::options::ExchangeDeleteOptions;
+use deadpool_lapin::lapin::types::ShortString;
 use server::rabbitmq::{USER_MSG_BROADCAST_EXCHANGE, USER_MSG_DIRECT_EXCHANGE};
 
 #[tokio::test]
@@ -11,12 +12,15 @@ async fn test_exchange_rebuild() {
     let connection = app.rabbitmq_pool.get().await.unwrap();
     let channel = connection.create_channel().await.unwrap();
     channel
-        .exchange_delete(USER_MSG_DIRECT_EXCHANGE, ExchangeDeleteOptions::default())
+        .exchange_delete(
+            ShortString::from(USER_MSG_DIRECT_EXCHANGE),
+            ExchangeDeleteOptions::default(),
+        )
         .await
         .unwrap();
     channel
         .exchange_delete(
-            USER_MSG_BROADCAST_EXCHANGE,
+            ShortString::from(USER_MSG_BROADCAST_EXCHANGE),
             ExchangeDeleteOptions::default(),
         )
         .await
