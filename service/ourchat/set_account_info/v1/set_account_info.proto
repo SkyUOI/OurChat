@@ -8,6 +8,11 @@ message SetSelfInfoRequest {
   optional string user_defined_status = 4;
   optional string ocid = 5;
   optional bool email_visible = 6;
+  // Session invitation policy of the account
+  // 0 = ALLOW_ALL: everyone can invite the user into sessions
+  // 1 = FRIENDS_ONLY: only friends can invite the user into sessions
+  // 2 = NOBODY: nobody can invite the user into sessions
+  optional int32 session_invitation_policy = 7;
 }
 
 message SetSelfInfoResponse {}

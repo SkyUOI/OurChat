@@ -90,6 +90,10 @@ async fn get_account_info_impl(
                 QueryValues::EmailVisible => {
                     ret.email_visible = Some(queried_user.email_visible);
                 }
+                QueryValues::SessionInvitationPolicy => {
+                    // public information, no owner privilege needed
+                    ret.session_invitation_policy = Some(queried_user.session_invitation_policy);
+                }
                 QueryValues::DisplayName => {
                     if let Privilege::Owner = privilege {
                         // invalid for the owner, ignore

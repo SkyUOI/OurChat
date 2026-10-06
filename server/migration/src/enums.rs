@@ -23,6 +23,7 @@ pub enum User {
     OauthProvider,
     EmailVerified,
     EmailVisible,
+    SessionInvitationPolicy,
 }
 
 #[derive(DeriveIden)]
@@ -222,6 +223,39 @@ pub enum MessageRecords {
     Time,
     IsEncrypted,
     IsAllUser,
+}
+
+#[derive(DeriveIden)]
+pub enum RecallVotes {
+    Table,
+    Id,
+    MsgId,
+    SessionId,
+    InitiatorId,
+    YesCount,
+    NoCount,
+    EligibleCount,
+    Deadline,
+    Settled,
+    Passed,
+    CreatedAt,
+}
+
+#[derive(DeriveIden)]
+pub enum RecallVoteRecords {
+    Table,
+    VoteId,
+    UserId,
+    Approve,
+    VotedAt,
+}
+
+#[derive(DeriveIden)]
+pub enum Stickers {
+    Table,
+    UserId,
+    FileKey,
+    AddedAt,
 }
 
 #[derive(DeriveIden)]

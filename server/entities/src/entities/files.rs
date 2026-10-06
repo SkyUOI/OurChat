@@ -26,6 +26,8 @@ pub enum Relation {
         on_delete = "Cascade"
     )]
     Session,
+    #[sea_orm(has_many = "super::stickers::Entity")]
+    Stickers,
     #[sea_orm(
         belongs_to = "super::user::Entity",
         from = "Column::UserId",
@@ -42,9 +44,18 @@ impl Related<super::session::Entity> for Entity {
     }
 }
 
+impl Related<super::stickers::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Stickers.def()
+    }
+}
+
 impl Related<super::user::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::User.def()
+        super::stickers::Relation::User.def()
+    }
+    fn via() -> Option<RelationDef> {
+        Some(super::stickers::Relation::Files.def().rev())
     }
 }
 

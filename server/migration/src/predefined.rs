@@ -37,6 +37,18 @@ pub enum AccountStatus {
     // Add other statuses as needed
 }
 
+/// Who is allowed to invite a user into a session (`users.session_invitation_policy`)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
+#[repr(i32)]
+pub enum SessionInvitationPolicy {
+    /// Everyone can invite the user into sessions (default)
+    AllowAll = 0,
+    /// Only friends can invite the user into sessions
+    FriendsOnly = 1,
+    /// Nobody can invite the user into sessions
+    Nobody = 2,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
 #[repr(i64)]
 pub enum PredefinedServerManagementPermission {

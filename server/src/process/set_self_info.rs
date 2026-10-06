@@ -1,7 +1,7 @@
 use super::{
     error_msg::{
         CONFLICT,
-        invalid::{self, OCID_TOO_LONG, STATUS_TOO_LONG},
+        invalid::{self, OCID_TOO_LONG, SESSION_INVITATION_POLICY, STATUS_TOO_LONG},
     },
     mapped_to_user_defined_status,
 };
@@ -15,6 +15,7 @@ use base::constants::ID;
 use chrono::Duration;
 use entities::user;
 use migration::constants::{OCID_MAX_LEN, USERNAME_MAX_LEN};
+use migration::predefined::SessionInvitationPolicy;
 use pb::service::ourchat::set_account_info::v1::{SetSelfInfoRequest, SetSelfInfoResponse};
 use redis::AsyncCommands;
 use sea_orm::{ActiveModelTrait, ActiveValue, DbErr, EntityTrait, TransactionTrait};
@@ -71,6 +72,13 @@ async fn update_account(
     {
         Err(Status::invalid_argument(STATUS_TOO_LONG))?
     }
+
+    // Check session invitation policy value
+    if let Some(policy) = request_data.session_invitation_policy
+        && SessionInvitationPolicy::try_from(policy).is_err()
+    {
+        Err(Status::invalid_argument(SESSION_INVITATION_POLICY))?
+    }
     let expire_time = server
         .shared_data
         .cfg()
@@ -126,6 +134,12 @@ async fn update_account(
         && email_visible != original_user.email_visible
     {
         user.email_visible = ActiveValue::Set(email_visible);
+        public_updated = true;
+    }
+    if let Some(policy) = request_data.session_invitation_policy
+        && policy != original_user.session_invitation_policy
+    {
+        user.session_invitation_policy = ActiveValue::Set(policy);
         public_updated = true;
     }
     if let Some(new_ocid) = request_data.ocid {

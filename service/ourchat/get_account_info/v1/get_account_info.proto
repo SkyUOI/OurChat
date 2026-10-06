@@ -30,6 +30,9 @@ enum QueryValues {
   QUERY_VALUES_FRIENDS = 11;
   // Whether email is visible to other users
   QUERY_VALUES_EMAIL_VISIBLE = 12;
+  // The session invitation policy of the account
+  // 0 = ALLOW_ALL, 1 = FRIENDS_ONLY, 2 = NOBODY
+  QUERY_VALUES_SESSION_INVITATION_POLICY = 13;
 }
 
 // Get account info
@@ -54,4 +57,9 @@ message GetAccountInfoResponse {
   repeated uint64 sessions = 10;
   repeated uint64 friends = 11;
   optional bool email_visible = 12;
+  // The session invitation policy of the account
+  // 0 = ALLOW_ALL: everyone can invite the user into sessions
+  // 1 = FRIENDS_ONLY: only friends can invite the user into sessions
+  // 2 = NOBODY: nobody can invite the user into sessions
+  optional int32 session_invitation_policy = 13;
 }

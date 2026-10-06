@@ -13,7 +13,7 @@ use pb::{
 use sea_orm::TransactionTrait;
 use server::process::{
     db,
-    error_msg::invalid::{OCID_TOO_LONG, STATUS_TOO_LONG, USERNAME},
+    error_msg::invalid::{OCID_TOO_LONG, SESSION_INVITATION_POLICY, STATUS_TOO_LONG, USERNAME},
 };
 use tokio::time::sleep;
 
@@ -523,6 +523,125 @@ async fn set_email_visible_toggle() {
             .oc()
             .set_self_info(SetSelfInfoRequest {
                 email_visible: Some(false),
+                ..Default::default()
+            })
+            .await
+    );
+
+    app.async_drop().await;
+}
+
+// ── session_invitation_policy tests ──
+
+/// New users should have session_invitation_policy = ALLOW_ALL (0) by default
+/// (migration default).
+#[tokio::test]
+async fn session_invitation_policy_default_allow_all() {
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
+    let user = app.new_user().await.unwrap();
+
+    let ret = user
+        .lock()
+        .await
+        .get_self_info(vec![QueryValues::SessionInvitationPolicy])
+        .await
+        .unwrap();
+    assert_eq!(ret.session_invitation_policy, Some(0));
+
+    app.async_drop().await;
+}
+
+/// The session invitation policy is public information, strangers can query
+/// it without any owner privilege.
+#[tokio::test]
+async fn session_invitation_policy_publicly_visible() {
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
+    let user1 = app.new_user().await.unwrap();
+    let user2 = app.new_user().await.unwrap();
+    let user2_id = user2.lock().await.id;
+
+    // user2 rejects everyone
+    user2
+        .lock()
+        .await
+        .oc()
+        .set_self_info(SetSelfInfoRequest {
+            session_invitation_policy: Some(2),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+
+    // user1 (a stranger) should still see the policy
+    let ret = user1
+        .lock()
+        .await
+        .get_account_info(user2_id, vec![QueryValues::SessionInvitationPolicy])
+        .await
+        .unwrap();
+    assert_eq!(ret.session_invitation_policy, Some(2));
+
+    app.async_drop().await;
+}
+
+/// Setting the policy via SetSelfInfo is reflected in get_account_info, and
+/// invalid values are rejected.
+#[tokio::test]
+async fn set_session_invitation_policy() {
+    let mut app = TestApp::new_with_launching_instance().await.unwrap();
+    let user = app.new_user().await.unwrap();
+
+    // all valid values round-trip
+    for policy in [0, 1, 2] {
+        user.lock()
+            .await
+            .oc()
+            .set_self_info(SetSelfInfoRequest {
+                session_invitation_policy: Some(policy),
+                ..Default::default()
+            })
+            .await
+            .unwrap();
+        let ret = user
+            .lock()
+            .await
+            .get_self_info(vec![QueryValues::SessionInvitationPolicy])
+            .await
+            .unwrap();
+        assert_eq!(ret.session_invitation_policy, Some(policy));
+    }
+
+    // invalid values are rejected
+    for invalid_policy in [-1, 3, 100] {
+        let err = user
+            .lock()
+            .await
+            .oc()
+            .set_self_info(SetSelfInfoRequest {
+                session_invitation_policy: Some(invalid_policy),
+                ..Default::default()
+            })
+            .await
+            .unwrap_err();
+        assert_eq!(err.code(), tonic::Code::InvalidArgument);
+        assert_eq!(err.message(), SESSION_INVITATION_POLICY);
+        // the previous value is kept
+        let ret = user
+            .lock()
+            .await
+            .get_self_info(vec![QueryValues::SessionInvitationPolicy])
+            .await
+            .unwrap();
+        assert_eq!(ret.session_invitation_policy, Some(2));
+    }
+
+    // setting the same value again (no-op) should not error
+    assert_ok!(
+        user.lock()
+            .await
+            .oc()
+            .set_self_info(SetSelfInfoRequest {
+                session_invitation_policy: Some(2),
                 ..Default::default()
             })
             .await

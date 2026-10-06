@@ -206,6 +206,9 @@ async fn create_or_update_user_from_github(
             oauth_provider: Set(Some("github".to_string())),
             email_verified: Set(true), // OAuth users from trusted providers are automatically verified
             email_visible: Set(false),
+            session_invitation_policy: Set(
+                migration::predefined::SessionInvitationPolicy::AllowAll.into(),
+            ),
         };
 
         UserEntity::insert(new_user).exec(&db_pool.db_pool).await?;

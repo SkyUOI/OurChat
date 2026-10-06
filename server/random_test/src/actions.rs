@@ -1150,6 +1150,7 @@ impl ActionExecutor {
                 user_defined_status: None,
                 ocid: None,
                 email_visible: None,
+                session_invitation_policy: None,
             };
             match user_guard.oc().set_self_info(req).await {
                 Ok(_) => ActionResult::Success {

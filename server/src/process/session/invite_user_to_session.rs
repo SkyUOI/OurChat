@@ -1,4 +1,5 @@
 use base::constants::ID;
+use migration::predefined::SessionInvitationPolicy;
 use pb::service::ourchat::session::{
     invite_user_to_session::v1::{InviteUserToSessionRequest, InviteUserToSessionResponse},
     new_session::v1::{FailedMember, FailedReason},
@@ -8,9 +9,12 @@ use tracing::error;
 
 use crate::{
     db::session::get_session_by_id,
+    db::user::get_account_info_db,
     process::{
-        check_user_exist,
-        error_msg::{SERVER_ERROR, not_found},
+        error_msg::{
+            SERVER_ERROR, SESSION_INVITATION_FRIENDS_ONLY, SESSION_INVITATION_NOT_ALLOWED,
+            not_found,
+        },
         session::new_session::send_verification_request,
     },
     server::RpcServer,
@@ -24,6 +28,36 @@ pub enum InviteToSessionError {
     DbError(#[from] sea_orm::DbErr),
     #[error("status error: {0:?}")]
     Status(#[from] Status),
+}
+
+/// Check whether the inviter satisfies the invitee's session invitation policy
+async fn check_session_invitation_policy(
+    server: &RpcServer,
+    inviter: ID,
+    invitee: ID,
+    policy: i32,
+) -> Result<(), InviteToSessionError> {
+    let policy =
+        SessionInvitationPolicy::try_from(policy).unwrap_or(SessionInvitationPolicy::AllowAll);
+    match policy {
+        SessionInvitationPolicy::AllowAll => Ok(()),
+        SessionInvitationPolicy::FriendsOnly => {
+            // friend relations are stored in both directions
+            let is_friend = crate::db::friend::query_friend(inviter, invitee, &server.db.db_pool)
+                .await?
+                .is_some();
+            if is_friend {
+                Ok(())
+            } else {
+                Err(InviteToSessionError::Status(Status::permission_denied(
+                    SESSION_INVITATION_FRIENDS_ONLY,
+                )))
+            }
+        }
+        SessionInvitationPolicy::Nobody => Err(InviteToSessionError::Status(
+            Status::permission_denied(SESSION_INVITATION_NOT_ALLOWED),
+        )),
+    }
 }
 
 async fn invite_user_to_session_impl(
@@ -41,21 +75,31 @@ async fn invite_user_to_session_impl(
         )));
     }
     let mut failed_member = None;
-    if !check_user_exist(req.invitee.into(), &server.db.db_pool).await? {
-        failed_member = Some(FailedMember {
-            id: req.invitee,
-            reason: FailedReason::MemberNotFound.into(),
-        });
-    }
-    if failed_member.is_none() {
-        send_verification_request(
-            server,
-            id,
-            req.invitee.into(),
-            req.session_id.into(),
-            req.leave_message,
-        )
-        .await?;
+    match get_account_info_db(req.invitee.into(), &server.db.db_pool).await? {
+        Some(invitee) => {
+            // respect the invitee's session invitation policy
+            check_session_invitation_policy(
+                server,
+                id,
+                req.invitee.into(),
+                invitee.session_invitation_policy,
+            )
+            .await?;
+            send_verification_request(
+                server,
+                id,
+                req.invitee.into(),
+                req.session_id.into(),
+                req.leave_message,
+            )
+            .await?;
+        }
+        None => {
+            failed_member = Some(FailedMember {
+                id: req.invitee,
+                reason: FailedReason::MemberNotFound.into(),
+            });
+        }
     }
     Ok(InviteUserToSessionResponse { failed_member })
 }

@@ -30,6 +30,7 @@ pub struct Model {
     pub public_update_time: DateTimeWithTimeZone,
     pub update_time: DateTimeWithTimeZone,
     pub email_visible: bool,
+    pub session_invitation_policy: i32,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -42,10 +43,16 @@ pub enum Relation {
     ManagerRoleRelation,
     #[sea_orm(has_many = "super::message_records::Entity")]
     MessageRecords,
+    #[sea_orm(has_many = "super::recall_vote_records::Entity")]
+    RecallVoteRecords,
+    #[sea_orm(has_many = "super::recall_votes::Entity")]
+    RecallVotes,
     #[sea_orm(has_many = "super::role::Entity")]
     Role,
     #[sea_orm(has_many = "super::session_relation::Entity")]
     SessionRelation,
+    #[sea_orm(has_many = "super::stickers::Entity")]
+    Stickers,
     #[sea_orm(has_many = "super::user_role_relation::Entity")]
     UserRoleRelation,
     #[sea_orm(has_many = "super::webrtc_room_member::Entity")]
@@ -55,12 +62,6 @@ pub enum Relation {
 impl Related<super::announcement::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Announcement.def()
-    }
-}
-
-impl Related<super::files::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::Files.def()
     }
 }
 
@@ -76,6 +77,12 @@ impl Related<super::message_records::Entity> for Entity {
     }
 }
 
+impl Related<super::recall_vote_records::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::RecallVoteRecords.def()
+    }
+}
+
 impl Related<super::role::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Role.def()
@@ -88,6 +95,12 @@ impl Related<super::session_relation::Entity> for Entity {
     }
 }
 
+impl Related<super::stickers::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Stickers.def()
+    }
+}
+
 impl Related<super::user_role_relation::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::UserRoleRelation.def()
@@ -97,6 +110,24 @@ impl Related<super::user_role_relation::Entity> for Entity {
 impl Related<super::webrtc_room_member::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::WebrtcRoomMember.def()
+    }
+}
+
+impl Related<super::files::Entity> for Entity {
+    fn to() -> RelationDef {
+        super::stickers::Relation::Files.def()
+    }
+    fn via() -> Option<RelationDef> {
+        Some(super::stickers::Relation::User.def().rev())
+    }
+}
+
+impl Related<super::recall_votes::Entity> for Entity {
+    fn to() -> RelationDef {
+        super::recall_vote_records::Relation::RecallVotes.def()
+    }
+    fn via() -> Option<RelationDef> {
+        Some(super::recall_vote_records::Relation::User.def().rev())
     }
 }
 

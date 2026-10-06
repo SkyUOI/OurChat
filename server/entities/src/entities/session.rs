@@ -27,6 +27,8 @@ pub enum Relation {
     Friend,
     #[sea_orm(has_many = "super::message_records::Entity")]
     MessageRecords,
+    #[sea_orm(has_many = "super::recall_votes::Entity")]
+    RecallVotes,
     #[sea_orm(
         belongs_to = "super::role::Entity",
         from = "Column::DefaultRole",
@@ -58,6 +60,12 @@ impl Related<super::friend::Entity> for Entity {
 impl Related<super::message_records::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::MessageRecords.def()
+    }
+}
+
+impl Related<super::recall_votes::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::RecallVotes.def()
     }
 }
 
