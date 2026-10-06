@@ -1,5 +1,37 @@
-FROM rustlang/rust:nightly
+FROM rustlang/rust:nightly AS builder
 
 WORKDIR /app
 
-RUN apt update && apt install protobuf-compiler cmake sccache -y
+# --no-install-recommends + cache cleanup keeps the image lean.
+# protoc from Debian repos is v3.21, which CANNOT resolve
+# `import "google/protobuf/*.proto"` (the well-known types) unless the
+# include files exist on disk. Alpine's protoc 31 embeds them in the binary,
+# so the server build (server/pb/build.rs -> tonic-build) works there but
+# not here. Install a recent protoc release that also embeds them, keeping
+# the debian and alpine base images consistent.
+ARG PROTOC_VERSION=31.1
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        cmake \
+        sccache \
+        unzip \
+        curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && case "$(uname -m)" in \
+         x86_64)  PROTOC_ARCH="x86_64" ;; \
+         aarch64) PROTOC_ARCH="aarch_64" ;; \
+         *) echo "unsupported arch: $(uname -m)" >&2; exit 1 ;; \
+       esac \
+    && curl -fsSL -o /tmp/protoc.zip \
+        "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-${PROTOC_ARCH}.zip" \
+    && mkdir -p /usr/local/protoc \
+    && unzip -q /tmp/protoc.zip -d /usr/local/protoc \
+    && rm /tmp/protoc.zip \
+    && ln -sf /usr/local/protoc/bin/protoc /usr/local/bin/protoc \
+    && protoc --version
+
+# cargo-chef is NOT available as a Debian package (unlike Alpine, which has
+# an apk). It is a Rust crate, so install it from crates.io. This is a
+# one-time cost paid when building the base image; the prebuilt base is then
+# pushed and reused by CI / other builds.
+RUN cargo install cargo-chef --locked

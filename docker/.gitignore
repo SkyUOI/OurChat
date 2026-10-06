@@ -1,1 +1,3 @@
+# Legacy bind-mount data dir (pre named-volume, issue #337). Compose no
+# longer creates it; kept so leftovers from older checkouts stay ignored.
 data/

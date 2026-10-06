@@ -1,13 +1,14 @@
 FROM skyuoi/ourchat:alpine-base AS chef
 WORKDIR /app
 
-FROM chef AS builder
-
-ARG SCCACHE_OSS_BUCKET
-ARG SCCACHE_OSS_ENDPOINT
-
+# Test image: just stage the source tree. The test runner exec's into the
+# container and invokes `cargo test` directly, so there's no build step here.
+FROM chef
+ARG SCCACHE_OSS_BUCKET=""
+ARG SCCACHE_OSS_ENDPOINT=""
 ENV SCCACHE_OSS_BUCKET=${SCCACHE_OSS_BUCKET}
 ENV SCCACHE_OSS_ENDPOINT=${SCCACHE_OSS_ENDPOINT}
 ENV SCCACHE_OSS_NO_CREDENTIALS=1
+ENV RUSTC_WRAPPER=/usr/bin/sccache
 
 COPY . .

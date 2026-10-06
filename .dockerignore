@@ -30,15 +30,19 @@ venv.bak/
 # Added by cargo
 
 /target
+**/target/
 
-# data mapped from docker
+# Legacy docker bind-mount data dir from before the named-volume switch
+# (issue #337). Current compose stacks store state in named volumes and no
+# longer create this directory; kept so leftover directories from older
+# checkouts stay out of the build context.
 docker/data/
 
 server_info.json
 # Never bake the JWT signing secret (docker/config/server_info.json) into any
-# image. The server auto-generates a fresh, per-deployment secret on first start
-# when the file is absent, so shipping one would let anyone forge tokens across
-# all deployments using the published image.
+# image. The server auto-generates a fresh, per-deployment secret on first
+# start when the file is absent, so shipping one would let anyone forge
+# tokens across all deployments using the published image.
 docker/config/server_info.json
 log/
 *.log
@@ -55,3 +59,21 @@ server/files_storage/*
 # pref
 perf.data*
 flamegraph.svg
+
+# Project subtrees the server build does not need. The main Dockerfile
+# COPYs server/ + service/ + Cargo.* selectively so these never reach the
+# image; this list benefits `Dockerfile.test-*`, which does `COPY . .` and
+# would otherwise ship the entire Flutter client, screenshots, web panel
+# and tooling into the build context (slowing context send + layer
+# creation for no benefit).
+client/
+stress_test/
+screenshots/
+resource/
+server/web-panel/
+docs/
+.github/
+.gitlab/
+node_modules/
+**/.dart_tool/
+**/build/
