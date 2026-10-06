@@ -77,6 +77,8 @@ abstract class OurChatConfig with _$OurChatConfig {
     String? activeServerId,
     int? activeAccountId,
     @Default(UiDisplayMode.accountSwitcher) UiDisplayMode displayMode,
+    @Default(true) bool notificationShowMessageContent,
+    @Default(CloseBehavior.minimizeToTray) CloseBehavior closeBehavior,
     @Default(0xFF2196F3) int color,
     @Default('info') String logLevel,
     LanguageConfig? language,
@@ -126,6 +128,8 @@ class ConfigNotifier extends _$ConfigNotifier {
       activeServerId: loaded.activeServerId,
       activeAccountId: loaded.activeAccountId,
       displayMode: loaded.displayMode,
+      notificationShowMessageContent: loaded.notificationShowMessageContent,
+      closeBehavior: loaded.closeBehavior,
       color: loaded.color,
       logLevel: loaded.logLevel,
       language: loaded.language,
@@ -141,6 +145,8 @@ class ConfigNotifier extends _$ConfigNotifier {
       activeServerId: d.activeServerId,
       activeAccountId: d.activeAccountId,
       displayMode: d.displayMode,
+      notificationShowMessageContent: d.notificationShowMessageContent,
+      closeBehavior: d.closeBehavior,
       color: d.color,
       logLevel: d.logLevel,
       language: d.language,
@@ -175,6 +181,19 @@ class ConfigNotifier extends _$ConfigNotifier {
 
   void setDisplayMode(UiDisplayMode mode) {
     state = state.copyWith(displayMode: mode);
+    state.saveConfig();
+  }
+
+  /// Whether new-message notifications may include the message text (issue
+  /// #199). When false, notification bodies are a generic "New message".
+  void setNotificationShowMessageContent(bool value) {
+    state = state.copyWith(notificationShowMessageContent: value);
+    state.saveConfig();
+  }
+
+  /// What the desktop window close (X) button does (issue #203).
+  void setCloseBehavior(CloseBehavior behavior) {
+    state = state.copyWith(closeBehavior: behavior);
     state.saveConfig();
   }
 

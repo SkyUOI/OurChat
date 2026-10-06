@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ourchat/announcement_page.dart';
 import 'package:ourchat/core/config.dart';
 import 'package:ourchat/core/const.dart';
 import 'package:ourchat/core/log.dart';
@@ -25,9 +26,24 @@ class Setting extends StatelessWidget {
                   // Scrollable
                   child: Column(
                     children: [
+                      ListTile(
+                        leading: const Icon(Icons.campaign),
+                        title: Text(l10n.announcement),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const AnnouncementListPage(),
+                            ),
+                          );
+                        },
+                      ),
                       SeedColorEditor(),
                       LogLevelSelector(),
                       DisplayModeEditor(),
+                      NotificationContentEditor(),
+                      CloseBehaviorEditor(),
                       LanguageEditor(),
                       if (enableVersionCheck) UpdateSourceEditor(),
                     ],
@@ -247,6 +263,85 @@ class DisplayModeEditor extends ConsumerWidget {
             onChanged: (v) {
               if (v != null) {
                 ref.read(configProvider.notifier).setDisplayMode(v);
+              }
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Privacy switch for new-message notifications (issue #199): when off, the
+/// notification body is always a generic "New message" instead of the message
+/// text.
+class NotificationContentEditor extends ConsumerWidget {
+  const NotificationContentEditor({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final showContent = ref.watch(configProvider).notificationShowMessageContent;
+    return Row(
+      children: [
+        const Padding(
+          padding: EdgeInsets.all(AppStyles.defaultPadding),
+          child: SizedBox(
+            width: 30.0,
+            height: 30.0,
+            child: Icon(Icons.notifications),
+          ),
+        ),
+        Expanded(
+          child: SwitchListTile(
+            title: Text(l10n.notificationShowMessageContent),
+            value: showContent,
+            onChanged: (v) {
+              ref
+                  .read(configProvider.notifier)
+                  .setNotificationShowMessageContent(v);
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Editor for what the desktop window close (X) button does (issue #203):
+/// minimize to the system tray (default) or exit the application.
+class CloseBehaviorEditor extends ConsumerWidget {
+  const CloseBehaviorEditor({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final behavior = ref.watch(configProvider).closeBehavior;
+    return Row(
+      children: [
+        const Padding(
+          padding: EdgeInsets.all(AppStyles.defaultPadding),
+          child: SizedBox(
+            width: 30.0,
+            height: 30.0,
+            child: Icon(Icons.close),
+          ),
+        ),
+        Expanded(
+          child: DropdownButtonFormField<CloseBehavior>(
+            decoration: InputDecoration(label: Text(l10n.closeBehavior)),
+            initialValue: behavior,
+            items: [
+              DropdownMenuItem(
+                value: CloseBehavior.minimizeToTray,
+                child: Text(l10n.closeBehaviorMinimizeToTray),
+              ),
+              DropdownMenuItem(
+                value: CloseBehavior.exit,
+                child: Text(l10n.closeBehaviorExit),
+              ),
+            ],
+            onChanged: (v) {
+              if (v != null) {
+                ref.read(configProvider.notifier).setCloseBehavior(v);
               }
             },
           ),
