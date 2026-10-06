@@ -2,8 +2,10 @@ use base::constants::VERSION_SPLIT;
 use claims::assert_lt;
 use client::TestApp;
 use pb::service::basic::preset_user_status::v1::GetPresetUserStatusRequest;
+use pb::service::basic::server::v1::ServerVersion;
 use pb::service::basic::support::v1::{ContactRole, SupportRequest};
 use pb::service::basic::v1::GetServerInfoRequest;
+use server::config::ClientVersion;
 use server::process::basic::get_preset_user_status::add_preset_user_status;
 use server::process::error_msg::not_found;
 use tonic::Request;
@@ -29,6 +31,43 @@ async fn get_server_info() {
     let req = req.into_inner();
     assert_eq!(0, req.status);
     assert_eq!(req.server_version.unwrap(), *VERSION_SPLIT);
+    // no limit by default
+    assert_eq!(
+        req.minimum_client_version.unwrap(),
+        ServerVersion {
+            major: 0,
+            minor: 0,
+            patch: 0
+        }
+    );
+    app.async_drop().await;
+}
+
+#[tokio::test]
+async fn get_server_info_with_custom_minimum_client_version() {
+    let (mut config, args) = TestApp::get_test_config().unwrap();
+    config.main_cfg.minimum_client_version = ClientVersion {
+        major: 9,
+        minor: 9,
+        patch: 9,
+    };
+    let mut app = TestApp::new_with_launching_instance_custom_cfg((config, args), |_| {})
+        .await
+        .unwrap();
+    let req = app
+        .basic_service()
+        .get_server_info(GetServerInfoRequest {})
+        .await
+        .unwrap();
+    let req = req.into_inner();
+    assert_eq!(
+        req.minimum_client_version.unwrap(),
+        ServerVersion {
+            major: 9,
+            minor: 9,
+            patch: 9
+        }
+    );
     app.async_drop().await;
 }
 

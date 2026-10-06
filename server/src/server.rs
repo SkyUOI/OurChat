@@ -387,12 +387,18 @@ impl BasicService for BasicServiceProvider {
         &self,
         _request: Request<GetServerInfoRequest>,
     ) -> Result<Response<pb::service::basic::server::v1::GetServerInfoResponse>, Status> {
-        Ok(Response::new(
-            pb::service::basic::server::v1::GetServerInfoResponse {
-                status: self.shared_data.get_maintaining().into(),
-                ..SERVER_INFO_RPC.clone()
-            },
-        ))
+        let mut res = SERVER_INFO_RPC.clone();
+        res.status = self.shared_data.get_maintaining().into();
+        // The minimum client version comes from the runtime configuration, so
+        // it cannot be baked into the static SERVER_INFO_RPC
+        res.minimum_client_version = Some(
+            self.shared_data
+                .cfg()
+                .main_cfg
+                .minimum_client_version
+                .into(),
+        );
+        Ok(Response::new(res))
     }
 
     /// Convert OCID to internal user ID
@@ -443,12 +449,15 @@ impl BasicService for BasicServiceProvider {
 
 // Static server information initialized at startup
 // Contains version, name, and other immutable server properties
+// `minimum_client_version` is filled per-request in the RPC handler because it
+// comes from the runtime configuration
 static SERVER_INFO_RPC: LazyLock<pb::service::basic::server::v1::GetServerInfoResponse> =
     LazyLock::new(|| pb::service::basic::server::v1::GetServerInfoResponse {
         server_version: Some(*VERSION_SPLIT),
         status: RunningStatus::Normal as i32,
         unique_identifier: SERVER_INFO.unique_id.to_string(),
         server_name: SERVER_INFO.server_name.to_string(),
+        minimum_client_version: None,
     });
 
 /// Server management service implementation

@@ -25,4 +25,8 @@ message GetServerInfoResponse {
   // Server unique identifier,to help client distinguish different servers
   string unique_identifier = 4;
   string server_name = 5;
+  // The minimum client version the server allows to connect
+  // Clients with a lower version should ask the user to update
+  // 0.0.0 means no limit
+  optional ServerVersion minimum_client_version = 6;
 }
