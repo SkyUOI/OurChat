@@ -27,6 +27,9 @@ abstract class AccountData with _$AccountData {
     String? status,
     String? email,
     @Default(false) bool emailVisible,
+    // Session invitation privacy (issue #34): 0=everyone, 1=friends only,
+    // 2=nobody. Null = not fetched yet. Public info, not persisted locally.
+    int? sessionInvitationPolicy,
     required bool isMe,
     required OurChatTime publicUpdateTime,
     required OurChatTime updatedTime,
@@ -245,6 +248,7 @@ class OurChatAccount extends _$OurChatAccount {
         QueryValues.QUERY_VALUES_STATUS,
         QueryValues.QUERY_VALUES_OCID,
         QueryValues.QUERY_VALUES_EMAIL_VISIBLE,
+        QueryValues.QUERY_VALUES_SESSION_INVITATION_POLICY,
       ]);
     }
     if (privateDataNeedUpdate) {
@@ -306,6 +310,7 @@ class OurChatAccount extends _$OurChatAccount {
       publicUpdateTime: OurChatTime.fromTimestamp(res.publicUpdatedTime),
       status: res.status,
       ocid: res.ocid,
+      sessionInvitationPolicy: res.sessionInvitationPolicy,
     ));
     final id = state.id;
     final sid = _serverId;
