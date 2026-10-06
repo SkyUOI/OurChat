@@ -44,3 +44,5 @@ jobs:
           format: false
       - name: Buf Fmt
         run: buf format --exit-code
+      - name: Verify docker compose files
+        run: ./script/verify_compose.sh
