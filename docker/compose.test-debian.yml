@@ -1,8 +1,14 @@
-# This template can set up an environment for testing or developing
+# Debian CI test stack: builds the test image (source tree staged inside,
+# no cargo build at image build time), starts the dependencies and idles,
+# so the CI runner can `docker compose exec OurChatServer sh -c "cd /app
+# && cargo test"`. Everything common lives in compose.base.yml (issue
+# #336). Test data is deliberately ephemeral — no volumes for db/redis/mq.
 name: ourchat_server_test_debian
+include:
+  - compose.base.yml
+
 services:
   OurChatServer:
-    init: true
     build:
       context: ..
       dockerfile: docker/Dockerfile.test-debian
@@ -11,44 +17,23 @@ services:
       - OURCHAT_CONFIG_FILE=/app/docker/config/ourchat.toml
       - OURCHAT_LOG=trace,mio=off,h2=off,tonic=off,tower=off,tokio::task::waker=off,runtime::resource=off,actix_http=off,lapin=off,hyper_util=off,pinky_swear=off,async_io=off,polling=off
     command: tail -f /dev/null
-    working_dir: /app
     volumes:
-      - ../resource/:/root/resource
-    networks:
-      - net
-    depends_on:
-      db:
-        condition: service_healthy
+      # OURCHAT_CONFIG_FILE points into the source tree staged at /app
+      # (/app/docker/config), whose http.toml references /app/resource/...,
+      # so the repo assets must be mounted at /app/resource. This used to
+      # be mounted at /root/resource, which that config never looked at.
+      - ../resource/:/app/resource
+    # base.yml defines an HTTP healthcheck probe; a `tail -f /dev/null`
+    # test container never serves /v1/status, so disable the probe instead
+    # of having the container reported unhealthy forever.
+    healthcheck:
+      disable: true
+
+  # Non-alpine dependency images, matching the debian flavour of the test
+  # image (base.yml defaults to the alpine variants).
   db:
     image: postgres:18
-    restart: always
-    environment:
-      POSTGRES_DB: OurChat
-      POSTGRES_PASSWORD: 123456
-    networks:
-      - net
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 30s
-      retries: 5
   redis:
     image: redis:8
-    restart: always
-    command: redis-server /usr/local/etc/redis/redis.conf
-    volumes:
-      - ./config/redis.conf:/usr/local/etc/redis/redis.conf
-    networks:
-      - net
   mq:
     image: rabbitmq:4-management
-    restart: always
-    environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: 123456
-    networks:
-      - net
-
-networks:
-  net:
-    driver: bridge

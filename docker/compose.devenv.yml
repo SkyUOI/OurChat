@@ -1,33 +1,42 @@
-# Just A Template Should be modified to fit requirement
+# Lightweight stack for local development: only the dependencies the
+# OurChat server needs. Run the Rust server natively on the host and point
+# it at these services (e.g. via config/ourchat.local.toml, which sets
+# host = localhost and the matching ports). Passwords here are
+# intentionally weak — do NOT use this file in production.
 name: ourchat_develop_server
+include:
+  - compose.base.yml
+
 services:
+  # base.yml also defines OurChatServer, but devenv ships no server image:
+  # the server is supposed to run natively on the host (cargo run) against
+  # these dependencies. Attaching a profile hides the service so that
+  # `docker compose -f docker/compose.devenv.yml up -d` (as used by CI on
+  # macOS and code coverage) starts only db/redis/mq. Even with
+  # `--profile full-stack` the service would refuse to start, because no
+  # image/build is defined for it in this file — that is intentional.
+  OurChatServer:
+    profiles:
+      - full-stack
+
   db:
-    image: postgres:18-alpine
-    restart: always
-    environment:
-      POSTGRES_DB: OurChat
-      POSTGRES_PASSWORD: 123456
     ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 30s
-      retries: 5
+      # Non-default host port so this container does not fight with a
+      # native (or otherwise already running) postgres on 5432; bound to
+      # loopback only (issue #342). Point host-run servers/tests at
+      # localhost:55432 — see config/database.local.toml and the
+      # --db-port flag of script/run_integration_tests.py.
+      - "127.0.0.1:55432:5432"
+
   redis:
-    image: redis:8-alpine
-    restart: always
-    command: redis-server /usr/local/etc/redis/redis.conf
-    volumes:
-      - ./config/redis.conf:/usr/local/etc/redis/redis.conf
     ports:
-      - "6379:6379"
+      # Same idea as db: avoid clashing with a redis on the default 6379.
+      - "127.0.0.1:56379:6379"
+
   mq:
-    image: rabbitmq:4-management-alpine
-    restart: always
-    environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: 123456
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      # 5672/15672 keep the default numbers (nothing else tends to claim
+      # them locally, and configs default to them), bound to loopback
+      # only (issue #342).
+      - "127.0.0.1:5672:5672"
+      - "127.0.0.1:15672:15672"

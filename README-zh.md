@@ -79,6 +79,36 @@ cd docker
 docker compose up -d
 ```
 
+compose 文件是分层的：`compose.base.yml` 保存公共的服务定义，由各个薄变体通过
+Compose 的 `include:` 引入 —— `compose.yml`（alpine，上面的命令用的就是它）和
+`compose.debian.yml`（debian）。直接指定某个变体文件也照常可用，例如
+`docker compose -f docker/compose.debian.yml up -d`。`include:` 需要
+Compose v2.20+。
+
+以下默认行为值得了解（下面的命令默认在 `docker/` 目录执行）：
+
+- **网络暴露**：服务端端口默认只发布到 `127.0.0.1`
+  （`127.0.0.1:7777:7777` HTTP/WebSocket，`127.0.0.1:7779:7779` gRPC），
+  主机之外无法访问明文服务端。请在同机部署一个做 TLS 终结的反向代理，
+  或者把 `compose.yml` 里的映射改成 `"7777:7777"` / `"7779:7779"`
+  （或 `"192.168.1.10:7777:7777"` 绑定指定网卡）直接对外暴露。
+- **数据**：所有运行时状态都存放在命名 Docker 卷中 —— postgres、redis、
+  rabbitmq 的数据、服务端日志、用户上传文件（`/app/files_storage`）以及
+  服务端配置（`/etc/ourchat`）。`docker compose down` 和镜像升级不会丢数据；
+  `docker compose down -v` 是显式清空数据的方式。`../resource`
+  （logo、邮件模板、web 面板）有意保留只读 bind mount：它是随仓库版本化的
+  静态输入，不是运行时状态。
+- **配置**：`ourchat_config` 卷在首次启动时会自动从镜像内置的
+  `/etc/ourchat` 复制种子内容，因此开箱即用。之后要修改配置就是编辑卷内的
+  那份拷贝（镜像升级不会再覆盖你的配置）：
+
+  ```shell
+  docker cp config/ourchat.toml "$(docker compose ps -q OurChatServer)":/etc/ourchat/ourchat.toml
+  docker compose restart OurChatServer
+  ```
+
+  也可以用一次性容器临时挂载 bind mount 来就地编辑配置文件。
+
 更多部署方式请参考 [部署文档](https://ourchat.readthedocs.io/zh-cn/latest/docs/deploy/server-deploy.html)
 
 ## 🛠️ 从源代码构建

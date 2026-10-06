@@ -1,0 +1,102 @@
+# Common definitions shared by every OurChat compose stack (issue #336).
+#
+# This file is NOT meant to be used standalone. Each variant includes it
+# with a top-level `include:` (Compose v2.20+) and only declares what
+# differs — image tag, published ports, build, environment, command, and
+# (for production) the persistent named volumes:
+#
+#   compose.yml             alpine production
+#   compose.debian.yml      debian production
+#   compose.test-alpine.yml alpine CI test
+#   compose.test-debian.yml debian CI test
+#   compose.devenv.yml      local development dependencies only
+#
+# Merging follows the usual Compose override rules: scalar values from the
+# including file win and `volumes` merge per container path, so a variant
+# can add mounts on top of the ones defined below.
+#
+# Deliberately NOT defined here:
+#   * OurChatServer image/build/ports/volumes — every variant differs, and
+#     production persists state in named volumes while test/devenv do not.
+#   * OurChatServer restart policy — production wants unless-stopped, the
+#     test containers are one-shot CI sandboxes.
+#   * db/redis/mq published ports — production keeps them private, devenv
+#     exposes loopback-only non-default ports (issue #342).
+
+services:
+  OurChatServer:
+    init: true
+    working_dir: /app
+    networks:
+      - net
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mq:
+        condition: service_healthy
+    healthcheck:
+      # 127.0.0.1 not localhost: server binds IPv4 0.0.0.0, and localhost
+      # may resolve to ::1 (IPv6) first, which would fail the probe.
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:7777/v1/status || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    # environment:
+    #   OURCHAT_LOG: trace,mio=off,h2=off,tonic=off,tower=off,tokio::task::waker=off,runtime::resource=off,lapin=off,pinky_swear=off,async_io=off,polling=off
+
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: OurChat
+      POSTGRES_PASSWORD: 123456
+    networks:
+      - net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    command: redis-server /usr/local/etc/redis/redis.conf
+    environment:
+      # Used only by the healthcheck below. The actual password the server
+      # enforces comes from config/redis.conf (requirepass); they MUST match.
+      REDIS_PASSWORD: "123456"
+    volumes:
+      # Kept as a single-file bind mount on purpose: unlike /etc/ourchat
+      # (a named volume seeded from the server image), redis.conf is a
+      # host-edited input and the redis image ships no default config to
+      # seed a volume from.
+      - ./config/redis.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - net
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mq:
+    image: rabbitmq:4-management-alpine
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: 123456
+    networks:
+      - net
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+networks:
+  net:
+    driver: bridge

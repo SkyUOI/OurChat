@@ -1,71 +1,76 @@
-# Just A Template Should be modified to fit requirement
+# Alpine production stack. Just a template — change the passwords before
+# any real deployment. Everything common lives in compose.base.yml
+# (issue #336); this file only adds the alpine image tags, the published
+# ports and the persistent named volumes (issues #337 and #342).
 name: ourchat_server
+include:
+  - compose.base.yml
+
 services:
   OurChatServer:
-    init: true
     image: skyuoi/ourchat:nightly
-    restart: always
-    working_dir: /app
+    restart: unless-stopped
     ports:
-      - "7777:7777"
-      - "7779:7779"
-    networks:
-      - net
-    depends_on:
-      db:
-        condition: service_healthy
+      # Loopback-only by default (issue #342): the server speaks plaintext
+      # HTTP/gRPC unless TLS is enabled in the config, so it should sit
+      # behind a reverse proxy on the same host. To expose it on the
+      # network instead, drop the 127.0.0.1 prefix:
+      #   - "7777:7777"
+      #   - "7779:7779"
+      # or bind a specific interface: - "192.168.1.10:7777:7777"
+      - "127.0.0.1:7777:7777" # HTTP / WebSocket
+      - "127.0.0.1:7779:7779" # gRPC
     volumes:
-      - ./config/:/etc/ourchat
-      - ./log:/app/log
-      - ../resource/:/app/resource
-    # environment:
-    #   OURCHAT_LOG: trace,mio=off,h2=off,tonic=off,tower=off,tokio::task::waker=off,runtime::resource=off,lapin=off,pinky_swear=off,async_io=off,polling=off
+      # Server configuration. A fresh volume is seeded from the image's
+      # built-in /etc/ourchat on first use (no `nocopy`), so the stack
+      # works out of the box; afterwards edit the copy inside the volume,
+      # e.g. `docker cp` + `docker compose restart OurChatServer` (see
+      # README). Note: image upgrades no longer overwrite your config.
+      - ourchat_config:/etc/ourchat
+      - ourchat_log:/app/log
+      # User-uploaded files. Previously not mounted at all, so everything
+      # was silently lost with the container (issue #337).
+      - ourchat_files_storage:/app/files_storage
+      # Static assets (logo, e-mail template, web panel). Kept as a
+      # read-only bind mount on purpose: these are versioned inputs edited
+      # from the host, not runtime state, so they do not belong in a
+      # docker volume.
+      - ../resource/:/app/resource:ro
+
   db:
     image: postgres:18-alpine
-    restart: always
-    environment:
-      POSTGRES_DB: OurChat
-      POSTGRES_PASSWORD: 123456
     volumes:
-      - "./data/postgres-data:/var/lib/postgresql/18/docker"
+      # NOTE: postgres 18+ moved PGDATA from /var/lib/postgresql/data to
+      # /var/lib/postgresql/18/docker by default. Do not change this path.
+      - ourchat_postgres_data:/var/lib/postgresql/18/docker
     # If you want to expose the postgres port, uncomment the following lines
+    # (keep the 127.0.0.1 prefix unless you really mean to expose it,
+    # see issue #342)
     # ports:
-    #   - "5432:5432"
-    networks:
-      - net
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 30s
-      retries: 5
+    #   - "127.0.0.1:5432:5432"
 
   redis:
     image: redis:8-alpine
-    restart: always
-    command: redis-server /usr/local/etc/redis/redis.conf
-    # If you want to expose the redis port, uncomment the following lines
-    # ports:
-    #   - "6379:6379"
     volumes:
-      - ./data/redis-data:/data
-      - ./config/redis.conf:/usr/local/etc/redis/redis.conf
-    networks:
-      - net
+      - ourchat_redis_data:/data
+
   mq:
     image: rabbitmq:4-management-alpine
-    restart: always
-    # If you want to expose the rabbitmq management port, uncomment the following lines
-    # ports:
-    #   - "5672:5672"
-    #   - "15672:15672"
-    environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: 123456
     volumes:
-      - ./data/rabbitmq-data:/var/lib/rabbitmq
-    networks:
-      - net
+      - ourchat_rabbitmq_data:/var/lib/rabbitmq
+    # If you want to expose the rabbitmq management port, uncomment the
+    # following lines (loopback-only, see issue #342)
+    # ports:
+    #   - "127.0.0.1:5672:5672"
+    #   - "127.0.0.1:15672:15672"
 
-networks:
-  net:
-    driver: bridge
+# All runtime state lives in named volumes (issue #337): `docker compose
+# down` and image upgrades keep the data; `docker compose down -v` (or
+# `docker volume rm`) is the explicit, visible way to wipe it.
+volumes:
+  ourchat_config:
+  ourchat_log:
+  ourchat_files_storage:
+  ourchat_postgres_data:
+  ourchat_redis_data:
+  ourchat_rabbitmq_data:

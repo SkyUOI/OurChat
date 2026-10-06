@@ -15,9 +15,15 @@ client integration tests (which require real servers):
 
            docker compose -f docker/compose.devenv.yml up -d db redis mq
 
+       The devenv stack publishes db/redis/mq on non-default loopback ports
+       (55432/56379/5672) to avoid clashing with native services, so pass
+       the matching flags, e.g. --db-port 55432 --redis-port 56379.
+
 Usage:
     python script/run_integration_tests.py [--test integration_test/xxx.dart]
                                           [--port-a 7777] [--port-b 7778]
+                                          [--db-port 5432] [--redis-port 6379]
+                                          [--mq-port 5672]
                                           [--server-path /path/to/server]
                                           [--keep-server] [--debug]
 """
@@ -46,7 +52,6 @@ DEFAULT_TESTS = [
     "quote_ui_e2e_test.dart",
 ]
 VHOST_B = "oc_e2e_b"
-DEPENDENCY_PORTS = (5432, 6379, 5672)
 
 
 def fail(msg):
@@ -76,13 +81,19 @@ def preflight(args):
         if shutil.which(tool) is None:
             fail(f"missing required tool: {tool}")
 
-    for port in DEPENDENCY_PORTS:
+    for name, port in (
+        ("db", args.db_port),
+        ("redis", args.redis_port),
+        ("mq", args.mq_port),
+    ):
         if not port_open(port):
             print(
-                "ERROR: dependency port %d is not reachable.\n"
+                "ERROR: dependency %s port %d is not reachable.\n"
                 "Start the dev environment first, for example:\n"
-                "    docker compose -f docker/compose.devenv.yml up -d db redis mq"
-                % port,
+                "    docker compose -f docker/compose.devenv.yml up -d db redis mq\n"
+                "If the services listen on non-default host ports (the devenv\n"
+                "stack uses 55432/56379), pass --db-port/--redis-port/--mq-port "
+                "to match." % (name, port),
                 file=sys.stderr,
             )
             sys.exit(1)
@@ -115,7 +126,7 @@ def patch(d, name, old, new):
         print(f"WARN: pattern {old!r} not found in {name}; skipping")
 
 
-def copy_and_patch_configs(tmp, label, vhost):
+def copy_and_patch_configs(tmp, label, vhost, db_port, redis_port, mq_port):
     """Copy docker/config sub-configs into tmp/<label> and adapt them so a
     host-machine server process can connect to localhost-backed docker services.
     """
@@ -134,6 +145,11 @@ def copy_and_patch_configs(tmp, label, vhost):
     patch(d, "database.toml", 'host = "db"', 'host = "localhost"')
     patch(d, "redis.toml", 'host = "redis"', 'host = "localhost"')
     patch(d, "rabbitmq.toml", 'host = "mq"', 'host = "localhost"')
+    # The docker configs use the in-network container ports (5432/6379/5672);
+    # a host process must use whatever the host-side published ports are.
+    patch(d, "database.toml", "port = 5432", "port = %d" % db_port)
+    patch(d, "redis.toml", "port = 6379", "port = %d" % redis_port)
+    patch(d, "rabbitmq.toml", "port = 5672", "port = %d" % mq_port)
     if vhost != "/":
         patch(d, "rabbitmq.toml", 'vhost = "/"', f'vhost = "{vhost}"')
 
@@ -337,6 +353,26 @@ def main():
     ap.add_argument("--port-a", type=int, default=7777)
     ap.add_argument("--port-b", type=int, default=7778)
     ap.add_argument(
+        "--db-port",
+        type=int,
+        default=5432,
+        help="host port postgres listens on (default: 5432; the devenv "
+        "stack publishes 55432)",
+    )
+    ap.add_argument(
+        "--redis-port",
+        type=int,
+        default=6379,
+        help="host port redis listens on (default: 6379; the devenv "
+        "stack publishes 56379)",
+    )
+    ap.add_argument(
+        "--mq-port",
+        type=int,
+        default=5672,
+        help="host port rabbitmq listens on (default: 5672)",
+    )
+    ap.add_argument(
         "--device",
         default="linux",
         help="flutter device to run the tests on (default: linux, e.g. chrome for web)",
@@ -364,8 +400,12 @@ def main():
         chromedriver_proc = start_chromedriver()
 
     tmp = tempfile.mkdtemp(prefix="ourchat_e2e_")
-    cfg_a = copy_and_patch_configs(tmp, "a", "/")
-    cfg_b = copy_and_patch_configs(tmp, "b", VHOST_B)
+    cfg_a = copy_and_patch_configs(
+        tmp, "a", "/", args.db_port, args.redis_port, args.mq_port
+    )
+    cfg_b = copy_and_patch_configs(
+        tmp, "b", VHOST_B, args.db_port, args.redis_port, args.mq_port
+    )
     ensure_vhost(find_mq_container(), VHOST_B)
 
     log_a = os.path.join(tmp, "a.log")

@@ -84,6 +84,42 @@ cd docker
 docker compose up -d
 ```
 
+The compose files are layered: `compose.base.yml` holds the shared service
+definitions and is pulled in through Compose `include:` by the thin variants —
+`compose.yml` (alpine, used by the command above) and `compose.debian.yml`
+(debian). Invoking a variant directly keeps working, e.g.
+`docker compose -f docker/compose.debian.yml up -d`. Compose v2.20+ is
+required for `include:`.
+
+Defaults worth knowing about (commands below assume the `docker/` directory):
+
+- **Network exposure**: the server ports are published to `127.0.0.1` only
+  (`127.0.0.1:7777:7777` HTTP/WebSocket and `127.0.0.1:7779:7779` gRPC), so
+  nothing outside the host can reach the plaintext server. Put a
+  TLS-terminating reverse proxy in front of it, or edit the mappings in
+  `compose.yml` to `"7777:7777"` / `"7779:7779"` (or
+  `"192.168.1.10:7777:7777"` to bind one specific interface) to expose it
+  directly.
+- **Data**: all runtime state lives in named Docker volumes — postgres,
+  redis and rabbitmq data, server logs, uploaded files
+  (`/app/files_storage`) and the server configuration (`/etc/ourchat`).
+  `docker compose down` and image upgrades keep the data;
+  `docker compose down -v` is the explicit way to wipe it. `../resource`
+  (logo, e-mail template, web panel) stays a read-only bind mount on
+  purpose: it is host-versioned static input, not runtime state.
+- **Configuration**: the `ourchat_config` volume is seeded from the
+  image's built-in `/etc/ourchat` on first start, so the stack works out
+  of the box. Afterwards you edit the copy inside the volume (image
+  upgrades no longer overwrite your config):
+
+  ```shell
+  docker cp config/ourchat.toml "$(docker compose ps -q OurChatServer)":/etc/ourchat/ourchat.toml
+  docker compose restart OurChatServer
+  ```
+
+  or attach a temporary bind mount with a throwaway container to edit the
+  files in place.
+
 For More deployment methods, please refer
 to [deployment document](https://ourchat.readthedocs.io/en/latest/docs/deploy/server-deploy.html)
 
