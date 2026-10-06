@@ -79,6 +79,10 @@ fn main() -> anyhow::Result<()> {
             "#[derive(serde::Serialize, serde::Deserialize)]",
         )
         .type_attribute(
+            "service.ourchat.msg_delivery.recall_vote.v1.RecallVoteNotification",
+            "#[derive(serde::Serialize, serde::Deserialize)]",
+        )
+        .type_attribute(
             "google.protobuf.Timestamp",
             "#[derive(serde::Serialize, serde::Deserialize)]",
         )

@@ -1,0 +1,69 @@
+syntax = "proto3";
+
+package service.ourchat.msg_delivery.recall_vote.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// Start a vote to recall a message which the initiator is not allowed to
+// recall on their own (the initiator must not hold the `RecallMsg`
+// permission and must not be the sender of the message).
+message StartRecallVoteRequest {
+  // id of the message to be recalled by the vote
+  uint64 msg_id = 1;
+  uint64 session_id = 2;
+}
+
+message StartRecallVoteResponse {
+  // id of the newly created vote
+  uint64 vote_id = 1;
+}
+
+// Cast a vote on a recall vote started by `StartRecallVote`.
+// Every eligible member may vote exactly once.
+message VoteRecallRequest {
+  uint64 vote_id = 1;
+  // true means approving the recall, false means rejecting it
+  bool approve = 2;
+}
+
+message VoteRecallResponse {}
+
+message GetRecallVoteRequest {
+  uint64 vote_id = 1;
+}
+
+message GetRecallVoteResponse {
+  uint64 vote_id = 1;
+  // id of the message this vote tries to recall
+  uint64 msg_id = 2;
+  uint64 session_id = 3;
+  // id of the user who started this vote
+  uint64 initiator_id = 4;
+  uint32 yes_count = 5;
+  uint32 no_count = 6;
+  // number of members eligible to vote (all session members except the
+  // sender of the message)
+  uint32 eligible_count = 7;
+  // the vote is settled automatically once the deadline is reached
+  google.protobuf.Timestamp deadline = 8;
+  // whether the vote has been settled (passed, failed or expired)
+  bool settled = 9;
+  // only meaningful when `settled` is true
+  bool passed = 10;
+}
+
+// Broadcast to all members of the session whenever a recall vote is
+// created, voted on, or settled. Contains the full state of the vote so
+// clients can render it directly.
+message RecallVoteNotification {
+  uint64 vote_id = 1;
+  uint64 msg_id = 2;
+  uint64 session_id = 3;
+  uint64 initiator_id = 4;
+  uint32 yes_count = 5;
+  uint32 no_count = 6;
+  uint32 eligible_count = 7;
+  google.protobuf.Timestamp deadline = 8;
+  bool settled = 9;
+  bool passed = 10;
+}

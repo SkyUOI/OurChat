@@ -2,6 +2,12 @@ pub mod v1 {
     include!("../../generated/service.ourchat.msg_delivery.v1.rs");
 }
 
+pub mod recall_vote {
+    pub mod v1 {
+        include!("../../generated/service.ourchat.msg_delivery.recall_vote.v1.rs");
+    }
+}
+
 pub mod recall {
     pub mod v1 {
         include!("../../generated/service.ourchat.msg_delivery.recall.v1.rs");

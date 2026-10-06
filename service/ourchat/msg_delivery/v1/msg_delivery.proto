@@ -7,6 +7,7 @@ import "service/ourchat/friends/accept_friend_invitation/v1/accept_friend_invita
 import "service/ourchat/friends/add_friend/v1/add_friend.proto";
 import "service/ourchat/msg_delivery/announcement/v1/announcement.proto";
 import "service/ourchat/msg_delivery/recall/v1/recall.proto";
+import "service/ourchat/msg_delivery/recall_vote/v1/recall_vote.proto";
 import "service/ourchat/session/allow_user_join_session/v1/allow_user_join_session.proto";
 import "service/ourchat/session/invite_user_to_session/v1/invite_user_to_session.proto";
 import "service/ourchat/session/join_session/v1/join_session.proto";
@@ -47,6 +48,7 @@ message FetchMsgsResponse {
     session.session_room_key.v1.ReceiveRoomKeyNotification receive_room_key = 12;
     session.session_room_key.v1.SendRoomKeyNotification send_room_key = 13;
     session.session_room_key.v1.UpdateRoomKeyNotification update_room_key = 14;
+    recall_vote.v1.RecallVoteNotification recall_vote_notification = 15;
   }
   // id of the message
   uint64 msg_id = 5;
