@@ -24,6 +24,7 @@ import 'package:ourchat/service/ourchat/session/set_session_info/v1/set_session_
 import 'package:ourchat/service/ourchat/upload/v1/upload.pb.dart';
 import 'empty_tab.dart';
 import 'emoji_panel.dart';
+import 'sticker_panel.dart' show sendStickerMessage;
 import 'session_record.dart';
 import 'state.dart';
 import 'user_tab.dart';
@@ -58,22 +59,20 @@ class _SessionTabState extends ConsumerState<SessionTab> {
 
   /// Send a collected sticker (issue #147): the file already lives on the
   /// server, so the message just references it via `involvedFiles` and an
-  /// `io://0` markdown image.
+  /// `io://0` markdown image. The send path itself lives in
+  /// sticker_panel.dart (sendStickerMessage) where it is unit-testable.
   Future<void> _sendSticker(String fileKey) async {
-    final sessionState = ref.read(sessionProvider);
-    final sid = sessionState.currentSessionId;
+    final sid = ref.read(sessionProvider).currentSessionId;
     if (sid == null) return;
     final serverId = ref.read(activeServerIdProvider)!;
     final accountId = ref.read(activeAccountIdProvider)!;
-    final res = await UserMsg(
-      markdownText: "![sticker](io://0)",
-      involvedFiles: [fileKey],
-    ).send(
-      ref.read(ourChatServerProvider),
-      ref.read(e2eeStoreProvider(serverId, accountId).notifier),
-      sid,
+    final sent = await sendStickerMessage(
+      server: ref.read(ourChatServerProvider),
+      e2eeStore: ref.read(e2eeStoreProvider(serverId, accountId).notifier),
+      sessionId: sid,
+      fileKey: fileKey,
     );
-    if (res != null && mounted) {
+    if (sent && mounted) {
       setState(() => emojiPanelVisible = false);
     }
   }

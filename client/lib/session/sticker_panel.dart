@@ -1,10 +1,31 @@
+import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grpc/grpc.dart' as grpc;
 import 'package:ourchat/core/chore.dart';
+import 'package:ourchat/core/e2ee.dart';
+import 'package:ourchat/core/event.dart';
 import 'package:ourchat/core/log.dart';
+import 'package:ourchat/core/server.dart';
 import 'package:ourchat/main.dart';
 import 'package:ourchat/service/ourchat/sticker/v1/sticker.pb.dart';
+
+/// Send a collected sticker as an image message (issue #147): the file
+/// already lives on the server, so the message only references it through
+/// `involvedFiles` and an `io://0` markdown image. Extracted from the
+/// session tab so the send path is unit-testable.
+Future<bool> sendStickerMessage({
+  required OurChatServer server,
+  required E2eeStore e2eeStore,
+  required Int64 sessionId,
+  required String fileKey,
+}) async {
+  final res = await UserMsg(
+    markdownText: "![sticker](io://0)",
+    involvedFiles: [fileKey],
+  ).send(server, e2eeStore, sessionId);
+  return res != null;
+}
 
 /// The "stickers" tab of the input panel (issue #147): the user's private
 /// sticker collection stored on the server. Tapping a sticker sends it as an
