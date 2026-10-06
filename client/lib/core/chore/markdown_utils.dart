@@ -159,6 +159,77 @@ String replaceMarkdownImageUrls(
   return renderer.render(nodes);
 }
 
+/// Whether [url] is a plain external http(s) URL.
+bool isHttpUrl(String url) =>
+    url.startsWith('http://') || url.startsWith('https://');
+
+/// Encode an external http(s) image URL into the client's `in://` scheme,
+/// which marks network images rendered from an untrusted source.
+///
+/// The encoding replaces the scheme separator with a comma, e.g.
+/// `https://example.com/a.png` becomes `in://https,example.com/a.png`.
+/// The renderer decodes it back by re-joining the parts after the scheme
+/// (see the `in://` branch of the markdown imageBuilder).
+String encodeExternalImageUrl(String url) =>
+    'in://${url.replaceFirst('://', ',')}';
+
+/// Decode an `in://`-encoded URL back into its http(s) form. Accepts both the
+/// full `in://...` string and just the encoded content after the scheme.
+String decodeExternalImageUrl(String encoded) {
+  var content = encoded;
+  if (content.startsWith('in://')) {
+    content = content.substring(5);
+  }
+  final parts = content.split(',');
+  if (parts.length < 2) return encoded;
+  return '${parts[0]}://${parts.sublist(1).join(',')}';
+}
+
+/// Matches a markdown image whose URL is an external http(s) link, e.g.
+/// `![alt](https://example.com/a.png "title")`. Group 1 = alt text,
+/// group 2 = the URL, group 3 = the optional title.
+final RegExp _httpImagePattern = RegExp(
+  r'!\[([^\]]*)\]\(\s*(https?://[^)\s]+)(?:\s+"([^"]*)")?\s*\)',
+);
+
+/// Extract the external http(s) image URLs from a markdown string
+/// (deduplicated, in order of first appearance).
+List<String> extractMarkdownHttpImageUrls(String markdown) {
+  if (markdown.isEmpty) return const [];
+  final urls = <String>[];
+  for (final match in _httpImagePattern.allMatches(markdown)) {
+    final url = match.group(2)!;
+    if (!urls.contains(url)) {
+      urls.add(url);
+    }
+  }
+  return urls;
+}
+
+/// Rewrite every external http(s) image URL in a markdown string through
+/// [rewriteUrl], leaving the rest of the text untouched.
+String rewriteMarkdownHttpImageUrls(
+  String markdown,
+  String Function(String url) rewriteUrl,
+) {
+  if (markdown.isEmpty) return markdown;
+  return markdown.replaceAllMapped(_httpImagePattern, (match) {
+    final alt = match.group(1) ?? '';
+    final url = match.group(2)!;
+    final title = match.group(3);
+    final newUrl = rewriteUrl(url);
+    if (title != null) {
+      return '![$alt]($newUrl "$title")';
+    }
+    return '![$alt]($newUrl)';
+  });
+}
+
+/// Rewrite external http(s) image URLs into the `in://` scheme so receivers
+/// render them as untrusted external images.
+String rewriteMarkdownHttpImagesToIn(String markdown) =>
+    rewriteMarkdownHttpImageUrls(markdown, encodeExternalImageUrl);
+
 class _MiniRenderer {
   final StringBuffer _buf = StringBuffer();
 

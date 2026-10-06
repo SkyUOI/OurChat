@@ -5,12 +5,16 @@ import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:grpc/grpc.dart' as grpc;
 import 'package:ourchat/core/account.dart';
 import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/core/const.dart';
 import 'package:ourchat/core/event.dart';
 import 'package:ourchat/core/instance.dart';
+import 'package:ourchat/core/session.dart' as core_session;
 import 'package:ourchat/main.dart';
+import 'package:ourchat/service/ourchat/msg_delivery/recall_vote/v1/recall_vote.pb.dart';
+import 'package:ourchat/service/ourchat/sticker/v1/sticker.pb.dart';
 import 'package:ourchat/user_profile_page.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'state.dart';
@@ -170,6 +174,23 @@ class _MessageWidgetState extends ConsumerState<MessageWidget> {
   bool get _hasQuote => widget.msg.quoteMsgId != null;
 
   void _showQuoteMenu(Offset globalPosition) {
+    final msg = widget.msg;
+    // "Vote to recall" (issue #33) is offered for other people's messages
+    // when the local user lacks the RecallMsg permission (permission holders
+    // can simply recall directly).
+    final myId = ref.read(thisAccountIdProvider);
+    final serverId = ref.read(activeServerIdProvider);
+    bool canVoteRecall = false;
+    if (msg.senderId != null &&
+        msg.senderId != myId &&
+        msg.sessionId != null &&
+        serverId != null) {
+      final sessionData = ref.read(
+        core_session.ourChatSessionProvider(serverId, msg.sessionId!),
+      );
+      canVoteRecall = !sessionData.myPermissions.contains(recallMsgPermission);
+    }
+
     showMenu(
       context: context,
       position: RelativeRect.fromLTRB(
@@ -190,12 +211,80 @@ class _MessageWidgetState extends ConsumerState<MessageWidget> {
             ],
           ),
         ),
+        if (canVoteRecall)
+          PopupMenuItem(
+            value: 'vote_recall',
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.how_to_vote, size: 20),
+                const SizedBox(width: 8),
+                Text(l10n.voteRecall),
+              ],
+            ),
+          ),
+        if (msg.involvedFiles.isNotEmpty)
+          PopupMenuItem(
+            value: 'add_sticker',
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.emoji_emotions_outlined, size: 20),
+                const SizedBox(width: 8),
+                Text(l10n.saveSticker),
+              ],
+            ),
+          ),
       ],
     ).then((value) {
       if (value == 'quote') {
         ref.read(quoteTargetProvider.notifier).setQuote(widget.msg);
+      } else if (value == 'vote_recall') {
+        _startRecallVote(msg);
+      } else if (value == 'add_sticker') {
+        _saveSticker(msg);
       }
     });
+  }
+
+  /// Save the first attached file of an image message as a private sticker
+  /// (issue #147).
+  Future<void> _saveSticker(UserMsg msg) async {
+    if (msg.involvedFiles.isEmpty) return;
+    var stub = ref.read(ourChatServerProvider).newStub();
+    final res = await safeRequest(
+      stub.addSticker,
+      AddStickerRequest(fileKey: msg.involvedFiles.first),
+      (grpc.GrpcError e) {
+        showResultMessage(
+          e.code,
+          e.message,
+          alreadyExistsStatus: l10n.stickerAlreadySaved,
+        );
+      },
+    );
+    if (res != null) {
+      showResultMessage(okStatusCode, null, okStatus: l10n.stickerSaved);
+    }
+  }
+
+  /// Ask the server to open a recall vote on [msg] (issue #33). The banner
+  /// itself appears via the `recall_vote_notification` event.
+  Future<void> _startRecallVote(UserMsg msg) async {
+    final sessionId = msg.sessionId;
+    final eventId = msg.eventId;
+    if (sessionId == null || eventId == null) return;
+    var stub = ref.read(ourChatServerProvider).newStub();
+    final res = await safeRequest(
+      stub.startRecallVote,
+      StartRecallVoteRequest(msgId: eventId, sessionId: sessionId),
+      (grpc.GrpcError e) {
+        showResultMessage(e.code, e.message);
+      },
+    );
+    if (res != null) {
+      showResultMessage(okStatusCode, null, okStatus: l10n.voteRecallStarted);
+    }
   }
 
   /// Render the quoted message as a compact block above the message body.
@@ -446,16 +535,16 @@ class _MessageWidgetState extends ConsumerState<MessageWidget> {
                   } else if (uri.scheme[1] == 'n') {
                     var path = content.split(",");
                     String url = "${path[0]}://${path.sublist(1).join(',')}";
-                    widget = CachedNetworkImage(
-                      imageUrl: url,
-                      errorWidget: (context, url, error) => Text(
-                        l10n.failTo("${l10n.load} ${l10n.image}($url) "),
-                      ),
-                    );
+                    widget = _buildUntrustedNetworkImage(url);
                   }
                 }
               } catch (e) {
                 // do nothing
+              }
+              if (uri.scheme == 'http' || uri.scheme == 'https') {
+                // Plain external http(s) image: render it, but flag it as
+                // coming from an untrusted source.
+                widget = _buildUntrustedNetworkImage(uri.toString());
               }
               return widget;
             },
@@ -482,6 +571,35 @@ class _MessageWidgetState extends ConsumerState<MessageWidget> {
           ),
         ),
       ),
+    );
+  }
+
+  /// A network image loaded from an external, untrusted source, rendered with
+  /// a small warning badge in the top-left corner.
+  Widget _buildUntrustedNetworkImage(String url) {
+    return Stack(
+      children: [
+        CachedNetworkImage(
+          imageUrl: url,
+          errorWidget: (context, url, error) =>
+              Text(l10n.failTo("${l10n.load} ${l10n.image}($url) ")),
+        ),
+        Positioned(
+          left: 0,
+          top: 0,
+          child: Tooltip(
+            message: l10n.untrustedImageSource,
+            child: Container(
+              padding: const EdgeInsets.all(2.0),
+              decoration: BoxDecoration(
+                color: Colors.black54,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Icon(Icons.warning, size: 14, color: Colors.orange),
+            ),
+          ),
+        ),
+      ],
     );
   }
 

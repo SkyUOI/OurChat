@@ -83,4 +83,116 @@ void main() {
       expect(replaceMarkdownImageUrls('', (url) => 'X'), '');
     });
   });
+
+  group('isHttpUrl', () {
+    test('accepts http and https', () {
+      expect(isHttpUrl('http://example.com/a.png'), isTrue);
+      expect(isHttpUrl('https://example.com/a.png'), isTrue);
+    });
+
+    test('rejects other schemes and plain paths', () {
+      expect(isHttpUrl('io://0'), isFalse);
+      expect(isHttpUrl('in://https,example.com/a.png'), isFalse);
+      expect(isHttpUrl('/tmp/file.png'), isFalse);
+      expect(isHttpUrl(''), isFalse);
+    });
+  });
+
+  group('encodeExternalImageUrl / decodeExternalImageUrl', () {
+    test('encodes the scheme separator as a comma', () {
+      expect(
+        encodeExternalImageUrl('https://example.com/a.png'),
+        'in://https,example.com/a.png',
+      );
+      expect(
+        encodeExternalImageUrl('http://example.com/a.png'),
+        'in://http,example.com/a.png',
+      );
+    });
+
+    test('round-trips urls that themselves contain commas', () {
+      const url = 'https://example.com/a,b/c,d.png?x=1,2';
+      expect(decodeExternalImageUrl(encodeExternalImageUrl(url)), url);
+    });
+
+    test('decode mirrors the imageBuilder in:// parsing', () {
+      // The renderer builds the url back from the comma-separated content:
+      // `path[0] + "://" + path.sublist(1).join(",")`.
+      const encoded = 'in://https,example.com/a.png';
+      final content = encoded.split('://')[1];
+      final path = content.split(',');
+      expect(
+        '${path[0]}://${path.sublist(1).join(',')}',
+        decodeExternalImageUrl(content),
+      );
+    });
+  });
+
+  group('extractMarkdownHttpImageUrls', () {
+    test('finds http and https image urls', () {
+      const input = 'a ![x](https://e.com/a.png) b ![y](http://e.net/b.jpg)';
+      expect(extractMarkdownHttpImageUrls(input), [
+        'https://e.com/a.png',
+        'http://e.net/b.jpg',
+      ]);
+    });
+
+    test('ignores non-http images and plain links', () {
+      const input =
+          '![a](io://0) ![b](in://https,e.com/x.png) [c](https://e.com)';
+      expect(extractMarkdownHttpImageUrls(input), isEmpty);
+    });
+
+    test('matches images with a title', () {
+      const input = '![alt](https://e.com/a.png "the title")';
+      expect(extractMarkdownHttpImageUrls(input), ['https://e.com/a.png']);
+    });
+
+    test('deduplicates repeated urls', () {
+      const input = '![a](https://e.com/a.png) ![b](https://e.com/a.png)';
+      expect(extractMarkdownHttpImageUrls(input), ['https://e.com/a.png']);
+    });
+
+    test('empty input returns empty', () {
+      expect(extractMarkdownHttpImageUrls(''), isEmpty);
+    });
+  });
+
+  group('rewriteMarkdownHttpImagesToIn', () {
+    test('rewrites http image urls preserving alt and title', () {
+      const input = '![cat](https://e.com/cat.png "a cat")';
+      expect(
+        rewriteMarkdownHttpImagesToIn(input),
+        '![cat](in://https,e.com/cat.png "a cat")',
+      );
+    });
+
+    test('leaves non-http images and links untouched', () {
+      const input = '![a](io://0) [b](https://e.com) text';
+      expect(rewriteMarkdownHttpImagesToIn(input), input);
+    });
+
+    test('leaves surrounding markdown untouched', () {
+      const input = '# Title\n\n![a](https://e.com/a.png)\n\n- item\n';
+      expect(
+        rewriteMarkdownHttpImagesToIn(input),
+        '# Title\n\n![a](in://https,e.com/a.png)\n\n- item\n',
+      );
+    });
+  });
+
+  group('rewriteMarkdownHttpImageUrls', () {
+    test('rewrites only the matching url (io:// upload style)', () {
+      const input = '![a](https://e.com/a.png) ![b](https://e.com/b.png)';
+      final result = rewriteMarkdownHttpImageUrls(input, (url) {
+        if (url == 'https://e.com/a.png') return 'IO://0';
+        return url;
+      });
+      expect(result, '![a](IO://0) ![b](https://e.com/b.png)');
+    });
+
+    test('empty input returns empty', () {
+      expect(rewriteMarkdownHttpImageUrls('', (url) => 'X'), '');
+    });
+  });
 }
