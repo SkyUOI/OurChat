@@ -60,6 +60,14 @@ enum ScreenMode { mobile, desktop }
 // How the session list aggregates conversations across servers.
 enum UiDisplayMode { accountSwitcher, unifiedInbox }
 
+// What clicking the window close (X) button does on desktop (issue #203).
+enum CloseBehavior { minimizeToTray, exit }
+
+// The concrete action the close button resolves to (see
+// `resolveWindowCloseAction` in main.dart). Split from [CloseBehavior] so the
+// decision is a pure, testable function.
+enum CloseAction { minimizeToTray, exitApp }
+
 // PopupMenuValue
 const addFriendAndSession = "Add Friend/Session";
 const createSession = "Create Session";
@@ -73,6 +81,10 @@ const joinSessionApprovalEvent = 4;
 const newFriendInvitationNotificationEvent = 5;
 const allowUserJoinSessionNotificationEvent = 6;
 const announcementResponseEvent = 7;
+const recallVoteNotificationEvent = 8;
+
+// Session permissions (mirrors PredefinedPermissions on the server)
+const recallMsgPermission = 2;
 
 // MsgTypes
 const textMsg = 0;
