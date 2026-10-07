@@ -77,21 +77,30 @@ async fn session_create() {
     let session_id: SessionID = new_session.session_id.into();
     assert_eq!(new_session.failed_members, vec![]);
     let user3_rec = user3.lock().await.fetch_msgs().fetch(1).await.unwrap();
-    let check = async |rec: Vec<FetchMsgsResponse>| {
-        assert_eq!(rec.len(), 1);
-        let RespondEventType::InviteUserToSession(rec) = rec[0].respond_event_type.clone().unwrap()
-        else {
-            panic!();
-        };
-        assert_eq!(rec.session_id, *session_id);
-        assert_eq!(rec.inviter_id, *user1_id);
-        assert_eq!(rec.leave_message, Some("hello".to_string()));
+    let check_invite = |rec: &Vec<FetchMsgsResponse>| {
+        let invite = rec
+            .iter()
+            .find_map(|m| match m.clone().respond_event_type {
+                Some(RespondEventType::InviteUserToSession(x)) => Some(x),
+                _ => None,
+            })
+            .unwrap_or_else(|| panic!("no invite in {rec:?}"));
+        assert_eq!(invite.session_id, *session_id);
+        assert_eq!(invite.inviter_id, *user1_id);
+        assert_eq!(invite.leave_message, Some("hello".to_string()));
     };
-    check(user3_rec).await;
+    // user3 verifies through a fresh fetch (deterministic replay: exactly
+    // the invite is in the window).
+    assert_eq!(user3_rec.len(), 1, "{user3_rec:?}");
+    check_invite(&user3_rec);
     notify.notify_waiters();
     tokio::join!(task).0.unwrap();
     let rec = user2_rec.lock().clone();
-    check(rec.unwrap()).await;
+    // user2 verifies the invite arrived through the live stream. Delivery
+    // is at-least-once — on slow runners the history replay and the live
+    // consumer can overlap and deliver the invite twice — so look for the
+    // invite instead of asserting an exact event count.
+    check_invite(&rec.unwrap());
     // user2 reject, user3 accept
     user2
         .lock()
