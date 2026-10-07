@@ -86,6 +86,20 @@ impl HttpServer {
                 http::HeaderName::from_static("user-agent"),
                 http::HeaderName::from_static("x-user-agent"),
             ])
+            // Cross-origin web clients (e.g. the Flutter web build served from
+            // another port) can only read CORS-safelisted response headers
+            // unless they are exposed here. gRPC-Web "trailers-only" error
+            // responses carry grpc-status/grpc-message in the HTTP headers, so
+            // without this every remote error surfaces to the browser client
+            // as an opaque UNKNOWN status.
+            .expose_headers([
+                http::HeaderName::from_static("grpc-status"),
+                http::HeaderName::from_static("grpc-message"),
+                http::HeaderName::from_static("grpc-status-details-bin"),
+                http::HeaderName::from_static("x-grpc-web"),
+                http::HeaderName::from_static("grpc-timeout"),
+                http::header::AUTHORIZATION,
+            ])
             .max_age(Duration::from_secs(86400));
         let rate_governor_config = GovernorConfigBuilder::default()
             .burst_size(shared_data.cfg().http_cfg.rate_limit.num_of_burst_requests)
