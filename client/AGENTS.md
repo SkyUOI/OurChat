@@ -353,6 +353,17 @@ python script/run_integration_tests.py --device chrome --test integration_test/q
 Requirements: a `chromedriver` binary matching the installed Chrome version on
 `PATH`, plus the driver harness in `test_driver/integration_test.dart`.
 
+**Web-only tests (no live server needed):** `web_int64_precision_test.dart`
+(round-trips Int64 values > 2^53 through drift — catches JS double precision
+regressions in the event `data` JSON encoding) and `web_keygen_test.dart`
+(WebCrypto RSA keygen). `web_grpcweb_error_test.dart` uses a live server when
+reachable (default `localhost:7777`, override via
+`--dart-define=OURCHAT_TEST_SERVER_HOST/PORT`) and skips otherwise; on Chrome
+via `flutter drive` it cross-origin-verifies that gRPC-Web trailers-only
+errors keep their real status (requires the server's CORS
+`grpc-status`/`grpc-message` expose headers). These three run on Chrome in CI
+(`flutter-web-integration` job in `.github/workflows/client_ci.yml`).
+
 #### Unit & Widget Tests (`test/`)
 
 Run via `flutter test` — uses `TestWidgetsFlutterBinding` (fake time, no network). All HTTP/gRPC calls return errors; mock the server with `mocktail`.

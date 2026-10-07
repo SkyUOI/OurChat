@@ -56,6 +56,16 @@ python script/run_integration_tests.py --server-path target/debug/server
 
 # leave servers + temp files around for debugging
 python script/run_integration_tests.py --debug
+
+# run on Chrome (web): starts chromedriver, uses `flutter drive --profile`;
+# requires a chromedriver matching the installed Chrome on PATH
+python script/run_integration_tests.py --device chrome
+
+# web-specific tests that do NOT need the servers (int64 JSON precision,
+# WebCrypto keygen) — still runnable through the script for convenience
+python script/run_integration_tests.py --device chrome \
+  --test integration_test/web_int64_precision_test.dart \
+  --test integration_test/web_keygen_test.dart
 ```
 
 What it does:
