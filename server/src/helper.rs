@@ -114,12 +114,47 @@ pub fn generate_webrtc_room_id() -> anyhow::Result<RoomId> {
 ///
 /// # Panics
 ///
-/// This function will panic if it fails to bind to an address or retrieve the
-/// local address of the listener.
+/// This function will panic if it fails to bind to an address or retrieve
+/// the local address of the listener.
 pub fn get_available_port() -> std::io::Result<u16> {
     Ok(std::net::TcpListener::bind("0.0.0.0:0")?
         .local_addr()?
         .port())
+}
+
+/// Pre-bound listeners reserved for a caller that will take them over when
+/// the real server binds (see [`reserve_port`] / [`take_reserved_listener`]).
+///
+/// Holding the listener keeps the port out of the kernel's ephemeral-port
+/// allocator, closing the allocate→drop→rebind race window that made
+/// parallel tests flake on `AddrInUse`: two `cargo test` threads could get
+/// handed the same released port before their server instances bound it.
+static RESERVED_LISTENERS: LazyLock<
+    std::sync::Mutex<std::collections::HashMap<u16, std::net::TcpListener>>,
+> = LazyLock::new(|| std::sync::Mutex::new(std::collections::HashMap::new()));
+
+/// Reserve an available port and keep it bound until the caller (the HTTP
+/// launcher, see `Launcher::build_from_config`) takes the listener over via
+/// [`take_reserved_listener`]. For plain port picking without the hold, use
+/// [`get_available_port`] — at your own race risk.
+pub fn reserve_port() -> std::io::Result<u16> {
+    let listener = std::net::TcpListener::bind("0.0.0.0:0")?;
+    let port = listener.local_addr()?.port();
+    RESERVED_LISTENERS
+        .lock()
+        .expect("reserved-listeners mutex poisoned")
+        .insert(port, listener);
+    Ok(port)
+}
+
+/// Take back the pre-bound listener reserved for [port], if any. The caller
+/// becomes the new owner and must put it into non-blocking mode before
+/// handing it to tokio.
+pub fn take_reserved_listener(port: u16) -> Option<std::net::TcpListener> {
+    RESERVED_LISTENERS
+        .lock()
+        .expect("reserved-listeners mutex poisoned")
+        .remove(&port)
 }
 
 #[cfg(test)]
@@ -136,5 +171,26 @@ mod tests {
     fn test_generate_ocid() {
         let s = generate_ocid(10);
         assert_eq!(s.len(), 10);
+    }
+
+    /// The whole point of the reservation registry: a reserved port stays
+    /// held (unclaimable by anyone else) until the owner takes it over.
+    #[test]
+    fn test_reserved_port_is_held_until_taken() {
+        let port = reserve_port().expect("reserve_port failed");
+
+        // While reserved, nobody else can bind it — not even the OS
+        // ephemeral allocator's favourite trick of re-handing out the port.
+        let steal = std::net::TcpListener::bind(("0.0.0.0", port));
+        assert!(steal.is_err(), "reserved port {port} must not be claimable");
+
+        // Taking it over yields the held listener and releases the hold.
+        let listener = take_reserved_listener(port).expect("listener must be reserved");
+        assert_eq!(listener.local_addr().unwrap().port(), port);
+        drop(listener);
+        assert!(take_reserved_listener(port).is_none());
+
+        // After the take-over the port is bindable again.
+        assert!(std::net::TcpListener::bind(("0.0.0.0", port)).is_ok());
     }
 }

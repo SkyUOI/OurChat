@@ -15,7 +15,7 @@ use pb::time::TimeStampUtc;
 use sea_orm::TransactionTrait;
 use server::config::Cfg;
 use server::db::session::{BanStatus, MuteStatus, user_banned_status, user_muted_status};
-use server::helper::get_available_port;
+use server::helper::reserve_port;
 use server::{Application, ArgsParser, ParserCfg, SharedData, helper, process};
 use sqlx::migrate::MigrateDatabase;
 use std::sync::Arc;
@@ -81,9 +81,11 @@ trait TestAppTrait {
 impl TestAppTrait for ArgsParser {
     fn test() -> Self {
         Self {
-            port: Some(
-                get_available_port().expect("failed because there is not available port got"),
-            ),
+            // reserve_port (not get_available_port): the pre-bound listener
+            // is held until Launcher::build_from_config takes it over, so a
+            // parallel test's ephemeral allocation can never steal the port
+            // in between and flake the startup with `AddrInUse`.
+            port: Some(reserve_port().expect("failed because there is no available port got")),
             shared_cfg: ParserCfg {
                 test_mode: true,
                 ..Default::default()

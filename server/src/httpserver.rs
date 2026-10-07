@@ -489,8 +489,22 @@ impl Launcher {
             None => None,
         };
         let http_listener =
-            tokio::net::TcpListener::bind(format!("{}:{}", cfg.http_cfg.ip, cfg.http_cfg.port))
-                .await?;
+            // Tests reserve their port with a held-open listener (see
+            // `helper::reserve_port`) so parallel ephemeral allocations
+            // cannot steal it before this bind; take it over when present.
+            match crate::helper::take_reserved_listener(cfg.http_cfg.port) {
+                Some(listener) => {
+                    listener.set_nonblocking(true)?;
+                    tokio::net::TcpListener::from_std(listener)?
+                }
+                None => {
+                    tokio::net::TcpListener::bind(format!(
+                        "{}:{}",
+                        cfg.http_cfg.ip, cfg.http_cfg.port
+                    ))
+                    .await?
+                }
+            };
         // deal with port 0
         cfg.http_cfg.port = http_listener.local_addr()?.port();
         let started_notify = Arc::new(tokio::sync::Notify::new());
