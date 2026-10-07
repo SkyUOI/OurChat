@@ -2,7 +2,6 @@ import 'package:fixnum/fixnum.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ourchat/core/event.dart';
 import 'package:ourchat/core/notification_service.dart';
-import 'package:ourchat/core/stubs/notification_stub.dart' as web_stub;
 
 /// Records every call made to the notification service so tests can assert
 /// on the trigger logic without touching platform plugins.
@@ -45,20 +44,11 @@ UserMsg buildMsg({
 }
 
 /// Tests for the new-message system notification feature (issue #199):
-/// the web stub, the pure trigger decision, the notification-body privacy
-/// switch, and the notification pipeline with an injected fake service.
+/// the pure trigger decision, the notification-body privacy switch, and the
+/// notification pipeline with an injected fake service. (The web/backend
+/// implementations are thin plugin wrappers and are exercised on their
+/// target platforms, not on the VM test runner.)
 void main() {
-  group('web notification stub', () {
-    test('can be instantiated and every method is a safe no-op', () async {
-      final svc = web_stub.OurChatNotificationService();
-      expect(svc.onNotificationTap, isNull);
-      // None of these may throw (no plugins exist on the web build).
-      await svc.init();
-      await svc.showNewMessage(title: 't', body: 'b', payload: 'p');
-      await svc.cancelAll();
-    });
-  });
-
   group('shouldNotifyNewMessage', () {
     test('notifies for a session that is not currently open', () {
       expect(

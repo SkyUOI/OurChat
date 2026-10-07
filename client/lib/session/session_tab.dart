@@ -134,25 +134,23 @@ class _SessionTabState extends ConsumerState<SessionTab> {
   }
 
   Future<void> _pickFiles() async {
-    var result = await FilePicker.platform.pickFiles(
-      type: FileType.any,
-      allowMultiple: true,
-      withData: true,
-    );
-    if (result == null || result.files.isEmpty) return;
-    for (var file in result.files) {
-      if (file.bytes == null) continue;
+    // file_picker >= 13: static entry point, multiple selection implied and
+    // bytes read explicitly (works on web where PlatformFile has no path).
+    final files = await FilePicker.pickFiles(type: FileType.any);
+    if (files.isEmpty) return;
+    for (final file in files) {
+      final bytes = await file.readAsBytes();
       var contentType =
           lookupMimeType(
             file.name,
-            headerBytes: file.bytes!.take(256).toList(),
+            headerBytes: bytes.take(256).toList(),
           ) ??
           'application/octet-stream';
       var isImage = contentType.startsWith('image/');
       _cacheFileForUpload(
         path: file.path ?? file.name,
         name: file.name,
-        bytes: file.bytes!,
+        bytes: bytes,
         contentType: contentType,
         isImage: isImage,
       );
