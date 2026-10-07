@@ -265,7 +265,10 @@ class SessionNotifier extends _$SessionNotifier {
     final vote = state.sessionVotes[voteId];
     if (vote == null) return;
     state = state.copyWith(
-      sessionVotes: {...state.sessionVotes, voteId: vote.copyWith(myVote: approve)},
+      sessionVotes: {
+        ...state.sessionVotes,
+        voteId: vote.copyWith(myVote: approve),
+      },
     );
   }
 

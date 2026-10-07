@@ -37,12 +37,14 @@ void main() {
       expect(restored.notificationShowMessageContent, isFalse);
     });
 
-    test('legacy config JSON without the new fields falls back to defaults',
-        () {
-      final restored = OurChatConfig.fromJson({});
-      expect(restored.closeBehavior, CloseBehavior.minimizeToTray);
-      expect(restored.notificationShowMessageContent, isTrue);
-    });
+    test(
+      'legacy config JSON without the new fields falls back to defaults',
+      () {
+        final restored = OurChatConfig.fromJson({});
+        expect(restored.closeBehavior, CloseBehavior.minimizeToTray);
+        expect(restored.notificationShowMessageContent, isTrue);
+      },
+    );
   });
 
   group('ConfigNotifier persistence (in-memory prefs store)', () {
@@ -132,10 +134,7 @@ void main() {
     });
 
     test('exit setting quits the app', () {
-      expect(
-        resolveWindowCloseAction(CloseBehavior.exit),
-        CloseAction.exitApp,
-      );
+      expect(resolveWindowCloseAction(CloseBehavior.exit), CloseAction.exitApp);
     });
   });
 }

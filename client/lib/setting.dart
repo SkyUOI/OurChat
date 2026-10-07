@@ -280,7 +280,9 @@ class NotificationContentEditor extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final showContent = ref.watch(configProvider).notificationShowMessageContent;
+    final showContent = ref
+        .watch(configProvider)
+        .notificationShowMessageContent;
     return Row(
       children: [
         const Padding(
@@ -319,11 +321,7 @@ class CloseBehaviorEditor extends ConsumerWidget {
       children: [
         const Padding(
           padding: EdgeInsets.all(AppStyles.defaultPadding),
-          child: SizedBox(
-            width: 30.0,
-            height: 30.0,
-            child: Icon(Icons.close),
-          ),
+          child: SizedBox(width: 30.0, height: 30.0, child: Icon(Icons.close)),
         ),
         Expanded(
           child: DropdownButtonFormField<CloseBehavior>(

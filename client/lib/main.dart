@@ -214,8 +214,7 @@ database.OurChatDatabase? privateDB;
 /// True when running on a desktop OS (Windows/Linux/macOS) and not on the
 /// web. Gates window/tray integration which only exists on desktop.
 bool get isDesktopPlatform =>
-    !kIsWeb &&
-    (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
+    !kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
 
 /// The most recent [AppLifecycleState] reported to [_MainAppState], or null
 /// before the first lifecycle event (issue #199). Prefer
@@ -461,7 +460,9 @@ class _MainAppState extends ConsumerState<MainApp>
     if (!kIsWeb) {
       // The close (X) button is configurable: minimize to tray (default) or
       // exit the app (issue #203).
-      switch (resolveWindowCloseAction(ref.read(configProvider).closeBehavior)) {
+      switch (resolveWindowCloseAction(
+        ref.read(configProvider).closeBehavior,
+      )) {
         case CloseAction.minimizeToTray:
           await windowManager.hide();
         case CloseAction.exitApp:

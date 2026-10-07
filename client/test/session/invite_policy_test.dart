@@ -74,9 +74,14 @@ void main() {
       await tester.tap(find.byIcon(Icons.check));
       await tester.pumpAndSettle();
 
-      final request = verify(
-        () => client.setSelfInfo(captureAny(), options: any(named: 'options')),
-      ).captured.single as SetSelfInfoRequest;
+      final request =
+          verify(
+                () => client.setSelfInfo(
+                  captureAny(),
+                  options: any(named: 'options'),
+                ),
+              ).captured.single
+              as SetSelfInfoRequest;
       expect(request.sessionInvitationPolicy, 0);
     });
 
@@ -95,9 +100,14 @@ void main() {
       await tester.tap(find.byIcon(Icons.check));
       await tester.pumpAndSettle();
 
-      final request = verify(
-        () => client.setSelfInfo(captureAny(), options: any(named: 'options')),
-      ).captured.single as SetSelfInfoRequest;
+      final request =
+          verify(
+                () => client.setSelfInfo(
+                  captureAny(),
+                  options: any(named: 'options'),
+                ),
+              ).captured.single
+              as SetSelfInfoRequest;
       expect(request.sessionInvitationPolicy, 1);
     });
 
@@ -109,34 +119,41 @@ void main() {
         () => client.setSelfInfo(any(), options: any(named: 'options')),
       ).thenAnswer((_) => responseFutureOf(SetSelfInfoResponse()));
 
-      final account = buildTestAccount(Int64(1), 'alice').copyWith(
-        sessionInvitationPolicy: 2,
-      );
+      final account = buildTestAccount(
+        Int64(1),
+        'alice',
+      ).copyWith(sessionInvitationPolicy: 2);
       await pumpDialog(tester, client, account: account);
 
       expect(find.text('Nobody'), findsOneWidget);
       await tester.tap(find.byIcon(Icons.check));
       await tester.pumpAndSettle();
 
-      final request = verify(
-        () => client.setSelfInfo(captureAny(), options: any(named: 'options')),
-      ).captured.single as SetSelfInfoRequest;
+      final request =
+          verify(
+                () => client.setSelfInfo(
+                  captureAny(),
+                  options: any(named: 'options'),
+                ),
+              ).captured.single
+              as SetSelfInfoRequest;
       expect(request.sessionInvitationPolicy, 2);
     });
   });
 
   group('UserProfilePage policy row (issue #34)', () {
     testWidgets('shows the human-readable policy for others', (tester) async {
-      final account = buildTestAccount(Int64(2), 'bob').copyWith(
-        isMe: false,
-        sessionInvitationPolicy: 1,
-      );
+      final account = buildTestAccount(
+        Int64(2),
+        'bob',
+      ).copyWith(isMe: false, sessionInvitationPolicy: 1);
       final container = ProviderContainer(
         overrides: [
           activeAccountTestOverride,
-          ourChatAccountProvider(testServerId, Int64(2)).overrideWith(
-            () => NoFetchAccount(account),
-          ),
+          ourChatAccountProvider(
+            testServerId,
+            Int64(2),
+          ).overrideWith(() => NoFetchAccount(account)),
         ],
       );
       addTearDown(container.dispose);
@@ -158,9 +175,10 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           activeAccountTestOverride,
-          ourChatAccountProvider(testServerId, Int64(2)).overrideWith(
-            () => NoFetchAccount(account),
-          ),
+          ourChatAccountProvider(
+            testServerId,
+            Int64(2),
+          ).overrideWith(() => NoFetchAccount(account)),
         ],
       );
       addTearDown(container.dispose);

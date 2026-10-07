@@ -36,8 +36,10 @@ void main() {
     addTearDown(container.dispose);
     final notifier = container.read(configProvider.notifier);
     notifier.init(OurChatConfig.defaults.copyWith(prefsWithCache: prefs));
-    expect(container.read(configProvider).closeBehavior,
-        CloseBehavior.minimizeToTray);
+    expect(
+      container.read(configProvider).closeBehavior,
+      CloseBehavior.minimizeToTray,
+    );
 
     await tester.pumpWidget(
       buildTestApp(container: container, child: const CloseBehaviorEditor()),
@@ -58,11 +60,9 @@ void main() {
     await tester.tap(find.text(l10n.closeBehaviorExit).last);
     await tester.pumpAndSettle();
 
-    expect(
-      container.read(configProvider).closeBehavior,
-      CloseBehavior.exit,
-    );
-    final stored = jsonDecode(prefs.getString('config')!) as Map<String, dynamic>;
+    expect(container.read(configProvider).closeBehavior, CloseBehavior.exit);
+    final stored =
+        jsonDecode(prefs.getString('config')!) as Map<String, dynamic>;
     expect(stored['closeBehavior'], 'exit');
   });
 }

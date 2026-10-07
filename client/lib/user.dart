@@ -123,7 +123,10 @@ class _SelfInfoEditDialogState extends ConsumerState<SelfInfoEditDialog> {
                   value: 1,
                   child: Text(l10n.invitePolicyFriendsOnly),
                 ),
-                DropdownMenuItem(value: 2, child: Text(l10n.invitePolicyNobody)),
+                DropdownMenuItem(
+                  value: 2,
+                  child: Text(l10n.invitePolicyNobody),
+                ),
               ],
               onChanged: (value) {
                 setState(() {

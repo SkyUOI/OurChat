@@ -24,8 +24,7 @@ void main() {
   });
 
   group('checkServerCompatibility (issue #16)', () {
-    test('ok when server meets the client minimum and no client floor set',
-        () {
+    test('ok when server meets the client minimum and no client floor set', () {
       expect(
         checkServerCompatibility(
           serverVersion: _v(0, 1, 0),
@@ -48,10 +47,7 @@ void main() {
     });
 
     test('server 0.0.0 floor means no client restriction', () {
-      expect(
-        minimumClientVersionApplies(_v(0, 0, 0)),
-        isFalse,
-      );
+      expect(minimumClientVersionApplies(_v(0, 0, 0)), isFalse);
       expect(
         checkServerCompatibility(
           serverVersion: _v(0, 1, 0),

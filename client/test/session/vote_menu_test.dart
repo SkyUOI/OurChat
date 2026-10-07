@@ -53,10 +53,13 @@ void main() {
         ourChatServerProvider.overrideWithValue(FakeOurChatServer(client)),
         overrideAccount(Int64(1), buildTestAccount(Int64(1), 'alice')),
         overrideAccount(Int64(2), buildTestAccount(Int64(2), 'bob')),
-        core_session.ourChatSessionProvider(testServerId, Int64(1))
-            .overrideWith(() => StubSessionNotifier(
-                  buildSessionData(permissions: permissions),
-                )),
+        core_session
+            .ourChatSessionProvider(testServerId, Int64(1))
+            .overrideWith(
+              () => StubSessionNotifier(
+                buildSessionData(permissions: permissions),
+              ),
+            ),
       ],
     );
     addTearDown(container.dispose);
@@ -95,7 +98,9 @@ void main() {
         final client = MockOurChatClient();
         when(
           () => client.startRecallVote(any(), options: any(named: 'options')),
-        ).thenAnswer((_) => responseFutureOf(StartRecallVoteResponse(voteId: Int64(7))));
+        ).thenAnswer(
+          (_) => responseFutureOf(StartRecallVoteResponse(voteId: Int64(7))),
+        );
 
         await pumpMessage(
           tester,
@@ -110,12 +115,14 @@ void main() {
         await tester.tap(find.text(l10n.voteRecall));
         await tester.pump(const Duration(seconds: 1));
 
-        final request = verify(
-          () => client.startRecallVote(
-            captureAny(),
-            options: any(named: 'options'),
-          ),
-        ).captured.single as StartRecallVoteRequest;
+        final request =
+            verify(
+                  () => client.startRecallVote(
+                    captureAny(),
+                    options: any(named: 'options'),
+                  ),
+                ).captured.single
+                as StartRecallVoteRequest;
         expect(request.msgId, Int64(10));
         expect(request.sessionId, Int64(1));
       },

@@ -84,8 +84,8 @@ void main() {
   ) async {
     final container = ProviderContainer(
       overrides: [
-      activeAccountTestOverride,
-      ourChatServerProvider.overrideWithValue(FakeOurChatServer(client)),
+        activeAccountTestOverride,
+        ourChatServerProvider.overrideWithValue(FakeOurChatServer(client)),
       ],
     );
     addTearDown(container.dispose);

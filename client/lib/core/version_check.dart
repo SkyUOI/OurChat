@@ -16,10 +16,9 @@ enum ServerCompatibility { ok, serverTooOld, clientTooOld }
 /// non-numeric (pre-release suffixes) is ignored. Returns null when no number
 /// can be extracted at all.
 ({int major, int minor, int patch})? parseVersionString(String raw) {
-  final numbers = RegExp(r'\d+')
-      .allMatches(raw)
-      .map((m) => int.parse(m.group(0)!))
-      .toList();
+  final numbers = RegExp(
+    r'\d+',
+  ).allMatches(raw).map((m) => int.parse(m.group(0)!)).toList();
   if (numbers.isEmpty) return null;
   return (
     major: numbers[0],
@@ -49,24 +48,22 @@ ServerCompatibility checkServerCompatibility({
   required String clientVersion,
 }) {
   if (serverVersion != null &&
-      _compareVersions(
-            (major: serverVersion.major, minor: serverVersion.minor, patch: serverVersion.patch),
-            minimumSupportedServerVersion,
-          ) <
+      _compareVersions((
+            major: serverVersion.major,
+            minor: serverVersion.minor,
+            patch: serverVersion.patch,
+          ), minimumSupportedServerVersion) <
           0) {
     return ServerCompatibility.serverTooOld;
   }
   if (minimumClientVersionApplies(minimumClientVersion)) {
     final local = parseVersionString(clientVersion);
     if (local != null &&
-        _compareVersions(
-              local,
-              (
-                major: minimumClientVersion!.major,
-                minor: minimumClientVersion.minor,
-                patch: minimumClientVersion.patch,
-              ),
-            ) <
+        _compareVersions(local, (
+              major: minimumClientVersion!.major,
+              minor: minimumClientVersion.minor,
+              patch: minimumClientVersion.patch,
+            )) <
             0) {
       return ServerCompatibility.clientTooOld;
     }

@@ -70,35 +70,37 @@ void main() {
       expect(find.text('😀'), findsOneWidget);
     });
 
-    testWidgets('with a sticker callback an emoji tab and a stickers tab show',
-        (tester) async {
-      final client = MockOurChatClient();
-      when(
-        () => client.getStickers(any(), options: any(named: 'options')),
-      ).thenAnswer((_) => responseFutureOf(GetStickersResponse()));
+    testWidgets(
+      'with a sticker callback an emoji tab and a stickers tab show',
+      (tester) async {
+        final client = MockOurChatClient();
+        when(
+          () => client.getStickers(any(), options: any(named: 'options')),
+        ).thenAnswer((_) => responseFutureOf(GetStickersResponse()));
 
-      final container = ProviderContainer(
-        overrides: [
-          activeAccountTestOverride,
-          ourChatServerProvider.overrideWithValue(FakeOurChatServer(client)),
-        ],
-      );
-      addTearDown(container.dispose);
+        final container = ProviderContainer(
+          overrides: [
+            activeAccountTestOverride,
+            ourChatServerProvider.overrideWithValue(FakeOurChatServer(client)),
+          ],
+        );
+        addTearDown(container.dispose);
 
-      await tester.pumpWidget(
-        buildTestApp(
-          container: container,
-          child: EmojiPanel(
-            onEmojiSelected: (_) {},
-            onStickerSelected: (_) {},
+        await tester.pumpWidget(
+          buildTestApp(
+            container: container,
+            child: EmojiPanel(
+              onEmojiSelected: (_) {},
+              onStickerSelected: (_) {},
+            ),
           ),
-        ),
-      );
+        );
 
-      expect(find.byType(TabBar), findsOneWidget);
-      expect(find.text(l10n.emoji), findsOneWidget);
-      expect(find.text(l10n.stickersTab), findsOneWidget);
-    });
+        expect(find.byType(TabBar), findsOneWidget);
+        expect(find.text(l10n.emoji), findsOneWidget);
+        expect(find.text(l10n.stickersTab), findsOneWidget);
+      },
+    );
   });
 
   group('message menu "Save as sticker" (issue #147)', () {
@@ -168,18 +170,18 @@ void main() {
       await tester.pump(const Duration(seconds: 1));
       await tester.pump();
 
-      final request = verify(
-        () => client.addSticker(
-          captureAny(),
-          options: any(named: 'options'),
-        ),
-      ).captured.single as AddStickerRequest;
+      final request =
+          verify(
+                () => client.addSticker(
+                  captureAny(),
+                  options: any(named: 'options'),
+                ),
+              ).captured.single
+              as AddStickerRequest;
       expect(request.fileKey, 'key-1');
     });
 
-    testWidgets('a plain text message offers no sticker entry', (
-      tester,
-    ) async {
+    testWidgets('a plain text message offers no sticker entry', (tester) async {
       await pumpMessage(
         tester,
         MockOurChatClient(),

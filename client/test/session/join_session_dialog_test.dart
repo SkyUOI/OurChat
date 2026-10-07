@@ -32,10 +32,9 @@ void main() {
       overrides: [
         activeAccountTestOverride,
         ourChatServerProvider.overrideWithValue(FakeOurChatServer(client)),
-        ourChatAccountProvider(
-          testServerId,
-          Int64(1),
-        ).overrideWith(() => JoinStubAccount(buildTestAccount(Int64(1), 'alice'))),
+        ourChatAccountProvider(testServerId, Int64(1)).overrideWith(
+          () => JoinStubAccount(buildTestAccount(Int64(1), 'alice')),
+        ),
       ],
     );
     addTearDown(container.dispose);

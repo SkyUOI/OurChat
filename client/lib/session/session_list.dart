@@ -68,9 +68,7 @@ class _SessionListState extends ConsumerState<SessionList> {
       );
       // Warm the session cache in the background so later notifications can
       // use the real name; never block the notification on the network.
-      unawaited(
-        sessionNotifier.getSessionInfo().catchError((_) => false),
-      );
+      unawaited(sessionNotifier.getSessionInfo().catchError((_) => false));
       final sessionData = ref.read(
         core_session.ourChatSessionProvider(key.serverId, sessionId),
       );

@@ -71,17 +71,19 @@ void main() {
       );
     });
 
-    test('stays silent for the open session while the app is in foreground',
-        () {
-      expect(
-        shouldNotifyNewMessage(
-          msgSessionId: Int64(1),
-          currentSessionId: Int64(1),
-          appInForeground: true,
-        ),
-        isFalse,
-      );
-    });
+    test(
+      'stays silent for the open session while the app is in foreground',
+      () {
+        expect(
+          shouldNotifyNewMessage(
+            msgSessionId: Int64(1),
+            currentSessionId: Int64(1),
+            appInForeground: true,
+          ),
+          isFalse,
+        );
+      },
+    );
 
     test('notifies for the open session while the app is backgrounded', () {
       expect(
@@ -120,17 +122,19 @@ void main() {
       );
     });
 
-    test('content hidden: the body is the generic text regardless of preview',
-        () {
-      expect(
-        newMessageNotificationBody(
-          showContent: false,
-          preview: 'secret content',
-          genericBody: 'New message',
-        ),
-        'New message',
-      );
-    });
+    test(
+      'content hidden: the body is the generic text regardless of preview',
+      () {
+        expect(
+          newMessageNotificationBody(
+            showContent: false,
+            preview: 'secret content',
+            genericBody: 'New message',
+          ),
+          'New message',
+        );
+      },
+    );
 
     test('empty preview falls back to the generic text', () {
       expect(
@@ -145,48 +149,52 @@ void main() {
   });
 
   group('notifyNewMessage pipeline (fake service + injected tray flash)', () {
-    test('non-current session: shows notification and flashes the tray',
-        () async {
-      final svc = RecordingNotificationService();
-      var flashCalls = 0;
-      await notifyNewMessage(
-        buildMsg(sessionId: Int64(200), senderId: Int64(7)),
-        notificationService: svc,
-        currentSessionId: Int64(100),
-        appInForeground: true,
-        thisAccountId: Int64(1),
-        showContent: true,
-        title: 'Dev chat',
-        preview: 'hello world',
-        genericBody: 'New message',
-        flashTray: () => flashCalls++,
-      );
-      expect(flashCalls, 1);
-      expect(svc.messages, hasLength(1));
-      expect(svc.messages.single.title, 'Dev chat');
-      expect(svc.messages.single.body, 'hello world');
-      expect(svc.messages.single.payload, '200');
-    });
+    test(
+      'non-current session: shows notification and flashes the tray',
+      () async {
+        final svc = RecordingNotificationService();
+        var flashCalls = 0;
+        await notifyNewMessage(
+          buildMsg(sessionId: Int64(200), senderId: Int64(7)),
+          notificationService: svc,
+          currentSessionId: Int64(100),
+          appInForeground: true,
+          thisAccountId: Int64(1),
+          showContent: true,
+          title: 'Dev chat',
+          preview: 'hello world',
+          genericBody: 'New message',
+          flashTray: () => flashCalls++,
+        );
+        expect(flashCalls, 1);
+        expect(svc.messages, hasLength(1));
+        expect(svc.messages.single.title, 'Dev chat');
+        expect(svc.messages.single.body, 'hello world');
+        expect(svc.messages.single.payload, '200');
+      },
+    );
 
-    test('currently open session in foreground: no notification, no flash',
-        () async {
-      final svc = RecordingNotificationService();
-      var flashCalls = 0;
-      await notifyNewMessage(
-        buildMsg(sessionId: Int64(100), senderId: Int64(7)),
-        notificationService: svc,
-        currentSessionId: Int64(100),
-        appInForeground: true,
-        thisAccountId: Int64(1),
-        showContent: true,
-        title: 'Dev chat',
-        preview: 'hello world',
-        genericBody: 'New message',
-        flashTray: () => flashCalls++,
-      );
-      expect(flashCalls, 0);
-      expect(svc.messages, isEmpty);
-    });
+    test(
+      'currently open session in foreground: no notification, no flash',
+      () async {
+        final svc = RecordingNotificationService();
+        var flashCalls = 0;
+        await notifyNewMessage(
+          buildMsg(sessionId: Int64(100), senderId: Int64(7)),
+          notificationService: svc,
+          currentSessionId: Int64(100),
+          appInForeground: true,
+          thisAccountId: Int64(1),
+          showContent: true,
+          title: 'Dev chat',
+          preview: 'hello world',
+          genericBody: 'New message',
+          flashTray: () => flashCalls++,
+        );
+        expect(flashCalls, 0);
+        expect(svc.messages, isEmpty);
+      },
+    );
 
     test('open session but app backgrounded: still notifies', () async {
       final svc = RecordingNotificationService();
@@ -204,24 +212,26 @@ void main() {
       expect(svc.messages, hasLength(1));
     });
 
-    test('privacy off: body is the generic text, notification still shown',
-        () async {
-      final svc = RecordingNotificationService();
-      await notifyNewMessage(
-        buildMsg(sessionId: Int64(200), senderId: Int64(7)),
-        notificationService: svc,
-        currentSessionId: Int64(100),
-        appInForeground: true,
-        thisAccountId: Int64(1),
-        showContent: false,
-        title: 'Dev chat',
-        preview: 'hello world',
-        genericBody: 'New message',
-      );
-      expect(svc.messages, hasLength(1));
-      expect(svc.messages.single.title, 'Dev chat');
-      expect(svc.messages.single.body, 'New message');
-    });
+    test(
+      'privacy off: body is the generic text, notification still shown',
+      () async {
+        final svc = RecordingNotificationService();
+        await notifyNewMessage(
+          buildMsg(sessionId: Int64(200), senderId: Int64(7)),
+          notificationService: svc,
+          currentSessionId: Int64(100),
+          appInForeground: true,
+          thisAccountId: Int64(1),
+          showContent: false,
+          title: 'Dev chat',
+          preview: 'hello world',
+          genericBody: 'New message',
+        );
+        expect(svc.messages, hasLength(1));
+        expect(svc.messages.single.title, 'Dev chat');
+        expect(svc.messages.single.body, 'New message');
+      },
+    );
 
     test('no flashTray injected (non-desktop platforms): no crash, still '
         'notifies', () async {

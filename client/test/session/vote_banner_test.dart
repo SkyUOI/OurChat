@@ -92,9 +92,14 @@ void main() {
       await tester.tap(find.text(l10n.voteYesLabel));
       await tester.pumpAndSettle();
 
-      final request = verify(
-        () => client.voteRecall(captureAny(), options: any(named: 'options')),
-      ).captured.single as VoteRecallRequest;
+      final request =
+          verify(
+                () => client.voteRecall(
+                  captureAny(),
+                  options: any(named: 'options'),
+                ),
+              ).captured.single
+              as VoteRecallRequest;
       expect(request.voteId, Int64(9));
       expect(request.approve, isTrue);
 
@@ -115,9 +120,14 @@ void main() {
       await tester.tap(find.text(l10n.voteNoLabel));
       await tester.pumpAndSettle();
 
-      final request = verify(
-        () => client.voteRecall(captureAny(), options: any(named: 'options')),
-      ).captured.single as VoteRecallRequest;
+      final request =
+          verify(
+                () => client.voteRecall(
+                  captureAny(),
+                  options: any(named: 'options'),
+                ),
+              ).captured.single
+              as VoteRecallRequest;
       expect(request.approve, isFalse);
     });
 

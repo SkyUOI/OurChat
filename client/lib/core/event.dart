@@ -509,23 +509,23 @@ class RecallVoteNotificationEvent extends OurChatEvent {
     required this.passed,
     OurChatTime? sendTime,
   }) : super(
-          eventId: eventId,
-          eventType: recallVoteNotificationEvent,
-          sessionId: sessionId,
-          senderId: initiatorId,
-          sendTime: sendTime,
-          data: {
-            "vote_id": voteId.toInt(),
-            "msg_id": targetMsgId.toInt(),
-            "initiator_id": initiatorId.toInt(),
-            "yes_count": yesCount,
-            "no_count": noCount,
-            "eligible_count": eligibleCount,
-            "deadline": deadline.millisecondsSinceEpoch,
-            "settled": settled,
-            "passed": passed,
-          },
-        );
+         eventId: eventId,
+         eventType: recallVoteNotificationEvent,
+         sessionId: sessionId,
+         senderId: initiatorId,
+         sendTime: sendTime,
+         data: {
+           "vote_id": voteId.toInt(),
+           "msg_id": targetMsgId.toInt(),
+           "initiator_id": initiatorId.toInt(),
+           "yes_count": yesCount,
+           "no_count": noCount,
+           "eligible_count": eligibleCount,
+           "deadline": deadline.millisecondsSinceEpoch,
+           "settled": settled,
+           "passed": passed,
+         },
+       );
 
   @override
   Future loadFromDB(

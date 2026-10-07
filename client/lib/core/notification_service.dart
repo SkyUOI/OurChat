@@ -38,9 +38,7 @@ bool shouldNotifyNewMessage({
   Int64? senderId,
   Int64? thisAccountId,
 }) {
-  if (senderId != null &&
-      thisAccountId != null &&
-      senderId == thisAccountId) {
+  if (senderId != null && thisAccountId != null && senderId == thisAccountId) {
     return false;
   }
   final viewingThisSession =
