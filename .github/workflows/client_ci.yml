@@ -112,9 +112,7 @@ jobs:
             sleep 1
           done
       - name: Web integration tests (Chrome)
-        uses: coactions/setup-xvfb@v1
-        with:
-          # setup-xvfb treats each line of `run` as a separate command, so
-          # keep this a single program (the script has no shell syntax).
-          run: ./script/drive_web_integration_tests.sh
+        # The script uses the `-d web-server` device with a headless
+        # chromedriver-launched Chrome, so no display/xvfb is required.
+        run: ./script/drive_web_integration_tests.sh
 
