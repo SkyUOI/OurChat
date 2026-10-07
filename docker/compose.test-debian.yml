@@ -33,6 +33,10 @@ services:
   # image (base.yml defaults to the alpine variants).
   db:
     image: postgres:18
+    # Every parallel cargo test spins a full server instance with its own
+    # sqlx pool (up to 10 connections each) — the default 100 connections
+    # run out on many-core runners and surface as random test failures.
+    command: postgres -c max_connections=400
   redis:
     image: redis:8
   mq:

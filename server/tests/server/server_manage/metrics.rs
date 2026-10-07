@@ -44,7 +44,9 @@ async fn metrics_comprehensive_test() {
 
     let metrics = response.into_inner().metrics.unwrap();
 
-    assert!(metrics.uptime_seconds > 0, "Uptime should be positive");
+    // >= 0, not > 0: the whole test can run within the first second of the
+    // server's life and uptime_seconds truncates sub-second elapsed time.
+    assert_ge!(metrics.uptime_seconds, 0);
     assert!(metrics.timestamp > 0, "Timestamp should be present");
     assert_ge!(metrics.active_connections, 0);
     assert_ge!(metrics.total_users, 0);

@@ -329,6 +329,13 @@ async fn auth_token() {
 
 #### Running Tests
 
+Note on many-core machines: `cargo test` runs one test per core by default,
+and every test starts a full server instance with its own sqlx pool (~10
+postgres connections each). The devenv/test postgres containers raise
+`max_connections` to 400 for this reason; if you still see random tests
+failing under full parallel load (passing when re-run alone), cap the
+parallelism with `cargo test -- --test-threads=8`.
+
 #### Test Utilities and Macros
 
 **Assertion Macros (from `claims` crate):**
