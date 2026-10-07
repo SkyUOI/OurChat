@@ -4,11 +4,12 @@
 # && cargo test"`. Everything common lives in compose.base.yml (issue
 # #336). Test data is deliberately ephemeral — no volumes for db/redis/mq.
 name: ourchat_server_test_debian
-include:
-  - compose.base.yml
 
 services:
   OurChatServer:
+    extends:
+      file: compose.base.yml
+      service: OurChatServer
     build:
       context: ..
       dockerfile: docker/Dockerfile.test-debian
@@ -32,12 +33,25 @@ services:
   # Non-alpine dependency images, matching the debian flavour of the test
   # image (base.yml defaults to the alpine variants).
   db:
+    extends:
+      file: compose.base.yml
+      service: db
     image: postgres:18
     # Every parallel cargo test spins a full server instance with its own
     # sqlx pool (up to 10 connections each) — the default 100 connections
     # run out on many-core runners and surface as random test failures.
     command: postgres -c max_connections=400
   redis:
+    extends:
+      file: compose.base.yml
+      service: redis
     image: redis:8
   mq:
+    extends:
+      file: compose.base.yml
+      service: mq
     image: rabbitmq:4-management
+
+networks:
+  net:
+    driver: bridge

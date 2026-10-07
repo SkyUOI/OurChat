@@ -3,11 +3,12 @@
 # (issue #336); this file only adds the debian image tags, the published
 # ports and the persistent named volumes (issues #337 and #342).
 name: ourchat_server
-include:
-  - compose.base.yml
 
 services:
   OurChatServer:
+    extends:
+      file: compose.base.yml
+      service: OurChatServer
     image: skyuoi/ourchat:nightly-debian
     restart: unless-stopped
     ports:
@@ -38,6 +39,9 @@ services:
       - ../resource/:/app/resource:ro
 
   db:
+    extends:
+      file: compose.base.yml
+      service: db
     image: postgres:18
     volumes:
       # NOTE: postgres 18+ moved PGDATA from /var/lib/postgresql/data to
@@ -50,11 +54,17 @@ services:
     #   - "127.0.0.1:5432:5432"
 
   redis:
+    extends:
+      file: compose.base.yml
+      service: redis
     image: redis:8
     volumes:
       - ourchat_redis_data:/data
 
   mq:
+    extends:
+      file: compose.base.yml
+      service: mq
     image: rabbitmq:4-management
     volumes:
       - ourchat_rabbitmq_data:/var/lib/rabbitmq
@@ -74,3 +84,7 @@ volumes:
   ourchat_postgres_data:
   ourchat_redis_data:
   ourchat_rabbitmq_data:
+
+networks:
+  net:
+    driver: bridge

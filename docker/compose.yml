@@ -3,11 +3,12 @@
 # (issue #336); this file only adds the alpine image tags, the published
 # ports and the persistent named volumes (issues #337 and #342).
 name: ourchat_server
-include:
-  - compose.base.yml
 
 services:
   OurChatServer:
+    extends:
+      file: compose.base.yml
+      service: OurChatServer
     image: skyuoi/ourchat:nightly
     restart: unless-stopped
     ports:
@@ -38,7 +39,9 @@ services:
       - ../resource/:/app/resource:ro
 
   db:
-    image: postgres:18-alpine
+    extends:
+      file: compose.base.yml
+      service: db
     volumes:
       # NOTE: postgres 18+ moved PGDATA from /var/lib/postgresql/data to
       # /var/lib/postgresql/18/docker by default. Do not change this path.
@@ -50,12 +53,16 @@ services:
     #   - "127.0.0.1:5432:5432"
 
   redis:
-    image: redis:8-alpine
+    extends:
+      file: compose.base.yml
+      service: redis
     volumes:
       - ourchat_redis_data:/data
 
   mq:
-    image: rabbitmq:4-management-alpine
+    extends:
+      file: compose.base.yml
+      service: mq
     volumes:
       - ourchat_rabbitmq_data:/var/lib/rabbitmq
     # If you want to expose the rabbitmq management port, uncomment the
@@ -74,3 +81,7 @@ volumes:
   ourchat_postgres_data:
   ourchat_redis_data:
   ourchat_rabbitmq_data:
+
+networks:
+  net:
+    driver: bridge

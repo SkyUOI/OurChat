@@ -1,9 +1,9 @@
 # Common definitions shared by every OurChat compose stack (issue #336).
 #
-# This file is NOT meant to be used standalone. Each variant includes it
-# with a top-level `include:` (Compose v2.20+) and only declares what
-# differs — image tag, published ports, build, environment, command, and
-# (for production) the persistent named volumes:
+# This file is NOT meant to be used standalone. Each variant pulls in these
+# templates per service with `extends: {file: compose.base.yml, service: X}`
+# and only declares what differs — image tag, published ports, build,
+# environment, command, and (for production) the persistent named volumes:
 #
 #   compose.yml             alpine production
 #   compose.debian.yml      debian production
@@ -11,9 +11,12 @@
 #   compose.test-debian.yml debian CI test
 #   compose.devenv.yml      local development dependencies only
 #
-# Merging follows the usual Compose override rules: scalar values from the
-# including file win and `volumes` merge per container path, so a variant
-# can add mounts on top of the ones defined below.
+# extends is used instead of top-level `include:` on purpose: the include
+# spec forbids redeclaring imported services ("conflicts with imported
+# resource" on stricter Compose versions, e.g. the GitHub Actions runners),
+# while `extends` has stable cross-file merge semantics everywhere:
+# scalars from the extending file win, `volumes` merge per container path
+# and `healthcheck` merges per key (so `disable: true` still works).
 #
 # Deliberately NOT defined here:
 #   * OurChatServer image/build/ports/volumes — every variant differs, and

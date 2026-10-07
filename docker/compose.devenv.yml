@@ -4,8 +4,6 @@
 # host = localhost and the matching ports). Passwords here are
 # intentionally weak — do NOT use this file in production.
 name: ourchat_develop_server
-include:
-  - compose.base.yml
 
 services:
   # base.yml also defines OurChatServer, but devenv ships no server image:
@@ -16,10 +14,16 @@ services:
   # `--profile full-stack` the service would refuse to start, because no
   # image/build is defined for it in this file — that is intentional.
   OurChatServer:
+    extends:
+      file: compose.base.yml
+      service: OurChatServer
     profiles:
       - full-stack
 
   db:
+    extends:
+      file: compose.base.yml
+      service: db
     # Local test runs start one postgres database per cargo test, each with
     # its own sqlx pool; raise the ceiling so many-core machines running the
     # suite in parallel do not exhaust the default 100 connections.
@@ -33,14 +37,24 @@ services:
       - "127.0.0.1:55432:5432"
 
   redis:
+    extends:
+      file: compose.base.yml
+      service: redis
     ports:
       # Same idea as db: avoid clashing with a redis on the default 6379.
       - "127.0.0.1:56379:6379"
 
   mq:
+    extends:
+      file: compose.base.yml
+      service: mq
     ports:
       # 5672/15672 keep the default numbers (nothing else tends to claim
       # them locally, and configs default to them), bound to loopback
       # only (issue #342).
       - "127.0.0.1:5672:5672"
       - "127.0.0.1:15672:15672"
+
+networks:
+  net:
+    driver: bridge
