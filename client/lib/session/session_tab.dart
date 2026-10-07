@@ -141,10 +141,7 @@ class _SessionTabState extends ConsumerState<SessionTab> {
     for (final file in files) {
       final bytes = await file.readAsBytes();
       var contentType =
-          lookupMimeType(
-            file.name,
-            headerBytes: bytes.take(256).toList(),
-          ) ??
+          lookupMimeType(file.name, headerBytes: bytes.take(256).toList()) ??
           'application/octet-stream';
       var isImage = contentType.startsWith('image/');
       _cacheFileForUpload(
