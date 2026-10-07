@@ -18,6 +18,21 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../client"
 
+# Smoke-test chromedriver directly: create and delete a headless session.
+# Isolates "chromedriver/chrome is broken on this runner" (hangs below 60s)
+# from "the flutter-side webdriver session is broken".
+SESSION=$(curl -s -m 60 -X POST http://127.0.0.1:4444/session \
+  -H 'Content-Type: application/json' \
+  -d '{"capabilities":{"alwaysMatch":{"browserName":"chrome","goog:chromeOptions":{"args":["--headless","--no-sandbox","--disable-dev-shm-usage","--disable-gpu"]}}}}')
+echo "chromedriver session smoke: ${SESSION:0:200}"
+SID=$(echo "$SESSION" | python3 -c 'import json,sys; print(json.load(sys.stdin)["value"].get("sessionId",""))' 2>/dev/null || true)
+if [ -n "$SID" ]; then
+  curl -s -m 30 -X DELETE "http://127.0.0.1:4444/session/$SID" >/dev/null
+  echo "chromedriver session smoke OK"
+else
+  echo "WARNING: chromedriver session smoke failed (exit $?); drives below will likely hang"
+fi
+
 for target in web_int64_precision_test web_keygen_test web_grpcweb_error_test; do
   echo "==> driving $target"
   timeout --kill-after=30s 15m flutter drive \
