@@ -1,6 +1,7 @@
 use bytes::Bytes;
 use client::TestApp;
 use client::oc_helper::TestSession;
+use client::oc_helper::user::wait_for_response_in_sink;
 use parking_lot::Mutex;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
 use pb::service::ourchat::msg_delivery::v1::fetch_msgs_response::RespondEventType;
@@ -10,6 +11,7 @@ use rsa::RsaPublicKey;
 use rsa::pkcs1::DecodeRsaPublicKey as _;
 use server::db::session::in_session;
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::join;
 use tokio::sync::{Notify, oneshot};
 
@@ -76,16 +78,24 @@ async fn join_approval_is_pushed_live_to_permission_holders() {
         .await
         .unwrap();
 
+    // The join RPC returning only proves the approval was PUBLISHED (the
+    // server publishes fire-and-forget before answering); it still has to
+    // travel broker -> consumer -> grpc stream -> this sink, which is not
+    // ordered with the RPC response. Closing the listener first would drop
+    // the event with the stream — the flake this wait eliminates.
+    let approval = wait_for_response_in_sink(
+        &a_msgs,
+        |m| match &m.respond_event_type {
+            Some(RespondEventType::JoinSessionApproval(x)) if x.user_id == *cid => Some(x.clone()),
+            _ => None,
+        },
+        Duration::from_secs(20),
+    )
+    .await
+    .expect("the join approval never arrived through the live stream");
+
     notify.notify_waiters();
     join!(task).0.unwrap();
-    let rec = a_msgs.lock().clone();
-    let approval = rec
-        .iter()
-        .find_map(|m| match m.clone().respond_event_type {
-            Some(RespondEventType::JoinSessionApproval(x)) => Some(x),
-            _ => None,
-        })
-        .expect("the join approval never arrived through the live stream");
     assert_eq!(approval.user_id, *cid);
     assert_eq!(approval.session_id, *session.session_id);
     app.async_drop().await

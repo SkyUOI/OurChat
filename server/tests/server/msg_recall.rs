@@ -1,5 +1,6 @@
 use claims::assert_lt;
 use client::TestApp;
+use client::oc_helper::user::wait_for_response_in_sink;
 use parking_lot::Mutex;
 use pb::service::ourchat::msg_delivery::recall::v1::RecallMsgRequest;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
@@ -123,7 +124,18 @@ async fn test_recall() {
         assert_eq!(data.msg_id, msg_id);
     };
     check(b_rec, 1, 0).await;
-    // c received both through the live path, message before recall.
+    // c received both through the live path, message before recall. The
+    // recall's arrival on b's fresh stream only proves it was PUBLISHED; c's
+    // live delivery (broker -> consumer -> grpc -> sink) is not ordered with
+    // that, so wait for it to land in c's sink BEFORE closing the listener —
+    // the same queue is FIFO, so hello is already there too.
+    wait_for_response_in_sink(
+        &c_msgs,
+        |m| (m.msg_id == recall_msg_id).then_some(()),
+        Duration::from_secs(20),
+    )
+    .await
+    .expect("listener never received the recall through the live stream");
     notify.notify_waiters();
     join!(task).0.unwrap();
     let tmp = c_msgs.lock().clone();

@@ -753,3 +753,33 @@ impl<'a> FetchMsgBuilder<'a> {
         self
     }
 }
+
+/// Wait until a response matching `pred` has been collected by a live-stream
+/// sink (see [`FetchMsgBuilder::fetch_stream_with_sink`]), polling every
+/// 150ms up to `timeout`. The triggering RPC returning only proves the event
+/// was PUBLISHED (the server publishes fire-and-forget before answering) —
+/// it still has to travel broker -> consumer -> grpc stream -> sink, which is
+/// not ordered with the RPC response. Closing the listener before that lands
+/// would drop the event with the stream, so tests must wait on the sink
+/// BEFORE notifying the listener task. After a `probe_live_delivery` round
+/// has proven the consumer bound, a response can only enter the sink through
+/// live delivery, so a match here proves live delivery completed.
+pub async fn wait_for_response_in_sink<T>(
+    sink: &Arc<parking_lot::Mutex<Vec<FetchMsgsResponse>>>,
+    pred: impl Fn(&FetchMsgsResponse) -> Option<T>,
+    timeout: Duration,
+) -> anyhow::Result<T> {
+    let deadline = tokio::time::Instant::now() + timeout;
+    loop {
+        if let Some(found) = sink.lock().iter().find_map(|m| pred(m)) {
+            return Ok(found);
+        }
+        if tokio::time::Instant::now() >= deadline {
+            anyhow::bail!(
+                "expected response did not arrive in the sink within {timeout:?}: {:?}",
+                sink.lock().as_slice()
+            );
+        }
+        tokio::time::sleep(Duration::from_millis(150)).await;
+    }
+}
