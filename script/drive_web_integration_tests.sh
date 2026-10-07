@@ -21,6 +21,7 @@ cd "$(dirname "$0")/../client"
 for target in web_int64_precision_test web_keygen_test web_grpcweb_error_test; do
   echo "==> driving $target"
   timeout --kill-after=30s 15m flutter drive \
+    --verbose \
     --profile \
     --headless \
     --driver=test_driver/integration_test.dart \
