@@ -4,13 +4,14 @@ import 'package:ourchat/core/event.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 // Platform-conditional implementation: the real flutter_local_notifications
-// wrapper on desktop/mobile, the no-op stub on web (same conditional import
-// pattern as window_manager / tray_manager in main.dart).
+// wrapper on desktop/mobile, and the browser Notification API wrapper on web
+// (same conditional import pattern as window_manager / tray_manager in
+// main.dart).
 import 'package:ourchat/core/notification.dart'
-    if (dart.library.html) 'package:ourchat/core/stubs/notification_stub.dart';
+    if (dart.library.html) 'package:ourchat/core/notification_web.dart';
 
 export 'package:ourchat/core/notification.dart'
-    if (dart.library.html) 'package:ourchat/core/stubs/notification_stub.dart';
+    if (dart.library.html) 'package:ourchat/core/notification_web.dart';
 
 part 'notification_service.g.dart';
 

@@ -29,9 +29,9 @@ void main() {
       expect(event.eventType, recallVoteNotificationEvent);
       expect(event.sessionId, Int64(3));
       final data = event.data!;
-      expect(data['vote_id'], 9);
-      expect(data['msg_id'], 77);
-      expect(data['initiator_id'], 4);
+      expect(data['vote_id'], '9');
+      expect(data['msg_id'], '77');
+      expect(data['initiator_id'], '4');
       expect(data['yes_count'], 1);
       expect(data['no_count'], 0);
       expect(data['eligible_count'], 2);

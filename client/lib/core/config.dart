@@ -7,6 +7,22 @@ import 'package:shared_preferences/shared_preferences.dart';
 part 'config.freezed.dart';
 part 'config.g.dart';
 
+/// Bootstrap wiring for [ConfigNotifier]: `main()` loads the persisted config
+/// (with its prefs handle) before the app boots and stores it here; the
+/// provider's `build()` then starts from it. Without this the provider state
+/// would be defaults with `prefsWithCache == null`, making every
+/// `saveConfig()` a silent no-op (servers / saved accounts / settings would be
+/// lost on every restart). Kept alive for the whole app run so a provider
+/// rebuild never falls back to an empty config.
+OurChatConfig? _bootstrappedConfig;
+SharedPreferencesWithCache? _bootstrappedPrefs;
+
+/// Called once from `main()` before `runApp`.
+void primeConfig(OurChatConfig config) {
+  _bootstrappedConfig = config;
+  _bootstrappedPrefs = config.prefsWithCache;
+}
+
 /// Connection info for a single OurChat server.
 ///
 /// [uniqueIdentifier] is the server's self-reported id (from `getServerInfo`).
@@ -107,7 +123,8 @@ abstract class OurChatConfig with _$OurChatConfig {
 class ConfigNotifier extends _$ConfigNotifier {
   @override
   OurChatConfig build() {
-    return OurChatConfig.defaults;
+    return _bootstrappedConfig ??
+        OurChatConfig.defaults.copyWith(prefsWithCache: _bootstrappedPrefs);
   }
 
   void init(OurChatConfig config) {

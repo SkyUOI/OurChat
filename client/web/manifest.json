@@ -1,12 +1,11 @@
 {
-    "name": "ourchat",
-    "short_name": "ourchat",
+    "name": "OurChat",
+    "short_name": "OurChat",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#2196F3",
+    "theme_color": "#2196F3",
+    "description": "A cross-platform chat application.",
     "prefer_related_applications": false,
     "icons": [
         {

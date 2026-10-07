@@ -23,8 +23,10 @@ void main() {
       );
 
       final json = jsonDecode(jsonEncode(msg.data)) as Map<String, dynamic>;
-      expect(json['quote_msg_id'], 5);
-      expect(json['quote_sender_id'], 6);
+      // Int64 values are stored as strings (web JSON precision, see
+      // UserMsg's data map).
+      expect(json['quote_msg_id'], '5');
+      expect(json['quote_sender_id'], '6');
       expect(json['quote_markdown_text'], 'quoted');
       expect(json['quote_involved_files'], ['q1', 'q2']);
     });
@@ -49,12 +51,14 @@ void main() {
       final quotedMsgId = data['quote_msg_id'];
       final quotedSenderId = data['quote_sender_id'];
       expect(
-        (quotedMsgId != null && quotedMsgId != 0) ? Int64(quotedMsgId) : null,
+        (quotedMsgId != null && quotedMsgId.toString() != '0')
+            ? Int64.parseInt(quotedMsgId.toString())
+            : null,
         Int64(5),
       );
       expect(
-        (quotedSenderId != null && quotedSenderId != 0)
-            ? Int64(quotedSenderId)
+        (quotedSenderId != null && quotedSenderId.toString() != '0')
+            ? Int64.parseInt(quotedSenderId.toString())
             : null,
         Int64(6),
       );

@@ -21,7 +21,7 @@ void main() {
 
       expect(event.eventType, joinSessionApprovalEvent);
       final json = jsonDecode(jsonEncode(event.data)) as Map<String, dynamic>;
-      expect(json['user_id'], 9);
+      expect(json['user_id'], '9');
       expect(json['leave_message'], 'please let me in');
       expect(json['public_key'], [1, 2, 3]);
     });

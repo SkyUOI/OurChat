@@ -154,8 +154,11 @@ class UserMsg extends OurChatEvent {
          data: {
            "markdown_text": markdownText,
            "involved_files": involvedFiles,
-           "quote_msg_id": quoteMsgId?.toInt(),
-           "quote_sender_id": quoteSenderId?.toInt(),
+           // Int64 values are stored as strings: JSON numbers lose precision
+           // above 2^53 on the web (dart2js numbers are doubles), which broke
+           // every id comparison against values decoded back from the DB.
+           "quote_msg_id": quoteMsgId?.toString(),
+           "quote_sender_id": quoteSenderId?.toString(),
            "quote_markdown_text": quoteMarkdownText,
            "quote_involved_files": quoteInvolvedFiles,
          },
@@ -175,12 +178,12 @@ class UserMsg extends OurChatEvent {
       involvedFiles.add(data!["involved_files"][i]);
     }
     final quotedMsgId = data!["quote_msg_id"];
-    quoteMsgId = (quotedMsgId != null && quotedMsgId != 0)
-        ? Int64(quotedMsgId)
+    quoteMsgId = (quotedMsgId != null && quotedMsgId.toString() != '0')
+        ? Int64.parseInt(quotedMsgId.toString())
         : null;
     final quotedSenderId = data!["quote_sender_id"];
-    quoteSenderId = (quotedSenderId != null && quotedSenderId != 0)
-        ? Int64(quotedSenderId)
+    quoteSenderId = (quotedSenderId != null && quotedSenderId.toString() != '0')
+        ? Int64.parseInt(quotedSenderId.toString())
         : null;
     quoteMarkdownText = data!["quote_markdown_text"] ?? "";
     quoteInvolvedFiles = [];
@@ -283,9 +286,9 @@ class NewFriendInvitationNotification extends OurChatEvent {
          sendTime: sendTime,
          data: {
            "leave_message": leaveMessage,
-           "invitee": inviteeId?.toInt(),
+           "invitee": inviteeId?.toString(),
            "status": status,
-           "result_event_id": (resultEventId?.toInt()),
+           "result_event_id": resultEventId?.toString(),
          },
        );
 
@@ -333,10 +336,10 @@ class FriendInvitationResultNotification extends OurChatEvent {
          sendTime: sendTime,
          data: {
            "leave_message": leaveMessage,
-           "invitee": inviteeId!.toInt(),
+           "invitee": inviteeId!.toString(),
            "accept": accept,
            "request_event_ids": requestEventIds!
-               .map((i64) => i64.toInt())
+               .map((i64) => i64.toString())
                .toList(),
          },
        );
@@ -384,7 +387,7 @@ class JoinSessionApprovalNotification extends OurChatEvent {
          sessionId: sessionId,
          sendTime: sendTime,
          data: {
-           "user_id": userId?.toInt(),
+           "user_id": userId?.toString(),
            "leave_message": leaveMessage,
            "public_key": publicKey,
          },
@@ -433,10 +436,10 @@ class AnnouncementResponseEvent extends OurChatEvent {
          senderId: senderId,
          sendTime: sendTime,
          data: {
-           "id": eventId?.toInt(),
+           "id": eventId?.toString(),
            "title": title,
            "content": content,
-           "publisher_id": publisherId?.toInt(),
+           "publisher_id": publisherId?.toString(),
            "created_at": sendTime?.datetime.toIso8601String(),
          },
        );
@@ -515,9 +518,9 @@ class RecallVoteNotificationEvent extends OurChatEvent {
          senderId: initiatorId,
          sendTime: sendTime,
          data: {
-           "vote_id": voteId.toInt(),
-           "msg_id": targetMsgId.toInt(),
-           "initiator_id": initiatorId.toInt(),
+           "vote_id": voteId.toString(),
+           "msg_id": targetMsgId.toString(),
+           "initiator_id": initiatorId.toString(),
            "yes_count": yesCount,
            "no_count": noCount,
            "eligible_count": eligibleCount,
@@ -716,7 +719,8 @@ class OurChatEventSystem extends _$OurChatEventSystem {
             for (int i = 0; i < eventObjList.length; i++) {
               if ((eventObjList[i].senderId! ==
                           event.friendInvitationResultNotification.inviterId &&
-                      eventObjList[i].data!["invitee"] == accountId.toInt()) ||
+                      eventObjList[i].data!["invitee"].toString() ==
+                          accountId.toString()) ||
                   eventObjList[i].senderId! == accountId) {
                 eventObjList[i].data!["status"] =
                     (event.friendInvitationResultNotification.status ==
@@ -725,7 +729,8 @@ class OurChatEventSystem extends _$OurChatEventSystem {
                     ? 1
                     : 2);
                 eventObjList[i].read = true;
-                eventObjList[i].data!["result_event_id"] = event.msgId.toInt();
+                eventObjList[i].data!["result_event_id"] = event.msgId
+                    .toString();
                 requestEventIds.add(eventObjList[i].eventId!);
                 await eventObjList[i].saveToDB(pDB);
               }

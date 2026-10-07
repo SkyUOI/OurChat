@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -18,6 +17,7 @@ import 'package:ourchat/core/version_check.dart';
 import 'package:ourchat/core/event.dart';
 import 'package:ourchat/core/log.dart';
 import 'package:ourchat/core/notification_service.dart';
+import 'package:ourchat/core/platform.dart';
 import 'package:ourchat/core/secret_store.dart';
 import 'package:ourchat/home.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -110,15 +110,13 @@ void changeTrayIcon() {
     if (trayStatus) {
       trayManager
           .setIcon(
-            Platform.isWindows
-                ? "assets/images/empty.ico"
-                : "assets/images/empty.png",
+            isWindowsOS ? "assets/images/empty.ico" : "assets/images/empty.png",
           )
           .catchError((_) {});
     } else {
       trayManager
           .setIcon(
-            Platform.isWindows
+            isWindowsOS
                 ? "assets/images/logo_without_text.ico"
                 : "assets/images/logo_without_text.png",
           )
@@ -151,7 +149,7 @@ void stopFlashTray() {
     trayStatus = true;
     trayManager
         .setIcon(
-          Platform.isWindows
+          isWindowsOS
               ? "assets/images/logo_without_text.ico"
               : "assets/images/logo_without_text.png",
         )
@@ -162,12 +160,18 @@ void stopFlashTray() {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Flutter web renders to canvas, so the DOM has no useful accessibility
+  // tree until semantics are enabled. Opt in via ?semantics=1 so automated
+  // browser tooling (ARIA snapshots, screen readers) can drive the UI.
+  if (kIsWeb && Uri.base.queryParameters['semantics'] != null) {
+    WidgetsBinding.instance.ensureSemantics();
+  }
   initDB();
-  if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+  if (isDesktopPlatform) {
     await windowManager.ensureInitialized();
     if (!await FlutterSingleInstance().isFirstInstance()) {
       await FlutterSingleInstance().focus();
-      exit(0);
+      exitApp();
     }
     WindowOptions windowOptions = const WindowOptions(
       minimumSize: Size(900, 600),
@@ -197,8 +201,11 @@ void main() async {
   } else {
     config.saveConfig(); // persist defaults on first launch
   }
+  // Hand the loaded config (with its prefs handle) to the provider tree, see
+  // `primeConfig` in core/config.dart.
+  primeConfig(config);
   constructLogger(convertStrIntoLevel(config.logLevel));
-  runApp(const ProviderScope(child: MainApp()));
+  runApp(ProviderScope(child: MainApp()));
 }
 
 void initDB() {
@@ -213,8 +220,7 @@ database.OurChatDatabase? privateDB;
 
 /// True when running on a desktop OS (Windows/Linux/macOS) and not on the
 /// web. Gates window/tray integration which only exists on desktop.
-bool get isDesktopPlatform =>
-    !kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
+bool get isDesktopPlatform => !kIsWeb && isDesktopOS;
 
 /// The most recent [AppLifecycleState] reported to [_MainAppState], or null
 /// before the first lifecycle event (issue #199). Prefer
@@ -317,16 +323,17 @@ class _MainAppState extends ConsumerState<MainApp>
       trayManager.addListener(this);
       trayManager
           .setIcon(
-            Platform.isWindows
+            isWindowsOS
                 ? "assets/images/logo_without_text.ico"
                 : "assets/images/logo_without_text.png",
           )
           .catchError((_) {});
       trayManager.setToolTip("OurChat").catchError((_) {});
     }
-    // Initialize system notifications (no-op stub on web). Tapping a
-    // notification brings the window back and stops the tray flash (issue
-    // #199). TODO(#199): deep-link to the conversation from the payload.
+    // Initialize system notifications (browser Notification API on web,
+    // plugin-based on desktop/mobile). Tapping a notification brings the
+    // window back and stops the tray flash (issue #199). TODO(#199):
+    // deep-link to the conversation from the payload.
     final notifications = ref.read(ourChatNotificationServiceProvider);
     notifications.onNotificationTap = (_) {
       if (isDesktopPlatform) {
@@ -445,7 +452,7 @@ class _MainAppState extends ConsumerState<MainApp>
         return useLanguage;
       },
       theme: ThemeData(
-        fontFamily: kIsWeb ? null : (Platform.isWindows ? "微软雅黑" : null),
+        fontFamily: kIsWeb ? null : (isWindowsOS ? "微软雅黑" : null),
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: Color(config.color)),
       ),
@@ -568,7 +575,6 @@ Future<bool> connectToOfficialServer(WidgetRef ref) async {
 /// once per server per reason per app run so reconnect loops cannot spam.
 final Set<String> _versionWarnedServers = {};
 void warnOnIncompatibleServer(OurChatServer server) {
-  if (kIsWeb) return; // no dialog root on the web bootstrap path
   final result = checkServerCompatibility(
     serverVersion: server.serverVersion,
     minimumClientVersion: server.minimumClientVersion,
@@ -577,9 +583,18 @@ void warnOnIncompatibleServer(OurChatServer server) {
   if (result == ServerCompatibility.ok) return;
   final key =
       '${server.uniqueIdentifier ?? server.host}:${server.port}:$result';
-  if (!_versionWarnedServers.add(key)) return;
+  if (_versionWarnedServers.contains(key)) return;
   final context = rootNavigatorKey.currentContext;
-  if (context == null) return;
+  if (context == null) {
+    // The navigator may not be mounted yet on the bootstrap path (observed on
+    // web). Retry after the next frame; the key is only recorded once the
+    // dialog is actually shown, so a retry is not swallowed by the dedupe.
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => warnOnIncompatibleServer(server),
+    );
+    return;
+  }
+  _versionWarnedServers.add(key);
   final String title, body;
   if (result == ServerCompatibility.serverTooOld) {
     title = l10n.serverTooOldTitle;

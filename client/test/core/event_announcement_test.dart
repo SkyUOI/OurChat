@@ -107,10 +107,10 @@ void main() {
       expect(event.eventType, announcementResponseEvent);
       expect(event.sessionId, isNull);
       final json = jsonDecode(jsonEncode(event.data)) as Map<String, dynamic>;
-      expect(json['id'], 21);
+      expect(json['id'], '21');
       expect(json['title'], 'Maintenance');
       expect(json['content'], 'The server restarts tonight.');
-      expect(json['publisher_id'], 7);
+      expect(json['publisher_id'], '7');
       expect(json['created_at'], DateTime(2026, 1, 1, 12).toIso8601String());
     });
 
@@ -163,8 +163,8 @@ void main() {
         DateTime.fromMicrosecondsSinceEpoch(100 * 1000000),
       );
       // The data map (persisted to the DB) carries the same values.
-      expect(event.data!['id'], 33);
-      expect(event.data!['publisher_id'], 5);
+      expect(event.data!['id'], '33');
+      expect(event.data!['publisher_id'], '5');
     });
   });
 

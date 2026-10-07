@@ -62,7 +62,9 @@ dependencies:
   freezed_annotation: ^3.1.0
   json_annotation: ^4.11.0
   pointycastle: ^4.0.0
-  file_picker: ^3.0.4
+  # ^3.0.4 hardcoded FilePickerIO on web (MissingPluginException); >=6 wires
+  # the web implementation via conditional imports
+  file_picker: ^13.1.0
 
 dev_dependencies:
   flutter_test:

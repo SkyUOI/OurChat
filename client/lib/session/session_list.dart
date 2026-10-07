@@ -33,6 +33,11 @@ class _SessionListState extends ConsumerState<SessionList> {
   Timer? _debounceTimer = Timer(Duration.zero, () {}); // Search debounce timer
   bool search = false; // Searching
   String searchKeyword = "";
+  // Owning controller for the search box: on web the semantics-layer input
+  // element is recreated when the results section appears below this field,
+  // and without an authoritative controller the framework re-wrote an empty
+  // value into it, wiping the user's input mid-typing.
+  final TextEditingController _searchController = TextEditingController();
 
   late final SessionNotifier _sessionNotifier;
   OurChatEventSystem? _eventSystem;
@@ -147,6 +152,7 @@ class _SessionListState extends ConsumerState<SessionList> {
   @override
   void dispose() {
     _debounceTimer?.cancel();
+    _searchController.dispose();
     _eventSystem?.removeListener(
       FetchMsgsResponse_RespondEventType.msg,
       _onMsgReceived,
@@ -216,6 +222,7 @@ class _SessionListState extends ConsumerState<SessionList> {
                 Expanded(
                   child: TextFormField(
                     // Search box
+                    controller: _searchController,
                     decoration: InputDecoration(hintText: l10n.search),
                     onChanged: (value) {
                       setState(() {
@@ -248,322 +255,379 @@ class _SessionListState extends ConsumerState<SessionList> {
                 ), // Create session
               ],
             ),
-            if (search)
-              Align(alignment: Alignment.centerLeft, child: Text(l10n.user)),
-            if (search)
-              FutureBuilder(
-                future: searchAccount(thisAccountId, searchKeyword, context),
-                builder: (BuildContext context, AsyncSnapshot snapshot) {
-                  if (snapshot.connectionState != ConnectionState.done) {
-                    return CircularProgressIndicator(
-                      color: Theme.of(context).primaryColor,
-                    );
-                  }
-                  List<Int64> accountIds = snapshot.data;
-                  if (accountIds.isEmpty) {
-                    return Padding(
-                      padding: const EdgeInsets.only(top: 5.0),
-                      child: Text(l10n.notFound(l10n.user)),
-                    );
-                  }
-                  return SizedBox(
-                    height: accountIds.length * 50,
-                    child: ListView.builder(
-                      itemBuilder: (context, index) {
-                        Int64 accountId = accountIds[index];
-                        final accountNotifier = ref.read(
-                          ourChatAccountProvider(
-                            activeKey!.serverId,
-                            accountId,
-                          ).notifier,
-                        );
-                        return SessionListItem(
-                          avatar: UserAvatar(
-                            imageUrl: accountNotifier.avatarUrl(),
+            // The session list (normal view) and the search results are both
+            // kept mounted in an IndexedStack: swapping this Column's children
+            // with `if (search)` conditionals while the search field is
+            // focused restructures Flutter web's semantics tree mid-edit, and
+            // the engine then wipes the input (observed as onChanged('')).
+            Expanded(
+              child: IndexedStack(
+                index: search ? 1 : 0,
+                children: [
+                  sessionState.sessionsLoading
+                      ? Center(
+                          child: CircularProgressIndicator(
+                            color: Theme.of(context).primaryColor,
                           ),
-                          name: accountNotifier.getNameWithDisplayName(),
-                          onPressed: () {
-                            ref
-                                .read(sessionProvider.notifier)
-                                .openUserTab(accountId, l10n.userInfo);
-                            if (ref.read(screenModeProvider) ==
-                                ScreenMode.mobile) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => TabWidget()),
-                              );
-                            }
-                          },
-                        );
-                      },
-                      itemCount: accountIds.length,
-                    ),
-                  );
-                },
-              ),
-            if (search) const Divider(),
-            if (search)
-              Align(alignment: Alignment.centerLeft, child: Text(l10n.session)),
-            if (search)
-              FutureBuilder(
-                future: searchSession(thisAccountId, searchKeyword, context),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState != ConnectionState.done) {
-                    return CircularProgressIndicator(
-                      color: Theme.of(context).primaryColor,
-                    );
-                  }
-                  List<Int64> sessionIds = snapshot.data;
-                  if (sessionIds.isEmpty) {
-                    // Give a dedicated hint when the keyword looks like a
-                    // session id but no session matches it (issue #289).
-                    final isIdQuery = Int64.tryParseInt(searchKeyword) != null;
-                    return Padding(
-                      padding: const EdgeInsets.only(top: 5.0),
-                      child: Text(
-                        isIdQuery
-                            ? l10n.sessionIdSearchNoResult
-                            : l10n.notFound(l10n.session),
-                      ),
-                    );
-                  }
-                  return SizedBox(
-                    height: sessionIds.length * 50,
-                    child: ListView.builder(
-                      itemBuilder: (context, index) {
-                        Int64 sessionId = sessionIds[index];
-                        final sessionNotifier = ref.read(
-                          core_session
-                              .ourChatSessionProvider(
-                                activeKey!.serverId,
-                                sessionId,
-                              )
-                              .notifier,
-                        );
-                        return SessionListItem(
-                          avatar: Placeholder(),
-                          name: sessionNotifier.getDisplayName(),
-                          onPressed: () {
-                            final accountData = ref.read(
-                              ourChatAccountProvider(
-                                activeKey.serverId,
-                                thisAccountId!,
-                              ),
+                        )
+                      : ListView.builder(
+                          itemBuilder: (context, index) {
+                            Int64 currentSessionId =
+                                sessionState.sessionsList[index];
+                            final sessionServerId =
+                                sessionState
+                                    .sessionServerIds[currentSessionId] ??
+                                activeKey!.serverId;
+                            final isForeign =
+                                sessionServerId != activeKey!.serverId;
+                            final currentSessionNotifier = ref.read(
+                              core_session
+                                  .ourChatSessionProvider(
+                                    sessionServerId,
+                                    currentSessionId,
+                                  )
+                                  .notifier,
                             );
-                            if (!accountData.sessions.contains(sessionId)) {
-                              // Not a member yet: ask to join instead of
-                              // opening the conversation (issue #289).
-                              showDialog(
-                                context: context,
-                                builder: (context) =>
-                                    JoinSessionDialog(sessionId: sessionId),
-                              );
-                              return;
-                            }
-                            ref
-                                .read(sessionProvider.notifier)
-                                .openSessionTab(
-                                  sessionId,
-                                  sessionNotifier.getDisplayName(),
-                                );
-                            if (ref.read(screenModeProvider) ==
-                                ScreenMode.mobile) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => TabWidget()),
-                              );
-                            }
-                          },
-                        );
-                      },
-                      itemCount: sessionIds.length,
-                    ),
-                  );
-                },
-              ),
-            if (!search)
-              Expanded(
-                child: sessionState.sessionsLoading
-                    ? Center(
-                        child: CircularProgressIndicator(
-                          color: Theme.of(context).primaryColor,
-                        ),
-                      )
-                    : ListView.builder(
-                        itemBuilder: (context, index) {
-                          Int64 currentSessionId =
-                              sessionState.sessionsList[index];
-                          final sessionServerId =
-                              sessionState.sessionServerIds[currentSessionId] ??
-                              activeKey!.serverId;
-                          final isForeign =
-                              sessionServerId != activeKey!.serverId;
-                          final currentSessionNotifier = ref.read(
-                            core_session
-                                .ourChatSessionProvider(
+                            String recentMsgText = "";
+                            if (sessionState.sessionLatestMsg.containsKey(
+                              currentSessionId,
+                            )) {
+                              final latestMsg = sessionState
+                                  .sessionLatestMsg[currentSessionId]!;
+                              final senderData = ref.read(
+                                ourChatAccountProvider(
                                   sessionServerId,
-                                  currentSessionId,
-                                )
-                                .notifier,
-                          );
-                          String recentMsgText = "";
-                          if (sessionState.sessionLatestMsg.containsKey(
-                            currentSessionId,
-                          )) {
-                            final latestMsg = sessionState
-                                .sessionLatestMsg[currentSessionId]!;
-                            final senderData = ref.read(
-                              ourChatAccountProvider(
-                                sessionServerId,
-                                latestMsg.senderId!,
-                              ),
-                            );
-                            recentMsgText =
-                                "${senderData.username}: ${MarkdownToText.convert(latestMsg.markdownText, l10n)}";
-                            if (recentMsgText.length > 25) {
-                              recentMsgText = recentMsgText.substring(
-                                0,
-                                min(25, recentMsgText.length),
-                              );
-                              recentMsgText += "...";
-                            }
-                          }
-                          return SizedBox(
-                            height: 80.0,
-                            child: Padding(
-                              padding: const EdgeInsets.only(top: 10.0),
-                              child: ElevatedButton(
-                                style: ButtonStyle(
-                                  shape: WidgetStateProperty.all(
-                                    RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10.0),
-                                    ),
-                                  ),
+                                  latestMsg.senderId!,
                                 ),
-                                onPressed: () async {
-                                  if (isForeign) {
-                                    // Unified inbox: switch to the server that
-                                    // owns this conversation before opening it.
-                                    final inst = instanceForServer(
-                                      ref.container,
-                                      sessionServerId,
-                                    );
-                                    if (inst != null) {
-                                      switchActive(ref, inst.key);
-                                    }
-                                  }
-                                  final sid = ref.read(activeServerIdProvider)!;
-                                  final aid = ref.read(
-                                    activeAccountIdProvider,
-                                  )!;
-                                  if (ref.read(screenModeProvider) ==
-                                      ScreenMode.mobile) {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => TabWidget(),
-                                      ),
-                                    );
-                                  }
-                                  var records = await ref
-                                      .read(
-                                        ourChatEventSystemProvider(
-                                          sid,
-                                          aid,
-                                        ).notifier,
-                                      )
-                                      .getSessionEvent(
-                                        currentSessionId,
-                                        fetchFromServer: true,
-                                      );
-                                  ref
-                                      .read(sessionProvider.notifier)
-                                      .openSessionTab(
-                                        currentSessionId,
-                                        currentSessionNotifier.getDisplayName(),
-                                        records: records,
-                                      );
-                                },
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  children: [
-                                    SizedBox(
-                                      height: 40,
-                                      width: 40,
-                                      child: Image(
-                                        image: AssetImage(
-                                          "assets/images/logo.png",
+                              );
+                              recentMsgText =
+                                  "${senderData.username}: ${MarkdownToText.convert(latestMsg.markdownText, l10n)}";
+                              if (recentMsgText.length > 25) {
+                                recentMsgText = recentMsgText.substring(
+                                  0,
+                                  min(25, recentMsgText.length),
+                                );
+                                recentMsgText += "...";
+                              }
+                            }
+                            return SizedBox(
+                              height: 80.0,
+                              child: Padding(
+                                padding: const EdgeInsets.only(top: 10.0),
+                                child: ElevatedButton(
+                                  style: ButtonStyle(
+                                    shape: WidgetStateProperty.all(
+                                      RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          10.0,
                                         ),
                                       ),
                                     ),
-                                    Expanded(
-                                      child: Padding(
-                                        padding: EdgeInsets.only(left: 8.0),
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Align(
-                                              alignment: Alignment.centerLeft,
-                                              widthFactor: 1.0,
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Flexible(
-                                                    child: Text(
-                                                      currentSessionNotifier
-                                                          .getDisplayName(),
-                                                      style: TextStyle(
-                                                        fontSize: 20,
-                                                        color: Theme.of(context)
-                                                            .textTheme
-                                                            .labelMedium!
-                                                            .color,
-                                                      ),
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                    ),
-                                                  ),
-                                                  if (isForeign)
-                                                    Padding(
-                                                      padding:
-                                                          const EdgeInsets.only(
-                                                            left: 6,
-                                                          ),
-                                                      child: _serverLabelChip(
-                                                        sessionServerId,
-                                                      ),
-                                                    ),
-                                                ],
-                                              ),
-                                            ),
-                                            if (sessionState.sessionLatestMsg
-                                                .containsKey(currentSessionId))
+                                  ),
+                                  onPressed: () async {
+                                    if (isForeign) {
+                                      // Unified inbox: switch to the server that
+                                      // owns this conversation before opening it.
+                                      final inst = instanceForServer(
+                                        ref.container,
+                                        sessionServerId,
+                                      );
+                                      if (inst != null) {
+                                        switchActive(ref, inst.key);
+                                      }
+                                    }
+                                    final sid = ref.read(
+                                      activeServerIdProvider,
+                                    )!;
+                                    final aid = ref.read(
+                                      activeAccountIdProvider,
+                                    )!;
+                                    if (ref.read(screenModeProvider) ==
+                                        ScreenMode.mobile) {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => TabWidget(),
+                                        ),
+                                      );
+                                    }
+                                    var records = await ref
+                                        .read(
+                                          ourChatEventSystemProvider(
+                                            sid,
+                                            aid,
+                                          ).notifier,
+                                        )
+                                        .getSessionEvent(
+                                          currentSessionId,
+                                          fetchFromServer: true,
+                                        );
+                                    ref
+                                        .read(sessionProvider.notifier)
+                                        .openSessionTab(
+                                          currentSessionId,
+                                          currentSessionNotifier
+                                              .getDisplayName(),
+                                          records: records,
+                                        );
+                                  },
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.start,
+                                    children: [
+                                      SizedBox(
+                                        height: 40,
+                                        width: 40,
+                                        child: Image(
+                                          image: AssetImage(
+                                            "assets/images/logo.png",
+                                          ),
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: Padding(
+                                          padding: EdgeInsets.only(left: 8.0),
+                                          child: Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
                                               Align(
                                                 alignment: Alignment.centerLeft,
                                                 widthFactor: 1.0,
-                                                child: Text(
-                                                  recentMsgText,
-                                                  style: TextStyle(
-                                                    color: Colors.grey,
-                                                  ),
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
+                                                child: Row(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    Flexible(
+                                                      child: Text(
+                                                        currentSessionNotifier
+                                                            .getDisplayName(),
+                                                        style: TextStyle(
+                                                          fontSize: 20,
+                                                          color:
+                                                              Theme.of(context)
+                                                                  .textTheme
+                                                                  .labelMedium!
+                                                                  .color,
+                                                        ),
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
+                                                      ),
+                                                    ),
+                                                    if (isForeign)
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets.only(
+                                                              left: 6,
+                                                            ),
+                                                        child: _serverLabelChip(
+                                                          sessionServerId,
+                                                        ),
+                                                      ),
+                                                  ],
                                                 ),
                                               ),
-                                          ],
+                                              if (sessionState.sessionLatestMsg
+                                                  .containsKey(
+                                                    currentSessionId,
+                                                  ))
+                                                Align(
+                                                  alignment:
+                                                      Alignment.centerLeft,
+                                                  widthFactor: 1.0,
+                                                  child: Text(
+                                                    recentMsgText,
+                                                    style: TextStyle(
+                                                      color: Colors.grey,
+                                                    ),
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
-                          );
-                        },
-                        itemCount: sessionState.sessionsList.length,
-                      ),
+                            );
+                          },
+                          itemCount: sessionState.sessionsList.length,
+                        ),
+                  // Search results panel (hidden while the index points at the
+                  // session list).
+                  SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(l10n.user),
+                        ),
+                        FutureBuilder(
+                          future: search
+                              ? searchAccount(
+                                  thisAccountId,
+                                  searchKeyword,
+                                  context,
+                                )
+                              : null,
+                          builder:
+                              (BuildContext context, AsyncSnapshot snapshot) {
+                                if (snapshot.connectionState !=
+                                    ConnectionState.done) {
+                                  return const SizedBox.shrink();
+                                }
+                                List<Int64> accountIds = snapshot.data ?? [];
+                                if (accountIds.isEmpty) {
+                                  return Padding(
+                                    padding: const EdgeInsets.only(top: 5.0),
+                                    child: Text(l10n.notFound(l10n.user)),
+                                  );
+                                }
+                                return SizedBox(
+                                  height: accountIds.length * 50,
+                                  child: ListView.builder(
+                                    itemBuilder: (context, index) {
+                                      Int64 accountId = accountIds[index];
+                                      final accountNotifier = ref.read(
+                                        ourChatAccountProvider(
+                                          activeKey!.serverId,
+                                          accountId,
+                                        ).notifier,
+                                      );
+                                      return SessionListItem(
+                                        avatar: UserAvatar(
+                                          imageUrl: accountNotifier.avatarUrl(),
+                                        ),
+                                        name: accountNotifier
+                                            .getNameWithDisplayName(),
+                                        onPressed: () {
+                                          ref
+                                              .read(sessionProvider.notifier)
+                                              .openUserTab(
+                                                accountId,
+                                                l10n.userInfo,
+                                              );
+                                          if (ref.read(screenModeProvider) ==
+                                              ScreenMode.mobile) {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) => TabWidget(),
+                                              ),
+                                            );
+                                          }
+                                        },
+                                      );
+                                    },
+                                    itemCount: accountIds.length,
+                                  ),
+                                );
+                              },
+                        ),
+                        const Divider(),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(l10n.session),
+                        ),
+                        FutureBuilder(
+                          future: search
+                              ? searchSession(
+                                  thisAccountId,
+                                  searchKeyword,
+                                  context,
+                                )
+                              : null,
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState !=
+                                ConnectionState.done) {
+                              return const SizedBox.shrink();
+                            }
+                            List<Int64> sessionIds = snapshot.data ?? [];
+                            if (sessionIds.isEmpty) {
+                              // Give a dedicated hint when the keyword looks
+                              // like a session id but no session matches it
+                              // (issue #289).
+                              final isIdQuery =
+                                  Int64.tryParseInt(searchKeyword) != null;
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 5.0),
+                                child: Text(
+                                  isIdQuery
+                                      ? l10n.sessionIdSearchNoResult
+                                      : l10n.notFound(l10n.session),
+                                ),
+                              );
+                            }
+                            return SizedBox(
+                              height: sessionIds.length * 50,
+                              child: ListView.builder(
+                                itemBuilder: (context, index) {
+                                  Int64 sessionId = sessionIds[index];
+                                  final sessionNotifier = ref.read(
+                                    core_session
+                                        .ourChatSessionProvider(
+                                          activeKey!.serverId,
+                                          sessionId,
+                                        )
+                                        .notifier,
+                                  );
+                                  return SessionListItem(
+                                    avatar: Placeholder(),
+                                    name: sessionNotifier.getDisplayName(),
+                                    onPressed: () {
+                                      final accountData = ref.read(
+                                        ourChatAccountProvider(
+                                          activeKey.serverId,
+                                          thisAccountId!,
+                                        ),
+                                      );
+                                      if (!accountData.sessions.contains(
+                                        sessionId,
+                                      )) {
+                                        // Not a member yet: ask to join
+                                        // instead of opening the conversation
+                                        // (issue #289).
+                                        showDialog(
+                                          context: context,
+                                          builder: (context) =>
+                                              JoinSessionDialog(
+                                                sessionId: sessionId,
+                                              ),
+                                        );
+                                        return;
+                                      }
+                                      ref
+                                          .read(sessionProvider.notifier)
+                                          .openSessionTab(
+                                            sessionId,
+                                            sessionNotifier.getDisplayName(),
+                                          );
+                                      if (ref.read(screenModeProvider) ==
+                                          ScreenMode.mobile) {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => TabWidget(),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                  );
+                                },
+                                itemCount: sessionIds.length,
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
+            ),
           ],
         );
       },
