@@ -105,14 +105,8 @@ jobs:
       - name: Web integration tests (Chrome)
         uses: coactions/setup-xvfb@v1
         with:
-          run: |
-            cd client
-            for target in web_int64_precision_test web_keygen_test web_grpcweb_error_test; do
-              echo "==> driving $target"
-              flutter drive \
-                --profile \
-                --driver=test_driver/integration_test.dart \
-                --target=integration_test/$target.dart \
-                -d chrome
-            done
+          # setup-xvfb treats each line of `run` as a separate command, so
+          # the whole loop goes into a single `bash -c` invocation.
+          run: >-
+            bash -c 'cd client && for target in web_int64_precision_test web_keygen_test web_grpcweb_error_test; do echo "==> driving $target"; flutter drive --profile --driver=test_driver/integration_test.dart --target=integration_test/$target.dart -d chrome || exit 1; done'
 
