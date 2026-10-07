@@ -39,6 +39,44 @@ async fn test_recall() {
         session_user[1].clone(),
         session_user[2].clone(),
     );
+    // Listener on c that collects every arriving event into a shared sink,
+    // so the test can watch the collection while the stream stays open.
+    let c_msgs: Arc<Mutex<Vec<FetchMsgsResponse>>> = Arc::new(Mutex::new(vec![]));
+    let sink = c_msgs.clone();
+    let notify = Arc::new(Notify::new());
+    let notify_clone = notify.clone();
+    let c_clone = c.clone();
+    let (tx, rx) = oneshot::channel();
+    let task = tokio::spawn(async move {
+        tx.send(()).unwrap();
+        let _ = c_clone
+            .lock()
+            .await
+            .fetch_msgs()
+            .fetch_stream_with_sink(sink, notify_clone)
+            .await;
+    });
+    rx.await.unwrap();
+    // Readiness: a probe message recalled instantly can only appear in the
+    // sink through LIVE delivery (its recall deletes it from history), so
+    // observing one proves c's consumer is bound — no fixed sleeps, works
+    // on any runner speed.
+    let mut live = false;
+    for _ in 0..20 {
+        if a.lock()
+            .await
+            .probe_live_delivery(session.session_id, &c_msgs)
+            .await
+            .unwrap()
+        {
+            live = true;
+            break;
+        }
+    }
+    assert!(live, "listener never received a live probe");
+
+    // Everything after this point is deterministic.
+    let marker: TimeStampUtc = chrono::Utc::now();
     // Send Msg
     let ret = a
         .lock()
@@ -47,27 +85,6 @@ async fn test_recall() {
         .await
         .unwrap();
     let msg_id = ret.into_inner().msg_id;
-    // start a listening process
-    let res = Arc::new(Mutex::new(None));
-    let res_clone = res.clone();
-    let c_clone = c.clone();
-    let notify = Arc::new(Notify::new());
-    let notify_clone = notify.clone();
-    let (tx, rx) = oneshot::channel();
-
-    let task = tokio::spawn(async move {
-        tx.send(()).unwrap();
-        let ret = c_clone
-            .lock()
-            .await
-            .fetch_msgs()
-            .fetch_with_notify(notify_clone)
-            .await
-            .unwrap();
-        *res_clone.lock() = Some(ret);
-    });
-    rx.await.unwrap();
-    tokio::time::sleep(Duration::from_millis(200)).await;
     // Recall Back
     let recall_msg = a
         .lock()
@@ -81,8 +98,17 @@ async fn test_recall() {
         .unwrap()
         .into_inner();
     let recall_msg_id = recall_msg.msg_id;
-    // receive the recall signal
-    let b_rec = b.lock().await.fetch_msgs().fetch(1).await.unwrap();
+    // receive the recall signal: b's fresh fetch is pinned to a window after
+    // the probes, and the recall deleted "hello" from history, so exactly
+    // [recall] replays.
+    let b_rec = b
+        .lock()
+        .await
+        .fetch_msgs()
+        .set_timestamp(marker)
+        .fetch(1)
+        .await
+        .unwrap();
     let check = async |rec: Vec<FetchMsgsResponse>, msg_len, msg_recall_idx: usize| {
         assert_eq!(rec.len(), msg_len, "{rec:?}");
         tokio::time::sleep(Duration::from_millis(200)).await;
@@ -97,10 +123,20 @@ async fn test_recall() {
         assert_eq!(data.msg_id, msg_id);
     };
     check(b_rec, 1, 0).await;
+    // c received both through the live path, message before recall.
     notify.notify_waiters();
     join!(task).0.unwrap();
-    let tmp = { res.lock().clone().unwrap() };
-    check(tmp, 2, 1).await;
+    let tmp = c_msgs.lock().clone();
+    let hello_idx = tmp
+        .iter()
+        .position(|m| m.msg_id == msg_id)
+        .expect("listener missed the message");
+    let recall_idx = tmp
+        .iter()
+        .position(|m| m.msg_id == recall_msg_id)
+        .expect("listener missed the recall");
+    assert!(recall_idx > hello_idx, "{tmp:?}");
+    check(vec![tmp[recall_idx].clone()], 1, 0).await;
     app.async_drop().await;
 }
 

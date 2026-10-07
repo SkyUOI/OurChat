@@ -10,7 +10,6 @@ use rsa::RsaPublicKey;
 use rsa::pkcs1::DecodeRsaPublicKey as _;
 use server::db::session::in_session;
 use std::sync::Arc;
-use std::time::Duration;
 use tokio::join;
 use tokio::sync::{Notify, oneshot};
 
@@ -27,32 +26,45 @@ async fn join_approval_is_pushed_live_to_permission_holders() {
         .await
         .unwrap();
     let a = session_user[0].clone(); // Owner: holds AcceptJoinRequest
+    let b = session_user[1].clone(); // plain member
     let c = app.new_user().await.unwrap();
     let cid = c.lock().await.id;
 
-    // Subscribe the owner BEFORE the join request: without a correct live
-    // delivery this fetch would hang until its timeout.
-    let res: Arc<Mutex<Option<Vec<FetchMsgsResponse>>>> = Arc::new(Mutex::new(None));
-    let res_clone = res.clone();
-    let a_clone = a.clone();
+    // Subscribe the owner BEFORE the join request, collecting into a shared
+    // sink so readiness can be observed while the stream stays open.
+    let a_msgs: Arc<Mutex<Vec<FetchMsgsResponse>>> = Arc::new(Mutex::new(vec![]));
+    let sink = a_msgs.clone();
     let notify = Arc::new(Notify::new());
     let notify_clone = notify.clone();
+    let a_clone = a.clone();
     let (tx, rx) = oneshot::channel();
     let task = tokio::spawn(async move {
         tx.send(()).unwrap();
-        let ret = a_clone
+        let _ = a_clone
             .lock()
             .await
             .fetch_msgs()
-            .set_timeout(Duration::from_secs(10))
-            .fetch_with_notify(notify_clone)
-            .await
-            .unwrap();
-        *res_clone.lock() = Some(ret);
+            .fetch_stream_with_sink(sink, notify_clone)
+            .await;
     });
     rx.await.unwrap();
-    // Give the live consumer time to bind its queue before the join request.
-    tokio::time::sleep(Duration::from_millis(300)).await;
+    // Readiness: a probe that is recalled instantly can only arrive through
+    // live delivery, so observing one proves the owner's consumer is bound.
+    // The probes come from member b — the spawned listener holds a's lock
+    // for the whole stream lifetime, so locking a here would deadlock.
+    let mut live = false;
+    for _ in 0..20 {
+        if b.lock()
+            .await
+            .probe_live_delivery(session.session_id, &a_msgs)
+            .await
+            .unwrap()
+        {
+            live = true;
+            break;
+        }
+    }
+    assert!(live, "owner listener never received a live probe");
 
     c.lock()
         .await
@@ -66,14 +78,16 @@ async fn join_approval_is_pushed_live_to_permission_holders() {
 
     notify.notify_waiters();
     join!(task).0.unwrap();
-    let rec = res.lock().clone().unwrap();
-    assert_eq!(rec.len(), 1, "{rec:?}");
-    let RespondEventType::JoinSessionApproval(join_in) = rec[0].clone().respond_event_type.unwrap()
-    else {
-        panic!("expected a live join approval event");
-    };
-    assert_eq!(join_in.user_id, *cid);
-    assert_eq!(join_in.session_id, *session.session_id);
+    let rec = a_msgs.lock().clone();
+    let approval = rec
+        .iter()
+        .find_map(|m| match m.clone().respond_event_type {
+            Some(RespondEventType::JoinSessionApproval(x)) => Some(x),
+            _ => None,
+        })
+        .expect("the join approval never arrived through the live stream");
+    assert_eq!(approval.user_id, *cid);
+    assert_eq!(approval.session_id, *session.session_id);
     app.async_drop().await
 }
 

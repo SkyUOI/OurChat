@@ -15,6 +15,7 @@ use pb::service::ourchat::delete::v1::DeleteFileRequest;
 use pb::service::ourchat::download::v1::{DownloadRequest, DownloadResponse, download_response};
 use pb::service::ourchat::get_account_info;
 use pb::service::ourchat::get_account_info::v1::{GetAccountInfoRequest, GetAccountInfoResponse};
+use pb::service::ourchat::msg_delivery::recall::v1::RecallMsgRequest;
 use pb::service::ourchat::msg_delivery::v1::{
     FetchMsgsRequest, FetchMsgsResponse, SendMsgRequest, SendMsgResponse,
 };
@@ -417,6 +418,31 @@ impl TestUser {
             .await
     }
 
+    /// Probe whether a listener collecting into `sink` is receiving LIVE
+    /// events: send a throwaway message and recall it immediately. The
+    /// recall deletes the probe from history, so the probe can only appear
+    /// in `sink` through live delivery — seeing it proves the consumer is
+    /// bound. Returns false when the probe did not arrive in time; callers
+    /// retry until a bound is proven (no fixed sleeps, CI-speed independent).
+    pub async fn probe_live_delivery(
+        &mut self,
+        session_id: SessionID,
+        sink: &Arc<parking_lot::Mutex<Vec<FetchMsgsResponse>>>,
+    ) -> anyhow::Result<bool> {
+        let ret = self
+            .send_msg(session_id, "live-probe", vec![], false)
+            .await?;
+        let probe_id = ret.into_inner().msg_id;
+        self.oc()
+            .recall_msg(RecallMsgRequest {
+                msg_id: probe_id,
+                session_id: session_id.into(),
+            })
+            .await?;
+        tokio::time::sleep(Duration::from_millis(150)).await;
+        Ok(sink.lock().iter().any(|m| m.msg_id == probe_id))
+    }
+
     /// Send a message that quotes another message in the same session.
     pub async fn send_msg_with_quote(
         &mut self,
@@ -681,6 +707,40 @@ impl<'a> FetchMsgBuilder<'a> {
             _ = notify.notified() => {}
         }
         Ok(msgs)
+    }
+
+    /// Like [fetch_with_notify], but every arriving event is pushed into the
+    /// shared [sink] as it arrives, so another task can watch the collection
+    /// grow while the stream stays open. Tests use this to detect that the
+    /// live consumer is bound (see the "probe message + instant recall"
+    /// readiness pattern in msg_recall.rs — a probe missed live is deleted
+    /// from history by its recall and never shows up, so seeing it proves
+    /// the live path works).
+    pub async fn fetch_stream_with_sink(
+        &mut self,
+        sink: Arc<parking_lot::Mutex<Vec<FetchMsgsResponse>>>,
+        notify: Arc<Notify>,
+    ) -> Result<(), Status> {
+        let msg_get = FetchMsgsRequest {
+            time: Some(self.timestamp.into()),
+            announcement_only: false,
+            history_limit: 0, // unlimited for test helper
+        };
+        let ret = self.user.oc().fetch_msgs(msg_get).await?;
+        let mut ret_stream = ret.into_inner();
+        let logic = async {
+            while let Some(i) = ret_stream.next().await {
+                let i = i?;
+                self.user.timestamp_receive_msg = i.time.unwrap().try_into().unwrap();
+                sink.lock().push(i);
+            }
+            Result::<_, Status>::Ok(())
+        };
+        select! {
+            _ = logic => {},
+            _ = notify.notified() => {}
+        }
+        Ok(())
     }
 
     pub fn set_timestamp(mut self, timestamp: TimeStampUtc) -> Self {
