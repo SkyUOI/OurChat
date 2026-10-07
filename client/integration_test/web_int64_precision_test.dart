@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fixnum/fixnum.dart';
@@ -10,12 +9,7 @@ import 'package:ourchat/core/event.dart';
 import 'package:ourchat/core/chore.dart';
 import 'package:ourchat/core/instance.dart';
 import 'package:ourchat/core/server.dart';
-import 'package:ourchat/main.dart'
-    show
-        instancesProvider,
-        activeAccountProvider,
-        ourChatServerProvider,
-        publicDB;
+import 'package:ourchat/main.dart' show ourChatServerProvider, publicDB;
 
 import 'helpers/memory_executor.dart';
 
