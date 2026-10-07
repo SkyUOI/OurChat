@@ -40,9 +40,6 @@ jobs:
       - name: Build Alpine Image
         uses: docker/build-push-action@v5
         with:
-          build-args: |
-            SCCACHE_OSS_BUCKET=${{ secrets.SCCACHE_BUCKET }}
-            SCCACHE_OSS_ENDPOINT=${{ secrets.SCCACHE_OSS_ENDPOINT }}
           context: .
           file: docker/Dockerfile.test-alpine
           tags: test-ourchat-alpine:latest
@@ -60,13 +57,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Build Debian image
+        # Build Debian image
       - name: Build Debian Image
         uses: docker/build-push-action@v5
         with:
-          build-args: |
-            SCCACHE_OSS_BUCKET=${{ secrets.SCCACHE_BUCKET }}
-            SCCACHE_OSS_ENDPOINT=${{ secrets.SCCACHE_OSS_ENDPOINT }}
           context: .
           file: docker/Dockerfile.test-debian
           tags: test-ourchat-debian:latest

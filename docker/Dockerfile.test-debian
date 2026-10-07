@@ -4,11 +4,10 @@ WORKDIR /app
 # Test image: just stage the source tree. The test runner exec's into the
 # container and invokes `cargo test` directly, so there's no build step here.
 FROM chef
-ARG SCCACHE_OSS_BUCKET=""
-ARG SCCACHE_OSS_ENDPOINT=""
-ENV SCCACHE_OSS_BUCKET=${SCCACHE_OSS_BUCKET}
-ENV SCCACHE_OSS_ENDPOINT=${SCCACHE_OSS_ENDPOINT}
-ENV SCCACHE_OSS_NO_CREDENTIALS=1
-ENV RUSTC_WRAPPER=/usr/bin/sccache
+# sccache stays opt-in: an empty RUSTC_WRAPPER makes cargo run rustc
+# directly. (The runner can enable a wrapper with
+# `docker compose exec -e RUSTC_WRAPPER=...` — the anonymous-OSS caching
+# this image used to bake in currently fails with 403 AccessDenied.)
+ENV RUSTC_WRAPPER=
 
 COPY . .
