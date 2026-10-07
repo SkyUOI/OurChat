@@ -92,6 +92,15 @@ jobs:
           channel: stable
       - name: Flutter Init
         run: cd client && flutter pub get
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          version: "32.x"
+      - name: Grpc generate
+        run: dart pub global activate protoc_plugin 25.0.0 && python script/generate.pb.dart.py
+      - name: Drift generate
+        run: cd client && dart run build_runner build
       - name: Start chromedriver
         run: |
           # ubuntu-latest ships Chrome and a matching chromedriver.
