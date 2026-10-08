@@ -85,6 +85,94 @@ async fn fetch_user_msg_impl(
 
         let tx_clone = tx.clone();
         let batch = async move {
+            // ── Phase 1: bind the live queue BEFORE replaying history. ──
+            //
+            // Every publisher inserts into `message_records` FIRST and
+            // publishes to RabbitMQ second (see `message_insert_and_transmit`
+            // and friends). Therefore, for any message M:
+            //
+            //   M published before the bind => M's DB insert also happened
+            //     before the bind, and Phase 2 (which runs after the bind)
+            //     replays it from the database;
+            //   M published after the bind  => the queue is already bound,
+            //     the broker retains M, and Phase 3 consumes it.
+            //
+            // No interleaving can lose M. The price is a possible duplicate
+            // when M is both replayed and queued (at-least-once); clients
+            // dedup by msg id.
+            //
+            // The original order (replay first, bind second) silently lost
+            // every M published between the replay snapshot and the bind:
+            // too late for the snapshot, no bound queue for the broker.
+            let channel = connection
+                .create_channel()
+                .await
+                .context("cannot create channel")?;
+            // Per-stream queue (see `generate_stream_queue_name`): concurrent
+            // streams for the same user each get their own queue, so the
+            // declaration can never clash with a queue still held by another
+            // pooled connection (the old user-named exclusive queue 405'd).
+            // exclusive keeps the queue transient (RabbitMQ 4.x forbids
+            // transient non-exclusive queues) and deletes it when the
+            // declaring connection closes; auto_delete removes it as soon as
+            // this stream's consumer goes away — whichever comes first.
+            let queue_name = crate::rabbitmq::generate_stream_queue_name(id);
+            tracing::info!("queue name: {}", queue_name);
+            channel
+                .queue_declare(
+                    deadpool_lapin::lapin::types::ShortString::from(queue_name.clone()),
+                    QueueDeclareOptions {
+                        exclusive: true,
+                        auto_delete: true,
+                        durable: false,
+                        ..Default::default()
+                    },
+                    FieldTable::default(),
+                )
+                .await
+                .context("failed to create queue")?;
+            create_user_message_direct_exchange(&channel).await?;
+            channel
+                .queue_bind(
+                    deadpool_lapin::lapin::types::ShortString::from(queue_name.clone()),
+                    deadpool_lapin::lapin::types::ShortString::from(
+                        crate::rabbitmq::USER_MSG_DIRECT_EXCHANGE,
+                    ),
+                    deadpool_lapin::lapin::types::ShortString::from(
+                        crate::rabbitmq::generate_route_key(id),
+                    ),
+                    QueueBindOptions::default(),
+                    FieldTable::default(),
+                )
+                .await
+                .context("failed to bind queue")?;
+            create_user_message_broadcast_exchange(&channel).await?;
+            channel
+                .queue_bind(
+                    deadpool_lapin::lapin::types::ShortString::from(queue_name.clone()),
+                    deadpool_lapin::lapin::types::ShortString::from(
+                        crate::rabbitmq::USER_MSG_BROADCAST_EXCHANGE,
+                    ),
+                    deadpool_lapin::lapin::types::ShortString::from(""),
+                    QueueBindOptions::default(),
+                    FieldTable::default(),
+                )
+                .await
+                .context("failed to bind queue")?;
+            tracing::trace!("starting to consume");
+            // Registering the consumer already buffers deliveries inside
+            // lapin; they are drained after the history replay below.
+            let mut consumer = channel
+                .basic_consume(
+                    deadpool_lapin::lapin::types::ShortString::from(queue_name),
+                    deadpool_lapin::lapin::types::ShortString::from(""),
+                    deadpool_lapin::lapin::options::BasicConsumeOptions::default(),
+                    FieldTable::default(),
+                )
+                .await
+                .context("failed to consume")?;
+
+            // ── Phase 2: replay history from the database. ──
             match db::messages::get_session_msgs(
                 id,
                 time.into(),
@@ -136,65 +224,8 @@ async fn fetch_user_msg_impl(
                 }
             }?;
             drop(db_conn);
-            // keep listening the rabbitmq
-            // add to rabbitmq
-            let channel = connection
-                .create_channel()
-                .await
-                .context("cannot create channel")?;
-            let queue_name = crate::rabbitmq::generate_client_name(id);
-            tracing::info!("queue name: {}", queue_name);
-            channel
-                .queue_declare(
-                    deadpool_lapin::lapin::types::ShortString::from(queue_name.clone()),
-                    QueueDeclareOptions {
-                        exclusive: true,
-                        auto_delete: true,
-                        durable: false,
-                        ..Default::default()
-                    },
-                    FieldTable::default(),
-                )
-                .await
-                .context("failed to create queue")?;
-            create_user_message_direct_exchange(&channel).await?;
-            channel
-                .queue_bind(
-                    deadpool_lapin::lapin::types::ShortString::from(queue_name.clone()),
-                    deadpool_lapin::lapin::types::ShortString::from(
-                        crate::rabbitmq::USER_MSG_DIRECT_EXCHANGE,
-                    ),
-                    deadpool_lapin::lapin::types::ShortString::from(
-                        crate::rabbitmq::generate_route_key(id),
-                    ),
-                    QueueBindOptions::default(),
-                    FieldTable::default(),
-                )
-                .await
-                .context("failed to bind queue")?;
-            create_user_message_broadcast_exchange(&channel).await?;
-            channel
-                .queue_bind(
-                    deadpool_lapin::lapin::types::ShortString::from(queue_name.clone()),
-                    deadpool_lapin::lapin::types::ShortString::from(
-                        crate::rabbitmq::USER_MSG_BROADCAST_EXCHANGE,
-                    ),
-                    deadpool_lapin::lapin::types::ShortString::from(""),
-                    QueueBindOptions::default(),
-                    FieldTable::default(),
-                )
-                .await
-                .context("failed to bind queue")?;
-            tracing::trace!("starting to consume");
-            let mut consumer = channel
-                .basic_consume(
-                    deadpool_lapin::lapin::types::ShortString::from(queue_name),
-                    deadpool_lapin::lapin::types::ShortString::from(""),
-                    deadpool_lapin::lapin::options::BasicConsumeOptions::default(),
-                    FieldTable::default(),
-                )
-                .await
-                .context("failed to consume")?;
+
+            // ── Phase 3: drain the live consumer. ──
             tracing::trace!("starting consumer");
             let fetch = async {
                 while let Some(delivery) = consumer.next().await {

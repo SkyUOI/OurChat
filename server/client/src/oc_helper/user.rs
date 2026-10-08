@@ -682,40 +682,13 @@ impl<'a> FetchMsgBuilder<'a> {
         }
     }
 
-    pub async fn fetch_with_notify(
-        &mut self,
-        notify: Arc<Notify>,
-    ) -> Result<Vec<FetchMsgsResponse>, Status> {
-        let msg_get = FetchMsgsRequest {
-            time: Some(self.timestamp.into()),
-            announcement_only: false,
-            history_limit: 0, // unlimited for test helper
-        };
-        let ret = self.user.oc().fetch_msgs(msg_get).await?;
-        let mut ret_stream = ret.into_inner();
-        let mut msgs = vec![];
-        let logic = async {
-            while let Some(i) = ret_stream.next().await {
-                let i = i?;
-                self.user.timestamp_receive_msg = i.time.unwrap().try_into().unwrap();
-                msgs.push(i);
-            }
-            Result::<_, Status>::Ok(())
-        };
-        select! {
-            _ = logic => {},
-            _ = notify.notified() => {}
-        }
-        Ok(msgs)
-    }
-
-    /// Like [fetch_with_notify], but every arriving event is pushed into the
+    /// Open a live fetch_msgs stream; every arriving event is pushed into the
     /// shared [sink] as it arrives, so another task can watch the collection
-    /// grow while the stream stays open. Tests use this to detect that the
-    /// live consumer is bound (see the "probe message + instant recall"
-    /// readiness pattern in msg_recall.rs — a probe missed live is deleted
-    /// from history by its recall and never shows up, so seeing it proves
-    /// the live path works).
+    /// grow while the stream stays open; [Notify] closes the stream. Tests
+    /// use this together with `probe_live_delivery` (readiness) and
+    /// [`wait_for_response_in_sink`] (wait for a specific event BEFORE
+    /// notifying) — a probe missed live is deleted from history by its recall
+    /// and never shows up, so seeing it proves the live path works.
     pub async fn fetch_stream_with_sink(
         &mut self,
         sink: Arc<parking_lot::Mutex<Vec<FetchMsgsResponse>>>,

@@ -16,6 +16,7 @@ use base::constants::{ID, SessionID};
 use base::types::RoleId;
 use claims::{assert_lt, assert_ok};
 use client::TestApp;
+use client::oc_helper::user::wait_for_response_in_sink;
 use migration::predefined::PredefinedRoles;
 use parking_lot::Mutex;
 use pb::service::ourchat::msg_delivery::v1::FetchMsgsResponse;
@@ -45,8 +46,10 @@ async fn session_create() {
         user3.lock().await.id,
     );
 
-    let user2_rec = Arc::new(Mutex::new(None));
-    let user2_rec_clone = user2_rec.clone();
+    // user2 listens through the LIVE stream, collecting into a shared sink so
+    // the invite's arrival can be observed while the stream stays open.
+    let user2_msgs: Arc<Mutex<Vec<FetchMsgsResponse>>> = Arc::new(Mutex::new(vec![]));
+    let sink = user2_msgs.clone();
     let user2_clone = user2.clone();
     let notify = Arc::new(Notify::new());
     let notify_clone = notify.clone();
@@ -54,14 +57,12 @@ async fn session_create() {
     let (tx, rx) = oneshot::channel();
     let task = tokio::spawn(async move {
         tx.send(()).unwrap();
-        let ret = user2_clone
+        let _ = user2_clone
             .lock()
             .await
             .fetch_msgs()
-            .fetch_with_notify(notify_clone)
-            .await
-            .unwrap();
-        *user2_rec_clone.lock() = Some(ret);
+            .fetch_stream_with_sink(sink, notify_clone)
+            .await;
     });
     // try to create a session in two users
     let req = NewSessionRequest {
@@ -93,14 +94,25 @@ async fn session_create() {
     // the invite is in the window).
     assert_eq!(user3_rec.len(), 1, "{user3_rec:?}");
     check_invite(&user3_rec);
+    // user2: the invite must LAND in the live sink before the stream is
+    // closed — new_session returning (and user3's replay read) only proves
+    // the invite was published, not that user2's live delivery finished.
+    wait_for_response_in_sink(
+        &user2_msgs,
+        |m| match &m.respond_event_type {
+            Some(RespondEventType::InviteUserToSession(_)) => Some(()),
+            _ => None,
+        },
+        Duration::from_secs(20),
+    )
+    .await
+    .expect("the invite never arrived through the live stream");
     notify.notify_waiters();
     tokio::join!(task).0.unwrap();
-    let rec = user2_rec.lock().clone();
-    // user2 verifies the invite arrived through the live stream. Delivery
-    // is at-least-once — on slow runners the history replay and the live
-    // consumer can overlap and deliver the invite twice — so look for the
-    // invite instead of asserting an exact event count.
-    check_invite(&rec.unwrap());
+    // Delivery is at-least-once — the history replay and the live consumer
+    // can deliver the invite twice — so look for the invite instead of
+    // asserting an exact event count.
+    check_invite(&user2_msgs.lock().clone());
     // user2 reject, user3 accept
     user2
         .lock()

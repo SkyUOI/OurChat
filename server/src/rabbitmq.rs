@@ -117,8 +117,26 @@ pub async fn check_exchange_exist(
     Ok(())
 }
 
-pub fn generate_client_name(user_id: ID) -> String {
-    user_id.to_string()
+/// Name of the per-STREAM queue each fetch_msgs connection consumes from.
+///
+/// Every stream gets its own queue (`{user_id}.{uuid}`) instead of sharing a
+/// queue named after the user:
+///
+/// - an `exclusive` user-named queue can only be declared by one connection,
+///   so a second stream for the same user (another device, or a test doing
+///   back-to-back fetches while the previous pooled connection still holds
+///   the queue) fails with 405 RESOURCE_LOCKED;
+/// - exclusive queues are only deleted when their declaring CONNECTION
+///   closes — pooled connections are returned, not closed, so the queue
+///   lingered and kept the lock.
+///
+/// Per-stream queues are declared non-exclusive + auto-delete: RabbitMQ
+/// removes such a queue once its last consumer goes away (the stream's
+/// channel dropping ends the consumer), which is exactly the stream's
+/// lifetime. Publishers keep addressing the user's routing key, and each
+/// stream's queue is bound to it.
+pub fn generate_stream_queue_name(user_id: ID) -> String {
+    format!("{}.{}", user_id, uuid::Uuid::new_v4())
 }
 
 pub fn generate_route_key(user_id: ID) -> String {
