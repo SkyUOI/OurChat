@@ -771,7 +771,9 @@ pub async fn wait_for_response_in_sink<T>(
 ) -> anyhow::Result<T> {
     let deadline = tokio::time::Instant::now() + timeout;
     loop {
-        if let Some(found) = sink.lock().iter().find_map(|m| pred(m)) {
+        // `&pred` instead of `|m| pred(m)`: the closure would be flagged as
+        // redundant, and moving `pred` here would not survive the loop.
+        if let Some(found) = sink.lock().iter().find_map(&pred) {
             return Ok(found);
         }
         if tokio::time::Instant::now() >= deadline {
