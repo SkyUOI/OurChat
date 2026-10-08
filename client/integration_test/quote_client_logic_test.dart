@@ -84,8 +84,10 @@ void main() {
       );
       final rowData = jsonDecode(replyRow.data) as Map<String, dynamic>;
       expect(rowData['quote_markdown_text'], 'original message');
-      expect(rowData['quote_msg_id'], original.eventId!.toInt());
-      expect(rowData['quote_sender_id'], fx.accountId.toInt());
+      // Int64 values are stored as exact decimal strings in the event data
+      // map (JSON numbers lose precision above 2^53 on the web build).
+      expect(rowData['quote_msg_id'], original.eventId.toString());
+      expect(rowData['quote_sender_id'], fx.accountId.toString());
 
       // Cleanup
       try {
