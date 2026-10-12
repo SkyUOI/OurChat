@@ -19,6 +19,6 @@ dotenvy.workspace = true
 rand.workspace = true
 bytes.workspace = true
 migration ={ path = "../migration" }
-comfy-table = "7"
+comfy-table = "8"
 derive = { path = "../derive" }
 ctor.workspace = true
